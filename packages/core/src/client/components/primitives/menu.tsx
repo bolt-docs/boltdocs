@@ -1,6 +1,6 @@
 'use client'
 
-import { Check, ChevronRight, Dot } from 'lucide-react'
+import { Check, ChevronRight } from 'lucide-react'
 import * as RAC from 'react-aria-components'
 import { Children } from 'react'
 import { Popover, type PopoverProps } from './popover'
@@ -74,14 +74,16 @@ function MenuItem(props: RAC.MenuItemProps) {
       textValue={textValue}
       className={RAC.composeRenderProps(
         props.className,
-        (className, { isFocused, isPressed, isDisabled }) =>
+        (className, { isFocused, isDisabled, isSelected }) =>
           cn(
-            'group relative flex flex-row items-center gap-2 px-2 py-1 rounded-lg outline-none cursor-default hover:cursor-pointer transition-none',
-            'text-text-main text-[12px]',
+            'group relative flex flex-row items-center gap-2 px-2 py-1.5 rounded-lg outline-none cursor-default hover:cursor-pointer transition-none',
+            'text-[12.5px] font-medium',
             {
-              'bg-bg-surface-elevated text-primary-600 ring-1 ring-border-strong/5':
-                isFocused,
-              'bg-bg-surface-elevanted': isPressed,
+              'bg-bg-surface-elevated text-text-main ring-1 ring-border-strong/5':
+                isFocused && !isSelected,
+              'text-text-main': !isSelected && !isFocused,
+              'bg-primary-500/10 text-primary-600 dark:text-primary-400': isSelected,
+              'bg-primary-500/15 ring-1 ring-primary-500/20': isSelected && isFocused,
               'opacity-40 grayscale pointer-events-none': isDisabled,
             },
             className,
@@ -92,17 +94,14 @@ function MenuItem(props: RAC.MenuItemProps) {
         props.children,
         (children, { selectionMode, isSelected, hasSubmenu }) => (
           <>
-            {selectionMode !== 'none' && (
+            {selectionMode === 'multiple' && (
               <span className="flex items-center size-4 shrink-0 justify-center">
-                {isSelected && selectionMode === 'multiple' && (
+                {isSelected && (
                   <Check className="size-3.5 stroke-[2.5px] text-primary-500 animate-in zoom-in-50 duration-200" />
-                )}
-                {isSelected && selectionMode === 'single' && (
-                  <Dot className="size-5 text-primary-500 animate-in zoom-in-50 duration-200" />
                 )}
               </span>
             )}
-            <div className="flex flex-row w-full transition-colors items-center gap-2 py-1 px-1">
+            <div className="flex flex-row w-full transition-colors items-center gap-2 py-0.5 px-1">
               {children}
             </div>
             {hasSubmenu && (
