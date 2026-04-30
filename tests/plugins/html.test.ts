@@ -222,5 +222,34 @@ describe('plugin html', () => {
       })
     })
 
+    describe('Google Tag Manager', () => {
+      const originalEnv = process.env.NODE_ENV
+
+      afterEach(() => {
+        process.env.NODE_ENV = originalEnv
+      })
+
+      it('should inject GTM script and noscript when configured in production', () => {
+        process.env.NODE_ENV = 'production'
+        const config = { integrations: { gtm: { tagId: 'GTM-TEST123' } } }
+        const result = injectHtmlMeta(baseHtml, config as any)
+
+        expect(result).toContain('https://www.googletagmanager.com/gtm.js?id=')
+        expect(result).toContain("'GTM-TEST123'")
+        expect(result).toContain('https://www.googletagmanager.com/ns.html?id=GTM-TEST123')
+        expect(result).toContain('<!-- Google Tag Manager -->')
+        expect(result).toContain('<!-- Google Tag Manager (noscript) -->')
+      })
+
+      it('should not inject GTM script in development', () => {
+        process.env.NODE_ENV = 'development'
+        const config = { integrations: { gtm: { tagId: 'GTM-TEST123' } } }
+        const result = injectHtmlMeta(baseHtml, config as any)
+
+        expect(result).not.toContain('https://www.googletagmanager.com/gtm.js')
+        expect(result).not.toContain('https://www.googletagmanager.com/ns.html')
+      })
+    })
+
   })
 })
