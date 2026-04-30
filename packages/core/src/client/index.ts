@@ -23,6 +23,7 @@ export { Breadcrumbs } from './components/ui-base/breadcrumbs'
 export { PageNav } from './components/ui-base/page-nav'
 export { ErrorBoundary } from './components/ui-base/error-boundary'
 export { CopyMarkdown } from './components/ui-base/copy-markdown'
+export { Banner } from './components/ui-base/banner'
 
 export { NotFound } from './components/ui-base/not-found'
 export { Loading } from './components/ui-base/loading'
