@@ -20,8 +20,9 @@ export function useCodeBlock(props: CodeBlockProps) {
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: updates when content changes
   useEffect(() => {
-    const codeLength = preRef.current?.textContent?.length ?? 0
-    setIsExpandable(codeLength > 120)
+    const code = preRef.current?.textContent ?? ''
+    const lines = code.trim().split('\n').length
+    setIsExpandable(lines > 12)
   }, [props.children, props.highlightedHtml])
 
   return {
