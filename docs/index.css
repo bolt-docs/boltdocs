@@ -10,3 +10,8 @@
   inside node_modules for class usage and generate the necessary CSS.
 */
 @source "./node_modules/boltdocs/src/client";
+
+html, body {
+  overflow-x: hidden;
+  max-width: 100vw;
+}

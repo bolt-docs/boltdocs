@@ -1,4 +1,4 @@
-import { CheckCircle2, Copy } from 'lucide-react'
+import { CheckCircle2, Copy, Terminal as TerminalIcon } from 'lucide-react'
 import { useState, useEffect } from 'react'
 
 export const Terminal = () => {
@@ -6,13 +6,13 @@ export const Terminal = () => {
   const [text2, setText2] = useState('')
   const [text3, setText3] = useState('')
   const [show3, setShow3] = useState(false)
+  const [isComplete, setIsComplete] = useState(false)
 
   const line2Full = '⠿ Initializing Boltdocs template...'
   const line3Full = '✔ Project created successfully'
   const command = 'pnpx create-boltdocs@latest'
 
   useEffect(() => {
-    // Start typing line 2 after 500ms
     const startTimeout = setTimeout(() => {
       let i = 0
       const interval = setInterval(() => {
@@ -20,7 +20,6 @@ export const Terminal = () => {
         i++
         if (i >= line2Full.length) {
           clearInterval(interval)
-          // Line 2 complete, show line 3 after a small delay
           setTimeout(() => setShow3(true), 300)
         }
       }, 25)
@@ -38,6 +37,7 @@ export const Terminal = () => {
       i++
       if (i >= line3Full.length) {
         clearInterval(interval)
+        setIsComplete(true)
       }
     }, 25)
 
@@ -51,56 +51,63 @@ export const Terminal = () => {
   }
 
   return (
-    <div className="max-w-2xl mx-auto mt-12 relative group">
-      <div className="relative bg-surface border border-text-main/10 rounded-xl overflow-hidden">
-        <div className="flex items-center justify-between px-4 py-3 border-b border-text-main/10">
-          <span className="text-[10px] font-mono text-on-surface-variant tracking-widest uppercase">
-            create-boltdocs
-          </span>
-          <div className="w-12" />
-        </div>
-        <div className="p-6 font-mono text-sm sm:text-base text-left min-h-[140px]">
-          {/* Line 1: Static */}
-          <div className="flex gap-4">
-            <span className="text-on-surface-variant/30 select-none">1</span>
-            <div className="flex-1 flex gap-2">
-              <span className="text-primary-300 font-bold">$</span>
-              <span className="text-primary-300">{command}</span>
+    <div className="max-w-2xl mx-auto relative group">
+      <div className="relative bg-[#0D1117] border border-white/10 rounded-xl overflow-hidden">
+        <div className="flex items-center justify-between px-4 py-2.5 bg-[#161B22] border-b border-white/5">
+          <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1.5">
+              <div className="w-3 h-3 rounded-full bg-red-500/80" />
+              <div className="w-3 h-3 rounded-full bg-yellow-500/80" />
+              <div className="w-3 h-3 rounded-full bg-green-500/80" />
             </div>
-            <button
-              type="button"
-              onClick={copyToClipboard}
-              className="hover:scale-105 hover:cursor-pointer hover:text-primary-300 transition-all focus:outline-none"
-            >
-              {copied ? (
-                <CheckCircle2 className="w-4 h-4 text-green-500" />
-              ) : (
-                <Copy className="w-4 h-4" />
-              )}
-            </button>
+            <div className="flex items-center gap-2 ml-3">
+              <TerminalIcon className="w-3.5 h-3.5 text-white/40" />
+              <span className="text-[11px] font-medium text-white/50 tracking-wide">
+                bash
+              </span>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={copyToClipboard}
+            className="p-1.5 rounded-md hover:bg-white/5 transition-colors group/copy"
+          >
+            {copied ? (
+              <CheckCircle2 className="w-4 h-4 text-green-400" />
+            ) : (
+              <Copy className="w-4 h-4 text-white/30 group-hover/copy:text-white/60 transition-colors" />
+            )}
+          </button>
+        </div>
+
+        <div className="p-5 font-mono text-sm text-left min-h-[130px]">
+          <div className="flex items-center gap-3">
+            <span className="text-white/25 select-none text-xs">$</span>
+            <span className="text-primary-300 font-medium">{command}</span>
           </div>
 
-          {/* Line 2: Animated */}
-          <div className="flex gap-4 mt-2 h-6">
-            <span className="text-purple-400 select-none">2</span>
-            <div className="flex-1 text-purple-400">
+          <div className="flex items-center gap-3 mt-2.5">
+            <span className="text-purple-400 select-none text-xs">›</span>
+            <div className="flex-1 text-purple-400 text-sm">
               {text2}
               {text2 !== line2Full && text2 !== '' && (
-                <span className="animate-pulse border-r-2 border-primary-400 ml-1 h-4" />
+                <span className="inline-block w-2 h-4 ml-0.5 align-middle bg-primary-400 animate-pulse" />
               )}
             </div>
           </div>
 
-          {/* Line 3: Animated */}
           {show3 && (
-            <div className="flex gap-4 mt-1 h-6">
-              <span className="text-green-300 select-none">3</span>
-              <div className="flex-1 text-green-300 flex items-center">
+            <div className="flex items-center gap-3 mt-1.5">
+              <span className="text-green-400 select-none text-xs">›</span>
+              <div className="flex-1 text-green-400 text-sm flex items-center">
                 {text3}
-                {text3 !== line3Full ? (
-                  <span className="animate-pulse border-r-2 border-primary-400 ml-1 h-4" />
+                {isComplete ? (
+                  <span className="ml-1.5 inline-flex items-center gap-1 text-xs text-green-400/60 bg-green-400/10 px-2 py-0.5 rounded-full">
+                    <CheckCircle2 className="w-3 h-3" />
+                    Done
+                  </span>
                 ) : (
-                  <span className="animate-pulse border-r-2 border-primary-400 ml-1 h-4" />
+                  <span className="inline-block w-2 h-4 ml-0.5 align-middle bg-primary-400 animate-pulse" />
                 )}
               </div>
             </div>

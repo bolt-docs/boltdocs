@@ -1,5 +1,7 @@
+import { useRef } from 'react'
 import { Card, Cards } from 'boltdocs/client'
 import { Globe, Monitor, Search, Shield, Zap } from 'lucide-react'
+import { useGSAPScroll, useGSAPStaggerIn } from './hooks/useGSAPScroll'
 
 const FEATURES = [
   {
@@ -46,25 +48,35 @@ const FEATURES = [
   },
 ]
 
-export const FeaturesGrid = () => (
-  <section className="py-10 px-6">
-    <div className="max-w-7xl mx-auto">
-      <div className="text-center mb-20">
-        <h2 className="text-2xl md:text-4xl font-black tracking-tighter border-0 text-text-main mb-6">
-          Powerful Features
-        </h2>
-        <p className="text-on-surface-variant max-w-2xl mx-auto text-xl leading-relaxed">
-          Everything you need to ship world-class technical documentation at the
-          speed of light.
-        </p>
+export const FeaturesGrid = () => {
+  const titleRef = useRef<HTMLHeadingElement>(null)
+  const subtitleRef = useRef<HTMLParagraphElement>(null)
+  const cardsRef = useRef<HTMLDivElement>(null)
+
+  useGSAPScroll(titleRef, { animation: 'fade-up', delay: 0, duration: 0.6 })
+  useGSAPScroll(subtitleRef, { animation: 'fade-up', delay: 0.1, duration: 0.6 })
+  useGSAPStaggerIn(cardsRef, { stagger: 0.1, duration: 0.5, y: 25 })
+
+  return (
+    <section className="py-10 px-6">
+      <div className="max-w-7xl mx-auto">
+        <div className="text-center mb-20">
+          <h2 ref={titleRef} className="text-2xl md:text-4xl font-black tracking-tighter border-0 text-text-main mb-6 opacity-0">
+            Powerful Features
+          </h2>
+          <p ref={subtitleRef} className="text-on-surface-variant max-w-2xl mx-auto text-xl leading-relaxed opacity-0">
+            Everything you need to ship world-class technical documentation at the
+            speed of light.
+          </p>
+        </div>
+        <Cards ref={cardsRef} className="md:w-[70%] mx-auto">
+          {FEATURES.map((feature) => (
+            <Card key={feature.title} title={feature.title} icon={feature.icon}>
+              {feature.description}
+            </Card>
+          ))}
+        </Cards>
       </div>
-      <Cards className="md:w-[70%] mx-auto">
-        {FEATURES.map((feature) => (
-          <Card key={feature.title} title={feature.title} icon={feature.icon}>
-            {feature.description}
-          </Card>
-        ))}
-      </Cards>
-    </div>
-  </section>
-)
+    </section>
+  )
+}

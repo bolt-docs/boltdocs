@@ -34,6 +34,12 @@ export const FEATURES: Feature[] = [
     category: 'Integrations',
   },
   {
+    name: 'Google Tag Manager',
+    description: 'Support for google tag manager',
+    status: 'completed',
+    category: 'Integrations',
+  },
+  {
     name: 'Algolia Integration',
     description: 'Support for algolia search',
     status: 'planned',
