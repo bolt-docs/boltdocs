@@ -221,6 +221,11 @@ export const IntegrationsConfigSchema = z.object({
       debug: z.boolean().optional(),
     })
     .optional(),
+  gtm: z
+    .object({
+      tagId: z.string().min(1, 'Tag ID is required for GTM'),
+    })
+    .optional(),
 })
 
 /**

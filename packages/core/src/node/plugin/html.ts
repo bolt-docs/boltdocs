@@ -100,7 +100,35 @@ export function injectHtmlMeta(html: string, config: BoltdocsConfig): string {
     }
   }
 
-  html = html.replace('</head>', `    ${seoTags}\n${themeScript}\n${ga4Script}  </head>`)
+  let gtmScript = ''
+  let gtmNoScript = ''
+  if (config.integrations?.gtm) {
+    const gtm = config.integrations.gtm
+    const isProd = process.env.NODE_ENV === 'production'
+    if (isProd) {
+      gtmScript = `
+    <!-- Google Tag Manager -->
+    <script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
+    new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
+    j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
+    'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
+    })(window,document,'script','dataLayer','${gtm.tagId}');</script>
+    <!-- End Google Tag Manager -->
+`
+      gtmNoScript = `
+    <!-- Google Tag Manager (noscript) -->
+    <noscript><iframe src="https://www.googletagmanager.com/ns.html?id=${gtm.tagId}"
+    height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
+    <!-- End Google Tag Manager (noscript) -->
+`
+    }
+  }
+
+  html = html.replace('</head>', `    ${seoTags}\n${themeScript}\n${ga4Script}${gtmScript}  </head>`)
+
+  if (gtmNoScript) {
+    html = html.replace(/<body([^>]*)>/, `<body$1>\n${gtmNoScript}`)
+  }
 
   if (!html.includes('src/main') && !html.includes('virtual:boltdocs-entry')) {
     html = html.replace(

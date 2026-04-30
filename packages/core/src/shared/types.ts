@@ -160,6 +160,9 @@ export interface BoltdocsIntegrationsConfig {
     measurementId: string
     debug?: boolean
   }
+  gtm?: {
+    tagId: string
+  }
 }
 
 /**
