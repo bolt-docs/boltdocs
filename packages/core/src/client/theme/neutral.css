@@ -161,10 +161,11 @@
     background: transparent;
   }
   ::-webkit-scrollbar-thumb {
-    @apply bg-neutral-300 dark:bg-neutral-700 rounded-full;
+    background-color: var(--color-border-strong);
+    border-radius: 9999px;
   }
   ::-webkit-scrollbar-thumb:hover {
-    @apply bg-neutral-400 dark:bg-neutral-600;
+    background-color: var(--color-text-muted);
   }
 
   /* ═══ Content Area ═══ */
