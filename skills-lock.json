@@ -6,10 +6,52 @@
       "sourceType": "github",
       "computedHash": "494d59fffe67c87b485f4ee2fb1abd73fc9d0d508c4c8bd9c43a9edd3242f730"
     },
+    "animejs": {
+      "source": "heygen-com/hyperframes",
+      "sourceType": "github",
+      "skillPath": "skills/animejs/SKILL.md",
+      "computedHash": "87b7202252c808da0e63a82c85c2d1933c7fd2c11877be4e7851cd5ee58589e3"
+    },
+    "css-animations": {
+      "source": "heygen-com/hyperframes",
+      "sourceType": "github",
+      "skillPath": "skills/css-animations/SKILL.md",
+      "computedHash": "91be631006d3670ac18c6d35cf4709bb33118d8ef8524ee31baa3217f67acaca"
+    },
     "frontend-design": {
       "source": "anthropics/skills",
       "sourceType": "github",
       "computedHash": "516bd2154eb843a8240e43d5b285229129853114ad7075a5e141e1c08e408c84"
+    },
+    "gsap": {
+      "source": "heygen-com/hyperframes",
+      "sourceType": "github",
+      "skillPath": "skills/gsap/SKILL.md",
+      "computedHash": "8b212228e747c03450551fed20aafd07306ea20feb391098b14397e1f3019bcc"
+    },
+    "hyperframes": {
+      "source": "heygen-com/hyperframes",
+      "sourceType": "github",
+      "skillPath": "skills/hyperframes/SKILL.md",
+      "computedHash": "1e0e8ae9da9dae9900696d61b6830c7715e54b1dc5201c4247c5c8487d11cbaf"
+    },
+    "hyperframes-cli": {
+      "source": "heygen-com/hyperframes",
+      "sourceType": "github",
+      "skillPath": "skills/hyperframes-cli/SKILL.md",
+      "computedHash": "816caaca77caae6bbf32f78dc3e93f54fc61bac4139d4425bd00cb077b5849e5"
+    },
+    "hyperframes-registry": {
+      "source": "heygen-com/hyperframes",
+      "sourceType": "github",
+      "skillPath": "skills/hyperframes-registry/SKILL.md",
+      "computedHash": "187cb9060bc904c44e9a5f525ef2489b9750d398f7b82efd06568726db4fa2a4"
+    },
+    "lottie": {
+      "source": "heygen-com/hyperframes",
+      "sourceType": "github",
+      "skillPath": "skills/lottie/SKILL.md",
+      "computedHash": "63dc4bcf80ec7f3c38560e811115eda7fb436190205c6fbc14089b423e658939"
     },
     "nodejs-backend-patterns": {
       "source": "wshobson/agents",
@@ -26,15 +68,33 @@
       "sourceType": "github",
       "computedHash": "87789a786b96f99ba0680e89345a975106e10e7db1071c7cdc2e76d507c449d6"
     },
+    "remotion-to-hyperframes": {
+      "source": "heygen-com/hyperframes",
+      "sourceType": "github",
+      "skillPath": "skills/remotion-to-hyperframes/SKILL.md",
+      "computedHash": "9988b32a8b15ea30824ba36b8549e336eddeba48786c063a8057eb96f421d4a8"
+    },
     "seo": {
       "source": "addyosmani/web-quality-skills",
       "sourceType": "github",
       "computedHash": "680cc12a17e9308b4592a2751db51615c618993f75362cb8e64207f6355a8c63"
     },
+    "tailwind": {
+      "source": "heygen-com/hyperframes",
+      "sourceType": "github",
+      "skillPath": "skills/tailwind/SKILL.md",
+      "computedHash": "528e205c2453c9fbfc9c41b5bb0d7b1278195e09536b3f8ebb76eb7bc5326e75"
+    },
     "tailwind-css-patterns": {
       "source": "giuseppe-trisciuoglio/developer-kit",
       "sourceType": "github",
       "computedHash": "2fa1b2d4e0bc020dcbaa1e65af6f7ba75715116686e0fd663a4b268c8ace22d4"
+    },
+    "three": {
+      "source": "heygen-com/hyperframes",
+      "sourceType": "github",
+      "skillPath": "skills/three/SKILL.md",
+      "computedHash": "9be3cc37c69221363c00461b34df4165be72163250b6e6de0e9ade27692367e2"
     },
     "turborepo": {
       "source": "vercel/turborepo",
@@ -65,6 +125,18 @@
       "source": "antfu/skills",
       "sourceType": "github",
       "computedHash": "0efd9cf8c56aada060d418d009cfe621a7915d0c73a958fe611985bc0c2fa4b8"
+    },
+    "waapi": {
+      "source": "heygen-com/hyperframes",
+      "sourceType": "github",
+      "skillPath": "skills/waapi/SKILL.md",
+      "computedHash": "f7438b7b45048c41d28a3c16e5f25a2547d2bd3ee67335a1ec8695f66ad17850"
+    },
+    "website-to-hyperframes": {
+      "source": "heygen-com/hyperframes",
+      "sourceType": "github",
+      "skillPath": "skills/website-to-hyperframes/SKILL.md",
+      "computedHash": "19cac4db1463f0b670ca903c13e61ef62974d1578cf3432a44835d353540dce6"
     }
   }
 }
