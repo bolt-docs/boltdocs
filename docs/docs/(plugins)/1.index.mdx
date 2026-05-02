@@ -51,6 +51,8 @@ Permissions are the foundation of the Boltdocs sandbox. Here are the available v
 | `components` | Allows registering **Global Components** for MDX. |
 | `hooks:build` | Enables access to build-time lifecycle hooks (`beforeBuild`, etc.). |
 | `hooks:dev` | Enables access to dev-server lifecycle hooks (`beforeDev`, etc.). |
+| `analytics:track` | Allows tracking analytics events client-side. |
+| `analytics:config` | Allows accessing analytics configuration. |
 
 ---
 
@@ -181,3 +183,4 @@ export default function auditPlugin() {
 ## Official Plugins
 
 - [**Mermaid Plugin**](/docs/plugins/mermaid) — Render diagrams within your documentation with full sandbox isolation.
+- [**Analytics Plugin**](/docs/plugins/analytics) — Programmatic tracking API for custom events and advanced analytics control.

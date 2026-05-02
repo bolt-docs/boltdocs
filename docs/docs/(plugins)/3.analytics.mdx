@@ -1,0 +1,194 @@
+---
+title: Analytics Plugin
+description: Advanced analytics tracking with @bdocs/plugin-analytics for Google Analytics 4 and Google Tag Manager.
+---
+
+import { Note, Tip, Warning, Field } from 'boltdocs/client'
+
+# Analytics Plugin
+
+The `@bdocs/plugin-analytics` package gives you full control over tracking behavior with a programmatic API. It's perfect when you need custom events, advanced filtering, or want to build analytics into your own components.
+
+## When to use this
+
+This plugin provides a programmatic API for tracking. If you only need to enable basic tracking via your configuration file, see the [Integrations Guide](/docs/guides/integrations) instead.
+
+<Note>
+The plugin is automatically configured by your `boltdocs.config.ts`. You only need to use this API if you want to track custom events or access analytics in your own components.
+</Note>
+
+## Installation
+
+```bash
+pnpm add @bdocs/plugin-analytics
+```
+
+No configuration needed — it reads from your `boltdocs.config.ts` automatically.
+
+## Using the Hooks
+
+### `useAnalytics`
+
+The main hook that gives you access to the analytics instance:
+
+```tsx
+import { useAnalytics } from 'boltdocs/client'
+
+function DocsCTA() {
+  const analytics = useAnalytics()
+
+  if (!analytics.isEnabled) {
+    return <div>Analytics not available</div>
+  }
+
+  return (
+    <button onClick={() => {
+      analytics.trackEvent({
+        action: 'click',
+        category: 'cta',
+        label: 'get-started',
+        value: 1
+      })
+    }}>
+      Get Started
+    </button>
+  )
+}
+```
+
+### `useTrackPageView`
+
+Track page views manually:
+
+```tsx
+import { useTrackPageView } from 'boltdocs/client'
+
+function CustomPage() {
+  const trackPageView = useTrackPageView()
+
+  useEffect(() => {
+    trackPageView('/custom', 'Custom Documentation')
+  }, [])
+
+  return <div>...</div>
+}
+```
+
+### `useTrackEvent`
+
+Track any custom event:
+
+```tsx
+import { useTrackEvent } from 'boltdocs/client'
+
+function SearchButton() {
+  const trackEvent = useTrackEvent()
+
+  return (
+    <button onClick={() => {
+      trackEvent({
+        action: 'search',
+        category: 'docs',
+        label: 'api-reference',
+        value: 42
+      })
+    }}>
+      Search
+    </button>
+  )
+}
+```
+
+## Available Methods
+
+| Method | Description | Parameters |
+|-------|-------------|-------------|
+| `trackPageView(path, title?)` | Track a page view | `path: string`, `title?: string` |
+| `trackEvent(event)` | Track a custom event | `AnalyticsEvent` object |
+| `trackSearch(query, results?)` | Track a search | `query: string`, `results?: number` |
+| `trackDownload(file, type?)` | Track a download | `file: string`, `type?: string` |
+| `trackExternalLink(url)` | Track external links | `url: string` |
+| `isEnabled` | Check if analytics is active | — |
+
+## AnalyticsEvent Object
+
+```typescript
+interface AnalyticsEvent {
+  action: string      // Event name (e.g., 'click', 'search')
+  category?: string  // Event category (e.g., 'button', 'form')
+  label?: string    // Event label (e.g., 'signup-button')
+  value?: number   // Numeric value
+  params?: Record<string, unknown> // Extra parameters
+}
+```
+
+## Example: Complete Setup
+
+```tsx title="docs/components/DocsCTA.tsx"
+import { useAnalytics } from 'boltdocs/client'
+
+export function DocsCTA() {
+  const analytics = useAnalytics()
+
+  const handleDemoClick = () => {
+    analytics.trackEvent({
+      action: 'click',
+      category: 'cta',
+      label: 'demo-request'
+    })
+  }
+
+  const handleDocDownload = () => {
+    analytics.trackDownload('documentation.pdf', 'pdf')
+  }
+
+  return (
+    <div className="cta-section">
+      <button onClick={handleDemoClick}>
+        Request a Demo
+      </button>
+
+      <button onClick={handleDocDownload}>
+        Download PDF Guide
+      </button>
+    </div>
+  )
+}
+```
+
+## Server-Side Configuration
+
+The plugin also provides server-side utilities:
+
+```ts title="packages/plugin-analytics/src/node/index.tsx"
+// Server-side Vite plugin (used internally)
+export function analyticsPlugin(options: AnalyticsVitePluginOptions)
+```
+
+This handles HTML injection automatically. You don't need to configure it directly — it's used internally when you configure the built-in integrations.
+
+## Troubleshooting
+
+**Events not firing?**
+1. Make sure you're in a client component (not server)
+2. Check if `analytics.isEnabled` is `true`
+3. Verify GA4/GTM scripts are loaded in the Network tab
+
+**TypeScript errors?**
+Ensure you have the correct types imported:
+
+```tsx
+import type { AnalyticsEvent } from '@bdocs/plugin-analytics/client'
+```
+
+**Development mode tracking?**
+By default, tracking only works in production. Use `debug: true` in your config to test locally:
+
+```ts title="boltdocs.config.ts"
+integrations: {
+  ga4: {
+    measurementId: 'G-XXXXXXXXXX',
+    debug: true
+  }
+}
+```
