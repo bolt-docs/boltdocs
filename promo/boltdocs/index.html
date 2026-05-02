@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Boltdocs - Final Impact Promo</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800;900&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/gsap.min.js"></script>
+  <style>
+    :root {
+      --primary: #6366f1;
+      --bg: #000000;
+      --fg: #ffffff;
+      --muted: #888888;
+      --accent: #6366f1;
+      --sidebar-bg: #09090b;
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background: var(--bg);
+      color: var(--fg);
+      overflow: hidden;
+      width: 1920px;
+      height: 1080px;
+    }
+
+    .container {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      background: var(--bg);
+    }
+
+    .glow {
+      position: absolute;
+      width: 1500px;
+      height: 1500px;
+      background: radial-gradient(circle, rgba(99, 102, 241, 0.12) 0%, rgba(0, 0, 0, 0) 70%);
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      pointer-events: none;
+      z-index: 1;
+    }
+
+    .content {
+      position: relative;
+      z-index: 10;
+      width: 100%;
+      height: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .scene {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      opacity: 0;
+      visibility: hidden;
+      text-align: center;
+    }
+
+    /* Typography */
+    .title-text {
+      font-size: 110px;
+      font-weight: 900;
+      letter-spacing: -4px;
+      line-height: 1;
+      margin-bottom: 20px;
+    }
+
+    .sub-text {
+      font-size: 32px;
+      font-weight: 500;
+      color: var(--muted);
+      letter-spacing: 1px;
+      text-transform: uppercase;
+    }
+
+    .highlight {
+      color: var(--accent);
+    }
+
+    /* UI Mockup (Screenshot) */
+    .mockup-wrap {
+      width: 1700px;
+      height: 850px;
+      background: transparent;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      border-radius: 12px;
+      overflow: hidden;
+      box-shadow: 0 50px 100px rgba(0,0,0,0.5);
+      position: relative;
+    }
+
+    .mockup-wrap img {
+      width: 100%;
+      height: auto;
+      display: block;
+    }
+
+    /* Feature Cards */
+    .feature-card-overlay {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: #000;
+      z-index: 100;
+      opacity: 0;
+      visibility: hidden;
+    }
+
+    .icon-box {
+      width: 220px;
+      height: 220px;
+      background: var(--accent);
+      border-radius: 56px;
+      margin: 0 auto 50px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 0 80px rgba(99, 102, 241, 0.3);
+    }
+
+    .icon-box svg {
+      width: 110px;
+      height: 110px;
+      fill: none;
+      stroke-width: 2.5;
+    }
+
+    .feature-title {
+      font-size: 100px;
+      font-weight: 800;
+      letter-spacing: -3px;
+    }
+
+    /* Code Box */
+    .code-window {
+      background: #0a0a0a;
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 24px;
+      padding: 64px;
+      width: 1100px;
+      font-family: 'Fira Code', monospace;
+      font-size: 40px;
+      text-align: left;
+      line-height: 1.4;
+    }
+
+  </style>
+</head>
+<body>
+  <div id="master-root" class="container" data-composition-id="master" data-width="1920" data-height="1080" data-start="0" data-duration="20">
+    <div class="glow"></div>
+
+    <div class="content">
+      <!-- SCENE 1: Intro (0-4s) -->
+      <div class="scene" id="scene-intro">
+        <div class="logo-white" id="intro-logo" style="width: 220px; height: 220px; margin-bottom: 40px;">
+          <svg viewBox="0 0 60 52" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M29.4449 0H19.4449V16.5L29.4449 6.5V0Z" fill="white"/>
+            <path d="M26.9449 22.7265C26.9449 22.5077 21.2201 27.0658 16.9449 28.5C13.7491 29.5721 12.3156 29.5038 8.94486 29.5C5.59532 29.4963 0 28.5 0 28.5C0 28.5 5.57953 28.5146 8.94486 27.5C12.5409 26.4158 14.8203 25.5843 17.9449 23.5C23.3445 19.898 29.4449 11.5 29.4449 11.5L29.9449 18.5C29.9449 18.5 33.5124 15.5332 36.4449 15C41.9449 14 45.4449 15 45.4449 15C45.4449 15 36.9449 19 34.4449 21.5C31.5322 24.4126 29.8582 26.9017 29.4449 31C29.1217 34.2041 29.4771 36.4508 31.4449 39C33.5792 41.765 35.952 43.0183 39.4449 43C42.677 42.9831 45.3003 42.4182 47.4449 40C49.7406 37.4113 50.2495 34.4466 49.9449 31C49.6603 27.7804 48.4876 25.4953 45.9449 23.5C43.2931 21.4191 36.4449 24 36.4449 24L47.4449 15.5C47.4449 15.5 50.4449 16 53.4449 19C56.4449 22 57.4449 23.5 57.9449 24.5C58.4449 25.5 59.9449 28.5 59.9449 33.5C59.9449 36.4869 59.9449 37.5 57.9449 41.5C55.9449 45.5 52.9449 47.5 52.9449 47.5C52.9449 47.5 51.9449 48.5 49.9449 49.5C47.9449 50.5 45.9289 50.8863 44.9449 51.1121C43.2783 51.4944 42.7023 51.5 41.4449 51.5C40.6256 51.5 39.3731 51.3693 37.9449 51.0624C36.9972 50.8587 35.9722 50.5774 34.9449 50.2051C33.7409 49.7688 32.5339 49.2076 31.4449 48.5C30.6262 47.9681 29.4449 47 29.4449 47V51H19.4449V37.9904L22.9449 31.4226L26.9449 22.7265Z" fill="white"/>
+          </svg>
+        </div>
+        <h1 class="title-text" style="letter-spacing: -2px;" id="intro-title">Boltdocs</h1>
+        <p class="sub-text" id="intro-sub">Open Source • Fast • Beautiful</p>
+      </div>
+
+      <!-- SCENE 2: The Interface (4-8s) -->
+      <div class="scene" id="scene-ui">
+        <h2 class="title-text" style="font-size: 80px; margin-bottom: 60px;">Beautiful by <span class="highlight">Default</span></h2>
+        <div class="mockup-wrap" id="ui-mockup">
+          <img src="assets/ui-by-default.png" alt="Boltdocs UI">
+        </div>
+      </div>
+
+      <!-- SCENE 3: RAPID FEATURES (8-12s) -->
+      <div class="scene" id="scene-rapid">
+        <!-- Feature 1 -->
+        <div class="feature-card-overlay" id="f1">
+          <div class="feature-card-impact">
+            <div class="icon-box"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#121212" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-component-icon lucide-component">
+              <title>Components</title>
+              <path d="M15.536 11.293a1 1 0 0 0 0 1.414l2.376 2.377a1 1 0 0 0 1.414 0l2.377-2.377a1 1 0 0 0 0-1.414l-2.377-2.377a1 1 0 0 0-1.414 0z"/><path d="M2.297 11.293a1 1 0 0 0 0 1.414l2.377 2.377a1 1 0 0 0 1.414 0l2.377-2.377a1 1 0 0 0 0-1.414L6.088 8.916a1 1 0 0 0-1.414 0z"/><path d="M8.916 17.912a1 1 0 0 0 0 1.415l2.377 2.376a1 1 0 0 0 1.414 0l2.377-2.376a1 1 0 0 0 0-1.415l-2.377-2.376a1 1 0 0 0-1.414 0z"/><path d="M8.916 4.674a1 1 0 0 0 0 1.414l2.377 2.376a1 1 0 0 0 1.414 0l2.377-2.376a1 1 0 0 0 0-1.414l-2.377-2.377a1 1 0 0 0-1.414 0z"/></svg></div>
+            <h3 class="feature-title">15+ <span class="highlight">MDX</span> Components</h3>
+          </div>
+        </div>
+        <!-- Feature 2 -->
+        <div class="feature-card-overlay" id="f2">
+          <div class="feature-card-impact">
+            <div class="icon-box" style="background: #fff;"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#121212" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-astroid-icon lucide-astroid">
+              <title>Astroid</title>
+              <path d="M12.983 21.186a1 1 0 0 1-1.966 0 10 10 0 0 0-8.203-8.203 1 1 0 0 1 0-1.966 10 10 0 0 0 8.203-8.203 1 1 0 0 1 1.966 0 10 10 0 0 0 8.203 8.203 1 1 0 0 1 0 1.966 10 10 0 0 0-8.203 8.203"/></svg></div>
+            <h3 class="feature-title">Lightning <span class="highlight">Fast</span> SEO</h3>
+          </div>
+        </div>
+        <!-- Feature 3 -->
+        <div class="feature-card-overlay" id="f3">
+          <div class="feature-card-impact">
+            <div class="icon-box"><svg role="img" stroke="#121212" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><title>Mermaid</title><path d="M23.99 2.115A12.223 12.223 0 0 0 12 10.149 12.223 12.223 0 0 0 .01 2.115a12.23 12.23 0 0 0 5.32 10.604 6.562 6.562 0 0 1 2.845 5.423v3.754h7.65v-3.754a6.561 6.561 0 0 1 2.844-5.423 12.223 12.223 0 0 0 5.32-10.604Z"/></svg></div>
+            <h3 class="feature-title">Native <span class="highlight">Mermaid</span> Support</h3>
+          </div>
+        </div>
+        <!-- Feature 4 -->
+        <div class="feature-card-overlay" id="f4">
+          <div class="feature-card-impact">
+            <div class="icon-box" style="background: #fff;"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#121212" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-settings-icon lucide-settings">
+              <title>Settings</title>
+              <path d="M9.671 4.136a2.34 2.34 0 0 1 4.659 0 2.34 2.34 0 0 0 3.319 1.915 2.34 2.34 0 0 1 2.33 4.033 2.34 2.34 0 0 0 0 3.831 2.34 2.34 0 0 1-2.33 4.033 2.34 2.34 0 0 0-3.319 1.915 2.34 2.34 0 0 1-4.659 0 2.34 2.34 0 0 0-3.32-1.915 2.34 2.34 0 0 1-2.33-4.033 2.34 2.34 0 0 0 0-3.831A2.34 2.34 0 0 1 6.35 6.051a2.34 2.34 0 0 0 3.319-1.915"/><circle cx="12" cy="12" r="3"/></svg></div>
+            <h3 class="feature-title">Minimal <span class="highlight">Config</span> Deploy</h3>
+          </div>
+        </div>
+      </div>
+
+      <!-- SCENE 4: Developers (12-16s) -->
+      <div class="scene" id="scene-dev">
+        <h2 class="title-text" style="font-size: 80px; margin-bottom: 60px;">Engineered for <span class="highlight">Scale</span></h2>
+        <div class="code-window" id="code-reveal">
+          <div class="line" style="color: #c084fc;">export default defineConfig({</div>
+          <div class="line">&nbsp;&nbsp;plugins: [<span style="color: #60a5fa;">mermaidPlugin()</span>],</div>
+          <div class="line">&nbsp;&nbsp;siteUrl: <span style="color: #4ade80;">'https://boltdocs.vercel.app/'</span>,</div>
+          <div class="line">&nbsp;&nbsp;seo: { indexing: <span style="color: #4ade80;">'all'</span> },</div>
+          <div class="line">&nbsp;&nbsp;theme: {</div>
+          <div class="line">&nbsp;&nbsp;&nbsp;&nbsp;title: <span style="color: #4ade80;">'boltdocs'</span>,</div>
+          <div class="line">&nbsp;&nbsp;&nbsp;&nbsp;description: <span style="color: #4ade80;">'The documentation engine.'</span></div>
+          <div class="line">&nbsp;&nbsp;}</div>
+          <div class="line" style="color: #c084fc;">});</div>
+        </div>
+      </div>
+
+      <!-- SCENE 5: Final (16-20s) -->
+      <div class="scene" id="scene-outro">
+        <div class="logo-white" id="outro-logo" style="width: 180px; height: 180px; margin-bottom: 40px;">
+          <svg viewBox="0 0 60 52" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M29.4449 0H19.4449V16.5L29.4449 6.5V0Z" fill="white"/>
+            <path d="M26.9449 22.7265C26.9449 22.5077 21.2201 27.0658 16.9449 28.5C13.7491 29.5721 12.3156 29.5038 8.94486 29.5C5.59532 29.4963 0 28.5 0 28.5C0 28.5 5.57953 28.5146 8.94486 27.5C12.5409 26.4158 14.8203 25.5843 17.9449 23.5C23.3445 19.898 29.4449 11.5 29.4449 11.5L29.9449 18.5C29.9449 18.5 33.5124 15.5332 36.4449 15C41.9449 14 45.4449 15 45.4449 15C45.4449 15 36.9449 19 34.4449 21.5C31.5322 24.4126 29.8582 26.9017 29.4449 31C29.1217 34.2041 29.4771 36.4508 31.4449 39C33.5792 41.765 35.952 43.0183 39.4449 43C42.677 42.9831 45.3003 42.4182 47.4449 40C49.7406 37.4113 50.2495 34.4466 49.9449 31C49.6603 27.7804 48.4876 25.4953 45.9449 23.5C43.2931 21.4191 36.4449 24 36.4449 24L47.4449 15.5C47.4449 15.5 50.4449 16 53.4449 19C56.4449 22 57.4449 23.5 57.9449 24.5C58.4449 25.5 59.9449 28.5 59.9449 33.5C59.9449 36.4869 59.9449 37.5 57.9449 41.5C55.9449 45.5 52.9449 47.5 52.9449 47.5C52.9449 47.5 51.9449 48.5 49.9449 49.5C47.9449 50.5 45.9289 50.8863 44.9449 51.1121C43.2783 51.4944 42.7023 51.5 41.4449 51.5C40.6256 51.5 39.3731 51.3693 37.9449 51.0624C36.9972 50.8587 35.9722 50.5774 34.9449 50.2051C33.7409 49.7688 32.5339 49.2076 31.4449 48.5C30.6262 47.9681 29.4449 47 29.4449 47V51H19.4449V37.9904L22.9449 31.4226L26.9449 22.7265Z" fill="white"/>
+          </svg>
+        </div>
+        <h1 class="title-text" style="letter-spacing: -2px;">Boltdocs</h1>
+        <p class="sub-text" style="color: #fff; margin-bottom: 60px;">The future of documentation</p>
+        <div class="highlight" style="font-size: 32px; font-weight: 800;">boltdocs.vercel.app</div>
+      </div>
+
+    </div>
+  </div>
+
+  <script>
+    const fps = 30;
+
+    function registerAnimations() {
+      const tl = gsap.timeline({ paused: true });
+
+      // GLOBAL BG GLOW
+      tl.to('.glow', { x: '+=100', y: '+=50', duration: 20, ease: 'none' }, 0);
+
+      // --- SCENE 1: INTRO (0-4s) ---
+      tl.set('#scene-intro', { opacity: 1, visibility: 'visible' }, 0);
+      tl.from('#intro-logo', { scale: 3, opacity: 0, duration: 1.2, ease: 'power4.out' }, 0.2);
+      tl.from('#intro-title', { y: 100, opacity: 0, duration: 1, ease: 'expo.out' }, 0.5);
+      tl.from('#intro-sub', { opacity: 0, y: 20, duration: 1 }, 0.8);
+
+      tl.to('#scene-intro', { scale: 0.8, opacity: 0, duration: 0.6, ease: 'power4.in' }, 3.5);
+
+      // --- SCENE 2: UI (4-8s) ---
+      tl.set('#scene-ui', { opacity: 1, visibility: 'visible' }, 4);
+      tl.from('#scene-ui h2', { y: -50, opacity: 0, duration: 0.8 }, 4.2);
+      tl.from('#ui-mockup', { 
+        scale: 0.8, 
+        y: 100, 
+        opacity: 0, 
+        duration: 1.5, 
+        ease: 'back.out(1.7)' // This gives the "jump" anticipation feel
+      }, 4.5);
+      tl.to('#ui-mockup', { scale: 1.1, duration: 4, ease: 'none' }, 4);
+
+      tl.to('#scene-ui', { x: -2000, opacity: 0, duration: 0.6, ease: 'power4.in' }, 7.5);
+
+      // --- SCENE 3: RAPID FEATURES (8-12s) ---
+      tl.set('#scene-rapid', { opacity: 1, visibility: 'visible' }, 8);
+
+      const features = ['#f1', '#f2', '#f3', '#f4'];
+      features.forEach((id, i) => {
+        const start = 8 + (i * 0.9);
+        tl.set(id, { opacity: 1, visibility: 'visible' }, start);
+        tl.from(id + ' .feature-card-impact', { scale: 2, opacity: 0, duration: 0.4, ease: 'back.out(1.5)' }, start);
+        tl.to(id, { opacity: 0, scale: 0.5, duration: 0.3, ease: 'power4.in' }, start + 0.8);
+      });
+
+      tl.to('#scene-rapid', { opacity: 0, duration: 0.2 }, 11.8);
+
+      // --- SCENE 4: DEV SCALE (12-16s) ---
+      tl.set('#scene-dev', { opacity: 1, visibility: 'visible' }, 12);
+      tl.from('#scene-dev h2', { y: -50, opacity: 0, duration: 0.8 }, 12.2);
+      tl.from('#code-reveal', { scale: 0.9, opacity: 0, duration: 1, ease: 'power3.out' }, 12.5);
+      tl.from('#code-reveal .line', { x: -30, opacity: 0, stagger: 0.1, duration: 0.4 }, 13);
+
+      tl.to('#scene-dev', { scale: 1.5, opacity: 0, duration: 0.6, ease: 'power4.in' }, 15.5);
+
+      // --- SCENE 5: OUTRO (16-20s) ---
+      tl.set('#scene-outro', { opacity: 1, visibility: 'visible' }, 16);
+      tl.from('#outro-logo', { rotate: -180, scale: 0, opacity: 0, duration: 1, ease: 'back.out(1.7)' }, 16.5);
+      tl.from('#scene-outro h1', { y: 20, opacity: 0, duration: 0.8 }, 17);
+      tl.from('#scene-outro p', { opacity: 0, duration: 0.8 }, 17.5);
+      tl.from('#scene-outro .highlight', { scale: 0, opacity: 0, duration: 0.8, ease: 'back.out' }, 18);
+
+      return tl;
+    }
+
+    const mainTimeline = registerAnimations();
+    window.__timelines = { "master": mainTimeline };
+    window.hfSeek = function(frame) { mainTimeline.seek(frame / fps); };
+    window.hfDuration = 20;
+    window.hfFps = fps;
+  </script>
+</body>
+</html>
