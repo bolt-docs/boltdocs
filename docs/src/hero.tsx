@@ -1,6 +1,5 @@
 import { Button } from "boltdocs/client"
 import { ArrowRight } from "lucide-react"
-import { Terminal } from "./terminal"
 import Orb from "./orb"
 
 export const Hero = () => {
@@ -48,8 +47,16 @@ export const Hero = () => {
           </Button>
         </div>
 
-        <div className="mt-16">
-          <Terminal />
+        <div className="mt-16 max-w-4xl mx-auto rounded-3xl overflow-hidden border border-white/5 bg-black/20 backdrop-blur-3xl shadow-2xl relative">
+          <video
+            autoPlay
+            loop
+            muted
+            playsInline
+            className="w-full h-auto aspect-video object-cover"
+          >
+            <source src="/boltdocs-video.mp4" type="video/mp4" />
+          </video>
         </div>
       </div>
     </section>

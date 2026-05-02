@@ -8,6 +8,7 @@ export default function HomePage() {
   return (
     <div className="font-sans antialiased">
       <Hero />
+      {/* <Integrations /> */}
       <StatsSection />
       <FeaturesGrid />
       <WhyBoltdocs />
