@@ -84,9 +84,10 @@ export function getFileMtime(filePath: string): number {
  * @param filePath - The absolute path to the markdown/mdx file
  * @returns An object containing the parsed metadata (`data`) and the raw markdown (`content`)
  */
-export function parseFrontmatter(filePath: string): {
-  data: Record<string, any>
+export function parseFrontmatter(filePath: string, validate = true): {
+  data: any
   content: string
+  raw: string
 } {
   const raw = fs.readFileSync(filePath, 'utf-8')
   try {
@@ -107,6 +108,10 @@ export function parseFrontmatter(filePath: string): {
       )
     }
 
+    if (!validate) {
+      return { data, content, raw }
+    }
+
     // Validation: Schema check
     const result = FrontmatterSchema.safeParse(data)
     if (!result.success) {
@@ -124,6 +129,11 @@ export function parseFrontmatter(filePath: string): {
 
     // Sanitization: Clean metadata fields
     const sanitizedData: any = { ...validatedData }
+
+    // Auto-populate lastUpdated if missing
+    if (!sanitizedData.lastUpdated) {
+      sanitizedData.lastUpdated = getFileMtime(filePath)
+    }
     if (sanitizedData.title)
       sanitizedData.title = stripHtmlTags(sanitizedData.title).trim()
     if (sanitizedData.description)
@@ -131,11 +141,11 @@ export function parseFrontmatter(filePath: string): {
         sanitizedData.description,
       ).trim()
 
-    return { data: sanitizedData, content }
+    return { data: sanitizedData, content, raw }
   } catch (e) {
     if (e instanceof ValidationError) throw e
     // If frontmatter is malformed (e.g. while editing), return empty data and raw content
-    return { data: {}, content: raw }
+    return { data: {}, content: raw, raw }
   }
 }
 
@@ -175,9 +185,9 @@ export function escapeXml(str: string): string {
  */
 export function fileToRoutePath(relativePath: string): string {
   // Strip number prefixes and sanitize each segment
-  let cleanedPath = relativePath
+  const cleanedPath = normalizePath(relativePath)
     .split('/')
-    .map((p) => stripNumberPrefix(sanitizeFilename(p)))
+    .map((p) => sanitizeFilename(stripNumberPrefix(p)))
     .join('/')
 
   // Remove trailing slash if present
@@ -375,3 +385,17 @@ export function logSecurityEvent(
     )}`,
   )
 }
+
+/**
+ * Retrieves the global cache configuration from environment variables.
+ * Centralizes documented variables like BOLTDOCS_CACHE_DIR and BOLTDOCS_NO_CACHE.
+ */
+export function getCacheConfig() {
+  return {
+    dir: process.env.BOLTDOCS_CACHE_DIR || '.boltdocs',
+    noCache: process.env.BOLTDOCS_NO_CACHE === '1',
+    lruLimit: parseInt(process.env.BOLTDOCS_CACHE_LRU_LIMIT || '2000', 10),
+    compress: process.env.BOLTDOCS_CACHE_COMPRESS !== '0',
+  }
+}
+

@@ -159,6 +159,8 @@ export async function resolveConfig(
       : undefined,
     versions: userConfig.versions,
     siteUrl: userConfig.siteUrl,
+    base: userConfig.base,
+    seo: userConfig.seo,
     plugins: userConfig.plugins || [],
     robots: userConfig.robots,
     security: userConfig.security,

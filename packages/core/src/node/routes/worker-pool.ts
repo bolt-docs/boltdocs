@@ -1,6 +1,7 @@
 import { Worker } from 'node:worker_threads'
 import os from 'node:os'
 import path from 'node:path'
+import fs from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import type { ParsedDocFile } from './types'
 
@@ -70,14 +71,26 @@ export class WorkerPool {
   }
 
   private getWorkerPath(): string {
-    // In production, the worker is in dist/node/routes/worker.mjs
-    // In development (running with tsdown or similar), we might need to find it
-    const distPath = path.resolve(__dirname, 'worker.mjs')
-    if (path.extname(import.meta.url) === '.mjs' || import.meta.url.includes('/dist/')) {
-       return distPath
+    const isDist = import.meta.url.includes('/dist/') || path.extname(import.meta.url) === '.mjs'
+    
+    if (isDist) {
+      // In dist, worker is usually at node/routes/worker.mjs relative to the bundle root
+      // or at the same level as the chunk.
+      const distPaths = [
+        path.resolve(__dirname, 'node/routes/worker.mjs'),
+        path.resolve(__dirname, 'worker.mjs'),
+        path.resolve(__dirname, './node/routes/worker.mjs'),
+      ]
+
+      for (const p of distPaths) {
+        if (fs.existsSync(p)) return p
+      }
+
+      // Final fallback for dist
+      return path.resolve(__dirname, 'node/routes/worker.mjs')
     }
     
-    // Fallback to local .ts file if running in a TS-aware environment
+    // In development (src), worker is at the same level as worker-pool
     return path.resolve(__dirname, 'worker.ts')
   }
 

@@ -12,6 +12,7 @@ import {
   removeFrontmatterHash,
 } from './frontmatter-cache'
 import type { PluginLifecycleManager } from '../plugins'
+import { generateLinkTree } from '../cli/doctor'
 import path from 'node:path'
 
 /**
@@ -50,6 +51,11 @@ export function createDevServerPlugin(
     async configureServer(server) {
       const lifecycle = getLifecycle()
       await lifecycle?.runHook('beforeDev')
+
+      // Initial Link Tree generation
+      await generateLinkTree(docsDir, process.cwd(), getConfig()).catch(e => {
+        console.error('[boltdocs] Failed to generate initial link tree:', e)
+      })
 
       // --- Security middleware ---
       server.middlewares.use((_req, res, next) => {
@@ -201,6 +207,11 @@ export function createDevServerPlugin(
             invalidateVirtualModule(server, 'config')
             invalidateVirtualModule(server, 'routes')
             invalidateVirtualModule(server, 'search')
+
+            // Update Link Tree on structural change
+            await generateLinkTree(docsDir, process.cwd(), newConfig).catch(e => {
+              console.error('[boltdocs] Failed to update link tree:', e)
+            })
 
             server.ws.send({
               type: 'custom',

@@ -253,6 +253,7 @@ export type BoltdocsAnalyticsConfig = z.infer<typeof IntegrationsConfigSchema>
 export const BoltdocsConfigSchema = z.object({
   siteUrl: z.string().url().optional(),
   docsDir: z.string().optional(),
+  base: z.string().optional(),
   homePage: z.string().optional(),
   theme: ThemeConfigSchema.optional(),
   i18n: I18nConfigSchema.optional(),

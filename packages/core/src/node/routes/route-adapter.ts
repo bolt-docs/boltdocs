@@ -24,6 +24,12 @@ export interface SSGRouteData {
   groupIcon?: string
   subRouteGroup?: string
   seo?: Record<string, any>
+  date?: string | Date
+  lastUpdated?: string | number | Date
+  category?: string
+  order?: number
+  sidebarLabel?: string
+  sidebarHidden?: boolean
 }
 
 /**
@@ -53,5 +59,11 @@ export function adaptRoutesForSSG(routes: RouteMeta[]): SSGRouteData[] {
     groupIcon: route.groupIcon,
     subRouteGroup: route.subRouteGroup,
     seo: route.seo,
+    date: route.date,
+    lastUpdated: route.lastUpdated,
+    category: route.category,
+    order: route.order,
+    sidebarLabel: route.sidebarLabel,
+    sidebarHidden: route.sidebarHidden,
   }))
 }

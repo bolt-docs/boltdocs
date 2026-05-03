@@ -45,6 +45,10 @@ export interface ComponentRoute {
   _content?: string
   /** The raw markdown content of the page */
   _rawContent?: string
+  /** The publication date */
+  date?: string | Date
+  /** The last updated timestamp or date */
+  lastUpdated?: string | number | Date
 }
 
 /**

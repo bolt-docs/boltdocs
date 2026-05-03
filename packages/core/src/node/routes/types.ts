@@ -43,6 +43,18 @@ export interface RouteMeta {
   _rawContent?: string
   /** Extracted SEO and Open Graph metadata from frontmatter */
   seo?: Record<string, any>
+  /** The publication date */
+  date?: string | Date
+  /** The last updated timestamp or date */
+  lastUpdated?: string | number | Date
+  /** Optional category for the page */
+  category?: string
+  /** Optional explicit order (alternative to sidebarPosition) */
+  order?: number
+  /** Optional explicit label for the sidebar */
+  sidebarLabel?: string
+  /** Whether the page is hidden from the sidebar */
+  sidebarHidden?: boolean
 }
 
 /**

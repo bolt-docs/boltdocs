@@ -3,7 +3,7 @@ import path from 'path'
 import crypto from 'crypto'
 import zlib from 'zlib'
 import { promisify } from 'util'
-import { getFileMtime } from './utils'
+import { getFileMtime, getCacheConfig } from './utils'
 
 const writeFile = promisify(fs.writeFile)
 const readFile = promisify(fs.readFile)
@@ -11,20 +11,10 @@ const mkdir = promisify(fs.mkdir)
 const rename = promisify(fs.rename)
 
 /**
- * Configuration constants for the caching system.
+ * Assets and Shards directory names.
  */
-const CACHE_DIR = process.env.BOLTDOCS_CACHE_DIR || '.boltdocs'
 const ASSETS_DIR = 'assets'
 const SHARDS_DIR = 'shards'
-
-/**
- * Default limits for the caching system.
- */
-const DEFAULT_LRU_LIMIT = parseInt(
-  process.env.BOLTDOCS_CACHE_LRU_LIMIT || '2000',
-  10,
-)
-const DEFAULT_COMPRESS = process.env.BOLTDOCS_CACHE_COMPRESS !== '0'
 
 /**
  * Simple LRU cache implementation to prevent memory leaks.
@@ -101,12 +91,13 @@ export class FileCache<T> {
   constructor(
     options: { name?: string; root?: string; compress?: boolean } = {},
   ) {
+    const config = getCacheConfig()
     this.compress =
-      options.compress !== undefined ? options.compress : DEFAULT_COMPRESS
+      options.compress !== undefined ? options.compress : config.compress
     if (options.name) {
       const root = options.root || process.cwd()
       const ext = this.compress ? 'json.gz' : 'json'
-      this.cachePath = path.resolve(root, CACHE_DIR, `${options.name}.${ext}`)
+      this.cachePath = path.resolve(root, config.dir, `${options.name}.${ext}`)
     }
   }
 
@@ -114,7 +105,8 @@ export class FileCache<T> {
    * Loads the cache. Synchronous for startup simplicity but uses fast I/O.
    */
   load(): void {
-    if (process.env.BOLTDOCS_NO_CACHE === '1') return
+    const config = getCacheConfig()
+    if (config.noCache) return
     if (!this.cachePath || !fs.existsSync(this.cachePath)) return
 
     try {
@@ -133,7 +125,8 @@ export class FileCache<T> {
    * Saves the cache in the background.
    */
   save(): void {
-    if (process.env.BOLTDOCS_NO_CACHE === '1') return
+    const config = getCacheConfig()
+    if (config.noCache) return
     if (!this.cachePath) return
 
     const data = Object.fromEntries(this.entries)
@@ -208,22 +201,25 @@ export class FileCache<T> {
  */
 export class TransformCache {
   private index = new Map<string, string>() // key -> hash
-  private memoryCache = new LRUCache<string, string>(DEFAULT_LRU_LIMIT)
+  private memoryCache: LRUCache<string, string>
   private readonly baseDir: string
   private readonly shardsDir: string
   private readonly indexPath: string
 
   constructor(name: string, root: string = process.cwd()) {
-    this.baseDir = path.resolve(root, CACHE_DIR, `transform-${name}`)
+    const config = getCacheConfig()
+    this.baseDir = path.resolve(root, config.dir, `transform-${name}`)
     this.shardsDir = path.resolve(this.baseDir, SHARDS_DIR)
     this.indexPath = path.resolve(this.baseDir, 'index.json')
+    this.memoryCache = new LRUCache<string, string>(config.lruLimit)
   }
 
   /**
    * Loads the index into memory.
    */
   load(): void {
-    if (process.env.BOLTDOCS_NO_CACHE === '1') return
+    const config = getCacheConfig()
+    if (config.noCache) return
     if (!fs.existsSync(this.indexPath)) return
 
     try {
@@ -238,7 +234,8 @@ export class TransformCache {
    * Persists the index in background.
    */
   save(): void {
-    if (process.env.BOLTDOCS_NO_CACHE === '1') return
+    const config = getCacheConfig()
+    if (config.noCache) return
     const data = JSON.stringify(Object.fromEntries(this.index))
     const target = this.indexPath
 
@@ -357,7 +354,8 @@ export class AssetCache {
   private readonly assetsDir: string
 
   constructor(root: string = process.cwd()) {
-    this.assetsDir = path.resolve(root, CACHE_DIR, ASSETS_DIR)
+    const config = getCacheConfig()
+    this.assetsDir = path.resolve(root, config.dir, ASSETS_DIR)
   }
 
   private getFileHash(filePath: string): string {

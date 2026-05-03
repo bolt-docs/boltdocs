@@ -19,18 +19,15 @@ export function useLocalizedTo(to: RouterLinkProps['to']) {
 
   const i18n = config.i18n
   const versions = config.versions
-
-  if (!i18n && !versions) return to
-
-  // 1. Identify the input intent
-  const isDocLink = to.startsWith('/docs')
+  const base = (config.base || '/docs').replace(/\/$/, '')
+  const baseSegment = base.startsWith('/') ? base.substring(1) : base
 
   // 3. Clean the 'to' path of ANY existing prefixes to avoid stacking
   const parts = to.split('/').filter(Boolean)
   let pIdx = 0
 
-  // Strip '/docs' if present at start
-  if (parts[pIdx] === 'docs') pIdx++
+  // Strip base segment if present at start
+  if (baseSegment && parts[pIdx] === baseSegment) pIdx++
 
   // Strip versions if present
   if (versions && parts.length > pIdx) {
@@ -47,8 +44,8 @@ export function useLocalizedTo(to: RouterLinkProps['to']) {
   // 4. Reconstruct strictly from base
   const resultParts: string[] = []
 
-  if (isDocLink) {
-    resultParts.push('docs')
+  if (baseSegment) {
+    resultParts.push(baseSegment)
     if (versions && activeVersion) {
       resultParts.push(activeVersion)
     }

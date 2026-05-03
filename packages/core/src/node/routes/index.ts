@@ -4,7 +4,6 @@ import { capitalize } from '../utils'
 
 import type { RouteMeta, ParsedDocFile } from './types'
 import { docCache, invalidateRouteCache, invalidateFile } from './cache'
-import { parseDocFile } from './parser'
 import { sortRoutes } from './sorter'
 
 // Re-export public API
@@ -30,9 +29,10 @@ const localizedPathCache = new Map<string, string>()
 export async function generateRoutes(
   docsDir: string,
   config?: BoltdocsConfig,
-  basePath: string = '/docs',
+  basePath?: string,
   forceScan: boolean = true,
 ): Promise<RouteMeta[]> {
+  const finalBasePath = basePath || config?.base || '/docs'
   // Load persistent cache
   docCache.load()
 
@@ -40,7 +40,7 @@ export async function generateRoutes(
   localizedPathCache.clear()
 
   // Force re-parse if specifically requested (e.g. for content/config changes)
-  if (process.env.BOLTDOCS_FORCE_REPARSE === 'true' || config?.i18n) {
+  if (config?.i18n) {
     docCache.invalidateAll()
   }
 
@@ -61,19 +61,40 @@ export async function generateRoutes(
   // Prune cache entries for deleted files
   docCache.pruneStale(new Set(files))
 
-  // 2. PARALLEL PROCESSING (Worker Threads)
-  const { pool } = await import('./worker-pool')
-  
-  const parsed = await Promise.all(
-    files.map(async (file) => {
-      const cached = docCache.get(file)
-      if (cached) return cached
+  // 2. PROCESSING (Parallel Workers in Dev/Prod, Sequential in Tests)
+  const isTest = process.env.NODE_ENV === 'test' || process.env.VITEST === 'true'
 
-      const result = await pool.parseFile(file, docsDir, basePath, config)
-      docCache.set(file, result)
-      return result
-    })
-  )
+  let parsed: ParsedDocFile[]
+  if (isTest) {
+    const { parseDocFile } = await import('./parser')
+    parsed = await Promise.all(
+      files.map(async (file) => {
+        const cached = docCache.get(file)
+        if (cached) return cached
+        const result = parseDocFile(file, docsDir, finalBasePath, config)
+        docCache.set(file, result)
+        return result
+      })
+    )
+  } else {
+    const { pool } = await import('./worker-pool')
+    parsed = await Promise.all(
+      files.map(async (file) => {
+        const cached = docCache.get(file)
+        if (cached) return cached
+
+        // Sanitize config for the worker (functions like remark plugins cannot be cloned)
+        const minimalConfig = config ? {
+          i18n: config.i18n,
+          versions: config.versions,
+        } : undefined
+
+        const result = await pool.parseFile(file, docsDir, finalBasePath, minimalConfig)
+        docCache.set(file, result)
+        return result
+      })
+    )
+  }
 
   // Save cache after processing
   docCache.save()
@@ -192,7 +213,7 @@ export async function generateRoutes(
   // 5. OPTIMIZED I18N FALLBACKS
   let finalRoutes = routes
   if (config?.i18n) {
-    const fallbacks = generateI18nFallbacks(routes, config, basePath)
+    const fallbacks = generateI18nFallbacks(routes, config, finalBasePath)
     finalRoutes = [...routes, ...fallbacks]
   }
 

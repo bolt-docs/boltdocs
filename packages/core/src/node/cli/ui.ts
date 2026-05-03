@@ -1,6 +1,7 @@
+import readline from 'node:readline'
+
 /**
  * ANSI Escape sequences for terminal coloring and styling.
- * Used to provide a premium and consistent CLI experience.
  */
 export const colors = {
   reset: '\x1b[0m',
@@ -11,44 +12,64 @@ export const colors = {
   blue: '\x1b[34m',
   cyan: '\x1b[36m',
   gray: '\x1b[90m',
+  dim: '\x1b[2m',
+  magenta: '\x1b[35m',
+}
+
+/**
+ * Asks for user confirmation in the CLI.
+ */
+export function confirm(message: string): Promise<boolean> {
+  const rl = readline.createInterface({
+    input: process.stdin,
+    output: process.stdout,
+  })
+
+  return new Promise((resolve) => {
+    rl.question(`${formatLog(message, colors.yellow)} (y/N): `, (answer) => {
+      rl.close()
+      resolve(answer.toLowerCase() === 'y' || answer.toLowerCase() === 'yes')
+    })
+  })
 }
 
 /**
  * Formats a message with the boltdocs prefix and provided styling.
- *
- * @param message - The content to log
- * @param style - Optional ANSI style prefix
- * @returns The formatted string
  */
 export function formatLog(message: string, style: string = ''): string {
   return `${style}${colors.bold}[boltdocs]${colors.reset} ${message}${colors.reset}`
 }
 
-/**
- * Logs a standard informational message to the console.
- *
- * @param message - The message to display
- */
 export function info(message: string) {
   console.log(formatLog(message))
 }
 
-/**
- * Logs an error message to the console with red styling.
- *
- * @param message - The error description
- * @param error - Optional error object for stack tracing
- */
+export function warn(message: string) {
+  console.log(formatLog(message, colors.yellow))
+}
+
 export function error(message: string, error?: any) {
   console.error(formatLog(message, colors.red))
   if (error) console.error(error)
 }
 
-/**
- * Logs a success message to the console with green styling.
- *
- * @param message - The success description
- */
 export function success(message: string) {
   console.log(formatLog(message, colors.green))
+}
+
+/**
+ * Prints a horizontal divider.
+ */
+export function divider() {
+  console.log(colors.gray + '─'.repeat(50) + colors.reset)
+}
+
+/**
+ * Prints a boxed title.
+ */
+export function box(title: string) {
+  const line = '━'.repeat(title.length + 4)
+  console.log(`\n${colors.cyan}┏${line}┓`)
+  console.log(`┃  ${colors.bold}${title}${colors.reset}${colors.cyan}  ┃`)
+  console.log(`┗${line}┛${colors.reset}\n`)
 }
