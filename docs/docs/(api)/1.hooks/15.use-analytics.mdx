@@ -1,0 +1,297 @@
+---
+title: useAnalytics
+description: Track page views, custom events, downloads, and external links in your documentation.
+---
+
+import { Note, Tip, Warning } from 'boltdocs/client'
+
+# useAnalytics
+
+Track user interactions, page views, downloads, and custom events in your documentation. The analytics hooks are automatically configured when you set up `integrations` in your `boltdocs.config.ts` — no extra installation needed.
+
+<Note>
+If you only need basic page view tracking, just configure `integrations` in your config file. Use these hooks when you need custom event tracking or programmatic access to analytics.
+</Note>
+
+## Quick Start
+
+### 1. Configure in boltdocs.config.ts
+
+```ts title="boltdocs.config.ts"
+export default defineConfig({
+  integrations: {
+    ga4: {
+      measurementId: 'G-XXXXXXXXXX'
+    }
+  }
+})
+```
+
+### 2. Use in your components
+
+```tsx
+import { useAnalytics } from 'boltdocs/client'
+
+function DocsCTA() {
+  const { trackEvent, isEnabled } = useAnalytics()
+
+  return (
+    <button 
+      onClick={() => trackEvent({ action: 'click', category: 'cta' })}
+      disabled={!isEnabled}
+    >
+      Get Started
+    </button>
+  )
+}
+```
+
+## How it works
+
+When you configure `integrations` in your config:
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│  boltdocs.config.ts                                      │
+│  integrations: { ga4: { measurementId: 'G-XXX' } }     │
+└─────────────────────────────────────────────────────────────────┘
+                           │
+                           ▼
+┌─────────────────────────────────────────────────────────────────┐
+│  Automatic (no code needed)                             │
+│  1. Scripts injected in every page                    │
+│  2. Auto-track: pageViews, downloads, externalLinks    │
+└─────────────────────────────────────────────────────────────────┘
+                           │
+                           ▼
+┌─────────────────────────────────────────────────────────────────┐
+│  useAnalytics() → uses config automatically             │
+│  - isEnabled: checks if gtag/dataLayer exists      │
+│  - trackEvent(), trackPageView(), etc.        │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+## API
+
+### `useAnalytics`
+
+Returns an analytics instance with tracking methods:
+
+```tsx
+const {
+  trackPageView,
+  trackEvent,
+  trackSearch,
+  trackDownload,
+  trackExternalLink,
+  isEnabled
+} = useAnalytics()
+```
+
+#### Options
+
+You can override the config or disable auto-tracking:
+
+```tsx
+useAnalytics({
+  config: { ga4: { measurementId: 'G-XXX' } }, // Override config
+  autoTrackPageViews: true,    // Default: true
+  autoTrackDownloads: true,     // Default: true
+  autoTrackExternalLinks: true, // Default: true
+  excludePatterns: [/^\/admin/]  // Exclude paths from tracking
+})
+```
+
+| Option | Type | Default | Description |
+|--------|------|---------|-------------|
+| `config` | `BoltdocsIntegrationsConfig` | From config file | Override integrations config |
+| `autoTrackPageViews` | `boolean` | `true` | Auto-track page navigation |
+| `autoTrackDownloads` | `boolean` | `true` | Auto-track file downloads |
+| `autoTrackExternalLinks` | `boolean` | `true` | Auto-track external links |
+| `excludePatterns` | `RegExp[]` | `[]` | Paths to exclude |
+
+### Returns
+
+| Property | Type | Description |
+|----------|------|-------------|
+| `trackPageView(path, title?)` | `(path: string, title?: string) => void` | Track a page view |
+| `trackEvent(event)` | `(event: AnalyticsEvent) => void` | Track a custom event |
+| `trackSearch(query, results?)` | `(query: string, results?: number) => void` | Track a search |
+| `trackDownload(file, type?)` | `(file: string, type?: string) => void` | Track a download |
+| `trackExternalLink(url)` | `(url: string) => void` | Track external link click |
+| `isEnabled` | `boolean` | Whether analytics is available |
+
+### `AnalyticsEvent`
+
+```typescript
+interface AnalyticsEvent {
+  action: string       // Event name (e.g., 'click', 'search')
+  category?: string // Event category (e.g., 'button', 'form')
+  label?: string   // Event label (e.g., 'signup-button')
+  value?: number  // Numeric value
+  params?: Record<string, unknown> // Extra parameters
+}
+```
+
+## Examples
+
+### Track a button click
+
+```tsx
+import { useAnalytics } from 'boltdocs/client'
+
+function SignupButton() {
+  const { trackEvent } = useAnalytics()
+
+  return (
+    <button onClick={() => trackEvent({ 
+      action: 'click', 
+      category: 'conversion', 
+      label: 'signup' 
+    })}>
+      Sign Up
+    </button>
+  )
+}
+```
+
+### Track a download
+
+```tsx
+import { useAnalytics } from 'boltdocs/client'
+
+function DownloadButton({ file }: { file: string }) {
+  const { trackDownload, isEnabled } = useAnalytics()
+
+  return (
+    <button onClick={() => trackDownload(file)} disabled={!isEnabled}>
+      Download {file}
+    </button>
+  )
+}
+```
+
+### Track search queries
+
+```tsx
+import { useAnalytics } from 'boltdocs/client'
+
+function SearchResults({ query, results }: { query: string; results: number }) {
+  const { trackSearch } = useAnalytics()
+
+  useEffect(() => {
+    trackSearch(query, results)
+  }, [query, results])
+
+  return <div>...</div>
+}
+```
+
+### Check if analytics is available
+
+```tsx
+import { useAnalytics } from 'boltdocs/client'
+
+function AnalyticsStatus() {
+  const { isEnabled } = useAnalytics()
+
+  if (!isEnabled) {
+    return <div>Analytics not configured</div>
+  }
+
+  return <div>Analytics active</div>
+}
+```
+
+## Alternative: useTrackEvent
+
+Shorthand for tracking events without destructuring:
+
+```tsx
+import { useTrackEvent } from 'boltdocs/client'
+
+function CTAButton() {
+  const trackEvent = useTrackEvent()
+
+  return (
+    <button onClick={() => trackEvent({ action: 'click', label: 'cta' })}>
+      Click me
+    </button>
+  )
+}
+```
+
+## Alternative: useTrackPageView
+
+Shorthand for tracking page views:
+
+```tsx
+import { useTrackPageView } from 'boltdocs/client'
+
+function CustomPage() {
+  const trackPageView = useTrackPageView()
+
+  useEffect(() => {
+    trackPageView('/custom', 'Custom Documentation')
+  }, [])
+
+  return <div>...</div>
+}
+```
+
+## Configuration
+
+Full configuration example:
+
+```ts title="boltdocs.config.ts"
+export default defineConfig({
+  integrations: {
+    ga4: {
+      measurementId: 'G-XXXXXXXXXX',
+      debug: process.env.NODE_ENV !== 'production', // Test locally
+      anonymizeIp: true,                         // GDPR-friendly
+      sendPageView: true,
+      autoTrack: {
+        pageViews: true,
+        downloads: true,
+        externalLinks: true,
+        search: true
+      }
+    }
+  }
+})
+```
+
+## Troubleshooting
+
+**Events not firing?**
+1. Check if `isEnabled` is `true`
+2. Verify GA4/GTM scripts in Network tab
+3. Make sure you're in a client component
+
+**Want to track without config?**
+Pass config directly to the hook:
+
+```tsx
+useAnalytics({
+  config: { ga4: { measurementId: 'G-XXX' } }
+})
+```
+
+**Development mode tracking?**
+Set `debug: true` in your config:
+
+```ts
+integrations: {
+  ga4: { measurementId: 'G-XXX', debug: true }
+}
+```
+
+<Warning>
+Remove `debug: true` before production deployments.
+</Warning>
+
+## See Also
+
+- [Google Analytics 4](/docs/guides/integrations/google-analytics-4) — Basic GA4 setup
+- [Google Tag Manager](/docs/guides/integrations/google-tag-manager) — Use GTM instead

@@ -1,15 +1,15 @@
-import { useEffect, useRef } from 'react'
+import { useEffect } from 'react'
 import { gsap } from 'gsap'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
 
-if (typeof window !== 'undefined') {
+if (typeof window !== 'undefined' && typeof window.matchMedia === 'function') {
   gsap.registerPlugin(ScrollTrigger)
 }
 
-type AnimationType = 
-  | 'fade-up' 
+type AnimationType =
+  | 'fade-up'
   | 'fade-down'
-  | 'fade-in' 
+  | 'fade-in'
   | 'scale-up'
   | 'scale-down'
   | 'slide-left'
@@ -78,7 +78,7 @@ export function useGSAPScroll(ref: React.RefObject<HTMLElement | null>, options:
 
     const ctx = gsap.context(() => {
       const { from, to } = getAnimationProps(animation, intensity)
-      
+
       gsap.fromTo(ref.current, from, {
         ...to,
         duration,
@@ -125,8 +125,8 @@ export function useGSAPSectionReveal(ref: React.RefObject<HTMLElement | null>) {
 
     const ctx = gsap.context(() => {
       const element = ref.current!
-      
-      gsap.fromTo(element, 
+
+      gsap.fromTo(element,
         { opacity: 0, y: 60, scale: 0.98 },
         {
           opacity: 1,
