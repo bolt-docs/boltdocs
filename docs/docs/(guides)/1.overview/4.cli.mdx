@@ -89,29 +89,35 @@ pnpm boltdocs preview
 
 ---
 
-### `boltdocs doctor` <Badge variant={'warning'}>Experimetal</Badge>
+### `boltdocs doctor` <Badge variant={'success'}>Stable</Badge>
 
-Runs automated health checks on your documentation to catch issues before they reach production.
+Your personal documentation health assistant. Scans your project for broken links, missing metadata, and structural issues.
 
 ```bash
-pnpm boltdocs doctor
+pnpm boltdocs doctor [options]
 ```
 
-The doctor command checks for:
+#### Core Options
+
+- **`--init`**: Creates the `doctor.json` file with base configuration and autocompletion support.
+- **`--fix`**: Attempts to automatically repair broken links and create missing translation files.
+- **`--checkExternal`**: Validates that links to external websites are still active.
+
+#### What does it check?
 
 <Table
   headers={["Check", "Severity", "Description"]}
   data={[
-    ['Broken internal links', 'HIGH', 'Markdown and HTML links pointing to files that don\'t exist.'],
-    ['Missing title', 'WARNING', 'Pages without a `title` field in frontmatter.'],
-    ['Missing description', 'LOW', 'Pages without a `description` field (affects SEO).'],
-    ['Orphaned translations', 'WARNING', 'Default locale pages missing translations in other locales.'],
+    ['Internal Links', 'CRITICAL', 'Links pointing to files that don\'t exist or misconfigured routes.'],
+    ['Metadata (SEO)', 'VARIABLE', 'Validates titles, descriptions, and custom required fields.'],
+    ['Sidebar', 'HIGH', 'Detects broken navigation links and orphaned pages.'],
+    ['Translations', 'MEDIUM', 'Ensures content parity across different supported locales.'],
   ]}
 />
 
-**Exit codes**: Returns `1` if any HIGH-severity issues are found (useful for CI/CD pipelines).
+**CI/CD Integration**: The command returns exit code `1` if critical errors are found, making it ideal for blocking deployments with broken documentation.
 
-For full details, see the [Doctor guide](/docs/guides/core-concepts/doctor).
+For deep configuration and safety tips, see the full [Doctor Guide](/docs/guides/core-concepts/doctor).
 
 ---
 

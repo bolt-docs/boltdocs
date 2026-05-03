@@ -44,7 +44,7 @@ The routing pipeline works like this:
     Folders become sidebar groups. An `index.mdx` inside a folder doubles as the group's main page and provides group-level metadata (title, icon, position).
   </Card>
   <Card title="Custom Permalinks" icon={<Link />}>
-    Override any auto-generated route by adding `permalink: /my-path` to the frontmatter. The file keeps its physical location, but the URL changes.
+    Override any auto-generated route by adding `permalink: /my-path` to the frontmatter. The URL becomes `/{base}/my-path`.
   </Card>
   <Card title="Tab Directories" icon={<Layers />}>
     Wrap a folder name in parentheses — `(guides)/` — to associate it with a navigation tab. The parenthesized name is removed from the URL.
@@ -61,26 +61,52 @@ The routing pipeline works like this:
 When Boltdocs computes a URL, it processes the file path through a specific hierarchy:
 
 ```
-/docs/{version}/{locale}/{clean-path}
+/{base}/{version}/{locale}/{clean-path}
 ```
 
 Each layer is **optional** and only added when the corresponding feature is enabled:
 
 | Layer | Source | Example |
 | :--- | :--- | :--- |
-| Base | Always `/docs` | `/docs` |
-| Version | Folder matching `versions` config | `/docs/v2` |
-| Locale | Folder matching `i18n.locales` | `/docs/v2/es` |
-| Clean Path | Remaining path with prefixes stripped | `/docs/v2/es/getting-started/installation` |
+| **Base** | `base` config (Default: `/docs`) | `/docs` |
+| **Version** | Folder matching `versions` config | `/docs/v2` |
+| **Locale** | Folder matching `i18n.locales` | `/docs/v2/es` |
+| **Clean Path** | Remaining path with prefixes stripped | `/docs/v2/es/getting-started/installation` |
 
-### Parsing Order
+---
 
-The router processes directories in this exact order:
+## Automatic Base Prefixing
 
-1. **Version directory** — checked first (e.g., `v1/`, `v2/`)
-2. **Locale directory** — checked second (e.g., `en/`, `es/`)
-3. **Tab directory** — checked third (e.g., `(guides)/`, `(api)/`)
-4. **Group directory** — everything else becomes sidebar groups
+Boltdocs automatically handles the base path for all internal links. This means you don't need to hardcode your base path (e.g., `/docs`) when linking between pages.
+
+### How it works
+
+When using a standard Markdown link or the `<Link>` component:
+- `[Installation](/getting-started/installation)`
+- Automatically becomes: `/docs/getting-started/installation`
+
+This behavior ensures your documentation remains portable. If you change your `base` configuration from `/docs` to `/v2`, all your internal links will automatically point to the new path.
+
+<Tip>
+  You can still use absolute paths if you prefer (e.g. `[Home](/docs)`), but Boltdocs will normalize them to avoid duplication.
+</Tip>
+
+---
+
+## Custom Permalinks
+
+You can specify a custom URL for any page using the `permalink` frontmatter field:
+
+```yaml
+---
+title: "Custom URL"
+permalink: /test/my-custom-path
+---
+```
+
+**Important considerations:**
+1. **Base Prefixing:** The permalink is automatically prefixed with your project's `base`. In the example above, the final URL will be `/docs/test/my-custom-path`.
+2. **Path Depth:** If your permalink changes the "depth" of the URL (e.g. from `/docs/about` to `/docs/my/deep/path`), relative links to images or other files within that MDX file might break. We recommend using absolute paths for assets in pages with custom permalinks.
 
 ---
 
@@ -130,7 +156,7 @@ Tabs let you organize documentation into high-level categories. The key mechanic
       - use-routes.mdx          # → /docs/hooks/use-routes (tab: api)
 </FileTree>
 
-The parenthesized part (`guides`, `api`) is stripped from the URL and used only for tab association. See the [Tabs guide](/docs/core-concepts/tabs) for configuration details.
+The parenthesized part (`guides`, `api`) is stripped from the URL and used only for tab association. See the [Tabs guide](/docs/guides/core-concepts/tabs) for configuration details.
 
 ---
 

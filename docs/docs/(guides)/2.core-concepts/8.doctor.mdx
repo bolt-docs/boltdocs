@@ -1,14 +1,11 @@
 ---
 title: "Doctor"
-description: "Detect broken links, missing metadata, and orphaned translations with boltdocs doctor."
-badge: New
+description: "Keep your documentation healthy with intelligent diagnostics, automated repairs, and schema validation."
 ---
-
-import { Table, Note, Tip, Warning } from 'boltdocs/client'
 
 # The Doctor Command
 
-`boltdocs doctor` is a built-in health check that scans your entire documentation for common problems. Run it locally or in CI to catch issues before they reach production.
+Writing documentation is hard, but maintaining it is even harder. The `boltdocs doctor` command is your project's personal health assistant. It analyzes, diagnoses, and—if you ask it to—repairs common documentation issues.
 
 ```bash
 pnpm boltdocs doctor
@@ -16,82 +13,137 @@ pnpm boltdocs doctor
 
 ---
 
-## What It Checks
+## Quick Start
 
-The doctor performs three categories of checks:
+If you're just getting started with a Boltdocs project, the first thing you should do is initialize the doctor configuration:
 
-### 1. Broken Internal Links
-
-Scans every markdown link (`[text](path)`) and HTML anchor (`<a href="path">`) in your documentation. For each internal link, it verifies the target file exists — checking with and without extensions (`.md`, `.mdx`, `/index.md`, `/index.mdx`).
-
-### 2. Frontmatter Validation
-
-- **Missing `title`**: A page without a title generates a WARNING. While Boltdocs can infer titles from filenames, explicit titles are more reliable.
-- **Missing `description`**: A page without a description generates a LOW-severity notice. Descriptions improve SEO and search previews.
-
-### 3. Orphaned Translations
-
-When i18n is configured, the doctor checks whether every page in the default locale has a corresponding translation in all other locales. Missing translations are flagged as WARNINGs.
-
----
-
-## Severity Levels
-
-<Table
-  headers={["Level", "Icon", "Meaning", "Action"]}
-  data={[
-    ['HIGH', '❌', 'Will cause broken pages or build failures', 'Must fix before deploying'],
-    ['WARNING', '⚠️', 'Affects quality but won\'t break the build', 'Should fix for production'],
-    ['LOW', 'ℹ️', 'Minor improvement suggestions', 'Fix when convenient'],
-  ]}
-/>
-
----
-
-## Example Output
-
-```text
-📄 getting-started/installation.mdx
-   ❌ HIGH: Broken internal link: "../api/missing-page"
-      💡 Suggestion: Ensure the file exists at "docs/api/missing-page". If it's a directory, ensure it has an "index.md" or "index.mdx".
-
-📄 core-concepts/routing.mdx
-   ⚠️ WARNING: Missing "title" in frontmatter.
-      💡 Suggestion: Add `title: Your Title` to the YAML frontmatter at the top of the file.
-   ℹ️ LOW: Missing "description" in frontmatter.
-      💡 Suggestion: Adding a description helps with SEO and search previews.
-
-Summary:
-   1 high-level errors
-   1 warnings
-   1 minor improvements
+```bash
+pnpm boltdocs doctor --init
 ```
 
+This will create a `doctor.json` file in your root with an optimized base configuration and **intelligent autocompletion** for VS Code.
+
 ---
 
-## Exit Codes
+## Available Commands
 
-| Code | Meaning |
-| :--- | :--- |
-| `0` | All checks passed (or only warnings/low-severity issues found) |
-| `1` | HIGH-severity issues detected |
+### `doctor`
+Scans your project and provides a detailed report of any problems found. It does not modify any files.
+
+### `doctor --fix`
+The "surgeon mode." It attempts to automatically repair issues that have a clear solution, such as broken links with obvious typos or missing translation files.
+
+<Tip>
+  Don't be afraid to use `--fix`. By default, the doctor can be configured to ask for your confirmation before each change and create backups of your files.
+</Tip>
+
+### `doctor --init`
+Generates the `doctor.json` file required to customize the assistant's behavior.
+
+---
+
+## What does the Doctor check?
+
+The doctor organizes its diagnostics into four main categories:
+
+### 1. Metadata and SEO (Frontmatter)
+Verifies that your files have the necessary fields for proper rendering and SEO.
+- **Required fields:** Defaults to `title` and `description`.
+- **Length:** Validates that titles aren't too short or too long.
+- **Timeline:** Supports `date` and `lastUpdated` fields.
+- **Auto-Fill:** If you forget `lastUpdated`, Boltdocs automatically populates it using the file's last modification time from the filesystem.
+- **Format:** Can validate that date formats are correct if `validateDates: true` is enabled in `doctor.json`.
+
+### 2. Links
+The heart of the doctor. It verifies every link in your Markdown and MDX files.
+- **Internal:** Ensures the target file exists (even if you forgot the extension or used a complex relative path).
+- **External:** Optionally validates if links to external websites are still active (requires internet connection).
+
+### 3. Internationalization (i18n)
+If your site is multi-language, the doctor ensures parity between locales.
+- Detects files that exist in the primary language but are missing in translations.
+- Can create empty translation files using `--fix`.
+
+### 4. Sidebar Navigation
+Validates that the navigation defined in `boltdocs.config.ts` is consistent.
+- Detects broken links in the sidebar.
+- Finds "orphaned pages" (files that exist but can't be found because they aren't in the sidebar).
+
+---
+
+## Configuration (`doctor.json`)
+
+Thanks to the JSON schema we provide, you'll get helpful tooltips and validation while writing this file.
+
+```json
+{
+  "$schema": "https://boltdocs.vercel.app/schemas/doctor-config.schema.json",
+  "checks": {
+    "metadata": {
+      "required": ["title", "description"],
+      "validateDates": true
+    },
+    "links": {
+      "external": true
+    }
+  },
+  "fix": {
+    "confirmChanges": true,
+    "backupFiles": true
+  },
+  "severity": {
+    "orphanedPage": "warning",
+    "brokenLink": "high"
+  }
+}
+```
+
+### Severity Levels
+You can decide how strict you want to be with each problem:
+- **`high`**: Critical errors. These will stop the build in CI.
+- **`warning`**: Important issues you should probably review.
+- **`low`**: Minor improvement suggestions.
+- **`off`**: Completely ignores this specific diagnostic.
+
+---
+
+## Safety and Backups
+
+We know your content is valuable. That's why the doctor includes safety measures:
+
+- **Confirmation:** Enable `confirmChanges: true` so the doctor asks "Do you want to fix this?" at every step.
+- **Backups:** Enable `backupFiles: true`. Before touching a file, the doctor will save a copy in `.boltdocs/backups` with a timestamp. If something goes wrong, your original content is safe.
 
 ---
 
 ## CI/CD Integration
 
-Add the doctor to your CI pipeline to prevent broken documentation from being deployed:
+The doctor is perfect for automating quality control in your Pull Requests.
 
-```yaml
-# GitHub Actions example
-- name: Check documentation health
-  run: pnpm boltdocs doctor
+### JSON Reports
+If you want to process the results with another script, use the JSON format:
+```bash
+pnpm boltdocs doctor --reporting.format=json
+```
+
+### Automatic Failures
+You can configure the doctor to fail (exit code 1) if it finds too many errors or warnings:
+
+```json
+{
+  "reporting": {
+    "failOnError": true,
+    "maxWarnings": 5
+  }
+}
 ```
 
 <Warning>
-  The `doctor` exits with code `1` when HIGH-severity issues are found. This means your CI pipeline will fail — which is the desired behavior. You want to catch broken links before they go live.
+  In CI environments, ensure `confirmChanges` is set to `false` to prevent the process from hanging while waiting for a human response.
 </Warning>
 
+---
+
 <Tip>
-  Run `boltdocs doctor` alongside `pnpm lint:md` for comprehensive quality assurance. The doctor checks structural issues (broken links, missing translations); markdownlint checks stylistic consistency.
+  A good workflow is to run `boltdocs doctor` before every `git commit`. Keep your documentation impeccable!
 </Tip>

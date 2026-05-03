@@ -16,6 +16,8 @@ description: "Learn how to set up your first project."
 icon: Rocket
 badge: New
 sidebarPosition: 1
+lastUpdated: 2026-05-03
+date: 2026-05-03
 ---
 
 # Getting Started
@@ -81,6 +83,34 @@ These fields configure the appearance and behavior of individual pages.
   ```
 
   These values are injected as `<meta>` tags in the page `<head>`.
+</Field>
+
+<Field name="hidden" type="boolean">
+  When set to `true`, the page is excluded from the search index and search engines are instructed not to index it (via `noindex`).
+</Field>
+
+<Field name="sidebarLabel" type="string">
+  Override the label used in the sidebar. This is useful if you want a shorter label than the main page title.
+</Field>
+
+<Field name="sidebarHidden" type="boolean">
+  Hide this specific page from the sidebar navigation without deleting the file or disabling the route.
+</Field>
+
+<Field name="date" type="string | Date">
+  The publication date of the page. Useful for blog posts or changelogs.
+</Field>
+
+<Field name="lastUpdated" type="string | Date">
+  The date when the page was last modified. This is displayed at the bottom of the page if enabled.
+</Field>
+
+<Field name="category" type="string">
+  Assign a category to the page. Useful for grouping content in custom components or plugins.
+</Field>
+
+<Field name="order" type="number">
+  An alternative to `sidebarPosition` for ordering content.
 </Field>
 
 ---

@@ -2,6 +2,7 @@ import { defineConfig } from 'boltdocs'
 import mermaidPlugin from '@bdocs/plugin-mermaid'
 
 export default defineConfig({
+  base: '/docs',
   plugins: [mermaidPlugin()],
   siteUrl: 'https://boltdocs.vercel.app/',
   seo: {

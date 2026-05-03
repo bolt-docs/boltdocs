@@ -1,0 +1,51 @@
+{
+  "$schema": "https://boltdocs.dev/schemas/doctor-config.schema.json",
+  "checks": {
+    "metadata": {
+      "enabled": true,
+      "titleMin": 3,
+      "titleMax": 60,
+      "descriptionMin": 20,
+      "required": [
+        "title",
+        "description"
+      ],
+      "optional": [],
+      "validateDates": false
+    },
+    "links": {
+      "internal": true,
+      "external": false,
+      "timeout": 10000,
+      "concurrency": 10,
+      "ignore": []
+    },
+    "i18n": {
+      "enabled": true
+    }
+  },
+  "fix": {
+    "confirmChanges": false,
+    "backupFiles": false,
+    "backupPath": ".boltdocs/backups"
+  },
+  "reporting": {
+    "format": "pretty",
+    "outputFile": ".boltdocs/doctor-report.json",
+    "failOnError": false,
+    "maxWarnings": -1
+  },
+  "severity": {
+    "missingTranslation": "warning",
+    "brokenLink": "high",
+    "brokenAnchor": "warning",
+    "largeFile": "warning",
+    "orphanedPage": "low",
+    "duplicateTitle": "off",
+    "shortMetadata": "low",
+    "missingMetadata": "warning",
+    "malformedFrontmatter": "high",
+    "invalidFrontmatter": "high"
+  },
+  "exclude": []
+}
