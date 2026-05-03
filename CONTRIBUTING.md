@@ -63,7 +63,13 @@ This project is a monorepo managed by [pnpm workspaces](https://pnpm.io/workspac
 
 2. **Commit Guidelines**: We follow [Conventional Commits](https://www.conventionalcommits.org/). This ensures a clean and automated changelog generation.
 
-3. **Verifying Changes**: Before pushing, ensure your changes don't break the build or the example site in the `docs` directory.
+3. **Testing**: Before pushing, ensure all tests pass. We use [Vitest](https://vitest.dev/) for unit and integration testing.
+   ```bash
+   pnpm run test
+   ```
+   If you are adding new core utilities or parser features, please update the consolidated test suites (`tests/utils.test.ts` or `tests/routes/parser.test.ts`) rather than creating new granular test files.
+
+4. **Verifying Changes**: Ensure your changes don't break the build or the example site in the `docs` directory.
 
 ## Code of Conduct
 
