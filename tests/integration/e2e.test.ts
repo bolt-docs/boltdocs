@@ -129,8 +129,9 @@ describe('E2E integration tests', () => {
 
       const { boltdocsPlugin } = await import('../../packages/core/src/node/plugin')
       const plugins = boltdocsPlugin({ docsDir })
+      const vmPlugin = plugins.find((p) => p.name === 'vite-plugin-boltdocs-virtual-modules')!
 
-      const code = await plugins[0].load!('\0virtual:boltdocs-mdx-components')
+      const code = await vmPlugin.load!('\0virtual:boltdocs-mdx-components')
       expect(code).toContain('mdx-components.tsx')
     }, 30000)
   })
@@ -144,8 +145,9 @@ describe('E2E integration tests', () => {
 
       const { boltdocsPlugin } = await import('../../packages/core/src/node/plugin')
       const plugins = boltdocsPlugin({ docsDir })
+      const vmPlugin = plugins.find((p) => p.name === 'vite-plugin-boltdocs-virtual-modules')!
 
-      const code = await plugins[0].load!('\0virtual:boltdocs-layout')
+      const code = await vmPlugin.load!('\0virtual:boltdocs-layout')
       expect(code).toContain('UserLayout')
     })
   })

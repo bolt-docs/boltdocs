@@ -18,12 +18,13 @@ describe('cache performance tests', () => {
     process.env.BOLTDOCS_NO_CACHE = '0'
   })
 
-  afterEach(() => {
+  afterEach(async () => {
+    await flushCache()
     if (fs.existsSync(tempDir)) {
       fs.rmSync(tempDir, { recursive: true, force: true })
     }
     delete process.env.BOLTDOCS_NO_CACHE
-  })
+  }, 30000)
 
   describe('LRUCache performance', () => {
     it('should handle 100 sequential writes efficiently', async () => {

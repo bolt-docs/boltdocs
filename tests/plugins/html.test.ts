@@ -202,7 +202,7 @@ describe('plugin html', () => {
         const result = injectHtmlMeta(baseHtml, config as any)
 
         expect(result).toContain('https://www.googletagmanager.com/gtag/js?id=G-TEST123')
-        expect(result).toContain("gtag('config', 'G-TEST123')")
+        expect(result).toContain("gtag('config', 'G-TEST123', {});")
       })
 
       it('should not inject GA4 script in development by default', () => {
@@ -219,6 +219,7 @@ describe('plugin html', () => {
         const result = injectHtmlMeta(baseHtml, config as any)
 
         expect(result).toContain('https://www.googletagmanager.com/gtag/js?id=G-TEST123')
+        expect(result).toContain("gtag('config', 'G-TEST123', {});")
       })
     })
 

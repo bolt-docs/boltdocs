@@ -23,7 +23,7 @@ describe('cache system', () => {
 
   afterEach(async () => {
     // Wait for any pending background operations to complete
-    await new Promise(resolve => setTimeout(resolve, 500))
+    await flushCache()
     
     if (fs.existsSync(tempDir)) {
       try {
@@ -43,7 +43,7 @@ describe('cache system', () => {
     delete process.env.BOLTDOCS_NO_CACHE
     delete process.env.BOLTDOCS_CACHE_LRU_LIMIT
     delete process.env.BOLTDOCS_CACHE_COMPRESS
-  })
+  }, 30000)
 
   describe('LRUCache (via TransformCache)', () => {
     it('should use LRU memory cache for fast access', async () => {
