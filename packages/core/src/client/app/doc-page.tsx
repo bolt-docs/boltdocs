@@ -1,6 +1,7 @@
 import UserLayout from 'virtual:boltdocs-layout'
 import { useMdxComponents } from './mdx-components-context'
 import { useMemo } from 'react'
+import { LastUpdated as DefaultLastUpdated } from '../components/ui-base'
 
 /**
  * DocPage is a layout wrapper for documentation content during SSG.
@@ -18,17 +19,21 @@ export function DocPage({
   // then context components (globals).
   const allComponents = useMemo(
     () => ({
+      LastUpdated: DefaultLastUpdated,
       ...contextComponents,
       ...propComponents,
     }),
     [contextComponents, propComponents],
   )
 
+  const LastUpdated = allComponents.LastUpdated || DefaultLastUpdated
+
   if (!Content) return null
 
   return (
     <UserLayout route={route}>
       <Content components={allComponents} />
+      <LastUpdated date={route.lastUpdated} />
     </UserLayout>
   )
 }

@@ -28,6 +28,7 @@ export function MdxPage({
           version: data.version,
           group: data.group,
           groupTitle: data.groupTitle,
+          lastUpdated: data.lastUpdated,
         } as any
       }
       content={MDXComponent}

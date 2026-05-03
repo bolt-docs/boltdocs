@@ -163,6 +163,8 @@ export function createRoutes(options: CreateRoutesOptions): RouteRecord[] {
         version: route.version,
         group: route.group,
         groupTitle: route.groupTitle,
+        date: route.date,
+        lastUpdated: route.lastUpdated,
       }),
       getStaticPaths: () => [path],
     }
