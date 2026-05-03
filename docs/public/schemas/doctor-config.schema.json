@@ -1,0 +1,207 @@
+{
+  "description": "Configuration for the boltdocs doctor command.\nThis schema defines the structure of doctor.json.",
+  "type": "object",
+  "properties": {
+    "$schema": {
+      "description": "Path to the JSON schema for validation and autocompletion.",
+      "type": "string"
+    },
+    "checks": {
+      "description": "Configuration for specific documentation health checks.",
+      "type": "object",
+      "properties": {
+        "metadata": {
+          "description": "Metadata and SEO related checks (title, description, frontmatter).",
+          "type": "object",
+          "properties": {
+            "enabled": {
+              "type": "boolean"
+            },
+            "titleMin": {
+              "description": "Minimum character length for page titles.",
+              "type": "number"
+            },
+            "titleMax": {
+              "description": "Maximum character length for page titles.",
+              "type": "number"
+            },
+            "descriptionMin": {
+              "description": "Minimum character length for page descriptions.",
+              "type": "number"
+            },
+            "required": {
+              "description": "List of frontmatter fields that MUST be present.",
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "optional": {
+              "description": "List of optional frontmatter fields that are allowed.",
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "validateDates": {
+              "description": "Whether to validate date formats in frontmatter.",
+              "type": "boolean"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "descriptionMin",
+            "enabled",
+            "optional",
+            "required",
+            "titleMax",
+            "titleMin",
+            "validateDates"
+          ]
+        },
+        "links": {
+          "description": "Link validation (internal and external).",
+          "type": "object",
+          "properties": {
+            "internal": {
+              "description": "Whether to check internal documentation links.",
+              "type": "boolean"
+            },
+            "external": {
+              "description": "Whether to check external website links.",
+              "type": "boolean"
+            },
+            "timeout": {
+              "description": "Timeout in milliseconds for external link checks.",
+              "type": "number"
+            },
+            "concurrency": {
+              "description": "Maximum number of parallel external link requests.",
+              "type": "number"
+            },
+            "ignore": {
+              "description": "List of URL patterns to ignore during link checking.",
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "concurrency",
+            "external",
+            "ignore",
+            "internal",
+            "timeout"
+          ]
+        },
+        "i18n": {
+          "description": "Internationalization (i18n) consistency checks.",
+          "type": "object",
+          "properties": {
+            "enabled": {
+              "type": "boolean"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "enabled"
+          ]
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "i18n",
+        "links",
+        "metadata"
+      ]
+    },
+    "fix": {
+      "description": "Automated fix behavior and safety settings.",
+      "type": "object",
+      "properties": {
+        "confirmChanges": {
+          "description": "Ask for confirmation before applying each automated fix.",
+          "type": "boolean"
+        },
+        "backupFiles": {
+          "description": "Create a backup copy of files before modifying them.",
+          "type": "boolean"
+        },
+        "backupPath": {
+          "description": "Directory path where backups will be stored.",
+          "type": "string"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "backupFiles",
+        "backupPath",
+        "confirmChanges"
+      ]
+    },
+    "reporting": {
+      "description": "Configuration for diagnostic reports and CI/CD exit behavior.",
+      "type": "object",
+      "properties": {
+        "format": {
+          "description": "Output format of the report.",
+          "enum": [
+            "json",
+            "pretty",
+            "silent"
+          ],
+          "type": "string"
+        },
+        "outputFile": {
+          "description": "Optional file path to save the diagnostic report (JSON).",
+          "type": "string"
+        },
+        "failOnError": {
+          "description": "Exit with a non-zero code if critical errors are found (for CI).",
+          "type": "boolean"
+        },
+        "maxWarnings": {
+          "description": "Maximum number of allowed warnings before exiting with error. Use -1 for no limit.",
+          "type": "number"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "failOnError",
+        "format",
+        "maxWarnings"
+      ]
+    },
+    "severity": {
+      "description": "Severity overrides for different types of issues.\nCan be 'high', 'warning', 'low', or 'off'.",
+      "type": "object",
+      "additionalProperties": {
+        "enum": [
+          "high",
+          "low",
+          "off",
+          "warning"
+        ],
+        "type": "string"
+      }
+    },
+    "exclude": {
+      "description": "List of glob patterns to exclude from analysis.",
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    }
+  },
+  "additionalProperties": false,
+  "required": [
+    "checks",
+    "exclude",
+    "fix",
+    "reporting",
+    "severity"
+  ],
+  "$schema": "http://json-schema.org/draft-07/schema#"
+}
