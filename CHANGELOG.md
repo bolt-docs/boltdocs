@@ -254,7 +254,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Security-First Parser**: Implemented rigorous path validation and character whitelisting at the start of the parsing pipeline.
+- **Dynamic Cache Configuration**: New reactive configuration utility (`getCacheConfig`) for standardizing environment variables across tests and production.
+- **Improved Test Architecture**: Consolidated core utility tests into `tests/utils.test.ts` and established a cleaner testing pattern for the monorepo.
+- **Tiered Parser Cache**: High-performance two-tier caching (L1 Memory LRU + L2 Sharded Disk) with built-in security re-validation.
 
+### Fixed
+- Fixed critical test regressions in the security and caching layers.
+- Resolved intermittent test failures caused by stale cache leakage between test runs.
+- Standardized environment variable defaults (e.g., `BOLTDOCS_CACHE_LRU_LIMIT` set to 2000).
+- Fixed syntax and synchronization errors in the sharded cache persistence layer.
+
+### Added (Original)
 - Initial ecosystem and monorepo setup using `pnpm` and `turbo`.
 - Core documentation framework features: file-routing, i18n, versioning, and MDX support.
 - Native dark mode, syntax highlighting, and playground environments.
