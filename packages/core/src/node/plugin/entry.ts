@@ -15,6 +15,7 @@ import fs from 'fs'
 export function generateEntryCode(
   options: BoltdocsPluginOptions,
   config?: BoltdocsConfig,
+  isBuild: boolean = false,
 ): string {
   const homeImport = options.homePage
     ? `import HomePage from '${normalizePath(options.homePage)}';`
@@ -62,6 +63,9 @@ const ${name} = _comp_${name}.default || _comp_${name}['${name}'] || _comp_${nam
     ? 'externalPages: _external_module.pages, externalLayout: _external_module.layout,'
     : ''
 
+  // Use eager loading so all pages are available synchronously for instant navigation.
+  const globMode = '{ eager: true }'
+
   return `
 import { ViteReactSSG } from '@bdocs/ssg';
 import { createRoutes } from 'boltdocs/client';
@@ -74,7 +78,7 @@ ${homeImport}
 ${componentImports}
 ${externalModuleImport}
 
-const mdxModules = import.meta.glob('/${docsDirName}/**/*.{md,mdx}', { eager: true });
+const mdxModules = import.meta.glob('/${docsDirName}/**/*.{md,mdx}', ${globMode});
 
 export const createRoot = ViteReactSSG(
   {

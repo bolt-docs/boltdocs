@@ -87,14 +87,19 @@ export function injectHtmlMeta(html: string, config: BoltdocsConfig): string {
     const ga4 = config.integrations.ga4
     const isProd = process.env.NODE_ENV === 'production'
     if (isProd || ga4.debug) {
+      const ipAnonymization = ga4.anonymizeIp ? `gtag('set', 'ip', true);` : ''
+      const sendPageView = ga4.sendPageView === false ? '{send_page_view: false}' : '{}'
+      const cookieFlags = ga4.cookieFlags ? `, {'cookie_flags': '${ga4.cookieFlags}'}` : ''
+
       ga4Script = `
-    <!-- Google tag (gtag.js) -->
+    <!-- Google tag (gtag.js) - ${ga4.measurementId} -->
     <script async src="https://www.googletagmanager.com/gtag/js?id=${ga4.measurementId}"></script>
     <script>
       window.dataLayer = window.dataLayer || [];
       function gtag(){dataLayer.push(arguments);}
       gtag('js', new Date());
-      gtag('config', '${ga4.measurementId}');
+      ${ipAnonymization}
+      gtag('config', '${ga4.measurementId}', ${sendPageView}${cookieFlags});
     </script>
 `
     }
@@ -106,13 +111,16 @@ export function injectHtmlMeta(html: string, config: BoltdocsConfig): string {
     const gtm = config.integrations.gtm
     const isProd = process.env.NODE_ENV === 'production'
     if (isProd) {
+      const dataLayerName = gtm.dataLayerName || 'dataLayer'
+      const previewParam = gtm.preview ? `&gtm_preview=${gtm.preview}` : ''
+
       gtmScript = `
     <!-- Google Tag Manager -->
     <script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
     new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
-    j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
-    'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
-    })(window,document,'script','dataLayer','${gtm.tagId}');</script>
+    j=d.createElement(s),dl=l!='${dataLayerName}'?'&l='+l:'';j.async=true;j.src=
+    'https://www.googletagmanager.com/gtm.js?id='+i+dl+'${previewParam}';f.parentNode.insertBefore(j,f);
+    })(window,document,'script','${dataLayerName}','${gtm.tagId}');</script>
     <!-- End Google Tag Manager -->
 `
       gtmNoScript = `

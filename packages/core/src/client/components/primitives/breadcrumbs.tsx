@@ -1,8 +1,8 @@
 import {
   Breadcrumb,
   Breadcrumbs as BreadcrumbsRAC,
-  Link,
 } from 'react-aria-components'
+import { Link } from './link'
 import type { LinkProps } from 'react-aria-components'
 import { ChevronRight } from 'lucide-react'
 import { cn } from '../../utils/cn'

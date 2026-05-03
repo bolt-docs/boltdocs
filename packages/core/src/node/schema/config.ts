@@ -212,21 +212,40 @@ export const BoltdocsSeoConfigSchema = z.object({
 })
 
 /**
+ * Zod schema for GA4 configuration.
+ */
+export const GA4ConfigSchema = z.object({
+  measurementId: z.string().min(1, 'Measurement ID is required for GA4'),
+  debug: z.boolean().optional(),
+  anonymizeIp: z.boolean().optional(),
+  sendPageView: z.boolean().optional(),
+  cookieFlags: z.string().optional(),
+  autoTrack: z.object({
+    pageViews: z.boolean().optional(),
+    downloads: z.boolean().optional(),
+    externalLinks: z.boolean().optional(),
+    search: z.boolean().optional(),
+  }).optional(),
+})
+
+/**
+ * Zod schema for GTM configuration.
+ */
+export const GTMConfigSchema = z.object({
+  tagId: z.string().min(1, 'Tag ID is required for GTM'),
+  dataLayerName: z.string().optional(),
+  preview: z.string().optional(),
+})
+
+/**
  * Zod schema for Integrations configuration.
  */
 export const IntegrationsConfigSchema = z.object({
-  ga4: z
-    .object({
-      measurementId: z.string().min(1, 'Measurement ID is required for GA4'),
-      debug: z.boolean().optional(),
-    })
-    .optional(),
-  gtm: z
-    .object({
-      tagId: z.string().min(1, 'Tag ID is required for GTM'),
-    })
-    .optional(),
+  ga4: GA4ConfigSchema.optional(),
+  gtm: GTMConfigSchema.optional(),
 })
+
+export type BoltdocsAnalyticsConfig = z.infer<typeof IntegrationsConfigSchema>
 
 /**
  * Root Zod schema for Boltdocs project configuration.

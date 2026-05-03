@@ -91,6 +91,11 @@ export function boltdocsMdxPlugin(
       const result = await baseMdxPlugin.transform.call(this, code, id, options)
 
       if (result && typeof result === 'object' && result.code) {
+        // In development, inject HMR logic to allow individual MDX modules to hot-reload
+        // without refreshing the entire page.
+        if (process.env.NODE_ENV !== 'production') {
+          result.code += `\nif (import.meta.hot) {\n  import.meta.hot.accept();\n}\n`
+        }
         mdxCache.set(cacheKey, result.code)
       }
 

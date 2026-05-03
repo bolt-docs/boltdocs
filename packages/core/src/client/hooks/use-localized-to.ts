@@ -13,8 +13,9 @@ export function useLocalizedTo(to: RouterLinkProps['to']) {
 
   if (!config || typeof to !== 'string') return to
 
-  // External or absolute links don't need localization
-  if (to.startsWith('http') || to.startsWith('//')) return to
+  // External, absolute, or anchor links don't need localization prefixing
+  if (to.startsWith('http') || to.startsWith('//') || to.startsWith('#'))
+    return to
 
   const i18n = config.i18n
   const versions = config.versions

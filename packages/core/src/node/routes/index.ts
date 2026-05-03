@@ -61,35 +61,19 @@ export async function generateRoutes(
   // Prune cache entries for deleted files
   docCache.pruneStale(new Set(files))
 
-  // 2. CHUNKED PROCESSING (prevents blocking event loop)
-  const CHUNK_SIZE = 50
-  const parsed: ParsedDocFile[] = []
-  let cacheHits = 0
+  // 2. PARALLEL PROCESSING (Worker Threads)
+  const { pool } = await import('./worker-pool')
+  
+  const parsed = await Promise.all(
+    files.map(async (file) => {
+      const cached = docCache.get(file)
+      if (cached) return cached
 
-  for (let i = 0; i < files.length; i += CHUNK_SIZE) {
-    const chunk = files.slice(i, i + CHUNK_SIZE)
-
-    const chunkResults = await Promise.all(
-      chunk.map(async (file) => {
-        const cached = docCache.get(file)
-        if (cached) {
-          cacheHits++
-          return cached
-        }
-
-        const result = parseDocFile(file, docsDir, basePath, config)
-        docCache.set(file, result)
-        return result
-      }),
-    )
-
-    parsed.push(...chunkResults)
-
-    // Yield to event loop between chunks if there's more to process
-    if (i + CHUNK_SIZE < files.length) {
-      await new Promise((resolve) => setImmediate(resolve))
-    }
-  }
+      const result = await pool.parseFile(file, docsDir, basePath, config)
+      docCache.set(file, result)
+      return result
+    })
+  )
 
   // Save cache after processing
   docCache.save()

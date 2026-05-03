@@ -1,5 +1,18 @@
 import { Link as LucideLink } from 'lucide-react'
 import * as MdxComponents from '../components/mdx'
+import { Link } from '../components/primitives/link'
+
+const Anchor = ({
+  href,
+  children,
+  ...props
+}: React.AnchorHTMLAttributes<HTMLAnchorElement>) => {
+  return (
+    <Link href={href || ''} {...props}>
+      {children}
+    </Link>
+  )
+}
 
 const Heading = ({
   level,
@@ -16,9 +29,9 @@ const Heading = ({
     <Tag id={id} {...props} className="boltdocs-heading">
       {children}
       {id && (
-        <a href={`#${id}`} className="header-anchor" aria-label="Anchor">
+        <Link href={`#${id}`} className="header-anchor" aria-label="Anchor">
           <LucideLink size={16} />
-        </a>
+        </Link>
       )}
     </Tag>
   )
@@ -29,6 +42,7 @@ import { Loading } from '../components/ui-base/loading'
 export const mdxComponentsDefault = {
   ...MdxComponents,
   Loading,
+  a: Anchor,
   h1: (props: React.HTMLAttributes<HTMLHeadingElement>) => (
     <Heading level={1} {...props} />
   ),

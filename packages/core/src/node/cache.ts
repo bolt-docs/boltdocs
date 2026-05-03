@@ -71,9 +71,12 @@ class BackgroundQueue {
 
   add(task: () => Promise<any>) {
     this.pendingCount++
-    this.queue = this.queue.then(task).finally(() => {
-      this.pendingCount--
-    })
+    this.queue = this.queue
+      .catch(() => {}) // Recover from previous failure
+      .then(task)
+      .finally(() => {
+        this.pendingCount--
+      })
   }
 
   async flush() {
@@ -240,8 +243,12 @@ export class TransformCache {
     const target = this.indexPath
 
     backgroundQueue.add(async () => {
-      await mkdir(path.dirname(target), { recursive: true })
-      await writeFile(target, data)
+      try {
+        await mkdir(path.dirname(target), { recursive: true })
+        await writeFile(target, data)
+      } catch (e) {
+        // Ignore save errors
+      }
     })
   }
 
@@ -320,13 +327,17 @@ export class TransformCache {
 
     // Background write shard
     backgroundQueue.add(async () => {
-      if (fs.existsSync(shardPath)) return // Already exists
-      await mkdir(this.shardsDir, { recursive: true })
+      try {
+        if (fs.existsSync(shardPath)) return // Already exists
+        await mkdir(this.shardsDir, { recursive: true })
 
-      const compressed = zlib.gzipSync(Buffer.from(result))
-      const tempPath = `${shardPath}.${crypto.randomBytes(4).toString('hex')}.tmp`
-      await writeFile(tempPath, compressed)
-      await rename(tempPath, shardPath)
+        const compressed = zlib.gzipSync(Buffer.from(result))
+        const tempPath = `${shardPath}.${crypto.randomBytes(4).toString('hex')}.tmp`
+        await writeFile(tempPath, compressed)
+        await rename(tempPath, shardPath)
+      } catch (e) {
+        // Ignore shard write errors
+      }
     })
   }
 
@@ -374,10 +385,14 @@ export class AssetCache {
     )
 
     backgroundQueue.add(async () => {
-      await mkdir(this.assetsDir, { recursive: true })
-      const tempPath = `${cachedPath}.${crypto.randomBytes(4).toString('hex')}.tmp`
-      await writeFile(tempPath, content)
-      await rename(tempPath, cachedPath)
+      try {
+        await mkdir(this.assetsDir, { recursive: true })
+        const tempPath = `${cachedPath}.${crypto.randomBytes(4).toString('hex')}.tmp`
+        await writeFile(tempPath, content)
+        await rename(tempPath, cachedPath)
+      } catch (e) {
+        // Ignore asset write errors
+      }
     })
   }
 

@@ -1,7 +1,6 @@
 import { useEffect, useMemo } from 'react'
 import type { ComponentType, ReactNode } from 'react'
 import { Outlet, useLocation, useNavigate } from 'react-router-dom'
-import { RouterProvider } from 'react-aria-components'
 import { BoltdocsProvider, useBoltdocsContext } from '../store/boltdocs-context'
 import { ThemeProvider } from '../app/theme-context'
 import { MdxComponentsProvider } from '../app/mdx-components-context'
@@ -116,7 +115,6 @@ export function BoltdocsShell({
     [components],
   )
 
-  const navigate = useNavigate()
   const { pathname } = useLocation()
   
   const currentPath = useMemo(() => {
@@ -139,17 +137,15 @@ export function BoltdocsShell({
         <ThemeProvider>
           <MdxComponentsProvider components={allComponents}>
             <ConfigContext.Provider value={config}>
-              <RouterProvider navigate={navigate}>
-                <ScrollHandler />
-                <BoltdocsProvider
-                  initialLocale={currentRoute?.locale}
-                  initialVersion={currentRoute?.version}
-                >
-                  <StoreSync config={config} />
-                  <I18nUpdater config={config} />
-                  <Outlet />
-                </BoltdocsProvider>
-              </RouterProvider>
+              <ScrollHandler />
+              <BoltdocsProvider
+                initialLocale={currentRoute?.locale}
+                initialVersion={currentRoute?.version}
+              >
+                <StoreSync config={config} />
+                <I18nUpdater config={config} />
+                <Outlet />
+              </BoltdocsProvider>
             </ConfigContext.Provider>
           </MdxComponentsProvider>
         </ThemeProvider>

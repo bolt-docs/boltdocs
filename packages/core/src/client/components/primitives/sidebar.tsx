@@ -1,3 +1,4 @@
+import { useRef, useEffect, useLayoutEffect } from 'react'
 import { Link } from './link'
 import * as RAC from 'react-aria-components'
 import { ChevronRight } from 'lucide-react'
@@ -57,9 +58,35 @@ const Badge = ({ badge }: { badge: ComponentRoute['badge'] }) => {
   )
 }
 
+// Persistent scroll position across navigation (SPA)
+let sidebarScrollPos = 0
+
 export const Sidebar = ({ children, className }: ComponentBase) => {
+  const scrollRef = useRef<HTMLElement>(null)
+
+  // Restore scroll position on mount
+  useLayoutEffect(() => {
+    if (scrollRef.current) {
+      scrollRef.current.scrollTop = sidebarScrollPos
+    }
+  }, [])
+
+  // Save scroll position on scroll
+  useEffect(() => {
+    const el = scrollRef.current
+    if (!el) return
+
+    const handleScroll = () => {
+      sidebarScrollPos = el.scrollTop
+    }
+
+    el.addEventListener('scroll', handleScroll, { passive: true })
+    return () => el.removeEventListener('scroll', handleScroll)
+  }, [])
+
   return (
     <aside
+      ref={scrollRef}
       className={cn(
         'boltdocs-sidebar sticky top-navbar hidden lg:flex flex-col shrink-0',
         'w-sidebar h-full',

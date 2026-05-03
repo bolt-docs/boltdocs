@@ -13,6 +13,8 @@ export type PluginPermission =
   | 'components' // Register MDX components
   | 'hooks:build' // Access build lifecycle hooks
   | 'hooks:dev' // Access dev lifecycle hooks
+  | 'analytics:track' // Track analytics events client-side
+  | 'analytics:config' // Access analytics configuration
 
 /**
  * Shared context injected into every plugin lifecycle hook.

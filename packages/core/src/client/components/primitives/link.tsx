@@ -1,44 +1,55 @@
-import {
-  Link as RACLink,
-  type LinkProps as RACLinkProps,
-} from 'react-aria-components'
-import { useLocation } from 'react-router-dom'
+import { useNavigate, useLocation } from 'react-router-dom'
 import { useLocalizedTo } from '../../hooks/use-localized-to'
 import { cn } from '../../utils/cn'
-import { forwardRef } from 'react'
+import { forwardRef, type React } from 'react'
 
-export interface LinkProps extends RACLinkProps {
+export interface LinkProps extends React.AnchorHTMLAttributes<HTMLAnchorElement> {
   /** Should prefetch the page on hover? Default 'hover' */
   prefetch?: 'hover' | 'none'
 }
 
 /**
- * A primitive Link component that wraps React Aria Components' Link
+ * A primitive Link component that wraps a standard anchor tag
  * and adds framework-specific logic for path localization and preloading.
- *
- * It uses the global navigation configuration from BoltdocsRouterProvider
- * to handle seamless client-side transitions.
  */
 export const Link = forwardRef<HTMLAnchorElement, LinkProps>((props, ref) => {
-  const { href, prefetch = 'hover', onMouseEnter, onFocus, ...rest } = props
+  const { href, onMouseEnter, onFocus, onClick, ...rest } = props
 
+  const navigate = useNavigate()
   const localizedHref = useLocalizedTo(href ?? '')
+
+  const handleClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
+    onClick?.(e)
+    if (e.defaultPrevented) return
+
+    const isExternal =
+      localizedHref &&
+      (localizedHref.startsWith('http://') ||
+        localizedHref.startsWith('https://') ||
+        localizedHref.startsWith('//'))
+
+    if (!isExternal) {
+      e.preventDefault()
+      navigate(localizedHref as string)
+    }
+  }
 
   const handleMouseEnter = (e: React.MouseEvent<HTMLAnchorElement>) => {
     onMouseEnter?.(e)
   }
 
   const handleFocus = (e: React.FocusEvent) => {
-    onFocus?.(e as any)
+    onFocus?.(e)
   }
 
   return (
-    <RACLink
+    <a
       {...rest}
       ref={ref}
       href={localizedHref as string}
+      onClick={handleClick}
       onMouseEnter={handleMouseEnter}
-      onFocus={handleFocus as any}
+      onFocus={handleFocus}
     />
   )
 })
@@ -68,14 +79,12 @@ export interface NavLinkProps
 
 /**
  * A primitive NavLink component that provides active state detection.
- *
- * It combines the Link primitive with path matching logic to determine
- * if the link is currently active based on the browser's location.
  */
 export const NavLink = forwardRef<HTMLAnchorElement, NavLinkProps>(
   (props, ref) => {
     const { href, end = false, className, children, ...rest } = props
     const location = useLocation()
+
     const localizedHref = useLocalizedTo(href ?? '')
 
     const isActive = end

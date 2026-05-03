@@ -2,12 +2,13 @@ import type { RouteRecord } from '@bdocs/ssg'
 import type { ComponentRoute, BoltdocsConfig } from '../types'
 import { MdxPage } from './mdx-page'
 import { BoltdocsShell } from './boltdocs-shell'
-import { NotFound } from '../components/ui-base/not-found'
+import { NotFound, Loading } from '../components/ui-base'
+import React, { Suspense, useState, useEffect } from 'react'
 
 interface CreateRoutesOptions {
   routesData: ComponentRoute[]
   config: BoltdocsConfig
-  mdxModules: Record<string, { default?: React.ComponentType }>
+  mdxModules: Record<string, any>
   Layout: React.ComponentType<{ children: React.ReactNode }>
   homePage?: React.ComponentType
   externalPages?: Record<string, React.ComponentType>
@@ -40,6 +41,74 @@ function findModuleKey(
   })
 }
 
+/**
+ * Stable component to render MDX pages.
+ * By being outside createRoutes, it prevents React from unmounting the page on HMR.
+ */
+const MdxRouteElement = ({
+  moduleLoader,
+  moduleKey,
+  route,
+  components,
+}: {
+  moduleLoader: any
+  moduleKey: string | undefined
+  route: ComponentRoute
+  components: any
+}) => {
+  const isLazy = typeof moduleLoader === 'function'
+
+  // For eager mode, resolve component synchronously.
+  const eagerComponent = !isLazy
+    ? (moduleLoader?.default ?? moduleLoader ?? null)
+    : null
+
+  const [MDXComponent, setMDXComponent] = useState<React.ComponentType | null>(
+    () => eagerComponent,
+  )
+
+  // On first mount, load the module if in lazy mode.
+  useEffect(() => {
+    if (!isLazy || !moduleLoader) return
+    let cancelled = false
+    moduleLoader().then((m: any) => {
+      if (!cancelled) setMDXComponent(() => m.default || m)
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [isLazy, moduleLoader])
+
+  // Listen for Boltdocs MDX HMR events.
+  useEffect(() => {
+    if (!import.meta.hot || !moduleKey) return
+
+    const handler = (data: { relPath: string }) => {
+      const incoming = data.relPath.replace(/\\/g, '/').replace(/^\//, '')
+      const routeFile = route.filePath.replace(/\\/g, '/').replace(/^\//, '')
+
+      if (incoming !== routeFile) return
+
+      // Use a cache-busting URL to fetch the freshly compiled version.
+      const cacheBustUrl = moduleKey + '?t=' + Date.now()
+      import(/* @vite-ignore */ cacheBustUrl).then((m: any) => {
+        setMDXComponent(() => m.default || m)
+      })
+    }
+
+    import.meta.hot.on('boltdocs:mdx-update', handler)
+    return () => import.meta.hot?.off('boltdocs:mdx-update', handler)
+  }, [moduleKey, route.filePath])
+
+  if (!MDXComponent) return <Loading />
+
+  return (
+    <Suspense fallback={<Loading />}>
+      <MdxPage MDXComponent={MDXComponent} mdxComponents={components} />
+    </Suspense>
+  )
+}
+
 export function createRoutes(options: CreateRoutesOptions): RouteRecord[] {
   const {
     routesData,
@@ -68,14 +137,19 @@ export function createRoutes(options: CreateRoutesOptions): RouteRecord[] {
   // 1. Documentation routes
   const docRoutes: RouteRecord[] = routesData.map((route) => {
     const moduleKey = findModuleKey(mdxModules, route.filePath)
-    const MDXComponent = moduleKey ? mdxModules[moduleKey]?.default : null
-
+    const moduleLoader = moduleKey ? mdxModules[moduleKey] : null
     const path = withBase(route.path === '' ? '/' : route.path)
 
     return {
       path,
       element: (
-        <MdxPage MDXComponent={MDXComponent} mdxComponents={components} />
+        <MdxRouteElement
+          key={moduleKey || path}
+          moduleKey={moduleKey}
+          moduleLoader={moduleLoader}
+          route={route}
+          components={components}
+        />
       ),
       loader: async () => ({
         path,

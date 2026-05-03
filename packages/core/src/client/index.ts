@@ -11,6 +11,7 @@ export { useMdxComponents } from './app/mdx-components-context'
 
 // Hooks
 export * from './hooks/index'
+export { useAnalytics, useTrackPageView, useTrackEvent } from './hooks/use-analytics'
 // Composable layout building blocks
 export { DocsLayout } from './components/docs-layout'
 

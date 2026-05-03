@@ -153,16 +153,37 @@ export interface BoltdocsSeoConfig {
 }
 
 /**
+ * Configuration for Google Analytics 4 (GA4).
+ */
+export interface BoltdocsGA4Config {
+  measurementId: string
+  debug?: boolean
+  anonymizeIp?: boolean
+  sendPageView?: boolean
+  cookieFlags?: string
+  autoTrack?: {
+    pageViews?: boolean
+    downloads?: boolean
+    externalLinks?: boolean
+    search?: boolean
+  }
+}
+
+/**
+ * Configuration for Google Tag Manager (GTM).
+ */
+export interface BoltdocsGTMConfig {
+  tagId: string
+  dataLayerName?: string
+  preview?: string
+}
+
+/**
  * Configuration for third-party integrations.
  */
 export interface BoltdocsIntegrationsConfig {
-  ga4?: {
-    measurementId: string
-    debug?: boolean
-  }
-  gtm?: {
-    tagId: string
-  }
+  ga4?: BoltdocsGA4Config
+  gtm?: BoltdocsGTMConfig
 }
 
 /**

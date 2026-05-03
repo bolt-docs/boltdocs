@@ -83,7 +83,7 @@ export async function createViteConfig(
         {
           find: 'boltdocs/entry',
           replacement: normalizePath(
-            path.resolve(root, 'boltdocs-entry.mjs'),
+            path.resolve(root, 'boltdocs-entry.tsx'),
           ),
         },
         {
