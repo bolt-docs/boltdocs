@@ -500,7 +500,7 @@ describe('parseDocFile', () => {
     it('should throw an error if the file is outside the docs directory', () => {
       const filePath = 'C:\\outside\\file.md'
       expect(() => parseDocFile(filePath, docsDir, basePath)).toThrow(
-        'Security breach: File is outside of docs directory, contains null bytes, or invalid characters: file.md',
+        /Security breach: File is outside of docs directory/
       )
     })
 

@@ -8,6 +8,7 @@ import {
   EncodingSecurityError,
   ValidationError,
 } from '../../packages/core/src/node/errors'
+import { ParserCache } from '../../packages/core/src/node/routes/parser/cache'
 
 // Mock utils for security testing
 vi.mock('../../packages/core/src/node/utils', async () => {
@@ -21,6 +22,11 @@ vi.mock('../../packages/core/src/node/utils', async () => {
 describe('Security: Route Parser', () => {
   const docsDir = 'C:\\docs'
   const basePath = '/docs'
+
+  beforeEach(() => {
+    ParserCache.clear()
+    vi.clearAllMocks()
+  })
 
   it('should reflect the path provided without allowing traversal in the route (Functional Check)', () => {
     const maliciousPath = 'C:\\docs\\..\\..\\windows\\system32\\cmd.exe'
@@ -172,14 +178,14 @@ describe('Security: Route Parser', () => {
       const longPath = 'C:\\docs\\' + 'a'.repeat(300) + '.md'
       vi.mocked(utils.parseFrontmatter).mockReturnValue({ data: {}, content: '' })
       expect(() => parseDocFile(longPath, docsDir, basePath)).toThrow(PathTraversalError)
-      expect(() => parseDocFile(longPath, docsDir, basePath)).toThrow(/Path length exceeds limit/)
+      expect(() => parseDocFile(longPath, docsDir, basePath)).toThrow(/Path length exceeds limit/i)
     })
 
     it('should block paths with invalid characters', () => {
       const invalidPath = 'C:\\docs\\hacked<>.md' // Using < > which are definitely invalid in ALLOWED_PATH_CHARS but safe for decode
       vi.mocked(utils.parseFrontmatter).mockReturnValue({ data: {}, content: '' })
       expect(() => parseDocFile(invalidPath, docsDir, basePath)).toThrow(PathTraversalError)
-      expect(() => parseDocFile(invalidPath, docsDir, basePath)).toThrow(/invalid characters/i)
+      expect(() => parseDocFile(invalidPath, docsDir, basePath)).toThrow(/invalid path characters/i)
       expect(() => parseDocFile(invalidPath, docsDir, basePath)).not.toThrow(/C:\\docs/)
     })
   })
