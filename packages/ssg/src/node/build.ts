@@ -214,8 +214,9 @@ export async function build(
 
   // If the SSR entry points to an absolute path, Vite/Rolldown 8 typically uses the basename 
   // without drive letters or full path mangling for its chunk name.
+  // We strip any existing extension (like .tsx) to avoid double extensions like .tsx.mjs
   const entryBasename = (ssrEntry.includes('/') || ssrEntry.includes('\\'))
-    ? ssrEntry.split(/[/\\]/).pop()!.replace(ext, '')
+    ? ssrEntry.split(/[/\\]/).pop()!.replace(/\.[^/.]+$/, '').replace(ext, '')
     : safeEntryName
 
   const serverEntry =
