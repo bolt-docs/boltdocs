@@ -127,13 +127,13 @@ export function CodeBlock(props: CodeBlockProps) {
           <div
             // @ts-ignore
             ref={preRef}
-            className="shiki-wrapper [&>pre]:m-0! [&>pre]:rounded-none! [&>pre]:border-none! [&>pre]:bg-inherit! [&>pre>code]:grid! [&>pre>code]:p-5! [&>.shiki.shiki-themes]:bg-transparent!"
+            className="shiki-wrapper [&>pre]:m-0! [&>pre]:rounded-none! [&>pre]:border-none! [&>pre]:bg-inherit! [&>pre>code]:grid! [&>pre>code]:p-5! [&>pre>code]:text-[0.875rem]! [&>pre>code]:leading-[1.6]! [&>.shiki.shiki-themes]:bg-transparent!"
             dangerouslySetInnerHTML={{ __html: effectiveHighlightedHtml }}
           />
         ) : (
           <pre
             ref={preRef}
-            className="m-0! p-5! rounded-none! border-none! bg-inherit! font-mono text-[0.8125rem] leading-[1.7] overflow-x-auto"
+            className="m-0! p-5! rounded-none! border-none! bg-inherit! font-mono text-[0.875rem] leading-[1.6] overflow-x-auto"
             {...rest}
           >
             {reactToText(children)}

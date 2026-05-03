@@ -93,7 +93,7 @@ const CodeBlockContent = ({
             className={cn(
                 "relative",
                 {
-                    '[&>pre]:max-h-[300px] [&>pre]:overflow-hidden': shouldTruncate,
+                    '[&>pre]:max-h-[300px] [&>pre]:overflow-hidden [&>div>pre]:max-h-[300px] [&>div>pre]:overflow-hidden': shouldTruncate,
                 },
                 className,
             )}
