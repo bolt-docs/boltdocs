@@ -6,6 +6,7 @@ import type { BoltdocsConfig } from '../../config';
 export interface PathResolution {
   relativePath: string;
   finalPath: string;
+  remainingParts: string[];
   locale?: string;
   version?: string;
   inferredTab?: string;
@@ -61,6 +62,9 @@ export function resolveRoutePath(
     }
   }
 
+  // Save the remaining parts before cleaning (cleaning removes leading underscores for subRouteGroup)
+  const remainingParts = [...parts];
+
   // 4. Resolve Sub-routes and Clean Parts
   const cleanParts = parts.map(p => {
     const noNum = stripNumberPrefix(p);
@@ -93,6 +97,7 @@ export function resolveRoutePath(
   return {
     relativePath,
     finalPath: finalPath.startsWith('/') ? finalPath : `/${finalPath}`,
+    remainingParts,
     locale,
     version,
     inferredTab,

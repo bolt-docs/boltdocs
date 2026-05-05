@@ -5,8 +5,6 @@ import { sanitizeHtml, stripHtmlTags } from '../../utils';
 const HEADINGS_REGEX = /^(#{2,4})\s+(.+)$/gm;
 const MD_LINK_REGEX = /\[([^\]]+)\]\([^\)]+\)/g;
 const MD_FORMAT_REGEX = /[_*`]/g;
-const MD_HEADER_LINE_REGEX = /^#+.*$/gm;
-const JS_EXPR_REGEX = /\{[^\}]+\}/g;
 const WHITESPACE_REGEX = /\s+/g;
 
 export interface ContentData {
@@ -15,13 +13,20 @@ export interface ContentData {
   plainText: string;
 }
 
+const slugger = new GithubSlugger();
+
+// Pre-compiled regex for cleaning plain text
+const CLEAN_MARKDOWN_REGEX = /[\[\]_*`]|#+.*$|\{[^\}]+\}/gm;
+const CLEAN_LINKS_REGEX = /\((?:[^)]+)\)/g;
+
 export function extractContentData(content: string, explicitDescription?: string): ContentData {
-  const slugger = new GithubSlugger();
+  slugger.reset();
   const headings: { level: number; text: string; id: string }[] = [];
-  
+
   // 1. Extract Headings (Single pass for headings)
   for (const match of content.matchAll(HEADINGS_REGEX)) {
     const level = match[1].length;
+    // Combine link and format removal
     const rawText = match[2]
       .replace(MD_LINK_REGEX, '$1')
       .replace(MD_FORMAT_REGEX, '')
@@ -33,20 +38,19 @@ export function extractContentData(content: string, explicitDescription?: string
   }
 
   // 2. Generate Plain Text (Optimized for search - combined regex)
-  // This replaces multiple steps with a more aggressive single pass for core cleaning
   const finalPlainText = stripHtmlTags(
     content
-      .replace(MD_HEADER_LINE_REGEX, '')
-      .replace(JS_EXPR_REGEX, '')
-      .replace(/[\[\]_*`]/g, '') // Combined character set for formatting
-      .replace(/\((?:[^)]+)\)/g, '') // Strip link URLs but keep text (simplified)
+      .replace(CLEAN_MARKDOWN_REGEX, '')
+      .replace(CLEAN_LINKS_REGEX, '')
       .replace(WHITESPACE_REGEX, ' ')
   ).trim();
 
   // 3. Resolve Description/Excerpt
   let description = explicitDescription ? sanitizeHtml(explicitDescription).trim() : '';
-  
+
   if (!description && content) {
+    // Take a slightly larger slice then trim to avoid cutting words in half if possible
+    // but keep it simple for now as per original logic
     description = finalPlainText.substring(0, 160);
   }
 

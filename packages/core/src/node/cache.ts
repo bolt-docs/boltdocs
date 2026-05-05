@@ -62,8 +62,13 @@ class BackgroundQueue {
   add(task: () => Promise<any>) {
     this.pendingCount++
     this.queue = this.queue
-      .catch(() => {}) // Recover from previous failure
-      .then(task)
+      .then(async () => {
+        try {
+          await task()
+        } catch (e) {
+          // Task failed, but don't block subsequent tasks
+        }
+      })
       .finally(() => {
         this.pendingCount--
       })
@@ -78,7 +83,7 @@ class BackgroundQueue {
   }
 }
 
-const backgroundQueue = new BackgroundQueue()
+export const globalBackgroundQueue = new BackgroundQueue()
 
 /**
  * Generic file-based cache with per-file granularity and asynchronous persistence.
@@ -102,17 +107,19 @@ export class FileCache<T> {
   }
 
   /**
-   * Loads the cache. Synchronous for startup simplicity but uses fast I/O.
+   * Loads the cache.
    */
-  load(): void {
+  async load(): Promise<void> {
     const config = getCacheConfig()
     if (config.noCache) return
-    if (!this.cachePath || !fs.existsSync(this.cachePath)) return
+    if (!this.cachePath) return
 
     try {
-      let raw = fs.readFileSync(this.cachePath)
+      if (!fs.existsSync(this.cachePath)) return
+
+      let raw = await readFile(this.cachePath)
       if (this.cachePath.endsWith('.gz')) {
-        raw = zlib.gunzipSync(raw)
+        raw = await promisify(zlib.gunzip)(raw)
       }
       const data = JSON.parse(raw.toString('utf-8'))
       this.entries = new Map(Object.entries(data))
@@ -134,7 +141,7 @@ export class FileCache<T> {
     const target = this.cachePath
     const useCompress = this.compress
 
-    backgroundQueue.add(async () => {
+    globalBackgroundQueue.add(async () => {
       try {
         await mkdir(path.dirname(target), { recursive: true })
         let buffer = Buffer.from(content)
@@ -191,7 +198,7 @@ export class FileCache<T> {
   }
 
   async flush() {
-    await backgroundQueue.flush()
+    await globalBackgroundQueue.flush()
   }
 }
 
@@ -217,13 +224,13 @@ export class TransformCache {
   /**
    * Loads the index into memory.
    */
-  load(): void {
+  async load(): Promise<void> {
     const config = getCacheConfig()
     if (config.noCache) return
-    if (!fs.existsSync(this.indexPath)) return
 
     try {
-      const data = fs.readFileSync(this.indexPath, 'utf-8')
+      if (!fs.existsSync(this.indexPath)) return
+      const data = await readFile(this.indexPath, 'utf-8')
       this.index = new Map(Object.entries(JSON.parse(data)))
     } catch (e) {
       // Index might be corrupt, ignore
@@ -239,7 +246,7 @@ export class TransformCache {
     const data = JSON.stringify(Object.fromEntries(this.index))
     const target = this.indexPath
 
-    backgroundQueue.add(async () => {
+    globalBackgroundQueue.add(async () => {
       try {
         await mkdir(path.dirname(target), { recursive: true })
         await writeFile(target, data)
@@ -323,7 +330,7 @@ export class TransformCache {
     const shardPath = path.resolve(this.shardsDir, `${hash}.gz`)
 
     // Background write shard
-    backgroundQueue.add(async () => {
+    globalBackgroundQueue.add(async () => {
       try {
         if (fs.existsSync(shardPath)) return // Already exists
         await mkdir(this.shardsDir, { recursive: true })
@@ -343,7 +350,7 @@ export class TransformCache {
   }
 
   async flush() {
-    await backgroundQueue.flush()
+    await globalBackgroundQueue.flush()
   }
 }
 
@@ -382,7 +389,7 @@ export class AssetCache {
       `${cacheKey}-${sourceHash}`,
     )
 
-    backgroundQueue.add(async () => {
+    globalBackgroundQueue.add(async () => {
       try {
         await mkdir(this.assetsDir, { recursive: true })
         const tempPath = `${cachedPath}.${crypto.randomBytes(4).toString('hex')}.tmp`
@@ -408,7 +415,7 @@ export class AssetCache {
   }
 
   async flush() {
-    await backgroundQueue.flush()
+    await globalBackgroundQueue.flush()
   }
 }
 
@@ -416,5 +423,5 @@ export class AssetCache {
  * Flushes all pending background cache operations.
  */
 export async function flushCache() {
-  await backgroundQueue.flush()
+  await globalBackgroundQueue.flush()
 }

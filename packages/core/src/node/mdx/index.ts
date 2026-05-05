@@ -62,7 +62,7 @@ export function boltdocsMdxPlugin(
 
     async buildStart() {
       if (!mdxCacheLoaded) {
-        mdxCache.load()
+        await mdxCache.load()
         mdxCacheLoaded = true
       }
       // @ts-ignore

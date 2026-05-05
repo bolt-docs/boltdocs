@@ -20,7 +20,7 @@ parentPort.on('message', async (data: {
 }) => {
   if (data.type === 'PARSE_FILE') {
     try {
-      const result = parseDocFile(data.file, data.docsDir, data.basePath, data.config)
+      const result = await parseDocFile(data.file, data.docsDir, data.basePath, data.config)
       parentPort?.postMessage({ type: 'SUCCESS', file: data.file, result })
     } catch (error: any) {
       parentPort?.postMessage({ 

@@ -1,7 +1,7 @@
 
 import path from 'node:path';
 import { 
-  parseFrontmatter, 
+  parseFrontmatterAsync, 
   capitalize, 
   stripNumberPrefix, 
   extractNumberPrefix,
@@ -18,13 +18,18 @@ import { processSeoData, sanitizeFrontmatterStrings } from './metadata';
 
 import { ParserCache } from './cache';
 
-export function parseDocFile(
+export async function parseDocFile(
   file: string,
   docsDir: string,
   basePath: string,
   config?: BoltdocsConfig,
-): ParsedDocFile {
-  // 1. Security Validation (Fast Fail)
+): Promise<ParsedDocFile> {
+  // 0. Cache Check (Ultra-Fast Path)
+  // Check memory/disk cache BEFORE any heavy security validation or path resolution
+  const cached = await ParserCache.get(file);
+  if (cached) return cached;
+
+  // 1. Security Validation (Now deferred after cache miss)
   const decodedFile = validateFilePath(file);
   const absoluteFile = path.resolve(decodedFile);
   const absoluteDocsDir = path.resolve(docsDir);
@@ -34,12 +39,8 @@ export function parseDocFile(
      throw new PathTraversalError(`Security breach: File is outside of docs directory, contains null bytes, or invalid path characters: ${path.basename(decodedFile)}`);
   }
 
-  // 0. Cache Check (Ultra-Fast Path)
-  const cached = ParserCache.get(file);
-  if (cached) return cached;
-
-  // 2. Parse Frontmatter & Content
-  const { data, content } = parseFrontmatter(file);
+  // 2. Parse Frontmatter & Content (Async)
+  const { data, content } = await parseFrontmatterAsync(file);
   
   // 3. Resolve Path & Hierarchy
   const resolution = resolveRoutePath(
@@ -60,12 +61,15 @@ export function parseDocFile(
   // 6. Determine Sidebar & Group Metadata
   const rawFileName = path.basename(resolution.relativePath);
   const cleanFileName = stripNumberPrefix(rawFileName);
-  const sidebarPosition = data.sidebarPosition ?? extractNumberPrefix(rawFileName);
-  const isGroupIndex = resolution.relativePath.split('/').length === 2 && /^index\.mdx?$/.test(cleanFileName);
   
-  const cleanDirName = resolution.relativePath.split('/').length >= 2 
-    ? stripNumberPrefix(resolution.relativePath.split('/')[0]) 
+  // We use remainingParts for grouping to ignore version/locale/tab segments
+  const dirParts = resolution.remainingParts.slice(0, -1);
+  const cleanDirName = dirParts.length > 0 
+    ? stripNumberPrefix(dirParts[0]) 
     : undefined;
+
+  const isGroupIndex = resolution.remainingParts.length === 2 && /^index\.mdx?$/.test(cleanFileName);
+  const sidebarPosition = data.sidebarPosition ?? extractNumberPrefix(rawFileName);
 
   const parsed: ParsedDocFile = {
     route: {
@@ -97,14 +101,14 @@ export function parseDocFile(
     inferredTab: resolution.inferredTab,
     groupMeta: isGroupIndex ? {
       title: data.groupTitle || sanitizedStrings.title || (cleanDirName ? capitalize(cleanDirName) : ''),
-      position: data.groupPosition ?? data.sidebarPosition ?? (cleanDirName ? extractNumberPrefix(resolution.relativePath.split('/')[0]) : undefined),
+      position: data.groupPosition ?? data.sidebarPosition ?? (cleanDirName ? extractNumberPrefix(dirParts[0]) : undefined),
       icon: data.icon ? String(data.icon) : undefined,
     } : undefined,
-    inferredGroupPosition: cleanDirName ? extractNumberPrefix(resolution.relativePath.split('/')[0]) : undefined,
+    inferredGroupPosition: cleanDirName ? extractNumberPrefix(dirParts[0]) : undefined,
   };
 
-  // 7. Save to Cache for next time
-  ParserCache.set(file, parsed);
+  // 7. Save to Cache for next time (Async)
+  await ParserCache.set(file, parsed);
 
   return parsed;
 }

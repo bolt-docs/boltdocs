@@ -1,3 +1,4 @@
+import path from 'node:path'
 import fastGlob from 'fast-glob'
 import type { BoltdocsConfig } from '../config'
 import { capitalize } from '../utils'
@@ -34,13 +35,15 @@ export async function generateRoutes(
 ): Promise<RouteMeta[]> {
   const finalBasePath = basePath || config?.base || '/docs'
   // Load persistent cache
-  docCache.load()
+  await docCache.load()
 
   // Clear path computation cache between generations
   localizedPathCache.clear()
 
   // Force re-parse if specifically requested (e.g. for content/config changes)
   if (config?.i18n) {
+    const { ParserCache } = await import('./parser/cache')
+    ParserCache.clear()
     docCache.invalidateAll()
   }
 
@@ -49,12 +52,29 @@ export async function generateRoutes(
   if (!forceScan && cachedFileList) {
     files = cachedFileList
   } else {
-    files = await fastGlob(['**/*.md', '**/*.mdx'], {
+    const rawFiles = await fastGlob(['**/*.md', '**/*.mdx'], {
       cwd: docsDir,
       absolute: true,
       suppressErrors: true,
       followSymbolicLinks: false,
     })
+
+    // Prioritized prefetch: Sort files to process important ones first
+    const PRIORITY_PATTERNS = [/index\./i, /intro/i, /getting-started/i, /readme/i]
+
+    files = rawFiles.sort((a, b) => {
+      const aBase = path.basename(a)
+      const bBase = path.basename(b)
+
+      const aScore = PRIORITY_PATTERNS.findIndex(p => p.test(aBase))
+      const bScore = PRIORITY_PATTERNS.findIndex(p => p.test(bBase))
+
+      if (aScore !== -1 && bScore !== -1) return aScore - bScore
+      if (aScore !== -1) return -1
+      if (bScore !== -1) return 1
+      return 0
+    })
+
     cachedFileList = files
   }
 
@@ -71,23 +91,24 @@ export async function generateRoutes(
       files.map(async (file) => {
         const cached = docCache.get(file)
         if (cached) return cached
-        const result = parseDocFile(file, docsDir, finalBasePath, config)
+        const result = await parseDocFile(file, docsDir, finalBasePath, config)
         docCache.set(file, result)
         return result
       })
     )
   } else {
     const { pool } = await import('./worker-pool')
+
+    // Warmup: Start processing all files immediately
+    const minimalConfig = config ? {
+      i18n: config.i18n,
+      versions: config.versions,
+    } : undefined
+
     parsed = await Promise.all(
       files.map(async (file) => {
         const cached = docCache.get(file)
         if (cached) return cached
-
-        // Sanitize config for the worker (functions like remark plugins cannot be cloned)
-        const minimalConfig = config ? {
-          i18n: config.i18n,
-          versions: config.versions,
-        } : undefined
 
         const result = await pool.parseFile(file, docsDir, finalBasePath, minimalConfig)
         docCache.set(file, result)

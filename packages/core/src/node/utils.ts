@@ -114,16 +114,7 @@ export function parseFrontmatter(filePath: string, validate = true): {
 
     // Validation: Schema check
     const result = FrontmatterSchema.safeParse(data)
-    if (!result.success) {
-      // We could log this or throw, but for metadata we'll just filter invalid fields
-      // or we can be strict as requested.
-      // The task says "Integrar validación de esquema con Zod".
-      // Let's log it.
-      console.warn(
-        `[VALIDATION][${filePath}] Invalid frontmatter fields detected.`,
-      )
-    }
-
+    
     // Explicitly allow only known fields from the schema for security (unless we use passthrough)
     const validatedData = result.success ? result.data : {}
 
@@ -146,6 +137,75 @@ export function parseFrontmatter(filePath: string, validate = true): {
     if (e instanceof ValidationError) throw e
     // If frontmatter is malformed (e.g. while editing), return empty data and raw content
     return { data: {}, content: raw, raw }
+  }
+}
+
+/**
+ * Parses frontmatter and markdown content from a file asynchronously.
+ * Uses `gray-matter` for parsing. Returns the parsed data and the remaining markdown content.
+ *
+ * @param filePath - The absolute path to the markdown/mdx file
+ * @returns An object containing the parsed metadata (`data`) and the raw markdown (`content`)
+ */
+export async function parseFrontmatterAsync(filePath: string, validate = true): Promise<{
+  data: any
+  content: string
+  raw: string
+}> {
+  try {
+    const raw = await fs.promises.readFile(filePath, 'utf-8')
+    const { data, content, matter: rawMatter } = matter(raw)
+
+    // Security: Check frontmatter size
+    if (rawMatter && rawMatter.length > MAX_FRONTMATTER_SIZE) {
+      logSecurityEvent(
+        'FRONTMATTER_TOO_LARGE',
+        'Frontmatter block exceeds size limit',
+        {
+          size: rawMatter.length,
+          file: filePath,
+        },
+      )
+      throw new ValidationError(
+        `Security breach: Frontmatter size exceeds limit of ${MAX_FRONTMATTER_SIZE} bytes`,
+      )
+    }
+
+    if (!validate) {
+      return { data, content, raw }
+    }
+
+    // Validation: Schema check
+    const result = FrontmatterSchema.safeParse(data)
+    
+    // Explicitly allow only known fields from the schema for security (unless we use passthrough)
+    const validatedData = result.success ? result.data : {}
+
+    // Sanitization: Clean metadata fields
+    const sanitizedData: any = { ...validatedData }
+
+    // Auto-populate lastUpdated if missing
+    if (!sanitizedData.lastUpdated) {
+      const stats = await fs.promises.stat(filePath);
+      sanitizedData.lastUpdated = stats.mtimeMs;
+    }
+    if (sanitizedData.title)
+      sanitizedData.title = stripHtmlTags(sanitizedData.title).trim()
+    if (sanitizedData.description)
+      sanitizedData.description = stripHtmlTags(
+        sanitizedData.description,
+      ).trim()
+
+    return { data: sanitizedData, content, raw }
+  } catch (e) {
+    if (e instanceof ValidationError) throw e
+    // If file cannot be read, it might be a race condition during deletion
+    try {
+      const rawFallback = await fs.promises.readFile(filePath, 'utf-8')
+      return { data: {}, content: rawFallback, raw: rawFallback }
+    } catch {
+       return { data: {}, content: '', raw: '' }
+    }
   }
 }
 
