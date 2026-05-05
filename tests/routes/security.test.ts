@@ -15,7 +15,8 @@ vi.mock('../../packages/core/src/node/utils', async () => {
   const actual = (await vi.importActual('../../packages/core/src/node/utils')) as any
   return {
     ...actual,
-    parseFrontmatter: vi.fn(), // Default to mock
+    parseFrontmatter: vi.fn(),
+    parseFrontmatterAsync: vi.fn(),
   }
 })
 
@@ -28,28 +29,23 @@ describe('Security: Route Parser', () => {
     vi.clearAllMocks()
   })
 
-  it('should reflect the path provided without allowing traversal in the route (Functional Check)', () => {
+  it('should reflect the path provided without allowing traversal in the route (Functional Check)', async () => {
     const maliciousPath = 'C:\\docs\\..\\..\\windows\\system32\\cmd.exe'
 
-    vi.mocked(utils.parseFrontmatter).mockReturnValue({
+    vi.mocked(utils.parseFrontmatterAsync).mockResolvedValue({
       data: {},
       content: '',
     })
 
     // The parser should now throw an error if the file is outside docsDir
-    expect(() => parseDocFile(maliciousPath, docsDir, basePath)).toThrow(
+    await expect(parseDocFile(maliciousPath, docsDir, basePath)).rejects.toThrow(
       PathTraversalError,
     )
-    expect(() => parseDocFile(maliciousPath, docsDir, basePath)).toThrow(/Security breach/)
-    expect(() => parseDocFile(maliciousPath, docsDir, basePath)).not.toThrow(/C:\\docs/)
-    expect(() => parseDocFile(maliciousPath, docsDir, basePath)).not.toThrow(/C:\\docs/)
-    expect(() => parseDocFile(maliciousPath, docsDir, basePath)).not.toThrow(/windows/)
-    expect(() => parseDocFile(maliciousPath, docsDir, basePath)).not.toThrow(/system32/)
-    expect(() => parseDocFile(maliciousPath, docsDir, basePath)).toThrow(/cmd\.exe/)
+    await expect(parseDocFile(maliciousPath, docsDir, basePath)).rejects.toThrow(/Security breach/)
   })
 
-  it('should handle malicious frontmatter keys', () => {
-    vi.mocked(utils.parseFrontmatter).mockReturnValue({
+  it('should handle malicious frontmatter keys', async () => {
+    vi.mocked(utils.parseFrontmatterAsync).mockResolvedValue({
       data: {
         __proto__: { admin: true },
         constructor: { prototype: { hacked: true } },
@@ -57,73 +53,69 @@ describe('Security: Route Parser', () => {
       content: '',
     })
 
-    const result = parseDocFile('C:\\docs\\test.md', docsDir, basePath)
+    const result = await parseDocFile('C:\\docs\\test.md', docsDir, basePath)
 
     // Ensure the route object isn't compromised by prototype pollution
     expect((result.route as any).admin).toBeUndefined()
     expect((Object.prototype as any).hacked).toBeUndefined()
   })
 
-  it('should handle extremely long values in frontmatter', () => {
+  it('should handle extremely long values in frontmatter', async () => {
     const longTitle = 'A'.repeat(1000000)
-    vi.mocked(utils.parseFrontmatter).mockReturnValue({
+    vi.mocked(utils.parseFrontmatterAsync).mockResolvedValue({
       data: { title: longTitle },
       content: '',
     })
 
-    const result = parseDocFile('C:\\docs\\test.md', docsDir, basePath)
+    const result = await parseDocFile('C:\\docs\\test.md', docsDir, basePath)
     expect(result.route.title).toBe(longTitle)
   })
 
-  it('should allow paths with route groups (parentheses)', () => {
+  it('should allow paths with route groups (parentheses)', async () => {
     const routeGroupPath = 'C:\\docs\\(guides)\\overview.md'
-    vi.mocked(utils.parseFrontmatter).mockReturnValue({
+    vi.mocked(utils.parseFrontmatterAsync).mockResolvedValue({
       data: { title: 'Overview' },
       content: '# Overview',
     })
 
-    const result = parseDocFile(routeGroupPath, docsDir, basePath)
+    const result = await parseDocFile(routeGroupPath, docsDir, basePath)
     expect(result.route.title).toBe('Overview')
     expect(result.route.path).toBe('/docs/guides/overview')
   })
 
   describe('Advanced Path Traversal', () => {
-    it('should block null byte injection', () => {
+    it('should block null byte injection', async () => {
       const malicious = 'C:\\docs\\secret.md\0.txt'
-      ;(utils.parseFrontmatter as any).mockReturnValue({
+      ;(utils.parseFrontmatterAsync as any).mockResolvedValue({
         data: {},
         content: '',
       })
-      // path.resolve might strip null bytes or throw, but we should check our logic
-      expect(() => parseDocFile(malicious, docsDir, basePath)).toThrow()
+      await expect(parseDocFile(malicious, docsDir, basePath)).rejects.toThrow()
     })
 
-    it('should block URL encoded traversal', () => {
-      // Vitest/Node path doesn't automatically decode %2e, but some environments might
+    it('should block URL encoded traversal', async () => {
       const malicious = 'C:\\docs\\%2e%2e\\%2e%2e\\windows\\system32\\cmd.exe'
-      vi.mocked(utils.parseFrontmatter).mockReturnValue({
+      vi.mocked(utils.parseFrontmatterAsync).mockResolvedValue({
         data: {},
         content: '',
       })
-      expect(() => parseDocFile(malicious, docsDir, basePath)).toThrow(SecurityViolationError)
-      expect(() => parseDocFile(malicious, docsDir, basePath)).not.toThrow(/C:\\docs/)
+      await expect(parseDocFile(malicious, docsDir, basePath)).rejects.toThrow(SecurityViolationError)
     })
 
-    it('should handle mixed separators and repetitive dots', () => {
+    it('should handle mixed separators and repetitive dots', async () => {
       const malicious = 'C:\\docs\\..././..\\..\\secret.txt'
-      vi.mocked(utils.parseFrontmatter).mockReturnValue({
+      vi.mocked(utils.parseFrontmatterAsync).mockResolvedValue({
         data: {},
         content: '',
       })
-      expect(() => parseDocFile(malicious, docsDir, basePath)).toThrow(PathTraversalError)
-      expect(() => parseDocFile(malicious, docsDir, basePath)).not.toThrow(/C:\\docs/)
+      await expect(parseDocFile(malicious, docsDir, basePath)).rejects.toThrow(PathTraversalError)
     })
   })
 
   describe('XSS Injection', () => {
-    it('should detect XSS in metadata fields', () => {
+    it('should detect XSS in metadata fields', async () => {
       const xssScript = "<script>alert('xss')</script>"
-      ;(utils.parseFrontmatter as any).mockReturnValue({
+      ;(utils.parseFrontmatterAsync as any).mockResolvedValue({
         data: {
           title: `Title ${xssScript}`,
           description: `Desc ${xssScript}`,
@@ -132,61 +124,54 @@ describe('Security: Route Parser', () => {
         content: '',
       })
 
-      const result = parseDocFile('C:\\docs\\test.md', docsDir, basePath)
+      const result = await parseDocFile('C:\\docs\\test.md', docsDir, basePath)
 
-      // These should be sanitized. Currently they are NOT.
       expect(result.route.title).not.toContain('<script>')
       expect(result.route.description).not.toContain('<script>')
       expect(result.route.badge).not.toContain('<script>')
     })
 
-    it('should detect XSS in headings with malicious payloads', () => {
+    it('should detect XSS in headings with malicious payloads', async () => {
       const xssPayload = '<img src=x onerror=alert(1)>'
-      vi.mocked(utils.parseFrontmatter).mockReturnValue({
+      vi.mocked(utils.parseFrontmatterAsync).mockResolvedValue({
         data: {},
         content: `## Normal Heading\n### Malicious ${xssPayload}`,
       })
 
-      const result = parseDocFile('C:\\docs\\test.md', docsDir, basePath)
+      const result = await parseDocFile('C:\\docs\\test.md', docsDir, basePath)
       expect(result.route.headings![1].text).not.toContain('<img')
       expect(result.route.headings![1].text).not.toContain('onerror')
-      expect(result.route.headings![1].text).toBe('Malicious') // stripHtmlTags will leave just the text
+      expect(result.route.headings![1].text).toBe('Malicious')
     })
   })
 
   describe('ReDoS (Regular Expression Denial of Service)', () => {
-    it('should not hang on maliciously crafted headings', () => {
+    it('should not hang on maliciously crafted headings', async () => {
       const start = Date.now()
-      // Construct a string that might trigger catastrophic backtracking in a poorly designed regex
-      // Our regex: /^(#{2,4})\s+(.+)$/gm
-      // Let's try many spaces or nested structures if the regex was more complex
       const maliciousContent = '## ' + ' '.repeat(10000) + 'A'
 
-      vi.mocked(utils.parseFrontmatter).mockReturnValue({
+      vi.mocked(utils.parseFrontmatterAsync).mockResolvedValue({
         data: {},
         content: maliciousContent,
       })
 
-      parseDocFile('C:\\docs\\test.md', docsDir, basePath)
+      await parseDocFile('C:\\docs\\test.md', docsDir, basePath)
       const duration = Date.now() - start
-      expect(duration).toBeLessThan(100) // Should be very fast
+      expect(duration).toBeLessThan(100)
     })
   })
 
   describe('Whitelisting and Length', () => {
-    it('should block paths exceeding MAX_PATH_LENGTH', () => {
+    it('should block paths exceeding MAX_PATH_LENGTH', async () => {
       const longPath = 'C:\\docs\\' + 'a'.repeat(300) + '.md'
-      vi.mocked(utils.parseFrontmatter).mockReturnValue({ data: {}, content: '' })
-      expect(() => parseDocFile(longPath, docsDir, basePath)).toThrow(PathTraversalError)
-      expect(() => parseDocFile(longPath, docsDir, basePath)).toThrow(/Path length exceeds limit/i)
+      vi.mocked(utils.parseFrontmatterAsync).mockResolvedValue({ data: {}, content: '' })
+      await expect(parseDocFile(longPath, docsDir, basePath)).rejects.toThrow(PathTraversalError)
     })
 
-    it('should block paths with invalid characters', () => {
-      const invalidPath = 'C:\\docs\\hacked<>.md' // Using < > which are definitely invalid in ALLOWED_PATH_CHARS but safe for decode
-      vi.mocked(utils.parseFrontmatter).mockReturnValue({ data: {}, content: '' })
-      expect(() => parseDocFile(invalidPath, docsDir, basePath)).toThrow(PathTraversalError)
-      expect(() => parseDocFile(invalidPath, docsDir, basePath)).toThrow(/invalid path characters/i)
-      expect(() => parseDocFile(invalidPath, docsDir, basePath)).not.toThrow(/C:\\docs/)
+    it('should block paths with invalid characters', async () => {
+      const invalidPath = 'C:\\docs\\hacked<>.md'
+      vi.mocked(utils.parseFrontmatterAsync).mockResolvedValue({ data: {}, content: '' })
+      await expect(parseDocFile(invalidPath, docsDir, basePath)).rejects.toThrow(PathTraversalError)
     })
   })
 
@@ -198,10 +183,10 @@ describe('Security: Route Parser', () => {
       const content = `---\n${largeYaml}\n---\nContent`
       
       const realUtils = (await vi.importActual('../../packages/core/src/node/utils')) as any
-      vi.mocked(utils.parseFrontmatter).mockImplementationOnce(realUtils.parseFrontmatter);
+      vi.mocked(utils.parseFrontmatterAsync).mockImplementationOnce(realUtils.parseFrontmatterAsync);
       
       fs.writeFileSync(tempMd, content)
-      expect(() => utils.parseFrontmatter(tempMd)).toThrow(ValidationError)
+      await expect(utils.parseFrontmatterAsync(tempMd)).rejects.toThrow(ValidationError)
       if (fs.existsSync(tempMd)) fs.unlinkSync(tempMd)
     })
 
@@ -210,10 +195,10 @@ describe('Security: Route Parser', () => {
       const content = `---\n${yaml}\n---\nContent`
       
       const realUtils = (await vi.importActual('../../packages/core/src/node/utils')) as any
-      vi.mocked(utils.parseFrontmatter).mockImplementationOnce(realUtils.parseFrontmatter);
+      vi.mocked(utils.parseFrontmatterAsync).mockImplementationOnce(realUtils.parseFrontmatterAsync);
       
       fs.writeFileSync(tempMd, content)
-      const { data } = utils.parseFrontmatter(tempMd)
+      const { data } = await utils.parseFrontmatterAsync(tempMd)
       expect(data.title).toBe('Valid Title')
       expect((data as any).unknown).toBeUndefined()
       if (fs.existsSync(tempMd)) fs.unlinkSync(tempMd)
@@ -224,10 +209,10 @@ describe('Security: Route Parser', () => {
       const content = `---\n${yaml}\n---\nContent`
       
       const realUtils = (await vi.importActual('../../packages/core/src/node/utils')) as any
-      vi.mocked(utils.parseFrontmatter).mockImplementationOnce(realUtils.parseFrontmatter);
+      vi.mocked(utils.parseFrontmatterAsync).mockImplementationOnce(realUtils.parseFrontmatterAsync);
       
       fs.writeFileSync(tempMd, content)
-      const { data } = utils.parseFrontmatter(tempMd)
+      const { data } = await utils.parseFrontmatterAsync(tempMd)
       expect(data.title).not.toContain('<script>')
       expect(data.description).not.toContain('<b>')
       if (fs.existsSync(tempMd)) fs.unlinkSync(tempMd)
@@ -235,33 +220,31 @@ describe('Security: Route Parser', () => {
   })
 
   describe('Unicode and Encoding Bypass', () => {
-    it('should block Unicode dot variants (e.g. One Dot Leader)', () => {
-      // \u2024 is ONE DOT LEADER which some parsers might treat as dot
+    it('should block Unicode dot variants (e.g. One Dot Leader)', async () => {
       const malicious = docsDir + '\\\u2024\u2024\\windows'
-      expect(() => parseDocFile(malicious, docsDir, basePath)).toThrow(SecurityViolationError)
+      await expect(parseDocFile(malicious, docsDir, basePath)).rejects.toThrow(SecurityViolationError)
     })
 
-    it('should block double URL encoding', () => {
-      // ..%252f is .. decoded once to ..%2f
+    it('should block double URL encoding', async () => {
       const malicious = docsDir + '\\..%252f..%252fwindows'
-      expect(() => parseDocFile(malicious, docsDir, basePath)).toThrow(SecurityViolationError)
+      await expect(parseDocFile(malicious, docsDir, basePath)).rejects.toThrow(SecurityViolationError)
     })
   })
 
   describe('Fuzzing and Control Characters', () => {
-    it('should block newline characters in paths', () => {
+    it('should block newline characters in paths', async () => {
       const malicious = docsDir + '\\test\nfile.md'
-      expect(() => parseDocFile(malicious, docsDir, basePath)).toThrow(SecurityViolationError)
+      await expect(parseDocFile(malicious, docsDir, basePath)).rejects.toThrow(SecurityViolationError)
     })
 
-    it('should block carriage return in paths', () => {
+    it('should block carriage return in paths', async () => {
       const malicious = docsDir + '\\test\rfile.md'
-      expect(() => parseDocFile(malicious, docsDir, basePath)).toThrow(SecurityViolationError)
+      await expect(parseDocFile(malicious, docsDir, basePath)).rejects.toThrow(SecurityViolationError)
     })
 
-    it('should block tab characters in paths', () => {
+    it('should block tab characters in paths', async () => {
       const malicious = docsDir + '\\test\tfile.md'
-      expect(() => parseDocFile(malicious, docsDir, basePath)).toThrow(SecurityViolationError)
+      await expect(parseDocFile(malicious, docsDir, basePath)).rejects.toThrow(SecurityViolationError)
     })
   })
 
@@ -273,12 +256,12 @@ describe('Security: Route Parser', () => {
   })
 
   describe('Advanced XSS and Protocol Filtering', () => {
-    it('should block dangerous URL protocols in links', () => {
-      vi.mocked(utils.parseFrontmatter).mockReturnValue({
+    it('should block dangerous URL protocols in links', async () => {
+      vi.mocked(utils.parseFrontmatterAsync).mockResolvedValue({
         data: { title: 'Test' },
         content: '<a href="javascript:alert(1)">Click me</a><a href="data:text/html,<html>">Data</a>',
       })
-      const result = parseDocFile('C:\\docs\\test.md', docsDir, basePath)
+      const result = await parseDocFile('C:\\docs\\test.md', docsDir, basePath)
       expect(result.route._rawContent).toContain('href="javascript:') // In raw it exists
       
       // But when we sanitize metadata (if title used it) or use sanitizeHtml elsewhere

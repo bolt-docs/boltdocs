@@ -119,7 +119,7 @@ describe('cache system', () => {
       await cache.flush()
 
       const cache2 = new FileCache<string>({ name: 'test', root: tempDir })
-      cache2.load()
+      await cache2.load()
       expect(cache2.size).toBe(1)
     })
 
@@ -210,13 +210,13 @@ describe('cache system', () => {
       expect(fs.existsSync(cacheFile)).toBe(true)
     })
 
-    it('should handle corrupted cache files gracefully', () => {
+    it('should handle corrupted cache files gracefully', async () => {
       const cacheDir = path.join(tempDir, '.boltdocs')
       fs.mkdirSync(cacheDir, { recursive: true })
       fs.writeFileSync(path.join(cacheDir, 'corrupt.json'), 'invalid json')
 
       const cache = new FileCache<string>({ name: 'corrupt', root: tempDir })
-      expect(() => cache.load()).not.toThrow()
+      await cache.load()
     })
   })
 
@@ -303,24 +303,24 @@ describe('cache system', () => {
       expect(fs.existsSync(baseDir)).toBe(true)
     })
 
-    it('should respect BOLTDOCS_NO_CACHE', () => {
+    it('should respect BOLTDOCS_NO_CACHE', async () => {
       process.env.BOLTDOCS_NO_CACHE = '1'
       
       const cache = new TransformCache('disabled', tempDir)
-      cache.load()
+      await cache.load()
       cache.save()
       
       // Should not create files
       expect(fs.existsSync(path.join(tempDir, '.boltdocs'))).toBe(false)
     })
 
-    it('should handle corrupted index files', () => {
+    it('should handle corrupted index files', async () => {
       const cacheDir = path.join(tempDir, '.boltdocs', 'transform-bad')
       fs.mkdirSync(cacheDir, { recursive: true })
       fs.writeFileSync(path.join(cacheDir, 'index.json'), 'bad json')
 
       const cache = new TransformCache('bad', tempDir)
-      expect(() => cache.load()).not.toThrow()
+      await cache.load()
     })
 
     it('should use LRU memory cache for fast access', async () => {

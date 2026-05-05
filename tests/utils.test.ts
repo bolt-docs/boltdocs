@@ -6,6 +6,7 @@ import {
   isDocFile,
   getFileMtime,
   parseFrontmatter,
+  parseFrontmatterAsync,
   escapeHtml,
   escapeXml,
   fileToRoutePath,
@@ -70,6 +71,15 @@ describe('utils', () => {
       const { data, content } = parseFrontmatter(tempFile)
       expect(data.title).toBe('Hello')
       expect(content.trim()).toBe('# World')
+      if (fs.existsSync(tempFile)) fs.unlinkSync(tempFile)
+    })
+
+    it('parseFrontmatterAsync should parse YAML frontmatter asynchronously', async () => {
+      const tempFile = path.join(os.tmpdir(), `boltdocs-utils-test-fm-async-${Date.now()}.md`)
+      fs.writeFileSync(tempFile, '---\ntitle: Hello Async\n---\n# Async World')
+      const { data, content } = await parseFrontmatterAsync(tempFile)
+      expect(data.title).toBe('Hello Async')
+      expect(content.trim()).toBe('# Async World')
       if (fs.existsSync(tempFile)) fs.unlinkSync(tempFile)
     })
 

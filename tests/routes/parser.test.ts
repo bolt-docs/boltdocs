@@ -9,6 +9,7 @@ vi.mock('../../packages/core/src/node/utils', async () => {
   return {
     ...(actual as any),
     parseFrontmatter: vi.fn(),
+    parseFrontmatterAsync: vi.fn(),
   }
 })
 
@@ -21,15 +22,15 @@ describe('parseDocFile', () => {
   })
 
   describe('frontmatter extraction', () => {
-    it('should parse a simple markdown file and return correct route meta', () => {
+    it('should parse a simple markdown file and return correct route meta', async () => {
       const filePath = 'C:\\docs\\getting-started.md'
 
-      ;(utils.parseFrontmatter as any).mockReturnValue({
+      ;(utils.parseFrontmatterAsync as any).mockResolvedValue({
         data: { title: 'Custom Title', sidebarPosition: 5 },
         content: '## Heading 1\nSome content\n### Heading 2\nMore content',
       })
 
-      const result = parseDocFile(filePath, docsDir, basePath)
+      const result = await parseDocFile(filePath, docsDir, basePath)
 
       expect(result.route.path).toBe('/docs/getting-started')
       expect(result.route.title).toBe('Custom Title')
@@ -47,162 +48,162 @@ describe('parseDocFile', () => {
       })
     })
 
-    it('should handle empty frontmatter', () => {
+    it('should handle empty frontmatter', async () => {
       const filePath = 'C:\\docs\\no-frontmatter.md'
 
-      ;(utils.parseFrontmatter as any).mockReturnValue({
+      ;(utils.parseFrontmatterAsync as any).mockResolvedValue({
         data: {},
         content: '# Content',
       })
 
-      const result = parseDocFile(filePath, docsDir, basePath)
+      const result = await parseDocFile(filePath, docsDir, basePath)
 
       expect(result.route.title).toBe('no-frontmatter')
       expect(result.route.sidebarPosition).toBeUndefined()
     })
 
-    it('should extract description from frontmatter', () => {
-      ;(utils.parseFrontmatter as any).mockReturnValue({
+    it('should extract description from frontmatter', async () => {
+      ;(utils.parseFrontmatterAsync as any).mockResolvedValue({
         data: { description: 'This is a custom description' },
         content: '# Content',
       })
 
-      const result = parseDocFile('C:\\docs\\test.md', docsDir, basePath)
+      const result = await parseDocFile('C:\\docs\\test.md', docsDir, basePath)
 
       expect(result.route.description).toBe('This is a custom description')
     })
 
-    it('should handle frontmatter with badge', () => {
-      ;(utils.parseFrontmatter as any).mockReturnValue({
+    it('should handle frontmatter with badge', async () => {
+      ;(utils.parseFrontmatterAsync as any).mockResolvedValue({
         data: { badge: 'New' },
         content: '# Content',
       })
 
-      const result = parseDocFile('C:\\docs\\test.md', docsDir, basePath)
+      const result = await parseDocFile('C:\\docs\\test.md', docsDir, basePath)
 
       expect(result.route.badge).toBe('New')
     })
 
-    it('should handle frontmatter with icon', () => {
-      ;(utils.parseFrontmatter as any).mockReturnValue({
+    it('should handle frontmatter with icon', async () => {
+      ;(utils.parseFrontmatterAsync as any).mockResolvedValue({
         data: { icon: 'rocket' },
         content: '# Content',
       })
 
-      const result = parseDocFile('C:\\docs\\test.md', docsDir, basePath)
+      const result = await parseDocFile('C:\\docs\\test.md', docsDir, basePath)
 
       expect(result.route.icon).toBe('rocket')
     })
   })
 
   describe('title inference', () => {
-    it('should infer title from filename if not provided in frontmatter', () => {
+    it('should infer title from filename if not provided in frontmatter', async () => {
       const filePath = 'C:\\docs\\installation.md'
 
-      ;(utils.parseFrontmatter as any).mockReturnValue({
+      ;(utils.parseFrontmatterAsync as any).mockResolvedValue({
         data: {},
         content: '',
       })
 
-      const result = parseDocFile(filePath, docsDir, basePath)
+      const result = await parseDocFile(filePath, docsDir, basePath)
 
       expect(result.route.title).toBe('installation')
     })
 
-    it('should infer title from frontmatter title if provided', () => {
-      ;(utils.parseFrontmatter as any).mockReturnValue({
+    it('should infer title from frontmatter title if provided', async () => {
+      ;(utils.parseFrontmatterAsync as any).mockResolvedValue({
         data: { title: 'My Custom Title' },
         content: '',
       })
 
-      const result = parseDocFile('C:\\docs\\test.md', docsDir, basePath)
+      const result = await parseDocFile('C:\\docs\\test.md', docsDir, basePath)
 
       expect(result.route.title).toBe('My Custom Title')
     })
 
-    it('should strip number prefix from inferred title', () => {
-      ;(utils.parseFrontmatter as any).mockReturnValue({
+    it('should strip number prefix from inferred title', async () => {
+      ;(utils.parseFrontmatterAsync as any).mockResolvedValue({
         data: {},
         content: '',
       })
 
-      const result = parseDocFile('C:\\docs\\01.introduction.md', docsDir, basePath)
+      const result = await parseDocFile('C:\\docs\\01.introduction.md', docsDir, basePath)
 
       expect(result.route.title).toBe('introduction')
     })
   })
 
   describe('description extraction', () => {
-    it('should extract automatic summary from content if description is missing', () => {
+    it('should extract automatic summary from content if description is missing', async () => {
       const filePath = 'C:\\docs\\summary-test.md'
 
-      ;(utils.parseFrontmatter as any).mockReturnValue({
+      ;(utils.parseFrontmatterAsync as any).mockResolvedValue({
         data: { title: 'Summary Test' },
         content:
           '# Title\n\nThis is a [test](link) content with *some* formatting and **bold** text. `Code` is also here.\n\nIt should be extracted as a summary.',
       })
 
-      const result = parseDocFile(filePath, docsDir, basePath)
+      const result = await parseDocFile(filePath, docsDir, basePath)
 
       expect(result.route.description).toBe(
         'This is a test content with some formatting and bold text. Code is also here. It should be extracted as a summary.',
       )
     })
 
-    it('should limit description to 160 characters', () => {
+    it('should limit description to 160 characters', async () => {
       const longContent = '# Title\n\n' + 'a'.repeat(200)
 
-      ;(utils.parseFrontmatter as any).mockReturnValue({
+      ;(utils.parseFrontmatterAsync as any).mockResolvedValue({
         data: { title: 'Test' },
         content: longContent,
       })
 
-      const result = parseDocFile('C:\\docs\\test.md', docsDir, basePath)
+      const result = await parseDocFile('C:\\docs\\test.md', docsDir, basePath)
 
       expect(result.route.description!.length).toBeLessThanOrEqual(160)
     })
 
-    it('should strip HTML tags from description', () => {
-      ;(utils.parseFrontmatter as any).mockReturnValue({
+    it('should strip HTML tags from description', async () => {
+      ;(utils.parseFrontmatterAsync as any).mockResolvedValue({
         data: { title: 'Test' },
         content: '# Title\n\nThis has <strong>HTML</strong> tags in it.',
       })
 
-      const result = parseDocFile('C:\\docs\\test.md', docsDir, basePath)
+      const result = await parseDocFile('C:\\docs\\test.md', docsDir, basePath)
 
       expect(result.route.description).toBe('This has HTML tags in it.')
     })
 
-    it('should use frontmatter description over content extraction', () => {
-      ;(utils.parseFrontmatter as any).mockReturnValue({
+    it('should use frontmatter description over content extraction', async () => {
+      ;(utils.parseFrontmatterAsync as any).mockResolvedValue({
         data: { description: 'Explicit description' },
         content: '# Title\n\nThis content should not be used.',
       })
 
-      const result = parseDocFile('C:\\docs\\test.md', docsDir, basePath)
+      const result = await parseDocFile('C:\\docs\\test.md', docsDir, basePath)
 
       expect(result.route.description).toBe('Explicit description')
     })
   })
 
   describe('heading extraction', () => {
-    it('should handle complex headings and markdown links', () => {
-      ;(utils.parseFrontmatter as any).mockReturnValue({
+    it('should handle complex headings and markdown links', async () => {
+      ;(utils.parseFrontmatterAsync as any).mockResolvedValue({
         data: {},
         content: '## Heading with [Link](url)\n### Another `code` heading',
       })
-      const result = parseDocFile('C:\\docs\\test.md', docsDir, basePath)
+      const result = await parseDocFile('C:\\docs\\test.md', docsDir, basePath)
       expect(result.route.headings![0].text).toBe('Heading with Link')
       expect(result.route.headings![1].text).toBe('Another code heading')
     })
 
-    it('should extract h2, h3, and h4 headings', () => {
-      ;(utils.parseFrontmatter as any).mockReturnValue({
+    it('should extract h2, h3, and h4 headings', async () => {
+      ;(utils.parseFrontmatterAsync as any).mockResolvedValue({
         data: {},
         content: '## H2\n### H3\n#### H4\n# H1 should be ignored',
       })
 
-      const result = parseDocFile('C:\\docs\\test.md', docsDir, basePath)
+      const result = await parseDocFile('C:\\docs\\test.md', docsDir, basePath)
 
       expect(result.route.headings).toHaveLength(3)
       expect(result.route.headings![0].level).toBe(2)
@@ -210,38 +211,38 @@ describe('parseDocFile', () => {
       expect(result.route.headings![2].level).toBe(4)
     })
 
-    it('should generate unique slugs for duplicate headings', () => {
-      ;(utils.parseFrontmatter as any).mockReturnValue({
+    it('should generate unique slugs for duplicate headings', async () => {
+      ;(utils.parseFrontmatterAsync as any).mockResolvedValue({
         data: {},
         content: '## Title\n## Title\n## Title',
       })
 
-      const result = parseDocFile('C:\\docs\\test.md', docsDir, basePath)
+      const result = await parseDocFile('C:\\docs\\test.md', docsDir, basePath)
 
       expect(result.route.headings![0].id).toBe('title')
       expect(result.route.headings![1].id).toBe('title-1')
       expect(result.route.headings![2].id).toBe('title-2')
     })
 
-    it('should sanitize HTML in headings', () => {
-      ;(utils.parseFrontmatter as any).mockReturnValue({
+    it('should sanitize HTML in headings', async () => {
+      ;(utils.parseFrontmatterAsync as any).mockResolvedValue({
         data: {},
         content: '## Heading with <script>alert("xss")</script>',
       })
 
-      const result = parseDocFile('C:\\docs\\test.md', docsDir, basePath)
+      const result = await parseDocFile('C:\\docs\\test.md', docsDir, basePath)
 
       expect(result.route.headings![0].text).not.toContain('<script>')
     })
   })
 
   describe('i18n and versioning', () => {
-    it('should handle i18n locales', () => {
+    it('should handle i18n locales', async () => {
       const config: any = {
         i18n: { locales: { es: { label: 'Spanish' } } },
       }
-      ;(utils.parseFrontmatter as any).mockReturnValue({ data: {}, content: '' })
-      const result = parseDocFile(
+      ;(utils.parseFrontmatterAsync as any).mockResolvedValue({ data: {}, content: '' })
+      const result = await parseDocFile(
         'C:\\docs\\es\\guide.md',
         'C:\\docs',
         '/docs',
@@ -251,14 +252,14 @@ describe('parseDocFile', () => {
       expect(result.route.path).toBe('/docs/es/guide')
     })
 
-    it('should handle versioning', () => {
+    it('should handle versioning', async () => {
       const config: any = {
         versions: {
           versions: [{ label: 'v1', path: 'v1' }],
         },
       }
-      ;(utils.parseFrontmatter as any).mockReturnValue({ data: {}, content: '' })
-      const result = parseDocFile(
+      ;(utils.parseFrontmatterAsync as any).mockResolvedValue({ data: {}, content: '' })
+      const result = await parseDocFile(
         'C:\\docs\\v1\\install.md',
         'C:\\docs',
         '/docs',
@@ -268,15 +269,15 @@ describe('parseDocFile', () => {
       expect(result.route.path).toBe('/docs/v1/install')
     })
 
-    it('should handle both version and locale', () => {
+    it('should handle both version and locale', async () => {
       const config: any = {
         versions: {
           versions: [{ label: 'v1', path: 'v1' }],
         },
         i18n: { locales: { es: { label: 'Spanish' } } },
       }
-      ;(utils.parseFrontmatter as any).mockReturnValue({ data: {}, content: '' })
-      const result = parseDocFile(
+      ;(utils.parseFrontmatterAsync as any).mockResolvedValue({ data: {}, content: '' })
+      const result = await parseDocFile(
         'C:\\docs\\v1\\es\\guide.md',
         'C:\\docs',
         '/docs',
@@ -287,15 +288,15 @@ describe('parseDocFile', () => {
       expect(result.route.path).toBe('/docs/v1/es/guide')
     })
 
-    it('should handle tabs with version and locale', () => {
+    it('should handle tabs with version and locale', async () => {
       const config: any = {
         versions: {
           versions: [{ label: 'v1', path: 'v1' }],
         },
         i18n: { locales: { es: { label: 'Spanish' } } },
       }
-      ;(utils.parseFrontmatter as any).mockReturnValue({ data: {}, content: '' })
-      const result = parseDocFile(
+      ;(utils.parseFrontmatterAsync as any).mockResolvedValue({ data: {}, content: '' })
+      const result = await parseDocFile(
         'C:\\docs\\v1\\es\\(api)\\reference.md',
         'C:\\docs',
         '/docs',
@@ -306,35 +307,35 @@ describe('parseDocFile', () => {
   })
 
   describe('route path generation', () => {
-    it('should respect custom permalinks from frontmatter', () => {
-      ;(utils.parseFrontmatter as any).mockReturnValue({
+    it('should respect custom permalinks from frontmatter', async () => {
+      ;(utils.parseFrontmatterAsync as any).mockResolvedValue({
         data: { permalink: '/custom/my-special-url' },
         content: '# Content',
       })
 
-      const result = parseDocFile('C:\\docs\\test.md', docsDir, basePath)
+      const result = await parseDocFile('C:\\docs\\test.md', docsDir, basePath)
 
       expect(result.route.path).toBe('/docs/custom/my-special-url')
     })
 
-    it('should handle index files', () => {
-      ;(utils.parseFrontmatter as any).mockReturnValue({
+    it('should handle index files', async () => {
+      ;(utils.parseFrontmatterAsync as any).mockResolvedValue({
         data: {},
         content: '',
       })
 
-      const result = parseDocFile('C:\\docs\\index.md', docsDir, basePath)
+      const result = await parseDocFile('C:\\docs\\index.md', docsDir, basePath)
 
       expect(result.route.path).toBe('/docs')
     })
 
-    it('should handle nested directory structure', () => {
-      ;(utils.parseFrontmatter as any).mockReturnValue({
+    it('should handle nested directory structure', async () => {
+      ;(utils.parseFrontmatterAsync as any).mockResolvedValue({
         data: {},
         content: '',
       })
 
-      const result = parseDocFile(
+      const result = await parseDocFile(
         'C:\\docs\\guide\\getting-started.md',
         docsDir,
         basePath,
@@ -345,13 +346,13 @@ describe('parseDocFile', () => {
   })
 
   describe('group metadata', () => {
-    it('should detect group index files', () => {
-      ;(utils.parseFrontmatter as any).mockReturnValue({
+    it('should detect group index files', async () => {
+      ;(utils.parseFrontmatterAsync as any).mockResolvedValue({
         data: { title: 'Guide', groupTitle: 'Getting Started' },
         content: '',
       })
 
-      const result = parseDocFile(
+      const result = await parseDocFile(
         'C:\\docs\\guide\\index.md',
         docsDir,
         basePath,
@@ -361,13 +362,13 @@ describe('parseDocFile', () => {
       expect(result.groupMeta?.title).toBe('Getting Started')
     })
 
-    it('should extract group position from frontmatter', () => {
-      ;(utils.parseFrontmatter as any).mockReturnValue({
+    it('should extract group position from frontmatter', async () => {
+      ;(utils.parseFrontmatterAsync as any).mockResolvedValue({
         data: { groupPosition: 2 },
         content: '',
       })
 
-      const result = parseDocFile(
+      const result = await parseDocFile(
         'C:\\docs\\guide\\index.md',
         docsDir,
         basePath,
@@ -376,13 +377,13 @@ describe('parseDocFile', () => {
       expect(result.groupMeta?.position).toBe(2)
     })
 
-    it('should infer group position from directory name', () => {
-      ;(utils.parseFrontmatter as any).mockReturnValue({
+    it('should infer group position from directory name', async () => {
+      ;(utils.parseFrontmatterAsync as any).mockResolvedValue({
         data: {},
         content: '',
       })
 
-      const result = parseDocFile(
+      const result = await parseDocFile(
         'C:\\docs\\guide\\02-test.md',
         docsDir,
         basePath,
@@ -395,33 +396,33 @@ describe('parseDocFile', () => {
   })
 
   describe('content extraction', () => {
-    it('should extract raw content for search indexing', () => {
-      ;(utils.parseFrontmatter as any).mockReturnValue({
+    it('should extract raw content for search indexing', async () => {
+      ;(utils.parseFrontmatterAsync as any).mockResolvedValue({
         data: {},
         content: '# Title\n\nSome content with [links](url) and `code`.',
       })
 
-      const result = parseDocFile('C:\\docs\\test.md', docsDir, basePath)
+      const result = await parseDocFile('C:\\docs\\test.md', docsDir, basePath)
 
       expect(result.route._content).toBeDefined()
       expect(result.route._content).toContain('Some content with links')
     })
 
-    it('should preserve raw markdown content', () => {
-      ;(utils.parseFrontmatter as any).mockReturnValue({
+    it('should preserve raw markdown content', async () => {
+      ;(utils.parseFrontmatterAsync as any).mockResolvedValue({
         data: {},
         content: '# Title\n\n## Heading\n\nContent with **bold** text.',
       })
 
-      const result = parseDocFile('C:\\docs\\test.md', docsDir, basePath)
+      const result = await parseDocFile('C:\\docs\\test.md', docsDir, basePath)
 
       expect(result.route._rawContent).toContain('**bold**')
     })
   })
 
   describe('seo extraction', () => {
-    it('should extract top-level SEO tags (og:, twitter:)', () => {
-      ;(utils.parseFrontmatter as any).mockReturnValue({
+    it('should extract top-level SEO tags (og:, twitter:)', async () => {
+      ;(utils.parseFrontmatterAsync as any).mockResolvedValue({
         data: {
           'og:title': 'Social Title',
           'twitter:card': 'summary_large_image',
@@ -430,7 +431,7 @@ describe('parseDocFile', () => {
         content: '# Content',
       })
 
-      const result = parseDocFile('C:\\docs\\test.md', docsDir, basePath)
+      const result = await parseDocFile('C:\\docs\\test.md', docsDir, basePath)
 
       expect(result.route.seo).toEqual({
         'og:title': 'Social Title',
@@ -439,8 +440,8 @@ describe('parseDocFile', () => {
       })
     })
 
-    it('should extract nested seo object', () => {
-      ;(utils.parseFrontmatter as any).mockReturnValue({
+    it('should extract nested seo object', async () => {
+      ;(utils.parseFrontmatterAsync as any).mockResolvedValue({
         data: {
           seo: {
             'og:image': '/custom-og.png',
@@ -450,7 +451,7 @@ describe('parseDocFile', () => {
         content: '# Content',
       })
 
-      const result = parseDocFile('C:\\docs\\test.md', docsDir, basePath)
+      const result = await parseDocFile('C:\\docs\\test.md', docsDir, basePath)
 
       expect(result.route.seo).toEqual({
         'og:image': '/custom-og.png',
@@ -458,8 +459,8 @@ describe('parseDocFile', () => {
       })
     })
 
-    it('should merge nested seo object with top-level tags', () => {
-      ;(utils.parseFrontmatter as any).mockReturnValue({
+    it('should merge nested seo object with top-level tags', async () => {
+      ;(utils.parseFrontmatterAsync as any).mockResolvedValue({
         data: {
           'og:title': 'Top Level',
           seo: {
@@ -470,25 +471,22 @@ describe('parseDocFile', () => {
         content: '# Content',
       })
 
-      const result = parseDocFile('C:\\docs\\test.md', docsDir, basePath)
+      const result = await parseDocFile('C:\\docs\\test.md', docsDir, basePath)
 
       // Top level keys processed after nested, so they should override if conflict
-      // In our implementation: 
-      // 1. Assign nested
-      // 2. Loop top level and assign
       expect(result.route.seo).toEqual({
         'og:title': 'Top Level',
         'og:image': '/image.png',
       })
     })
 
-    it('should set noindex: true if hidden: true is provided', () => {
-      ;(utils.parseFrontmatter as any).mockReturnValue({
+    it('should set noindex: true if hidden: true is provided', async () => {
+      ;(utils.parseFrontmatterAsync as any).mockResolvedValue({
         data: { hidden: true },
         content: '# Content',
       })
 
-      const result = parseDocFile('C:\\docs\\test.md', docsDir, basePath)
+      const result = await parseDocFile('C:\\docs\\test.md', docsDir, basePath)
 
       expect(result.route.seo).toEqual({
         noindex: true,
@@ -497,34 +495,34 @@ describe('parseDocFile', () => {
   })
 
   describe('security', () => {
-    it('should throw an error if the file is outside the docs directory', () => {
+    it('should throw an error if the file is outside the docs directory', async () => {
       const filePath = 'C:\\outside\\file.md'
-      expect(() => parseDocFile(filePath, docsDir, basePath)).toThrow(
+      await expect(parseDocFile(filePath, docsDir, basePath)).rejects.toThrow(
         /Security breach: File is outside of docs directory/
       )
     })
 
-    it('should block null bytes in paths', () => {
+    it('should block null bytes in paths', async () => {
       const filePath = 'C:\\docs\\file\0.md'
-      expect(() => parseDocFile(filePath, docsDir, basePath)).toThrow()
+      await expect(parseDocFile(filePath, docsDir, basePath)).rejects.toThrow()
     })
 
-    it('should handle encoding errors gracefully', () => {
+    it('should handle encoding errors gracefully', async () => {
       const filePath = 'C:\\docs\\%invalid-encoding%.md'
       // Should throw encoding security error
-      ;(utils.parseFrontmatter as any).mockReturnValue({
+      ;(utils.parseFrontmatterAsync as any).mockResolvedValue({
         data: {},
         content: '',
       })
-      expect(() => parseDocFile(filePath, docsDir, basePath)).toThrow(
+      await expect(parseDocFile(filePath, docsDir, basePath)).rejects.toThrow(
         'Security breach: Invalid characters or encoding in path'
       )
     })
   })
 
   describe('metadata generation', () => {
-    it('should generate complete route metadata', () => {
-      ;(utils.parseFrontmatter as any).mockReturnValue({
+    it('should generate complete route metadata', async () => {
+      ;(utils.parseFrontmatterAsync as any).mockResolvedValue({
         data: {
           title: 'Complete Test',
           description: 'Full metadata test',
@@ -535,7 +533,7 @@ describe('parseDocFile', () => {
         content: '## Heading',
       })
 
-      const result = parseDocFile('C:\\docs\\test.md', docsDir, basePath)
+      const result = await parseDocFile('C:\\docs\\test.md', docsDir, basePath)
 
       expect(result.route).toMatchObject({
         path: '/docs/test',
@@ -550,13 +548,13 @@ describe('parseDocFile', () => {
       expect(result.route.componentPath).toBe('C:\\docs\\test.md')
     })
 
-    it('should include relative path in filePath', () => {
-      ;(utils.parseFrontmatter as any).mockReturnValue({
+    it('should include relative path in filePath', async () => {
+      ;(utils.parseFrontmatterAsync as any).mockResolvedValue({
         data: {},
         content: '',
       })
 
-      const result = parseDocFile('C:\\docs\\guide\\test.md', docsDir, basePath)
+      const result = await parseDocFile('C:\\docs\\guide\\test.md', docsDir, basePath)
 
       expect(result.route.filePath).toBe('guide/test.md')
     })
