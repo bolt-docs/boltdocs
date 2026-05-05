@@ -61,7 +61,7 @@ export const WhyBoltdocs = () => {
                   <Check className="w-5 h-5" />
                 </div>
                 <div>
-                  <h3 className="text-lg font-bold text-text-main mb-2 group-hover:text-primary-400 transition-colors">
+                  <h3 className="text-lg font-bold text-body mb-2 group-hover:text-primary-400 transition-colors">
                     {item.title}
                   </h3>
                   <p className="text-sm text-on-surface-variant leading-relaxed">

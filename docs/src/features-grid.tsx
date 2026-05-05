@@ -61,10 +61,10 @@ export const FeaturesGrid = () => {
     <section className="py-10 px-6">
       <div className="max-w-7xl mx-auto">
         <div className="text-center mb-20">
-          <h2 ref={titleRef} className="text-2xl md:text-4xl font-black tracking-tighter border-0 text-text-main mb-6 opacity-0">
+          <h2 ref={titleRef} className="text-2xl md:text-4xl font-black tracking-tighter border-0 text-body mb-6 opacity-0">
             Powerful Features
           </h2>
-          <p ref={subtitleRef} className="text-on-surface-variant max-w-2xl mx-auto text-xl leading-relaxed opacity-0">
+          <p ref={subtitleRef} className="max-w-2xl mx-auto text-xl leading-relaxed opacity-0">
             Everything you need to ship world-class technical documentation at the
             speed of light.
           </p>

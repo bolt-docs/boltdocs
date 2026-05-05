@@ -17,20 +17,20 @@ export const Hero = () => {
           <span className="px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest text-black bg-white">
             v2.6.2
           </span>
-          <span className="text-sm font-bold text-text-main/60 group-hover:text-text-main transition-colors flex items-center gap-2">
+          <span className="text-sm font-bold text-body/60 group-hover:text-body transition-colors flex items-center gap-2">
             Available now!
             <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />
           </span>
         </div>
 
-        <h1 className="text-2xl md:text-4xl lg:text-5xl font-bold text-text-main mb-8">
+        <h1 className="text-2xl md:text-4xl lg:text-5xl font-bold text-body mb-8">
           The documentation engine <br className="hidden md:block" />
           <span className="bg-linear-to-r from-primary-400 via-purple-600 to-purple-200 bg-clip-text text-transparent">
             Modern
           </span>
         </h1>
 
-        <p className="max-w-xl mx-auto text-sm md:text-lg text-text-main/70 mb-10">
+        <p className="max-w-xl mx-auto text-sm md:text-lg text-body/70 mb-10">
           Boltdocs is a high-performance developer documentation, optimized for
           speed, and beautiful by design.
         </p>
@@ -41,7 +41,7 @@ export const Hero = () => {
             iconPosition="right"
             icon={<ArrowRight className="size-4" />}
             rounded={"full"}
-            className="bg-text-main text-bg-main hover:scale-105 transition-transform"
+            className="bg-text-body text-bg-main hover:scale-105 transition-transform"
           >
             Get Started
           </Button>

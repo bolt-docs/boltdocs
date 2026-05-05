@@ -50,7 +50,7 @@ export const StatsSection = () => {
               <div className={`p-3 rounded-xl ${stat.bgColor} ${stat.color} mb-3 group-hover:scale-110 transition-transform duration-300`}>
                 {stat.icon}
               </div>
-              <span className="text-2xl md:text-3xl font-black text-text-main">{stat.value}</span>
+              <span className="text-2xl md:text-3xl font-black text-body">{stat.value}</span>
               <span className="text-xs md:text-sm font-medium opacity-70 tracking-wider">{stat.label}</span>
             </div>
           ))}
