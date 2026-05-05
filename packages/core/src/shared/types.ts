@@ -51,7 +51,6 @@ export interface BoltdocsThemeConfig {
     icon?: string
   }>
   codeTheme?: ShikiTheme | { light: ShikiTheme; dark: ShikiTheme }
-  copyMarkdown?: boolean | { text?: string; icon?: string }
 }
 
 /**

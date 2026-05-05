@@ -8,7 +8,6 @@ export interface CopyMarkdownProps {
   content?: string
   mdxRaw?: string
   route?: ComponentRoute
-  config?: boolean | { text?: string; icon?: string }
 }
 
 const useCopyMarkdown = (content: string) => {
@@ -33,17 +32,11 @@ const useCopyMarkdown = (content: string) => {
   }
 }
 
-export function CopyMarkdown({ content, mdxRaw, config }: CopyMarkdownProps) {
+export function CopyMarkdown({ content, mdxRaw }: CopyMarkdownProps) {
   const displayContent = mdxRaw || content || ''
   const { copied, handleCopy, handleOpenRaw } = useCopyMarkdown(displayContent)
 
-  const isEnabled = config !== false
-  const buttonText =
-    typeof config === 'object'
-      ? config.text || 'Copy Markdown'
-      : 'Copy Markdown'
-
-  if (!isEnabled || !displayContent) return null
+  if (!displayContent) return null
 
   return (
     <div className="relative hidden md:inline-flex z-100 shrink-0 w-max translate-y-0 active:translate-y-px transition-transform duration-200">
@@ -59,7 +52,7 @@ export function CopyMarkdown({ content, mdxRaw, config }: CopyMarkdownProps) {
             copied && 'text-emerald-500 hover:bg-emerald-500/5',
           )}
         >
-          {copied ? 'Copied!' : buttonText}
+          {copied ? 'Copied!' : 'Copy Markdown'}
         </Button>
 
         <Menu.Trigger placement="bottom end">

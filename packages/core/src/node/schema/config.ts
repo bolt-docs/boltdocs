@@ -119,15 +119,6 @@ export const ThemeConfigSchema = z.object({
   codeTheme: z
     .union([z.string(), z.object({ light: z.string(), dark: z.string() })])
     .optional(),
-  copyMarkdown: z
-    .union([
-      z.boolean(),
-      z.object({
-        text: z.string().optional(),
-        icon: z.string().optional(),
-      }),
-    ])
-    .optional(),
 })
 
 /**

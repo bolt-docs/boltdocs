@@ -119,7 +119,6 @@ export async function resolveConfig(
     githubRepo: userConfig.githubRepo,
     tabs: userConfig.tabs,
     codeTheme: userConfig.codeTheme,
-    copyMarkdown: userConfig.copyMarkdown,
     breadcrumbs: userConfig.breadcrumbs,
     poweredBy: userConfig.poweredBy,
     communityHelp: userConfig.communityHelp,
