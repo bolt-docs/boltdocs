@@ -5,7 +5,7 @@ export function NotFound() {
   return (
     <div className="flex items-center justify-center min-h-[60vh] text-center">
       <div className="space-y-4">
-        <span className="text-8xl font-black tracking-tighter text-primary-500/20">
+        <span className="text-8xl font-black tracking-tighter text-body">
           404
         </span>
         <h1 className="text-2xl font-bold text-body">Page Not Found</h1>
