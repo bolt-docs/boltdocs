@@ -455,6 +455,7 @@ export function getCacheConfig() {
     dir: process.env.BOLTDOCS_CACHE_DIR || '.boltdocs',
     noCache: process.env.BOLTDOCS_NO_CACHE === '1',
     lruLimit: parseInt(process.env.BOLTDOCS_CACHE_LRU_LIMIT || '2000', 10),
+    lruTTL: parseInt(process.env.BOLTDOCS_CACHE_LRU_TTL || '14400000', 10), // Default 4 hours
     compress: process.env.BOLTDOCS_CACHE_COMPRESS !== '0',
   }
 }

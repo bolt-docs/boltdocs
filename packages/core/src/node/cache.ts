@@ -3,6 +3,7 @@ import path from 'path'
 import crypto from 'crypto'
 import zlib from 'zlib'
 import { promisify } from 'util'
+import { LRUCache } from 'lru-cache'
 import { getFileMtime, getCacheConfig } from './utils'
 
 const writeFile = promisify(fs.writeFile)
@@ -15,42 +16,6 @@ const rename = promisify(fs.rename)
  */
 const ASSETS_DIR = 'assets'
 const SHARDS_DIR = 'shards'
-
-/**
- * Simple LRU cache implementation to prevent memory leaks.
- */
-class LRUCache<K, V> {
-  private cache = new Map<K, V>()
-  constructor(private limit: number) { }
-
-  get(key: K): V | undefined {
-    const val = this.cache.get(key)
-    if (val !== undefined) {
-      this.cache.delete(key)
-      this.cache.set(key, val)
-    }
-    return val
-  }
-
-  set(key: K, value: V): void {
-    if (this.cache.has(key)) {
-      this.cache.delete(key)
-    } else if (this.cache.size >= this.limit) {
-      const firstKey = this.cache.keys().next().value
-      if (firstKey !== undefined) {
-        this.cache.delete(firstKey)
-      }
-    }
-    this.cache.set(key, value)
-  }
-
-  get size() {
-    return this.cache.size
-  }
-  clear() {
-    this.cache.clear()
-  }
-}
 
 /**
  * Simple background task queue to prevent blocking the main thread during IO.
@@ -218,7 +183,11 @@ export class TransformCache {
     this.baseDir = path.resolve(root, config.dir, `transform-${name}`)
     this.shardsDir = path.resolve(this.baseDir, SHARDS_DIR)
     this.indexPath = path.resolve(this.baseDir, 'index.json')
-    this.memoryCache = new LRUCache<string, string>(config.lruLimit)
+    this.memoryCache = new LRUCache<string, string>({
+      max: config.lruLimit,
+      ttl: config.lruTTL,
+      updateAgeOnGet: true,
+    })
   }
 
   /**
