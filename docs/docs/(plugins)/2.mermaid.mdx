@@ -4,18 +4,16 @@ description: "Render Mermaid diagrams directly from Markdown code blocks."
 badge: Official
 ---
 
-import { Field, Note, Tip } from 'boltdocs/client'
-
 # Mermaid Plugin
 
-`@boltdocs/plugin-mermaid` adds native support for [Mermaid](https://mermaid.js.org/) diagrams in your documentation. Write diagram syntax inside standard code blocks tagged as `mermaid`, and they're automatically rendered as interactive SVGs.
+`@bdocs/plugin-mermaid` adds native support for [Mermaid](https://mermaid.js.org/) diagrams in your documentation. Write diagram syntax inside standard code blocks tagged as `mermaid`, and they're automatically rendered as interactive SVGs.
 
 ---
 
 ## Installation
 
 ```bash
-pnpm add @boltdocs/plugin-mermaid
+pnpm add @bdocs/plugin-mermaid
 ```
 
 ---
@@ -24,9 +22,9 @@ pnpm add @boltdocs/plugin-mermaid
 
 Register the plugin in your `boltdocs.config.ts`:
 
-```ts
+```ts title="boltdocs.config.ts"
 import { defineConfig } from 'boltdocs'
-import mermaidPlugin from '@boltdocs/plugin-mermaid'
+import mermaidPlugin from '@bdocs/plugin-mermaid'
 
 export default defineConfig({
   plugins: [mermaidPlugin()],

@@ -28,9 +28,9 @@ You can tune the caching behavior using the following environment variables:
 | `BOLTDOCS_CACHE_LRU_TTL` | `14400000` | The time-to-live (TTL) in milliseconds for memory cache entries (default 4 hours). |
 | `BOLTDOCS_CACHE_COMPRESS` | `1` | Set to `0` to disable Gzip compression for cache files. |
 
-### Example `.env`
+### Example
 
-```bash
+```bash title=".env"
 # Disable caching for a clean CI build
 BOLTDOCS_NO_CACHE=1
 

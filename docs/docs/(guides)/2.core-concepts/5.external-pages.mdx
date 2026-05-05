@@ -3,8 +3,6 @@ title: "External Pages"
 description: "Learn how to build landing pages, pricing tables, and other custom pages outside of the documentation layout using the pages-external directory."
 ---
 
-import { Field, Note, Tip, Important, Warning } from 'boltdocs/client'
-
 # External Pages
 
 While Boltdocs is primarily a documentation framework, you often need "external" pages that don't follow the documentation layout — like a custom Homepage, a Pricing page, or a Roadmap.
@@ -23,8 +21,7 @@ Instead of cluttering your `boltdocs.config.ts`, you can define these pages in a
 
 Defining a simple Pricing page and a custom Home page.
 
-```tsx
-// docs/pages-external/index.tsx
+```tsx title="docs/pages-external/index.tsx"
 import Pricing from './Pricing'
 import Home from './Home'
 
@@ -49,8 +46,7 @@ export const pages = {
 
 You can export a `layout` component to wrap all your external pages. This is perfect for giving your marketing pages a completely different look (header, footer, etc.) from your documentation.
 
-```tsx
-// docs/pages-external/index.tsx
+```tsx title="docs/pages-external/index.tsx"
 import Layout from './MarketingLayout'
 import Pricing from './Pricing'
 import Roadmap from './Roadmap'
@@ -68,8 +64,7 @@ export const pages = {
 
 Your custom layout receives `children` and can use any Boltdocs primitives or standard React components.
 
-```tsx
-// docs/pages-external/MarketingLayout.tsx
+```tsx title="docs/pages-external/MarketingLayout.tsx"
 export default function MarketingLayout({ children }: { children: React.ReactNode }) {
   return (
     <div className="marketing-wrapper">

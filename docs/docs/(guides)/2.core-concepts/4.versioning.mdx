@@ -3,8 +3,6 @@ title: "Versioning"
 description: "Maintain multiple versions of your documentation with folder-based versioning."
 ---
 
-import { FileTree, Important, Tip, Note, Field } from 'boltdocs/client'
-
 # Documentation Versioning
 
 Boltdocs lets you maintain multiple versions of your documentation simultaneously. Whether you're supporting legacy users on v1 or preparing a v3 release, the version switcher stays in sync with your content automatically.
@@ -15,7 +13,7 @@ Boltdocs lets you maintain multiple versions of your documentation simultaneousl
 
 Add the `versions` property to your `boltdocs.config.ts`:
 
-```ts
+```ts title="boltdocs.config.ts"
 import { defineConfig } from 'boltdocs'
 
 export default defineConfig({

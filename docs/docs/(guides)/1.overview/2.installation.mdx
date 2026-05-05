@@ -69,7 +69,7 @@ pnpm add -D typescript @types/react @types/react-dom
 
 Create a configuration file at the root of your project:
 
-```ts
+```ts title="boltdocs.config.ts"
 import { defineConfig } from 'boltdocs'
 
 export default defineConfig({
@@ -100,7 +100,7 @@ This is your first documentation page.
 
 Add these scripts to your `package.json`:
 
-```json
+```json title="package.json"
 {
   "scripts": {
     "dev": "boltdocs dev",

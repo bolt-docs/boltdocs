@@ -19,7 +19,7 @@ Using **TypeScript** is highly encouraged. It provides instant autocomplete, pro
 
 Getting started? A minimal configuration is all you need to go live.
 
-```ts
+```ts title="boltdocs.config.ts"
 import { defineConfig } from 'boltdocs';
 
 export default defineConfig({
@@ -40,7 +40,7 @@ export default defineConfig({
 
 For production-ready sites, you can leverage granular SEO, internationalization, and customized code themes.
 
-```ts
+```ts title="boltdocs.config.ts"
 import { defineConfig } from 'boltdocs';
 
 export default defineConfig({
@@ -96,7 +96,6 @@ A deep dive into every property available within the `defineConfig` helper.
 | `siteUrl` | `string` | The absolute URL of your site (e.g., `https://docs.com`). Required for Sitemap generation. |
 | `docsDir` | `string` | Relative path to your documentation folder. Defaults to `docs`. |
 | `base` | `string` | The base path of your application (e.g., `/docs/`). Useful if your site is not at the domain root. |
-| `homePage` | `string` | Path to the file that will serve as your landing page. |
 | `theme` | `BoltdocsThemeConfig` | Aesthetics, navigation, and identity settings. |
 | `seo` | `BoltdocsSeoConfig` | Global meta tags and search engine crawler instructions. |
 | `i18n` | `BoltdocsI18nConfig` | Multi-language and localization settings. |
@@ -125,7 +124,6 @@ Shapes the visual identity and navigation flow of your documentation.
 | `footer` | `object` | Text displayed at the very bottom of each page: `{ text }`. |
 | `breadcrumbs` | `boolean` | Toggle the page path indicator. Defaults to `true`. |
 | `codeTheme` | `string \| object` | Shiki highlight theme. e.g., `github-dark` or `{ light: '...', dark: '...' }`. |
-| `copyMarkdown` | `boolean \| object` | Enables a button to copy the raw Markdown content. |
 | `githubRepo` | `string` | Link to your source repo. Enables "Edit this page" buttons. |
 | `editLink` | `string` | Pattern for the edit link (e.g., `https://github.com/.../edit/main/:path`). |
 | `communityHelp` | `string` | Link to your community support (Discord, Forum, etc.). |

@@ -54,9 +54,9 @@ Each slot accepts `children`, `className`, and `style` props for customization.
 | `Head` | `boltdocs/client` | SEO meta tags (`<title>`, description, Open Graph) |
 | `Breadcrumbs` | `boltdocs/client` | Breadcrumb navigation based on current route |
 | `PageNav` | `boltdocs/client` | Previous / Next page navigation |
-| `ProgressBar` | `boltdocs/client` | Reading progress indicator at the top of the page |
 | `ErrorBoundary` | `boltdocs/client` | Catches rendering errors and shows a friendly fallback |
 | `CopyMarkdown` | `boltdocs/client` | Button to copy the raw MDX content |
+| `SearchDialog` | `boltdocs/client` | Modal search component |
 
 ### Key Hooks
 
@@ -73,8 +73,7 @@ Each slot accepts `children`, `className`, and `style` props for customization.
 
 Here's the complete layout used by the Boltdocs documentation site itself:
 
-```tsx
-// docs/layout.tsx
+```tsx title="docs/layout.tsx"
 import {
   DocsLayout,
   Navbar,
@@ -101,11 +100,10 @@ export default function Layout({ children }: { children: React.ReactNode }) {
   // Allow CopyMarkdown override via mdx-components.tsx
   const CopyMarkdownComp = (mdxComponents.CopyMarkdown as any) || CopyMarkdown
 
-  const isHome = pathname === '/' || pathname === ''
+  const isDocs = pathname.startsWith('/docs')
 
   return (
     <DocsLayout>
-      <ProgressBar />
       <Head
         siteTitle={config.theme?.title || 'Boltdocs'}
         siteDescription={config.theme?.description || ''}
@@ -114,10 +112,10 @@ export default function Layout({ children }: { children: React.ReactNode }) {
       <Navbar />
 
       <DocsLayout.Body>
-        {!isHome && <Sidebar routes={filteredRoutes} config={config} />}
+        {isDocs && <Sidebar routes={filteredRoutes} config={config} />}
 
         <DocsLayout.Content>
-          {!isHome && (
+          {isDocs && (
             <DocsLayout.ContentMdx>
             <DocsLayout.ContentHeader>
               <Breadcrumbs />
@@ -132,14 +130,14 @@ export default function Layout({ children }: { children: React.ReactNode }) {
 
           <ErrorBoundary>{children}</ErrorBoundary>
 
-          {!isHome && (
+          {isDocs && (
             <DocsLayout.ContentFooter>
               <PageNav />
             </DocsLayout.ContentFooter>
           )}
         </DocsLayout.Content>
 
-        {!isHome && (
+        {isDocs && (
           <OnThisPage
             headings={currentRoute?.headings}
             editLink={config.theme?.editLink}

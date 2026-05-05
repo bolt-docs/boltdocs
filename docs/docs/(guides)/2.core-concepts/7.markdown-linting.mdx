@@ -3,8 +3,6 @@ title: "Markdown Linting"
 description: "Keep your documentation clean and consistent with built-in markdownlint."
 ---
 
-import { Table, Note, Tip } from 'boltdocs/client'
-
 # Markdown Linting
 
 Consistent markdown styling is essential for readable documentation. Every project scaffolded with `create-boltdocs` comes pre-configured with [markdownlint-cli2](https://github.com/DavidAnson/markdownlint-cli2).
@@ -15,8 +13,7 @@ Consistent markdown styling is essential for readable documentation. Every proje
 
 Your project includes a `.markdownlint.yaml` file at the root. Boltdocs pre-configures it to balance consistency with MDX flexibility:
 
-```yaml
-# .markdownlint.yaml
+```yaml title=".markdownlint.yaml"
 default: true
 MD013: false        # Line length — disabled for long URLs and JSX props
 MD033: false        # Inline HTML — disabled because MDX uses JSX extensively
@@ -26,7 +23,7 @@ MD024: false        # Duplicate headings — sometimes needed across different s
 
 The `.markdownlintignore` file excludes directories that shouldn't be linted:
 
-```text
+```text title=".markdownlintignore"
 node_modules/
 dist/
 .boltdocs/
@@ -50,7 +47,7 @@ dist/
 
 Open `.markdownlint.yaml` and toggle any [markdownlint rule](https://github.com/DavidAnson/markdownlint/blob/main/doc/Rules.md):
 
-```yaml
+```yaml title=".markdownlint.yaml"
 # Enable line length enforcement (120 char max)
 MD013:
   line_length: 120

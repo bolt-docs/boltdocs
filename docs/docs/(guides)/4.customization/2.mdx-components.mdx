@@ -3,8 +3,6 @@ title: "MDX Components"
 description: "Customize and extend MDX rendering with mdx-components.tsx."
 ---
 
-import { Note, Tip } from 'boltdocs/client'
-
 # MDX Components
 
 Boltdocs allows you to override the default HTML elements rendered by MDX **and** register custom React components available globally in all your `.mdx` files — no imports needed.
@@ -21,9 +19,7 @@ Supported extensions: `.tsx`, `.ts`, `.jsx`, `.js`
 
 Export a default object where keys are component names or HTML tags:
 
-```tsx
-// docs/mdx-components.tsx
-
+```tsx title="docs/mdx-components.tsx"
 export default {
   // Override a standard HTML element
   h1: (props: any) => (
@@ -77,9 +73,9 @@ export default {
 
 Components registered in `mdx-components.tsx` can be used in **any** MDX file without importing them:
 
-### In `mdx-components.tsx`:
+### Example:
 
-```tsx
+```tsx title="docs/mdx-components.tsx"
 export default {
   Callout: ({ title, children }: { title: string; children: React.ReactNode }) => (
     <div className="border-l-4 border-primary-500 bg-primary-500/10 p-4 rounded-r-lg my-4">
@@ -106,9 +102,7 @@ export default {
 
 The `CopyMarkdown` button at the top of each page can be replaced through `mdx-components.tsx`:
 
-```tsx
-// docs/mdx-components.tsx
-
+```tsx title="docs/mdx-components.tsx"
 function MyCopyButton({ mdxRaw, route }: any) {
   return (
     <button onClick={() => navigator.clipboard.writeText(mdxRaw || '')}>
