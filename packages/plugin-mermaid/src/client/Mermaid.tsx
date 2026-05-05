@@ -92,7 +92,7 @@ export function Mermaid({ chart }: MermaidProps) {
   return (
     <div
       ref={containerRef}
-      className={`mermaid-container my-8 flex min-h-[100px] items-center justify-center overflow-auto rounded-xl border border-border-subtle bg-bg-surface/30 p-8 backdrop-blur-sm transition-colors duration-300 ${!svgStr ? 'animate-pulse' : ''
+      className={`mermaid-container my-8 flex min-h-[100px] items-center justify-center overflow-auto rounded-xl border border-subtle bg-surface/30 p-8 backdrop-blur-sm transition-colors duration-300 ${!svgStr ? 'animate-pulse' : ''
         }`}
       dangerouslySetInnerHTML={{ __html: svgStr }}
     />

@@ -5,14 +5,14 @@
   align-items: center;
   margin: 2.5rem 0;
   padding: 2rem;
-  background-color: var(--color-bg-surface, rgba(0, 0, 0, 0.02));
-  border: 1px solid var(--color-border-subtle);
+  background-color: var(--color-surface, rgba(0, 0, 0, 0.02));
+  border: 1px solid var(--color-subtle);
   border-radius: var(--radius-xl, 1rem);
   overflow-x: auto;
 }
 
 :root[data-theme="dark"] .mermaid-container {
-  background-color: var(--color-bg-surface, rgba(255, 255, 255, 0.02));
+  background-color: var(--color-surface, rgba(255, 255, 255, 0.02));
 }
 
 .mermaid-container svg {
