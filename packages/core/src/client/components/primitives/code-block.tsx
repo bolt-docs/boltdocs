@@ -9,6 +9,20 @@ interface CodeBlockRootProps extends ComponentProps<"div"> {
     plain?: boolean;
 }
 
+export interface CodeBlockHeaderProps extends ComponentProps<"div"> {}
+export interface CodeBlockGroupProps extends ComponentProps<"div"> {}
+export interface CodeBlockContentProps extends ComponentProps<"div"> {
+    /**
+     * Whether the code content should be truncated with an expand button
+     * @default false
+     */
+    shouldTruncate?: boolean;
+}
+
+/**
+ * Root component for code blocks.
+ * Handles background, borders, and general layout.
+ */
 const CodeBlock = ({
     children,
     className,
@@ -33,8 +47,10 @@ const CodeBlock = ({
     );
 };
 
-type CodeBlockHeaderProps = ComponentProps<"div">;
-
+/**
+ * Header section of the code block.
+ * Usually contains the title, language label, and action buttons.
+ */
 const CodeBlockHeader = ({
     children,
     className,
@@ -54,8 +70,9 @@ const CodeBlockHeader = ({
     );
 };
 
-type CodeBlockGroupProps = ComponentProps<"div">;
-
+/**
+ * Horizontal group for organizing items within the header (e.g., logo + label).
+ */
 const CodeBlockGroup = ({
     children,
     className,
@@ -74,14 +91,10 @@ const CodeBlockGroup = ({
     );
 };
 
-interface CodeBlockContentProps extends ComponentProps<"div"> {
-    /**
-     * Whether the code should be truncated with an expand button
-     * @default false
-     */
-    shouldTruncate?: boolean;
-}
-
+/**
+ * Content area of the code block.
+ * Wraps the `<pre>` or `<div>` containing the code.
+ */
 const CodeBlockContent = ({
     className,
     children,
@@ -104,9 +117,14 @@ const CodeBlockContent = ({
     );
 };
 
+// Assign sub-components
+CodeBlock.Header = CodeBlockHeader;
+CodeBlock.Group = CodeBlockGroup;
+CodeBlock.Content = CodeBlockContent;
+
 export {
     CodeBlock,
     CodeBlockHeader,
     CodeBlockGroup,
     CodeBlockContent,
-};
+};
