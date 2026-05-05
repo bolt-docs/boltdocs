@@ -220,12 +220,13 @@ export function createRoutes(options: CreateRoutesOptions): RouteRecord[] {
   // 3. External pages
   if (externalPages) {
     Object.entries(externalPages).forEach(([rawPath, ExtComponent]) => {
-      const path = withBase(rawPath)
+      // Use the path exactly as defined in externalPages
+      const path = rawPath
       if (!children.find((r) => r.path === path)) {
         allMetadata.push({
           path,
           locale: config.i18n?.defaultLocale,
-          title: rawPath,
+          title: rawPath.replace(/^\//, '').split('/').pop() || 'Page',
           filePath: '',
           headings: [],
         } as any)
@@ -247,9 +248,7 @@ export function createRoutes(options: CreateRoutesOptions): RouteRecord[] {
         // Also add i18n variants for external pages if needed
         if (config.i18n) {
           Object.keys(config.i18n.locales).forEach((locale) => {
-            const localePath = withBase(
-              `/${locale}${rawPath === '/' ? '' : rawPath}`,
-            )
+            const localePath = `/${locale}${rawPath === '/' ? '' : rawPath}`
             if (!children.find((r) => r.path === localePath)) {
               allMetadata.push({
                 path: localePath,
