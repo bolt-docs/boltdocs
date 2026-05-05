@@ -1,5 +1,5 @@
 {
-  "name": "boltdocs",
+  "name": "boltdocs-promo",
   "private": true,
   "type": "module",
   "scripts": {
@@ -7,5 +7,8 @@
     "check": "npx --yes hyperframes@0.4.41 lint && npx --yes hyperframes@0.4.41 validate && npx --yes hyperframes@0.4.41 inspect",
     "render": "npx --yes hyperframes@0.4.41 render",
     "publish": "npx --yes hyperframes@0.4.41 publish"
+  },
+  "dependencies": {
+    "lru-cache": "^11.3.6"
   }
 }
