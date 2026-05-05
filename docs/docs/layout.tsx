@@ -40,7 +40,6 @@ export default function Layout({ children }: { children: React.ReactNode }) {
                 <CopyMarkdown
                   mdxRaw={currentRoute?._rawContent}
                   route={currentRoute}
-                  config={config.theme?.copyMarkdown}
                 />
               </DocsLayout.ContentHeader>
             )}
