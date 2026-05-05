@@ -61,7 +61,7 @@ const SearchDialogAutocomplete = <T extends object>({
 }) => {
   const Autocomplete = RAC.Autocomplete as any
   return (
-    <div className={className}>
+    <div className={cn('flex-1 min-h-0', className)}>
       <Autocomplete
         {...props}
         onSelectionChange={onSelectionChange}
@@ -75,12 +75,21 @@ const SearchDialogAutocomplete = <T extends object>({
 
 const SearchDialogInput = ({
   className,
+  value,
+  onChange,
+  onClear,
   ...props
-}: RAC.InputProps & { className?: string }) => {
+}: RAC.InputProps & {
+  className?: string
+  onClear?: () => void
+  onChange?: (val: string) => void
+}) => {
   return (
     <RAC.SearchField
       className="flex items-center gap-3 border-b border-subtle px-4 py-3 sm:py-4"
       autoFocus
+      value={value as string}
+      onChange={onChange}
     >
       <Search className="h-5 w-5 text-muted shrink-0" />
       <RAC.Input
@@ -92,7 +101,11 @@ const SearchDialogInput = ({
         placeholder="Search documentation..."
       />
       <div className="flex items-center gap-2">
-        <RAC.Button className="p-1 rounded-md text-muted hover:text-body hover:bg-soft outline-none transition-colors cursor-pointer">
+        <RAC.Button
+          slot="clear"
+          onPress={onClear}
+          className="p-1 rounded-md text-muted hover:text-body hover:bg-soft outline-none transition-colors cursor-pointer group-empty:invisible"
+        >
           <X className="h-4 w-4" />
         </RAC.Button>
         <div className="hidden sm:flex items-center gap-1.5 rounded-md border border-subtle bg-main px-1.5 py-1 text-[10px] font-medium text-muted">

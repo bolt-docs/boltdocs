@@ -112,7 +112,7 @@
   --color-dim: var(--color-neutral-400);
   --color-subtle: oklch(0.2 0 0); /* Custom deep gray for subtle borders */
   --color-strong: var(--color-neutral-600);
-  --color-code-bg: oklch(0.12 0 0); /* Slightly darker than main for code blocks */
+  --color-code-bg: var(--color-main); /* Slightly darker than main for code blocks */
   --color-code-text: var(--color-neutral-200);
 }
 
@@ -182,6 +182,14 @@
     -ms-overflow-style: none;
   }
   .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+
+  /* Hide native search cancel button */
+  input::-webkit-search-cancel-button,
+  input::-webkit-search-decoration,
+  input::-webkit-search-results-button,
+  input::-webkit-search-results-decoration {
     display: none;
   }
 
@@ -256,6 +264,14 @@
   .boltdocs-page strong {
     color: var(--color-body);
     font-weight: 700;
+  }
+  .boltdocs-page mark {
+    @apply bg-primary-500/20 text-primary-600 dark:text-primary-400 font-medium rounded-sm px-0.5;
+    background-color: color-mix(
+      in oklch,
+      var(--color-primary-500),
+      transparent 80%
+    );
   }
   .boltdocs-page blockquote {
     margin: 2rem 0;

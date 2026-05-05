@@ -13,6 +13,29 @@ interface SearchResult {
   isHeading?: boolean
 }
 
+function Highlight({ text, query }: { text: string; query: string }) {
+  if (!query || !text) return <>{text}</>
+  const escapedQuery = query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+  const regex = new RegExp(`(${escapedQuery})`, 'gi')
+  const parts = text.split(regex)
+  return (
+    <>
+      {parts.map((part, i) =>
+        regex.test(part) ? (
+          <mark
+            key={i}
+            className="bg-primary-500/20 text-primary-600 dark:text-primary-400 font-bold px-0.5 rounded-sm"
+          >
+            {part}
+          </mark>
+        ) : (
+          part
+        ),
+      )}
+    </>
+  )
+}
+
 export function SearchDialog({ routes }: { routes: ComponentRoute[] }) {
   const { isOpen, setIsOpen, query, setQuery, list } = useSearch(routes)
   const navigate = useNavigate()
@@ -36,18 +59,20 @@ export function SearchDialog({ routes }: { routes: ComponentRoute[] }) {
       const path = String(key)
       setIsOpen(false)
 
-      if (path.includes('#')) {
-        const [p, id] = path.split('#')
-        navigate(p)
+      const [baseUrl, hash] = path.split('#')
+      const search = query ? `?hl=${encodeURIComponent(query)}` : ''
+      const finalPath = `${baseUrl}${search}${hash ? `#${hash}` : ''}`
+
+      navigate(finalPath)
+
+      if (hash) {
         setTimeout(() => {
-          const el = document.getElementById(id)
+          const el = document.getElementById(hash)
           if (el) el.scrollIntoView({ behavior: 'smooth' })
         }, 100)
-      } else {
-        navigate(path)
       }
     },
-    [navigate, setIsOpen],
+    [navigate, setIsOpen, query],
   )
 
   return (
@@ -55,12 +80,14 @@ export function SearchDialog({ routes }: { routes: ComponentRoute[] }) {
       <Navbar.SearchTrigger onPress={() => setIsOpen(true)} />
 
       <SearchDialogPrimitive.Root isOpen={isOpen} onOpenChange={setIsOpen}>
-        <SearchDialogPrimitive.Autocomplete onSelectionChange={handleSelect}>
+        <SearchDialogPrimitive.Autocomplete
+          onSelectionChange={handleSelect}
+          className="flex-1 min-h-0"
+        >
           <SearchDialogPrimitive.Input
             value={query}
-            onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-              setQuery(e.target.value)
-            }
+            onChange={setQuery}
+            onClear={() => setQuery('')}
           />
           <SearchDialogPrimitive.List items={list as SearchResult[]}>
             {(item: SearchResult) => (
@@ -72,10 +99,10 @@ export function SearchDialog({ routes }: { routes: ComponentRoute[] }) {
                 <SearchDialogPrimitive.Item.Icon isHeading={item.isHeading} />
                 <div className="flex flex-col justify-center gap-0.5">
                   <SearchDialogPrimitive.Item.Title>
-                    {item.title}
+                    <Highlight text={item.title} query={query} />
                   </SearchDialogPrimitive.Item.Title>
                   <SearchDialogPrimitive.Item.Bio>
-                    {item.bio}
+                    <Highlight text={item.bio} query={query} />
                   </SearchDialogPrimitive.Item.Bio>
                 </div>
               </SearchDialogPrimitive.Item>

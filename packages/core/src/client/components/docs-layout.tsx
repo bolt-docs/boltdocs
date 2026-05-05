@@ -1,5 +1,6 @@
 import { cn } from '../utils/cn'
 import { useLocation } from '../hooks'
+import { SearchHighlight } from './ui-base/search-highlight'
 
 /**
  * Props shared by all layout slot components.
@@ -86,6 +87,7 @@ function ContentMdx({ children, className, style }: SlotProps) {
       )}
       style={style}
     >
+      <SearchHighlight />
       {children}
     </div>
   )
