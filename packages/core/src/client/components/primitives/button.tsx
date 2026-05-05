@@ -2,6 +2,7 @@ import * as RAC from 'react-aria-components'
 import { cn } from '../../utils/cn'
 import { cva } from 'class-variance-authority'
 import type { VariantProps } from 'class-variance-authority'
+import { Link } from './link'
 
 export const buttonVariants = cva(
   'flex flex-row items-center justify-center w-auto font-semibold tracking-tight no-underline whitespace-nowrap select-none outline-none transition-all duration-200 cursor-pointer pressed:scale-[0.97] hover:-translate-y-px leading-none',
@@ -59,7 +60,7 @@ type ButtonVariantType = VariantProps<typeof buttonVariants>
 
 export interface ButtonProps
   extends Omit<RAC.ButtonProps, 'children' | 'className'>,
-    ButtonVariantType {
+  ButtonVariantType {
   icon?: React.ReactNode
   iconPosition?: 'left' | 'right'
   href?: string
@@ -106,7 +107,7 @@ export const Button = ({
 
   if (href) {
     return (
-      <RAC.Link
+      <Link
         href={href}
         className={cn(
           buttonVariants({
@@ -121,7 +122,7 @@ export const Button = ({
         {...(props as RAC.LinkProps)}
       >
         {content}
-      </RAC.Link>
+      </Link>
     )
   }
 
