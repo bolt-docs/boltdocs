@@ -73,17 +73,16 @@ export function useSearchHighlight(containerSelector: string = '.boltdocs-page')
 function clearHighlights(selector: string) {
   const marks = document.querySelectorAll(`${selector} mark[data-search-highlight]`)
   marks.forEach((mark) => {
-    const parent = mark.parentNode
-    if (parent) {
-      const text = mark.textContent || ''
-      parent.replaceChild(document.createTextNode(text), mark)
-      // We'll normalize at the end of the full process to avoid fragmentation
+    try {
+      const parent = mark.parentNode
+      if (parent && parent.contains(mark)) {
+        const text = mark.textContent || ''
+        parent.replaceChild(document.createTextNode(text), mark)
+      }
+    } catch (e) {
+      // Ignore DOM errors during cleanup
     }
   })
-  
-  // Final cleanup of text nodes
-  const container = document.querySelector(selector)
-  if (container) container.normalize()
 }
 
 function highlightTerms(container: Element, terms: string[]) {

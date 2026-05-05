@@ -13,6 +13,10 @@
   "baseBranch": "main",
   "updateInternalDependencies": "patch",
   "ignore": [
-    "docs"
+    "docs",
+    "promo",
+    "examples",
+    "scripts",
+    "tests"
   ]
 }
