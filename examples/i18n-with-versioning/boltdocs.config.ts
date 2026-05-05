@@ -4,6 +4,14 @@ export default defineConfig({
   siteUrl: 'https://my-docs.com/',
   i18n: {
     locales: ['en', 'es'],
+    localeConfigs: {
+      en: {
+        label: "English"
+      },
+      es: {
+        label: "Spanish"
+      },
+    },
     defaultLocale: 'en',
   },
   versions: {
