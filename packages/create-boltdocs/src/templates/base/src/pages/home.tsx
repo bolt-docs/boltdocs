@@ -29,7 +29,7 @@ export function HomePage() {
         <div className='w-full h-[calc(100vh-120px)] flex items-center gap-10'>
             <div className="flex flex-col justify-center py-10">
                 <h1 className="text-5xl font-extrabold">Power by <p className="text-purple-500 inline">Boltdocs</p></h1>
-                <p className="text-xl mt-4 text-text-muted">Docs generators for react.</p>
+                <p className="text-xl mt-4 text-muted">Docs generators for react.</p>
             </div>
             <Cards cols={4}>
                 {features.map((feature) => (
