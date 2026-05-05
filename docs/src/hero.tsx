@@ -41,7 +41,7 @@ export const Hero = () => {
             iconPosition="right"
             icon={<ArrowRight className="size-4" />}
             rounded={"full"}
-            className="bg-text-body text-bg-main hover:scale-105 transition-transform"
+            className="bg-body text-main hover:scale-105 transition-transform"
           >
             Get Started
           </Button>
