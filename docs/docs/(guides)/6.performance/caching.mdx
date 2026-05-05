@@ -25,6 +25,7 @@ You can tune the caching behavior using the following environment variables:
 | `BOLTDOCS_NO_CACHE` | `0` | Set to `1` to completely disable the persistent cache. |
 | `BOLTDOCS_CACHE_DIR` | `.boltdocs` | The directory where cache files are stored. |
 | `BOLTDOCS_CACHE_LRU_LIMIT` | `2000` | The maximum number of transformation results to keep in memory. |
+| `BOLTDOCS_CACHE_LRU_TTL` | `14400000` | The time-to-live (TTL) in milliseconds for memory cache entries (default 4 hours). |
 | `BOLTDOCS_CACHE_COMPRESS` | `1` | Set to `0` to disable Gzip compression for cache files. |
 
 ### Example `.env`
@@ -36,8 +37,9 @@ BOLTDOCS_NO_CACHE=1
 # Increase memory limit for very large projects
 BOLTDOCS_CACHE_LRU_LIMIT=5000
 
-# Use a custom cache directory
+# Custom cache directory and TTL
 BOLTDOCS_CACHE_DIR=.cache/boltdocs
+BOLTDOCS_CACHE_LRU_TTL=3600000 # 1 hour
 ```
 
 ## Maintenance
