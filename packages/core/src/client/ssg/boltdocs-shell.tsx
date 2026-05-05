@@ -1,6 +1,6 @@
 import { useEffect, useMemo } from 'react'
 import type { ComponentType, ReactNode } from 'react'
-import { Outlet, useLocation, useNavigate } from 'react-router-dom'
+import { Outlet, useLocation } from 'react-router-dom'
 import { BoltdocsProvider, useBoltdocsContext } from '../store/boltdocs-context'
 import { ThemeProvider } from '../app/theme-context'
 import { MdxComponentsProvider } from '../app/mdx-components-context'
@@ -11,6 +11,7 @@ import { mdxComponentsDefault } from '../app/mdx-component'
 import { RoutesProvider } from '../app/routes-context'
 import type { BoltdocsConfig } from '../../shared/types'
 import type { ComponentRoute } from '../types'
+import { UIProvider } from '../app/ui-context'
 
 import virtualCustomComponents from 'virtual:boltdocs-mdx-components'
 
@@ -116,13 +117,13 @@ export function BoltdocsShell({
   )
 
   const { pathname } = useLocation()
-  
+
   const currentPath = useMemo(() => {
     const p = pathname || '/'
     return p.endsWith('/') && p.length > 1 ? p.slice(0, -1) : p
   }, [pathname])
 
-  const currentRoute = useMemo(() => 
+  const currentRoute = useMemo(() =>
     routes.find((r) => {
       const rp = r.path === '' ? '/' : r.path
       const normalize = (path: string) => path.endsWith('/') && path.length > 1 ? path.slice(0, -1) : path
@@ -135,19 +136,21 @@ export function BoltdocsShell({
     <HelmetProvider>
       <RoutesProvider routes={routes}>
         <ThemeProvider>
-          <MdxComponentsProvider components={allComponents}>
-            <ConfigContext.Provider value={config}>
-              <ScrollHandler />
-              <BoltdocsProvider
-                initialLocale={currentRoute?.locale}
-                initialVersion={currentRoute?.version}
-              >
-                <StoreSync config={config} />
-                <I18nUpdater config={config} />
-                <Outlet />
-              </BoltdocsProvider>
-            </ConfigContext.Provider>
-          </MdxComponentsProvider>
+          <UIProvider>
+            <MdxComponentsProvider components={allComponents}>
+              <ConfigContext.Provider value={config}>
+                <ScrollHandler />
+                <BoltdocsProvider
+                  initialLocale={currentRoute?.locale}
+                  initialVersion={currentRoute?.version}
+                >
+                  <StoreSync config={config} />
+                  <I18nUpdater config={config} />
+                  <Outlet />
+                </BoltdocsProvider>
+              </ConfigContext.Provider>
+            </MdxComponentsProvider>
+          </UIProvider>
         </ThemeProvider>
       </RoutesProvider>
     </HelmetProvider>

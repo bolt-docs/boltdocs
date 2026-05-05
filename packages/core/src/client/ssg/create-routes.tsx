@@ -109,6 +109,8 @@ const MdxRouteElement = ({
   )
 }
 
+import { DocsLayout } from '../app/docs-layout'
+
 export function createRoutes(options: CreateRoutesOptions): RouteRecord[] {
   const {
     routesData,
@@ -170,7 +172,13 @@ export function createRoutes(options: CreateRoutesOptions): RouteRecord[] {
     }
   })
 
-  const children: RouteRecord[] = [...docRoutes]
+  // Group all documentation routes under the persistent DocsLayout
+  const docsLayoutRoute: RouteRecord = {
+    element: <DocsLayout />,
+    children: docRoutes
+  }
+
+  const children: RouteRecord[] = [docsLayoutRoute]
 
   // 2. Home page route
   if (HomePage) {
