@@ -1,3 +1,4 @@
+import * as React from 'react'
 export type { BoltdocsConfig } from '../shared/types'
 
 /**

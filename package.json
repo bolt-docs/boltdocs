@@ -41,6 +41,8 @@
     "overrides": {
       "react": "19.0.0",
       "react-dom": "19.0.0",
+      "@types/react": "19.0.0",
+      "@types/react-dom": "19.0.0",
       "react-router-dom": "^7.0.0",
       "react-helmet-async": "^2.0.1",
       "cross-spawn": "^6.0.6",

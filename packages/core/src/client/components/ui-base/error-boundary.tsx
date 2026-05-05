@@ -1,11 +1,12 @@
-import type { ErrorInfo, ReactNode } from 'react'
+import * as React from 'react'
+import type { ErrorInfo } from 'react'
 import { Component } from 'react'
 
 import { Button } from '../primitives'
 
 interface Props {
-  children?: ReactNode
-  fallback?: ReactNode
+  children?: React.ReactNode
+  fallback?: React.ReactNode
 }
 
 interface State {
