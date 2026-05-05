@@ -23,15 +23,36 @@ import { PrimitiveSidebar } from 'boltdocs/client'
 
 ## API Reference
 
-### PrimitiveSidebar.Root
-The main navigation container. It is normally fixed on the left side of the viewport.
+### Sidebar.Root
+The main navigation container for desktop. It is normally fixed on the left side of the viewport.
 
 <Field name="children" type="ReactNode">
   The groups and links to render.
 </Field>
 
-### PrimitiveSidebar.Group
-A collapsible or static container for a set of related links.
+### Sidebar.Mobile
+The modal container for mobile devices. It automatically handles opening/closing based on the global UI state.
+
+<Field name="children" type="ReactNode">
+  The header and content to render inside the modal.
+</Field>
+
+### Sidebar.Header
+A shared header component for logo and close actions, typically used inside `Sidebar.Mobile`.
+
+<Field name="children" type="ReactNode">
+  Logo, title, or action buttons.
+</Field>
+
+### Sidebar.Content
+A scrollable wrapper that maintains scroll position across navigation.
+
+<Field name="children" type="ReactNode">
+  The links and groups.
+</Field>
+
+### Sidebar.Group
+A container for a set of related links.
 
 <Field name="title" type="string">
   The category title (rendered in uppercase).
@@ -49,14 +70,14 @@ A collapsible or static container for a set of related links.
   Callback when the group header is clicked.
 </Field>
 
-### PrimitiveSidebar.GroupItem
+### Sidebar.GroupItem
 A container for a single link within a group.
 
 <Field name="children" type="ReactNode">
   The link to render.
 </Field>
 
-### PrimitiveSidebar.Link
+### Sidebar.Link
 The individual page link.
 
 <Field name="label" type="string" required>
@@ -86,7 +107,7 @@ The individual page link.
 Using the `useSidebar` hook, you can iterate over your document groups and render them using the primitives.
 
 ```tsx
-import { PrimitiveSidebar } from 'boltdocs/client'
+import { Sidebar } from 'boltdocs/client'
 import { useSidebar, useRoutes } from 'boltdocs/client'
 
 export function CustomSidebar() {
@@ -94,31 +115,33 @@ export function CustomSidebar() {
   const { groups, ungrouped } = useSidebar(routes)
 
   return (
-    <PrimitiveSidebar.Root>
-      {/* 1. Ungrouped top-level links */}
-      {ungrouped.map(route => (
-        <PrimitiveSidebar.Link 
-          key={route.path}
-          label={route.title}
-          href={route.path}
-          active={route.active}
-        />
-      ))}
+    <Sidebar.Root>
+      <Sidebar.Content>
+        {/* 1. Ungrouped top-level links */}
+        {ungrouped.map(route => (
+          <Sidebar.Link 
+            key={route.path}
+            label={route.title}
+            href={route.path}
+            active={route.active}
+          />
+        ))}
 
-      {/* 2. Grouped links */}
-      {groups.map(group => (
-        <PrimitiveSidebar.Group key={group.slug} title={group.title}>
-          {group.routes.map(route => (
-            <PrimitiveSidebar.Link 
-              key={route.path}
-              label={route.title}
-              href={route.path}
-              active={route.active}
-            />
-          ))}
-        </PrimitiveSidebar.Group>
-      ))}
-    </PrimitiveSidebar.Root>
+        {/* 2. Grouped links */}
+        {groups.map(group => (
+          <Sidebar.Group key={group.slug} title={group.title}>
+            {group.routes.map(route => (
+              <Sidebar.Link 
+                key={route.path}
+                label={route.title}
+                href={route.path}
+                active={route.active}
+              />
+            ))}
+          </Sidebar.Group>
+        ))}
+      </Sidebar.Content>
+    </Sidebar.Root>
   )
 }
 ```

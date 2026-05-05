@@ -24,9 +24,8 @@ Boltdocs defines all design tokens as CSS custom properties inside its default t
   --font-sans: "Geist", system-ui, sans-serif;
 }
 ```
-
 <Important>
-  Boltdocs uses **Tailwind CSS v4** syntax. Variables are defined inside `@theme { }` blocks, not `:root`. The `--color-*` prefix maps directly to Tailwind utility classes (e.g., `bg-bg-main` → `--color-bg-main`).
+  Boltdocs uses **Tailwind CSS v4** syntax. Variables are defined inside `@theme { }` blocks, not `:root`. The `--color-*` prefix maps directly to Tailwind utility classes (e.g., `bg-surface` → `--color-surface`).
 </Important>
 
 ### Dark Mode
@@ -35,9 +34,9 @@ Dark mode overrides are applied via the `:root[data-theme="dark"]` selector:
 
 ```css
 :root[data-theme="dark"],
-:root:not(.theme-light) {
-  --color-bg-main: var(--color-neutral-950);
-  --color-text-main: var(--color-neutral-50);
+:root.dark {
+  --color-main: var(--color-neutral-900);
+  --color-body: var(--color-neutral-50);
 }
 ```
 
@@ -87,7 +86,7 @@ These control the base grays used for backgrounds, text, and borders:
 
 | Variable | Used By |
 | :--- | :--- |
-| `--color-neutral-50` | Light mode `bg-main`, dark mode `text-main` |
+| `--color-neutral-50` | Light mode `bg-main`, dark mode `text-body` |
 | `--color-neutral-100` – `300` | Surfaces, borders, muted backgrounds |
 | `--color-neutral-400` – `500` | Muted/dim text |
 | `--color-neutral-700` – `800` | Dark mode borders, surfaces |
@@ -99,16 +98,16 @@ These are mapped from the neutral/primary scales and control the UI:
 
 | Variable | Description | Light Value | Dark Value |
 | :--- | :--- | :--- | :--- |
-| `--color-bg-main` | Base page background | `neutral-50` | `neutral-950` |
-| `--color-bg-surface` | Cards, floating surfaces | `neutral-100` | `neutral-900` |
-| `--color-bg-muted` | Hover/active backgrounds | `neutral-200` | `neutral-800` |
-| `--color-text-main` | Primary text | `neutral-900` | `neutral-50` |
-| `--color-text-muted` | Secondary text | `neutral-500` | `neutral-400` |
-| `--color-text-dim` | Placeholders, metadata | `neutral-400` | `neutral-500` |
-| `--color-border-subtle` | Light dividers | `neutral-200` | `neutral-800` |
-| `--color-border-strong` | Strong dividers | `neutral-300` | `neutral-700` |
-| `--color-code-bg` | Code block background | `neutral-100` | `neutral-900` |
-| `--color-code-text` | Code block text | `neutral-800` | `neutral-200` |
+| `--color-main` | Base page background | `neutral-50` | `neutral-800` |
+| `--color-surface` | Cards, floating surfaces | `neutral-100` | `neutral-700` |
+| `--color-soft` | Hover/active backgrounds | `neutral-200` | `neutral-700` |
+| `--color-body` | Primary text | `neutral-900` | `neutral-50` |
+| `--color-muted` | Secondary text | `neutral-500` | `neutral-400` |
+| `--color-dim` | Placeholders, metadata | `neutral-400` | `neutral-500` |
+| `--color-subtle` | Light dividers | `neutral-200` | `neutral-700` |
+| `--color-strong` | Strong dividers | `neutral-300` | `neutral-600` |
+| `--color-code-bg` | Code block background | `neutral-100` | `neutral-800` |
+| `--color-code-text` | Code block text | `neutral-800` | `neutral-200` |neutral-200` |
 
 ### Status Colors
 
@@ -182,9 +181,9 @@ These are mapped from the neutral/primary scales and control the UI:
 
 /* Customize dark mode */
 :root[data-theme="dark"],
-:root:not(.theme-light) {
-  --color-bg-main: oklch(0.08 0.01 265);
-  --color-bg-surface: oklch(0.12 0.01 265);
+:root.dark {
+  --color-main: oklch(0.08 0.01 265);
+  --color-surface: oklch(0.12 0.01 265);
 }
 ```
 
