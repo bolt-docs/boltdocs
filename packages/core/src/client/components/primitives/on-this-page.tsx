@@ -169,7 +169,7 @@ const OnThisPageHeader = ({ children, className, ...props }: ComponentBase) => {
   return (
     <div
       className={cn(
-        'mb-4 text-xs font-bold text-text-main',
+        'mb-4 text-xs font-bold text-body',
         className,
       )}
       {...props}
@@ -206,7 +206,7 @@ const OnThisPageList = ({ children, className }: ComponentBase) => {
   return (
     <ul
       className={cn(
-        'relative space-y-1 text-sm border-l border-border-subtle',
+        'relative space-y-1 text-sm border-l border-subtle',
         className,
       )}
     >
@@ -267,8 +267,8 @@ const OnThisPageLink = ({
       onClick={onClick}
       data-active={internalActive}
       className={cn(
-        'block py-1 pl-4 text-[13px] outline-none transition-colors hover:text-text-main',
-        internalActive ? 'text-primary-500 font-medium' : 'text-text-muted',
+        'block py-1 pl-4 text-[13px] outline-none transition-colors hover:text-body',
+        internalActive ? 'text-primary-500 font-medium' : 'text-muted',
         className,
       )}
     >

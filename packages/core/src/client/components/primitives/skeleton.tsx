@@ -16,7 +16,7 @@ export function Skeleton({
   return (
     <div
       className={cn(
-        'animate-pulse bg-bg-muted',
+        'animate-pulse bg-soft',
         variant === 'circle' ? 'rounded-full' : 'rounded-md',
         className,
       )}

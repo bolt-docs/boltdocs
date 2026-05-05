@@ -79,9 +79,9 @@ function MenuItem(props: RAC.MenuItemProps) {
             'group relative flex flex-row items-center gap-2 px-2 py-1.5 rounded-lg outline-none cursor-default hover:cursor-pointer transition-none',
             'text-[12.5px] font-medium',
             {
-              'bg-bg-surface-elevated text-text-main ring-1 ring-border-strong/5':
+              'bg-surface text-body ring-1 ring-strong/5':
                 isFocused && !isSelected,
-              'text-text-main': !isSelected && !isFocused,
+              'text-body': !isSelected && !isFocused,
               'bg-primary-500/10 text-primary-600 dark:text-primary-400': isSelected,
               'bg-primary-500/15 ring-1 ring-primary-500/20': isSelected && isFocused,
               'opacity-40 grayscale pointer-events-none': isDisabled,
@@ -105,7 +105,7 @@ function MenuItem(props: RAC.MenuItemProps) {
               {children}
             </div>
             {hasSubmenu && (
-              <ChevronRight className="size-4 ml-auto text-text-muted group-focused:text-primary-500/70 transition-colors" />
+              <ChevronRight className="size-4 ml-auto text-muted group-focused:text-primary-500/70 transition-colors" />
             )}
           </>
         ),
@@ -131,7 +131,7 @@ function MenuSection<T extends object>({
       className={cn('flex flex-col gap-0.5', props.className)}
     >
       {title && (
-        <RAC.Header className="px-3 py-2 text-[10px] font-bold uppercase tracking-[0.075em] text-text-muted/50 select-none">
+        <RAC.Header className="px-3 py-2 text-[10px] font-bold uppercase tracking-[0.075em] text-muted/50 select-none">
           {title}
         </RAC.Header>
       )}
@@ -147,7 +147,7 @@ function MenuSeparator(props: RAC.SeparatorProps) {
   return (
     <RAC.Separator
       {...props}
-      className="mx-2 my-1.5 border-t border-border-subtle/50"
+      className="mx-2 my-1.5 border-t border-subtle/50"
     />
   )
 }

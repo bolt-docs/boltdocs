@@ -61,7 +61,7 @@ const CopyButton = ({ copied, handleCopy }: { copied: boolean; handleCopy: () =>
           'grid place-items-center size-8 bg-transparent outline-none cursor-pointer transition-all duration-200 hover:scale-110 active:scale-95 [&>svg]:size-4 [&>svg]:stroke-2',
           copied
             ? 'text-emerald-400'
-            : 'text-text-muted hover:text-text-main',
+            : 'text-muted hover:text-body',
         )}
         aria-label="Copy code"
       >
@@ -152,7 +152,7 @@ export function CodeBlock(props: CodeBlockProps) {
             {/* @ts-ignore */}
             <Button
               onPress={() => setIsExpanded(!isExpanded)}
-              className="rounded-full bg-bg-surface border border-border-subtle px-5 py-2 text-[0.8125rem] font-medium text-text-main outline-none cursor-pointer transition-all hover:bg-border-subtle hover:-translate-y-px backdrop-blur-md"
+              className="rounded-full bg-surface border border-subtle px-5 py-2 text-[0.8125rem] font-medium text-body outline-none cursor-pointer transition-all hover:bg-soft hover:-translate-y-px backdrop-blur-md"
             >
               {isExpanded ? 'Show less' : 'Expand code'}
             </Button>

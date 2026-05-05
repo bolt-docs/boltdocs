@@ -26,7 +26,7 @@ const TabsList = ({ children, className = '' }: ComponentBase) => {
     <div
       role="tablist"
       className={cn(
-        'relative flex flex-row items-center border-b border-border-subtle',
+        'relative flex flex-row flex-nowrap items-center border-b border-subtle overflow-x-auto',
         className,
       )}
     >
@@ -48,7 +48,7 @@ const TabsItem = ({
       aria-selected={selected}
       className={cn(
         'flex items-center gap-2 px-4 py-2 text-sm font-medium transition-colors outline-none cursor-pointer bg-transparent border-none',
-        selected ? 'text-primary-500' : 'text-text-muted hover:text-text-main',
+        selected ? 'text-primary-500' : 'text-muted hover:text-body',
         className,
       )}
       {...props}

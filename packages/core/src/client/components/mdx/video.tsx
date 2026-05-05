@@ -41,7 +41,7 @@ export function Video({
   return (
     <div
       ref={containerRef}
-      className="my-6 overflow-hidden rounded-lg border border-border-subtle"
+      className="my-6 overflow-hidden rounded-lg border border-subtle"
     >
       {isVisible ? (
         <video
@@ -58,7 +58,7 @@ export function Video({
         </video>
       ) : (
         <div
-          className="aspect-video bg-bg-surface animate-pulse"
+          className="aspect-video bg-surface animate-pulse"
           role="img"
           aria-label={alt || 'Video'}
         />

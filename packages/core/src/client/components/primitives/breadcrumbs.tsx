@@ -16,7 +16,7 @@ export const Breadcrumbs = ({
   return (
     <BreadcrumbsRAC
       className={cn(
-        'flex items-center gap-1.5 pl-0! mb-0 text-sm text-text-muted',
+        'flex items-center gap-1.5 pl-0! mb-0 text-sm text-muted',
         className,
       )}
       {...props}
@@ -47,8 +47,8 @@ const BreadcrumbsLink = ({
     <Link
       href={href}
       className={cn(
-        'transition-colors outline-none hover:text-text-main focus-visible:ring-2 focus-visible:ring-primary-500/30 rounded-sm',
-        'current:font-medium current:text-text-main current:pointer-events-none cursor-pointer',
+        'transition-colors outline-none hover:text-body focus-visible:ring-2 focus-visible:ring-primary-500/30 rounded-sm',
+        'current:font-medium current:text-body current:pointer-events-none cursor-pointer',
         className,
       )}
       {...props}
@@ -62,7 +62,7 @@ const BreadcrumbsSeparator = ({ className }: ComponentBase) => {
   return (
     <ChevronRight
       size={14}
-      className={cn('shrink-0 text-text-dim', className)}
+      className={cn('shrink-0 text-dim', className)}
     />
   )
 }

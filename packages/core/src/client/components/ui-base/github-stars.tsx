@@ -18,7 +18,7 @@ export function GithubStars({ repo }: { repo: string }) {
       href={`https://github.com/${repo}`}
       target="_blank"
       rel="noopener noreferrer"
-      className="inline-flex items-center gap-2 rounded-md border border-border-subtle bg-bg-surface px-2.5 py-1.5 text-xs font-medium text-text-muted transition-all hover:bg-bg-main hover:border-border-strong hover:text-text-main"
+      className="inline-flex items-center gap-2 rounded-md border border-subtle bg-surface px-2.5 py-1.5 text-xs font-medium text-muted transition-all hover:bg-main hover:border-strong hover:text-body"
     >
       <Github className="h-4 w-4" />
       {stars && <span className="tabular-nums">{stars}</span>}

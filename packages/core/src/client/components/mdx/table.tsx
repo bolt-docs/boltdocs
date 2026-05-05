@@ -66,7 +66,7 @@ export function Table({
                 key={i}
                 onClick={() => requestSort(i)}
                 className={cn(
-                  'text-left px-3 py-2.5 border-b-2 border-border-subtle text-text-main font-semibold text-sm',
+                  'text-left px-3 py-2.5 border-b-2 border-subtle text-body font-semibold text-sm',
                   sortable &&
                     'cursor-pointer select-none hover:text-primary-400 transition-colors',
                 )}
@@ -83,11 +83,11 @@ export function Table({
       {paginatedData && (
         <tbody>
           {paginatedData.map((row, i) => (
-            <tr key={i} className="transition-colors hover:bg-bg-surface">
+            <tr key={i} className="transition-colors hover:bg-surface">
               {row.map((cell, j) => (
                 <td
                   key={j}
-                  className="px-3 py-2 border-b border-border-subtle text-sm text-text-muted"
+                  className="px-3 py-2 border-b border-subtle text-sm text-muted"
                 >
                   {cell}
                 </td>
@@ -102,7 +102,7 @@ export function Table({
   return (
     <div
       className={cn(
-        'my-6 rounded-lg border border-border-subtle overflow-hidden',
+        'my-6 rounded-lg border border-subtle overflow-hidden',
         className,
       )}
     >
@@ -111,15 +111,15 @@ export function Table({
       </div>
 
       {paginated && totalPages > 1 && (
-        <div className="flex items-center justify-between border-t border-border-subtle px-4 py-3">
-          <span className="text-xs text-text-muted">
+        <div className="flex items-center justify-between border-t border-subtle px-4 py-3">
+          <span className="text-xs text-muted">
             Page {currentPage} of {totalPages}
           </span>
           <div className="flex items-center gap-1">
             <RAC.Button
               onPress={() => setCurrentPage(1)}
               isDisabled={currentPage === 1}
-              className="grid place-items-center h-7 w-7 rounded-md text-text-muted outline-none transition-colors hover:bg-bg-surface disabled:opacity-30 disabled:pointer-events-none cursor-pointer"
+              className="grid place-items-center h-7 w-7 rounded-md text-muted outline-none transition-colors hover:bg-surface disabled:opacity-30 disabled:pointer-events-none cursor-pointer"
             >
               <ChevronsLeft size={16} />
             </RAC.Button>
@@ -128,7 +128,7 @@ export function Table({
                 setCurrentPage((prev: number) => Math.max(prev - 1, 1))
               }
               isDisabled={currentPage === 1}
-              className="grid place-items-center h-7 w-7 rounded-md text-text-muted outline-none transition-colors hover:bg-bg-surface disabled:opacity-30 disabled:pointer-events-none cursor-pointer"
+              className="grid place-items-center h-7 w-7 rounded-md text-muted outline-none transition-colors hover:bg-surface disabled:opacity-30 disabled:pointer-events-none cursor-pointer"
             >
               <ChevronLeft size={16} />
             </RAC.Button>
@@ -137,14 +137,14 @@ export function Table({
                 setCurrentPage((prev: number) => Math.min(prev + 1, totalPages))
               }
               isDisabled={currentPage === totalPages}
-              className="grid place-items-center h-7 w-7 rounded-md text-text-muted outline-none transition-colors hover:bg-bg-surface disabled:opacity-30 disabled:pointer-events-none cursor-pointer"
+              className="grid place-items-center h-7 w-7 rounded-md text-muted outline-none transition-colors hover:bg-surface disabled:opacity-30 disabled:pointer-events-none cursor-pointer"
             >
               <ChevronRight size={16} />
             </RAC.Button>
             <RAC.Button
               onPress={() => setCurrentPage(totalPages)}
               isDisabled={currentPage === totalPages}
-              className="grid place-items-center h-7 w-7 rounded-md text-text-muted outline-none transition-colors hover:bg-bg-surface disabled:opacity-30 disabled:pointer-events-none cursor-pointer"
+              className="grid place-items-center h-7 w-7 rounded-md text-muted outline-none transition-colors hover:bg-surface disabled:opacity-30 disabled:pointer-events-none cursor-pointer"
             >
               <ChevronsRight size={16} />
             </RAC.Button>

@@ -61,7 +61,7 @@ export function Admonition({
       {...rest}
     >
       <span className="shrink-0">{ICON_MAP[type as keyof typeof ICON_MAP]}</span>
-      <div className="min-w-0 text-sm text-text-muted leading-relaxed [&>p]:m-0 [&>p]:mb-2 [&>p:last-child]:mb-0">
+      <div className="min-w-0 text-sm text-muted leading-relaxed [&>p]:m-0 [&>p]:mb-2 [&>p:last-child]:mb-0">
         {children}
       </div>
     </div>

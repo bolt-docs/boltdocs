@@ -25,7 +25,7 @@ function DocsLayoutRoot({ children, className, style }: SlotProps) {
   return (
     <div
       className={cn(
-        'h-screen flex flex-col overflow-hidden bg-bg-main text-text-main',
+        'h-screen flex flex-col overflow-hidden bg-main text-body',
         className,
       )}
       style={style}
@@ -42,7 +42,7 @@ function Body({ children, className, style }: SlotProps) {
   return (
     <div
       className={cn(
-        'mx-auto flex flex-1 w-full max-w-(--breakpoint-3xl) bg-bg-main overflow-hidden',
+        'mx-auto flex flex-1 w-full max-w-(--breakpoint-3xl) bg-main overflow-hidden',
         className,
       )}
       style={style}

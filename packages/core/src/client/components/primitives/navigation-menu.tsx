@@ -56,7 +56,7 @@ const NavigationMenuItem = ({
       <RAC.Button
         className={cn(
           'flex items-center gap-1 rounded-md px-3 py-1.5 text-sm font-medium outline-none transition-colors cursor-pointer',
-          'text-text-muted hover:bg-bg-surface hover:text-text-main',
+          'text-muted hover:bg-surface hover:text-body',
           'focus-visible:ring-2 focus-visible:ring-primary-500/30',
           className,
         )}
@@ -68,7 +68,7 @@ const NavigationMenuItem = ({
         placement="bottom start"
         className="entering:animate-in entering:fade-in entering:zoom-in-95 exiting:animate-out exiting:fade-out exiting:zoom-out-95 fill-mode-forwards"
       >
-        <RAC.Menu className="w-56 outline-none rounded-xl border border-border-subtle bg-bg-surface p-2 shadow-xl ring-1 ring-border-strong/5">
+        <RAC.Menu className="w-56 outline-none rounded-xl border border-subtle bg-surface p-2 shadow-xl ring-1 ring-strong/5">
           {children as any}
         </RAC.Menu>
       </RAC.Popover>
@@ -89,16 +89,16 @@ const NavigationMenuLink = ({
       href={href}
       className={cn(
         'block rounded-lg px-3 py-2 text-sm outline-none cursor-pointer transition-colors',
-        'hover:bg-bg-muted focus:bg-bg-muted',
+        'hover:bg-soft focus:bg-soft',
         className,
       )}
       {...props}
     >
       {children || (
         <>
-          <div className="font-semibold text-text-main">{label}</div>
+          <div className="font-semibold text-body">{label}</div>
           {description && (
-            <div className="text-xs text-text-muted line-clamp-1 mt-0.5">
+            <div className="text-xs text-muted line-clamp-1 mt-0.5">
               {description}
             </div>
           )}

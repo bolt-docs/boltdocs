@@ -94,7 +94,7 @@ function OnThisPageInner({
         >
           <OTP.Indicator style={indicatorStyle} />
           <ul
-            className="relative space-y-2 border-l border-border-subtle"
+            className="relative space-y-2 border-l border-subtle"
             ref={listRef}
           >
             {headings.map((h) => (
@@ -114,8 +114,8 @@ function OnThisPageInner({
       </ScrollProvider>
 
       {(editLink || communityHelp) && (
-        <div className="mt-8 pt-8 border-t border-border-subtle space-y-4">
-          <p className="text-xs font-bold uppercase text-text-main">
+        <div className="mt-8 pt-8 border-t border-subtle space-y-4">
+          <p className="text-xs font-bold uppercase text-body">
             Need help?
           </p>
           <ul className="space-y-3">
@@ -125,7 +125,7 @@ function OnThisPageInner({
                   href={editLink.replace(':path', filePath)}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="flex items-center gap-2 text-sm text-text-muted hover:text-text-main transition-colors"
+                  className="flex items-center gap-2 text-sm text-muted hover:text-body transition-colors"
                 >
                   <Pencil size={16} />
                   Edit this page
@@ -138,7 +138,7 @@ function OnThisPageInner({
                   href={communityHelp}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="flex items-center gap-2 text-sm text-text-muted hover:text-text-main transition-colors"
+                  className="flex items-center gap-2 text-sm text-muted hover:text-body transition-colors"
                 >
                   <CircleHelp size={16} />
                   Community help

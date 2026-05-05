@@ -1,55 +1,33 @@
-import { useRef, useEffect, useLayoutEffect } from 'react'
-import { Link } from './link'
+import { type ReactNode, useRef, useLayoutEffect, useEffect } from 'react'
 import * as RAC from 'react-aria-components'
-import { ChevronRight } from 'lucide-react'
 import { cn } from '../../utils/cn'
+import { useUI } from '../../app/ui-context'
+import { Button } from './button'
+import { Link } from './link'
+import { X, ChevronRight } from 'lucide-react'
 import type { ComponentBase } from './types'
 import type { ComponentRoute } from '../../types'
 
-export interface SidebarGroupProps extends ComponentBase {
-  title?: string
-  icon?: React.ElementType
-}
+// Persistent scroll position across navigation (SPA)
+let sidebarScrollPos = 0
 
-export interface SidebarSubGroupProps extends SidebarLinkProps {
-  isOpen?: boolean
-  onToggle?: () => void
-  children?: React.ReactNode
-}
-
-export interface SidebarLinkProps extends ComponentBase {
-  label: string
-  href: string
-  active?: boolean
-  icon?: React.ElementType
-  badge?: ComponentRoute['badge']
-}
-
+/**
+ * Internal Badge component for links
+ */
 const Badge = ({ badge }: { badge: ComponentRoute['badge'] }) => {
   const colors = {
-    new: 'bg-primary-500/20 text-primary-500',
-    updated: 'bg-gray-500/20 text-gray-500',
-    deprecated: 'bg-red-500/20 text-red-500',
-  }
-
-  // Expire Badge
-  if (typeof badge === 'object' && badge?.expires) {
-    const expireDate = new Date(badge.expires)
-    const today = new Date()
-    const diffTime = expireDate.getTime() - today.getTime()
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
-
-    if (diffDays === 0) {
-      return null
-    }
+    new: 'bg-primary-500/10 text-primary-500 border border-primary-500/20',
+    updated: 'bg-emerald-500/10 text-emerald-500 border border-emerald-500/20',
+    deprecated: 'bg-danger-500/10 text-danger-500 border border-danger-500/20',
   }
 
   const text = typeof badge === 'string' ? badge : badge?.text
+  if (!text) return null
 
   return (
     <span
       className={cn(
-        'ml-auto flex h-4.5 items-center rounded-full text-[9px] font-medium px-1.5 py-0.5 text-center whitespace-nowrap',
+        'ml-auto flex h-5 items-center rounded-md text-[10px] font-bold px-1.5 py-0.5 uppercase tracking-wider',
         colors[text as keyof typeof colors] || colors.new,
       )}
     >
@@ -58,172 +36,190 @@ const Badge = ({ badge }: { badge: ComponentRoute['badge'] }) => {
   )
 }
 
-// Persistent scroll position across navigation (SPA)
-let sidebarScrollPos = 0
+/**
+ * Desktop Sidebar Container
+ */
+export function SidebarRoot({ children, className }: ComponentBase) {
+  return (
+    <aside
+      className={cn(
+        'hidden lg:flex flex-col w-sidebar sticky top-navbar h-[calc(100vh-var(--spacing-navbar))] border-r border-subtle bg-main',
+        className,
+      )}
+    >
+      {children}
+    </aside>
+  )
+}
 
-export const Sidebar = ({ children, className }: ComponentBase) => {
-  const scrollRef = useRef<HTMLElement>(null)
+/**
+ * Mobile Sidebar Modal
+ */
+export function SidebarMobile({ children, className }: ComponentBase) {
+  const { isSidebarOpen, closeSidebar } = useUI()
 
-  // Restore scroll position on mount
+  return (
+    <RAC.ModalOverlay
+      isOpen={isSidebarOpen}
+      onOpenChange={(open) => !open && closeSidebar()}
+      isDismissable={true}
+      className={cn(
+        'fixed inset-0 z-50 bg-black/20 backdrop-blur-sm lg:hidden',
+        'entering:animate-in entering:fade-in exiting:animate-out exiting:fade-out duration-300',
+      )}
+    >
+      <RAC.Modal
+        className={cn(
+          'fixed top-0 left-0 bottom-0 w-80 bg-main border-r border-subtle shadow-2xl outline-none',
+          'entering:animate-in entering:slide-in-from-left exiting:animate-out exiting:slide-out-to-left duration-300',
+          className
+        )}
+      >
+        <RAC.Dialog className="h-full focus:outline-none outline-none flex flex-col">
+          {children}
+        </RAC.Dialog>
+      </RAC.Modal>
+    </RAC.ModalOverlay>
+  )
+}
+
+/**
+ * Shared Header for Sidebar
+ */
+export function SidebarHeader({ children, className }: ComponentBase) {
+  return (
+    <div className={cn('flex items-center justify-between p-4 border-b border-subtle', className)}>
+      {children}
+    </div>
+  )
+}
+
+/**
+ * Scrollable Content Wrapper
+ */
+export function SidebarContent({ children, className }: ComponentBase) {
+  const scrollRef = useRef<HTMLDivElement>(null)
+
+  // Restore scroll position
   useLayoutEffect(() => {
     if (scrollRef.current) {
       scrollRef.current.scrollTop = sidebarScrollPos
     }
   }, [])
 
-  // Save scroll position on scroll
+  // Save scroll position
   useEffect(() => {
     const el = scrollRef.current
     if (!el) return
-
     const handleScroll = () => {
       sidebarScrollPos = el.scrollTop
     }
-
     el.addEventListener('scroll', handleScroll, { passive: true })
     return () => el.removeEventListener('scroll', handleScroll)
   }, [])
 
   return (
-    <aside
+    <div
       ref={scrollRef}
-      className={cn(
-        'boltdocs-sidebar sticky top-navbar hidden lg:flex flex-col shrink-0',
-        'w-sidebar h-full',
-        'overflow-y-auto border-r border-border-subtle bg-bg-main',
-        'py-6 px-4',
-        className,
-      )}
+      className={cn('flex-1 overflow-y-auto p-4 custom-scrollbar', className)}
     >
-      <nav className="flex-1 space-y-6">{children}</nav>
-    </aside>
-  )
-}
-
-const SidebarGroup = ({
-  children,
-  title,
-  icon: Icon,
-  className,
-}: SidebarGroupProps) => {
-  return (
-    <div className={cn('space-y-1', className)}>
-      {title && (
-        <div
-          className={cn(
-            'flex w-full items-center justify-between px-2 py-1.5 text-sm font-semibold',
-            'text-text-main',
-          )}
-        >
-          <div className="flex items-center gap-2">
-            {Icon && <Icon size={14} />}
-            {title}
-          </div>
-        </div>
-      )}
-      {children && <div className="space-y-0.5">{children}</div>}
+      <nav className="flex flex-col gap-6">
+        {children}
+      </nav>
     </div>
   )
 }
 
-const SidebarGroupItem = ({ children, className }: ComponentBase) => {
-  return <div className={cn(className)}>{children}</div>
+/**
+ * Navigation Group
+ */
+export const SidebarGroup = ({ title, icon: Icon, children, className }: { title?: string, icon?: React.ElementType } & ComponentBase) => {
+  return (
+    <div className={cn('mb-6', className)}>
+      {title && (
+        <h4 className="px-2 mb-2 flex items-center gap-2 text-[11px] font-bold uppercase tracking-widest text-muted/50">
+          {Icon && <Icon size={12} />}
+          {title}
+        </h4>
+      )}
+      <div className="flex flex-col gap-0.5">
+        {children}
+      </div>
+    </div>
+  )
 }
 
-const SidebarLink = ({
-  label,
-  href,
-  active,
-  icon: Icon,
-  badge,
-  className,
-}: SidebarLinkProps) => {
+/**
+ * Sidebar Link
+ */
+export interface SidebarLinkProps extends ComponentBase {
+  label: string
+  href: string
+  active?: boolean
+  icon?: React.ElementType
+  badge?: ComponentRoute['badge']
+}
+
+export const SidebarLink = ({ label, href, active, icon: Icon, badge, className }: SidebarLinkProps) => {
   return (
     <Link
       href={href}
       className={cn(
-        'group flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-sm outline-none',
-        'transition-all duration-200 ease-in-out',
-        'focus-visible:ring-2 focus-visible:ring-primary-500/30',
-        {
-          'bg-primary-500/10 text-primary-500 font-medium': active,
-          'text-text-muted hover:bg-bg-muted hover:text-text-main': !active,
-        },
-        className,
+        'group flex items-center gap-2.5 rounded-lg px-2.5 py-1.5 text-sm transition-all outline-none',
+        active 
+          ? 'bg-primary-500/10 text-primary-500 font-medium shadow-sm' 
+          : 'text-muted hover:bg-surface hover:text-body',
+        className
       )}
     >
-      {Icon && (
-        <Icon
-          size={16}
-          className={cn(
-            active
-              ? 'text-primary-500'
-              : 'text-text-muted group-hover:text-text-main',
-          )}
-        />
-      )}
+      {Icon && <Icon size={16} className={cn(active ? 'text-primary-500' : 'text-muted group-hover:text-body')} />}
       <span className="truncate">{label}</span>
       {badge && <Badge badge={badge} />}
     </Link>
   )
 }
 
-const SidebarSubGroup = ({
-  label,
-  href,
-  active,
-  icon: Icon,
-  badge,
-  className,
-  isOpen = false,
-  onToggle,
+/**
+ * Nested SubGroup
+ */
+export const SidebarSubGroup = ({ 
+  label, 
+  href, 
+  active, 
+  icon: Icon, 
+  badge, 
+  isOpen, 
+  onToggle, 
   children,
-}: SidebarSubGroupProps) => {
+  className 
+}: SidebarLinkProps & { isOpen: boolean, onToggle: () => void, children: ReactNode }) => {
   return (
-    <div className="space-y-0.5">
-      <div className="flex items-center w-full">
-        <Link
-          href={href}
-          className={cn(
-            'group flex flex-1 items-center gap-2.5 rounded-lg px-2.5 py-2 text-sm outline-none',
-            'transition-all duration-200 ease-in-out',
-            'focus-visible:ring-2 focus-visible:ring-primary-500/30',
-            active
-              ? 'bg-primary-500/10 text-primary-500 font-medium'
-              : 'text-text-muted hover:bg-bg-surface hover:text-text-main hover:translate-x-1',
-            className,
-          )}
+    <div className="flex flex-col gap-0.5">
+      <div className="group relative flex items-center">
+        <SidebarLink 
+          label={label} 
+          href={href} 
+          active={active} 
+          icon={Icon} 
+          badge={badge} 
+          className={cn('flex-1 pr-8', className)} 
+        />
+        <button
+          onClick={(e) => {
+            e.preventDefault()
+            e.stopPropagation()
+            onToggle()
+          }}
+          className="absolute right-1 p-1.5 text-muted hover:text-body transition-colors outline-none cursor-pointer"
         >
-          {Icon && (
-            <Icon
-              size={16}
-              className={cn(
-                active
-                  ? 'text-primary-500'
-                  : 'text-text-muted group-hover:text-text-main',
-              )}
-            />
-          )}
-          <span className="truncate">{label}</span>
-          {badge && <Badge badge={badge} />}
-        </Link>
-        {children && (
-          <RAC.Button
-            onPress={onToggle}
-            className="flex items-center justify-center p-1.5 ml-1 rounded-md text-text-muted hover:bg-bg-surface hover:text-text-main transition-colors outline-none focus-visible:ring-2 focus-visible:ring-primary-500/30 cursor-pointer"
-          >
-            <ChevronRight
-              size={16}
-              className={cn(
-                'transition-transform duration-200',
-                isOpen && 'rotate-90',
-              )}
-            />
-          </RAC.Button>
-        )}
+          <ChevronRight 
+            size={14} 
+            className={cn('transition-transform duration-200', isOpen && 'rotate-90')} 
+          />
+        </button>
       </div>
-      {isOpen && children && (
-        <div className="pl-4 ml-[7px] border-l border-border-subtle/50 space-y-0.5 mt-0.5">
+      {isOpen && (
+        <div className="ml-4 pl-3 border-l border-subtle/50 mt-0.5 flex flex-col gap-0.5">
           {children}
         </div>
       )}
@@ -231,8 +227,17 @@ const SidebarSubGroup = ({
   )
 }
 
-Sidebar.Root = Sidebar
-Sidebar.Group = SidebarGroup
-Sidebar.SubGroup = SidebarSubGroup
-Sidebar.GroupItem = SidebarGroupItem
-Sidebar.Link = SidebarLink
+/**
+ * Main Sidebar Export
+ */
+export const Sidebar = Object.assign(SidebarRoot, {
+  Root: SidebarRoot,
+  Mobile: SidebarMobile,
+  Header: SidebarHeader,
+  Content: SidebarContent,
+  Group: SidebarGroup,
+  Link: SidebarLink,
+  SubGroup: SidebarSubGroup,
+})
+
+export default Sidebar

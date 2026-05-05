@@ -6,7 +6,7 @@ import { CodeBlock } from './code-block'
 import { cva } from 'class-variance-authority'
 
 const tabListVariants = cva(
-  'relative flex items-center border-b border-border-subtle gap-1 overflow-x-auto no-scrollbar',
+  'relative flex items-center border-b border-subtle gap-1 overflow-x-auto no-scrollbar',
   {
     variants: {
       size: {
@@ -26,7 +26,7 @@ const tabItemVariants = cva(
     variants: {
       isActive: {
         true: 'text-primary-500',
-        false: 'text-text-muted hover:text-text-main',
+        false: 'text-muted hover:text-body',
       },
       isDisabled: {
         true: 'opacity-40 pointer-events-none',

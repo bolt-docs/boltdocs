@@ -12,7 +12,7 @@ export const PageNav = ({ children, className }: ComponentBase) => {
   return (
     <nav
       className={cn(
-        'grid grid-cols-1 sm:grid-cols-2 gap-4 mt-12 pt-8 border-t border-border-subtle',
+        'grid grid-cols-1 sm:grid-cols-2 gap-4 mt-12 pt-8 border-t border-subtle',
         className,
       )}
     >
@@ -27,19 +27,19 @@ const PageNavLink = ({ children, to, direction, className }: PageNavProps) => {
     <RAC.Link
       href={to}
       className={cn(
-        'flex group items-center p-4 rounded-xl border border-border-subtle bg-bg-surface outline-none',
-        'transition-all hover:bg-bg-main hover:border-primary-500 hover:shadow-lg',
+        'flex group items-center p-4 rounded-xl border border-subtle bg-surface outline-none no-underline',
+        'transition-all hover:bg-primary-500/5 hover:border-primary-500 hover:shadow-lg hover:no-underline',
         'focus-visible:ring-2 focus-visible:ring-primary-500/30',
         isNext ? 'text-right justify-end' : 'text-left justify-start',
         className,
       )}
     >
       {!isNext && (
-        <ChevronLeft className="mr-3 h-5 w-5 text-text-muted group-hover:text-primary-500 transition-transform group-hover:-translate-x-1" />
+        <ChevronLeft className="mr-3 h-5 w-5 text-muted group-hover:text-primary-500 transition-transform group-hover:-translate-x-1" />
       )}
       <div className="flex flex-col gap-1 flex-1">{children}</div>
       {isNext && (
-        <ChevronRight className="ml-3 h-5 w-5 text-text-muted group-hover:text-primary-500 transition-transform group-hover:translate-x-1" />
+        <ChevronRight className="ml-3 h-5 w-5 text-muted group-hover:text-primary-500 transition-transform group-hover:translate-x-1" />
       )}
     </RAC.Link>
   )
@@ -49,7 +49,7 @@ const PageNavTitle = ({ children, className }: ComponentBase) => {
   return (
     <span
       className={cn(
-        'text-xs font-medium uppercase text-text-muted',
+        'text-xs font-medium uppercase text-muted',
         className,
       )}
     >
@@ -61,7 +61,7 @@ const PageNavTitle = ({ children, className }: ComponentBase) => {
 const PageNavDescription = ({ children, className }: ComponentBase) => {
   return (
     <span
-      className={cn('text-base font-bold text-text-main truncate', className)}
+      className={cn('text-base font-bold text-body truncate', className)}
     >
       {children}
     </span>

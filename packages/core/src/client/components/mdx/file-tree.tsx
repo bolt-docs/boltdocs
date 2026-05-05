@@ -108,7 +108,7 @@ function getFileIcon(filename: string, isFolder: boolean) {
 
   const fileIconClass = cn(
     iconClass,
-    'text-text-dim group-hover:text-text-main',
+    'text-dim group-hover:text-body',
   )
 
   if (FILE_REGEXES.CODE.test(name))
@@ -256,7 +256,7 @@ function FileTreeNode({ item }: { item: TreeItemData }) {
             {hasChildItems ? (
               <RAC.Button
                 slot="chevron"
-                className="outline-none text-text-dim hover:text-primary-400 p-0.5 rounded transition-colors"
+                className="outline-none text-dim hover:text-primary-400 p-0.5 rounded transition-colors"
               >
                 <ChevronRight
                   size={14}
@@ -277,15 +277,15 @@ function FileTreeNode({ item }: { item: TreeItemData }) {
               className={cn(
                 'text-sm transition-colors truncate select-none',
                 item.isFolder
-                  ? 'font-semibold text-text-main'
-                  : 'text-text-muted group-hover:text-text-main',
+                  ? 'font-semibold text-body'
+                  : 'text-muted group-hover:text-body',
               )}
             >
               {item.name}
             </span>
 
             {item.comment && (
-              <span className="ml-2 text-xs italic text-text-dim opacity-70 group-hover:opacity-100 transition-opacity whitespace-nowrap overflow-hidden text-ellipsis font-sans">
+              <span className="ml-2 text-xs italic text-dim opacity-70 group-hover:opacity-100 transition-opacity whitespace-nowrap overflow-hidden text-ellipsis font-sans">
                 {'//'} {item.comment}
               </span>
             )}
@@ -313,7 +313,7 @@ export function FileTree({ children }: FileTreeProps) {
         items={items}
         aria-label="File Tree"
         className={cn(
-          'rounded-xl border border-border-subtle bg-bg-surface/50 p-4 font-mono text-sm shadow-sm backdrop-blur-sm outline-none',
+          'rounded-xl border border-subtle bg-surface/50 p-4 font-mono text-sm shadow-sm backdrop-blur-sm outline-none',
           'max-h-[500px] overflow-y-auto scrollbar-thin scrollbar-thumb-border-subtle',
           'focus-visible:ring-2 focus-visible:ring-primary-500/20',
         )}

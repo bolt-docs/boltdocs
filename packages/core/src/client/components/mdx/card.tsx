@@ -78,9 +78,9 @@ export function Card({
         </div>
       )}
       <div className="space-y-1.5">
-        {title && <h3 className="text-sm font-bold text-text-main">{title}</h3>}
+        {title && <h3 className="text-sm font-bold text-body">{title}</h3>}
         {children && (
-          <div className="text-sm text-text-muted leading-relaxed">
+          <div className="text-sm text-muted leading-relaxed">
             {children}
           </div>
         )}
@@ -89,7 +89,7 @@ export function Card({
   )
 
   const cardClasses = cn(
-    'group relative block rounded-xl border border-border-subtle bg-bg-surface p-5 outline-none overflow-hidden',
+    'group relative block rounded-xl border border-subtle bg-surface p-5 outline-none overflow-hidden',
     'transition-all duration-200 hover:border-primary-500/40 hover:shadow-lg hover:shadow-primary-500/5',
     'focus-visible:ring-2 focus-visible:ring-primary-500/30',
     className,

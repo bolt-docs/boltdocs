@@ -11,11 +11,11 @@ export const buttonVariants = cva(
         primary:
           'bg-primary-500 text-white shadow-md hover:brightness-110 hover:shadow-lg',
         secondary:
-          'bg-bg-surface text-text-main border border-border-subtle hover:bg-bg-muted hover:border-border-strong',
+          'bg-surface text-body border border-subtle hover:bg-soft hover:border-strong',
         outline:
-          'bg-transparent text-text-main border border-border-strong hover:bg-bg-surface hover:border-primary-500',
+          'bg-transparent text-body border border-strong hover:bg-surface hover:border-primary-500',
         ghost:
-          'bg-transparent text-text-muted hover:bg-bg-surface hover:text-text-main',
+          'bg-transparent text-muted hover:bg-surface hover:text-body',
         danger:
           'bg-[var(--color-danger-500)]/10 text-[var(--color-danger-500)] border border-[var(--color-danger-500)]/20 hover:bg-[var(--color-danger-500)]/15',
         success:

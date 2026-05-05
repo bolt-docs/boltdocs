@@ -12,9 +12,9 @@ import { cva, type VariantProps } from 'class-variance-authority'
 const listVariants = cva('my-6 transition-all duration-200', {
   variants: {
     variant: {
-      default: 'list-disc pl-5 text-text-muted marker:text-primary-500/50',
+      default: 'list-disc pl-5 text-muted marker:text-primary-500/50',
       number:
-        'list-decimal pl-5 text-text-muted marker:text-primary-500/50 marker:font-bold',
+        'list-decimal pl-5 text-muted marker:text-primary-500/50 marker:font-bold',
       checked: 'list-none p-0',
       arrow: 'list-none p-0',
       bubble: 'list-none p-0',
@@ -116,7 +116,7 @@ function ListItem({ icon, children, variant, dense }: ListItemProps) {
           {icon}
         </span>
       )}
-      <div className="flex-1 text-text-muted group-hover:text-text-main transition-colors">
+      <div className="flex-1 text-muted group-hover:text-body transition-colors">
         {children}
       </div>
     </li>

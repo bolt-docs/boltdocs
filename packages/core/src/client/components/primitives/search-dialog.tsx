@@ -1,5 +1,5 @@
 import * as RAC from 'react-aria-components'
-import { Search, Hash, FileText, CornerDownLeft } from 'lucide-react'
+import { Search, Hash, FileText, CornerDownLeft, X } from 'lucide-react'
 import { cn } from '../../utils/cn'
 import type { ComponentBase } from './types'
 
@@ -37,12 +37,12 @@ export const SearchDialog = ({
     >
       <RAC.Modal
         className={cn(
-          'mx-auto w-full max-w-2xl overflow-hidden rounded-xl border border-border-subtle bg-bg-surface shadow-2xl ring-1 ring-black/5 outline-none',
+          'mx-auto w-full max-w-2xl overflow-hidden rounded-xl border border-subtle bg-surface shadow-2xl ring-1 ring-black/5 outline-none',
           'entering:animate-in entering:fade-in entering:zoom-in-95 exiting:animate-out exiting:fade-out exiting:zoom-out-95',
           className,
         )}
       >
-        <RAC.Dialog className="flex flex-col max-h-[70vh] focus:outline-none">
+        <RAC.Dialog className="flex flex-col max-h-[90dvh] sm:max-h-[70vh] focus:outline-none overflow-hidden outline-none">
           {children as any}
         </RAC.Dialog>
       </RAC.Modal>
@@ -79,20 +79,25 @@ const SearchDialogInput = ({
 }: RAC.InputProps & { className?: string }) => {
   return (
     <RAC.SearchField
-      className="flex items-center gap-3 border-b border-border-subtle px-4 py-4"
+      className="flex items-center gap-3 border-b border-subtle px-4 py-3 sm:py-4"
       autoFocus
     >
-      <Search className="h-5 w-5 text-text-muted" />
+      <Search className="h-5 w-5 text-muted shrink-0" />
       <RAC.Input
         {...props}
         className={cn(
-          'w-full bg-transparent text-lg text-text-main placeholder-text-muted outline-none',
+          'w-full bg-transparent text-base sm:text-lg text-body placeholder-text-muted outline-none border-none focus:ring-0',
           className,
         )}
         placeholder="Search documentation..."
       />
-      <div className="flex items-center gap-1.5 rounded-md border border-border-subtle bg-bg-main px-1.5 py-1 text-[10px] font-medium text-text-muted">
-        <kbd className="font-sans">ESC</kbd>
+      <div className="flex items-center gap-2">
+        <RAC.Button className="p-1 rounded-md text-muted hover:text-body hover:bg-soft outline-none transition-colors cursor-pointer">
+          <X className="h-4 w-4" />
+        </RAC.Button>
+        <div className="hidden sm:flex items-center gap-1.5 rounded-md border border-subtle bg-main px-1.5 py-1 text-[10px] font-medium text-muted">
+          <kbd className="font-sans">ESC</kbd>
+        </div>
       </div>
     </RAC.SearchField>
   )
@@ -106,7 +111,11 @@ const SearchDialogList = <T extends object>({
   return (
     <RAC.ListBox
       {...props}
-      className={cn('flex-1 overflow-y-auto p-2 outline-none', className)}
+      className={cn(
+        'flex-1 overflow-y-auto p-2 outline-none min-h-0',
+        'scrollbar-hide sm:scrollbar-default',
+        className,
+      )}
     >
       {children as any}
     </RAC.ListBox>
@@ -123,7 +132,7 @@ const SearchDialogItemRoot = ({
       {...props}
       className={cn(
         'group flex items-center gap-3 rounded-lg p-3 text-left outline-none cursor-pointer transition-colors',
-        'text-text-muted hover:bg-bg-main hover:text-text-main focus:bg-primary-500 focus:text-white selected:bg-primary-500 selected:text-white',
+        'text-muted hover:bg-main hover:text-body focus:bg-primary-500 focus:text-white selected:bg-primary-500 selected:text-white',
         className,
       )}
     >

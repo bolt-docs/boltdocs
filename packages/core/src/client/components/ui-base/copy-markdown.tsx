@@ -46,8 +46,8 @@ export function CopyMarkdown({ content, mdxRaw, config }: CopyMarkdownProps) {
   if (!isEnabled || !displayContent) return null
 
   return (
-    <div className="relative inline-flex z-100 shrink-0 w-max translate-y-0 active:translate-y-px transition-transform duration-200">
-      <ButtonGroup className="rounded-xl border border-border-subtle bg-bg-surface/40 backdrop-blur-md transition-all duration-300 hover:border-primary-500/50 group overflow-hidden">
+    <div className="relative hidden md:inline-flex z-100 shrink-0 w-max translate-y-0 active:translate-y-px transition-transform duration-200">
+      <ButtonGroup className="rounded-xl border border-subtle bg-surface/40 backdrop-blur-md transition-all duration-300 hover:border-primary-500/50 group overflow-hidden">
         <Button
           variant="ghost"
           onPress={handleCopy}
@@ -55,7 +55,7 @@ export function CopyMarkdown({ content, mdxRaw, config }: CopyMarkdownProps) {
           iconPosition="left"
           className={cn(
             'px-5 py-2 bg-transparent text-[0.8125rem] font-semibold h-9 border-none shrink-0',
-            'text-text-main transition-all duration-300 hover:bg-primary-500/5',
+            'text-body transition-all duration-300 hover:bg-primary-500/5',
             copied && 'text-emerald-500 hover:bg-emerald-500/5',
           )}
         >
@@ -68,7 +68,7 @@ export function CopyMarkdown({ content, mdxRaw, config }: CopyMarkdownProps) {
             isIconOnly
             icon={<ChevronDown size={14} />}
             className={cn(
-              'px-3.5 h-9 border-l border-border-subtle/50 text-text-muted rounded-none bg-transparent shrink-0',
+              'px-3.5 h-9 border-l border-subtle/50 text-muted rounded-none bg-transparent shrink-0',
               'transition-all duration-300 hover:bg-primary-500/5 hover:text-primary-500',
             )}
           />
@@ -76,7 +76,7 @@ export function CopyMarkdown({ content, mdxRaw, config }: CopyMarkdownProps) {
             <Menu.Item onAction={handleCopy}>
               <Copy
                 size={16}
-                className="size-4 mt-0.5 text-text-muted group-hover:text-primary-500"
+                className="size-4 mt-0.5 text-muted group-hover:text-primary-500"
               />
               <span className="font-medium text-[0.8125rem]">
                 Copy Markdown
@@ -85,7 +85,7 @@ export function CopyMarkdown({ content, mdxRaw, config }: CopyMarkdownProps) {
             <Menu.Item onAction={handleOpenRaw}>
               <ExternalLink
                 size={16}
-                className="size-4 mt-0.5 text-text-muted group-hover:text-primary-500"
+                className="size-4 mt-0.5 text-muted group-hover:text-primary-500"
               />
               <span className="font-medium text-[0.8125rem]">
                 View as Markdown

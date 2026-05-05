@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect } from 'react'
 import { useSidebar } from '../../hooks/use-sidebar'
 import { Sidebar as SidebarPrimitive } from '../primitives/sidebar'
 import { PoweredBy } from './powered-by'
@@ -6,6 +6,12 @@ import * as LucideIcons from 'lucide-react'
 import virtualIcons from 'virtual:boltdocs-icons'
 import type { ComponentRoute } from '../../types'
 import type { BoltdocsConfig } from '../../../shared/types'
+import { VersionSelector, I18nSelector } from './version-i18n'
+import { ThemeSwitcher } from './theme-toggle'
+import { useNavbar } from '../../hooks/use-navbar'
+import { useLocalizedTo } from '../../hooks/use-localized-to'
+import { useUI } from '../../app/ui-context'
+import { Button } from '../primitives/button'
 
 function getIcon(iconName?: string): React.ElementType | undefined {
   if (!iconName) return undefined
@@ -17,107 +23,6 @@ function getIcon(iconName?: string): React.ElementType | undefined {
   return IconComponent || undefined
 }
 
-function SidebarSubRouteGroup({
-  route,
-  activePath,
-  getIcon,
-}: {
-  route: ComponentRoute
-  activePath: string
-  getIcon: (iconName?: string) => React.ElementType | undefined
-}) {
-  const isCurrent =
-    activePath ===
-    (route.path.endsWith('/') ? route.path.slice(0, -1) : route.path)
-
-  const hasActiveSubRoute = useMemo(
-    () => route.subRoutes?.some((r) => r.path === activePath),
-    [route.subRoutes, activePath],
-  )
-
-  const [isOpen, setIsOpen] = useState(hasActiveSubRoute || isCurrent)
-
-  useEffect(() => {
-    if (hasActiveSubRoute || isCurrent) {
-      setIsOpen(true)
-    }
-  }, [hasActiveSubRoute, isCurrent])
-
-  return (
-    <SidebarPrimitive.SubGroup
-      label={route.title}
-      href={route.path}
-      active={isCurrent}
-      icon={getIcon(route.icon)}
-      badge={route.badge}
-      isOpen={isOpen}
-      onToggle={() => setIsOpen(!isOpen)}
-    >
-      {route.subRoutes?.map((subRoute: ComponentRoute) => {
-        const isSubCurrent =
-          activePath ===
-          (subRoute.path.endsWith('/') ? subRoute.path.slice(0, -1) : subRoute.path)
-        return (
-          <SidebarPrimitive.Link
-            key={subRoute.path}
-            label={subRoute.title}
-            href={subRoute.path}
-            active={isSubCurrent}
-            icon={getIcon(subRoute.icon)}
-            badge={subRoute.badge}
-          />
-        )
-      })}
-    </SidebarPrimitive.SubGroup>
-  )
-}
-
-function SidebarGroupSection({
-  group,
-  activePath,
-  getIcon,
-}: {
-  group: {
-    slug: string
-    title: string
-    routes: ComponentRoute[]
-    icon?: string
-  }
-  activePath: string
-  getIcon: (iconName?: string) => React.ElementType | undefined
-}) {
-  return (
-    <SidebarPrimitive.Group title={group.title} icon={getIcon(group.icon)}>
-      {group.routes.map((route: ComponentRoute) => {
-        if (route.subRoutes && route.subRoutes.length > 0) {
-          return (
-            <SidebarSubRouteGroup
-              key={route.path}
-              route={route}
-              activePath={activePath}
-              getIcon={getIcon}
-            />
-          )
-        }
-
-        const isCurrent =
-          activePath ===
-          (route.path.endsWith('/') ? route.path.slice(0, -1) : route.path)
-        return (
-          <SidebarPrimitive.Link
-            key={route.path}
-            label={route.title}
-            href={route.path}
-            active={isCurrent}
-            icon={getIcon(route.icon)}
-            badge={route.badge}
-          />
-        )
-      })}
-    </SidebarPrimitive.Group>
-  )
-}
-
 export function Sidebar({
   routes,
   config,
@@ -126,44 +31,160 @@ export function Sidebar({
   config: BoltdocsConfig
 }) {
   const { groups, ungrouped, activePath } = useSidebar(routes)
-  const themeConfig = config.theme || {}
+  const { logo, title, logoProps } = useNavbar()
+  const { closeSidebar } = useUI()
 
-  return (
-    <SidebarPrimitive.Root>
+  const SidebarLogo = logo ? (
+    <img
+      src={logo}
+      alt={logoProps?.alt || title}
+      width={24}
+      height={24}
+      className="rounded-md"
+    />
+  ) : null
+
+  const hasUtilities = config.versions || config.i18n
+
+  const sidebarContent = (
+    <>
+      {/* Mobile-only selectors (Below Header) */}
+      {hasUtilities && (
+        <div className="lg:hidden flex flex-col gap-4 mb-10">
+          <div className="flex gap-3">
+            {config.versions && (
+              <VersionSelector className="flex-1 justify-between h-10 bg-surface border-subtle" />
+            )}
+            {config.i18n && (
+              <I18nSelector className="flex-1 justify-between h-10 bg-surface border-subtle" />
+            )}
+          </div>
+          <div className="mt-2 border-b border-subtle" />
+        </div>
+      )}
+
       {ungrouped.length > 0 && (
         <SidebarPrimitive.Group className="mb-6">
-          {ungrouped.map((route) => {
-            const isCurrent =
-              activePath ===
-              (route.path.endsWith('/') ? route.path.slice(0, -1) : route.path)
-            return (
-              <SidebarPrimitive.Link
-                key={route.path}
-                label={route.title}
-                href={route.path}
-                active={isCurrent}
-                icon={getIcon(route.icon)}
-                badge={route.badge}
-              />
-            )
-          })}
+          {ungrouped.map((route) => (
+            <SidebarRouteItem
+              key={route.path}
+              route={route}
+              activePath={activePath}
+            />
+          ))}
         </SidebarPrimitive.Group>
       )}
 
       {groups.map((group) => (
-        <SidebarGroupSection
-          key={group.slug}
-          group={group}
-          activePath={activePath}
-          getIcon={getIcon}
-        />
+        <SidebarPrimitive.Group 
+          key={group.title} 
+          title={group.title} 
+          icon={getIcon(group.icon)}
+        >
+          {group.routes.map((route) => (
+            <SidebarRouteItem
+              key={route.path}
+              route={route}
+              activePath={activePath}
+            />
+          ))}
+        </SidebarPrimitive.Group>
       ))}
 
-      {themeConfig?.poweredBy && (
-        <div className="mt-auto pt-8">
-          <PoweredBy />
-        </div>
-      )}
-    </SidebarPrimitive.Root>
+      <div className="mt-auto pt-10 pb-4">
+        <PoweredBy />
+      </div>
+    </>
+  )
+
+  return (
+    <>
+      {/* Desktop Version */}
+      <SidebarPrimitive.Root>
+        <SidebarPrimitive.Content>
+          {sidebarContent}
+        </SidebarPrimitive.Content>
+      </SidebarPrimitive.Root>
+
+      {/* Mobile Version */}
+      <SidebarPrimitive.Mobile>
+        <SidebarPrimitive.Header>
+          <div className="flex items-center gap-3">
+            {SidebarLogo}
+            <span className="font-bold text-lg tracking-tight text-body truncate max-w-[120px]">
+              {title}
+            </span>
+          </div>
+          <div className="flex items-center gap-2">
+            <ThemeSwitcher className="w-24 h-9" />
+            <Button
+              variant="ghost"
+              size="sm"
+              isIconOnly
+              icon={<LucideIcons.X size={20} />}
+              onPress={closeSidebar}
+              className="h-9 w-9 text-muted hover:text-body"
+              aria-label="Close sidebar"
+            />
+          </div>
+        </SidebarPrimitive.Header>
+        <SidebarPrimitive.Content>
+          {sidebarContent}
+        </SidebarPrimitive.Content>
+      </SidebarPrimitive.Mobile>
+    </>
+  )
+}
+
+function SidebarRouteItem({
+  route,
+  activePath,
+}: {
+  route: ComponentRoute
+  activePath: string
+}) {
+  const localizedHref = useLocalizedTo(route.path)
+  const isCurrent = activePath === (localizedHref.endsWith('/') ? localizedHref.slice(0, -1) : localizedHref)
+  const hasChildren = !!route.routes?.length || !!route.subRoutes?.length
+  const children = route.routes || route.subRoutes
+
+  const [isOpen, setIsOpen] = useState(false)
+
+  useEffect(() => {
+    if (activePath.startsWith(localizedHref)) {
+      setIsOpen(true)
+    }
+  }, [activePath, localizedHref])
+
+  if (hasChildren) {
+    return (
+      <SidebarPrimitive.SubGroup
+        label={route.title}
+        href={route.path}
+        active={isCurrent}
+        icon={getIcon(route.icon)}
+        badge={route.badge}
+        isOpen={isOpen}
+        onToggle={() => setIsOpen(!isOpen)}
+      >
+        {children?.map((subRoute) => (
+          <SidebarRouteItem
+            key={subRoute.path}
+            route={subRoute}
+            activePath={activePath}
+          />
+        ))}
+      </SidebarPrimitive.SubGroup>
+    )
+  }
+
+  return (
+    <SidebarPrimitive.Link
+      label={route.title}
+      href={route.path}
+      active={isCurrent}
+      icon={getIcon(route.icon)}
+      badge={route.badge}
+    />
   )
 }

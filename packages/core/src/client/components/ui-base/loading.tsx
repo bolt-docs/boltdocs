@@ -41,7 +41,7 @@ export function Loading() {
         </div>
 
         {/* Code Block Placeholder */}
-        <Skeleton className="h-32 w-full rounded-lg bg-bg-muted/50" />
+        <Skeleton className="h-32 w-full rounded-lg bg-soft/50" />
 
         {/* Section 2 */}
         <div className="space-y-6 pt-4">

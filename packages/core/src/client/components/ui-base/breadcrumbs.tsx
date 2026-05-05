@@ -26,7 +26,7 @@ export function Breadcrumbs() {
           <BreadcrumbsRoot.Link
             href={crumb.href}
             className={cn({
-              'font-medium text-text-main': crumb.href === activeRoute?.path,
+              'font-medium text-body': crumb.href === activeRoute?.path,
             })}
           >
             {crumb.label}

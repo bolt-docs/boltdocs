@@ -15,13 +15,13 @@ export function ComponentPreview(props: ComponentPreviewProps) {
   const { initialCode, previewElement } = useComponentPreview(props)
 
   return (
-    <div className="my-6 overflow-hidden rounded-xl border border-border-subtle">
-      <div className="flex items-center justify-center p-8 bg-bg-surface">
+    <div className="my-6 overflow-hidden rounded-xl border border-subtle">
+      <div className="flex items-center justify-center p-8 bg-surface">
         {previewElement}
       </div>
 
       {!hideCode && (
-        <div className="border-t border-border-subtle">
+        <div className="border-t border-subtle">
           <CodeBlock
             hideCopy={hideCopy}
             lang="tsx"

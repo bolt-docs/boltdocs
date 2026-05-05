@@ -22,7 +22,7 @@ const CodeBlock = ({
                 'group relative overflow-hidden bg-(--color-code-bg)',
                 'contain-layout contain-paint',
                 {
-                    'my-6 rounded-lg border border-border-subtle': !plain,
+                    'my-6 rounded-lg border border-subtle': !plain,
                 },
                 className,
             )}
@@ -44,7 +44,7 @@ const CodeBlockHeader = ({
         <div
             className={cn(
                 "flex h-9 items-center justify-between px-4 py-1.5",
-                "text-[13px] font-medium text-text-muted",
+                "text-[13px] font-medium text-muted",
                 className,
             )}
             {...props}

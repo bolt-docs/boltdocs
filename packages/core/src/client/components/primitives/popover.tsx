@@ -24,7 +24,7 @@ export const Popover = ({
       {...props}
       className={RAC.composeRenderProps(className, (className) =>
         cn(
-          'z-50 overflow-auto rounded-xl border border-border-subtle bg-bg-surface/80 shadow-xl backdrop-blur-md outline-none transition-none',
+          'z-50 overflow-auto rounded-xl border border-subtle bg-surface/80 shadow-xl backdrop-blur-md outline-none transition-none',
           className,
         ),
       )}

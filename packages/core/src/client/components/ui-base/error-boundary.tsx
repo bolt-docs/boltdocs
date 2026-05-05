@@ -32,12 +32,12 @@ export class ErrorBoundary extends Component<Props, State> {
             <div className="text-lg font-bold text-red-400">
               Something went wrong
             </div>
-            <p className="text-sm text-text-muted max-w-md">
+            <p className="text-sm text-muted max-w-md">
               {this.state.error?.message ||
                 'An unexpected error occurred while rendering this page.'}
             </p>
             <Button
-              className="rounded-lg border border-border-subtle bg-bg-surface px-5 py-2 text-sm font-medium text-text-main transition-colors hover:bg-bg-muted cursor-pointer"
+              className="rounded-lg border border-subtle bg-surface px-5 py-2 text-sm font-medium text-body transition-colors hover:bg-soft cursor-pointer"
               onPress={() => this.setState({ hasError: false })}
             >
               Try again
