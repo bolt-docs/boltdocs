@@ -6,8 +6,8 @@ export type { BoltdocsLocale, BoltdocsVersion, BoltdocsTypes } from '../shared/t
 export * from './ssg'
 export { useConfig } from './app/config-context'
 export { useTheme } from './app/theme-context'
-export { useRoutes } from './hooks/use-routes'
 export { useMdxComponents } from './app/mdx-components-context'
+export { useUI } from './app/ui-context'
 
 // Hooks
 export * from './hooks/index'
@@ -25,6 +25,7 @@ export { PageNav } from './components/ui-base/page-nav'
 export { ErrorBoundary } from './components/ui-base/error-boundary'
 export { CopyMarkdown } from './components/ui-base/copy-markdown'
 export { Banner } from './components/ui-base/banner'
+export { SearchDialog } from './components/ui-base/search-dialog'
 
 export { NotFound } from './components/ui-base/not-found'
 export { Loading } from './components/ui-base/loading'
@@ -101,6 +102,13 @@ export {
   NavLink as PrimitiveNavLink,
 } from './components/primitives/link'
 export { Skeleton as PrimitiveSkeleton } from './components/primitives/skeleton'
+export {
+  CodeBlock as PrimitiveCodeBlock,
+  CodeBlockHeader,
+  CodeBlockGroup,
+  CodeBlockContent,
+} from './components/primitives/code-block'
+
 
 // Utilities
 export { cn } from './utils/cn'
