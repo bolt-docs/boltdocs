@@ -63,6 +63,7 @@
     "class-variance-authority": "0.7.1",
     "clsx": "2.1.1",
     "fast-glob": "3.3.3",
+    "fastest-levenshtein": "^1.0.16",
     "flexsearch": "0.8.212",
     "github-slugger": "2.0.0",
     "gray-matter": "4.0.3",
