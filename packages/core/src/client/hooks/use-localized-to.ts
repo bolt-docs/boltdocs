@@ -8,7 +8,7 @@ import { useRoutes } from './use-routes'
  */
 export function useLocalizedTo(to: RouterLinkProps['to']) {
   const config = useConfig()
-  const { currentLocale: activeLocale, currentVersion: activeVersion } =
+  const { currentLocale: activeLocale, currentVersion: activeVersion, allRoutes } =
     useRoutes()
 
   if (!config || typeof to !== 'string') return to
@@ -17,6 +17,22 @@ export function useLocalizedTo(to: RouterLinkProps['to']) {
   if (to.startsWith('http') || to.startsWith('//') || to.startsWith('#') || to.startsWith('site:')) {
     return to.replace('site:', '')
   }
+
+  // 0. If it matches a known route exactly (ignoring trailing slashes and hash/query), use it as is.
+  // This allows links to external pages (outside base) to work correctly.
+  const [pathOnly] = to.split(/[?#]/)
+  const normalizedTo =
+    pathOnly.endsWith('/') && pathOnly.length > 1
+      ? pathOnly.slice(0, -1)
+      : pathOnly
+
+  const isKnownRoute = allRoutes?.some((r) => {
+    const rp =
+      r.path.endsWith('/') && r.path.length > 1 ? r.path.slice(0, -1) : r.path
+    return rp === normalizedTo
+  })
+
+  if (isKnownRoute) return to
 
   const i18n = config.i18n
   const versions = config.versions
