@@ -3,6 +3,7 @@ import {
   AnchorProvider,
   ScrollProvider,
   useActiveAnchor,
+  useActiveAnchors,
 } from '../primitives/on-this-page'
 import { useRef, useEffect, useState, useCallback, useMemo } from 'react'
 import { useOnThisPage } from '../../hooks/use-onthispage'
@@ -26,7 +27,7 @@ export function OnThisPage({
   if (headings.length === 0) return null
 
   return (
-    <AnchorProvider toc={toc}>
+    <AnchorProvider toc={toc} single={false}>
       <OnThisPageInner
         headings={headings}
         editLink={editLink}
@@ -45,7 +46,7 @@ function OnThisPageInner({
 }: OnThisPageProps & {
   headings: { level: number; text: string; id: string }[]
 }) {
-  const activeId = useActiveAnchor()
+  const activeIds = useActiveAnchors()
   const [indicatorStyle, setIndicatorStyle] = useState<React.CSSProperties>({
     opacity: 0,
   })
@@ -53,10 +54,13 @@ function OnThisPageInner({
   const scrollContainerRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
-    if (!activeId || !listRef.current) return
+    if (!activeIds.length || !listRef.current) return
 
+    // For single active, position indicator at first active item
+    // For multiple, position at the last visible active item
+    const lastActiveId = activeIds[activeIds.length - 1]
     const activeLink = listRef.current.querySelector(
-      `a[href="#${activeId}"]`,
+      `a[href="#${lastActiveId}"]`,
     ) as HTMLElement
 
     if (activeLink) {
@@ -66,7 +70,7 @@ function OnThisPageInner({
         opacity: 1,
       })
     }
-  }, [activeId])
+  }, [activeIds])
 
   const handleClick = useCallback(
     (e: React.MouseEvent<HTMLAnchorElement>, id: string) => {
@@ -89,19 +93,24 @@ function OnThisPageInner({
       </OTP.Header>
       <ScrollProvider containerRef={scrollContainerRef}>
         <OTP.Content
-          className="max-h-[450px] boltdocs-otp-scroll-area"
+          className="boltdocs-otp-scroll-area pb-12"
           ref={scrollContainerRef}
+          style={{
+            maxHeight: '50%',
+            maskImage: 'linear-gradient(to bottom, black 90%, transparent 100%)',
+            WebkitMaskImage: 'linear-gradient(to bottom, black 90%, transparent 100%)',
+          }}
         >
           <OTP.Indicator style={indicatorStyle} />
           <ul
-            className="relative space-y-2 border-l border-subtle"
+            className="relative space-y-1 border-l border-subtle"
             ref={listRef}
           >
             {headings.map((h) => (
               <OTP.Item key={h.id} level={h.level}>
                 <OTP.Link
                   href={`#${h.id}`}
-                  active={activeId === h.id}
+                  active={activeIds.includes(h.id)}
                   onClick={(e) => handleClick(e, h.id)}
                   className="pl-4"
                 >

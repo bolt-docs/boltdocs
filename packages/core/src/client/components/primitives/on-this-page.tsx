@@ -41,6 +41,10 @@ export interface AnchorProviderProps {
    * @defaultValue false
    */
   single?: boolean
+  /**
+   * Custom IntersectionObserver options
+   */
+  observerOptions?: IntersectionObserverInit
   children?: ReactNode
 }
 
@@ -123,6 +127,7 @@ export function ScrollProvider({
 export function AnchorProvider({
   toc,
   single = false,
+  observerOptions,
   children,
 }: AnchorProviderProps) {
   const observer = useMemo(() => new Observer(), [])
@@ -136,10 +141,14 @@ export function AnchorProvider({
   useEffect(() => {
     // We use a rootMargin that acts as an activation "line" near the top.
     // headings are "intersecting" (active=true) when they are BELOW this line.
-    observer.watch({
-      rootMargin: '-100px 0% 0% 0%',
+    // Default to a more permissive margin for detecting visible headings
+    const defaultOptions = {
+      rootMargin: '-80px 0% -60% 0%',
       threshold: 0,
-    })
+    }
+    const options = observerOptions ? { ...defaultOptions, ...observerOptions } : defaultOptions
+    
+    observer.watch(options)
     observer.onChange = () => setItems([...observer.items])
 
     return () => {
@@ -156,7 +165,7 @@ export const OnThisPage = ({ children, className }: ComponentBase) => {
       className={cn(
         'sticky top-navbar hidden xl:flex flex-col shrink-0',
         'w-toc',
-        'py-8 pl-6 pr-4',
+        'py-4 pl-6 pr-4',
         className,
       )}
     >
@@ -192,7 +201,15 @@ const OnThisPageContent = ({
   return (
     <div
       ref={internalRef}
-      className={cn('relative overflow-y-auto boltdocs-otp-content', className)}
+      className={cn(
+        'relative overflow-y-auto boltdocs-otp-content pb-12',
+        'max-h-[70%]',
+        className,
+      )}
+      style={{
+        maskImage: 'linear-gradient(to bottom, black 90%, transparent 100%)',
+        WebkitMaskImage: 'linear-gradient(to bottom, black 90%, transparent 100%)',
+      }}
       {...props}
     >
       {children}
@@ -206,7 +223,7 @@ const OnThisPageList = ({ children, className }: ComponentBase) => {
   return (
     <ul
       className={cn(
-        'relative space-y-1 text-sm border-l border-subtle',
+        'relative space-y-0.5 text-sm border-l border-subtle',
         className,
       )}
     >
@@ -267,8 +284,8 @@ const OnThisPageLink = ({
       onClick={onClick}
       data-active={internalActive}
       className={cn(
-        'block py-1 pl-4 text-[13px] outline-none transition-colors hover:text-body',
-        internalActive ? 'text-primary-500 font-medium' : 'text-muted',
+        'block py-0.5 pl-4 text-[13px] outline-none transition-colors hover:text-body',
+        internalActive ? 'text-primary-500' : 'text-muted',
         className,
       )}
     >

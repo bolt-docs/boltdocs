@@ -11,44 +11,72 @@ export class Observer {
   private observer: IntersectionObserver | null = null
   onChange?: () => void
 
-  private callback(entries: IntersectionObserverEntry[]) {
-    if (entries.length === 0) return
-
-    // 1. Update internal state based on current intersection and position
-    for (const entry of entries) {
-      const item = this.items.find((i) => i.id === entry.target.id)
-      if (item) {
-        // item.active will track if the heading is currently "on or below" the trigger line
-        item.active = entry.isIntersecting
-
-        // item.fallback will track if the heading has scrolled "above" the trigger line
-        // RootMargin top is -100px, so trigger line is at 100px.
-        const activationLine = 100
-        item.fallback =
-          !entry.isIntersecting && entry.boundingClientRect.top < activationLine
+  private callback(_entries: IntersectionObserverEntry[]) {
+    // For each item, check if it's currently in viewport
+    for (const item of this.items) {
+      const element = document.getElementById(item.id)
+      if (!element) {
+        item.active = false
+        item.fallback = false
+        continue
       }
+
+      const rect = element.getBoundingClientRect()
+      const viewportHeight = typeof window !== 'undefined' ? window.innerHeight : 1000
+
+      // Check if element is currently in viewport (visible)
+      // rect.bottom > 0
+      // rect.top < viewportHeight:
+      const isInViewport = rect.bottom > 0 && rect.top < viewportHeight
+
+      // Update active state based on current position
+      item.active = isInViewport
+
+      // Fallback: element has scrolled past but is still near viewport
+      item.fallback = !isInViewport && rect.top > 0 && rect.top < viewportHeight * 2
     }
 
-    // 2. The active heading is the LAST one in document order that has scrolled past the line.
-    let highlightIdx = -1
-    for (let i = this.items.length - 1; i >= 0; i--) {
-      if (this.items[i].fallback) {
-        highlightIdx = i
-        break
+    // 3. Determine which items should be active based on single mode
+    if (this.single) {
+      // Single mode: only ONE active item (the one closest to the top of viewport)
+      let highlightIdx = -1
+
+      // Find all visible items and pick the one closest to the top of viewport
+      const visibleItems = this.items
+        .map((item, idx) => ({ item, idx }))
+        .filter(({ item }) => item.active)
+
+      if (visibleItems.length > 0) {
+        // Take the first one (closest to top of viewport)
+        highlightIdx = visibleItems[0].idx
+      } else {
+        // If nothing visible, check fallback items
+        const fallbackItems = this.items
+          .map((item, idx) => ({ item, idx }))
+          .filter(({ item }) => item.fallback)
+
+        if (fallbackItems.length > 0) {
+          highlightIdx = fallbackItems[0].idx
+        } else if (this.items.length > 0) {
+          highlightIdx = 0
+        }
       }
-    }
 
-    // 3. Initial state: If no headings have passed the line yet, default to the first heading.
-    if (highlightIdx === -1 && this.items.length > 0) {
-      highlightIdx = 0
+      // Map back to UI state - only one active
+      this.items = this.items.map((item, idx) => ({
+        ...item,
+        active: idx === highlightIdx,
+        t: idx === highlightIdx ? Date.now() : item.t,
+      }))
+    } else {
+      // Multi mode: items active when they are in viewport
+      // This ensures items activate when visible and deactivate when they leave viewport
+      this.items = this.items.map((item, idx) => ({
+        ...item,
+        active: item.active,
+        t: item.active ? Date.now() : item.t,
+      }))
     }
-
-    // 4. Map back to UI state
-    this.items = this.items.map((item, idx) => ({
-      ...item,
-      active: idx === highlightIdx,
-      t: idx === highlightIdx ? Date.now() : item.t,
-    }))
 
     this.onChange?.()
   }
