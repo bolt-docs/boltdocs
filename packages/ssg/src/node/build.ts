@@ -6,7 +6,7 @@ import type {
   ViteReactSSGOptions,
 } from '../types'
 import { createRequire } from 'node:module'
-import { dirname, isAbsolute, join, parse } from 'node:path'
+import { dirname, isAbsolute, join } from 'node:path'
 import fs from 'fs-extra'
 import { JSDOM } from 'jsdom'
 import { blue, cyan, dim, gray, green, red, yellow } from 'kolorist'
@@ -24,7 +24,8 @@ import {
 } from '../utils/path'
 import { serializeState } from '../utils/state'
 import { collectAssets } from './assets'
-import { getBeastiesOrCritters } from './critial'
+import { getBeasties } from './critial'
+import crypto from 'node:crypto'
 import { detectEntry, renderHTML, SCRIPT_COMMENT_PLACEHOLDER } from './html'
 import { renderPreloadLinks } from './preload-links'
 import { getAdapter } from './router-adapter'
@@ -109,10 +110,12 @@ export async function build(
     format = 'esm',
     concurrency = 20,
     rootContainerId = 'root',
+    routeToSourceFileMap = {},
+    cacheDir = '.boltdocs',
   }: ViteReactSSGOptions = mergedOptions
 
   const beastiesOptions =
-    mergedOptions.beastiesOptions ?? mergedOptions.crittersOptions ?? {}
+    mergedOptions.beastiesOptions ?? {}
 
   if (fs.existsSync(ssgOut)) await fs.remove(ssgOut)
 
@@ -158,7 +161,7 @@ export async function build(
     }),
   )
 
-  let unmock = () => {}
+  let unmock = () => { }
   if (mock) {
     const { jsdomGlobal }: { jsdomGlobal: () => () => void } =
       // @ts-expect-error allow js
@@ -182,13 +185,13 @@ export async function build(
           output:
             format === 'esm'
               ? {
-                  entryFileNames: '[name].mjs',
-                  format: 'esm',
-                }
+                entryFileNames: '[name].mjs',
+                format: 'esm',
+              }
               : {
-                  entryFileNames: '[name].cjs',
-                  format: 'cjs',
-                },
+                entryFileNames: '[name].cjs',
+                format: 'cjs',
+              },
           // @ts-expect-error rollup type
           onLog(level, log, handler) {
             if (log.message.includes('react-helmet-async')) return
@@ -252,10 +255,10 @@ export async function build(
 
   const beasties =
     beastiesOptions !== false
-      ? await getBeastiesOrCritters(outDir, {
-          publicPath: configBase,
-          ...beastiesOptions,
-        })
+      ? await getBeasties(outDir, {
+        publicPath: configBase,
+        ...beastiesOptions,
+      })
       : undefined
   if (beasties) {
     console.log(
@@ -281,7 +284,79 @@ export async function build(
   const staticLoaderDataManifest: StaticLoaderDataManifest = {}
   let loaderDataFileCount = 0
 
+  // Load the previous SSG cache metadata
+  const finalCacheDir = isAbsolute(cacheDir) ? cacheDir : join(root, cacheDir)
+  const cachePath = join(finalCacheDir, 'ssg-cache.json')
+  const ssgPagesDir = join(finalCacheDir, 'ssg-pages')
+
+  let ssgCache: Record<string, { mtime: number; loaderDataFilePath?: string }> = {}
+  try {
+    if (fs.existsSync(cachePath)) {
+      ssgCache = await fs.readJson(cachePath)
+    }
+  } catch (e) {
+    // Ignore cache errors
+  }
+  const newSsgCache: Record<string, { mtime: number; loaderDataFilePath?: string }> = { ...ssgCache }
+
   for (const path of routesPaths) {
+    const pathHash = crypto.createHash('md5').update(path).digest('hex')
+    const cachedHtmlFile = join(ssgPagesDir, `${pathHash}.html`)
+    const cachedLoaderFile = join(ssgPagesDir, `${pathHash}.json`)
+
+    const relativeRouteFile = `${(
+      path.endsWith('/') ? `${path}index` : path
+    ).replace(/^\//g, '')}.html`
+
+    const filename =
+      dirStyle === 'nested'
+        ? join(path.replace(/^\//g, ''), 'index.html')
+        : relativeRouteFile
+
+    const finalOutFile = join(out, filename)
+    const normalizedKey = withLeadingSlash(path).replace(/\/$/, '')
+    const sourceFile = routeToSourceFileMap[normalizedKey] || routeToSourceFileMap[path]
+
+    let isCached = false
+    let sourceMtime = 0
+    if (sourceFile && fs.existsSync(sourceFile) && fs.existsSync(cachedHtmlFile)) {
+      try {
+        sourceMtime = Math.round(fs.statSync(sourceFile).mtimeMs)
+        const cachedItem = ssgCache[normalizedKey] || ssgCache[path]
+        if (cachedItem && Math.round(cachedItem.mtime) === sourceMtime) {
+          isCached = true
+        }
+      } catch (e) { }
+    }
+
+    if (isCached) {
+      queue.add(async () => {
+        try {
+          await fs.ensureDir(dirname(finalOutFile))
+          await fs.copy(cachedHtmlFile, finalOutFile)
+
+          // Copy loader data if exists
+          const cachedItem = ssgCache[path]
+          if (cachedItem?.loaderDataFilePath && fs.existsSync(cachedLoaderFile)) {
+            const loaderDataFilePath = cachedItem.loaderDataFilePath
+            await fs.ensureDir(join(out, dirname(loaderDataFilePath)))
+            await fs.copy(cachedLoaderFile, join(out, loaderDataFilePath))
+            staticLoaderDataManifest[withLeadingSlash(path)] = loaderDataFilePath
+            loaderDataFileCount++
+          }
+
+          config.logger.info(
+            `${dim(`${outDir}/`)}${cyan(filename.padEnd(15, ' '))}  ${green('(cached)')}`,
+          )
+        } catch (err: any) {
+          throw new Error(
+            `${gray('[vite-react-ssg]')} Error on cached page: ${cyan(path)}\n${err.stack}`,
+          )
+        }
+      })
+      continue
+    }
+
     queue.add(async () => {
       try {
         const appCtx = (await createRoot(
@@ -306,13 +381,13 @@ export async function build(
         const assets =
           !app && routerType === 'remix'
             ? await collectAssets({
-                routes: [...routes],
-                locationArg: fetchUrl,
-                base,
-                serverManifest,
-                manifest,
-                ssrManifest,
-              })
+              routes: [...routes],
+              locationArg: fetchUrl,
+              base,
+              serverManifest,
+              manifest,
+              ssrManifest,
+            })
             : new Set<string>()
 
         const {
@@ -328,8 +403,11 @@ export async function build(
         const loaderData = routerContext?.loaderData as
           | Record<string, unknown>
           | undefined
+        let writtenLoaderDataPath: string | undefined = undefined
+
         if (loaderData && Object.keys(loaderData).length > 0) {
           const loaderDataFilePath = getLoaderDataFilePath(path, hash)
+          writtenLoaderDataPath = loaderDataFilePath
           await fs.ensureDir(join(out, dirname(loaderDataFilePath)))
           await fs.writeFile(
             join(out, loaderDataFilePath),
@@ -376,17 +454,30 @@ export async function build(
 
         const formatted = await formatHtml(transformed, formatting)
 
-        const relativeRouteFile = `${(
-          path.endsWith('/') ? `${path}index` : path
-        ).replace(/^\//g, '')}.html`
-
-        const filename =
-          dirStyle === 'nested'
-            ? join(path.replace(/^\//g, ''), 'index.html')
-            : relativeRouteFile
-
         await fs.ensureDir(join(out, dirname(filename)))
         await fs.writeFile(join(out, filename), formatted, 'utf-8')
+
+        // Save generated page and loader data to the SSG cache folder
+        if (sourceFile && fs.existsSync(sourceFile)) {
+          await fs.ensureDir(ssgPagesDir)
+          await fs.writeFile(cachedHtmlFile, formatted, 'utf-8')
+
+          const normalizedKey = withLeadingSlash(path).replace(/\/$/, '')
+          const mtimeRounded = Math.round(sourceMtime)
+
+          if (loaderData && Object.keys(loaderData).length > 0 && writtenLoaderDataPath) {
+            await fs.writeFile(cachedLoaderFile, JSON.stringify(loaderData), 'utf-8')
+            newSsgCache[normalizedKey] = {
+              mtime: mtimeRounded,
+              loaderDataFilePath: writtenLoaderDataPath,
+            }
+          } else {
+            newSsgCache[normalizedKey] = {
+              mtime: mtimeRounded,
+            }
+          }
+        }
+
         config.logger.info(
           `${dim(`${outDir}/`)}${cyan(filename.padEnd(15, ' '))}  ${dim(getSize(formatted))}`,
         )
@@ -399,6 +490,37 @@ export async function build(
   }
 
   await queue.start().onIdle()
+
+  // Save the updated cache index
+  try {
+    await fs.ensureDir(dirname(cachePath))
+    await fs.writeJson(cachePath, newSsgCache)
+
+    // Garbage collect unused cached HTML and JSON loader files in ssg-pages
+    if (fs.existsSync(ssgPagesDir)) {
+      const cachedFiles = await fs.readdir(ssgPagesDir)
+      const activeHashes = new Set<string>()
+      for (const route of Object.keys(newSsgCache)) {
+        const pathHash = crypto.createHash('md5').update(route).digest('hex')
+        activeHashes.add(`${pathHash}.html`)
+        activeHashes.add(`${pathHash}.json`)
+      }
+      let prunedCount = 0
+      for (const file of cachedFiles) {
+        if (file.endsWith('.html') || file.endsWith('.json')) {
+          if (!activeHashes.has(file)) {
+            await fs.remove(join(ssgPagesDir, file))
+            prunedCount++
+          }
+        }
+      }
+      if (prunedCount > 0) {
+        buildLog(`Pruned ${prunedCount} obsolete files from SSG cache.`)
+      }
+    }
+  } catch (e) {
+    // Ignore cache and pruning errors
+  }
 
   buildLog('Generating static loader data...', loaderDataFileCount)
   const staticLoaderDataManifestString = JSON.stringify(

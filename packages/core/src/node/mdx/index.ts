@@ -78,9 +78,10 @@ export function boltdocsMdxPlugin(
         return baseMdxPlugin.transform?.call(this, code, id, options)
       }
 
-      // Create a cache key based on path, content, and plugin version
+      // Create a cache key based on path, content, environment mode, and plugin version
       const contentHash = crypto.createHash('md5').update(code).digest('hex')
-      const cacheKey = `${id}:${contentHash}:${MDX_PLUGIN_VERSION}`
+      const isProd = process.env.NODE_ENV === 'production' ? 'prod' : 'dev'
+      const cacheKey = `${id}:${contentHash}:${isProd}:${MDX_PLUGIN_VERSION}`
 
       const cached = mdxCache.get(cacheKey)
       if (cached) {

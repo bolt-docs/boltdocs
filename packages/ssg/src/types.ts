@@ -8,26 +8,7 @@ import type {
 } from 'react-router-dom'
 
 type Router = ReturnType<typeof createBrowserRouter>
-export interface CrittersOptions {
-  path?: string
-  publicPath?: string
-  external?: boolean
-  inlineThreshold?: number
-  minimumExternalSize?: number
-  pruneSource?: boolean
-  mergeStylesheets?: boolean
-  additionalStylesheets?: string[]
-  preload?: 'body' | 'media' | 'swap' | 'js' | 'js-lazy'
-  noscriptFallback?: boolean
-  inlineFonts?: boolean
-  preloadFonts?: boolean
-  fonts?: boolean
-  keyframes?: string
-  compress?: boolean
-  logLevel?: 'info' | 'warn' | 'error' | 'trace' | 'debug' | 'silent'
-  reduceInlineStyles?: boolean
-  // logger?: Logger
-}
+
 
 export interface ViteReactSSGOptions<Context = ViteReactSSGContext> {
   /**
@@ -89,13 +70,6 @@ export interface ViteReactSSGOptions<Context = ViteReactSSGContext> {
    */
   includeAllRoutes?: boolean
   /**
-   * Options for the critters packages.
-   *
-   * @deprecated Use `beastiesOptions` instead.
-   * @see https://github.com/GoogleChromeLabs/critters
-   */
-  crittersOptions?: CrittersOptions | false
-  /**
    * Options for the beasties package.
    *
    * @see https://github.com/danielroe/beasties
@@ -153,6 +127,14 @@ export interface ViteReactSSGOptions<Context = ViteReactSSGContext> {
    * @default 20
    */
   concurrency?: number
+  /**
+   * A mapping of route paths to their corresponding source file paths.
+   */
+  routeToSourceFileMap?: Record<string, string>
+  /**
+   * The directory where SSG build cache is stored.
+   */
+  cacheDir?: string
 }
 
 export interface ViteReactSSGContext<HasRouter extends boolean = true> {

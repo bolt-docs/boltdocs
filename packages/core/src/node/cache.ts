@@ -10,6 +10,7 @@ const writeFile = promisify(fs.writeFile)
 const readFile = promisify(fs.readFile)
 const mkdir = promisify(fs.mkdir)
 const rename = promisify(fs.rename)
+const gzipPromise = promisify(zlib.gzip)
 
 /**
  * Assets and Shards directory names.
@@ -304,7 +305,7 @@ export class TransformCache {
         if (fs.existsSync(shardPath)) return // Already exists
         await mkdir(this.shardsDir, { recursive: true })
 
-        const compressed = zlib.gzipSync(Buffer.from(result))
+        const compressed = await gzipPromise(Buffer.from(result))
         const tempPath = `${shardPath}.${crypto.randomBytes(4).toString('hex')}.tmp`
         await writeFile(tempPath, compressed)
         await rename(tempPath, shardPath)

@@ -71,7 +71,6 @@
   },
   "peerDependencies": {
     "beasties": "^0.4.2",
-    "critters": "^0.0.24",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "react-router-dom": "^7.0.0",
@@ -80,9 +79,6 @@
   },
   "peerDependenciesMeta": {
     "beasties": {
-      "optional": true
-    },
-    "critters": {
       "optional": true
     },
     "prettier": {
@@ -112,10 +108,8 @@
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
     "@types/yargs": "^17.0.35",
-    "@vitejs/plugin-react-swc": "^3.11.0",
     "beasties": "^0.4.2",
     "bumpp": "^10.4.1",
-    "critters": "^0.0.25",
     "eslint": "^9.39.4",
     "esno": "^4.8.0",
     "fast-glob": "^3.3.2",
