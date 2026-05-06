@@ -20,7 +20,6 @@ export default async function boltdocs(
   // Merge options with config
   const mergedOptions: BoltdocsPluginOptions = {
     ...options,
-    homePage: options?.homePage || config.homePage,
   }
 
   return [...boltdocsPlugin(mergedOptions, config), boltdocsMdxPlugin(config)]

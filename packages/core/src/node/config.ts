@@ -115,7 +115,6 @@ export async function resolveConfig(
     sidebar: userConfig.sidebar,
     sidebarGroups: userConfig.theme?.sidebarGroups,
     socialLinks: userConfig.socialLinks,
-    footer: userConfig.footer,
     githubRepo: userConfig.githubRepo,
     tabs: userConfig.tabs,
     codeTheme: userConfig.codeTheme,
@@ -143,7 +142,6 @@ export async function resolveConfig(
 
   const finalConfig: BoltdocsConfig = {
     docsDir: path.resolve(docsDir),
-    homePage: userConfig.homePage,
     theme: {
       ...defaults.theme,
       ...cleanThemeConfig,
