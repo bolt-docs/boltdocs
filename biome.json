@@ -21,6 +21,10 @@
       "security": {
         "noDangerouslySetInnerHtml": "off"
       },
+      "a11y": {
+        "useKeyWithClickEvents": "off",
+        "noStaticElementInteractions": "off"
+      },
       "suspicious": {
         "noArrayIndexKey": "info"
       }
@@ -32,7 +36,6 @@
       "semicolons": "asNeeded"
     }
   },
-
   "css": {
     "parser": {
       "tailwindDirectives": true
@@ -41,7 +44,6 @@
       "enabled": false
     }
   },
-
   "assist": {
     "enabled": true,
     "actions": {
