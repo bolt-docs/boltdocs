@@ -2,19 +2,12 @@ import { Navbar } from 'boltdocs/client'
 import HomePage from '../../pages/home-page'
 
 /**
- * Custom home page for the site.
- * This overrides any homePage set in boltdocs.config.ts.
- */
-export const homePage = HomePage
-
-/**
  * Custom external routes.
  * Maps paths to React components.
  */
 export const pages = {
-  // Example of an external page:
-  // '/roadmap': RoadmapPage,
-}
+  '/': HomePage,
+};
 
 /**
  * Custom layout for external pages.
