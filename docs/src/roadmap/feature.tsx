@@ -16,7 +16,7 @@ const CategoryIcon = ({ category, className }: { category: string; className?: s
 
 export function Feature({ feature }: { feature: FeatureType }) {
     return <div
-        className="group flex flex-col px-4 pb-4 pt-3 rounded-xl bg-text-body/5 border border-text-body/10"
+        className="group flex flex-col px-4 pb-4 pt-3 rounded-xl bg-body/5 border border-body/10"
     >
         <h3 className="text-sm font-bold mt-2 mb-1.5 transition-colors">
             {feature.name}
