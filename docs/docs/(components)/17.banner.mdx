@@ -57,11 +57,32 @@ export const layout = ({ children }: { children: React.ReactNode }) => (
 );
 ```
 
-### Props
+<ApiReference
+  props={[
+    {
+      name: "dismissible",
+      type: "boolean",
+      defaultValue: "false",
+      description: "If true, shows an 'X' button that allows the user to dismiss the banner."
+    },
+    {
+      name: "id",
+      type: "string",
+      defaultValue: "'boltdocs-banner'",
+      description: "Unique identifier used to save the dismissed state in localStorage. Required if you want to have multiple independent banners over time."
+    },
+    {
+      name: "className",
+      type: "string",
+      defaultValue: "''",
+      description: "Additional CSS classes to customize the appearance (background color, text, etc.)."
+    },
+    {
+      name: "children",
+      type: "ReactNode",
+      required: true,
+      description: "Inner content of the banner (text, HTML, icons)."
+    }
+  ]}
+/>
 
-| Prop | Type | Default | Description |
-| :--- | :--- | :--- | :--- |
-| `dismissible` | `boolean` | `false` | If `true`, shows an "X" button that allows the user to dismiss the banner. |
-| `id` | `string` | `'boltdocs-banner'` | Unique identifier used to save the dismissed state in `localStorage`. Required if you want to have multiple independent banners over time. |
-| `className` | `string` | `''` | Additional CSS classes (Tailwind) to customize the appearance (background color, text, etc.). |
-| `children` | `ReactNode` | `-` | Inner content of the banner (text, HTML, icons). |

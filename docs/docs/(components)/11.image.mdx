@@ -22,7 +22,7 @@ The Image component provides a theme-aware way to render images that change base
 
 ## Props Table
 
-<ComponentProps
+<ApiReference
   props={[
     {
       name: "src",
@@ -36,9 +36,20 @@ The Image component provides a theme-aware way to render images that change base
       description: "If provided, the image is only rendered when the site theme matches this value."
     },
     {
+      name: "caption",
+      type: "ReactNode",
+      description: "Optional. Description text or rich Markdown content displayed beautifully below the image."
+    },
+    {
+      name: "zoom",
+      type: "boolean",
+      defaultValue: "false",
+      description: "When true, enables a premium interactive lightbox zoom on click and displays a zoom cursor on hover."
+    },
+    {
       name: "alt",
       type: "string",
-      description: "Required. The alternative text for screen readers."
+      description: "The alternative text for accessibility."
     }
   ]}
 />
@@ -59,3 +70,15 @@ By placing two `<Image>` components with different `theme` values back-to-back, 
 Standard Markdown `![]()` works perfectly in Boltdocs for global images. Use the `<Image>` component specifically when you need theme-awareness or advanced React logic.
 
 <Image src="https://placehold.co/600x200?text=Global+Image" alt="Global Content" />
+
+### Rich Captions & Zoom Lightbox
+
+The `<Image>` component supports interactive zooms and descriptive captions with full Markdown support:
+
+<Image
+  src="https://placehold.co/600x250/5468ff/ffffff?text=Interactive+Zoom+Demo"
+  alt="Interactive Zoom Demo"
+  zoom={true}
+  caption={<span>This is a **rich caption** supporting bold text and interactive <a>links</a>. Click the image to open the premium fullscreen lightbox zoom.</span>}
+/>
+
