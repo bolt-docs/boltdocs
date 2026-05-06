@@ -79,7 +79,7 @@ export type {
 // Primitives
 export { Navbar as PrimitiveNavbar } from './components/primitives/navbar'
 export { NavigationMenu as PrimitiveNavigationMenu } from './components/primitives/navigation-menu'
-export { SearchDialog as SearchDialogPrimitive } from './components/primitives/search-dialog'
+export { SearchDialog as PrimitiveSearchDialog } from './components/primitives/search-dialog'
 export {
   OnThisPage as PrimitiveOnThisPage,
   AnchorProvider,
@@ -104,9 +104,6 @@ export {
 export { Skeleton as PrimitiveSkeleton } from './components/primitives/skeleton'
 export {
   CodeBlock as PrimitiveCodeBlock,
-  CodeBlockHeader,
-  CodeBlockGroup,
-  CodeBlockContent,
 } from './components/primitives/code-block'
 
 
