@@ -48,4 +48,4 @@ export { ComponentProps } from './component-props'
 export type { ComponentPropsProps } from './component-props'
 
 export { ComponentPreview } from './component-preview'
-export type { ComponentPreviewProps } from './component-preview'
+export type { ComponentPreviewProps } from './component-preview'

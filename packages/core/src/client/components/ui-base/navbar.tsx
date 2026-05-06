@@ -26,7 +26,7 @@ export function Navbar() {
   const { pathname } = useLocation()
   const { isSidebarOpen, toggleSidebar } = useUI()
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
-  
+
   const themeConfig = config.theme || {}
   const isDocs = pathname.startsWith('/docs')
   const hasTabs = themeConfig?.tabs && themeConfig.tabs.length > 0
@@ -85,7 +85,7 @@ export function Navbar() {
               <NavbarLinkItem key={link.href} link={link} />
             ))}
           </NavbarPrimitive.Links>
-          
+
           <div className="hidden sm:flex items-center gap-2">
             {config.i18n && currentLocale && <I18nSelector />}
             <NavbarPrimitive.Split />
@@ -94,16 +94,16 @@ export function Navbar() {
           <div className="hidden md:block">
             <ThemeToggle />
           </div>
-          
+
           {github && (
             <div className="hidden md:block">
-               <GithubStars repo={themeConfig?.githubRepo ?? ''} />
+              <GithubStars repo={themeConfig?.githubRepo ?? ''} />
             </div>
           )}
           {social.length > 0 && (
-             <div className="hidden md:block">
-               <NavbarPrimitive.Split />
-             </div>
+            <div className="hidden md:block">
+              <NavbarPrimitive.Split />
+            </div>
           )}
           <div className="hidden md:flex items-center gap-1">
             {social.map(({ icon, link }: BoltdocsSocialLink) => (
@@ -120,17 +120,17 @@ export function Navbar() {
         </NavbarPrimitive.Right>
       </NavbarPrimitive.Content>
 
-      <NavbarPrimitive.MobileMenu 
-        isOpen={isMobileMenuOpen} 
+      <NavbarPrimitive.MobileMenu
+        isOpen={isMobileMenuOpen}
         onClose={() => setIsMobileMenuOpen(false)}
         title={title}
       >
         <div className="flex flex-col gap-1">
           {links.map((link) => (
-            <NavbarMobileLinkItem 
-              key={link.href} 
-              link={link} 
-              onClose={() => setIsMobileMenuOpen(false)} 
+            <NavbarMobileLinkItem
+              key={link.href}
+              link={link}
+              onClose={() => setIsMobileMenuOpen(false)}
             />
           ))}
         </div>
@@ -168,15 +168,21 @@ function NavbarLinkItem({ link }: { link: NavbarLinkType }) {
   return <NavbarPrimitive.Link {...(link as any)} href={localizedHref} />
 }
 
-function NavbarMobileLinkItem({ link, onClose }: { link: NavbarLinkType, onClose: () => void }) {
+function NavbarMobileLinkItem({
+  link,
+  onClose,
+}: {
+  link: NavbarLinkType
+  onClose: () => void
+}) {
   const localizedHref = useLocalizedTo(link.href || '')
   const { pathname } = useLocation()
   const active = pathname === localizedHref
-  
+
   return (
-    <NavbarPrimitive.MobileLink 
-      {...(link as any)} 
-      href={localizedHref} 
+    <NavbarPrimitive.MobileLink
+      {...(link as any)}
+      href={localizedHref}
       active={active}
       onPress={onClose}
     />

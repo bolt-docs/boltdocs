@@ -2,7 +2,11 @@ import { type Plugin, type ResolvedConfig, loadEnv } from 'vite'
 import { generateRoutes } from '../routes'
 import { adaptRoutesForSSG } from '../routes/route-adapter'
 import { ViteImageOptimizer } from 'vite-plugin-image-optimizer'
-import { resolveConfigAndGenerateTypes, type BoltdocsConfig, CONFIG_FILES } from '../config'
+import {
+  resolveConfigAndGenerateTypes,
+  type BoltdocsConfig,
+  CONFIG_FILES,
+} from '../config'
 import { normalizePath } from '../utils'
 import { generateSitemap } from '../seo/sitemap'
 import { generateRobotsTxt } from '../seo/robots'
@@ -49,7 +53,9 @@ export function boltdocsPlugin(
 
   // Shared accessors for sub-plugins
   const getConfig = () => config
-  const setConfig = (c: BoltdocsConfig) => { config = c }
+  const setConfig = (c: BoltdocsConfig) => {
+    config = c
+  }
   const getViteConfig = () => viteConfig
   const getLifecycle = () => lifecycle
 
@@ -93,7 +99,7 @@ export function boltdocsPlugin(
         }
 
         return {
-          // @ts-ignore - @bdocs/ssg options
+          // @ts-expect-error - @bdocs/ssg options
           ssgOptions: {
             entry: 'boltdocs/entry',
             htmlEntry: 'index.html',
@@ -164,7 +170,13 @@ export function boltdocsPlugin(
     createVirtualModulesPlugin(options, getConfig, getViteConfig, docsDir),
 
     // === 3. Dev server plugin: middleware, watchers, HMR ===
-    createDevServerPlugin(docsDir, normalizedDocsDir, getConfig, setConfig, getLifecycle),
+    createDevServerPlugin(
+      docsDir,
+      normalizedDocsDir,
+      getConfig,
+      setConfig,
+      getLifecycle,
+    ),
 
     // === 4. Image optimizer ===
     ViteImageOptimizer({

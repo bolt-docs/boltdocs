@@ -82,8 +82,10 @@ function MenuItem(props: RAC.MenuItemProps) {
               'bg-surface text-body ring-1 ring-strong/5':
                 isFocused && !isSelected,
               'text-body': !isSelected && !isFocused,
-              'bg-primary-500/10 text-primary-600 dark:text-primary-400': isSelected,
-              'bg-primary-500/15 ring-1 ring-primary-500/20': isSelected && isFocused,
+              'bg-primary-500/10 text-primary-600 dark:text-primary-400':
+                isSelected,
+              'bg-primary-500/15 ring-1 ring-primary-500/20':
+                isSelected && isFocused,
               'opacity-40 grayscale pointer-events-none': isDisabled,
             },
             className,

@@ -26,8 +26,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const applyTheme = (targetTheme: Theme) => {
     const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)')
     const isDark =
-      targetTheme === 'dark' ||
-      (targetTheme === 'system' && mediaQuery.matches)
+      targetTheme === 'dark' || (targetTheme === 'system' && mediaQuery.matches)
 
     const root = window.document.documentElement
     root.classList.toggle('dark', isDark)
@@ -46,7 +45,8 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
 
     const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)')
     const listener = () => {
-      const current = (localStorage.getItem('boltdocs-theme') as Theme) || 'system'
+      const current =
+        (localStorage.getItem('boltdocs-theme') as Theme) || 'system'
       if (current === 'system') applyTheme('system')
     }
 
@@ -58,7 +58,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     setThemeState(newTheme)
     localStorage.setItem('boltdocs-theme', newTheme)
     applyTheme(newTheme)
-    
+
     // Notify external listeners (dual-package hazard)
     if (typeof window !== 'undefined') {
       window.dispatchEvent(new CustomEvent(THEME_EVENT, { detail: newTheme }))
@@ -81,7 +81,7 @@ export function useTheme() {
 
   useEffect(() => {
     if (context) return
-    
+
     const handler = () => forceUpdate({})
     window.addEventListener(THEME_EVENT, handler)
     return () => window.removeEventListener(THEME_EVENT, handler)

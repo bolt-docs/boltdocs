@@ -88,8 +88,11 @@ export function injectHtmlMeta(html: string, config: BoltdocsConfig): string {
     const isProd = process.env.NODE_ENV === 'production'
     if (isProd || ga4.debug) {
       const ipAnonymization = ga4.anonymizeIp ? `gtag('set', 'ip', true);` : ''
-      const sendPageView = ga4.sendPageView === false ? '{send_page_view: false}' : '{}'
-      const cookieFlags = ga4.cookieFlags ? `, {'cookie_flags': '${ga4.cookieFlags}'}` : ''
+      const sendPageView =
+        ga4.sendPageView === false ? '{send_page_view: false}' : '{}'
+      const cookieFlags = ga4.cookieFlags
+        ? `, {'cookie_flags': '${ga4.cookieFlags}'}`
+        : ''
 
       ga4Script = `
     <!-- Google tag (gtag.js) - ${ga4.measurementId} -->
@@ -132,7 +135,10 @@ export function injectHtmlMeta(html: string, config: BoltdocsConfig): string {
     }
   }
 
-  html = html.replace('</head>', `    ${seoTags}\n${themeScript}\n${ga4Script}${gtmScript}  </head>`)
+  html = html.replace(
+    '</head>',
+    `    ${seoTags}\n${themeScript}\n${ga4Script}${gtmScript}  </head>`,
+  )
 
   if (gtmNoScript) {
     html = html.replace(/<body([^>]*)>/, `<body$1>\n${gtmNoScript}`)

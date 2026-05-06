@@ -3,14 +3,15 @@ import type { ComponentRoute, BoltdocsConfig } from '../types'
 import { MdxPage } from './mdx-page'
 import { BoltdocsShell } from './boltdocs-shell'
 import { NotFound, Loading } from '../components/ui-base'
-import React, { Suspense, useState, useEffect } from 'react'
+import type React from 'react'
+import { Suspense, useState, useEffect } from 'react'
 
 interface CreateRoutesOptions {
   routesData: ComponentRoute[]
   config: BoltdocsConfig
   mdxModules: Record<string, any>
   Layout: React.ComponentType<{ children: React.ReactNode }>
-  homePage?: React.ComponentType
+
   externalPages?: Record<string, React.ComponentType>
   externalLayout?: React.ComponentType<{ children: React.ReactNode }>
   components?: Record<string, React.ComponentType>
@@ -117,7 +118,7 @@ export function createRoutes(options: CreateRoutesOptions): RouteRecord[] {
     config,
     mdxModules,
     Layout,
-    homePage: HomePage,
+
     externalPages,
     externalLayout,
     components,
@@ -175,47 +176,12 @@ export function createRoutes(options: CreateRoutesOptions): RouteRecord[] {
   // Group all documentation routes under the persistent DocsLayout
   const docsLayoutRoute: RouteRecord = {
     element: <DocsLayout />,
-    children: docRoutes
+    children: docRoutes,
   }
 
   const children: RouteRecord[] = [docsLayoutRoute]
 
-  // 2. Home page route
-  if (HomePage) {
-    const homeConfigs = [{ path: withBase('/'), locale: config.i18n?.defaultLocale }]
-    if (config.i18n) {
-      Object.keys(config.i18n.locales).forEach((locale) => {
-        homeConfigs.push({ path: withBase(`/${locale}`), locale })
-      })
-    }
 
-    homeConfigs.forEach(({ path, locale }) => {
-      // Avoid duplicate routes if documentation also maps to '/'
-      if (!children.find((r) => r.path === path)) {
-        allMetadata.push({
-          path,
-          locale,
-          title: 'Home',
-          filePath: '',
-          headings: [],
-        } as any)
-
-        children.push({
-          path,
-          element: (
-            <EffectiveExternalLayout>
-              <HomePage />
-            </EffectiveExternalLayout>
-          ),
-          loader: async () => ({
-            path,
-            locale,
-          }),
-          getStaticPaths: () => [path],
-        })
-      }
-    })
-  }
 
   // 3. External pages
   if (externalPages) {
@@ -226,7 +192,7 @@ export function createRoutes(options: CreateRoutesOptions): RouteRecord[] {
         allMetadata.push({
           path,
           locale: config.i18n?.defaultLocale,
-          title: rawPath.replace(/^\//, '').split('/').pop() || 'Page',
+          title: rawPath === '/' ? 'Home' : (rawPath.replace(/^\//, '').split('/').pop() || 'Page'),
           filePath: '',
           headings: [],
         } as any)

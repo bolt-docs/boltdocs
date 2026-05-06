@@ -21,9 +21,9 @@ type HelmetProviderModule = {
 }
 const helmetProviderModule = ReactHelmetAsync as unknown as HelmetProviderModule
 const HelmetProvider =
-  helmetProviderModule.HelmetProvider
-  || helmetProviderModule.default?.HelmetProvider
-  || (({ children }) => <>{children}</>)
+  helmetProviderModule.HelmetProvider ||
+  helmetProviderModule.default?.HelmetProvider ||
+  (({ children }) => <>{children}</>)
 
 /**
  * Updates the HTML lang and dir attributes based on the current locale configuration.
@@ -123,13 +123,15 @@ export function BoltdocsShell({
     return p.endsWith('/') && p.length > 1 ? p.slice(0, -1) : p
   }, [pathname])
 
-  const currentRoute = useMemo(() =>
-    routes.find((r) => {
-      const rp = r.path === '' ? '/' : r.path
-      const normalize = (path: string) => path.endsWith('/') && path.length > 1 ? path.slice(0, -1) : path
-      return normalize(rp) === currentPath
-    }),
-    [routes, currentPath]
+  const currentRoute = useMemo(
+    () =>
+      routes.find((r) => {
+        const rp = r.path === '' ? '/' : r.path
+        const normalize = (path: string) =>
+          path.endsWith('/') && path.length > 1 ? path.slice(0, -1) : path
+        return normalize(rp) === currentPath
+      }),
+    [routes, currentPath],
   )
 
   return (

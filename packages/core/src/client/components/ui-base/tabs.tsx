@@ -51,9 +51,7 @@ export function Tabs({
                 tabRefs.current[index] = el
               }}
               className={`relative flex items-center gap-2 px-4 py-3 text-sm font-medium transition-colors outline-none whitespace-nowrap ${
-                isActive
-                  ? 'text-primary-500'
-                  : 'text-muted hover:text-body'
+                isActive ? 'text-primary-500' : 'text-muted hover:text-body'
               }`}
             >
               {renderTabIcon(tab.icon)}

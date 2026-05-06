@@ -31,8 +31,8 @@ export function BoltdocsProvider({
     if (typeof window === 'undefined')
       return { locale: initialLocale, version: initialVersion }
     const parts = window.location.pathname.split('/').filter(Boolean)
-    let locale = initialLocale
-    let version = initialVersion
+    const locale = initialLocale
+    const version = initialVersion
     // ...
     return { locale, version }
   }

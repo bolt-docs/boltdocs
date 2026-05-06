@@ -19,19 +19,24 @@ export function getSimilarity(link: string, target: string): number {
       if (targetSegments.includes(seg)) overlap++
     }
     if (overlap >= 2) return 0.99
-    return 0.90
+    return 0.9
   }
 
   // 2. Prefix Check: If one filename starts with the other
   if (linkName.length > 3 && targetName.length > 3) {
     if (targetName.startsWith(linkName) || linkName.startsWith(targetName)) {
-      const ratio = Math.min(linkName.length, targetName.length) / Math.max(linkName.length, targetName.length)
+      const ratio =
+        Math.min(linkName.length, targetName.length) /
+        Math.max(linkName.length, targetName.length)
       if (ratio > 0.5) return 0.88
     }
   }
 
   // 3. Fuzzy match filenames
-  const nameSim = 1 - distance(linkName, targetName) / Math.max(linkName.length, targetName.length)
+  const nameSim =
+    1 -
+    distance(linkName, targetName) /
+      Math.max(linkName.length, targetName.length)
   if (nameSim > 0.8) {
     return nameSim * 0.95
   }
@@ -41,19 +46,28 @@ export function getSimilarity(link: string, target: string): number {
   return 1 - dist / Math.max(link.length, target.length)
 }
 
-const similarityCache = new Map<string, { bestMatch: string; similarity: number }>()
+const similarityCache = new Map<
+  string,
+  { bestMatch: string; similarity: number }
+>()
 
-export function getCachedSimilarity(link: string, routes: string[]): { bestMatch: string; similarity: number } {
+export function getCachedSimilarity(
+  link: string,
+  routes: string[],
+): { bestMatch: string; similarity: number } {
   if (similarityCache.has(link)) return similarityCache.get(link)!
-  
+
   let bestMatch = ''
   let maxSim = 0
   for (const route of routes) {
     if (route === link) continue
     const sim = getSimilarity(link, route)
-    if (sim > maxSim) { maxSim = sim; bestMatch = route }
+    if (sim > maxSim) {
+      maxSim = sim
+      bestMatch = route
+    }
   }
-  
+
   const result = { bestMatch, similarity: maxSim }
   similarityCache.set(link, result)
   return result

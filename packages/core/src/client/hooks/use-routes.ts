@@ -117,7 +117,8 @@ export function useRoutes() {
     currentLocale: currentLocale as import('../../shared/types').BoltdocsLocale,
     currentLocaleLabel,
     availableLocales,
-    currentVersion: currentVersion as import('../../shared/types').BoltdocsVersion,
+    currentVersion:
+      currentVersion as import('../../shared/types').BoltdocsVersion,
     currentVersionLabel,
     availableVersions,
     config,

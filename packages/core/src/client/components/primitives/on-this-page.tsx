@@ -146,8 +146,10 @@ export function AnchorProvider({
       rootMargin: '-80px 0% -60% 0%',
       threshold: 0,
     }
-    const options = observerOptions ? { ...defaultOptions, ...observerOptions } : defaultOptions
-    
+    const options = observerOptions
+      ? { ...defaultOptions, ...observerOptions }
+      : defaultOptions
+
     observer.watch(options)
     observer.onChange = () => setItems([...observer.items])
 
@@ -177,10 +179,7 @@ export const OnThisPage = ({ children, className }: ComponentBase) => {
 const OnThisPageHeader = ({ children, className, ...props }: ComponentBase) => {
   return (
     <div
-      className={cn(
-        'mb-4 text-xs font-bold text-body',
-        className,
-      )}
+      className={cn('mb-4 text-xs font-bold text-body', className)}
       {...props}
     >
       {children}
@@ -208,7 +207,8 @@ const OnThisPageContent = ({
       )}
       style={{
         maskImage: 'linear-gradient(to bottom, black 90%, transparent 100%)',
-        WebkitMaskImage: 'linear-gradient(to bottom, black 90%, transparent 100%)',
+        WebkitMaskImage:
+          'linear-gradient(to bottom, black 90%, transparent 100%)',
       }}
       {...props}
     >

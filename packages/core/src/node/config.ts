@@ -34,7 +34,6 @@ export type {
 
 export { defineConfig } from '../shared/config-utils'
 
-
 export const CONFIG_FILES = [
   'boltdocs.config.js',
   'boltdocs.config.mjs',
@@ -46,7 +45,7 @@ export const CONFIG_FILES = [
  */
 interface RawUserConfig
   extends Partial<BoltdocsConfig>,
-  Partial<BoltdocsThemeConfig> {
+    Partial<BoltdocsThemeConfig> {
   favicon?: string
   security?: BoltdocsSecurityConfig
   integrations?: BoltdocsConfig['integrations']
@@ -148,11 +147,11 @@ export async function resolveConfig(
     },
     i18n: userConfig.i18n
       ? {
-        ...userConfig.i18n,
-        locales: Array.isArray(userConfig.i18n.locales)
-          ? Object.fromEntries(userConfig.i18n.locales.map((l) => [l, l]))
-          : userConfig.i18n.locales,
-      }
+          ...userConfig.i18n,
+          locales: Array.isArray(userConfig.i18n.locales)
+            ? Object.fromEntries(userConfig.i18n.locales.map((l) => [l, l]))
+            : userConfig.i18n.locales,
+        }
       : undefined,
     versions: userConfig.versions,
     siteUrl: userConfig.siteUrl,

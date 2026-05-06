@@ -8,12 +8,20 @@ type HelmetModule = {
   default?: { Helmet?: ComponentType<{ children?: ReactNode }> }
 }
 const helmetModule = ReactHelmetAsync as unknown as HelmetModule
-const Helmet = helmetModule.Helmet || helmetModule.default?.Helmet || (({ children }) => <>{children}</>)
+const Helmet =
+  helmetModule.Helmet ||
+  helmetModule.default?.Helmet ||
+  (({ children }) => <>{children}</>)
 
 interface HeadProps {
   siteTitle: string
   siteDescription?: string
-  routes: Array<{ path: string; title: string; description?: string; seo?: Record<string, unknown> }>
+  routes: Array<{
+    path: string
+    title: string
+    description?: string
+    seo?: Record<string, unknown>
+  }>
 }
 
 export function Head({ siteTitle, siteDescription, routes }: HeadProps) {
@@ -46,8 +54,15 @@ export function Head({ siteTitle, siteDescription, routes }: HeadProps) {
       <meta property="og:description" content={pageDescription} />
       <meta property="og:type" content="article" />
       {/* Canonical URL for both <link> and og:url */}
-      {typeof window !== 'undefined' && <meta property="og:url" content={window.location.href} />}
-      {typeof window !== 'undefined' && <link rel="canonical" href={window.location.origin + location.pathname} />}
+      {typeof window !== 'undefined' && (
+        <meta property="og:url" content={window.location.href} />
+      )}
+      {typeof window !== 'undefined' && (
+        <link
+          rel="canonical"
+          href={window.location.origin + location.pathname}
+        />
+      )}
 
       {/* Default Twitter Card */}
       <meta name="twitter:card" content="summary" />
@@ -61,22 +76,41 @@ export function Head({ siteTitle, siteDescription, routes }: HeadProps) {
 
       {/* User-defined global metatags */}
       {Object.entries(globalMetatags).map(([key, value]) => {
-        const isProperty = key.startsWith('og:') || key.startsWith('music:') || key.startsWith('video:') || key.startsWith('article:') || key.startsWith('book:') || key.startsWith('profile:')
-        return isProperty
-          ? <meta key={key} property={key} content={value as string} />
-          : <meta key={key} name={key} content={value as string} />
+        const isProperty =
+          key.startsWith('og:') ||
+          key.startsWith('music:') ||
+          key.startsWith('video:') ||
+          key.startsWith('article:') ||
+          key.startsWith('book:') ||
+          key.startsWith('profile:')
+        return isProperty ? (
+          <meta key={key} property={key} content={value as string} />
+        ) : (
+          <meta key={key} name={key} content={value as string} />
+        )
       })}
 
       {/* Page granular SEO tags (override global) */}
       {Object.entries(seo).map(([key, value]) => {
-        if (key === 'noindex' && value === true) return <meta key="noindex" name="robots" content="noindex" />
-        if (key === 'robots') return <meta key="robots" name="robots" content={value as string} />
-        if (key === 'canonical') return <link key="canonical" rel="canonical" href={value as string} />
+        if (key === 'noindex' && value === true)
+          return <meta key="noindex" name="robots" content="noindex" />
+        if (key === 'robots')
+          return <meta key="robots" name="robots" content={value as string} />
+        if (key === 'canonical')
+          return <link key="canonical" rel="canonical" href={value as string} />
 
-        const isProperty = key.startsWith('og:') || key.startsWith('music:') || key.startsWith('video:') || key.startsWith('article:') || key.startsWith('book:') || key.startsWith('profile:')
-        return isProperty
-          ? <meta key={key} property={key} content={value as string} />
-          : <meta key={key} name={key} content={value as string} />
+        const isProperty =
+          key.startsWith('og:') ||
+          key.startsWith('music:') ||
+          key.startsWith('video:') ||
+          key.startsWith('article:') ||
+          key.startsWith('book:') ||
+          key.startsWith('profile:')
+        return isProperty ? (
+          <meta key={key} property={key} content={value as string} />
+        ) : (
+          <meta key={key} name={key} content={value as string} />
+        )
       })}
     </Helmet>
   )

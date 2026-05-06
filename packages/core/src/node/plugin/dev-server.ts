@@ -1,6 +1,10 @@
 import type { ViteDevServer, Plugin } from 'vite'
 import { invalidateRouteCache, invalidateFile } from '../routes'
-import { resolveConfigAndGenerateTypes, type BoltdocsConfig, CONFIG_FILES } from '../config'
+import {
+  resolveConfigAndGenerateTypes,
+  type BoltdocsConfig,
+  CONFIG_FILES,
+} from '../config'
 import { normalizePath, isDocFile } from '../utils'
 import { SECURITY_HEADERS } from '../security/headers'
 import { getCSPHeader } from '../security/csp'
@@ -25,9 +29,7 @@ const DEBOUNCE_MS = 150
  * Invalidates a Vite virtual module by its short name (e.g. 'routes', 'config').
  */
 function invalidateVirtualModule(server: ViteDevServer, name: string): void {
-  const mod = server.moduleGraph.getModuleById(
-    `\0virtual:boltdocs-${name}.ts`,
-  )
+  const mod = server.moduleGraph.getModuleById(`\0virtual:boltdocs-${name}.ts`)
   if (mod) server.moduleGraph.invalidateModule(mod)
 }
 
@@ -53,7 +55,7 @@ export function createDevServerPlugin(
       await lifecycle?.runHook('beforeDev')
 
       // Initial Link Tree generation
-      await generateLinkTree(docsDir, process.cwd(), getConfig()).catch(e => {
+      await generateLinkTree(docsDir, process.cwd(), getConfig()).catch((e) => {
         console.error('[boltdocs] Failed to generate initial link tree:', e)
       })
 
@@ -159,9 +161,7 @@ export function createDevServerPlugin(
 
           // Icons change → invalidate virtual module + full-reload
           if (
-            mdxCompExtensions.some((ext) =>
-              normalized.endsWith(`icons.${ext}`),
-            )
+            mdxCompExtensions.some((ext) => normalized.endsWith(`icons.${ext}`))
           ) {
             invalidateVirtualModule(server, 'icons.tsx')
             server.ws.send({ type: 'full-reload' })
@@ -209,9 +209,11 @@ export function createDevServerPlugin(
             invalidateVirtualModule(server, 'search')
 
             // Update Link Tree on structural change
-            await generateLinkTree(docsDir, process.cwd(), newConfig).catch(e => {
-              console.error('[boltdocs] Failed to update link tree:', e)
-            })
+            await generateLinkTree(docsDir, process.cwd(), newConfig).catch(
+              (e) => {
+                console.error('[boltdocs] Failed to update link tree:', e)
+              },
+            )
 
             server.ws.send({
               type: 'custom',
@@ -257,7 +259,9 @@ export function createDevServerPlugin(
                 // The client's create-routes.tsx listens for this to re-import
                 // the updated module without a full page reload.
                 const relPath = normalized.startsWith(normalizedDocsDir)
-                  ? normalized.slice(normalizedDocsDir.length).replace(/^\//, '')
+                  ? normalized
+                      .slice(normalizedDocsDir.length)
+                      .replace(/^\//, '')
                   : normalized
 
                 // Invalidate the module in Vite's graph so the next request
@@ -275,7 +279,10 @@ export function createDevServerPlugin(
                   data: { file: normalized, relPath },
                 })
               } catch (e) {
-                console.error(`[boltdocs] HMR error processing content change:`, e)
+                console.error(
+                  `[boltdocs] HMR error processing content change:`,
+                  e,
+                )
               }
             }, DEBOUNCE_MS),
           )
@@ -305,10 +312,7 @@ export function createDevServerPlugin(
      */
     handleHotUpdate({ file, server: s }) {
       const normalized = normalizePath(file)
-      if (
-        normalized.startsWith(normalizedDocsDir) &&
-        isDocFile(normalized)
-      ) {
+      if (normalized.startsWith(normalizedDocsDir) && isDocFile(normalized)) {
         // Returning empty array: we own this update, Vite does nothing.
         return []
       }

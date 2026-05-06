@@ -84,7 +84,10 @@ export function getFileMtime(filePath: string): number {
  * @param filePath - The absolute path to the markdown/mdx file
  * @returns An object containing the parsed metadata (`data`) and the raw markdown (`content`)
  */
-export function parseFrontmatter(filePath: string, validate = true): {
+export function parseFrontmatter(
+  filePath: string,
+  validate = true,
+): {
   data: any
   content: string
   raw: string
@@ -114,7 +117,7 @@ export function parseFrontmatter(filePath: string, validate = true): {
 
     // Validation: Schema check
     const result = FrontmatterSchema.safeParse(data)
-    
+
     // Explicitly allow only known fields from the schema for security (unless we use passthrough)
     const validatedData = result.success ? result.data : {}
 
@@ -147,7 +150,10 @@ export function parseFrontmatter(filePath: string, validate = true): {
  * @param filePath - The absolute path to the markdown/mdx file
  * @returns An object containing the parsed metadata (`data`) and the raw markdown (`content`)
  */
-export async function parseFrontmatterAsync(filePath: string, validate = true): Promise<{
+export async function parseFrontmatterAsync(
+  filePath: string,
+  validate = true,
+): Promise<{
   data: any
   content: string
   raw: string
@@ -177,7 +183,7 @@ export async function parseFrontmatterAsync(filePath: string, validate = true): 
 
     // Validation: Schema check
     const result = FrontmatterSchema.safeParse(data)
-    
+
     // Explicitly allow only known fields from the schema for security (unless we use passthrough)
     const validatedData = result.success ? result.data : {}
 
@@ -186,8 +192,8 @@ export async function parseFrontmatterAsync(filePath: string, validate = true): 
 
     // Auto-populate lastUpdated if missing
     if (!sanitizedData.lastUpdated) {
-      const stats = await fs.promises.stat(filePath);
-      sanitizedData.lastUpdated = stats.mtimeMs;
+      const stats = await fs.promises.stat(filePath)
+      sanitizedData.lastUpdated = stats.mtimeMs
     }
     if (sanitizedData.title)
       sanitizedData.title = stripHtmlTags(sanitizedData.title).trim()
@@ -204,7 +210,7 @@ export async function parseFrontmatterAsync(filePath: string, validate = true): 
       const rawFallback = await fs.promises.readFile(filePath, 'utf-8')
       return { data: {}, content: rawFallback, raw: rawFallback }
     } catch {
-       return { data: {}, content: '', raw: '' }
+      return { data: {}, content: '', raw: '' }
     }
   }
 }
@@ -408,7 +414,7 @@ export function getTranslated(
  */
 export function sanitizeFilename(name: string): string {
   return name
-    .replace(/[^a-zA-Z0-9\-_\/\.]/g, '') // Remove non-whitelisted characters
+    .replace(/[^a-zA-Z0-9\-_/.]/g, '') // Remove non-whitelisted characters
     .split('/')
     .filter((p) => p !== '..' && p !== '.') // Remove traversal and current dir indicators
     .map((p) => p.replace(/\.\.+/g, '.')) // Prevent multiple dots in segments
@@ -459,4 +465,3 @@ export function getCacheConfig() {
     compress: process.env.BOLTDOCS_CACHE_COMPRESS !== '0',
   }
 }
-

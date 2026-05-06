@@ -58,7 +58,6 @@ export function createVirtualModulesPlugin(
       const isBuild = viteConfig?.command === 'build'
       const config = getConfig()
 
-
       if (
         id.includes('boltdocs-entry.tsx') ||
         id === '\0virtual:boltdocs-entry'
@@ -159,7 +158,9 @@ export * from '${normalizedPath}';`
 export default UserLayout;`
         }
 
-        throw new Error(`[Boltdocs] Layout file not found. A 'layout.tsx' or 'layout.jsx' file is mandatory in your docs directory. Please create one to define your site structure.`)
+        throw new Error(
+          `[Boltdocs] Layout file not found. A 'layout.tsx' or 'layout.jsx' file is mandatory in your docs directory. Please create one to define your site structure.`,
+        )
       }
 
       if (name === 'icons') {

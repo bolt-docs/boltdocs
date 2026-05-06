@@ -1,7 +1,20 @@
 import { type ReactNode, useState, useEffect } from 'react'
 import { Separator, ToggleButton, Link, cn } from './index'
-import { Button as ButtonRAC, ModalOverlay, Modal, Dialog } from 'react-aria-components'
-import { Search, Sun, Moon, ExternalLink, MoreVertical, X, ChevronRight } from 'lucide-react'
+import {
+  Button as ButtonRAC,
+  ModalOverlay,
+  Modal,
+  Dialog,
+} from 'react-aria-components'
+import {
+  Search,
+  Sun,
+  Moon,
+  ExternalLink,
+  MoreVertical,
+  X,
+  ChevronRight,
+} from 'lucide-react'
 import * as IconsSocials from '../icons-dev'
 import type { ComponentBase } from './types'
 import type { BoltdocsSocialLink } from '../../../shared/types'
@@ -127,7 +140,11 @@ const NavbarLogo = ({
   )
 }
 
-const NavbarTitle = ({ children, className, href = '/' }: { href?: string } & ComponentBase) => {
+const NavbarTitle = ({
+  children,
+  className,
+  href = '/',
+}: { href?: string } & ComponentBase) => {
   return (
     <Link href={href}>
       <span
@@ -351,9 +368,7 @@ const NavbarMobileMenu = ({
             </ButtonRAC>
           </div>
 
-          <nav className="flex flex-col gap-4">
-            {children}
-          </nav>
+          <nav className="flex flex-col gap-4">{children}</nav>
         </Dialog>
       </Modal>
     </ModalOverlay>
@@ -384,10 +399,12 @@ const NavbarMobileLink = ({
     >
       <span className="relative">
         {label as any}
-        <span className={cn(
-          "absolute -bottom-1 left-0 h-0.5 bg-primary-500 transition-all duration-300",
-          active ? "w-full" : "w-0 group-hover:w-full"
-        )} />
+        <span
+          className={cn(
+            'absolute -bottom-1 left-0 h-0.5 bg-primary-500 transition-all duration-300',
+            active ? 'w-full' : 'w-0 group-hover:w-full',
+          )}
+        />
       </span>
     </Link>
   )

@@ -49,7 +49,7 @@ export class PluginSandbox {
     action: () => Promise<T> | T,
   ): Promise<T | undefined> {
     try {
-      this.checkPermission(plugin, requiredPermission)
+      PluginSandbox.checkPermission(plugin, requiredPermission)
       return await action()
     } catch (error) {
       if (error instanceof PluginPermissionError) {

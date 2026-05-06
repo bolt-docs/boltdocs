@@ -22,20 +22,23 @@ export interface BoltdocsThemeConfig {
   title?: string | Record<string, string>
   description?: string | Record<string, string>
   logo?:
-  | string
-  | {
-    dark: string
-    light: string
-    alt?: string
-    width?: number
-    height?: number
-  }
+    | string
+    | {
+        dark: string
+        light: string
+        alt?: string
+        width?: number
+        height?: number
+      }
   navbar?: Array<{
     label: string | Record<string, string>
     href: string
   }>
   sidebar?: Record<string, Array<{ text: string; link: string }>>
-  sidebarGroups?: Record<string, { title?: string | Record<string, string>; icon?: string }>
+  sidebarGroups?: Record<
+    string,
+    { title?: string | Record<string, string>; icon?: string }
+  >
   socialLinks?: BoltdocsSocialLink[]
   footer?: BoltdocsFooterConfig
   breadcrumbs?: boolean
@@ -71,13 +74,13 @@ export type ShikiTheme =
 export type BoltdocsRobotsConfig =
   | string
   | {
-    rules?: Array<{
-      userAgent: string
-      allow?: string | string[]
-      disallow?: string | string[]
-    }>
-    sitemaps?: string[]
-  }
+      rules?: Array<{
+        userAgent: string
+        allow?: string | string[]
+        disallow?: string | string[]
+      }>
+      sitemaps?: string[]
+    }
 
 /**
  * Configuration for a specific locale.
@@ -177,9 +180,6 @@ export interface BoltdocsGTMConfig {
   preview?: string
 }
 
-/**
- * Configuration for third-party integrations.
- */
 export interface BoltdocsIntegrationsConfig {
   ga4?: BoltdocsGA4Config
   gtm?: BoltdocsGTMConfig
@@ -192,7 +192,6 @@ export interface BoltdocsConfig {
   siteUrl?: string
   docsDir?: string
   base?: string
-  homePage?: string
   theme?: BoltdocsThemeConfig
   i18n?: BoltdocsI18nConfig
   versions?: BoltdocsVersionsConfig
@@ -216,6 +215,9 @@ declare global {
 
 export type BoltdocsTypes = Boltdocs.Types
 
-export type BoltdocsLocale = Boltdocs.Types extends { Locale: infer L } ? L : string
-export type BoltdocsVersion = Boltdocs.Types extends { Version: infer V } ? V : string
-
+export type BoltdocsLocale = Boltdocs.Types extends { Locale: infer L }
+  ? L
+  : string
+export type BoltdocsVersion = Boltdocs.Types extends { Version: infer V }
+  ? V
+  : string

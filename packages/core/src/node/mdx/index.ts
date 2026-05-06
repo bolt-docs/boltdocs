@@ -65,16 +65,16 @@ export function boltdocsMdxPlugin(
         await mdxCache.load()
         mdxCacheLoaded = true
       }
-      // @ts-ignore
+      // @ts-expect-error
       if (baseMdxPlugin.buildStart) {
-        // @ts-ignore
+        // @ts-expect-error
         await baseMdxPlugin.buildStart.call(this)
       }
     },
 
     async transform(code, id, options) {
       if (!id.endsWith('.md') && !id.endsWith('.mdx')) {
-        // @ts-ignore
+        // @ts-expect-error
         return baseMdxPlugin.transform?.call(this, code, id, options)
       }
 
@@ -87,7 +87,7 @@ export function boltdocsMdxPlugin(
         return { code: cached, map: null }
       }
 
-      // @ts-ignore
+      // @ts-expect-error
       const result = await baseMdxPlugin.transform.call(this, code, id, options)
 
       if (result && typeof result === 'object' && result.code) {
@@ -105,9 +105,9 @@ export function boltdocsMdxPlugin(
     async buildEnd() {
       mdxCache.save()
       await mdxCache.flush()
-      // @ts-ignore
+      // @ts-expect-error
       if (baseMdxPlugin.buildEnd) {
-        // @ts-ignore
+        // @ts-expect-error
         await baseMdxPlugin.buildEnd.call(this)
       }
     },

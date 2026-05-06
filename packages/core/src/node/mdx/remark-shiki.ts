@@ -29,8 +29,12 @@ export function remarkShiki(config?: BoltdocsConfig) {
       if (!code) return
 
       // Extract props that should act as meta
-      const lineNumbersAttr = node.attributes?.find((a: any) => a.name === 'lineNumbers' || a.name === 'showLineNumbers')
-      const wordWrapAttr = node.attributes?.find((a: any) => a.name === 'wordWrap' || a.name === 'word-wrap')
+      const lineNumbersAttr = node.attributes?.find(
+        (a: any) => a.name === 'lineNumbers' || a.name === 'showLineNumbers',
+      )
+      const wordWrapAttr = node.attributes?.find(
+        (a: any) => a.name === 'wordWrap' || a.name === 'word-wrap',
+      )
       const titleAttr = node.attributes?.find((a: any) => a.name === 'title')
 
       // Build a fake raw meta string for the adapter

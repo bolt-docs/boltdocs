@@ -22,7 +22,8 @@ export class Observer {
       }
 
       const rect = element.getBoundingClientRect()
-      const viewportHeight = typeof window !== 'undefined' ? window.innerHeight : 1000
+      const viewportHeight =
+        typeof window !== 'undefined' ? window.innerHeight : 1000
 
       // Check if element is currently in viewport (visible)
       // rect.bottom > 0
@@ -33,7 +34,8 @@ export class Observer {
       item.active = isInViewport
 
       // Fallback: element has scrolled past but is still near viewport
-      item.fallback = !isInViewport && rect.top > 0 && rect.top < viewportHeight * 2
+      item.fallback =
+        !isInViewport && rect.top > 0 && rect.top < viewportHeight * 2
     }
 
     // 3. Determine which items should be active based on single mode

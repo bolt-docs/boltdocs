@@ -17,15 +17,12 @@ export function generateEntryCode(
   config?: BoltdocsConfig,
   isBuild: boolean = false,
 ): string {
-  const homeImport = options.homePage
-    ? `import HomePage from '${normalizePath(options.homePage)}';`
-    : ''
+
 
   // Auto-import index.css if it exists
   const cssPath = path.resolve(process.cwd(), 'index.css')
   const cssImport = fs.existsSync(cssPath) ? "import './index.css';" : ''
 
-  let homeOption = options.homePage ? 'homePage: HomePage,' : ''
   const pluginComponents =
     config?.plugins?.flatMap((p) => Object.entries(p.components || {})) || []
 
@@ -38,7 +35,8 @@ export function generateEntryCode(
 const ${name} = _comp_${name}.default || _comp_${name}['${name}'] || _comp_${name};`,
     )
     .join('\n')
-  const componentMap = pluginComponents.map(([name]) => name).join(', ')
+  const pluginComponentMap = pluginComponents.map(([name]) => name).join(', ')
+  const componentMap = pluginComponentMap
 
   const docsDirName = path.basename(options.docsDir || 'docs')
   const docsDir = path.resolve(process.cwd(), options.docsDir || 'docs')
@@ -52,12 +50,7 @@ const ${name} = _comp_${name}.default || _comp_${name}['${name}'] || _comp_${nam
     ? `import * as _external_module from '${normalizePath(externalModulePath)}';`
     : ''
 
-  // Prioritize homePage from external module if it exists
-  homeOption = externalModulePath
-    ? 'homePage: _external_module.homePage || HomePage,'
-    : options.homePage
-      ? 'homePage: HomePage,'
-      : ''
+
 
   const externalOption = externalModulePath
     ? 'externalPages: _external_module.pages, externalLayout: _external_module.layout,'
@@ -74,7 +67,6 @@ import _config from 'virtual:boltdocs-config.ts';
 import _user_mdx_components from 'virtual:boltdocs-mdx-components.tsx';
 import _Layout from 'virtual:boltdocs-layout.tsx';
 ${cssImport}
-${homeImport}
 ${componentImports}
 ${externalModuleImport}
 
@@ -87,7 +79,6 @@ export const createRoot = ViteReactSSG(
       config: _config,
       mdxModules,
       Layout: _Layout,
-      ${homeOption}
       ${externalOption}
       components: { ${componentMap}${componentMap ? ', ' : ''} ...(_user_mdx_components || {}) },
     }),

@@ -80,9 +80,7 @@ export function Card({
       <div className="space-y-1.5">
         {title && <h3 className="text-sm font-bold text-body">{title}</h3>}
         {children && (
-          <div className="text-sm text-muted leading-relaxed">
-            {children}
-          </div>
+          <div className="text-sm text-muted leading-relaxed">{children}</div>
         )}
       </div>
     </>

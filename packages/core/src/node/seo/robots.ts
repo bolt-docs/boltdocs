@@ -10,13 +10,11 @@ export function generateRobotsTxt(config: BoltdocsConfig): string {
   const siteUrl = config.siteUrl || ''
   const sitemapUrl = siteUrl ? `${siteUrl.replace(/\/$/, '')}/sitemap.xml` : ''
 
-  const isPrivate = config.seo?.indexing !== 'all' && config.seo?.indexing !== 'public'
+  const isPrivate =
+    config.seo?.indexing !== 'all' && config.seo?.indexing !== 'public'
 
   if (isPrivate && config.seo?.indexing) {
-    return [
-      'User-agent: *',
-      'Disallow: /',
-    ].filter(Boolean).join('\n')
+    return ['User-agent: *', 'Disallow: /'].filter(Boolean).join('\n')
   }
 
   // Support advanced robots configurations
@@ -44,9 +42,7 @@ export function generateRobotsTxt(config: BoltdocsConfig): string {
       .join('\n\n')
 
     const allSitemaps = [...(sitemapUrl ? [sitemapUrl] : []), ...sitemaps]
-    const sitemapsContent = allSitemaps
-      .map((s) => `Sitemap: ${s}`)
-      .join('\n')
+    const sitemapsContent = allSitemaps.map((s) => `Sitemap: ${s}`).join('\n')
 
     return `${robotsContent}${sitemapsContent ? `\n\n${sitemapsContent}` : ''}`
   }

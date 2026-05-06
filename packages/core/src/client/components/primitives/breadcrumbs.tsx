@@ -60,10 +60,7 @@ const BreadcrumbsLink = ({
 
 const BreadcrumbsSeparator = ({ className }: ComponentBase) => {
   return (
-    <ChevronRight
-      size={14}
-      className={cn('shrink-0 text-dim', className)}
-    />
+    <ChevronRight size={14} className={cn('shrink-0 text-dim', className)} />
   )
 }
 

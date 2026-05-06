@@ -2,7 +2,11 @@ export type {
   ComponentRoute,
   LayoutProps,
 } from './types'
-export type { BoltdocsLocale, BoltdocsVersion, BoltdocsTypes } from '../shared/types'
+export type {
+  BoltdocsLocale,
+  BoltdocsVersion,
+  BoltdocsTypes,
+} from '../shared/types'
 export * from './ssg'
 export { useConfig } from './app/config-context'
 export { useTheme } from './app/theme-context'
@@ -11,7 +15,11 @@ export { useUI } from './app/ui-context'
 
 // Hooks
 export * from './hooks/index'
-export { useAnalytics, useTrackPageView, useTrackEvent } from './hooks/use-analytics'
+export {
+  useAnalytics,
+  useTrackPageView,
+  useTrackEvent,
+} from './hooks/use-analytics'
 // Composable layout building blocks
 export { DocsLayout } from './components/docs-layout'
 
@@ -55,7 +63,7 @@ export {
   Table,
   Field,
   Link,
-  Image,
+  Image
 } from './components/mdx'
 
 export type {
@@ -102,10 +110,7 @@ export {
   NavLink as PrimitiveNavLink,
 } from './components/primitives/link'
 export { Skeleton as PrimitiveSkeleton } from './components/primitives/skeleton'
-export {
-  CodeBlock as PrimitiveCodeBlock,
-} from './components/primitives/code-block'
-
+export { CodeBlock as PrimitiveCodeBlock } from './components/primitives/code-block'
 
 // Utilities
 export { cn } from './utils/cn'

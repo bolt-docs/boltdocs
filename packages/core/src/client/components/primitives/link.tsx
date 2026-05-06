@@ -3,7 +3,8 @@ import { useLocalizedTo } from '../../hooks/use-localized-to'
 import { cn } from '../../utils/cn'
 import { forwardRef, type React } from 'react'
 
-export interface LinkProps extends React.AnchorHTMLAttributes<HTMLAnchorElement> {
+export interface LinkProps
+  extends React.AnchorHTMLAttributes<HTMLAnchorElement> {
   /** Should prefetch the page on hover? Default 'hover' */
   prefetch?: 'hover' | 'none'
 }

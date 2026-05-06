@@ -5,7 +5,6 @@ import { Button } from 'react-aria-components'
 import { Menu } from '../primitives/menu'
 import { cn } from '../../utils/cn'
 
-
 export function ThemeToggle() {
   const { theme, setTheme } = useTheme()
   const [mounted, setMounted] = useState(false)
@@ -61,24 +60,36 @@ export function ThemeSwitcher({ className }: { className?: string }) {
   }, [])
 
   if (!mounted) {
-    return <div className={cn('h-10 w-full bg-surface rounded-full animate-pulse', className)} />
+    return (
+      <div
+        className={cn(
+          'h-10 w-full bg-surface rounded-full animate-pulse',
+          className,
+        )}
+      />
+    )
   }
 
   const isDark = theme === 'dark'
 
   return (
-    <div className={cn('flex p-1 bg-surface border border-subtle rounded-full relative w-full h-11', className)}>
-      <div 
+    <div
+      className={cn(
+        'flex p-1 bg-surface border border-subtle rounded-full relative w-full h-11',
+        className,
+      )}
+    >
+      <div
         className={cn(
           'absolute inset-y-1 w-[calc(50%-4px)] bg-main border border-subtle rounded-full transition-all duration-300 ease-out shadow-sm',
-          isDark ? 'translate-x-full' : 'translate-x-0'
+          isDark ? 'translate-x-full' : 'translate-x-0',
         )}
       />
       <button
         onClick={() => setTheme('light')}
         className={cn(
           'flex-1 flex items-center justify-center rounded-full z-10 transition-colors outline-none cursor-pointer',
-          !isDark ? 'text-body' : 'text-muted hover:text-body'
+          !isDark ? 'text-body' : 'text-muted hover:text-body',
         )}
         aria-label="Light mode"
       >
@@ -88,7 +99,7 @@ export function ThemeSwitcher({ className }: { className?: string }) {
         onClick={() => setTheme('dark')}
         className={cn(
           'flex-1 flex items-center justify-center rounded-full z-10 transition-colors outline-none cursor-pointer',
-          isDark ? 'text-body' : 'text-muted hover:text-body'
+          isDark ? 'text-body' : 'text-muted hover:text-body',
         )}
         aria-label="Dark mode"
       >

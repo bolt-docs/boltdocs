@@ -72,7 +72,7 @@ export function SidebarMobile({ children, className }: ComponentBase) {
         className={cn(
           'fixed top-0 left-0 bottom-0 w-80 bg-main border-r border-subtle shadow-2xl outline-none',
           'entering:animate-in entering:slide-in-from-left exiting:animate-out exiting:slide-out-to-left duration-300',
-          className
+          className,
         )}
       >
         <RAC.Dialog className="h-full focus:outline-none outline-none flex flex-col">
@@ -88,7 +88,12 @@ export function SidebarMobile({ children, className }: ComponentBase) {
  */
 export function SidebarHeader({ children, className }: ComponentBase) {
   return (
-    <div className={cn('flex items-center justify-between p-4 border-b border-subtle', className)}>
+    <div
+      className={cn(
+        'flex items-center justify-between p-4 border-b border-subtle',
+        className,
+      )}
+    >
       {children}
     </div>
   )
@@ -123,9 +128,7 @@ export function SidebarContent({ children, className }: ComponentBase) {
       ref={scrollRef}
       className={cn('flex-1 overflow-y-auto p-4 custom-scrollbar', className)}
     >
-      <nav className="flex flex-col gap-6">
-        {children}
-      </nav>
+      <nav className="flex flex-col gap-6">{children}</nav>
     </div>
   )
 }
@@ -133,7 +136,12 @@ export function SidebarContent({ children, className }: ComponentBase) {
 /**
  * Navigation Group
  */
-export const SidebarGroup = ({ title, icon: Icon, children, className }: { title?: string, icon?: React.ElementType } & ComponentBase) => {
+export const SidebarGroup = ({
+  title,
+  icon: Icon,
+  children,
+  className,
+}: { title?: string; icon?: React.ElementType } & ComponentBase) => {
   return (
     <div className={cn('mb-6', className)}>
       {title && (
@@ -142,9 +150,7 @@ export const SidebarGroup = ({ title, icon: Icon, children, className }: { title
           {title}
         </h4>
       )}
-      <div className="flex flex-col gap-0.5">
-        {children}
-      </div>
+      <div className="flex flex-col gap-0.5">{children}</div>
     </div>
   )
 }
@@ -160,19 +166,33 @@ export interface SidebarLinkProps extends ComponentBase {
   badge?: ComponentRoute['badge']
 }
 
-export const SidebarLink = ({ label, href, active, icon: Icon, badge, className }: SidebarLinkProps) => {
+export const SidebarLink = ({
+  label,
+  href,
+  active,
+  icon: Icon,
+  badge,
+  className,
+}: SidebarLinkProps) => {
   return (
     <Link
       href={href}
       className={cn(
         'group flex items-center gap-2.5 rounded-lg px-2.5 py-1.5 text-sm transition-all outline-none',
-        active 
-          ? 'bg-primary-500/10 text-primary-500 font-medium shadow-sm' 
+        active
+          ? 'bg-primary-500/10 text-primary-500 font-medium shadow-sm'
           : 'text-muted hover:bg-surface hover:text-body',
-        className
+        className,
       )}
     >
-      {Icon && <Icon size={16} className={cn(active ? 'text-primary-500' : 'text-muted group-hover:text-body')} />}
+      {Icon && (
+        <Icon
+          size={16}
+          className={cn(
+            active ? 'text-primary-500' : 'text-muted group-hover:text-body',
+          )}
+        />
+      )}
       <span className="truncate">{label}</span>
       {badge && <Badge badge={badge} />}
     </Link>
@@ -182,27 +202,31 @@ export const SidebarLink = ({ label, href, active, icon: Icon, badge, className 
 /**
  * Nested SubGroup
  */
-export const SidebarSubGroup = ({ 
-  label, 
-  href, 
-  active, 
-  icon: Icon, 
-  badge, 
-  isOpen, 
-  onToggle, 
+export const SidebarSubGroup = ({
+  label,
+  href,
+  active,
+  icon: Icon,
+  badge,
+  isOpen,
+  onToggle,
   children,
-  className 
-}: SidebarLinkProps & { isOpen: boolean, onToggle: () => void, children: ReactNode }) => {
+  className,
+}: SidebarLinkProps & {
+  isOpen: boolean
+  onToggle: () => void
+  children: ReactNode
+}) => {
   return (
     <div className="flex flex-col gap-0.5">
       <div className="group relative flex items-center">
-        <SidebarLink 
-          label={label} 
-          href={href} 
-          active={active} 
-          icon={Icon} 
-          badge={badge} 
-          className={cn('flex-1 pr-8', className)} 
+        <SidebarLink
+          label={label}
+          href={href}
+          active={active}
+          icon={Icon}
+          badge={badge}
+          className={cn('flex-1 pr-8', className)}
         />
         <button
           onClick={(e) => {
@@ -212,9 +236,12 @@ export const SidebarSubGroup = ({
           }}
           className="absolute right-1 p-1.5 text-muted hover:text-body transition-colors outline-none cursor-pointer"
         >
-          <ChevronRight 
-            size={14} 
-            className={cn('transition-transform duration-200', isOpen && 'rotate-90')} 
+          <ChevronRight
+            size={14}
+            className={cn(
+              'transition-transform duration-200',
+              isOpen && 'rotate-90',
+            )}
           />
         </button>
       </div>

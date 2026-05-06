@@ -88,7 +88,9 @@ export const ThemeConfigSchema = z.object({
     .record(
       z.string(),
       z.object({
-        title: z.union([z.string(), z.record(z.string(), z.string())]).optional(),
+        title: z
+          .union([z.string(), z.record(z.string(), z.string())])
+          .optional(),
         icon: z.string().optional(),
       }),
     )
@@ -210,12 +212,14 @@ export const GA4ConfigSchema = z.object({
   anonymizeIp: z.boolean().optional(),
   sendPageView: z.boolean().optional(),
   cookieFlags: z.string().optional(),
-  autoTrack: z.object({
-    pageViews: z.boolean().optional(),
-    downloads: z.boolean().optional(),
-    externalLinks: z.boolean().optional(),
-    search: z.boolean().optional(),
-  }).optional(),
+  autoTrack: z
+    .object({
+      pageViews: z.boolean().optional(),
+      downloads: z.boolean().optional(),
+      externalLinks: z.boolean().optional(),
+      search: z.boolean().optional(),
+    })
+    .optional(),
 })
 
 /**
@@ -227,9 +231,6 @@ export const GTMConfigSchema = z.object({
   preview: z.string().optional(),
 })
 
-/**
- * Zod schema for Integrations configuration.
- */
 export const IntegrationsConfigSchema = z.object({
   ga4: GA4ConfigSchema.optional(),
   gtm: GTMConfigSchema.optional(),

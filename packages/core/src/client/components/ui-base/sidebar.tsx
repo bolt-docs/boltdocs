@@ -76,9 +76,9 @@ export function Sidebar({
       )}
 
       {groups.map((group) => (
-        <SidebarPrimitive.Group 
-          key={group.title} 
-          title={group.title} 
+        <SidebarPrimitive.Group
+          key={group.title}
+          title={group.title}
           icon={getIcon(group.icon)}
         >
           {group.routes.map((route) => (
@@ -101,9 +101,7 @@ export function Sidebar({
     <>
       {/* Desktop Version */}
       <SidebarPrimitive.Root>
-        <SidebarPrimitive.Content>
-          {sidebarContent}
-        </SidebarPrimitive.Content>
+        <SidebarPrimitive.Content>{sidebarContent}</SidebarPrimitive.Content>
       </SidebarPrimitive.Root>
 
       {/* Mobile Version */}
@@ -128,9 +126,7 @@ export function Sidebar({
             />
           </div>
         </SidebarPrimitive.Header>
-        <SidebarPrimitive.Content>
-          {sidebarContent}
-        </SidebarPrimitive.Content>
+        <SidebarPrimitive.Content>{sidebarContent}</SidebarPrimitive.Content>
       </SidebarPrimitive.Mobile>
     </>
   )
@@ -144,7 +140,9 @@ function SidebarRouteItem({
   activePath: string
 }) {
   const localizedHref = useLocalizedTo(route.path)
-  const isCurrent = activePath === (localizedHref.endsWith('/') ? localizedHref.slice(0, -1) : localizedHref)
+  const isCurrent =
+    activePath ===
+    (localizedHref.endsWith('/') ? localizedHref.slice(0, -1) : localizedHref)
   const hasChildren = !!route.routes?.length || !!route.subRoutes?.length
   const children = route.routes || route.subRoutes
 

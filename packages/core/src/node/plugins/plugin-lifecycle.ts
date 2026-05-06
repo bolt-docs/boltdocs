@@ -1,6 +1,6 @@
 import type { BoltdocsConfig } from '../config'
 import { PluginHookError } from './plugin-errors'
-import {
+import type {
   PluginLifecycleHooks,
   SecureBoltdocsPlugin,
   PluginContext,

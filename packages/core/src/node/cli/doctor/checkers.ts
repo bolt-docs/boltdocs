@@ -1,7 +1,7 @@
 import path from 'path'
 import fs from 'fs'
 import { normalizePath, FrontmatterSchema } from '../../utils'
-import { type DoctorContext, type DoctorIssue } from './types'
+import type { DoctorContext, DoctorIssue } from './types'
 import { getSeverity, getFileData, cachedExists, fileCache } from './utils'
 import { getCachedSimilarity } from './similarity'
 import * as ui from '../ui'
@@ -9,16 +9,19 @@ import * as ui from '../ui'
 /**
  * Check for frontmatter and SEO metadata issues.
  */
-export async function checkMetadata(ctx: DoctorContext): Promise<DoctorIssue[]> {
+export async function checkMetadata(
+  ctx: DoctorContext,
+): Promise<DoctorIssue[]> {
   const issues: DoctorIssue[] = []
   if (!ctx.doctorConfig.checks.metadata.enabled) return issues
 
-  const { titleMin, titleMax, descriptionMin } = ctx.doctorConfig.checks.metadata
+  const { titleMin, titleMax, descriptionMin } =
+    ctx.doctorConfig.checks.metadata
   const titleIndex = new Map<string, string[]>()
 
   for (const file of ctx.files) {
     const relPath = normalizePath(path.relative(ctx.docsDir, file))
-    
+
     try {
       const { raw, data } = await getFileData(file)
 
@@ -32,7 +35,8 @@ export async function checkMetadata(ctx: DoctorContext): Promise<DoctorIssue[]> 
               file: relPath,
               level,
               message: 'Malformed frontmatter (YAML parsing failed).',
-              suggestion: 'Check your YAML syntax for indentation or unquoted special characters.',
+              suggestion:
+                'Check your YAML syntax for indentation or unquoted special characters.',
             })
           }
         }
@@ -55,7 +59,9 @@ export async function checkMetadata(ctx: DoctorContext): Promise<DoctorIssue[]> 
       }
 
       // 3. Custom Required Fields
-      const requiredFields = Array.from(new Set(['title', ...ctx.doctorConfig.checks.metadata.required]))
+      const requiredFields = Array.from(
+        new Set(['title', ...ctx.doctorConfig.checks.metadata.required]),
+      )
       for (const field of requiredFields) {
         if (data[field] === undefined) {
           const level = getSeverity(ctx, 'missingMetadata', 'warning')
@@ -72,7 +78,13 @@ export async function checkMetadata(ctx: DoctorContext): Promise<DoctorIssue[]> 
 
       // 4. Date Validation
       if (ctx.doctorConfig.checks.metadata.validateDates) {
-        const dateFields = ['date', 'lastUpdated', ...ctx.doctorConfig.checks.metadata.optional.filter(f => f.toLowerCase().includes('date'))]
+        const dateFields = [
+          'date',
+          'lastUpdated',
+          ...ctx.doctorConfig.checks.metadata.optional.filter((f) =>
+            f.toLowerCase().includes('date'),
+          ),
+        ]
         for (const field of dateFields) {
           if (data[field] && isNaN(Date.parse(String(data[field])))) {
             const level = getSeverity(ctx, 'invalidFrontmatter', 'high')
@@ -140,10 +152,10 @@ export async function checkMetadata(ctx: DoctorContext): Promise<DoctorIssue[]> 
           file: relPath,
           level,
           message: `Malformed frontmatter (YAML error): ${e.message}`,
-          suggestion: 'Check your YAML syntax for indentation or unquoted special characters.',
+          suggestion:
+            'Check your YAML syntax for indentation or unquoted special characters.',
         })
       }
-      continue
     }
   }
 
@@ -157,7 +169,7 @@ export async function checkMetadata(ctx: DoctorContext): Promise<DoctorIssue[]> 
             file,
             level,
             message: `Duplicate title found: "${title}"`,
-            suggestion: `Ensure each page has a unique title. Also used in: ${files.filter(f => f !== file).join(', ')}`,
+            suggestion: `Ensure each page has a unique title. Also used in: ${files.filter((f) => f !== file).join(', ')}`,
           })
         }
       }
@@ -172,7 +184,13 @@ export async function checkMetadata(ctx: DoctorContext): Promise<DoctorIssue[]> 
  */
 export async function checkLinks(ctx: DoctorContext): Promise<DoctorIssue[]> {
   const issues: DoctorIssue[] = []
-  const { internal, external, ignore, timeout: linkTimeout, concurrency } = ctx.doctorConfig.checks.links
+  const {
+    internal,
+    external,
+    ignore,
+    timeout: linkTimeout,
+    concurrency,
+  } = ctx.doctorConfig.checks.links
 
   if (!internal && !external && !ctx.options.checkExternal) return issues
 
@@ -183,10 +201,9 @@ export async function checkLinks(ctx: DoctorContext): Promise<DoctorIssue[]> {
   for (const file of ctx.files) {
     const relPath = normalizePath(path.relative(ctx.docsDir, file))
     const { content } = await getFileData(file)
-    
-    const scanContent = content.length > MAX_SCAN_SIZE 
-      ? content.slice(0, MAX_SCAN_SIZE) 
-      : content
+
+    const scanContent =
+      content.length > MAX_SCAN_SIZE ? content.slice(0, MAX_SCAN_SIZE) : content
 
     const matches = [...scanContent.matchAll(combinedRegex)]
 
@@ -195,7 +212,7 @@ export async function checkLinks(ctx: DoctorContext): Promise<DoctorIssue[]> {
       const isMarkdown = !!match[1]
       if (!originalLink) continue
 
-      if (ignore.some(i => originalLink.includes(i))) continue
+      if (ignore.some((i) => originalLink.includes(i))) continue
 
       if (/^https?:\/\//i.test(originalLink)) {
         if (external || ctx.options.checkExternal) {
@@ -220,60 +237,96 @@ export async function checkLinks(ctx: DoctorContext): Promise<DoctorIssue[]> {
       let resolvedInternalPath = ''
 
       if (link.startsWith('/')) {
-        if (ctx.routeIndex.has(link) || ctx.routeIndexWithSlash.has(link) || ctx.routeIndexWithoutSlash.has(link)) {
+        if (
+          ctx.routeIndex.has(link) ||
+          ctx.routeIndexWithSlash.has(link) ||
+          ctx.routeIndexWithoutSlash.has(link)
+        ) {
           targetExists = true
         } else {
-          const linkWithBase = ctx.basePrefix + (link.startsWith('/') ? link : '/' + link)
-          if (ctx.routeIndex.has(linkWithBase) || ctx.routeIndexWithSlash.has(linkWithBase)) {
+          const linkWithBase =
+            ctx.basePrefix + (link.startsWith('/') ? link : '/' + link)
+          if (
+            ctx.routeIndex.has(linkWithBase) ||
+            ctx.routeIndexWithSlash.has(linkWithBase)
+          ) {
             targetExists = false
             resolvedInternalPath = linkWithBase
           } else {
-            const pathAfterBase = (ctx.config.base !== '/' && link.startsWith(ctx.config.base || '/'))
-              ? link.substring((ctx.config.base || '/').length)
-              : link
+            const pathAfterBase =
+              ctx.config.base !== '/' && link.startsWith(ctx.config.base || '/')
+                ? link.substring((ctx.config.base || '/').length)
+                : link
 
-            const cleanPathAfterBase = pathAfterBase.startsWith('/') ? pathAfterBase.substring(1) : pathAfterBase
+            const cleanPathAfterBase = pathAfterBase.startsWith('/')
+              ? pathAfterBase.substring(1)
+              : pathAfterBase
             resolvedInternalPath = path.join(ctx.docsDir, cleanPathAfterBase)
             const extensions = ['', '.md', '.mdx', '/index.md', '/index.mdx']
-            targetExists = extensions.some(ext => cachedExists(resolvedInternalPath + ext))
+            targetExists = extensions.some((ext) =>
+              cachedExists(resolvedInternalPath + ext),
+            )
           }
         }
       } else {
         resolvedInternalPath = path.resolve(path.dirname(file), link)
         const extensions = ['', '.md', '.mdx', '/index.md', '/index.mdx']
-        targetExists = extensions.some(ext => cachedExists(resolvedInternalPath + ext))
+        targetExists = extensions.some((ext) =>
+          cachedExists(resolvedInternalPath + ext),
+        )
       }
 
       if (!targetExists) {
-        let { bestMatch, similarity: maxSimilarity } = getCachedSimilarity(link, ctx.linkTree.routes)
+        let { bestMatch, similarity: maxSimilarity } = getCachedSimilarity(
+          link,
+          ctx.linkTree.routes,
+        )
 
         let detectedBaseMissing = false
-        const linkWithBase = ctx.basePrefix + (link.startsWith('/') ? link : '/' + link)
-        if (ctx.routeIndex.has(linkWithBase) || ctx.routeIndexWithSlash.has(linkWithBase)) {
+        const linkWithBase =
+          ctx.basePrefix + (link.startsWith('/') ? link : '/' + link)
+        if (
+          ctx.routeIndex.has(linkWithBase) ||
+          ctx.routeIndexWithSlash.has(linkWithBase)
+        ) {
           bestMatch = linkWithBase
           maxSimilarity = 1.0
           detectedBaseMissing = true
         }
 
         const showSuggestion = maxSimilarity > 0.6 || detectedBaseMissing
-        const isConfident = (maxSimilarity > 0.75 && bestMatch !== link) || detectedBaseMissing
+        const isConfident =
+          (maxSimilarity > 0.75 && bestMatch !== link) || detectedBaseMissing
         const level = getSeverity(ctx, 'brokenLink', 'high')
         if (level !== 'off') {
           issues.push({
             file: relPath,
             level,
             message: `Broken internal link: "${originalLink}"`,
-            suggestion: showSuggestion ? `Did you mean "${bestMatch}"?` : `Ensure the target exists or check for typos.`,
-            fix: isConfident ? async () => {
-              const anchor = originalLink.includes('#') ? '#' + originalLink.split('#')[1] : ''
-              const targetToReplace = isMarkdown ? `(${originalLink})` : `href="${originalLink}"`
-              const replacement = isMarkdown ? `(${bestMatch}${anchor})` : `href="${bestMatch}${anchor}"`
-              
-              const currentRaw = fs.readFileSync(file, 'utf-8')
-              const fixedContent = currentRaw.replace(targetToReplace, replacement)
-              fs.writeFileSync(file, fixedContent)
-              fileCache.delete(file)
-            } : undefined
+            suggestion: showSuggestion
+              ? `Did you mean "${bestMatch}"?`
+              : `Ensure the target exists or check for typos.`,
+            fix: isConfident
+              ? async () => {
+                  const anchor = originalLink.includes('#')
+                    ? '#' + originalLink.split('#')[1]
+                    : ''
+                  const targetToReplace = isMarkdown
+                    ? `(${originalLink})`
+                    : `href="${originalLink}"`
+                  const replacement = isMarkdown
+                    ? `(${bestMatch}${anchor})`
+                    : `href="${bestMatch}${anchor}"`
+
+                  const currentRaw = fs.readFileSync(file, 'utf-8')
+                  const fixedContent = currentRaw.replace(
+                    targetToReplace,
+                    replacement,
+                  )
+                  fs.writeFileSync(file, fixedContent)
+                  fileCache.delete(file)
+                }
+              : undefined,
           })
         }
       }
@@ -281,22 +334,34 @@ export async function checkLinks(ctx: DoctorContext): Promise<DoctorIssue[]> {
   }
 
   if (externalLinks.size > 0) {
-    ui.info(`${ui.colors.gray}Verifying ${externalLinks.size} external links...${ui.colors.reset}`)
+    ui.info(
+      `${ui.colors.gray}Verifying ${externalLinks.size} external links...${ui.colors.reset}`,
+    )
     const urlToFile = new Map<string, string[]>()
     for (const item of externalLinks) {
       if (!urlToFile.has(item.url)) urlToFile.set(item.url, [])
       urlToFile.get(item.url)!.push(item.file)
     }
 
-    const checkUrl = async (url: string): Promise<{ url: string; ok: boolean; error?: string }> => {
+    const checkUrl = async (
+      url: string,
+    ): Promise<{ url: string; ok: boolean; error?: string }> => {
       try {
         const controller = new AbortController()
         const timeout = setTimeout(() => controller.abort(), linkTimeout)
-        const res = await fetch(url, { method: 'HEAD', signal: controller.signal, headers: { 'User-Agent': 'boltdocs-doctor/1.0' } })
+        const res = await fetch(url, {
+          method: 'HEAD',
+          signal: controller.signal,
+          headers: { 'User-Agent': 'boltdocs-doctor/1.0' },
+        })
         clearTimeout(timeout)
 
         if (!res.ok && res.status !== 404) {
-          const resGet = await fetch(url, { method: 'GET', signal: controller.signal, headers: { 'User-Agent': 'boltdocs-doctor/1.0' } })
+          const resGet = await fetch(url, {
+            method: 'GET',
+            signal: controller.signal,
+            headers: { 'User-Agent': 'boltdocs-doctor/1.0' },
+          })
           return { url, ok: resGet.ok }
         }
         return { url, ok: res.ok }
@@ -310,7 +375,17 @@ export async function checkLinks(ctx: DoctorContext): Promise<DoctorIssue[]> {
     for (let i = 0; i < urls.length; i += concurrency) {
       const batch = urls.slice(i, i + concurrency)
       const batchResults = await Promise.allSettled(batch.map(checkUrl))
-      results.push(...batchResults.map(r => r.status === 'fulfilled' ? (r as any).value : { url: 'unknown', ok: false, error: (r as PromiseRejectedResult).reason }))
+      results.push(
+        ...batchResults.map((r) =>
+          r.status === 'fulfilled'
+            ? (r as any).value
+            : {
+                url: 'unknown',
+                ok: false,
+                error: (r as PromiseRejectedResult).reason,
+              },
+        ),
+      )
     }
 
     for (const res of results) {
@@ -343,7 +418,7 @@ export async function checkI18n(ctx: DoctorContext): Promise<DoctorIssue[]> {
 
   const { defaultLocale, locales } = ctx.config.i18n
   const allLocales = Object.keys(locales)
-  const otherLocales = allLocales.filter(l => l !== defaultLocale)
+  const otherLocales = allLocales.filter((l) => l !== defaultLocale)
 
   for (const file of ctx.files) {
     const relPath = normalizePath(path.relative(ctx.docsDir, file))
@@ -364,15 +439,15 @@ export async function checkI18n(ctx: DoctorContext): Promise<DoctorIssue[]> {
               suggestion: `Create a version at "${targetLocale}/${pathAfterLocale}".`,
               fix: async () => {
                 const targetDir = path.dirname(targetPath)
-                if (!fs.existsSync(targetDir)) fs.mkdirSync(targetDir, { recursive: true })
+                if (!fs.existsSync(targetDir))
+                  fs.mkdirSync(targetDir, { recursive: true })
                 fs.copyFileSync(file, targetPath)
-              }
+              },
             })
           }
         }
       }
-    }
-    else if (allLocales.includes(locale)) {
+    } else if (allLocales.includes(locale)) {
       const pathAfterLocale = parts.slice(1).join('/')
       const sourcePath = path.join(ctx.docsDir, defaultLocale, pathAfterLocale)
       if (!cachedExists(sourcePath)) {
@@ -383,7 +458,9 @@ export async function checkI18n(ctx: DoctorContext): Promise<DoctorIssue[]> {
             level,
             message: `Orphaned translation (source missing in "${defaultLocale}")`,
             suggestion: `Remove this file or create the source at "${defaultLocale}/${pathAfterLocale}".`,
-            fix: async () => { fs.unlinkSync(file) }
+            fix: async () => {
+              fs.unlinkSync(file)
+            },
           })
         }
       }
@@ -403,7 +480,7 @@ export async function checkSidebar(ctx: DoctorContext): Promise<DoctorIssue[]> {
   const sidebar = ctx.config.theme.sidebar
 
   for (const [group, items] of Object.entries(sidebar)) {
-    for (const item of (items as any[])) {
+    for (const item of items as any[]) {
       if (!item.text) {
         const level = getSeverity(ctx, 'invalidFrontmatter', 'warning')
         if (level !== 'off') {
@@ -419,7 +496,10 @@ export async function checkSidebar(ctx: DoctorContext): Promise<DoctorIssue[]> {
       if (item.link) {
         linkedRoutes.add(item.link)
         if (!ctx.routeIndex.has(item.link)) {
-          let { bestMatch, similarity: maxSimilarity } = getCachedSimilarity(item.link, ctx.linkTree.routes)
+          const { bestMatch, similarity: maxSimilarity } = getCachedSimilarity(
+            item.link,
+            ctx.linkTree.routes,
+          )
           const showSuggestion = maxSimilarity > 0.6
           const level = getSeverity(ctx, 'brokenLink', 'high')
           if (level !== 'off') {
@@ -427,7 +507,9 @@ export async function checkSidebar(ctx: DoctorContext): Promise<DoctorIssue[]> {
               file: 'boltdocs.config.ts',
               level,
               message: `Broken sidebar link: "${item.link}"`,
-              suggestion: showSuggestion ? `Did you mean "${bestMatch}"?` : 'Ensure the route exists and is correctly formatted.',
+              suggestion: showSuggestion
+                ? `Did you mean "${bestMatch}"?`
+                : 'Ensure the route exists and is correctly formatted.',
             })
           }
         }
@@ -444,7 +526,8 @@ export async function checkSidebar(ctx: DoctorContext): Promise<DoctorIssue[]> {
           file: 'Sidebar',
           level,
           message: `Orphaned page found: "${route}" is not linked in the sidebar.`,
-          suggestion: 'Consider adding it to the sidebar for better discoverability.',
+          suggestion:
+            'Consider adding it to the sidebar for better discoverability.',
         })
       }
     }

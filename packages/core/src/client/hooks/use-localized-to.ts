@@ -8,13 +8,21 @@ import { useRoutes } from './use-routes'
  */
 export function useLocalizedTo(to: RouterLinkProps['to']) {
   const config = useConfig()
-  const { currentLocale: activeLocale, currentVersion: activeVersion, allRoutes } =
-    useRoutes()
+  const {
+    currentLocale: activeLocale,
+    currentVersion: activeVersion,
+    allRoutes,
+  } = useRoutes()
 
   if (!config || typeof to !== 'string') return to
 
   // External, absolute, or anchor links don't need localization prefixing
-  if (to.startsWith('http') || to.startsWith('//') || to.startsWith('#') || to.startsWith('site:')) {
+  if (
+    to.startsWith('http') ||
+    to.startsWith('//') ||
+    to.startsWith('#') ||
+    to.startsWith('site:')
+  ) {
     return to.replace('site:', '')
   }
 

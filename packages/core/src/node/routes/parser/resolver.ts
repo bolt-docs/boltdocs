@@ -1,16 +1,15 @@
-
-import path from 'node:path';
-import { stripNumberPrefix, fileToRoutePath } from '../../utils';
-import type { BoltdocsConfig } from '../../config';
+import path from 'node:path'
+import { stripNumberPrefix, fileToRoutePath } from '../../utils'
+import type { BoltdocsConfig } from '../../config'
 
 export interface PathResolution {
-  relativePath: string;
-  finalPath: string;
-  remainingParts: string[];
-  locale?: string;
-  version?: string;
-  inferredTab?: string;
-  subRouteGroup?: string;
+  relativePath: string
+  finalPath: string
+  remainingParts: string[]
+  locale?: string
+  version?: string
+  inferredTab?: string
+  subRouteGroup?: string
 }
 
 export function resolveRoutePath(
@@ -18,81 +17,83 @@ export function resolveRoutePath(
   docsDir: string,
   basePath: string,
   config?: BoltdocsConfig,
-  permalink?: string
+  permalink?: string,
 ): PathResolution {
-  const relativePath = path.relative(docsDir, file).replace(/\\/g, '/');
-  let parts = relativePath.split('/');
-  
-  let locale: string | undefined;
-  let version: string | undefined;
-  let inferredTab: string | undefined;
-  let subRouteGroup: string | undefined;
+  const relativePath = path.relative(docsDir, file).replace(/\\/g, '/')
+  let parts = relativePath.split('/')
+
+  let locale: string | undefined
+  let version: string | undefined
+  let inferredTab: string | undefined
+  let subRouteGroup: string | undefined
 
   // 1. Resolve Version
   if (config?.versions && parts.length > 0) {
-    const potentialVersion = parts[0];
-    const prefix = config.versions.prefix || '';
-    const versionMatch = config.versions.versions.find(v => 
-      potentialVersion === (prefix + v.path) || potentialVersion === v.path
-    );
+    const potentialVersion = parts[0]
+    const prefix = config.versions.prefix || ''
+    const versionMatch = config.versions.versions.find(
+      (v) =>
+        potentialVersion === prefix + v.path || potentialVersion === v.path,
+    )
     if (versionMatch) {
-      version = versionMatch.path;
-      parts = parts.slice(1);
+      version = versionMatch.path
+      parts = parts.slice(1)
     }
   }
 
   // 2. Resolve Locale
   if (config?.i18n && parts.length > 0) {
-    const potentialLocale = parts[0];
+    const potentialLocale = parts[0]
     const isLocale = Array.isArray(config.i18n.locales)
       ? config.i18n.locales.includes(potentialLocale)
-      : !!config.i18n.locales[potentialLocale];
+      : !!config.i18n.locales[potentialLocale]
     if (isLocale) {
-      locale = potentialLocale;
-      parts = parts.slice(1);
+      locale = potentialLocale
+      parts = parts.slice(1)
     }
   }
 
   // 3. Resolve Tab
   if (parts.length > 0) {
-    const tabMatch = parts[0].match(/^\((.+)\)$/);
+    const tabMatch = parts[0].match(/^\((.+)\)$/)
     if (tabMatch) {
-      inferredTab = tabMatch[1].toLowerCase();
-      parts = parts.slice(1);
+      inferredTab = tabMatch[1].toLowerCase()
+      parts = parts.slice(1)
     }
   }
 
   // Save the remaining parts before cleaning (cleaning removes leading underscores for subRouteGroup)
-  const remainingParts = [...parts];
+  const remainingParts = [...parts]
 
   // 4. Resolve Sub-routes and Clean Parts
-  const cleanParts = parts.map(p => {
-    const noNum = stripNumberPrefix(p);
+  const cleanParts = parts.map((p) => {
+    const noNum = stripNumberPrefix(p)
     if (noNum.startsWith('_') && noNum !== '_') {
-      subRouteGroup = noNum.substring(1);
-      const prefix = p.substring(0, p.length - noNum.length);
-      return prefix + noNum.substring(1);
+      subRouteGroup = noNum.substring(1)
+      const prefix = p.substring(0, p.length - noNum.length)
+      return prefix + noNum.substring(1)
     }
-    return p;
-  });
+    return p
+  })
 
-  const cleanRelativePath = cleanParts.join('/');
-  const routePath = permalink 
-    ? (permalink.startsWith('/') ? permalink : `/${permalink}`)
-    : fileToRoutePath(cleanRelativePath || 'index.md');
+  const cleanRelativePath = cleanParts.join('/')
+  const routePath = permalink
+    ? permalink.startsWith('/')
+      ? permalink
+      : `/${permalink}`
+    : fileToRoutePath(cleanRelativePath || 'index.md')
 
   // Build Final Path
   const segments = [
     basePath,
     version,
     locale,
-    (!permalink ? inferredTab : undefined),
-    routePath
-  ].filter(Boolean);
+    !permalink ? inferredTab : undefined,
+    routePath,
+  ].filter(Boolean)
 
-  const finalPath = segments.join('/')
-    .replace(/\/+/g, '/')
-    .replace(/\/$/, '') || '/';
+  const finalPath =
+    segments.join('/').replace(/\/+/g, '/').replace(/\/$/, '') || '/'
 
   return {
     relativePath,
@@ -101,6 +102,6 @@ export function resolveRoutePath(
     locale,
     version,
     inferredTab,
-    subRouteGroup
-  };
+    subRouteGroup,
+  }
 }

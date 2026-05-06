@@ -4,7 +4,9 @@ import { useLocation } from './use-location'
 /**
  * Hook to highlight search terms based on the 'hl' query parameter.
  */
-export function useSearchHighlight(containerSelector: string = '.boltdocs-page') {
+export function useSearchHighlight(
+  containerSelector: string = '.boltdocs-page',
+) {
   const { search } = useLocation()
   const query = new URLSearchParams(search).get('hl')
 
@@ -24,10 +26,22 @@ export function useSearchHighlight(containerSelector: string = '.boltdocs-page')
       const hasExternalChanges = mutations.some((m) => {
         const addedNodes = Array.from(m.addedNodes)
         const removedNodes = Array.from(m.removedNodes)
-        
+
         return (
-          addedNodes.some(n => !(n instanceof HTMLElement && n.hasAttribute('data-search-highlight'))) ||
-          removedNodes.some(n => !(n instanceof HTMLElement && n.hasAttribute('data-search-highlight')))
+          addedNodes.some(
+            (n) =>
+              !(
+                n instanceof HTMLElement &&
+                n.hasAttribute('data-search-highlight')
+              ),
+          ) ||
+          removedNodes.some(
+            (n) =>
+              !(
+                n instanceof HTMLElement &&
+                n.hasAttribute('data-search-highlight')
+              ),
+          )
         )
       })
 
@@ -43,17 +57,17 @@ export function useSearchHighlight(containerSelector: string = '.boltdocs-page')
         // Disconnect to avoid observing our own cleanup/highlight cycle
         observer.disconnect()
         clearHighlights(containerSelector)
-        
+
         // Split query into individual words (minimum 2 chars)
         const terms = query!
           .split(/\s+/)
-          .map(t => t.trim())
-          .filter(t => t.length >= 2)
+          .map((t) => t.trim())
+          .filter((t) => t.length >= 2)
 
         if (terms.length > 0) {
           highlightTerms(container!, terms)
         }
-        
+
         // Re-observe
         observer.observe(container!, { childList: true, subtree: true })
       })
@@ -71,7 +85,9 @@ export function useSearchHighlight(containerSelector: string = '.boltdocs-page')
 }
 
 function clearHighlights(selector: string) {
-  const marks = document.querySelectorAll(`${selector} mark[data-search-highlight]`)
+  const marks = document.querySelectorAll(
+    `${selector} mark[data-search-highlight]`,
+  )
   marks.forEach((mark) => {
     try {
       const parent = mark.parentNode
@@ -112,18 +128,25 @@ function highlightTerms(container: Element, terms: string[]) {
   // Create a combined regex for all terms
   // Accent-insensitive helper: replaces 'a' with '[aáàä...]'
   const accentMap: Record<string, string> = {
-    'a': '[aáàäâã]', 'e': '[eéèëê]', 'i': '[iíìïî]',
-    'o': '[oóòöôõ]', 'u': '[uúùüû]', 'n': '[nñ]',
-    'c': '[cç]'
+    a: '[aáàäâã]',
+    e: '[eéèëê]',
+    i: '[iíìïî]',
+    o: '[oóòöôõ]',
+    u: '[uúùüû]',
+    n: '[nñ]',
+    c: '[cç]',
   }
-  
+
   const prepareRegex = (term: string) => {
     let pattern = term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
     // Make it accent insensitive
-    pattern = pattern.split('').map(char => {
-      const lower = char.toLowerCase()
-      return accentMap[lower] || char
-    }).join('')
+    pattern = pattern
+      .split('')
+      .map((char) => {
+        const lower = char.toLowerCase()
+        return accentMap[lower] || char
+      })
+      .join('')
     return pattern
   }
 
@@ -137,7 +160,7 @@ function highlightTerms(container: Element, terms: string[]) {
       const parts = text.split(regex)
 
       parts.forEach((part) => {
-        const isMatch = terms.some(term => {
+        const isMatch = terms.some((term) => {
           const p = prepareRegex(term)
           return new RegExp(`^${p}$`, 'i').test(part)
         })

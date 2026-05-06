@@ -106,10 +106,7 @@ function getFileIcon(filename: string, isFolder: boolean) {
     return <LangIcon size={ICON_SIZE} />
   }
 
-  const fileIconClass = cn(
-    iconClass,
-    'text-dim group-hover:text-body',
-  )
+  const fileIconClass = cn(iconClass, 'text-dim group-hover:text-body')
 
   if (FILE_REGEXES.CODE.test(name))
     return (

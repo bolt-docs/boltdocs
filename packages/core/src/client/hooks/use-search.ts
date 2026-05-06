@@ -2,7 +2,7 @@ import { useState, useMemo, useEffect } from 'react'
 import { Index } from 'flexsearch'
 import { useRoutes } from './use-routes'
 import type { ComponentRoute } from '../types'
-// @ts-ignore
+// @ts-expect-error
 import searchData from 'virtual:boltdocs-search'
 
 interface SearchDataItem {

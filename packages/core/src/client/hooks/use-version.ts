@@ -37,13 +37,16 @@ export function useVersion(): UseVersionReturn {
 
     // If we are on the home page or a path that doesn't belong to the documentation,
     // we stay on the current page.
-    const localePaths = config.i18n ? Object.keys(config.i18n.locales).map(l => `/${l}`) : []
-    const isHome = !currentRoute || 
-                   currentRoute.path === '/' || 
-                   currentRoute.path === config.base || 
-                   currentRoute.path === '' ||
-                   localePaths.includes(currentRoute.path)
-    
+    const localePaths = config.i18n
+      ? Object.keys(config.i18n.locales).map((l) => `/${l}`)
+      : []
+    const isHome =
+      !currentRoute ||
+      currentRoute.path === '/' ||
+      currentRoute.path === config.base ||
+      currentRoute.path === '' ||
+      localePaths.includes(currentRoute.path)
+
     if (isHome) {
       return
     }
@@ -76,7 +79,7 @@ export function useVersion(): UseVersionReturn {
           ? versionIndexRoute.path
           : `/docs/${version}${currentLocale ? `/${currentLocale}` : ''}`
       }
-      
+
       navigate(targetPath)
     }
   }

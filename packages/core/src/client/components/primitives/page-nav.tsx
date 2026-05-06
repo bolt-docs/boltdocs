@@ -47,12 +47,7 @@ const PageNavLink = ({ children, to, direction, className }: PageNavProps) => {
 
 const PageNavTitle = ({ children, className }: ComponentBase) => {
   return (
-    <span
-      className={cn(
-        'text-xs font-medium uppercase text-muted',
-        className,
-      )}
-    >
+    <span className={cn('text-xs font-medium uppercase text-muted', className)}>
       {children}
     </span>
   )
@@ -60,9 +55,7 @@ const PageNavTitle = ({ children, className }: ComponentBase) => {
 
 const PageNavDescription = ({ children, className }: ComponentBase) => {
   return (
-    <span
-      className={cn('text-base font-bold text-body truncate', className)}
-    >
+    <span className={cn('text-base font-bold text-body truncate', className)}>
       {children}
     </span>
   )

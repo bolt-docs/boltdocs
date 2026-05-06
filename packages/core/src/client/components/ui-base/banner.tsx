@@ -25,7 +25,9 @@ export function Banner({
 
   useEffect(() => {
     if (dismissible && id) {
-      const isDismissed = localStorage.getItem(`boltdocs-banner-dismissed-${id}`)
+      const isDismissed = localStorage.getItem(
+        `boltdocs-banner-dismissed-${id}`,
+      )
       if (isDismissed === 'true') {
         setIsVisible(false)
       }

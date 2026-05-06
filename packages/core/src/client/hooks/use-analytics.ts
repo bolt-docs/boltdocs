@@ -169,15 +169,15 @@ export function useAnalytics(options: UseAnalyticsOptions = {}) {
   } = options
 
   const CONFIG_INSTANCE_SYMBOL = Symbol.for('__BDOCS_CONFIG_INSTANCE__')
-  const globalConfig = typeof globalThis !== 'undefined' 
-    ? (globalThis as any)[CONFIG_INSTANCE_SYMBOL] as { integrations?: BoltdocsIntegrationsConfig } | undefined
-    : undefined
+  const globalConfig =
+    typeof globalThis !== 'undefined'
+      ? ((globalThis as any)[CONFIG_INSTANCE_SYMBOL] as
+          | { integrations?: BoltdocsIntegrationsConfig }
+          | undefined)
+      : undefined
   const config = optionsConfig ?? globalConfig?.integrations
 
-  const analytics = useMemo(
-    () => createAnalyticsInstance(config),
-    [config],
-  )
+  const analytics = useMemo(() => createAnalyticsInstance(config), [config])
 
   const previousPath = useRef<string>('')
   const location = useLocation()

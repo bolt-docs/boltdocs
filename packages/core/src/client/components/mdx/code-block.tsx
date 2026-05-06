@@ -1,5 +1,5 @@
 import { Button } from 'react-aria-components'
-import { Copy, Check, File } from 'lucide-react'
+import { Copy, Check, File, ExternalLink } from 'lucide-react'
 import { cn } from '../../utils/cn'
 import { reactToText } from '../../utils/react-to-text'
 import { useCodeBlock } from './hooks/use-code-block'
@@ -16,6 +16,7 @@ import {
   Yaml,
   Rust,
   BracketsRed,
+  Csv,
 } from '../icons-dev'
 import { Tooltip } from '../primitives/tooltip'
 
@@ -35,7 +36,8 @@ const langIconMap: Record<string, React.ComponentType<{ size?: number }>> = {
   yml: Yaml,
   rs: Rust,
   rust: Rust,
-  toml: BracketsRed
+  toml: BracketsRed,
+  csv: Csv
 }
 
 export interface CodeBlockProps {
@@ -51,7 +53,13 @@ export interface CodeBlockProps {
   [key: string]: any
 }
 
-const CopyButton = ({ copied, handleCopy }: { copied: boolean; handleCopy: () => void }) => {
+const CopyButton = ({
+  copied,
+  handleCopy,
+}: {
+  copied: boolean
+  handleCopy: () => void
+}) => {
   return (
     <Tooltip content={copied ? 'Copied!' : 'Copy code'}>
       {/* @ts-ignore */}
@@ -59,9 +67,7 @@ const CopyButton = ({ copied, handleCopy }: { copied: boolean; handleCopy: () =>
         onPress={handleCopy}
         className={cn(
           'grid place-items-center size-8 bg-transparent outline-none cursor-pointer transition-all duration-200 hover:scale-110 active:scale-95 [&>svg]:size-4 [&>svg]:stroke-2',
-          copied
-            ? 'text-emerald-400'
-            : 'text-muted hover:text-body',
+          copied ? 'text-emerald-400' : 'text-muted hover:text-body',
         )}
         aria-label="Copy code"
       >
@@ -99,6 +105,7 @@ export function CodeBlock(props: CodeBlockProps) {
     shouldTruncate,
   } = useCodeBlock(props)
 
+  const codeText = reactToText(children)
   const LangIcon = langIconMap[lang]
 
   return (
@@ -111,21 +118,25 @@ export function CodeBlock(props: CodeBlockProps) {
                 {LangIcon ? (
                   <LangIcon size={14} />
                 ) : (
-                  // @ts-ignore
+                  // @ts-expect-error
                   <File size={14} className="opacity-60" />
                 )}
                 <span>{effectiveTitle}</span>
               </>
             )}
           </CodePrimitive.CodeBlockGroup>
-          {!hideCopy && <CopyButton copied={copied} handleCopy={handleCopy} />}
+          <div className="flex items-center gap-1">
+            {!hideCopy && (
+              <CopyButton copied={copied} handleCopy={handleCopy} />
+            )}
+          </div>
         </CodePrimitive.CodeBlockHeader>
       )}
 
       <CodePrimitive.CodeBlockContent shouldTruncate={shouldTruncate}>
         {effectiveHighlightedHtml ? (
           <div
-            // @ts-ignore
+            // @ts-expect-error
             ref={preRef}
             className="shiki-wrapper [&>pre]:m-0! [&>pre]:rounded-none! [&>pre]:border-none! [&>pre]:bg-inherit! [&>pre>code]:grid! [&>pre>code]:p-5! [&>pre>code]:text-[0.875rem]! [&>pre>code]:leading-[1.6]! [&>.shiki.shiki-themes]:bg-transparent!"
             dangerouslySetInnerHTML={{ __html: effectiveHighlightedHtml }}

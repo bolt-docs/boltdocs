@@ -97,8 +97,10 @@ function OnThisPageInner({
           ref={scrollContainerRef}
           style={{
             maxHeight: '50%',
-            maskImage: 'linear-gradient(to bottom, black 90%, transparent 100%)',
-            WebkitMaskImage: 'linear-gradient(to bottom, black 90%, transparent 100%)',
+            maskImage:
+              'linear-gradient(to bottom, black 90%, transparent 100%)',
+            WebkitMaskImage:
+              'linear-gradient(to bottom, black 90%, transparent 100%)',
           }}
         >
           <OTP.Indicator style={indicatorStyle} />
@@ -124,9 +126,7 @@ function OnThisPageInner({
 
       {(editLink || communityHelp) && (
         <div className="mt-8 pt-8 border-t border-subtle space-y-4">
-          <p className="text-xs font-bold uppercase text-body">
-            Need help?
-          </p>
+          <p className="text-xs font-bold uppercase text-body">Need help?</p>
           <ul className="space-y-3">
             {editLink && filePath && (
               <li>

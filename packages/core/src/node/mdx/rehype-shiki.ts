@@ -24,7 +24,8 @@ export function rehypeShiki(config?: BoltdocsConfig) {
         const code = codeNode.children[0]?.value || ''
 
         // Priority: properties.metastring (from our remarkMetaPlugin) > node.data.meta
-        const meta = codeNode.properties?.metastring || (codeNode.data as any)?.meta || ''
+        const meta =
+          codeNode.properties?.metastring || (codeNode.data as any)?.meta || ''
 
         const options = adapter.getOptions(lang, meta)
         const html = highlighter.codeToHtml(code, options)

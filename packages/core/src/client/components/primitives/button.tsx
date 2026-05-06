@@ -15,8 +15,7 @@ export const buttonVariants = cva(
           'bg-surface text-body border border-subtle hover:bg-soft hover:border-strong',
         outline:
           'bg-transparent text-body border border-strong hover:bg-surface hover:border-primary-500',
-        ghost:
-          'bg-transparent text-muted hover:bg-surface hover:text-body',
+        ghost: 'bg-transparent text-muted hover:bg-surface hover:text-body',
         danger:
           'bg-[var(--color-danger-500)]/10 text-[var(--color-danger-500)] border border-[var(--color-danger-500)]/20 hover:bg-[var(--color-danger-500)]/15',
         success:
@@ -60,7 +59,7 @@ type ButtonVariantType = VariantProps<typeof buttonVariants>
 
 export interface ButtonProps
   extends Omit<RAC.ButtonProps, 'children' | 'className'>,
-  ButtonVariantType {
+    ButtonVariantType {
   icon?: React.ReactNode
   iconPosition?: 'left' | 'right'
   href?: string

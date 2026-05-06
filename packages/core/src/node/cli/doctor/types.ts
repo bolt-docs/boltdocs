@@ -1,5 +1,5 @@
-import { type BoltdocsConfig } from '../config'
-import { type DoctorConfig } from './doctor-config'
+import type { BoltdocsConfig } from '../config'
+import type { DoctorConfig } from './doctor-config'
 
 export interface LinkTree {
   routes: string[]
@@ -18,29 +18,29 @@ export const DEFAULT_DOCTOR_CONFIG: DoctorConfig = {
       descriptionMin: 50,
       required: ['title', 'description'],
       optional: [],
-      validateDates: false
+      validateDates: false,
     },
     links: {
       internal: true,
       external: false,
       timeout: 10000,
       concurrency: 10,
-      ignore: []
+      ignore: [],
     },
     i18n: {
-      enabled: true
-    }
+      enabled: true,
+    },
   },
   fix: {
     confirmChanges: false,
     backupFiles: false,
-    backupPath: '.boltdocs/backups'
+    backupPath: '.boltdocs/backups',
   },
   reporting: {
     format: 'pretty',
     outputFile: '.boltdocs/doctor-report.json',
     failOnError: false,
-    maxWarnings: -1
+    maxWarnings: -1,
   },
   severity: {
     missingTranslation: 'warning',
@@ -52,9 +52,9 @@ export const DEFAULT_DOCTOR_CONFIG: DoctorConfig = {
     shortMetadata: 'low',
     missingMetadata: 'warning',
     malformedFrontmatter: 'high',
-    invalidFrontmatter: 'high'
+    invalidFrontmatter: 'high',
   },
-  exclude: []
+  exclude: [],
 }
 
 export interface DoctorContext {

@@ -21,9 +21,7 @@ export function ComponentProps({
 }: ComponentPropsProps) {
   return (
     <div className={cn('my-6', className)}>
-      {title && (
-        <h3 className="text-base font-bold text-body mb-3">{title}</h3>
-      )}
+      {title && <h3 className="text-base font-bold text-body mb-3">{title}</h3>}
       <div className="overflow-x-auto rounded-lg border border-subtle">
         <table className="w-full border-collapse text-sm">
           <thead>

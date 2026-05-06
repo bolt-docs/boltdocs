@@ -73,7 +73,7 @@ export async function createViteConfig(
       tailwindcss(),
       await boltdocs({
         ...config,
-        // @ts-ignore
+        // @ts-expect-error
         root,
       }),
     ],
@@ -81,29 +81,24 @@ export async function createViteConfig(
       alias: [
         {
           find: 'boltdocs/entry',
-          replacement: normalizePath(
-            path.resolve(root, 'boltdocs-entry.tsx'),
-          ),
+          replacement: normalizePath(path.resolve(root, 'boltdocs-entry.tsx')),
         },
         {
           find: 'boltdocs/client',
-          replacement: normalizePath(
-            path.resolve(root, 'boltdocs-client.mjs'),
-          ),
+          replacement: normalizePath(path.resolve(root, 'boltdocs-client.mjs')),
         },
         {
           find: 'use-sync-external-store/shim/index.js',
-          replacement: "react",
+          replacement: 'react',
         },
         {
           find: 'use-sync-external-store/shim',
-          replacement: "react"
+          replacement: 'react',
         },
         {
-
           find: 'use-sync-external-store',
           replacement: 'react',
-        }
+        },
       ],
       dedupe: [
         'react',

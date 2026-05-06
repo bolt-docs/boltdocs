@@ -60,14 +60,19 @@ export async function generateRoutes(
     })
 
     // Prioritized prefetch: Sort files to process important ones first
-    const PRIORITY_PATTERNS = [/index\./i, /intro/i, /getting-started/i, /readme/i]
+    const PRIORITY_PATTERNS = [
+      /index\./i,
+      /intro/i,
+      /getting-started/i,
+      /readme/i,
+    ]
 
     files = rawFiles.sort((a, b) => {
       const aBase = path.basename(a)
       const bBase = path.basename(b)
 
-      const aScore = PRIORITY_PATTERNS.findIndex(p => p.test(aBase))
-      const bScore = PRIORITY_PATTERNS.findIndex(p => p.test(bBase))
+      const aScore = PRIORITY_PATTERNS.findIndex((p) => p.test(aBase))
+      const bScore = PRIORITY_PATTERNS.findIndex((p) => p.test(bBase))
 
       if (aScore !== -1 && bScore !== -1) return aScore - bScore
       if (aScore !== -1) return -1
@@ -82,7 +87,8 @@ export async function generateRoutes(
   docCache.pruneStale(new Set(files))
 
   // 2. PROCESSING (Parallel Workers in Dev/Prod, Sequential in Tests)
-  const isTest = process.env.NODE_ENV === 'test' || process.env.VITEST === 'true'
+  const isTest =
+    process.env.NODE_ENV === 'test' || process.env.VITEST === 'true'
 
   let parsed: ParsedDocFile[]
   if (isTest) {
@@ -94,26 +100,33 @@ export async function generateRoutes(
         const result = await parseDocFile(file, docsDir, finalBasePath, config)
         docCache.set(file, result)
         return result
-      })
+      }),
     )
   } else {
     const { pool } = await import('./worker-pool')
 
     // Warmup: Start processing all files immediately
-    const minimalConfig = config ? {
-      i18n: config.i18n,
-      versions: config.versions,
-    } : undefined
+    const minimalConfig = config
+      ? {
+          i18n: config.i18n,
+          versions: config.versions,
+        }
+      : undefined
 
     parsed = await Promise.all(
       files.map(async (file) => {
         const cached = docCache.get(file)
         if (cached) return cached
 
-        const result = await pool.parseFile(file, docsDir, finalBasePath, minimalConfig)
+        const result = await pool.parseFile(
+          file,
+          docsDir,
+          finalBasePath,
+          minimalConfig,
+        )
         docCache.set(file, result)
         return result
-      })
+      }),
     )
   }
 
@@ -180,7 +193,7 @@ export async function generateRoutes(
     )) {
       for (const locale of allLocales) {
         const groupKey = `${locale}:${groupName}`
-        let entry = groupMeta.get(groupKey)
+        const entry = groupMeta.get(groupKey)
 
         // Resolve title for this locale
         let resolvedTitle: string | undefined
@@ -315,7 +328,9 @@ function computeLocalizedPath(
   const cached = localizedPathCache.get(cacheKey)
   if (cached) return cached
 
-  const normalizedBasePath = basePath.startsWith('/') ? basePath : '/' + basePath
+  const normalizedBasePath = basePath.startsWith('/')
+    ? basePath
+    : '/' + basePath
   let prefix = normalizedBasePath
   if (config?.versions) {
     const vPrefix = config.versions.prefix || ''
