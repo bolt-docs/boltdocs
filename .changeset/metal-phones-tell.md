@@ -2,4 +2,5 @@
 "create-boltdocs": patch
 ---
 
-- **fix**: update theme colors
+- **fix**: Updated theme colors
+- **fix**: Updated templates

@@ -7,6 +7,10 @@
 - **feat**: Doctor is now stable.
 - **feat**: Added banner on site home page.
 - **feat**: Added Google Analytics 4 support & Google Tag Manager support.
+- **feat**: Added Changelog Generator.
+- **feat**: Added new props Image Component
+  - Zoomable
+  - Caption
 - **feat**: Fixed the UI to have a better look.
 - **feat**: Search highlight now works with accents & Mark search works on dynamic content.
 - **fix**: Improved mobile support and responsive layout consistency across the site.
@@ -14,3 +18,5 @@
 - **fix**: Corrected locale labels in example projects.
 - **fix**: Optimized Tabs and Navbar components to reduce unnecessary re-renders.
 - **fix**: Removed config prop from CopyMarkdown component.
+- **fix**: Removed the need to define `homePage` in `boltdocs.config.ts` when using `pages-external/index.tsx` for a custom home page.
+- **fix**: Added export code-block support for Custom Components.
