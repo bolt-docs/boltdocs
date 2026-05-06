@@ -3,19 +3,20 @@ import path from 'path'
 import fs from 'fs'
 import os from 'os'
 
+let tempDir: string
+
+beforeEach(() => {
+  vi.clearAllMocks()
+  tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'boltdocs-e2e-test-'))
+})
+
+afterEach(() => {
+  if (fs.existsSync(tempDir)) {
+    fs.rmSync(tempDir, { recursive: true, force: true })
+  }
+})
+
 describe('E2E integration tests', () => {
-  let tempDir: string
-
-  beforeEach(() => {
-    vi.clearAllMocks()
-    tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'boltdocs-e2e-test-'))
-  })
-
-  afterEach(() => {
-    if (fs.existsSync(tempDir)) {
-      fs.rmSync(tempDir, { recursive: true, force: true })
-    }
-  })
 
   it('should generate routes with home-page configured', async () => {
     const docsDir = path.join(tempDir, 'docs')
@@ -24,7 +25,7 @@ describe('E2E integration tests', () => {
     fs.writeFileSync(path.join(docsDir, 'test.md'), '---\ntitle: Welcome\n---\n\n# Welcome')
 
     const { generateRoutes } = await import('../../packages/core/src/node/routes')
-    const config = { homePage: './src/home-page.tsx', theme: { title: 'Test' } }
+    const config = { theme: { title: 'Test' } }
 
     const routes = await generateRoutes(docsDir, config as any, '/docs', true)
     expect(routes).toBeDefined()
@@ -46,7 +47,6 @@ describe('E2E integration tests', () => {
 
     const { generateRoutes } = await import('../../packages/core/src/node/routes')
     const config = {
-      homePage: './src/home-page.tsx',
       i18n: { defaultLocale: 'en', locales: { en: 'English', es: 'Español' } },
       theme: { title: 'Test' },
     }
@@ -91,15 +91,23 @@ describe('cache integration with routes', () => {
   })
 })
 
-describe('plugin entry code generation with homePage', () => {
-  it('should generate entry code that imports homePage', async () => {
+describe('plugin entry code generation with externalPages', () => {
+  it('should generate entry code that imports external pages module', async () => {
     const { generateEntryCode } = await import('../../packages/core/src/node/plugin/entry')
 
-    const options = { homePage: './src/home-page.tsx' }
+    vi.spyOn(process, 'cwd').mockReturnValue(tempDir)
+
+    const docsDir = path.join(tempDir, 'docs')
+    fs.mkdirSync(docsDir, { recursive: true })
+    const extDir = path.join(docsDir, 'pages-external')
+    fs.mkdirSync(extDir, { recursive: true })
+    fs.writeFileSync(path.join(extDir, 'index.tsx'), 'export const pages = {}')
+
+    const options = { docsDir: 'docs' }
     const config = { theme: { title: 'Test' } }
 
-    const code = generateEntryCode(options, config as any, tempDir)
-    expect(code).toContain('HomePage')
+    const code = generateEntryCode(options, config as any, false)
+    expect(code).toContain('_external_module')
   })
 })
 
@@ -133,5 +141,4 @@ describe('layout integration', () => {
     const code = await vmPlugin.load!('\0virtual:boltdocs-layout')
     expect(code).toContain('UserLayout')
   })
-})
 })
