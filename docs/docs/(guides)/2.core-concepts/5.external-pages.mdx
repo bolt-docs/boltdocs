@@ -26,16 +26,11 @@ import Pricing from './Pricing'
 import Home from './Home'
 
 /**
- * Custom Home Page (/)
- * Overrides any homePage setting in boltdocs.config.ts
- */
-export const homePage = Home
-
-/**
  * External Routes
  * Map paths to React components
  */
 export const pages = {
+  '/': Home,
   '/pricing': Pricing,
 }
 ```
@@ -80,9 +75,7 @@ export default function MarketingLayout({ children }: { children: React.ReactNod
 
 ## Technical Details
 
-<Field name="homePage" type="React.ComponentType">
-  If exported, this component will be rendered at the root path (`/`). It takes precedence over the `homePage` property in your `boltdocs.config.ts`.
-</Field>
+
 
 <Field name="pages" type="Record<string, React.ComponentType>">
   A map where the key is the route path (e.g., `'/pricing'`) and the value is the React component to render.

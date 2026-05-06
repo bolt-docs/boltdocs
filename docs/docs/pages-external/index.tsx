@@ -4,16 +4,11 @@ import HomePage from '../../src/pages/home-page';
 import RoadmapPage from '../../src/pages/roadmap';
 
 /**
- * Custom home page for the site.
- * This overrides any homePage set in boltdocs.config.ts.
- */
-export const homePage = HomePage;
-
-/**
  * Custom external routes.
  * Maps paths to React components.
  */
 export const pages = {
+  '/': HomePage,
   '/roadmap': RoadmapPage,
 };
 
