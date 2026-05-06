@@ -7,7 +7,8 @@
     "dev": "boltdocs",
     "build": "boltdocs build",
     "preview": "boltdocs preview",
-    "doctor": "boltdocs doctor"
+    "doctor": "boltdocs doctor",
+    "generate-changelog": "boltdocs generate-changelog ../packages/core/CHANGELOG.md"
   },
   "dependencies": {
     "@bdocs/plugin-mermaid": "workspace:*",

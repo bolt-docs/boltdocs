@@ -1,0 +1,110 @@
+---
+title: Changelog Generator
+description: Generate changelog documentation from CHANGELOG.md
+---
+
+# Changelog Generator
+
+Boltdocs provides a CLI command to automatically generate changelog documentation from a `CHANGELOG.md` file. This is especially useful for projects using [Changesets](https://github.com/changesets/changesets), [semantic-release](https://github.com/semantic-release/semantic-release), or similar tools.
+
+## Usage
+
+```bash
+boltdocs generate-changelog <path> [options]
+```
+
+### Arguments
+
+| Argument | Description |
+|----------|-------------|
+| `<path>` | Path to the CHANGELOG.md file |
+
+### Options
+
+| Option | Alias | Default | Description |
+|--------|-------|---------|-------------|
+| `--output` | `-o` | `docs/changelog` | Output folder for generated changelog files |
+| `--title` | `-t` | `Changelog` | Title for changelog pages |
+| `--infer-tab` | - | `true` | Enable/disable tab inference from folder name |
+| `--limit` | `-l` | none | Limit number of versions to generate |
+
+## Examples
+
+```bash
+# Generate changelog from root CHANGELOG.md
+boltdocs generate-changelog ./CHANGELOG.md
+
+# Generate only the last 5 versions
+boltdocs generate-changelog ./CHANGELOG.md --limit 5
+
+# Custom output folder
+boltdocs generate-changelog ./CHANGELOG.md -o docs/releases
+
+# Custom title
+boltdocs generate-changelog ./CHANGELOG.md -t "Release Notes"
+```
+
+## Output
+
+The command generates Markdown files in the specified output folder with numbered filenames for ordering:
+
+```
+docs/changelog/
+├── 1.v2.0.0.md
+├── 2.v1.0.0.md
+└── 3.v0.9.0.md
+```
+
+Each file includes:
+
+- **Frontmatter**: title, badge (version type), description
+- **Content**: Changes grouped by type (Features, Bug Fixes, Performance, etc.)
+- **Metadata**: Author and commit links (when available)
+
+## Adding to Navigation
+
+After generating the changelog, add it to your navbar in `boltdocs.config.ts`:
+
+```typescript
+export default defineConfig({
+  theme: {
+    navbar: [
+      { label: 'Home', href: '/' },
+      { label: 'Documentation', href: '/docs' },
+      { label: 'Changelog', href: '/changelog' },
+    ],
+  },
+})
+```
+
+## Supported Formats
+
+The changelog generator automatically detects the format of your CHANGELOG.md file. It supports:
+
+### 1. Keep a Changelog
+```markdown
+## [2.0.0] - 2024-01-01
+### Added
+- New feature
+```
+
+### 2. Semantic-release
+```markdown
+## [2.0.0](https://github.com/...) (2024-01-01)
+### Features
+- **scope:** new feature
+```
+
+### 3. Standard-version
+```markdown
+## 2.0.0 (2024-01-01)
+### Features
+- New feature
+```
+
+### 4. Changesets
+```markdown
+## 2.0.0
+### Minor Changes
+- New feature
+```
