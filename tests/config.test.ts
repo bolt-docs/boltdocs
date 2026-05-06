@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import { resolveConfig, defineConfig, type BoltdocsConfig } from '../packages/core/src/node/config'
+import { resolveConfig } from '../packages/core/src/node/config'
 import fs from 'fs'
 import path from 'path'
 import os from 'os'
@@ -49,80 +49,11 @@ describe('config', () => {
       const configPath = path.resolve(tempProjectDir, 'boltdocs.config.js')
       fs.writeFileSync(configPath, 'throw new Error("Config Error");')
 
-      const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {})
+      const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => { })
       const config = await resolveConfig(tempProjectDir, tempProjectDir)
 
       expect(config.theme?.title).toBe('Boltdocs')
       expect(warnSpy).toHaveBeenCalled()
-    })
-  })
-
-  describe('homePage configuration', () => {
-    it('should accept homePage as top-level config', async () => {
-      const configPath = path.resolve(tempProjectDir, 'boltdocs.config.ts')
-      fs.writeFileSync(
-        configPath,
-        `export default { homePage: './src/home-page.tsx' };`,
-      )
-
-      const config = await resolveConfig(tempProjectDir, tempProjectDir)
-      expect(config.homePage).toBe('./src/home-page.tsx')
-    })
-
-    it('should validate homePage as a string', async () => {
-      const configPath = path.resolve(tempProjectDir, 'boltdocs.config.ts')
-      fs.writeFileSync(
-        configPath,
-        `export default { homePage: './src/home-page.tsx', theme: { title: 'Test' } };`,
-      )
-
-      const config = await resolveConfig(tempProjectDir, tempProjectDir)
-      expect(config.homePage).toBe('./src/home-page.tsx')
-      expect(config.theme?.title).toBe('Test')
-    })
-
-    it('should handle homePage with different file extensions', async () => {
-      const extensions = ['.tsx', '.ts', '.jsx', '.js']
-
-      for (const ext of extensions) {
-        // Clean previous config files
-        for (const prevExt of ['.ts', '.js', '.mjs']) {
-          const prevPath = path.resolve(tempProjectDir, `boltdocs.config${prevExt}`)
-          if (fs.existsSync(prevPath)) fs.unlinkSync(prevPath)
-        }
-
-        const configPath = path.resolve(tempProjectDir, 'boltdocs.config.ts')
-        const homePagePath = `./src/home-page${ext}`
-        fs.writeFileSync(
-          configPath,
-          `export default { homePage: '${homePagePath}' };`,
-        )
-
-        const config = await resolveConfig(tempProjectDir, tempProjectDir)
-        expect(config.homePage).toBe(homePagePath)
-      }
-    })
-
-    it('should allow homePage to be optional', async () => {
-      const configPath = path.resolve(tempProjectDir, 'boltdocs.config.ts')
-      fs.writeFileSync(
-        configPath,
-        `export default { theme: { title: 'No Home Page' } };`,
-      )
-
-      const config = await resolveConfig(tempProjectDir, tempProjectDir)
-      expect(config.homePage).toBeUndefined()
-      expect(config.theme?.title).toBe('No Home Page')
-    })
-
-    it('should work with defineConfig helper', () => {
-      const config = defineConfig({
-        homePage: './src/home-page.tsx',
-        theme: { title: 'Defined Config' },
-      })
-
-      expect(config.homePage).toBe('./src/home-page.tsx')
-      expect(config.theme?.title).toBe('Defined Config')
     })
   })
 
@@ -314,7 +245,7 @@ describe('config', () => {
       const config = await resolveConfig(tempProjectDir, tempProjectDir)
       expect(config.i18n?.localeConfigs?.ar?.direction).toBe('rtl')
     })
-    
+
     it('should normalize locales array to record', async () => {
       const configPath = path.resolve(tempProjectDir, 'boltdocs.config.ts')
       fs.writeFileSync(
@@ -498,7 +429,6 @@ describe('config', () => {
       fs.writeFileSync(
         configPath,
         `export default {
-          homePage: './src/home-page.tsx',
           siteUrl: 'https://example.com',
           docsDir: 'docs',
           theme: {
@@ -517,7 +447,6 @@ describe('config', () => {
               { icon: 'github', link: 'https://github.com' }
             ],
             codeTheme: { light: 'github-light', dark: 'github-dark' },
-            footer: { text: '© 2024 My Company' },
             editLink: 'https://github.com/edit/:path',
             breadcrumbs: true,
             poweredBy: true
@@ -540,8 +469,7 @@ describe('config', () => {
       )
 
       const config = await resolveConfig(tempProjectDir, tempProjectDir)
-      
-      expect(config.homePage).toBe('./src/home-page.tsx')
+
       expect(config.siteUrl).toBe('https://example.com')
       expect(config.theme?.title).toBe('Full Config Site')
       expect(config.theme?.description).toBe('A fully configured site')
