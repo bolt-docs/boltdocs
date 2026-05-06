@@ -44,8 +44,8 @@ export type { LinkProps } from './link'
 export { Image } from './image'
 export type { ImageProps } from './image'
 
-export { ComponentProps } from './component-props'
-export type { ComponentPropsProps } from './component-props'
+export { ApiReference } from './api-reference'
+export type { ApiReferenceProps } from './api-reference'
 
 export { ComponentPreview } from './component-preview'
 export type { ComponentPreviewProps } from './component-preview'
