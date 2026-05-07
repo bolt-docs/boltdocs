@@ -39,10 +39,6 @@ export default defineConfig({
         label: 'Components',
         href: '/docs/components/overview',
       },
-      {
-        label: 'Roadmap',
-        href: '/roadmap',
-      },
     ],
     sidebarGroups: {
       overview: {

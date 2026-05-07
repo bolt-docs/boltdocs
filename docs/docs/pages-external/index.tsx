@@ -1,7 +1,6 @@
 import { Navbar } from 'boltdocs/client'
 import { Footer } from '../../src/footer'
 import HomePage from '../../src/pages/home-page'
-import RoadmapPage from '../../src/pages/roadmap'
 
 /**
  * Custom external routes.
@@ -9,7 +8,6 @@ import RoadmapPage from '../../src/pages/roadmap'
  */
 export const pages = {
   '/': HomePage,
-  '/roadmap': RoadmapPage,
 }
 
 export const layout = ({ children }: { children: React.ReactNode }) => (
