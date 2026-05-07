@@ -13,15 +13,13 @@ function escapeUnsafeChars(unsafeChar: string) {
 }
 
 export function serializeState(state: any) {
-  if (state == null || Object.keys(state).length === 0)
-    return null
+  if (state == null || Object.keys(state).length === 0) return null
   try {
     return JSON.stringify(JSON.stringify(state || {})).replace(
       UNSAFE_CHARS_REGEXP,
       escapeUnsafeChars,
     )
-  }
-  catch (error) {
+  } catch (error) {
     console.error('[SSG] On state serialization -', error, state)
     return null
   }
@@ -30,8 +28,7 @@ export function serializeState(state: any) {
 export function deserializeState(state: string) {
   try {
     return JSON.parse(state || '{}')
-  }
-  catch (error) {
+  } catch (error) {
     console.error('[SSG] On state deserialization -', error, state)
     return {}
   }

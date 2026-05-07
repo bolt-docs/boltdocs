@@ -48,13 +48,13 @@ export const FEATURES: Feature[] = [
   {
     name: 'Component Banner',
     description: 'Add banner to components',
-    status: 'planned',
+    status: 'released',
     category: 'UI',
   },
   {
     name: 'Component Collapse',
     description: 'Allow users to collapse components',
-    status: 'planned',
+    status: 'released',
     category: 'UI',
   },
   {

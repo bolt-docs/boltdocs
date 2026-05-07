@@ -8,7 +8,8 @@ type HelmetModule = {
   default?: { Helmet?: ComponentType<HelmetProps> }
 }
 const helmetModule = ReactHelmetAsync as unknown as HelmetModule
-const Helmet = helmetModule.Helmet || helmetModule.default?.Helmet || (() => null)
+const Helmet =
+  helmetModule.Helmet || helmetModule.default?.Helmet || (() => null)
 
 export type Props = HelmetProps & { children: ReactNode }
 

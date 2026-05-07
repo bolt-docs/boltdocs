@@ -33,19 +33,24 @@ export async function renderHTML({
 
   // add body attributes
   const bodyStartTag = '<body'
-  indexHTML = indexHTML.replace(bodyStartTag, `${bodyStartTag} ${bodyAttributes}`)
+  indexHTML = indexHTML.replace(
+    bodyStartTag,
+    `${bodyStartTag} ${bodyAttributes}`,
+  )
 
   // add html attributes
   const htmlStartTag = '<html'
-  indexHTML = indexHTML.replace(htmlStartTag, `${htmlStartTag} ${htmlAttributes}`)
+  indexHTML = indexHTML.replace(
+    htmlStartTag,
+    `${htmlStartTag} ${htmlAttributes}`,
+  )
 
   const container = `<div id="${rootContainerId}"></div>`
   if (indexHTML.includes(container)) {
-    return indexHTML
-      .replace(
-        container,
-        `<div id="${rootContainerId}" data-server-rendered="true">${appHTML}</div>${stateScript}${scriptPlaceHolder}`,
-      )
+    return indexHTML.replace(
+      container,
+      `<div id="${rootContainerId}" data-server-rendered="true">${appHTML}</div>${stateScript}${scriptPlaceHolder}`,
+    )
   }
 
   const html5Parser = await import('html5parser')
@@ -53,14 +58,22 @@ export async function renderHTML({
   let renderedOutput: string | undefined
 
   html5Parser.walk(ast, {
-    enter: node => {
-      if (!renderedOutput
-        && node?.type === html5Parser.SyntaxKind.Tag
-        && Array.isArray(node.attributes)
-        && node.attributes.length > 0
-        && node.attributes.some(attr => attr.name.value === 'id' && attr.value?.value === rootContainerId)
+    enter: (node) => {
+      if (
+        !renderedOutput &&
+        node?.type === html5Parser.SyntaxKind.Tag &&
+        Array.isArray(node.attributes) &&
+        node.attributes.length > 0 &&
+        node.attributes.some(
+          (attr) =>
+            attr.name.value === 'id' && attr.value?.value === rootContainerId,
+        )
       ) {
-        const attributesStringified = [...node.attributes.map(({ name: { value: name }, value }) => `${name}="${value!.value}"`)].join(' ')
+        const attributesStringified = [
+          ...node.attributes.map(
+            ({ name: { value: name }, value }) => `${name}="${value!.value}"`,
+          ),
+        ].join(' ')
         const indexHTMLBefore = indexHTML.slice(0, node.start)
         const indexHTMLAfter = indexHTML.slice(node.end)
         renderedOutput = `${indexHTMLBefore}<${node.name} ${attributesStringified} data-server-rendered="true">${appHTML}</${node.name}>${stateScript}${scriptPlaceHolder}${indexHTMLAfter}`
@@ -69,22 +82,29 @@ export async function renderHTML({
   })
 
   if (!renderedOutput)
-    throw new Error(`Could not find a tag with id="${rootContainerId}" to replace it with server-side rendered HTML`)
+    throw new Error(
+      `Could not find a tag with id="${rootContainerId}" to replace it with server-side rendered HTML`,
+    )
 
   return renderedOutput
 }
 
-export async function detectEntry(root: string, htmlEntry: string = 'index.html') {
+export async function detectEntry(
+  root: string,
+  htmlEntry: string = 'index.html',
+) {
   // pick the first script tag of type module as the entry
   // eslint-disable-next-line regexp/no-super-linear-backtracking, regexp/no-useless-non-capturing-group, regexp/no-dupe-characters-character-class, regexp/no-useless-lazy, regexp/no-useless-flag, regexp/no-useless-escape, regexp/strict
-  const scriptSrcReg = /<script(?:.*?)src=["'](.+?)["'](?!<)(?:.*)\>(?:[\n\r\s]*?)(?:<\/script>)/gim
+  const scriptSrcReg =
+    /<script(?:.*?)src=["'](.+?)["'](?!<)(?:.*)\>(?:[\n\r\s]*?)(?:<\/script>)/gim
   const html = await fs.readFile(join(root, htmlEntry), 'utf-8')
   const scripts = [...html.matchAll(scriptSrcReg)]
-  const [, entry] = scripts.find(matchResult => {
-    const [script] = matchResult
-    const [, scriptType] = script.match(/.*\stype=(?:'|")?([^>'"\s]+)/i) || []
-    return scriptType === 'module'
-  }) || []
+  const [, entry] =
+    scripts.find((matchResult) => {
+      const [script] = matchResult
+      const [, scriptType] = script.match(/.*\stype=(?:'|")?([^>'"\s]+)/i) || []
+      return scriptType === 'module'
+    }) || []
   return entry || 'src/main.ts'
 }
 

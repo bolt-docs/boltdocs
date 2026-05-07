@@ -65,7 +65,7 @@ export {
   Link,
   Image,
   Collapse,
-  CollapseGroup
+  CollapseGroup,
 } from './components/mdx'
 
 export type {

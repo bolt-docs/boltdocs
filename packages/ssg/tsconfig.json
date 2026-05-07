@@ -2,33 +2,21 @@
   "compilerOptions": {
     "target": "es2020",
     "jsx": "react-jsx",
-    "lib": [
-      "ESNext",
-      "DOM"
-    ],
+    "lib": ["ESNext", "DOM"],
     "baseUrl": ".",
     "module": "ESNext",
     "moduleResolution": "Bundler",
     "paths": {
-      "vite-react-ssg": [
-        "./src/index.ts"
-      ],
+      "vite-react-ssg": ["./src/index.ts"],
       "~/*": ["./src/*"]
     },
     "resolveJsonModule": true,
-    "types": [
-      "vite/client",
-      "@types/node"
-    ],
+    "types": ["vite/client", "@types/node"],
     "strict": true,
     "strictNullChecks": true,
     "noEmit": true,
     "esModuleInterop": true,
     "skipLibCheck": true
   },
-  "exclude": [
-    "**/dist",
-    "**/node_modules",
-    "**/test"
-  ]
+  "exclude": ["**/dist", "**/node_modules", "**/test"]
 }

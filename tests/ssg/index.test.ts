@@ -36,10 +36,12 @@ describe('generateStaticPages', () => {
 
   it('should handle missing template index.html gracefully', async () => {
     // Without index.html template, SSG should handle gracefully
-    const emptyDir = fs.mkdtempSync(path.join(os.tmpdir(), 'boltdocs-ssg-empty-'))
-    
+    const emptyDir = fs.mkdtempSync(
+      path.join(os.tmpdir(), 'boltdocs-ssg-empty-'),
+    )
+
     expect(fs.existsSync(path.join(emptyDir, 'index.html'))).toBe(false)
-    
+
     fs.rmSync(emptyDir, { recursive: true, force: true })
   })
 })

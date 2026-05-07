@@ -7,8 +7,8 @@ describe('Security: Headers and CSP', () => {
   const mockConfig: BoltdocsConfig = {
     docsDir: 'docs',
     security: {
-      enableCSP: true
-    }
+      enableCSP: true,
+    },
   }
 
   describe('SECURITY_HEADERS', () => {
@@ -19,10 +19,10 @@ describe('Security: Headers and CSP', () => {
         'X-XSS-Protection',
         'Referrer-Policy',
         'Permissions-Policy',
-        'Strict-Transport-Security'
+        'Strict-Transport-Security',
       ]
 
-      requiredHeaders.forEach(header => {
+      requiredHeaders.forEach((header) => {
         expect(SECURITY_HEADERS).toHaveProperty(header)
       })
     })
@@ -31,9 +31,15 @@ describe('Security: Headers and CSP', () => {
       expect(SECURITY_HEADERS['X-Content-Type-Options']).toBe('nosniff')
       expect(SECURITY_HEADERS['X-Frame-Options']).toBe('DENY')
       expect(SECURITY_HEADERS['X-XSS-Protection']).toBe('1; mode=block')
-      expect(SECURITY_HEADERS['Referrer-Policy']).toBe('strict-origin-when-cross-origin')
-      expect(SECURITY_HEADERS['Permissions-Policy']).toBe('camera=(), microphone=(), geolocation=()')
-      expect(SECURITY_HEADERS['Strict-Transport-Security']).toBe('max-age=31536000; includeSubDomains')
+      expect(SECURITY_HEADERS['Referrer-Policy']).toBe(
+        'strict-origin-when-cross-origin',
+      )
+      expect(SECURITY_HEADERS['Permissions-Policy']).toBe(
+        'camera=(), microphone=(), geolocation=()',
+      )
+      expect(SECURITY_HEADERS['Strict-Transport-Security']).toBe(
+        'max-age=31536000; includeSubDomains',
+      )
     })
   })
 
@@ -47,7 +53,7 @@ describe('Security: Headers and CSP', () => {
     it('should generate a valid CSP string with base directives', () => {
       process.env.NODE_ENV = 'production'
       const csp = getCSPHeader(mockConfig)
-      
+
       expect(csp).toContain("default-src 'self'")
       expect(csp).toContain("img-src 'self' data: https:")
       expect(csp).toContain("font-src 'self'")
@@ -56,21 +62,23 @@ describe('Security: Headers and CSP', () => {
     it('should not include unsafe-eval in production', () => {
       process.env.NODE_ENV = 'production'
       const csp = getCSPHeader(mockConfig)
-      
+
       expect(csp).not.toContain("'unsafe-eval'")
     })
 
     it('should include unsafe-eval in development', () => {
       process.env.NODE_ENV = 'development'
       const csp = getCSPHeader(mockConfig)
-      
+
       expect(csp).toContain("'unsafe-eval'")
     })
 
     it('should include unsafe-inline for scripts and styles in all environments', () => {
       process.env.NODE_ENV = 'development'
       const devCsp = getCSPHeader(mockConfig)
-      expect(devCsp).toContain("script-src 'self' 'unsafe-eval' 'unsafe-inline'")
+      expect(devCsp).toContain(
+        "script-src 'self' 'unsafe-eval' 'unsafe-inline'",
+      )
       expect(devCsp).toContain("style-src 'self' 'unsafe-inline'")
 
       process.env.NODE_ENV = 'production'

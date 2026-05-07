@@ -5,7 +5,9 @@ test.describe('Keyboard Navigation Accessibility Tests', () => {
     await page.goto('/')
   })
 
-  test('should be able to navigate to all interactive elements using Tab', async ({ page }) => {
+  test('should be able to navigate to all interactive elements using Tab', async ({
+    page,
+  }) => {
     const interactiveSelectors = [
       'a[href]',
       'button',
@@ -15,7 +17,9 @@ test.describe('Keyboard Navigation Accessibility Tests', () => {
       '[tabindex]:not([tabindex="-1"])',
     ]
 
-    const interactiveElements = await page.locator(interactiveSelectors.join(',')).all()
+    const interactiveElements = await page
+      .locator(interactiveSelectors.join(','))
+      .all()
 
     let tabCount = 0
     for (const element of interactiveElements) {
@@ -30,9 +34,11 @@ test.describe('Keyboard Navigation Accessibility Tests', () => {
     expect(tabCount).toBeGreaterThan(0)
   })
 
-  test('should have visible focus indicators on interactive elements', async ({ page }) => {
+  test('should have visible focus indicators on interactive elements', async ({
+    page,
+  }) => {
     const button = page.locator('button').first()
-    if (await button.count() > 0) {
+    if ((await button.count()) > 0) {
       await button.focus()
 
       const outlineStyle = await button.evaluate((el) => {
@@ -48,12 +54,14 @@ test.describe('Keyboard Navigation Accessibility Tests', () => {
     }
   })
 
-  test('should be able to close modal dialogs with Escape key', async ({ page }) => {
+  test('should be able to close modal dialogs with Escape key', async ({
+    page,
+  }) => {
     const modalSelectors = ['[role="dialog"]', '.modal', '[aria-modal="true"]']
 
     for (const selector of modalSelectors) {
       const modal = page.locator(selector).first()
-      if (await modal.count() > 0) {
+      if ((await modal.count()) > 0) {
         await modal.focus()
         await page.keyboard.press('Escape')
 
@@ -65,9 +73,11 @@ test.describe('Keyboard Navigation Accessibility Tests', () => {
   })
 
   test('should have proper tab order for navigation', async ({ page }) => {
-    const focusableElements = await page.locator(
-      'a[href], button, input, select, textarea, [tabindex]:not([tabindex="-1"])'
-    ).all()
+    const focusableElements = await page
+      .locator(
+        'a[href], button, input, select, textarea, [tabindex]:not([tabindex="-1"])',
+      )
+      .all()
 
     let previousTabIndex = -1
     for (const element of focusableElements) {
@@ -80,13 +90,17 @@ test.describe('Keyboard Navigation Accessibility Tests', () => {
   })
 
   test('should skip to main content with skip link', async ({ page }) => {
-    const skipLink = page.locator('a[href^="#main"], a[href^="#content"], [class*="skip"]').first()
+    const skipLink = page
+      .locator('a[href^="#main"], a[href^="#content"], [class*="skip"]')
+      .first()
 
-    if (await skipLink.count() > 0) {
+    if ((await skipLink.count()) > 0) {
       await skipLink.focus()
       await skipLink.click()
 
-      const activeElement = await page.evaluate(() => document.activeElement?.id || document.activeElement?.tagName)
+      const activeElement = await page.evaluate(
+        () => document.activeElement?.id || document.activeElement?.tagName,
+      )
       expect(activeElement).toMatch(/main|content|article/)
     }
   })
@@ -94,7 +108,7 @@ test.describe('Keyboard Navigation Accessibility Tests', () => {
   test('should handle arrow key navigation in menus', async ({ page }) => {
     const menuItems = page.locator('[role="menuitem"], .menu-item, nav a')
 
-    if (await menuItems.count() > 1) {
+    if ((await menuItems.count()) > 1) {
       const firstItem = menuItems.first()
       await firstItem.focus()
 
@@ -106,9 +120,11 @@ test.describe('Keyboard Navigation Accessibility Tests', () => {
   })
 
   test('should have accessible dropdown menus', async ({ page }) => {
-    const dropdown = page.locator('[role="combobox"], select, [aria-haspopup]').first()
+    const dropdown = page
+      .locator('[role="combobox"], select, [aria-haspopup]')
+      .first()
 
-    if (await dropdown.count() > 0) {
+    if ((await dropdown.count()) > 0) {
       await dropdown.focus()
       await page.keyboard.press('Space')
 
@@ -117,14 +133,18 @@ test.describe('Keyboard Navigation Accessibility Tests', () => {
     }
   })
 
-  test('should have proper focus management after actions', async ({ page }) => {
+  test('should have proper focus management after actions', async ({
+    page,
+  }) => {
     const link = page.locator('a[href]').first()
-    if (await link.count() > 0) {
+    if ((await link.count()) > 0) {
       await link.click()
 
       await page.waitForLoadState('networkidle')
 
-      const activeElement = await page.evaluate(() => document.activeElement?.tagName)
+      const activeElement = await page.evaluate(
+        () => document.activeElement?.tagName,
+      )
       expect(['BODY', 'MAIN', 'ARTICLE', 'H1']).toContain(activeElement)
     }
   })

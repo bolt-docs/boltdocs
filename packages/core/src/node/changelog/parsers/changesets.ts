@@ -23,7 +23,11 @@ function detectVersionType(
   lines: string[],
   versionIndex: number,
 ): ChangelogVersion['type'] | null {
-  for (let i = versionIndex + 1; i < Math.min(versionIndex + 10, lines.length); i++) {
+  for (
+    let i = versionIndex + 1;
+    i < Math.min(versionIndex + 10, lines.length);
+    i++
+  ) {
     const line = lines[i].trim().toLowerCase()
     if (line.startsWith('### major')) {
       return 'major'
@@ -55,7 +59,7 @@ function parseChangesets(content: string): ChangelogVersion[] {
 
       const version = normalizeVersion(versionMatch[1])
       let type: ChangelogVersion['type'] = 'patch'
-      let date: string | undefined 
+      let date: string | undefined
 
       const dateMatch = line.match(/\((\d{4}-\d{2}-\d{2})\)/)
       if (dateMatch) {
@@ -88,15 +92,24 @@ function parseChangesets(content: string): ChangelogVersion[] {
 
       let changeType: ChangelogChange['type'] = 'other'
 
-      if (currentChangeType.includes('feat') || currentChangeType.includes('minor')) {
+      if (
+        currentChangeType.includes('feat') ||
+        currentChangeType.includes('minor')
+      ) {
         changeType = 'feat'
-      } else if (currentChangeType.includes('fix') || currentChangeType.includes('patch')) {
+      } else if (
+        currentChangeType.includes('fix') ||
+        currentChangeType.includes('patch')
+      ) {
         changeType = 'fix'
       } else if (currentChangeType.includes('perf')) {
         changeType = 'perf'
       } else if (currentChangeType.includes('refactor')) {
         changeType = 'refactor'
-      } else if (currentChangeType.includes('docs') || currentChangeType.includes('documentation')) {
+      } else if (
+        currentChangeType.includes('docs') ||
+        currentChangeType.includes('documentation')
+      ) {
         changeType = 'docs'
       } else if (currentChangeType.includes('chore')) {
         changeType = 'chore'

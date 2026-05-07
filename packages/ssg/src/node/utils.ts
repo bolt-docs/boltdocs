@@ -6,7 +6,9 @@ import { version } from '../../package.json'
 
 export function buildLog(text: string, count?: number) {
   // eslint-disable-next-line no-console
-  console.log(`\n${gray('[vite-react-ssg]')} ${yellow(text)}${count ? blue(` (${count})`) : ''}`)
+  console.log(
+    `\n${gray('[vite-react-ssg]')} ${yellow(text)}${count ? blue(` (${count})`) : ''}`,
+  )
 }
 
 export function getSize(str: string) {
@@ -14,8 +16,7 @@ export function getSize(str: string) {
 }
 
 export async function routesToPaths(routes?: Readonly<RouteRecord[]>) {
-  if (!routes || routes.length === 0)
-    return { paths: ['/'] }
+  if (!routes || routes.length === 0) return { paths: ['/'] }
 
   const paths = new Set<string>()
 
@@ -48,8 +49,7 @@ export async function routesToPaths(routes?: Readonly<RouteRecord[]>) {
         paths.add('/')
       }
 
-      if (Array.isArray(route.children))
-        await getPaths(route.children, path)
+      if (Array.isArray(route.children)) await getPaths(route.children, path)
     }
   }
 
@@ -59,9 +59,10 @@ export async function routesToPaths(routes?: Readonly<RouteRecord[]>) {
   function handlePath(path: string | undefined, prefix: string) {
     // check for leading slash
     if (path != null) {
-      path = (prefix && !path.startsWith('/'))
-        ? `${prefix}${path ? `/${path}` : ''}`
-        : path
+      path =
+        prefix && !path.startsWith('/')
+          ? `${prefix}${path ? `/${path}` : ''}`
+          : path
 
       paths.add(path)
     }
@@ -83,10 +84,8 @@ export function createFetchRequest(req: any): Request {
   for (const [key, values] of Object.entries(req.headers)) {
     if (values) {
       if (Array.isArray(values)) {
-        for (const value of values)
-          headers.append(key, value)
-      }
-      else {
+        for (const value of values) headers.append(key, value)
+      } else {
         headers.set(key, values as any)
       }
     }
@@ -98,8 +97,7 @@ export function createFetchRequest(req: any): Request {
     signal: controller.signal,
   }
 
-  if (req.method !== 'GET' && req.method !== 'HEAD')
-    init.body = req.body
+  if (req.method !== 'GET' && req.method !== 'HEAD') init.body = req.body
 
   return new Request(url.href, init)
 }
@@ -107,11 +105,9 @@ export function createFetchRequest(req: any): Request {
 export async function resolveAlias(config: ResolvedConfig, entry: string) {
   const resolver = config.createResolver()
   const result = await resolver(entry, config.root)
-  if (result)
-    return result
+  if (result) return result
 
-  if (entry.startsWith('virtual:') || entry.includes('\0'))
-    return entry
+  if (entry.startsWith('virtual:') || entry.includes('\0')) return entry
 
   return join(config.root, entry)
 }
@@ -134,7 +130,6 @@ export function cleanUrl(url: string): string {
 
 const dynamicRE = /[:*?]/
 function isDynamicSegmentsRoute(route?: string) {
-  if (!route)
-    return false
+  if (!route) return false
   return dynamicRE.test(route)
 }

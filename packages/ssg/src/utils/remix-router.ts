@@ -1,4 +1,8 @@
-import type { IndexRouteRecord, NonIndexRouteRecord, RouteRecord } from '../types'
+import type {
+  IndexRouteRecord,
+  NonIndexRouteRecord,
+  RouteRecord,
+} from '../types'
 
 type MapRoutePropertiesFunction = (route: RouteRecord) => RouteRecord
 export function convertRoutesToDataRoutes(
@@ -15,16 +19,15 @@ export function convertRoutesToDataRoutes(
     if (isIndexRoute(route)) {
       const indexRoute: IndexRouteRecord = {
         ...route,
-        ...mapRouteProperties(route) as IndexRouteRecord,
+        ...(mapRouteProperties(route) as IndexRouteRecord),
         id,
       }
       // manifest[id] = indexRoute
       return indexRoute
-    }
-    else {
+    } else {
       const pathOrLayoutRoute: NonIndexRouteRecord = {
         ...route,
-        ...mapRouteProperties(route) as NonIndexRouteRecord,
+        ...(mapRouteProperties(route) as NonIndexRouteRecord),
         id,
         children: undefined,
       }
@@ -44,8 +47,6 @@ export function convertRoutesToDataRoutes(
   })
 }
 
-function isIndexRoute(
-  route: RouteRecord,
-): route is IndexRouteRecord {
+function isIndexRoute(route: RouteRecord): route is IndexRouteRecord {
   return route.index === true
 }

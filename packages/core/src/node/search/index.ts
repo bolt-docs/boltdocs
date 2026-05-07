@@ -19,11 +19,49 @@ export function generateSearchData(routes: RouteMeta[]): SearchDocument[] {
   const documents: SearchDocument[] = []
 
   for (const route of routes) {
+    let extraSearchText = ''
+    if (route.frontmatter) {
+      const standardKeys = new Set([
+        'title',
+        'description',
+        'permalink',
+        'sidebarPosition',
+        'sidebarLabel',
+        'sidebarHidden',
+        'hidden',
+        'category',
+        'order',
+        'badge',
+        'icon',
+        'date',
+        'lastUpdated',
+        'groupTitle',
+        'groupPosition',
+        'seo',
+      ])
+      const customValues = Object.entries(route.frontmatter)
+        .filter(([key]) => !standardKeys.has(key))
+        .map(([_, value]) => value)
+
+      const extractStrings = (obj: any): string[] => {
+        if (typeof obj === 'string') return [obj]
+        if (Array.isArray(obj)) return obj.flatMap(extractStrings)
+        if (obj && typeof obj === 'object')
+          return Object.values(obj).flatMap(extractStrings)
+        return []
+      }
+      extraSearchText = extractStrings(customValues).join(' ')
+    }
+
+    const finalContent = extraSearchText
+      ? `${route._content || ''} ${extraSearchText}`
+      : route._content || ''
+
     // 1. Index the main page
     documents.push({
       id: route.path,
       title: route.title,
-      content: route._content || '',
+      content: finalContent,
       url: route.path,
       display: route.groupTitle
         ? `${route.groupTitle} > ${route.title}`

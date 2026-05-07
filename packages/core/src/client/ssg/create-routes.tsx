@@ -159,6 +159,7 @@ export function createRoutes(options: CreateRoutesOptions): RouteRecord[] {
         frontmatter: {
           title: route.title,
           description: route.description || '',
+          ...(route.frontmatter || {}),
         },
         headings: route.headings || [],
         filePath: route.filePath,
@@ -181,8 +182,6 @@ export function createRoutes(options: CreateRoutesOptions): RouteRecord[] {
 
   const children: RouteRecord[] = [docsLayoutRoute]
 
-
-
   // 3. External pages
   if (externalPages) {
     Object.entries(externalPages).forEach(([rawPath, ExtComponent]) => {
@@ -192,7 +191,10 @@ export function createRoutes(options: CreateRoutesOptions): RouteRecord[] {
         allMetadata.push({
           path,
           locale: config.i18n?.defaultLocale,
-          title: rawPath === '/' ? 'Home' : (rawPath.replace(/^\//, '').split('/').pop() || 'Page'),
+          title:
+            rawPath === '/'
+              ? 'Home'
+              : rawPath.replace(/^\//, '').split('/').pop() || 'Page',
           filePath: '',
           headings: [],
         } as any)

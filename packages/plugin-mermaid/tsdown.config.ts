@@ -10,6 +10,14 @@ export default defineConfig({
   clean: true,
   tsconfig: './tsconfig.json',
   deps: {
-    neverBundle: ['react', 'react-dom', 'react/jsx-runtime', 'vite', 'mermaid', 'boltdocs', 'boltdocs/client'],
+    neverBundle: [
+      'react',
+      'react-dom',
+      'react/jsx-runtime',
+      'vite',
+      'mermaid',
+      'boltdocs',
+      'boltdocs/client',
+    ],
   },
 })

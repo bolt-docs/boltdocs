@@ -63,10 +63,54 @@ You can enable an elegant, real-time search bar by passing the `searchable={true
       description: "When true, renders a premium real-time filter bar on top."
     },
     {
+      name: "variant",
+      type: '"default" | "bordered" | "ghost" | "card"',
+      defaultValue: '"bordered"',
+      description: "The visual style variant of the ApiReference container."
+    },
+    {
       name: "className",
       type: "string",
       description: "Custom classes to append to the wrapper container."
     }
+  ]}
+/>
+
+---
+
+## Visual Style Variants
+
+Specify the `variant` prop to customize the visual structure of your API reference tables.
+
+### Bordered Variant (Default)
+<ApiReference
+  variant="bordered"
+  props={[
+    { name: "siteUrl", type: "string", description: "The base URL of your site." }
+  ]}
+/>
+
+### Card Variant
+<ApiReference
+  variant="card"
+  props={[
+    { name: "siteUrl", type: "string", description: "The base URL of your site." }
+  ]}
+/>
+
+### Ghost Variant
+<ApiReference
+  variant="ghost"
+  props={[
+    { name: "siteUrl", type: "string", description: "The base URL of your site." }
+  ]}
+/>
+
+### Default Variant
+<ApiReference
+  variant="default"
+  props={[
+    { name: "siteUrl", type: "string", description: "The base URL of your site." }
   ]}
 />
 

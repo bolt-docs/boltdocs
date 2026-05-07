@@ -111,7 +111,11 @@ async function run() {
   const templateDir = path.resolve(__dirname, 'templates', response.template)
 
   if (!fs.existsSync(templateDir)) {
-    console.error(red(`\nError: Template "${response.template}" not found at ${templateDir}`))
+    console.error(
+      red(
+        `\nError: Template "${response.template}" not found at ${templateDir}`,
+      ),
+    )
     process.exit(1)
   }
 
@@ -119,11 +123,17 @@ async function run() {
   try {
     copy(templateDir, projectDir, {
       name: response.projectName,
-      title: response.projectName
+      title: response.projectName,
     })
-    console.log(`${green('✔')} Created project structure and applied "${response.template}" preset`)
+    console.log(
+      `${green('✔')} Created project structure and applied "${response.template}" preset`,
+    )
   } catch (error) {
-    console.error(red(`\nError copying template: ${error instanceof Error ? error.message : String(error)}`))
+    console.error(
+      red(
+        `\nError copying template: ${error instanceof Error ? error.message : String(error)}`,
+      ),
+    )
     process.exit(1)
   }
 

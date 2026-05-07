@@ -1,15 +1,22 @@
 import React, { Suspense } from 'react'
-import { 
+import {
   PrimitiveNavbar as Navbar,
   SearchDialog,
   useNavbar,
   useTheme,
   useRoutes,
-  cn
+  cn,
 } from 'boltdocs/client'
 
 export const CustomNavbar = () => {
-  const { links, title, logo, logoProps, social, theme: themeMode } = useNavbar()
+  const {
+    links,
+    title,
+    logo,
+    logoProps,
+    social,
+    theme: themeMode,
+  } = useNavbar()
   const { routes } = useRoutes()
   const { setTheme } = useTheme()
 
@@ -18,33 +25,37 @@ export const CustomNavbar = () => {
       <Navbar.Content>
         <Navbar.Left>
           {logo && (
-            <Navbar.Logo 
-              src={logo} 
-              alt={logoProps?.alt || title} 
+            <Navbar.Logo
+              src={logo}
+              alt={logoProps?.alt || title}
               width={logoProps?.width || 24}
               height={logoProps?.height || 24}
             />
           )}
-          <Navbar.Title href="/">
-            {title}
-          </Navbar.Title>
+          <Navbar.Title href="/">{title}</Navbar.Title>
         </Navbar.Left>
 
         <Navbar.Center>
-           <Suspense fallback={<div className="h-9 w-64 animate-pulse rounded-full bg-white/5" />}>
-             <SearchDialog routes={routes || []} />
-           </Suspense>
+          <Suspense
+            fallback={
+              <div className="h-9 w-64 animate-pulse rounded-full bg-white/5" />
+            }
+          >
+            <SearchDialog routes={routes || []} />
+          </Suspense>
         </Navbar.Center>
 
         <Navbar.Right>
           <Navbar.Links className="hidden lg:flex">
             {links.map((link: any) => (
-              <Navbar.Link 
-                key={link.href} 
-                {...link} 
+              <Navbar.Link
+                key={link.href}
+                {...link}
                 className={cn(
-                  "transition-all duration-300",
-                  link.active ? "text-primary-400" : "text-white/40 hover:text-white"
+                  'transition-all duration-300',
+                  link.active
+                    ? 'text-primary-400'
+                    : 'text-white/40 hover:text-white',
                 )}
               />
             ))}
@@ -55,16 +66,18 @@ export const CustomNavbar = () => {
           </div>
 
           <div className="hidden md:block">
-            <Navbar.Theme 
-              theme={themeMode as any} 
-              onThemeChange={(isSelected) => setTheme(isSelected ? 'dark' : 'light')} 
+            <Navbar.Theme
+              theme={themeMode as any}
+              onThemeChange={(isSelected) =>
+                setTheme(isSelected ? 'dark' : 'light')
+              }
               className="hover:bg-white/5"
             />
           </div>
 
           <div className="hidden md:flex items-center gap-1">
             {social.map((s: any) => (
-              <Navbar.Socials 
+              <Navbar.Socials
                 key={s.link}
                 icon={s.icon}
                 link={s.link}
@@ -72,7 +85,7 @@ export const CustomNavbar = () => {
               />
             ))}
           </div>
-          
+
           <Navbar.More className="hover:bg-white/5" />
         </Navbar.Right>
       </Navbar.Content>

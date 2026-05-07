@@ -271,7 +271,7 @@ describe('generateRoutes', () => {
 
     // Should generate routes based on the files present
     expect(routes.length).toBeGreaterThanOrEqual(1)
-    
+
     // Verify v1 route exists
     const v1Route = routes.find((r) => r.path.includes('/v1/'))
     expect(v1Route).toBeDefined()

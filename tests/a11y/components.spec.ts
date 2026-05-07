@@ -7,7 +7,7 @@ test.describe('Component-Specific Accessibility Tests', () => {
 
   test('navigation should be accessible', async ({ page }) => {
     const nav = page.locator('nav').first()
-    if (await nav.count() > 0) {
+    if ((await nav.count()) > 0) {
       const hasAriaLabel = await nav.getAttribute('aria-label')
       const hasAriaLabelledBy = await nav.getAttribute('aria-labelledby')
 
@@ -20,9 +20,13 @@ test.describe('Component-Specific Accessibility Tests', () => {
   })
 
   test('search input should be accessible', async ({ page }) => {
-    const searchInput = page.locator('input[type="search"], input[placeholder*="search" i], [role="search"] input').first()
+    const searchInput = page
+      .locator(
+        'input[type="search"], input[placeholder*="search" i], [role="search"] input',
+      )
+      .first()
 
-    if (await searchInput.count() > 0) {
+    if ((await searchInput.count()) > 0) {
       const label = await searchInput.getAttribute('aria-label')
       const labelledBy = await searchInput.getAttribute('aria-labelledby')
       const placeholder = await searchInput.getAttribute('placeholder')
@@ -32,9 +36,13 @@ test.describe('Component-Specific Accessibility Tests', () => {
   })
 
   test('language switcher should be accessible', async ({ page }) => {
-    const langSwitcher = page.locator('[aria-label*="language" i], [aria-label*="locale" i], [class*="lang"]').first()
+    const langSwitcher = page
+      .locator(
+        '[aria-label*="language" i], [aria-label*="locale" i], [class*="lang"]',
+      )
+      .first()
 
-    if (await langSwitcher.count() > 0) {
+    if ((await langSwitcher.count()) > 0) {
       await langSwitcher.focus()
       await page.keyboard.press('Enter')
 
@@ -97,9 +105,11 @@ test.describe('Component-Specific Accessibility Tests', () => {
   })
 
   test('should handle theme switching accessibly', async ({ page }) => {
-    const themeToggle = page.locator('button[aria-label*="theme" i], [class*="theme"] button').first()
+    const themeToggle = page
+      .locator('button[aria-label*="theme" i], [class*="theme"] button')
+      .first()
 
-    if (await themeToggle.count() > 0) {
+    if ((await themeToggle.count()) > 0) {
       await themeToggle.focus()
 
       const hasAriaLabel = await themeToggle.getAttribute('aria-label')
@@ -112,7 +122,7 @@ test.describe('Component-Specific Accessibility Tests', () => {
   test('sidebars should have proper landmarks', async ({ page }) => {
     const sidebar = page.locator('aside, [role="complementary"]').first()
 
-    if (await sidebar.count() > 0) {
+    if ((await sidebar.count()) > 0) {
       const role = await sidebar.getAttribute('role')
       const label = await sidebar.getAttribute('aria-label')
 
@@ -123,9 +133,11 @@ test.describe('Component-Specific Accessibility Tests', () => {
   })
 
   test('pagination should be accessible', async ({ page }) => {
-    const pagination = page.locator('[role="navigation"][aria-label*="pag" i], .pagination').first()
+    const pagination = page
+      .locator('[role="navigation"][aria-label*="pag" i], .pagination')
+      .first()
 
-    if (await pagination.count() > 0) {
+    if ((await pagination.count()) > 0) {
       const ariaLabel = await pagination.getAttribute('aria-label')
       expect(ariaLabel).toBeTruthy()
 

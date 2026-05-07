@@ -63,13 +63,18 @@ The Button component is a primary interaction element used for navigation, form 
 
 Use the `<Button>` component directly in your MDX. It defaults to the `primary` variant and `md` size.
 
-<Button>Primary Action</Button>
+<ComponentPreview
+  code={`<Button variant="primary">Primary Action</Button>`}
+  preview={<Button variant="primary">Primary Action</Button>}
+/>
 
 ### Semantic Variants
 
 Buttons come in several semantic variants to help establish intent and hierarchy.
 
-<div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
+<ComponentPreview
+  code={`
+<div className="flex flex-wrap gap-4">
   <Button variant="primary">Primary</Button>
   <Button variant="secondary">Secondary</Button>
   <Button variant="success">Success</Button>
@@ -81,6 +86,22 @@ Buttons come in several semantic variants to help establish intent and hierarchy
   <Button variant="outline">Outline</Button>
   <Button variant="link">Link</Button>
 </div>
+`}
+  preview={
+    <div className="flex flex-wrap gap-4">
+      <Button variant="primary">Primary</Button>
+      <Button variant="secondary">Secondary</Button>
+      <Button variant="success">Success</Button>
+      <Button variant="danger">Danger</Button>
+      <Button variant="warning">Warning</Button>
+      <Button variant="info">Info</Button>
+      <Button variant="subtle">Subtle</Button>
+      <Button variant="ghost">Ghost</Button>
+      <Button variant="outline">Outline</Button>
+      <Button variant="link">Link</Button>
+    </div>
+  }
+/>
 
 ### Custom Colors
 

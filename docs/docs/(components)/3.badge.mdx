@@ -44,7 +44,9 @@ This feature is <Badge variant="success">Available Now</Badge> in version 1.0.
 
 Boltdocs provides several semantic variants out of the box to help communicate status and importance.
 
-<div className='flex flex-row gap-2'>
+<ComponentPreview
+  code={`
+<div className="flex flex-wrap gap-2">
   <Badge variant="default">Default</Badge>
   <Badge variant="primary">Primary</Badge>
   <Badge variant="success">Success</Badge>
@@ -52,3 +54,15 @@ Boltdocs provides several semantic variants out of the box to help communicate s
   <Badge variant="danger">Danger</Badge>
   <Badge variant="info">Info</Badge>
 </div>
+`}
+  preview={
+    <div className="flex flex-wrap gap-2">
+      <Badge variant="default">Default</Badge>
+      <Badge variant="primary">Primary</Badge>
+      <Badge variant="success">Success</Badge>
+      <Badge variant="warning">Warning</Badge>
+      <Badge variant="danger">Danger</Badge>
+      <Badge variant="info">Info</Badge>
+    </div>
+  }
+/>

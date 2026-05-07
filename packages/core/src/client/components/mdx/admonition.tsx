@@ -29,14 +29,10 @@ const admonitionVariants = cva(
         note: 'border-primary-500/20 bg-primary-500/5 text-primary-400',
         tip: 'border-emerald-500/20 bg-emerald-500/5 text-emerald-500',
         info: 'border-sky-500/20 bg-sky-500/5 text-sky-500',
-        warning:
-          'border-amber-500/20 bg-amber-500/5 text-amber-500',
-        danger:
-          'border-red-500/20 bg-red-500/5 text-red-500',
-        important:
-          'border-orange-500/20 bg-orange-500/5 text-orange-500',
-        caution:
-          'border-yellow-500/20 bg-yellow-500/5 text-yellow-500',
+        warning: 'border-amber-500/20 bg-amber-500/5 text-amber-500',
+        danger: 'border-red-500/20 bg-red-500/5 text-red-500',
+        important: 'border-orange-500/20 bg-orange-500/5 text-orange-500',
+        caution: 'border-yellow-500/20 bg-yellow-500/5 text-yellow-500',
       },
     },
     defaultVariants: {

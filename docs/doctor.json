@@ -6,10 +6,7 @@
       "titleMin": 3,
       "titleMax": 60,
       "descriptionMin": 20,
-      "required": [
-        "title",
-        "description"
-      ],
+      "required": ["title", "description"],
       "optional": [],
       "validateDates": false
     },

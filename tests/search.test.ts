@@ -1,5 +1,8 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import { generateSearchData, type SearchDocument } from '../packages/core/src/node/search'
+import {
+  generateSearchData,
+  type SearchDocument,
+} from '../packages/core/src/node/search'
 
 describe('search', () => {
   describe('generateSearchData', () => {
@@ -22,7 +25,7 @@ describe('search', () => {
       const documents = generateSearchData(routes as any)
 
       expect(documents).toHaveLength(3) // 1 page + 2 headings
-      
+
       // Main page document
       expect(documents[0]).toMatchObject({
         id: '/docs/intro',
@@ -103,7 +106,7 @@ describe('search', () => {
       const documents = generateSearchData(routes as any)
 
       expect(documents).toHaveLength(3) // 2 pages + 1 heading
-      
+
       expect(documents[0].locale).toBe('en')
       expect(documents[1].locale).toBe('en')
       expect(documents[2].locale).toBe('es')

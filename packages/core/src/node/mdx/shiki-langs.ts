@@ -28,7 +28,7 @@ export const LANG_BUILD: any[] = [
   yaml,
   rust,
   toml,
-  csv
+  csv,
 ]
 
 export type Languages =

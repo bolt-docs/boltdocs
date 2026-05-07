@@ -21,17 +21,19 @@ export function ViteReactSSG(
   } = options
 
   if (process.env.NODE_ENV === 'development' && ssrWhenDev !== undefined)
-    console.warn('[vite-react-ssg] `ssrWhenDev` option is no longer needed. If you want to use csr, just replace `vite-react-ssg dev` with `vite`.')
+    console.warn(
+      '[vite-react-ssg] `ssrWhenDev` option is no longer needed. If you want to use csr, just replace `vite-react-ssg dev` with `vite`.',
+    )
 
   const isClient = typeof window !== 'undefined'
 
   async function createRoot(client = false, routePath?: string) {
     const appRenderCallbacks: Function[] = []
     const onSSRAppRendered = client
-      ? () => { }
+      ? () => {}
       : (cb: Function) => appRenderCallbacks.push(cb)
     const triggerOnSSRAppRendered = () => {
-      return Promise.all(appRenderCallbacks.map(cb => cb()))
+      return Promise.all(appRenderCallbacks.map((cb) => cb()))
     }
     const context: ViteReactSSGContext<false> = {
       isClient,
@@ -51,7 +53,9 @@ export function ViteReactSSG(
     if (client) {
       await documentReady()
       // @ts-expect-error global variable
-      context.initialState = transformState?.(window.__INITIAL_STATE__ || {}) || deserializeState(window.__INITIAL_STATE__)
+      context.initialState =
+        transformState?.(window.__INITIAL_STATE__ || {}) ||
+        deserializeState(window.__INITIAL_STATE__)
     }
 
     await fn?.(context)
@@ -70,10 +74,11 @@ export function ViteReactSSG(
   }
 
   if (isClient) {
-    (async () => {
-      const container = typeof rootContainer === 'string'
-        ? document.querySelector(rootContainer)
-        : rootContainer
+    ;(async () => {
+      const container =
+        typeof rootContainer === 'string'
+          ? document.querySelector(rootContainer)
+          : rootContainer
 
       if (!container) {
         // @ts-expect-error global variable
@@ -84,16 +89,12 @@ export function ViteReactSSG(
 
       const context = await createRoot(true)
       window.__VITE_REACT_SSG_CONTEXT__ = context as any
-      const app = (
-        <HelmetProvider>
-          {App}
-        </HelmetProvider>
-      ) as React.ReactElement
-      const isSSR = document.querySelector('[data-server-rendered=true]') !== null
+      const app = (<HelmetProvider>{App}</HelmetProvider>) as React.ReactElement
+      const isSSR =
+        document.querySelector('[data-server-rendered=true]') !== null
       if (!isSSR && process.env.NODE_ENV === 'development') {
         render(app, container, options)
-      }
-      else {
+      } else {
         hydrate(app, container, options)
       }
     })()

@@ -5,10 +5,7 @@ describe('generateSitemap', () => {
   const defaultConfig: any = { siteUrl: 'https://example.com' }
 
   it('should generate a valid XML sitemap with default base URL', () => {
-    const routes = [
-      { path: '/docs/intro' },
-      { path: '/docs/setup' }
-    ]
+    const routes = [{ path: '/docs/intro' }, { path: '/docs/setup' }]
     const sitemap = generateSitemap(routes, defaultConfig)
 
     expect(sitemap).toContain('<?xml version="1.0" encoding="UTF-8"?>')
@@ -29,10 +26,7 @@ describe('generateSitemap', () => {
   })
 
   it('should handle i18n locales in root entries', () => {
-    const routes = [
-      { path: '/docs/en/intro' },
-      { path: '/docs/es/intro' }
-    ]
+    const routes = [{ path: '/docs/en/intro' }, { path: '/docs/es/intro' }]
     const config: any = {
       siteUrl: 'https://example.com',
       i18n: {
@@ -53,7 +47,7 @@ describe('generateSitemap', () => {
     const routes = [
       { path: '/public' },
       { path: '/private', seo: { noindex: true } },
-      { path: '/no-robots', seo: { robots: 'noindex, nofollow' } }
+      { path: '/no-robots', seo: { robots: 'noindex, nofollow' } },
     ]
     const sitemap = generateSitemap(routes, defaultConfig)
 

@@ -56,6 +56,12 @@ Cards are versatile content blocks used to highlight features, project goals, or
       name: "href",
       type: "string",
       description: "Optional. If provided, the card becomes a link (internal or external)."
+    },
+    {
+      name: "variant",
+      type: '"default" | "bordered" | "ghost" | "card"',
+      defaultValue: '"card"',
+      description: "The visual style of the card component."
     }
   ]}
 />
@@ -64,7 +70,39 @@ Cards are versatile content blocks used to highlight features, project goals, or
 
 ## Variants & Examples
 
-### Basic Usage
+### Visual Style Variants
+
+Boltdocs supports four beautiful visual variants for Cards. Specify the `variant` prop to customize the look.
+
+#### Card Variant (Default)
+<Cards cols={2}>
+  <Card title="Card Style" icon={<Zap />} variant="card">
+    The classic elevated card styling with subtle gradients and spotlight effects.
+  </Card>
+</Cards>
+
+#### Bordered Variant
+<Cards cols={2}>
+  <Card title="Bordered Style" icon={<Palette />} variant="bordered">
+    A transparent background with a continuous border that highlights on hover.
+  </Card>
+</Cards>
+
+#### Ghost Variant
+<Cards cols={2}>
+  <Card title="Ghost Style" icon={<Star />} variant="ghost">
+    A minimal, borderless design that displays a soft background hover effect.
+  </Card>
+</Cards>
+
+#### Default Variant
+<Cards cols={1}>
+  <Card title="Default Style" icon={<Rocket />} variant="default">
+    A clean, streamlined layout resembling a list item with simple bottom dividers.
+  </Card>
+</Cards>
+
+### Basic Grid Usage
 
 Wrap your individual `<Card>` components in a `<Cards>` container to create a clean grid.
 

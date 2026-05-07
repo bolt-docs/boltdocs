@@ -55,6 +55,8 @@ export interface RouteMeta {
   sidebarLabel?: string
   /** Whether the page is hidden from the sidebar */
   sidebarHidden?: boolean
+  /** Raw extensible frontmatter data for custom components and formatters */
+  frontmatter?: Record<string, any>
 }
 
 /**

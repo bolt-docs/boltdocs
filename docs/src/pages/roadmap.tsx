@@ -40,10 +40,10 @@ const statusConfig = {
 
 export default function Roadmap() {
   const groupedFeatures = {
-    planned: FEATURES.filter(f => f.status === 'planned'),
-    'in-progress': FEATURES.filter(f => f.status === 'in-progress'),
-    completed: FEATURES.filter(f => f.status === 'completed'),
-    released: FEATURES.filter(f => f.status === 'released'),
+    planned: FEATURES.filter((f) => f.status === 'planned'),
+    'in-progress': FEATURES.filter((f) => f.status === 'in-progress'),
+    completed: FEATURES.filter((f) => f.status === 'completed'),
+    released: FEATURES.filter((f) => f.status === 'released'),
   }
 
   return (
@@ -51,11 +51,19 @@ export default function Roadmap() {
       <main className="w-full max-w-[1400px] mx-auto px-6">
         <header className="flex flex-col justify-between py-12 mb-4">
           <h1 className="text-3xl font-black tracking-tight">Roadmap</h1>
-          <p className="text-body/60">Here you can see what we are working on and what we plan to do in the future.</p>
+          <p className="text-body/60">
+            Here you can see what we are working on and what we plan to do in
+            the future.
+          </p>
         </header>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 items-start">
-          {(Object.entries(statusConfig) as [keyof typeof groupedFeatures, typeof statusConfig['planned']][]).map(([statusKey, config]) => {
+          {(
+            Object.entries(statusConfig) as [
+              keyof typeof groupedFeatures,
+              (typeof statusConfig)['planned'],
+            ][]
+          ).map(([statusKey, config]) => {
             const features = groupedFeatures[statusKey]
             const Icon = config.icon
 
@@ -63,11 +71,17 @@ export default function Roadmap() {
               <div key={statusKey} className="flex flex-col gap-4">
                 {/* Column Header */}
                 <div className="flex items-center justify-between px-1">
-                  <div className={`flex items-center gap-2 px-3 py-1.5 rounded-full bg-text-body/5 border border-text-body/10`}>
+                  <div
+                    className={`flex items-center gap-2 px-3 py-1.5 rounded-full bg-text-body/5 border border-text-body/10`}
+                  >
                     <Icon className={`size-3.5 ${config.color}`} />
-                    <span className="text-[11px] font-bold uppercase tracking-widest">{config.label}</span>
+                    <span className="text-[11px] font-bold uppercase tracking-widest">
+                      {config.label}
+                    </span>
                   </div>
-                  <span className="text-xs font-bold text-body/20 pr-1">{features.length}</span>
+                  <span className="text-xs font-bold text-body/20 pr-1">
+                    {features.length}
+                  </span>
                 </div>
 
                 {/* Column Content */}

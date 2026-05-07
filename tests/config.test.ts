@@ -49,7 +49,7 @@ describe('config', () => {
       const configPath = path.resolve(tempProjectDir, 'boltdocs.config.js')
       fs.writeFileSync(configPath, 'throw new Error("Config Error");')
 
-      const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => { })
+      const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {})
       const config = await resolveConfig(tempProjectDir, tempProjectDir)
 
       expect(config.theme?.title).toBe('Boltdocs')

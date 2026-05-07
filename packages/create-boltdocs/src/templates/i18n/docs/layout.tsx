@@ -1,31 +1,31 @@
-import { 
-  DocsLayout, 
-  Navbar, 
-  Sidebar, 
-  OnThisPage, 
-  Head, 
-  Breadcrumbs, 
-  PageNav, 
-  ErrorBoundary, 
-  CopyMarkdown, 
-  useRoutes, 
-  useConfig, 
+import {
+  DocsLayout,
+  Navbar,
+  Sidebar,
+  OnThisPage,
+  Head,
+  Breadcrumbs,
+  PageNav,
+  ErrorBoundary,
+  CopyMarkdown,
+  useRoutes,
+  useConfig,
   useMdxComponents,
   useLocation,
-  getTranslated
+  getTranslated,
 } from 'boltdocs/client'
 
 export default function Layout({ children }: { children: React.ReactNode }) {
-  const { 
-    routes: filteredRoutes, 
-    allRoutes, 
+  const {
+    routes: filteredRoutes,
+    allRoutes,
     currentRoute,
-    currentLocale
+    currentLocale,
   } = useRoutes()
   const { pathname } = useLocation()
   const config = useConfig()
   const mdxComponents = useMdxComponents()
-  
+
   // Allow CopyMarkdown override via mdx-components.tsx
   const CopyMarkdownComp = (mdxComponents.CopyMarkdown as any) || CopyMarkdown
 
@@ -34,8 +34,12 @@ export default function Layout({ children }: { children: React.ReactNode }) {
   return (
     <DocsLayout>
       <Head
-        siteTitle={getTranslated(config.theme?.title, currentLocale) || 'Boltdocs'}
-        siteDescription={getTranslated(config.theme?.description, currentLocale) || ''}
+        siteTitle={
+          getTranslated(config.theme?.title, currentLocale) || 'Boltdocs'
+        }
+        siteDescription={
+          getTranslated(config.theme?.description, currentLocale) || ''
+        }
         routes={allRoutes}
       />
       <Navbar />

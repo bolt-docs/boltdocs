@@ -17,15 +17,7 @@ export default defineConfig({
     provider: 'v8',
     reporter: ['text', 'html', 'json'],
     reportsDirectory: './coverage',
-    include: [
-      'packages/core/src/**/*.ts',
-      'packages/ssg/src/**/*.ts',
-    ],
-    exclude: [
-      '**/*.test.ts',
-      '**/node_modules/**',
-      '**/dist/**',
-      '**/*.d.ts',
-    ],
+    include: ['packages/core/src/**/*.ts', 'packages/ssg/src/**/*.ts'],
+    exclude: ['**/*.test.ts', '**/node_modules/**', '**/dist/**', '**/*.d.ts'],
   },
 })

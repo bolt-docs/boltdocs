@@ -6,7 +6,9 @@ describe('SSG Security Tests', () => {
     it('should not allow malicious paths to break XML structure (escaping check)', () => {
       const maliciousRoutes = [
         { path: '/docs/normal' },
-        { path: '/docs/test</loc><url><loc>https://hacker.com</loc></url><loc>' },
+        {
+          path: '/docs/test</loc><url><loc>https://hacker.com</loc></url><loc>',
+        },
       ]
       const config: any = { siteUrl: 'https://example.com' }
       const sitemap = generateSitemap(maliciousRoutes, config)

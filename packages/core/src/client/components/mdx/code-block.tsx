@@ -37,7 +37,7 @@ const langIconMap: Record<string, React.ComponentType<{ size?: number }>> = {
   rs: Rust,
   rust: Rust,
   toml: BracketsRed,
-  csv: Csv
+  csv: Csv,
 }
 
 export interface CodeBlockProps {

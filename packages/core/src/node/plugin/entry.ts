@@ -17,8 +17,6 @@ export function generateEntryCode(
   config?: BoltdocsConfig,
   isBuild: boolean = false,
 ): string {
-
-
   // Auto-import index.css if it exists
   const cssPath = path.resolve(process.cwd(), 'index.css')
   const cssImport = fs.existsSync(cssPath) ? "import './index.css';" : ''
@@ -49,8 +47,6 @@ const ${name} = _comp_${name}.default || _comp_${name}['${name}'] || _comp_${nam
   const externalModuleImport = externalModulePath
     ? `import * as _external_module from '${normalizePath(externalModulePath)}';`
     : ''
-
-
 
   const externalOption = externalModulePath
     ? 'externalPages: _external_module.pages, externalLayout: _external_module.layout,'

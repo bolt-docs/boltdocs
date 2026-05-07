@@ -55,9 +55,10 @@ export async function generateChangelog(
     console.log(`✅ Generated: ${filename}`)
   }
 
-  const totalVersions = limit && limit < versions.length
-    ? `${limit} of ${versions.length} versions`
-    : `${versions.length} versions`
+  const totalVersions =
+    limit && limit < versions.length
+      ? `${limit} of ${versions.length} versions`
+      : `${versions.length} versions`
 
   console.log(`\n✨ Generated ${totalVersions} changelog pages in ${outputDir}`)
   console.log(`\n📝 Add this to your navbar in boltdocs.config.ts:`)
@@ -69,7 +70,8 @@ function generateMarkdown(
   title: string,
   _inferTab: boolean,
 ): string {
-  const badgeLabel = version.type.charAt(0).toUpperCase() + version.type.slice(1)
+  const badgeLabel =
+    version.type.charAt(0).toUpperCase() + version.type.slice(1)
 
   const groupedChanges = groupChangesByType(version.changes)
 

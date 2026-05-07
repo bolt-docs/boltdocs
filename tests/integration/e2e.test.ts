@@ -17,14 +17,18 @@ afterEach(() => {
 })
 
 describe('E2E integration tests', () => {
-
   it('should generate routes with home-page configured', async () => {
     const docsDir = path.join(tempDir, 'docs')
     fs.mkdirSync(docsDir, { recursive: true })
 
-    fs.writeFileSync(path.join(docsDir, 'test.md'), '---\ntitle: Welcome\n---\n\n# Welcome')
+    fs.writeFileSync(
+      path.join(docsDir, 'test.md'),
+      '---\ntitle: Welcome\n---\n\n# Welcome',
+    )
 
-    const { generateRoutes } = await import('../../packages/core/src/node/routes')
+    const { generateRoutes } = await import(
+      '../../packages/core/src/node/routes'
+    )
     const config = { theme: { title: 'Test' } }
 
     const routes = await generateRoutes(docsDir, config as any, '/docs', true)
@@ -39,13 +43,21 @@ describe('E2E integration tests', () => {
 
     const enDir = path.join(docsDir, 'en')
     fs.mkdirSync(enDir, { recursive: true })
-    fs.writeFileSync(path.join(enDir, 'index.mdx'), '---\ntitle: Welcome\n---\n\n# Welcome')
+    fs.writeFileSync(
+      path.join(enDir, 'index.mdx'),
+      '---\ntitle: Welcome\n---\n\n# Welcome',
+    )
 
     const esDir = path.join(docsDir, 'es')
     fs.mkdirSync(esDir, { recursive: true })
-    fs.writeFileSync(path.join(esDir, 'index.mdx'), '---\ntitle: Bienvenido\n---\n\n# Bienvenido')
+    fs.writeFileSync(
+      path.join(esDir, 'index.mdx'),
+      '---\ntitle: Bienvenido\n---\n\n# Bienvenido',
+    )
 
-    const { generateRoutes } = await import('../../packages/core/src/node/routes')
+    const { generateRoutes } = await import(
+      '../../packages/core/src/node/routes'
+    )
     const config = {
       i18n: { defaultLocale: 'en', locales: { en: 'English', es: 'Español' } },
       theme: { title: 'Test' },
@@ -61,9 +73,14 @@ describe('cache integration with routes', () => {
     const docsDir = path.join(tempDir, 'docs')
     fs.mkdirSync(docsDir, { recursive: true })
 
-    fs.writeFileSync(path.join(docsDir, 'test.md'), '---\ntitle: Cached Test\n---\n\n# Cached Content')
+    fs.writeFileSync(
+      path.join(docsDir, 'test.md'),
+      '---\ntitle: Cached Test\n---\n\n# Cached Content',
+    )
 
-    const { generateRoutes } = await import('../../packages/core/src/node/routes')
+    const { generateRoutes } = await import(
+      '../../packages/core/src/node/routes'
+    )
     const config = { theme: { title: 'Test' } }
 
     const routes1 = await generateRoutes(docsDir, config as any, '/docs', true)
@@ -77,13 +94,18 @@ describe('cache integration with routes', () => {
     const docsDir = path.join(tempDir, 'docs')
     fs.mkdirSync(docsDir, { recursive: true })
 
-    const { generateRoutes, invalidateRouteCache } = await import('../../packages/core/src/node/routes')
+    const { generateRoutes, invalidateRouteCache } = await import(
+      '../../packages/core/src/node/routes'
+    )
     const config = { theme: { title: 'Test' } }
 
     const routes1 = await generateRoutes(docsDir, config as any, '/docs', true)
     expect(routes1.length).toBe(0)
 
-    fs.writeFileSync(path.join(docsDir, 'new.md'), '---\ntitle: New\n---\n\n# New')
+    fs.writeFileSync(
+      path.join(docsDir, 'new.md'),
+      '---\ntitle: New\n---\n\n# New',
+    )
 
     invalidateRouteCache()
     const routes2 = await generateRoutes(docsDir, config as any, '/docs', true)
@@ -93,7 +115,9 @@ describe('cache integration with routes', () => {
 
 describe('plugin entry code generation with externalPages', () => {
   it('should generate entry code that imports external pages module', async () => {
-    const { generateEntryCode } = await import('../../packages/core/src/node/plugin/entry')
+    const { generateEntryCode } = await import(
+      '../../packages/core/src/node/plugin/entry'
+    )
 
     vi.spyOn(process, 'cwd').mockReturnValue(tempDir)
 
@@ -116,11 +140,18 @@ describe('MDX components integration', () => {
     const docsDir = path.join(tempDir, 'docs')
     fs.mkdirSync(docsDir, { recursive: true })
 
-    fs.writeFileSync(path.join(docsDir, 'mdx-components.tsx'), 'export function Note({ children }) { return <div>{children}</div> }')
+    fs.writeFileSync(
+      path.join(docsDir, 'mdx-components.tsx'),
+      'export function Note({ children }) { return <div>{children}</div> }',
+    )
 
-    const { boltdocsPlugin } = await import('../../packages/core/src/node/plugin')
+    const { boltdocsPlugin } = await import(
+      '../../packages/core/src/node/plugin'
+    )
     const plugins = boltdocsPlugin({ docsDir })
-    const vmPlugin = plugins.find((p) => p.name === 'vite-plugin-boltdocs-virtual-modules')!
+    const vmPlugin = plugins.find(
+      (p) => p.name === 'vite-plugin-boltdocs-virtual-modules',
+    )!
 
     const code = await vmPlugin.load!('\0virtual:boltdocs-mdx-components')
     expect(code).toContain('mdx-components.tsx')
@@ -132,11 +163,18 @@ describe('layout integration', () => {
     const docsDir = path.join(tempDir, 'docs')
     fs.mkdirSync(docsDir, { recursive: true })
 
-    fs.writeFileSync(path.join(docsDir, 'layout.tsx'), 'export default function Layout({ children }) { return <div>{children}</div> }')
+    fs.writeFileSync(
+      path.join(docsDir, 'layout.tsx'),
+      'export default function Layout({ children }) { return <div>{children}</div> }',
+    )
 
-    const { boltdocsPlugin } = await import('../../packages/core/src/node/plugin')
+    const { boltdocsPlugin } = await import(
+      '../../packages/core/src/node/plugin'
+    )
     const plugins = boltdocsPlugin({ docsDir })
-    const vmPlugin = plugins.find((p) => p.name === 'vite-plugin-boltdocs-virtual-modules')!
+    const vmPlugin = plugins.find(
+      (p) => p.name === 'vite-plugin-boltdocs-virtual-modules',
+    )!
 
     const code = await vmPlugin.load!('\0virtual:boltdocs-layout')
     expect(code).toContain('UserLayout')

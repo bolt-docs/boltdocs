@@ -1,7 +1,11 @@
 import type { FilledContext } from 'react-helmet-async'
 import type { StyleCollector } from '../../types'
 
-export function extractHelmet(html: string, context: FilledContext, styleCollector: StyleCollector | null) {
+export function extractHelmet(
+  html: string,
+  context: FilledContext,
+  styleCollector: StyleCollector | null,
+) {
   const { helmet } = context
   const htmlAttributes = helmet.htmlAttributes.toString()
   const bodyAttributes = helmet.bodyAttributes.toString()

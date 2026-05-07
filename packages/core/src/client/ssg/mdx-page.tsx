@@ -12,7 +12,7 @@ export function MdxPage({
   const data = useLoaderData() as any
   const MDXComponent = propMDX || data?.MDXComponent
   const components = propComponents || data?.mdxComponents
-
+  console.log(data)
   if (!MDXComponent) return null
 
   return (
@@ -29,6 +29,7 @@ export function MdxPage({
           group: data.group,
           groupTitle: data.groupTitle,
           lastUpdated: data.lastUpdated,
+          frontmatter: data.frontmatter,
         } as any
       }
       content={MDXComponent}

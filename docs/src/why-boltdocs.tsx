@@ -5,27 +5,33 @@ import { useGSAPScroll, useGSAPStaggerIn } from './hooks/useGSAPScroll'
 const DIFFERENTIATORS = [
   {
     title: 'Zero Configuration',
-    description: 'Start in seconds. No complex setup, no boilerplate. Just write your docs.',
+    description:
+      'Start in seconds. No complex setup, no boilerplate. Just write your docs.',
   },
   {
     title: 'Full SEO Out of the Box',
-    description: 'Auto-generated sitemaps, Open Graph images, and meta tags without extra work.',
+    description:
+      'Auto-generated sitemaps, Open Graph images, and meta tags without extra work.',
   },
   {
     title: 'Built-in Local Search',
-    description: 'Typo-tolerant FlexSearch, no external services required, works offline.',
+    description:
+      'Typo-tolerant FlexSearch, no external services required, works offline.',
   },
   {
     title: 'Edge-Optimized Images',
-    description: 'Automatic optimization at build time for blazing fast loads globally.',
+    description:
+      'Automatic optimization at build time for blazing fast loads globally.',
   },
   {
     title: 'First-Class MDX Support',
-    description: 'Use React components inside your markdown. Interactive docs made easy.',
+    description:
+      'Use React components inside your markdown. Interactive docs made easy.',
   },
   {
     title: 'Type-Safe by Default',
-    description: 'Built with TypeScript from the ground up. Full type safety guaranteed.',
+    description:
+      'Built with TypeScript from the ground up. Full type safety guaranteed.',
   },
 ]
 
@@ -35,22 +41,36 @@ export const WhyBoltdocs = () => {
   const cardsRef = useRef<HTMLDivElement>(null)
 
   useGSAPScroll(titleRef, { animation: 'fade-up', delay: 0, duration: 0.6 })
-  useGSAPScroll(subtitleRef, { animation: 'fade-up', delay: 0.1, duration: 0.6 })
+  useGSAPScroll(subtitleRef, {
+    animation: 'fade-up',
+    delay: 0.1,
+    duration: 0.6,
+  })
   useGSAPStaggerIn(cardsRef, { stagger: 0.08, duration: 0.5, y: 30 })
 
   return (
     <section className="py-20 px-6">
       <div className="max-w-6xl mx-auto">
         <div className="text-center mb-16">
-          <h2 ref={titleRef} className="text-2xl md:text-4xl font-black text-text mb-4 opacity-0">
+          <h2
+            ref={titleRef}
+            className="text-2xl md:text-4xl font-black text-text mb-4 opacity-0"
+          >
             Why Boltdocs?
           </h2>
-          <p ref={subtitleRef} className="text-lg text-on-surface-variant max-w-2xl mx-auto opacity-0">
-            Built for developers who value speed, simplicity, and beautiful documentation.
+          <p
+            ref={subtitleRef}
+            className="text-lg text-on-surface-variant max-w-2xl mx-auto opacity-0"
+          >
+            Built for developers who value speed, simplicity, and beautiful
+            documentation.
           </p>
         </div>
 
-        <div ref={cardsRef} className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div
+          ref={cardsRef}
+          className="grid md:grid-cols-2 lg:grid-cols-3 gap-6"
+        >
           {DIFFERENTIATORS.map((item, idx) => (
             <div
               key={idx}

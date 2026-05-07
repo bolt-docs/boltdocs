@@ -4,22 +4,19 @@ import { cn } from '../../utils/cn'
 import { cva } from 'class-variance-authority'
 import type { VariantProps } from 'class-variance-authority'
 
-const tableVariants = cva(
-  'my-8 transition-all duration-300',
-  {
-    variants: {
-      variant: {
-        default: 'border-none bg-transparent rounded-none p-0',
-        bordered: 'border border-subtle bg-surface/10 rounded-2xl p-5 md:p-6',
-        card: 'border border-subtle bg-surface rounded-2xl p-5 md:p-6',
-        ghost: 'border-none bg-transparent rounded-2xl p-4',
-      },
-    },
-    defaultVariants: {
-      variant: 'card',
+const tableVariants = cva('my-8 transition-all duration-300', {
+  variants: {
+    variant: {
+      default: 'border-none bg-transparent rounded-none p-0',
+      bordered: 'border border-subtle bg-surface/10 rounded-2xl p-5 md:p-6',
+      card: 'border border-subtle bg-surface rounded-2xl p-5 md:p-6',
+      ghost: 'border-none bg-transparent rounded-2xl p-4',
     },
   },
-)
+  defaultVariants: {
+    variant: 'card',
+  },
+})
 
 export interface PropItem {
   name: string
@@ -40,7 +37,11 @@ export interface ApiReferenceProps extends VariantProps<typeof tableVariants> {
 function parseTypeToPills(typeStr: string) {
   // If it's a simple string union (e.g. "'sm' | 'md' | 'lg'" or "string | number")
   // and doesn't represent a complex function or object definition
-  if (typeStr.includes('|') && !typeStr.includes('=>') && !typeStr.includes('{')) {
+  if (
+    typeStr.includes('|') &&
+    !typeStr.includes('=>') &&
+    !typeStr.includes('{')
+  ) {
     return (
       <div className="flex flex-wrap gap-1.5 max-w-full">
         {typeStr.split('|').map((t, idx) => {
@@ -90,12 +91,7 @@ export function ApiReference({
   )
 
   return (
-    <div
-      className={cn(
-        tableVariants({ variant }),
-        className,
-      )}
-    >
+    <div className={cn(tableVariants({ variant }), className)}>
       <style>{`
         .api-ref-table tr:hover td {
           background-color: transparent !important;
@@ -175,7 +171,8 @@ export function ApiReference({
                             onClick={(e) => handleCopy(prop.name, e)}
                             className={cn(
                               'p-1 rounded-md text-dim hover:text-body hover:bg-soft/50 opacity-0 group-hover/row:opacity-100 transition-all duration-200 outline-none cursor-pointer',
-                              copiedName === prop.name && 'opacity-100 text-emerald-400',
+                              copiedName === prop.name &&
+                                'opacity-100 text-emerald-400',
                             )}
                             title="Copy property name"
                           >
@@ -207,7 +204,9 @@ export function ApiReference({
                           {prop.defaultValue}
                         </code>
                       ) : (
-                        <span className="text-dim/60 font-mono text-xs pl-2">—</span>
+                        <span className="text-dim/60 font-mono text-xs pl-2">
+                          —
+                        </span>
                       )}
                     </td>
 
@@ -259,7 +258,9 @@ export function ApiReference({
                       <span className="font-bold opacity-40 uppercase text-[8px]">
                         Default
                       </span>
-                      <code className="font-mono text-muted">{prop.defaultValue}</code>
+                      <code className="font-mono text-muted">
+                        {prop.defaultValue}
+                      </code>
                     </div>
                   )}
                 </div>
@@ -287,4 +288,3 @@ export function ApiReference({
     </div>
   )
 }
-

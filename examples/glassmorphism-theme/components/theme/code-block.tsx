@@ -1,16 +1,17 @@
 import React, { useState } from 'react'
-import { 
-  PrimitiveCodeBlock as CodeBlockRoot, 
-  CodeBlockHeader, 
-  CodeBlockContent, 
+import {
+  PrimitiveCodeBlock as CodeBlockRoot,
+  CodeBlockHeader,
+  CodeBlockContent,
   PrimitiveButton as Button,
-  cn 
+  cn,
 } from 'boltdocs/client'
 import { Copy, Check, Terminal } from 'lucide-react'
 
 export const CodeBlock = ({ children, ...props }: any) => {
   const [copied, setCopied] = useState(false)
-  const highlightedHtml = props.highlightedHtml || props['data-highlighted-html']
+  const highlightedHtml =
+    props.highlightedHtml || props['data-highlighted-html']
 
   const getRawCode = (node: any): string => {
     if (typeof node === 'string') return node
@@ -33,15 +34,19 @@ export const CodeBlock = ({ children, ...props }: any) => {
         <div className="flex items-center justify-between w-full">
           <div className="flex items-center gap-2">
             <Terminal size={14} className="text-primary-400" />
-            <span className="text-[10px] font-bold text-white/40 tracking-[0.2em] uppercase">Terminal</span>
+            <span className="text-[10px] font-bold text-white/40 tracking-[0.2em] uppercase">
+              Terminal
+            </span>
           </div>
           <Button
             variant="ghost"
             isIconOnly
             onPress={handleCopy}
             className={cn(
-              "!h-7 !w-7 !rounded-lg transition-all",
-              copied ? "text-emerald-400" : "text-white/30 hover:text-white hover:bg-white/10"
+              '!h-7 !w-7 !rounded-lg transition-all',
+              copied
+                ? 'text-emerald-400'
+                : 'text-white/30 hover:text-white hover:bg-white/10',
             )}
           >
             {copied ? <Check size={14} /> : <Copy size={14} />}
@@ -50,12 +55,18 @@ export const CodeBlock = ({ children, ...props }: any) => {
       </CodeBlockHeader>
       <CodeBlockContent>
         {highlightedHtml ? (
-          <div 
+          <div
             className="boltdocs-shiki !p-6 !m-0 overflow-x-auto [&>pre]:!m-0 [&>pre]:!p-0 [&>pre]:!bg-transparent"
             dangerouslySetInnerHTML={{ __html: highlightedHtml }}
           />
         ) : (
-          <pre {...props} className={cn("!m-0 !p-6 !bg-transparent overflow-x-auto", props.className)}>
+          <pre
+            {...props}
+            className={cn(
+              '!m-0 !p-6 !bg-transparent overflow-x-auto',
+              props.className,
+            )}
+          >
             {children}
           </pre>
         )}

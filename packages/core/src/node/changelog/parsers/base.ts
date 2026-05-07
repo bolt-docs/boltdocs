@@ -52,7 +52,10 @@ export function extractCommitUrl(text: string): string | undefined {
   return urlMatch ? urlMatch[1] : undefined
 }
 
-export function extractMessage(text: string, type: ChangelogChange['type']): string {
+export function extractMessage(
+  text: string,
+  type: ChangelogChange['type'],
+): string {
   let message = text
 
   message = message.replace(/Thanks \[@[^\]]+\]\([^)]+\)/g, '')

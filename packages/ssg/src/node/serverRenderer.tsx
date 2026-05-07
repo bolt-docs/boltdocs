@@ -13,7 +13,7 @@ export async function renderStaticApp(app: ReactNode): Promise<string> {
   // fallback to react17
   if (!ReactDomServer.renderToPipeableStream) {
     return ReactDomServer.renderToString(<>{app}</>)
-  };
+  }
 
   // Inspired from
   // https://react.dev/reference/react-dom/server/renderToPipeableStream#waiting-for-all-content-to-load-for-crawlers-and-static-generation
@@ -66,11 +66,8 @@ class WritableAsPromise extends Writable {
   }
 
   override _destroy(error: Error | null, next: (error?: Error | null) => void) {
-    if (error instanceof Error)
-      this._deferred.reject(error)
-
-    else
-      next()
+    if (error instanceof Error) this._deferred.reject(error)
+    else next()
   }
 
   override end() {

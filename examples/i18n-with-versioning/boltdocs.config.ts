@@ -6,10 +6,10 @@ export default defineConfig({
     locales: ['en', 'es'],
     localeConfigs: {
       en: {
-        label: "English"
+        label: 'English',
       },
       es: {
-        label: "Spanish"
+        label: 'Spanish',
       },
     },
     defaultLocale: 'en',
@@ -39,10 +39,10 @@ export default defineConfig({
       'getting-started': {
         title: {
           en: 'Getting Started',
-          es: 'Empezando'
+          es: 'Empezando',
         },
-        icon: 'Rocket'
-      }
+        icon: 'Rocket',
+      },
     },
     navbar: [
       {

@@ -1,6 +1,5 @@
 #!/usr/bin/env node
 
-
 /**
  * Stable entry point for the Boltdocs CLI.
  * This file exists in the repository to ensure that pnpm can correctly

@@ -12,19 +12,19 @@ import {
 const STANDARD_VERSION_TYPES: Record<string, ChangelogChange['type']> = {
   features: 'feat',
   'breaking changes': 'feat',
-  'breaking': 'feat',
+  breaking: 'feat',
   'bug fixes': 'fix',
-  'fixes': 'fix',
-  'performance': 'perf',
+  fixes: 'fix',
+  performance: 'perf',
   'build system': 'chore',
-  'builds': 'chore',
-  'tests': 'chore',
-  'chores': 'chore',
-  'documentation': 'docs',
-  'docs': 'docs',
-  'revert': 'fix',
-  'reverts': 'fix',
-  'refactor': 'refactor',
+  builds: 'chore',
+  tests: 'chore',
+  chores: 'chore',
+  documentation: 'docs',
+  docs: 'docs',
+  revert: 'fix',
+  reverts: 'fix',
+  refactor: 'refactor',
   'code refactoring': 'refactor',
 }
 
@@ -32,7 +32,8 @@ function detectStandardVersion(content: string): boolean {
   const versionPattern = /^##\s+(\d+\.\d+\.\d+)\s*\((\d{4}-\d{2}-\d{2})\)/m
   const hasSimpleVersion = versionPattern.test(content)
 
-  const typePattern = /^###\s+(Features|Bug Fixes|BREAKING CHANGES|Build System|Tests|Chores|Documentation)/m
+  const typePattern =
+    /^###\s+(Features|Bug Fixes|BREAKING CHANGES|Build System|Tests|Chores|Documentation)/m
   const hasConventionalTypes = typePattern.test(content)
 
   const hasBulletPoints = /^[*-]\s+/m.test(content)
@@ -49,7 +50,9 @@ function parseStandardVersion(content: string): ChangelogVersion[] {
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i].trim()
 
-    const versionMatch = line.match(/^##\s+(\d+\.\d+\.\d+)\s*\((\d{4}-\d{2}-\d{2})\)/)
+    const versionMatch = line.match(
+      /^##\s+(\d+\.\d+\.\d+)\s*\((\d{4}-\d{2}-\d{2})\)/,
+    )
     if (versionMatch) {
       if (currentVersion) {
         versions.push(currentVersion)

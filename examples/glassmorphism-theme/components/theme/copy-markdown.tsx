@@ -17,20 +17,24 @@ export const CustomCopyMarkdown = ({ mdxRaw }: any) => {
       variant="ghost"
       onPress={handleCopy}
       className={cn(
-        "flex items-center gap-2 px-3 py-1.5 rounded-full transition-all duration-300",
-        "bg-white/[0.05] border border-white/10 hover:bg-white/[0.1] hover:border-white/20",
-        copied ? "text-emerald-400" : "text-white/60 hover:text-white"
+        'flex items-center gap-2 px-3 py-1.5 rounded-full transition-all duration-300',
+        'bg-white/[0.05] border border-white/10 hover:bg-white/[0.1] hover:border-white/20',
+        copied ? 'text-emerald-400' : 'text-white/60 hover:text-white',
       )}
     >
       {copied ? (
         <>
           <Check size={14} />
-          <span className="text-xs font-bold uppercase tracking-wider">Copied</span>
+          <span className="text-xs font-bold uppercase tracking-wider">
+            Copied
+          </span>
         </>
       ) : (
         <>
           <Copy size={14} />
-          <span className="text-xs font-bold uppercase tracking-wider">Copy MDX</span>
+          <span className="text-xs font-bold uppercase tracking-wider">
+            Copy MDX
+          </span>
         </>
       )}
     </Button>

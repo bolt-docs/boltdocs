@@ -46,6 +46,12 @@ The Field component is designed to provide a structured way to document individu
       type: "boolean",
       defaultValue: "false",
       description: "If true, displays a 'required' badge next to the name."
+    },
+    {
+      name: "variant",
+      type: '"default" | "bordered" | "ghost" | "card"',
+      defaultValue: '"card"',
+      description: "The visual style of the Field container."
     }
   ]}
 />
@@ -53,6 +59,30 @@ The Field component is designed to provide a structured way to document individu
 ---
 
 ## Variants & Examples
+
+### Visual Style Variants
+
+Boltdocs supports four beautiful visual variants for Fields. Specify the `variant` prop to change the styling.
+
+#### Card Variant (Default)
+<Field name="siteUrl" type="string" variant="card" defaultValue='"https://boltdocs.dev"'>
+  The elevated, glassmorphic card look with rich interactive highlights.
+</Field>
+
+#### Bordered Variant
+<Field name="siteUrl" type="string" variant="bordered" defaultValue='"https://boltdocs.dev"'>
+  A clean transparent style with high definition border outlining.
+</Field>
+
+#### Ghost Variant
+<Field name="siteUrl" type="string" variant="ghost" defaultValue='"https://boltdocs.dev"'>
+  A minimal borderless layout with subtle background highlighting on hover.
+</Field>
+
+#### Default Variant
+<Field name="siteUrl" type="string" variant="default" defaultValue='"https://boltdocs.dev"'>
+  A line-divider layout perfect for clean stacked lists of fields.
+</Field>
 
 ### Basic Usage
 

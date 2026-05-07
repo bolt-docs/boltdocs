@@ -10,10 +10,10 @@ const tabListVariants = cva(
   {
     variants: {
       variant: {
-        'default': 'border-b border-subtle px-0 pb-px',
-        'bordered': 'border border-subtle bg-transparent p-1.5 rounded-xl',
-        'card': 'border border-subtle bg-surface p-1.5 rounded-xl shadow-xs',
-        'ghost': 'bg-soft/30 p-1.5 rounded-xl',
+        default: 'border-b border-subtle px-0 pb-px',
+        bordered: 'border border-subtle bg-transparent p-1.5 rounded-xl',
+        card: 'border border-subtle bg-surface p-1.5 rounded-xl shadow-xs',
+        ghost: 'bg-soft/30 p-1.5 rounded-xl',
       },
     },
     defaultVariants: {
@@ -90,20 +90,28 @@ export function Tabs({ defaultIndex = 0, children, variant }: TabsProps) {
                     isDisabled && 'opacity-40 pointer-events-none',
                     variant === 'default' && [
                       'rounded-none border-b-2 border-transparent bg-transparent py-2.5',
-                      isSelected ? 'text-primary-500 font-semibold' : 'text-muted hover:text-body'
+                      isSelected
+                        ? 'text-primary-500 font-semibold'
+                        : 'text-muted hover:text-body',
                     ],
                     variant === 'bordered' && [
                       'px-3.5 py-1.5',
-                      isSelected ? 'bg-primary-500 text-white shadow-xs' : 'text-muted hover:text-body hover:bg-soft/50'
+                      isSelected
+                        ? 'bg-primary-500 text-white shadow-xs'
+                        : 'text-muted hover:text-body hover:bg-soft/50',
                     ],
                     variant === 'card' && [
                       'px-3.5 py-1.5',
-                      isSelected ? 'bg-surface text-primary-500 shadow-xs border border-subtle' : 'text-muted hover:text-body hover:bg-soft/30'
+                      isSelected
+                        ? 'bg-surface text-primary-500 shadow-xs border border-subtle'
+                        : 'text-muted hover:text-body hover:bg-soft/30',
                     ],
                     variant === 'ghost' && [
                       'px-3.5 py-1.5',
-                      isSelected ? 'bg-soft text-body shadow-3xs' : 'text-muted hover:text-body hover:bg-soft/30'
-                    ]
+                      isSelected
+                        ? 'bg-soft text-body shadow-3xs'
+                        : 'text-muted hover:text-body hover:bg-soft/30',
+                    ],
                   )
                 }
               >

@@ -1,5 +1,8 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import { getHtmlTemplate, injectHtmlMeta } from '../../packages/core/src/node/plugin/html'
+import {
+  getHtmlTemplate,
+  injectHtmlMeta,
+} from '../../packages/core/src/node/plugin/html'
 import path from 'path'
 import fs from 'fs'
 import os from 'os'
@@ -53,7 +56,9 @@ describe('plugin html', () => {
       const config = { theme: { description: 'My Description' } }
       const result = injectHtmlMeta(baseHtml, config as any)
 
-      expect(result).toContain('<meta name="description" content="My Description">')
+      expect(result).toContain(
+        '<meta name="description" content="My Description">',
+      )
     })
 
     it('should inject OpenGraph meta tags', () => {
@@ -66,10 +71,11 @@ describe('plugin html', () => {
       const result = injectHtmlMeta(baseHtml, config as any)
 
       expect(result).toContain('<meta property="og:title" content="OG Site">')
-      expect(result).toContain('<meta property="og:description" content="OG Description">')
+      expect(result).toContain(
+        '<meta property="og:description" content="OG Description">',
+      )
       expect(result).toContain('<meta property="og:type" content="website">')
     })
-
 
     it('should inject Twitter card meta tags', () => {
       const config = {
@@ -80,9 +86,15 @@ describe('plugin html', () => {
       }
       const result = injectHtmlMeta(baseHtml, config as any)
 
-      expect(result).toContain('<meta name="twitter:card" content="summary_large_image">')
-      expect(result).toContain('<meta name="twitter:title" content="Twitter Site">')
-      expect(result).toContain('<meta name="twitter:description" content="Twitter Desc">')
+      expect(result).toContain(
+        '<meta name="twitter:card" content="summary_large_image">',
+      )
+      expect(result).toContain(
+        '<meta name="twitter:title" content="Twitter Site">',
+      )
+      expect(result).toContain(
+        '<meta name="twitter:description" content="Twitter Desc">',
+      )
     })
 
     it('should inject favicon from string logo', () => {
@@ -201,7 +213,9 @@ describe('plugin html', () => {
         const config = { integrations: { ga4: { measurementId: 'G-TEST123' } } }
         const result = injectHtmlMeta(baseHtml, config as any)
 
-        expect(result).toContain('https://www.googletagmanager.com/gtag/js?id=G-TEST123')
+        expect(result).toContain(
+          'https://www.googletagmanager.com/gtag/js?id=G-TEST123',
+        )
         expect(result).toContain("gtag('config', 'G-TEST123', {});")
       })
 
@@ -215,10 +229,14 @@ describe('plugin html', () => {
 
       it('should inject GA4 script in development if debug is true', () => {
         process.env.NODE_ENV = 'development'
-        const config = { integrations: { ga4: { measurementId: 'G-TEST123', debug: true } } }
+        const config = {
+          integrations: { ga4: { measurementId: 'G-TEST123', debug: true } },
+        }
         const result = injectHtmlMeta(baseHtml, config as any)
 
-        expect(result).toContain('https://www.googletagmanager.com/gtag/js?id=G-TEST123')
+        expect(result).toContain(
+          'https://www.googletagmanager.com/gtag/js?id=G-TEST123',
+        )
         expect(result).toContain("gtag('config', 'G-TEST123', {});")
       })
     })
@@ -237,7 +255,9 @@ describe('plugin html', () => {
 
         expect(result).toContain('https://www.googletagmanager.com/gtm.js?id=')
         expect(result).toContain("'GTM-TEST123'")
-        expect(result).toContain('https://www.googletagmanager.com/ns.html?id=GTM-TEST123')
+        expect(result).toContain(
+          'https://www.googletagmanager.com/ns.html?id=GTM-TEST123',
+        )
         expect(result).toContain('<!-- Google Tag Manager -->')
         expect(result).toContain('<!-- Google Tag Manager (noscript) -->')
       })
@@ -251,6 +271,5 @@ describe('plugin html', () => {
         expect(result).not.toContain('https://www.googletagmanager.com/ns.html')
       })
     })
-
   })
 })

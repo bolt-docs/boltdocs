@@ -50,6 +50,8 @@ export interface ComponentRoute {
   date?: string | Date
   /** The last updated timestamp or date */
   lastUpdated?: string | number | Date
+  /** Raw extensible frontmatter data for custom components and formatters */
+  frontmatter?: Record<string, any>
 }
 
 /**

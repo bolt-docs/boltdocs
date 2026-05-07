@@ -20,7 +20,11 @@ export async function buildAction(root: string = process.cwd()) {
     const config = await resolveConfig('docs', root)
 
     // Generate routes to map paths to source files
-    const routes = await generateRoutes(path.resolve(root, 'docs'), config, viteConfig.base)
+    const routes = await generateRoutes(
+      path.resolve(root, 'docs'),
+      config,
+      viteConfig.base,
+    )
     const routeToSourceFileMap: Record<string, string> = {}
     for (const route of routes) {
       if (route.path && route.componentPath) {
@@ -33,11 +37,14 @@ export async function buildAction(root: string = process.cwd()) {
 
     // We use virtual modules and internalized HTML injection,
     // so no physical files need to be written to the project root.
-    await ssgBuild({
-      entry: 'boltdocs/entry',
-      routeToSourceFileMap,
-      cacheDir: path.resolve(root, '.boltdocs'),
-    }, viteConfig)
+    await ssgBuild(
+      {
+        entry: 'boltdocs/entry',
+        routeToSourceFileMap,
+        cacheDir: path.resolve(root, '.boltdocs'),
+      },
+      viteConfig,
+    )
     ui.success('SSG build completed successfully!')
   } catch (e) {
     ui.error('Build failed:', e)

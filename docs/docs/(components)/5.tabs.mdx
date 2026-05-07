@@ -34,6 +34,12 @@ The Tabs component is used to organize content into multiple views, allowing use
       type: "number",
       defaultValue: "0",
       description: "The index of the tab that should be open by default."
+    },
+    {
+      name: "variant",
+      type: '"default" | "bordered" | "ghost" | "card"',
+      defaultValue: '"default"',
+      description: "The visual style of the tabs container and its tab items."
     }
   ]}
 />
@@ -65,6 +71,66 @@ The Tabs component is used to organize content into multiple views, allowing use
 ---
 
 ## Variants & Examples
+
+### Visual Style Variants
+
+Boltdocs supports four beautiful visual variants for Tabs. Specify the `variant` prop on the `<Tabs>` container to choose.
+
+#### Default Variant (Underlined Line)
+<Tabs variant="default">
+  <Tab label="npm" icon={<Package />}>
+    ```bash
+    npm install boltdocs
+    ```
+  </Tab>
+  <Tab label="pnpm" icon={<Layers />}>
+    ```bash
+    pnpm add boltdocs
+    ```
+  </Tab>
+</Tabs>
+
+#### Card Variant (Pill Selector)
+<Tabs variant="card">
+  <Tab label="npm" icon={<Package />}>
+    ```bash
+    npm install boltdocs
+    ```
+  </Tab>
+  <Tab label="pnpm" icon={<Layers />}>
+    ```bash
+    pnpm add boltdocs
+    ```
+  </Tab>
+</Tabs>
+
+#### Bordered Variant
+<Tabs variant="bordered">
+  <Tab label="npm" icon={<Package />}>
+    ```bash
+    npm install boltdocs
+    ```
+  </Tab>
+  <Tab label="pnpm" icon={<Layers />}>
+    ```bash
+    pnpm add boltdocs
+    ```
+  </Tab>
+</Tabs>
+
+#### Ghost Variant
+<Tabs variant="ghost">
+  <Tab label="npm" icon={<Package />}>
+    ```bash
+    npm install boltdocs
+    ```
+  </Tab>
+  <Tab label="pnpm" icon={<Layers />}>
+    ```bash
+    pnpm add boltdocs
+    ```
+  </Tab>
+</Tabs>
 
 ### Basic Usage
 

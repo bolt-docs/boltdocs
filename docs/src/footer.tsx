@@ -1,4 +1,4 @@
-import { Link } from "boltdocs/client";
+import { Link } from 'boltdocs/client'
 
 export const Footer = () => (
   <footer className="pt-24 px-6">
@@ -7,13 +7,22 @@ export const Footer = () => (
         © {new Date().getFullYear()} Boltdocs Engine. Open source MIT.
       </p>
       <div className="flex flex-row gap-4">
-        <Link to="https://github.com/bolt-docs/boltdocs/blob/main/CONTRIBUTING.md" className="text-body/70 text-sm">
+        <Link
+          to="https://github.com/bolt-docs/boltdocs/blob/main/CONTRIBUTING.md"
+          className="text-body/70 text-sm"
+        >
           Contribute
         </Link>
-        <Link to="https://github.com/bolt-docs/boltdocs/issues" className="text-body/70 text-sm">
+        <Link
+          to="https://github.com/bolt-docs/boltdocs/issues"
+          className="text-body/70 text-sm"
+        >
           Issues
         </Link>
-        <Link to="https://github.com/bolt-docs/boltdocs/" className="text-body/70 text-sm">
+        <Link
+          to="https://github.com/bolt-docs/boltdocs/"
+          className="text-body/70 text-sm"
+        >
           Github
         </Link>
         <Link to="/roadmap" className="text-body/70 text-sm">

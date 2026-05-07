@@ -16,10 +16,8 @@ function fromNodeHeaders(nodeHeaders: IncomingHttpHeaders): Headers {
   for (const [key, values] of Object.entries(nodeHeaders)) {
     if (values) {
       if (Array.isArray(values)) {
-        for (const value of values)
-          headers.append(key, value)
-      }
-      else {
+        for (const value of values) headers.append(key, value)
+      } else {
         headers.set(key, values)
       }
     }
@@ -32,15 +30,12 @@ function fromNodeHeaders(nodeHeaders: IncomingHttpHeaders): Headers {
 export function fromNodeRequest(
   nodeReq: Vite.Connect.IncomingMessage,
 ): Request {
-  const origin
-    = nodeReq.headers.origin && nodeReq.headers.origin !== 'null'
+  const origin =
+    nodeReq.headers.origin && nodeReq.headers.origin !== 'null'
       ? nodeReq.headers.origin
       : `http://${nodeReq.headers.host}`
   // Use `req.originalUrl` so Remix is aware of the full path
-  invariant(
-    nodeReq.originalUrl,
-    'Expected `nodeReq.originalUrl` to be defined',
-  )
+  invariant(nodeReq.originalUrl, 'Expected `nodeReq.originalUrl` to be defined')
   const url = new URL(nodeReq.originalUrl, origin)
   const init: RequestInit = {
     method: nodeReq.method,
@@ -81,8 +76,7 @@ export async function toNodeRequest(res: Response, nodeRes: ServerResponse) {
     const readable = Readable.from(responseBody)
     readable.pipe(nodeRes)
     await once(readable, 'end')
-  }
-  else {
+  } else {
     nodeRes.end()
   }
 }
@@ -91,11 +85,12 @@ export function json(data: any, init?: ResponseInit | number) {
   if (init === void 0) {
     init = {}
   }
-  const responseInit = typeof init === 'number'
-    ? {
-        status: init,
-      }
-    : init
+  const responseInit =
+    typeof init === 'number'
+      ? {
+          status: init,
+        }
+      : init
   const headers = new Headers(responseInit.headers)
   if (!headers.has('Content-Type')) {
     headers.set('Content-Type', 'application/json; charset=utf-8')
@@ -117,7 +112,7 @@ export function stripDataParam(request: Request) {
   }
 
   if (init.body) {
-    (init as { duplex: 'half' }).duplex = 'half'
+    ;(init as { duplex: 'half' }).duplex = 'half'
   }
 
   return new Request(url.href, init)

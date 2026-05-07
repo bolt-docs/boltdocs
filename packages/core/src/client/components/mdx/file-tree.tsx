@@ -31,13 +31,13 @@ const treeVariants = cva(
         default: 'border-none bg-transparent rounded-none p-0',
         bordered: 'border border-subtle bg-transparent rounded-xl p-4',
         card: 'rounded-xl border border-subtle bg-surface/50 p-4 shadow-sm backdrop-blur-sm',
-        ghost: 'border-none bg-transparent rounded-xl p-3 hover:bg-soft/20'
-      }
+        ghost: 'border-none bg-transparent rounded-xl p-3 hover:bg-soft/20',
+      },
     },
     defaultVariants: {
-      variant: 'card'
-    }
-  }
+      variant: 'card',
+    },
+  },
 )
 
 const ICON_SIZE = 16

@@ -53,7 +53,9 @@ The List component wraps standard `<li>` elements. It defaults to the `default` 
 
 Use `checked` for features or completed tasks, and `arrow` for directional or sequential lists.
 
-<Cards>
+<ComponentPreview
+  code={`
+<div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
   <List variant="checked">
     <li>Everything is included</li>
     <li>No configuration required</li>
@@ -62,5 +64,19 @@ Use `checked` for features or completed tasks, and `arrow` for directional or se
     <li>Follow the path</li>
     <li>Reach the goal</li>
   </List>
-</Cards>
+</div>
+`}
+  preview={
+    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+      <List variant="checked">
+        <li>Everything is included</li>
+        <li>No configuration required</li>
+      </List>
+      <List variant="arrow">
+        <li>Follow the path</li>
+        <li>Reach the goal</li>
+      </List>
+    </div>
+  }
+/>
 

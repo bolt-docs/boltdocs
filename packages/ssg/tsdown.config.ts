@@ -34,7 +34,8 @@ export default defineConfig([
   {
     ...commonConfig,
     entry: {
-      'style-collectors/styled-components': 'src/style-collectors/styled-components.ts',
+      'style-collectors/styled-components':
+        'src/style-collectors/styled-components.ts',
     },
     platform: 'node',
   },

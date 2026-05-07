@@ -127,7 +127,11 @@ describe('parseDocFile', () => {
         content: '',
       })
 
-      const result = await parseDocFile('C:\\docs\\01.introduction.md', docsDir, basePath)
+      const result = await parseDocFile(
+        'C:\\docs\\01.introduction.md',
+        docsDir,
+        basePath,
+      )
 
       expect(result.route.title).toBe('introduction')
     })
@@ -241,7 +245,10 @@ describe('parseDocFile', () => {
       const config: any = {
         i18n: { locales: { es: { label: 'Spanish' } } },
       }
-      ;(utils.parseFrontmatterAsync as any).mockResolvedValue({ data: {}, content: '' })
+      ;(utils.parseFrontmatterAsync as any).mockResolvedValue({
+        data: {},
+        content: '',
+      })
       const result = await parseDocFile(
         'C:\\docs\\es\\guide.md',
         'C:\\docs',
@@ -258,7 +265,10 @@ describe('parseDocFile', () => {
           versions: [{ label: 'v1', path: 'v1' }],
         },
       }
-      ;(utils.parseFrontmatterAsync as any).mockResolvedValue({ data: {}, content: '' })
+      ;(utils.parseFrontmatterAsync as any).mockResolvedValue({
+        data: {},
+        content: '',
+      })
       const result = await parseDocFile(
         'C:\\docs\\v1\\install.md',
         'C:\\docs',
@@ -276,7 +286,10 @@ describe('parseDocFile', () => {
         },
         i18n: { locales: { es: { label: 'Spanish' } } },
       }
-      ;(utils.parseFrontmatterAsync as any).mockResolvedValue({ data: {}, content: '' })
+      ;(utils.parseFrontmatterAsync as any).mockResolvedValue({
+        data: {},
+        content: '',
+      })
       const result = await parseDocFile(
         'C:\\docs\\v1\\es\\guide.md',
         'C:\\docs',
@@ -295,7 +308,10 @@ describe('parseDocFile', () => {
         },
         i18n: { locales: { es: { label: 'Spanish' } } },
       }
-      ;(utils.parseFrontmatterAsync as any).mockResolvedValue({ data: {}, content: '' })
+      ;(utils.parseFrontmatterAsync as any).mockResolvedValue({
+        data: {},
+        content: '',
+      })
       const result = await parseDocFile(
         'C:\\docs\\v1\\es\\(api)\\reference.md',
         'C:\\docs',
@@ -426,7 +442,7 @@ describe('parseDocFile', () => {
         data: {
           'og:title': 'Social Title',
           'twitter:card': 'summary_large_image',
-          'robots': 'noindex',
+          robots: 'noindex',
         },
         content: '# Content',
       })
@@ -436,7 +452,7 @@ describe('parseDocFile', () => {
       expect(result.route.seo).toEqual({
         'og:title': 'Social Title',
         'twitter:card': 'summary_large_image',
-        'robots': 'noindex',
+        robots: 'noindex',
       })
     })
 
@@ -445,7 +461,7 @@ describe('parseDocFile', () => {
         data: {
           seo: {
             'og:image': '/custom-og.png',
-            'canonical': 'https://example.com/custom',
+            canonical: 'https://example.com/custom',
           },
         },
         content: '# Content',
@@ -455,7 +471,7 @@ describe('parseDocFile', () => {
 
       expect(result.route.seo).toEqual({
         'og:image': '/custom-og.png',
-        'canonical': 'https://example.com/custom',
+        canonical: 'https://example.com/custom',
       })
     })
 
@@ -498,7 +514,7 @@ describe('parseDocFile', () => {
     it('should throw an error if the file is outside the docs directory', async () => {
       const filePath = 'C:\\outside\\file.md'
       await expect(parseDocFile(filePath, docsDir, basePath)).rejects.toThrow(
-        /Security breach: File is outside of docs directory/
+        /Security breach: File is outside of docs directory/,
       )
     })
 
@@ -515,7 +531,7 @@ describe('parseDocFile', () => {
         content: '',
       })
       await expect(parseDocFile(filePath, docsDir, basePath)).rejects.toThrow(
-        'Security breach: Invalid characters or encoding in path'
+        'Security breach: Invalid characters or encoding in path',
       )
     })
   })
@@ -554,7 +570,11 @@ describe('parseDocFile', () => {
         content: '',
       })
 
-      const result = await parseDocFile('C:\\docs\\guide\\test.md', docsDir, basePath)
+      const result = await parseDocFile(
+        'C:\\docs\\guide\\test.md',
+        docsDir,
+        basePath,
+      )
 
       expect(result.route.filePath).toBe('guide/test.md')
     })

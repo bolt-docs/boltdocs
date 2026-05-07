@@ -1,29 +1,25 @@
-import { 
-  DocsLayout, 
-  Navbar, 
-  Sidebar, 
-  OnThisPage, 
-  Head, 
-  Breadcrumbs, 
-  PageNav, 
-  ErrorBoundary, 
-  CopyMarkdown, 
-  useRoutes, 
-  useConfig, 
+import {
+  DocsLayout,
+  Navbar,
+  Sidebar,
+  OnThisPage,
+  Head,
+  Breadcrumbs,
+  PageNav,
+  ErrorBoundary,
+  CopyMarkdown,
+  useRoutes,
+  useConfig,
   useMdxComponents,
-  useLocation
+  useLocation,
 } from 'boltdocs/client'
 
 export default function Layout({ children }: { children: React.ReactNode }) {
-  const { 
-    routes: filteredRoutes, 
-    allRoutes, 
-    currentRoute 
-  } = useRoutes()
+  const { routes: filteredRoutes, allRoutes, currentRoute } = useRoutes()
   const { pathname } = useLocation()
   const config = useConfig()
   const mdxComponents = useMdxComponents()
-  
+
   // Allow CopyMarkdown override via mdx-components.tsx
   const CopyMarkdownComp = (mdxComponents.CopyMarkdown as any) || CopyMarkdown
 

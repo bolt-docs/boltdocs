@@ -29,15 +29,29 @@ cli
   )
 
 cli
-  .command('generate-changelog <file>', 'Generate changelog documentation from CHANGELOG.md')
-  .option('-o, --output <path>', 'Output folder (default: docs/changelog)', { default: 'docs/changelog' })
-  .option('-t, --title <text>', 'Title for changelog pages', { default: 'Changelog' })
-  .option('--infer-tab', 'Infer tab from folder name (default: true)', { default: true })
+  .command(
+    'generate-changelog <file>',
+    'Generate changelog documentation from CHANGELOG.md',
+  )
+  .option('-o, --output <path>', 'Output folder (default: docs/changelog)', {
+    default: 'docs/changelog',
+  })
+  .option('-t, --title <text>', 'Title for changelog pages', {
+    default: 'Changelog',
+  })
+  .option('--infer-tab', 'Infer tab from folder name (default: true)', {
+    default: true,
+  })
   .option('-l, --limit <number>', 'Limit number of versions to generate')
   .action(
     async (
       file: string,
-      options: { output?: string; title?: string; inferTab?: boolean; limit?: number },
+      options: {
+        output?: string
+        title?: string
+        inferTab?: boolean
+        limit?: number
+      },
     ) => {
       const { generateChangelog } = await import('./changelog/generator')
       await generateChangelog(file, {

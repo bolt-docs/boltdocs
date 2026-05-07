@@ -9,9 +9,10 @@ export function parseChangelog(content: string): ChangelogVersion[] {
   return parseWithAutoDetect(content)
 }
 
-export function parseChangelogWithDetection(
-  content: string,
-): { versions: ChangelogVersion[]; parserName: string } {
+export function parseChangelogWithDetection(content: string): {
+  versions: ChangelogVersion[]
+  parserName: string
+} {
   const { parser } = detectParser(content)
   return {
     versions: parser?.parse(content) || [],

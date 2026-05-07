@@ -50,7 +50,10 @@ describe('utils', () => {
     })
 
     it('getFileMtime should return mtime or 0 on error', () => {
-      const tempFile = path.join(os.tmpdir(), `boltdocs-utils-test-${Date.now()}.txt`)
+      const tempFile = path.join(
+        os.tmpdir(),
+        `boltdocs-utils-test-${Date.now()}.txt`,
+      )
       fs.writeFileSync(tempFile, 'hello')
       expect(getFileMtime(tempFile)).toBeGreaterThan(0)
       expect(getFileMtime('nonexistent')).toBe(0)
@@ -66,7 +69,10 @@ describe('utils', () => {
 
   describe('Content Parsing & Escaping', () => {
     it('parseFrontmatter should parse YAML frontmatter', () => {
-      const tempFile = path.join(os.tmpdir(), `boltdocs-utils-test-fm-${Date.now()}.md`)
+      const tempFile = path.join(
+        os.tmpdir(),
+        `boltdocs-utils-test-fm-${Date.now()}.md`,
+      )
       fs.writeFileSync(tempFile, '---\ntitle: Hello\n---\n# World')
       const { data, content } = parseFrontmatter(tempFile)
       expect(data.title).toBe('Hello')
@@ -75,7 +81,10 @@ describe('utils', () => {
     })
 
     it('parseFrontmatterAsync should parse YAML frontmatter asynchronously', async () => {
-      const tempFile = path.join(os.tmpdir(), `boltdocs-utils-test-fm-async-${Date.now()}.md`)
+      const tempFile = path.join(
+        os.tmpdir(),
+        `boltdocs-utils-test-fm-async-${Date.now()}.md`,
+      )
       fs.writeFileSync(tempFile, '---\ntitle: Hello Async\n---\n# Async World')
       const { data, content } = await parseFrontmatterAsync(tempFile)
       expect(data.title).toBe('Hello Async')
@@ -85,7 +94,8 @@ describe('utils', () => {
 
     it('escapeHtml and escapeXml should escape special characters', () => {
       const raw = '<script src="bad.js">&</script>'
-      const escaped = '&lt;script src=&quot;bad.js&quot;&gt;&amp;&lt;/script&gt;'
+      const escaped =
+        '&lt;script src=&quot;bad.js&quot;&gt;&amp;&lt;/script&gt;'
       expect(escapeHtml(raw)).toBe(escaped)
       expect(escapeXml(raw)).toBe(escaped)
     })
@@ -119,13 +129,13 @@ describe('utils', () => {
 
     it('getCacheConfig should read from process.env', () => {
       const original = process.env.BOLTDOCS_NO_CACHE
-      
+
       process.env.BOLTDOCS_NO_CACHE = '1'
       expect(getCacheConfig().noCache).toBe(true)
-      
+
       process.env.BOLTDOCS_NO_CACHE = '0'
       expect(getCacheConfig().noCache).toBe(false)
-      
+
       if (original === undefined) delete process.env.BOLTDOCS_NO_CACHE
       else process.env.BOLTDOCS_NO_CACHE = original
     })

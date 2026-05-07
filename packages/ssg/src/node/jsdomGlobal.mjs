@@ -30,7 +30,8 @@ SOFTWARE.
  */
 import JSDOM from 'jsdom'
 
-const defaultHtml = '<!doctype html><html><head><meta charset="utf-8"></head><body></body></html>'
+const defaultHtml =
+  '<!doctype html><html><head><meta charset="utf-8"></head><body></body></html>'
 
 // define this here so that we only ever dynamically populate KEYS once.
 
@@ -38,11 +39,13 @@ const KEYS = []
 
 export function jsdomGlobal(html = defaultHtml, options = {}) {
   // Idempotency
-  if (global.navigator
-    && global.navigator.userAgent
-    && global.navigator.userAgent.includes('Node.js')
-    && global.document
-    && typeof global.document.destroy === 'function') {
+  if (
+    global.navigator &&
+    global.navigator.userAgent &&
+    global.navigator.userAgent.includes('Node.js') &&
+    global.document &&
+    typeof global.document.destroy === 'function'
+  ) {
     return global.document.destroy
   }
 
@@ -64,12 +67,16 @@ export function jsdomGlobal(html = defaultHtml, options = {}) {
   // that node already defines
 
   if (KEYS.length === 0) {
-    KEYS.push(...Object.getOwnPropertyNames(window).filter(k => !k.startsWith('_')).filter(k => !(k in global)))
+    KEYS.push(
+      ...Object.getOwnPropertyNames(window)
+        .filter((k) => !k.startsWith('_'))
+        .filter((k) => !(k in global)),
+    )
     // going to add our jsdom instance, see below
     KEYS.push('$jsdom')
   }
 
-  KEYS.forEach(key => global[key] = window[key])
+  KEYS.forEach((key) => (global[key] = window[key]))
 
   // setup document / window / window.console
   global.document = document
@@ -79,7 +86,7 @@ export function jsdomGlobal(html = defaultHtml, options = {}) {
   // add access to our jsdom instance
   global.$jsdom = jsdom
 
-  const cleanup = () => KEYS.forEach(key => delete global[key])
+  const cleanup = () => KEYS.forEach((key) => delete global[key])
 
   document.destroy = cleanup
 

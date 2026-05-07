@@ -4,23 +4,20 @@ import { cn } from '../../utils/cn'
 import { cva } from 'class-variance-authority'
 import type { VariantProps } from 'class-variance-authority'
 
-const collapseVariants = cva(
-  'overflow-hidden transition-all duration-300',
-  {
-    variants: {
-      variant: {
-        default: 'border-b border-subtle last:border-b-0 py-1',
-        bordered: 'border border-subtle bg-transparent hover:border-strong rounded-xl mb-3',
-        card: 'border border-subtle bg-surface shadow-xs hover:shadow-sm rounded-xl mb-3',
-        ghost: 'border-none bg-transparent mb-1 rounded-lg',
-      },
-    },
-    defaultVariants: {
-      variant: 'card',
+const collapseVariants = cva('overflow-hidden transition-all duration-300', {
+  variants: {
+    variant: {
+      default: 'border-b border-subtle last:border-b-0 py-1',
+      bordered:
+        'border border-subtle bg-transparent hover:border-strong rounded-xl mb-3',
+      card: 'border border-subtle bg-surface shadow-xs hover:shadow-sm rounded-xl mb-3',
+      ghost: 'border-none bg-transparent mb-1 rounded-lg',
     },
   },
-)
-
+  defaultVariants: {
+    variant: 'card',
+  },
+})
 
 // Context for CollapseGroup (Accordion)
 interface CollapseGroupContextType {
@@ -29,7 +26,9 @@ interface CollapseGroupContextType {
   accordion?: boolean
 }
 
-const CollapseGroupContext = createContext<CollapseGroupContextType | null>(null)
+const CollapseGroupContext = createContext<CollapseGroupContextType | null>(
+  null,
+)
 
 export interface CollapseGroupProps {
   children: React.ReactNode
@@ -52,9 +51,7 @@ export function CollapseGroup({
 
   return (
     <CollapseGroupContext.Provider value={{ openId, toggleId, accordion }}>
-      <div className={cn('space-y-3 my-6', className)}>
-        {children}
-      </div>
+      <div className={cn('space-y-3 my-6', className)}>{children}</div>
     </CollapseGroupContext.Provider>
   )
 }
@@ -123,16 +120,16 @@ export function Collapse({
       'hover:bg-soft/30': variant === 'ghost',
       'hover:bg-soft/40': variant !== 'ghost',
       'text-primary-500': isOpen,
-      'text-body hover:text-primary-500': !isOpen
-    }
+      'text-body hover:text-primary-500': !isOpen,
+    },
   )
 
   const contentClasses = cn(
     'grid transition-all duration-300 ease-[var(--ease-snappy,cubic-bezier(0.2,0,0,1))]',
     {
       'grid-rows-[1fr] opacity-100': isOpen,
-      'grid-rows-[0fr] opacity-0': !isOpen
-    }
+      'grid-rows-[0fr] opacity-0': !isOpen,
+    },
   )
 
   return (
@@ -147,13 +144,19 @@ export function Collapse({
         className={headerClasses}
       >
         <span className="flex items-center gap-3">
-          {icon && <span className="text-muted shrink-0 [&>svg]:w-4 [&>svg]:h-4">{icon}</span>}
+          {icon && (
+            <span className="text-muted shrink-0 [&>svg]:w-4 [&>svg]:h-4">
+              {icon}
+            </span>
+          )}
           <span className="text-sm font-semibold tracking-tight">{title}</span>
         </span>
-        <span className={cn(
-          'text-muted transition-transform duration-300 shrink-0 ml-4',
-          isOpen && 'rotate-90 text-primary-500'
-        )}>
+        <span
+          className={cn(
+            'text-muted transition-transform duration-300 shrink-0 ml-4',
+            isOpen && 'rotate-90 text-primary-500',
+          )}
+        >
           <ChevronRight size={16} />
         </span>
       </div>

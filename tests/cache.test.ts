@@ -24,7 +24,7 @@ describe('cache system', () => {
   afterEach(async () => {
     // Wait for any pending background operations to complete
     await flushCache()
-    
+
     if (fs.existsSync(tempDir)) {
       try {
         // Retry cleanup a few times in case files are still being written
@@ -33,7 +33,7 @@ describe('cache system', () => {
             fs.rmSync(tempDir, { recursive: true, force: true })
             break
           } catch {
-            await new Promise(resolve => setTimeout(resolve, 200))
+            await new Promise((resolve) => setTimeout(resolve, 200))
           }
         }
       } catch (e) {
@@ -48,25 +48,25 @@ describe('cache system', () => {
   describe('LRUCache (via TransformCache)', () => {
     it('should use LRU memory cache for fast access', async () => {
       const cache = new TransformCache('lru-test', tempDir)
-      
+
       cache.set('key', 'value')
       const result1 = cache.get('key')
       expect(result1).toBe('value')
-      
+
       const result2 = cache.get('key')
       expect(result2).toBe('value')
     })
 
     it('should handle entries with LRU eviction', async () => {
       const cache = new TransformCache('lru-large', tempDir)
-      
+
       // Add 50 entries instead of 100 to be faster
       for (let i = 0; i < 50; i++) {
         cache.set(`key${i}`, `value${i}`)
       }
-      
+
       expect(cache.size).toBe(50)
-      
+
       // Just flush and don't wait for access patterns
       await cache.flush()
     }, 10000)
@@ -81,7 +81,7 @@ describe('cache system', () => {
 
       // Before flush, file might not exist yet
       const cacheFile = path.join(tempDir, '.boltdocs', 'queue-test.json.gz')
-      
+
       // After flush, file should exist
       await cache.flush()
       expect(fs.existsSync(cacheFile)).toBe(true)
@@ -90,18 +90,18 @@ describe('cache system', () => {
     it('should handle multiple concurrent saves', async () => {
       const cache1 = new FileCache<string>({ name: 'multi1', root: tempDir })
       const cache2 = new FileCache<string>({ name: 'multi2', root: tempDir })
-      
+
       cache1.set('file.md', 'data1')
       cache2.set('file.md', 'data2')
-      
+
       cache1.save()
       cache2.save()
-      
+
       await flushCache()
-      
+
       const file1 = path.join(tempDir, '.boltdocs', 'multi1.json.gz')
       const file2 = path.join(tempDir, '.boltdocs', 'multi2.json.gz')
-      
+
       expect(fs.existsSync(file1)).toBe(true)
       expect(fs.existsSync(file2)).toBe(true)
     })
@@ -144,9 +144,9 @@ describe('cache system', () => {
       const cache = new FileCache<string>({ name: 'test', root: tempDir })
       cache.set('file1.md', 'data1')
       cache.set('file2.md', 'data2')
-      
+
       cache.invalidate('file1.md')
-      
+
       expect(cache.get('file1.md')).toBeNull()
       expect(cache.get('file2.md')).not.toBeNull()
       expect(cache.size).toBe(1)
@@ -156,9 +156,9 @@ describe('cache system', () => {
       const cache = new FileCache<string>({ name: 'test', root: tempDir })
       cache.set('file1.md', 'data1')
       cache.set('file2.md', 'data2')
-      
+
       cache.invalidateAll()
-      
+
       expect(cache.size).toBe(0)
     })
 
@@ -167,10 +167,10 @@ describe('cache system', () => {
       cache.set('file1.md', 'data1')
       cache.set('file2.md', 'data2')
       cache.set('file3.md', 'data3')
-      
+
       const currentFiles = new Set(['file1.md', 'file3.md'])
       cache.pruneStale(currentFiles)
-      
+
       expect(cache.get('file1.md')).not.toBeNull()
       expect(cache.get('file2.md')).toBeNull()
       expect(cache.get('file3.md')).not.toBeNull()
@@ -180,27 +180,27 @@ describe('cache system', () => {
     it('should check validity of file entries', () => {
       const cache = new FileCache<string>({ name: 'test', root: tempDir })
       cache.set('file.md', 'data')
-      
+
       expect(cache.isValid('file.md')).toBe(true)
       expect(cache.isValid('nonexistent.md')).toBe(false)
     })
 
     it('should respect BOLTDOCS_NO_CACHE environment variable', () => {
       process.env.BOLTDOCS_NO_CACHE = '1'
-      
+
       const cache = new FileCache<string>({ name: 'test', root: tempDir })
       cache.set('file.md', 'data')
       cache.save()
-      
+
       // Should not create cache files
       expect(fs.existsSync(path.join(tempDir, '.boltdocs'))).toBe(false)
     })
 
     it('should handle uncompressed cache when compress is false', async () => {
-      const cache = new FileCache<string>({ 
-        name: 'uncompressed', 
-        root: tempDir, 
-        compress: false 
+      const cache = new FileCache<string>({
+        name: 'uncompressed',
+        root: tempDir,
+        compress: false,
       })
       cache.set('file.md', 'data')
       cache.save()
@@ -273,18 +273,18 @@ describe('cache system', () => {
 
     it('should handle sharding correctly', async () => {
       const cache = new TransformCache('shard', tempDir)
-      
+
       cache.set('key1', 'value1')
       cache.set('key2', 'value2')
       cache.set('key3', 'value3')
-      
+
       await cache.flush()
-      
+
       // All should be in memory
       expect(cache.get('key1')).toBe('value1')
       expect(cache.get('key2')).toBe('value2')
       expect(cache.get('key3')).toBe('value3')
-      
+
       // Size should be 3
       expect(cache.size).toBe(3)
     })
@@ -298,18 +298,18 @@ describe('cache system', () => {
       // Verify index.json was created
       const baseDir = path.join(tempDir, '.boltdocs', 'transform-persist')
       const indexPath = path.join(baseDir, 'index.json')
-      
+
       // Check that the directory was created
       expect(fs.existsSync(baseDir)).toBe(true)
     })
 
     it('should respect BOLTDOCS_NO_CACHE', async () => {
       process.env.BOLTDOCS_NO_CACHE = '1'
-      
+
       const cache = new TransformCache('disabled', tempDir)
       await cache.load()
       cache.save()
-      
+
       // Should not create files
       expect(fs.existsSync(path.join(tempDir, '.boltdocs'))).toBe(false)
     })
@@ -325,13 +325,13 @@ describe('cache system', () => {
 
     it('should use LRU memory cache for fast access', async () => {
       const cache = new TransformCache('lru-test', tempDir)
-      
+
       cache.set('key', 'value')
-      
+
       // First get populates memory
       const result1 = cache.get('key')
       expect(result1).toBe('value')
-      
+
       // Should be in memory now (can't directly test this, but should be fast)
       const result2 = cache.get('key')
       expect(result2).toBe('value')
@@ -367,7 +367,7 @@ describe('cache system', () => {
 
       const hit1 = cache.get(source, 'v1')
       const hit2 = cache.get(source, 'v2')
-      
+
       expect(hit1).not.toBeNull()
       expect(hit2).not.toBeNull()
       expect(hit1).not.toBe(hit2)
@@ -381,7 +381,9 @@ describe('cache system', () => {
       cache.set(source, 'v1', 'content')
       cache.clear()
 
-      expect(fs.existsSync(path.join(tempDir, '.boltdocs', 'assets'))).toBe(false)
+      expect(fs.existsSync(path.join(tempDir, '.boltdocs', 'assets'))).toBe(
+        false,
+      )
     })
   })
 
@@ -392,7 +394,7 @@ describe('cache system', () => {
       cache.save()
 
       await flushCache()
-      
+
       // After flush, file should be written
       const cacheFile = path.join(tempDir, '.boltdocs', 'flush-test.json.gz')
       expect(fs.existsSync(cacheFile)).toBe(true)

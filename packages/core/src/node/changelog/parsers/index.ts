@@ -13,9 +13,10 @@ export const parsers: ChangelogParser[] = [
   changesetsParser,
 ]
 
-export function detectParser(
-  content: string,
-): { parser: ChangelogParser | null; name: string } {
+export function detectParser(content: string): {
+  parser: ChangelogParser | null
+  name: string
+} {
   for (const parser of parsers) {
     if (parser.detect(content)) {
       return { parser, name: parser.name }
@@ -30,4 +31,9 @@ export function parseWithAutoDetect(content: string) {
   return parser?.parse(content) || []
 }
 
-export { changesetsParser, keepAChangelogParser, semanticReleaseParser, standardVersionParser }
+export {
+  changesetsParser,
+  keepAChangelogParser,
+  semanticReleaseParser,
+  standardVersionParser,
+}

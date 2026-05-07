@@ -19,7 +19,9 @@ describe('boltdocsPlugin', () => {
 
   describe('plugin features', () => {
     it('should have security headers defined', async () => {
-      const { SECURITY_HEADERS } = await import('../../packages/core/src/node/security/headers')
+      const { SECURITY_HEADERS } = await import(
+        '../../packages/core/src/node/security/headers'
+      )
       expect(SECURITY_HEADERS).toBeDefined()
     })
   })

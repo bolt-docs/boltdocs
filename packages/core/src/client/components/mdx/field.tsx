@@ -1,23 +1,20 @@
 import { cn } from '../../utils/cn'
 import { cva, type VariantProps } from 'class-variance-authority'
 
-
-const fieldVariants = cva(
-  'group relative my-8 transition-all duration-300',
-  {
-    variants: {
-      variant: {
-        default: 'border-b border-subtle rounded-none py-6 last:border-b-0',
-        bordered: 'border border-subtle bg-transparent rounded-2xl p-6 hover:border-strong',
-        card: 'border border-subtle bg-surface/40 p-6 rounded-2xl hover:bg-surface hover:shadow-xl hover:shadow-black/5 hover:-translate-y-0.5',
-        ghost: 'border-none bg-transparent rounded-xl p-4 hover:bg-soft/20'
-      }
+const fieldVariants = cva('group relative my-8 transition-all duration-300', {
+  variants: {
+    variant: {
+      default: 'border-b border-subtle rounded-none py-6 last:border-b-0',
+      bordered:
+        'border border-subtle bg-transparent rounded-2xl p-6 hover:border-strong',
+      card: 'border border-subtle bg-surface/40 p-6 rounded-2xl hover:bg-surface hover:shadow-xl hover:shadow-black/5 hover:-translate-y-0.5',
+      ghost: 'border-none bg-transparent rounded-xl p-4 hover:bg-soft/20',
     },
-    defaultVariants: {
-      variant: 'card'
-    }
-  }
-)
+  },
+  defaultVariants: {
+    variant: 'card',
+  },
+})
 
 export interface FieldProps extends VariantProps<typeof fieldVariants> {
   name: string
@@ -40,12 +37,7 @@ export function Field({
   className = '',
 }: FieldProps) {
   return (
-    <article
-      className={cn(
-        fieldVariants({ variant }), className
-      )}
-      id={id}
-    >
+    <article className={cn(fieldVariants({ variant }), className)} id={id}>
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between mb-5">
         <div className="flex flex-wrap items-center gap-3">
           <code className="inline-flex items-center rounded-lg bg-primary-500/10 px-3 py-1 font-mono text-sm font-bold text-primary-400 border border-primary-500/20 shadow-sm transition-colors group-hover:bg-primary-500/15">

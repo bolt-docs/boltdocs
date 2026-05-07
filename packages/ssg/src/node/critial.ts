@@ -1,7 +1,10 @@
 import type Beasties from 'beasties'
 import type { Options } from 'beasties'
 
-export async function getBeasties(outDir: string, options: Options = {}): Promise<Beasties | undefined> {
+export async function getBeasties(
+  outDir: string,
+  options: Options = {},
+): Promise<Beasties | undefined> {
   try {
     const mod = await import('beasties')
     const BeastiesClass = mod.default || mod
@@ -13,8 +16,7 @@ export async function getBeasties(outDir: string, options: Options = {}): Promis
       preloadFonts: true,
       ...options,
     })
-  }
-  catch (e) {
+  } catch (e) {
     return undefined
   }
 }

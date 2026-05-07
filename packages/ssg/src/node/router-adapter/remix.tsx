@@ -8,7 +8,11 @@ import type { ViteReactSSGContext } from '~/types'
 import { createRequire } from 'node:module'
 const _require = createRequire(import.meta.url)
 const { HelmetProvider } = _require('react-helmet-async')
-import { fromNodeRequest, stripDataParam, toNodeRequest } from '~/pollfill/node-adapter'
+import {
+  fromNodeRequest,
+  stripDataParam,
+  toNodeRequest,
+} from '~/pollfill/node-adapter'
 import { withLeadingSlash } from '~/utils/path'
 import { convertRoutesToDataRoutes } from '~/utils/remix-router'
 import { renderStaticApp } from '../serverRenderer'
@@ -27,40 +31,52 @@ export class RemixAdapter implements IRouterAdapter<ViteReactSSGContext> {
     const styleCollector = getStyleCollector ? await getStyleCollector() : null
     const helmetContext = {} as FilledContext
     let routerContext: StaticHandlerContext | null = null
-    const { StaticRouterProvider, createStaticHandler, createStaticRouter } = await import('react-router-dom')
-    const dataRoutes = convertRoutesToDataRoutes([...routes], route => route)
+    const { StaticRouterProvider, createStaticHandler, createStaticRouter } =
+      await import('react-router-dom')
+    const dataRoutes = convertRoutesToDataRoutes([...routes], (route) => route)
     const { query } = createStaticHandler(dataRoutes)
     const _context = await query(request)
 
-    if (_context instanceof Response)
-      throw _context
+    if (_context instanceof Response) throw _context
 
     routerContext = _context
-    const router = createStaticRouter(dataRoutes, routerContext, { future: routerOptions.future })
+    const router = createStaticRouter(dataRoutes, routerContext, {
+      future: routerOptions.future,
+    })
     let app = (
       <HelmetProvider context={helmetContext}>
         <StaticRouterProvider router={router} context={routerContext} />
       </HelmetProvider>
     )
 
-    if (styleCollector)
-      app = styleCollector.collect(app)
+    if (styleCollector) app = styleCollector.collect(app)
 
     const appHTML = await renderStaticApp(app)
 
-    const { htmlAttributes, bodyAttributes, metaAttributes, styleTag } = extractHelmet(appHTML, helmetContext, styleCollector)
+    const { htmlAttributes, bodyAttributes, metaAttributes, styleTag } =
+      extractHelmet(appHTML, helmetContext, styleCollector)
 
-    return { appHTML, htmlAttributes, bodyAttributes, metaAttributes, styleTag, routerContext }
+    return {
+      appHTML,
+      htmlAttributes,
+      bodyAttributes,
+      metaAttributes,
+      styleTag,
+      routerContext,
+    }
   }
 
-  handleLoader: (req: Connect.IncomingMessage, res: ServerResponse<IncomingMessage>) => void = async (req, res) => {
+  handleLoader: (
+    req: Connect.IncomingMessage,
+    res: ServerResponse<IncomingMessage>,
+  ) => void = async (req, res) => {
     const { routes, base } = this.context
     const { matchRoutes } = await import('react-router-dom')
     const request = fromNodeRequest(req)
     const url = new URL(request.url)
     const routeId = decodeURIComponent(url.searchParams.get('_data')!)
     const matches = matchRoutes(
-      convertRoutesToDataRoutes([...routes], route => route),
+      convertRoutesToDataRoutes([...routes], (route) => route),
       {
         pathname: url.pathname,
         search: url.search,
@@ -75,14 +91,14 @@ export class RemixAdapter implements IRouterAdapter<ViteReactSSGContext> {
       res.end(`Route not found: ${routeId}`)
       return
     }
-    const match = matches.find(m => m.route.id === routeId)
+    const match = matches.find((m) => m.route.id === routeId)
     if (!match) {
       res.statusCode = 404
       res.end(`Route not found: ${routeId}`)
       return
     }
-    const loader = match.route.loader ?? await match.route.lazy?.()
-      .then(m => m.loader)
+    const loader =
+      match.route.loader ?? (await match.route.lazy?.().then((m) => m.loader))
     if (!loader) {
       res.statusCode = 200
       res.end(`There is no loader for the route: ${routeId}`)
@@ -118,8 +134,8 @@ export async function callRouteLoader({
 
   if (result === undefined) {
     throw new Error(
-      `You defined a loader for route "${routeId}" but didn't return `
-      + `anything from your \`loader\` function. Please return a value or \`null\`.`,
+      `You defined a loader for route "${routeId}" but didn't return ` +
+        `anything from your \`loader\` function. Please return a value or \`null\`.`,
     )
   }
 
@@ -128,11 +144,11 @@ export async function callRouteLoader({
 
 function isResponse(value: any): value is Response {
   return (
-    value != null
-    && typeof value.status === 'number'
-    && typeof value.statusText === 'string'
-    && typeof value.headers === 'object'
-    && typeof value.body !== 'undefined'
+    value != null &&
+    typeof value.status === 'number' &&
+    typeof value.statusText === 'string' &&
+    typeof value.headers === 'object' &&
+    typeof value.body !== 'undefined'
   )
 }
 
@@ -158,7 +174,7 @@ function stripIndexParam(request: Request) {
   }
 
   if (init.body) {
-    (init as { duplex: 'half' }).duplex = 'half'
+    ;(init as { duplex: 'half' }).duplex = 'half'
   }
 
   return new Request(url.href, init)

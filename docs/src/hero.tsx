@@ -1,6 +1,6 @@
-import { Button } from "boltdocs/client"
-import { ArrowRight } from "lucide-react"
-import Orb from "./orb"
+import { Button } from 'boltdocs/client'
+import { ArrowRight } from 'lucide-react'
+import Orb from './orb'
 
 export const Hero = () => {
   return (
@@ -40,7 +40,7 @@ export const Hero = () => {
             href="/docs/guides/overview/introduction"
             iconPosition="right"
             icon={<ArrowRight className="size-4" />}
-            rounded={"full"}
+            rounded={'full'}
             className="bg-body text-main hover:scale-105 transition-transform"
           >
             Get Started
@@ -62,5 +62,3 @@ export const Hero = () => {
     </section>
   )
 }
-
-

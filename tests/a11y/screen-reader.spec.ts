@@ -5,27 +5,31 @@ test.describe('Screen Reader Accessibility Tests', () => {
     await page.goto('/')
   })
 
-  test('should have proper ARIA roles on semantic elements', async ({ page }) => {
+  test('should have proper ARIA roles on semantic elements', async ({
+    page,
+  }) => {
     const header = page.locator('header').first()
-    if (await header.count() > 0) {
+    if ((await header.count()) > 0) {
       const role = await header.getAttribute('role')
       expect(role).toBeNull()
     }
 
     const nav = page.locator('nav').first()
-    if (await nav.count() > 0) {
+    if ((await nav.count()) > 0) {
       const role = await nav.getAttribute('role')
       expect(role).toBeNull()
     }
 
     const main = page.locator('main').first()
-    if (await main.count() > 0) {
+    if ((await main.count()) > 0) {
       const role = await main.getAttribute('role')
       expect(role).toBeNull()
     }
   })
 
-  test('should have valid aria-label on interactive elements', async ({ page }) => {
+  test('should have valid aria-label on interactive elements', async ({
+    page,
+  }) => {
     const buttonsWithoutLabels = []
 
     const buttons = page.locator('button').all()
@@ -44,15 +48,21 @@ test.describe('Screen Reader Accessibility Tests', () => {
     expect(buttonsWithoutLabels).toHaveLength(0)
   })
 
-  test('should have proper live regions for dynamic content', async ({ page }) => {
-    const liveRegions = page.locator('[aria-live], [role="alert"], [role="status"]')
+  test('should have proper live regions for dynamic content', async ({
+    page,
+  }) => {
+    const liveRegions = page.locator(
+      '[aria-live], [role="alert"], [role="status"]',
+    )
 
     const count = await liveRegions.count()
     expect(count).toBeGreaterThanOrEqual(0)
   })
 
   test('should have valid aria-describedby references', async ({ page }) => {
-    const elementsWithDescribedBy = await page.locator('[aria-describedby]').all()
+    const elementsWithDescribedBy = await page
+      .locator('[aria-describedby]')
+      .all()
 
     for (const element of elementsWithDescribedBy) {
       const describedById = await element.getAttribute('aria-describedby')
@@ -75,8 +85,12 @@ test.describe('Screen Reader Accessibility Tests', () => {
     }
   })
 
-  test('should have proper button roles for clickable elements', async ({ page }) => {
-    const clickableDivs = await page.locator('div[onclick], div[role="button"]').all()
+  test('should have proper button roles for clickable elements', async ({
+    page,
+  }) => {
+    const clickableDivs = await page
+      .locator('div[onclick], div[role="button"]')
+      .all()
 
     for (const element of clickableDivs) {
       const role = await element.getAttribute('role')
@@ -97,7 +111,9 @@ test.describe('Screen Reader Accessibility Tests', () => {
           return Array.from(el.children).map((c) => c.tagName)
         })
 
-        const hasOnlyLi = directChildren.every((tag) => tag === 'LI' || tag === 'SCRIPT')
+        const hasOnlyLi = directChildren.every(
+          (tag) => tag === 'LI' || tag === 'SCRIPT',
+        )
         expect(hasOnlyLi).toBe(true)
       }
     }
@@ -113,14 +129,19 @@ test.describe('Screen Reader Accessibility Tests', () => {
         const hasAriaLabel = await table.locator('[aria-labelledby]').count()
         const hasCaption = await table.locator('caption').count()
 
-        const hasProperHeaderStructure = hasScope > 0 || hasAriaLabel > 0 || hasCaption > 0
+        const hasProperHeaderStructure =
+          hasScope > 0 || hasAriaLabel > 0 || hasCaption > 0
         expect(hasProperHeaderStructure).toBe(true)
       }
     }
   })
 
-  test('should have proper focus visible for custom controls', async ({ page }) => {
-    const customControls = page.locator('[role="button"], [role="checkbox"], [role="radio"]').all()
+  test('should have proper focus visible for custom controls', async ({
+    page,
+  }) => {
+    const customControls = page
+      .locator('[role="button"], [role="checkbox"], [role="radio"]')
+      .all()
 
     for (const control of customControls) {
       const tabIndex = await control.getAttribute('tabindex')
@@ -131,7 +152,9 @@ test.describe('Screen Reader Accessibility Tests', () => {
     }
   })
 
-  test('should handle aria-expanded for collapsible elements', async ({ page }) => {
+  test('should handle aria-expanded for collapsible elements', async ({
+    page,
+  }) => {
     const collapsibleElements = page.locator('[aria-expanded]').all()
 
     for (const element of collapsibleElements) {

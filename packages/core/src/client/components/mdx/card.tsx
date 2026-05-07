@@ -20,24 +20,28 @@ const cardsVariants = cva('grid gap-4 my-6', {
 })
 type CardsVariants = VariantProps<typeof cardsVariants>
 
-const cardVariants = cva('group relative block outline-none overflow-hidden transition-all duration-200 focus-visible:ring-2 focus-visible:ring-primary-500/30', {
-  variants: {
-    variant: {
-      default: 'border-b border-subtle rounded-none p-4 last:border-b-0 hover:bg-soft/10',
-      bordered: 'border border-subtle bg-transparent rounded-xl p-5 hover:border-strong',
-      card: 'border border-subtle bg-surface rounded-xl p-5 shadow-xs hover:shadow-lg hover:border-primary-500/40 hover:shadow-primary-500/5',
-      ghost: 'border-none bg-transparent rounded-xl p-4 hover:bg-soft/30',
-    }
-
+const cardVariants = cva(
+  'group relative block outline-none overflow-hidden transition-all duration-200 focus-visible:ring-2 focus-visible:ring-primary-500/30',
+  {
+    variants: {
+      variant: {
+        default:
+          'border-b border-subtle rounded-none p-4 last:border-b-0 hover:bg-soft/10',
+        bordered:
+          'border border-subtle bg-transparent rounded-xl p-5 hover:border-strong',
+        card: 'border border-subtle bg-surface rounded-xl p-5 shadow-xs hover:shadow-lg hover:border-primary-500/40 hover:shadow-primary-500/5',
+        ghost: 'border-none bg-transparent rounded-xl p-4 hover:bg-soft/30',
+      },
+    },
+    defaultVariants: {
+      variant: 'card',
+    },
   },
-  defaultVariants: {
-    variant: "card"
-  }
-})
+)
 
 export interface CardsProps
   extends React.HTMLAttributes<HTMLDivElement>,
-  CardsVariants { }
+    CardsVariants {}
 
 export function Cards({
   cols = 3,
@@ -108,7 +112,11 @@ export function Card({
       <Link
         ref={linkRef}
         href={href}
-        className={cn(cardVariants({ variant }), 'no-underline cursor-pointer', className)}
+        className={cn(
+          cardVariants({ variant }),
+          'no-underline cursor-pointer',
+          className,
+        )}
         onMouseMove={handleMouseMove}
         {...(rest as any)}
       >

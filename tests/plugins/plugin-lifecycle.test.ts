@@ -1,6 +1,9 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { PluginLifecycleManager } from '../../packages/core/src/node/plugins/plugin-lifecycle'
-import type { SecureBoltdocsPlugin, PluginLogger } from '../../packages/core/src/node/plugins/plugin-types'
+import type {
+  SecureBoltdocsPlugin,
+  PluginLogger,
+} from '../../packages/core/src/node/plugins/plugin-types'
 
 describe('plugin lifecycle', () => {
   const mockConfig: any = {
@@ -83,7 +86,7 @@ describe('plugin lifecycle', () => {
 
       expect(executionOrder).toContain('working-beforeBuild')
       expect(errorSpy).toHaveBeenCalled()
-      
+
       errorSpy.mockRestore()
     })
 
@@ -264,7 +267,7 @@ describe('plugin lifecycle', () => {
       ]
 
       const manager = new PluginLifecycleManager(plugins, mockConfig)
-      
+
       await manager.runHook('beforeBuild')
       expect(executionOrder).toEqual([
         'plugin1-beforeBuild',

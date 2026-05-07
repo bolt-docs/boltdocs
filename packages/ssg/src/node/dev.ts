@@ -3,13 +3,22 @@ import type { ViteReactSSGOptions } from '../types'
 import { join } from 'node:path'
 import fs from 'fs-extra'
 import { bgLightCyan, bold, cyan, dim, green, red, reset } from 'kolorist'
-import { createServer as createViteServer, mergeConfig, resolveConfig, version as viteVersion } from 'vite'
+import {
+  createServer as createViteServer,
+  mergeConfig,
+  resolveConfig,
+  version as viteVersion,
+} from 'vite'
 import { detectEntry } from './html'
 import { resolveAlias, version } from './utils'
 import { ssrServerPlugin } from './vite-plugin'
 
-export async function createServer(viteConfig: InlineConfig = {}, ssgOptions: Partial<ViteReactSSGOptions> = {}) {
-  const mode = process.env.MODE || process.env.NODE_ENV || ssgOptions.mode || 'development'
+export async function createServer(
+  viteConfig: InlineConfig = {},
+  ssgOptions: Partial<ViteReactSSGOptions> = {},
+) {
+  const mode =
+    process.env.MODE || process.env.NODE_ENV || ssgOptions.mode || 'development'
   const config = await resolveConfig(viteConfig, 'serve', mode, mode)
   const cwd = process.cwd()
   const root = config.root || cwd
@@ -21,7 +30,11 @@ export async function createServer(viteConfig: InlineConfig = {}, ssgOptions: Pa
     onPageRendered,
     rootContainerId = 'root',
     mock = false,
-  }: ViteReactSSGOptions = Object.assign({}, config.ssgOptions || {}, ssgOptions)
+  }: ViteReactSSGOptions = Object.assign(
+    {},
+    config.ssgOptions || {},
+    ssgOptions,
+  )
 
   const ssrEntry = await resolveAlias(config, entry)
   const template = await fs.readFile(join(root, htmlEntry), 'utf-8')
@@ -30,7 +43,9 @@ export async function createServer(viteConfig: InlineConfig = {}, ssgOptions: Pa
 
   if (mock) {
     // @ts-expect-error allow js
-    const { jsdomGlobal }: { jsdomGlobal: () => void } = await import('./jsdomGlobal.mjs')
+    const { jsdomGlobal }: { jsdomGlobal: () => void } = await import(
+      './jsdomGlobal.mjs'
+    )
     jsdomGlobal()
   }
 
@@ -39,7 +54,7 @@ export async function createServer(viteConfig: InlineConfig = {}, ssgOptions: Pa
       {
         ...viteConfig,
         plugins: [
-          ...viteConfig.plugins ?? [],
+          ...(viteConfig.plugins ?? []),
           ssrServerPlugin({
             template,
             ssrEntry,
@@ -57,7 +72,11 @@ export async function createServer(viteConfig: InlineConfig = {}, ssgOptions: Pa
   return viteServer
 }
 
-export async function dev(ssgOptions: Partial<ViteReactSSGOptions> = {}, viteConfig: InlineConfig = {}, customOptions?: unknown) {
+export async function dev(
+  ssgOptions: Partial<ViteReactSSGOptions> = {},
+  viteConfig: InlineConfig = {},
+  customOptions?: unknown,
+) {
   // @ts-expect-error global var
   globalThis.__ssr_start_time = performance.now()
 
@@ -67,18 +86,14 @@ export async function dev(ssgOptions: Partial<ViteReactSSGOptions> = {}, viteCon
     printServerInfo(server, !!customOptions)
     server.bindCLIShortcuts({ print: true })
     return server
-  }
-  catch (err: any) {
-    console.error(
-      `${red(`failed to start server. error:`)}\n${err.stack}`,
-    )
+  } catch (err: any) {
+    console.error(`${red(`failed to start server. error:`)}\n${err.stack}`)
     process.exit(1)
   }
 }
 
 export async function printServerInfo(server: ViteDevServer, onlyUrl = false) {
-  if (onlyUrl)
-    return server.printUrls()
+  if (onlyUrl) return server.printUrls()
 
   const info = server.config.logger.info
 
@@ -86,25 +101,22 @@ export async function printServerInfo(server: ViteDevServer, onlyUrl = false) {
 
   // @ts-expect-error global var
   if (globalThis.__ssr_start_time) {
-    ssrReadyMessage
-      += ` ready in ${reset(bold(`${Math.round(
+    ssrReadyMessage += ` ready in ${reset(
+      bold(
+        `${Math.round(
           // @ts-expect-error global var
           performance.now() - globalThis.__ssr_start_time,
-        )}ms`))}`
+        )}ms`,
+      ),
+    )}`
   }
 
-  info(
-      `\n ${bgLightCyan(` VITE-REACT-SSG v${version} `)}`,
-      { clear: !server.config.logger.hasWarned },
-  )
-  info(
-        `${cyan(`\n  VITE v${viteVersion}`) + dim(ssrReadyMessage)}\n`,
-  )
+  info(`\n ${bgLightCyan(` VITE-REACT-SSG v${version} `)}`, {
+    clear: !server.config.logger.hasWarned,
+  })
+  info(`${cyan(`\n  VITE v${viteVersion}`) + dim(ssrReadyMessage)}\n`)
 
-  info(
-    green('  dev server running at:'),
-  )
+  info(green('  dev server running at:'))
 
   server.printUrls()
 }
-

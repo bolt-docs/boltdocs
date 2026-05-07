@@ -10,7 +10,7 @@ import {
   CopyMarkdown,
   useRoutes,
   useConfig,
-  useLocation
+  useLocation,
 } from 'boltdocs/client'
 
 export default function Layout({ children }: { children: React.ReactNode }) {

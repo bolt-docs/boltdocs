@@ -10,7 +10,9 @@ describe('Configuration Validation', () => {
   let docsDir: string
 
   beforeEach(() => {
-    tempProjectDir = fs.mkdtempSync(path.join(os.tmpdir(), 'boltdocs-validation-test-'))
+    tempProjectDir = fs.mkdtempSync(
+      path.join(os.tmpdir(), 'boltdocs-validation-test-'),
+    )
     docsDir = path.join(tempProjectDir, 'docs')
     fs.mkdirSync(docsDir, { recursive: true })
   })
@@ -41,8 +43,12 @@ describe('Configuration Validation', () => {
       `export default { siteUrl: 'not-a-url' }`,
     )
 
-    await expect(resolveConfig(docsDir, tempProjectDir)).rejects.toThrow(/Invalid Boltdocs configuration/)
-    await expect(resolveConfig(docsDir, tempProjectDir)).rejects.toThrow(/siteUrl/)
+    await expect(resolveConfig(docsDir, tempProjectDir)).rejects.toThrow(
+      /Invalid Boltdocs configuration/,
+    )
+    await expect(resolveConfig(docsDir, tempProjectDir)).rejects.toThrow(
+      /siteUrl/,
+    )
   })
 
   it('should validate social links correctly', async () => {
@@ -69,7 +75,9 @@ describe('Configuration Validation', () => {
       }`,
     )
 
-    await expect(resolveConfig(docsDir, tempProjectDir)).rejects.toThrow(/socialLinks\.0\.link/)
+    await expect(resolveConfig(docsDir, tempProjectDir)).rejects.toThrow(
+      /socialLinks\.0\.link/,
+    )
   })
 
   it('should allow route groups in sidebar config (regression check for earlier fix)', async () => {
@@ -118,6 +126,8 @@ describe('Configuration Validation', () => {
       }`,
     )
 
-    await expect(resolveConfig(docsDir, tempProjectDir)).rejects.toThrow(/integrations\.ga4\.measurementId/)
+    await expect(resolveConfig(docsDir, tempProjectDir)).rejects.toThrow(
+      /integrations\.ga4\.measurementId/,
+    )
   })
 })

@@ -32,10 +32,14 @@
 
 /* Apply glass effect to major UI elements */
 body {
-  background: 
+  background:
     radial-gradient(at 0% 0%, oklch(0.7 0.2 280 / 0.15) 0px, transparent 50%),
     radial-gradient(at 100% 0%, oklch(0.6 0.18 280 / 0.1) 0px, transparent 50%),
-    radial-gradient(at 100% 100%, oklch(0.7 0.2 280 / 0.05) 0px, transparent 50%),
+    radial-gradient(
+      at 100% 100%,
+      oklch(0.7 0.2 280 / 0.05) 0px,
+      transparent 50%
+    ),
     radial-gradient(at 0% 100%, oklch(0.8 0.15 280 / 0.1) 0px, transparent 50%),
     var(--color-main);
   background-attachment: fixed;
@@ -43,8 +47,8 @@ body {
 
 .boltdocs-navbar {
   background: linear-gradient(
-    180deg, 
-    rgba(255, 255, 255, 0.08) 0%, 
+    180deg,
+    rgba(255, 255, 255, 0.08) 0%,
     rgba(255, 255, 255, 0.03) 100%
   ) !important;
   backdrop-filter: blur(24px) saturate(180%) !important;
@@ -69,7 +73,11 @@ body {
 }
 
 .boltdocs-sidebar [data-active="true"] {
-  background: linear-gradient(to right, rgba(var(--color-primary-500), 0.1), transparent) !important;
+  background: linear-gradient(
+    to right,
+    rgba(var(--color-primary-500), 0.1),
+    transparent
+  ) !important;
   border-left: 2px solid var(--color-primary-500) !important;
 }
 

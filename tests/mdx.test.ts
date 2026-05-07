@@ -27,7 +27,8 @@ describe('mdx', () => {
 
   it('should transform valid files and use cache', async () => {
     const plugin: any = boltdocsMdxPlugin({}, mockCompiler as any)
-    const expected = 'compiled: # h1\nif (import.meta.hot) {\n  import.meta.hot.accept();\n}\n'
+    const expected =
+      'compiled: # h1\nif (import.meta.hot) {\n  import.meta.hot.accept();\n}\n'
 
     // 1. Transform (cache miss)
     const result1 = await plugin.transform('# h1', 'test.md')

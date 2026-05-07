@@ -18,11 +18,7 @@ import { CustomNavbar as Navbar } from '../components/theme/navbar'
 import { CustomSidebar as Sidebar } from '../components/theme/sidebar'
 
 export default function Layout({ children }: { children: React.ReactNode }) {
-  const {
-    routes: filteredRoutes,
-    allRoutes,
-    currentRoute
-  } = useRoutes()
+  const { routes: filteredRoutes, allRoutes, currentRoute } = useRoutes()
   const { pathname } = useLocation()
   const config = useConfig()
   const mdxComponents = useMdxComponents()
@@ -39,7 +35,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
         siteDescription={config.theme?.description || ''}
         routes={allRoutes}
       />
-      
+
       {/* Global Mesh Gradient Background Layer - FIXED and BEHIND EVERYTHING */}
       <div className="fixed inset-0 pointer-events-none -z-50 overflow-hidden bg-main">
         <div className="absolute top-[-10%] left-[-5%] w-[70%] h-[70%] bg-primary-500/20 blur-[150px] rounded-full animate-pulse" />
@@ -49,7 +45,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
       </div>
 
       <Navbar />
-      
+
       <DocsLayout.Body className="!bg-transparent! boltdocs-layout-body">
         {isDocs && <Sidebar routes={filteredRoutes} />}
 

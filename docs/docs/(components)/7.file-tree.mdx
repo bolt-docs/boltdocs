@@ -31,6 +31,12 @@ The FileTree component provides a visual representation of project directory str
       type: "ReactNode",
       required: true,
       description: "A standard Markdown list representing the folder and file structure."
+    },
+    {
+      name: "variant",
+      type: '"default" | "bordered" | "ghost" | "card"',
+      defaultValue: '"card"',
+      description: "The visual style of the FileTree component container."
     }
   ]}
 />
@@ -39,14 +45,42 @@ The FileTree component provides a visual representation of project directory str
 
 ## Variants & Examples
 
+### Visual Style Variants
+
+Boltdocs supports four beautiful visual variants for FileTrees. Use the `variant` prop to change the styling.
+
+#### Card Variant (Default)
+<FileTree variant="card">
+  - src/ // Elevated card style with subtle shadow and background
+    - index.ts
+</FileTree>
+
+#### Bordered Variant
+<FileTree variant="bordered">
+  - src/ // Transparent background with outer border
+    - index.ts
+</FileTree>
+
+#### Ghost Variant
+<FileTree variant="ghost">
+  - src/ // Minimal borderless design with subtle hover
+    - index.ts
+</FileTree>
+
+#### Default Variant
+<FileTree variant="default">
+  - src/ // Line-free fully blended structure
+    - index.ts
+</FileTree>
+
 ### Basic Usage
 
 Simply wrap a Markdown list with the `<FileTree>` component. To indicate a folder, add a trailing slash `/` to the name.
 
 <FileTree>
-- src/
-  - index.ts
-  - utils.js
+  - src/
+    - index.ts
+    - utils.js
 </FileTree>
 
 ### Inline Comments
@@ -54,9 +88,9 @@ Simply wrap a Markdown list with the `<FileTree>` component. To indicate a folde
 You can add descriptive annotations to any file or folder by using `//` or `#` after the name.
 
 <FileTree>
-- src/ // Application source code
-  - components/ # UI elements
-  - hooks/ // Custom React hooks
-- vite.config.ts # Build configuration
+  - src/ // Application source code
+    - components/ # UI elements
+    - hooks/ // Custom React hooks
+  - vite.config.ts # Build configuration
 </FileTree>
 

@@ -67,52 +67,53 @@ export function Image({
     />
   )
 
-  const portalOverlay = zoom && shouldRender && typeof document !== 'undefined'
-    ? createPortal(
-      <div
-        className={cn(
-          'fixed inset-0 z-9999 flex flex-col items-center justify-center bg-black/80 transition-all duration-200 ease-out cursor-zoom-out',
-          {
-            'opacity-100 backdrop-blur-md': isZoomed,
-            'opacity-0 backdrop-blur-none': !isZoomed,
-          },
-        )}
-        onClick={handleClose}
-      >
-        <div
-          className="relative max-w-[90vw] max-h-[90vh] flex flex-col items-center justify-center select-none"
-          onClick={(e) => e.stopPropagation()}
-        >
-          <img
-            src={src}
-            alt={alt || ''}
+  const portalOverlay =
+    zoom && shouldRender && typeof document !== 'undefined'
+      ? createPortal(
+          <div
             className={cn(
-              'max-w-full max-h-[80vh] object-contain rounded-lg shadow-2xl cursor-zoom-out transition-all duration-200 ease-out',
+              'fixed inset-0 z-9999 flex flex-col items-center justify-center bg-black/80 transition-all duration-200 ease-out cursor-zoom-out',
               {
-                'scale-100 opacity-100': isZoomed,
-                'scale-95 opacity-0': !isZoomed,
+                'opacity-100 backdrop-blur-md': isZoomed,
+                'opacity-0 backdrop-blur-none': !isZoomed,
               },
             )}
             onClick={handleClose}
-          />
-          {caption && (
+          >
             <div
-              className={cn(
-                'mt-4 text-center text-xs sm:text-sm text-neutral-300 max-w-2xl px-6 leading-relaxed font-medium transition-all duration-200 ease-out',
-                {
-                  'opacity-100 translate-y-0': isZoomed,
-                  'opacity-0 translate-y-2': !isZoomed,
-                },
-              )}
+              className="relative max-w-[90vw] max-h-[90vh] flex flex-col items-center justify-center select-none"
+              onClick={(e) => e.stopPropagation()}
             >
-              {caption}
+              <img
+                src={src}
+                alt={alt || ''}
+                className={cn(
+                  'max-w-full max-h-[80vh] object-contain rounded-lg shadow-2xl cursor-zoom-out transition-all duration-200 ease-out',
+                  {
+                    'scale-100 opacity-100': isZoomed,
+                    'scale-95 opacity-0': !isZoomed,
+                  },
+                )}
+                onClick={handleClose}
+              />
+              {caption && (
+                <div
+                  className={cn(
+                    'mt-4 text-center text-xs sm:text-sm text-neutral-300 max-w-2xl px-6 leading-relaxed font-medium transition-all duration-200 ease-out',
+                    {
+                      'opacity-100 translate-y-0': isZoomed,
+                      'opacity-0 translate-y-2': !isZoomed,
+                    },
+                  )}
+                >
+                  {caption}
+                </div>
+              )}
             </div>
-          )}
-        </div>
-      </div>,
-      document.body,
-    )
-    : null
+          </div>,
+          document.body,
+        )
+      : null
 
   const contentElement = caption ? (
     <Tooltip
@@ -131,7 +132,12 @@ export function Image({
 
   return (
     <>
-      <figure className={cn('relative my-6 flex flex-col items-center justify-center max-w-full', className)}>
+      <figure
+        className={cn(
+          'relative my-6 flex flex-col items-center justify-center max-w-full',
+          className,
+        )}
+      >
         {contentElement}
       </figure>
       {portalOverlay}

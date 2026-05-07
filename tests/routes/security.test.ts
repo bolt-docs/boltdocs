@@ -12,7 +12,9 @@ import { ParserCache } from '../../packages/core/src/node/routes/parser/cache'
 
 // Mock utils for security testing
 vi.mock('../../packages/core/src/node/utils', async () => {
-  const actual = (await vi.importActual('../../packages/core/src/node/utils')) as any
+  const actual = (await vi.importActual(
+    '../../packages/core/src/node/utils',
+  )) as any
   return {
     ...actual,
     parseFrontmatter: vi.fn(),
@@ -38,10 +40,12 @@ describe('Security: Route Parser', () => {
     })
 
     // The parser should now throw an error if the file is outside docsDir
-    await expect(parseDocFile(maliciousPath, docsDir, basePath)).rejects.toThrow(
-      PathTraversalError,
-    )
-    await expect(parseDocFile(maliciousPath, docsDir, basePath)).rejects.toThrow(/Security breach/)
+    await expect(
+      parseDocFile(maliciousPath, docsDir, basePath),
+    ).rejects.toThrow(PathTraversalError)
+    await expect(
+      parseDocFile(maliciousPath, docsDir, basePath),
+    ).rejects.toThrow(/Security breach/)
   })
 
   it('should handle malicious frontmatter keys', async () => {
@@ -99,7 +103,9 @@ describe('Security: Route Parser', () => {
         data: {},
         content: '',
       })
-      await expect(parseDocFile(malicious, docsDir, basePath)).rejects.toThrow(SecurityViolationError)
+      await expect(parseDocFile(malicious, docsDir, basePath)).rejects.toThrow(
+        SecurityViolationError,
+      )
     })
 
     it('should handle mixed separators and repetitive dots', async () => {
@@ -108,7 +114,9 @@ describe('Security: Route Parser', () => {
         data: {},
         content: '',
       })
-      await expect(parseDocFile(malicious, docsDir, basePath)).rejects.toThrow(PathTraversalError)
+      await expect(parseDocFile(malicious, docsDir, basePath)).rejects.toThrow(
+        PathTraversalError,
+      )
     })
   })
 
@@ -164,14 +172,24 @@ describe('Security: Route Parser', () => {
   describe('Whitelisting and Length', () => {
     it('should block paths exceeding MAX_PATH_LENGTH', async () => {
       const longPath = 'C:\\docs\\' + 'a'.repeat(300) + '.md'
-      vi.mocked(utils.parseFrontmatterAsync).mockResolvedValue({ data: {}, content: '' })
-      await expect(parseDocFile(longPath, docsDir, basePath)).rejects.toThrow(PathTraversalError)
+      vi.mocked(utils.parseFrontmatterAsync).mockResolvedValue({
+        data: {},
+        content: '',
+      })
+      await expect(parseDocFile(longPath, docsDir, basePath)).rejects.toThrow(
+        PathTraversalError,
+      )
     })
 
     it('should block paths with invalid characters', async () => {
       const invalidPath = 'C:\\docs\\hacked<>.md'
-      vi.mocked(utils.parseFrontmatterAsync).mockResolvedValue({ data: {}, content: '' })
-      await expect(parseDocFile(invalidPath, docsDir, basePath)).rejects.toThrow(PathTraversalError)
+      vi.mocked(utils.parseFrontmatterAsync).mockResolvedValue({
+        data: {},
+        content: '',
+      })
+      await expect(
+        parseDocFile(invalidPath, docsDir, basePath),
+      ).rejects.toThrow(PathTraversalError)
     })
   })
 
@@ -181,36 +199,51 @@ describe('Security: Route Parser', () => {
     it('should respect MAX_FRONTMATTER_SIZE', async () => {
       const largeYaml = 'title: ' + 'A'.repeat(utils.MAX_FRONTMATTER_SIZE + 1)
       const content = `---\n${largeYaml}\n---\nContent`
-      
-      const realUtils = (await vi.importActual('../../packages/core/src/node/utils')) as any
-      vi.mocked(utils.parseFrontmatterAsync).mockImplementationOnce(realUtils.parseFrontmatterAsync);
-      
+
+      const realUtils = (await vi.importActual(
+        '../../packages/core/src/node/utils',
+      )) as any
+      vi.mocked(utils.parseFrontmatterAsync).mockImplementationOnce(
+        realUtils.parseFrontmatterAsync,
+      )
+
       fs.writeFileSync(tempMd, content)
-      await expect(utils.parseFrontmatterAsync(tempMd)).rejects.toThrow(ValidationError)
+      await expect(utils.parseFrontmatterAsync(tempMd)).rejects.toThrow(
+        ValidationError,
+      )
       if (fs.existsSync(tempMd)) fs.unlinkSync(tempMd)
     })
 
-    it('should filter unknown fields via Zod schema', async () => {
+    it('should preserve unknown fields via Zod schema (extensibility support)', async () => {
       const yaml = 'title: Valid Title\nunknown: Invalid Field'
       const content = `---\n${yaml}\n---\nContent`
-      
-      const realUtils = (await vi.importActual('../../packages/core/src/node/utils')) as any
-      vi.mocked(utils.parseFrontmatterAsync).mockImplementationOnce(realUtils.parseFrontmatterAsync);
-      
+
+      const realUtils = (await vi.importActual(
+        '../../packages/core/src/node/utils',
+      )) as any
+      vi.mocked(utils.parseFrontmatterAsync).mockImplementationOnce(
+        realUtils.parseFrontmatterAsync,
+      )
+
       fs.writeFileSync(tempMd, content)
       const { data } = await utils.parseFrontmatterAsync(tempMd)
       expect(data.title).toBe('Valid Title')
-      expect((data as any).unknown).toBeUndefined()
+      expect((data as any).unknown).toBe('Invalid Field')
       if (fs.existsSync(tempMd)) fs.unlinkSync(tempMd)
     })
 
     it('should sanitize title and description in frontmatter', async () => {
-      const yaml = 'title: "<script>alert(1)</script>Title"\ndescription: "<b>Bold</b> Desc"'
+      const yaml =
+        'title: "<script>alert(1)</script>Title"\ndescription: "<b>Bold</b> Desc"'
       const content = `---\n${yaml}\n---\nContent`
-      
-      const realUtils = (await vi.importActual('../../packages/core/src/node/utils')) as any
-      vi.mocked(utils.parseFrontmatterAsync).mockImplementationOnce(realUtils.parseFrontmatterAsync);
-      
+
+      const realUtils = (await vi.importActual(
+        '../../packages/core/src/node/utils',
+      )) as any
+      vi.mocked(utils.parseFrontmatterAsync).mockImplementationOnce(
+        realUtils.parseFrontmatterAsync,
+      )
+
       fs.writeFileSync(tempMd, content)
       const { data } = await utils.parseFrontmatterAsync(tempMd)
       expect(data.title).not.toContain('<script>')
@@ -222,36 +255,48 @@ describe('Security: Route Parser', () => {
   describe('Unicode and Encoding Bypass', () => {
     it('should block Unicode dot variants (e.g. One Dot Leader)', async () => {
       const malicious = docsDir + '\\\u2024\u2024\\windows'
-      await expect(parseDocFile(malicious, docsDir, basePath)).rejects.toThrow(SecurityViolationError)
+      await expect(parseDocFile(malicious, docsDir, basePath)).rejects.toThrow(
+        SecurityViolationError,
+      )
     })
 
     it('should block double URL encoding', async () => {
       const malicious = docsDir + '\\..%252f..%252fwindows'
-      await expect(parseDocFile(malicious, docsDir, basePath)).rejects.toThrow(SecurityViolationError)
+      await expect(parseDocFile(malicious, docsDir, basePath)).rejects.toThrow(
+        SecurityViolationError,
+      )
     })
   })
 
   describe('Fuzzing and Control Characters', () => {
     it('should block newline characters in paths', async () => {
       const malicious = docsDir + '\\test\nfile.md'
-      await expect(parseDocFile(malicious, docsDir, basePath)).rejects.toThrow(SecurityViolationError)
+      await expect(parseDocFile(malicious, docsDir, basePath)).rejects.toThrow(
+        SecurityViolationError,
+      )
     })
 
     it('should block carriage return in paths', async () => {
       const malicious = docsDir + '\\test\rfile.md'
-      await expect(parseDocFile(malicious, docsDir, basePath)).rejects.toThrow(SecurityViolationError)
+      await expect(parseDocFile(malicious, docsDir, basePath)).rejects.toThrow(
+        SecurityViolationError,
+      )
     })
 
     it('should block tab characters in paths', async () => {
       const malicious = docsDir + '\\test\tfile.md'
-      await expect(parseDocFile(malicious, docsDir, basePath)).rejects.toThrow(SecurityViolationError)
+      await expect(parseDocFile(malicious, docsDir, basePath)).rejects.toThrow(
+        SecurityViolationError,
+      )
     })
   })
 
   describe('Sanitization utility', () => {
     it('should sanitize dangerous filenames', () => {
       expect(utils.sanitizeFilename('hacked!..md')).toBe('hacked.md')
-      expect(utils.sanitizeFilename('test/../../../etc/passwd')).toBe('test/etc/passwd')
+      expect(utils.sanitizeFilename('test/../../../etc/passwd')).toBe(
+        'test/etc/passwd',
+      )
     })
   })
 
@@ -259,18 +304,22 @@ describe('Security: Route Parser', () => {
     it('should block dangerous URL protocols in links', async () => {
       vi.mocked(utils.parseFrontmatterAsync).mockResolvedValue({
         data: { title: 'Test' },
-        content: '<a href="javascript:alert(1)">Click me</a><a href="data:text/html,<html>">Data</a>',
+        content:
+          '<a href="javascript:alert(1)">Click me</a><a href="data:text/html,<html>">Data</a>',
       })
       const result = await parseDocFile('C:\\docs\\test.md', docsDir, basePath)
       expect(result.route._rawContent).toContain('href="javascript:') // In raw it exists
-      
+
       // But when we sanitize metadata (if title used it) or use sanitizeHtml elsewhere
-      const sanitized = utils.sanitizeHtml('<a href="javascript:alert(1)">Click me</a>')
+      const sanitized = utils.sanitizeHtml(
+        '<a href="javascript:alert(1)">Click me</a>',
+      )
       expect(sanitized).not.toContain('href="javascript:')
     })
 
     it('should block prohibited tags', () => {
-      const complexHtml = '<div>Safe</div><iframe></iframe><script></script><object></object>'
+      const complexHtml =
+        '<div>Safe</div><iframe></iframe><script></script><object></object>'
       const sanitized = utils.sanitizeHtml(complexHtml)
       expect(sanitized).toContain('<div>Safe</div>')
       expect(sanitized).not.toContain('<iframe')

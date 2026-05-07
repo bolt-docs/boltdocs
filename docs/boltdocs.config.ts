@@ -8,8 +8,8 @@ export default defineConfig({
   seo: {
     indexing: 'all',
     thumbnails: {
-      background: '/og-image.webp'
-    }
+      background: '/og-image.webp',
+    },
   },
   theme: {
     title: 'boltdocs',
@@ -45,19 +45,19 @@ export default defineConfig({
       },
     ],
     sidebarGroups: {
-      "overview": {
-        icon: 'BookOpen'
+      overview: {
+        icon: 'BookOpen',
       },
-      "core-concepts": {
+      'core-concepts': {
         icon: 'Rocket',
       },
-      "customization": {
+      customization: {
         icon: 'Settings',
       },
-      "performance": {
+      performance: {
         icon: 'Zap',
       },
-      "integrations": {
+      integrations: {
         icon: 'PlugZap',
       },
     },
@@ -83,7 +83,7 @@ export default defineConfig({
   },
   integrations: {
     ga4: {
-      measurementId: 'G-WRBYHMBDYQ'
-    }
-  }
+      measurementId: 'G-WRBYHMBDYQ',
+    },
+  },
 })

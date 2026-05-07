@@ -154,6 +154,68 @@ function MyLayout({ children }: { children: React.ReactNode }) {
 
 ---
 
+## Extensible Frontmatter Components (Frontmatter Formatters)
+
+Boltdocs supports **Dynamic Frontmatter Interception**. If you define custom, non-standard properties in your `.mdx` frontmatter, you can automatically render custom React components for them by defining a component with the prefix `Frontmatter_{key}` in `mdx-components.tsx`.
+
+These components are automatically rendered at the top of the page (right before the main MDX content).
+
+### 1. Define custom properties in your frontmatter:
+
+```yaml
+---
+title: "Tabs Frontmatter Example"
+tabs:
+  - id: tab-react
+    title: React
+    content: "Instrucciones de instalación para React..."
+  - id: tab-vue
+    title: Vue
+    content: "Instrucciones de instalación para Vue..."
+---
+```
+
+### 2. Register the formatter component in `mdx-components.tsx`:
+
+Name your component `Frontmatter_{key}` where `{key}` matches the frontmatter property name exactly (e.g., `Frontmatter_tabs`):
+
+```tsx title="docs/mdx-components.tsx"
+import { Tabs, Tab } from 'boltdocs/client'
+
+export default {
+  // Catch the custom 'tabs' property from frontmatter
+  Frontmatter_tabs: ({ data, route }: { data: any[]; route: any }) => {
+    if (!Array.isArray(data)) return null
+
+    return (
+      <div className="mb-4">
+        <h3 className="text-lg font-semibold mb-2">Tabs Generados por Frontmatter:</h3>
+        <Tabs>
+          {data.map((tab, idx) => (
+            <Tab key={tab.id || idx} id={tab.id || `tab-${idx}`} label={tab.title || `Tab ${idx}`}>
+              <div className="p-4 bg-muted/20 rounded-md mt-2">
+                {tab.content}
+              </div>
+            </Tab>
+          ))}
+        </Tabs>
+      </div>
+    )
+  }
+}
+```
+
+### Component Props:
+
+Every `Frontmatter_{key}` component receives the following props:
+
+| Prop | Type | Description |
+| :--- | :--- | :--- |
+| `data` | `any` | The parsed JSON value of the frontmatter field. |
+| `route` | `ComponentRoute` | The metadata object of the current route. |
+
+---
+
 ## Best Practices
 
 - **Keep it lightweight**: These components are injected globally — heavy components will affect all pages.

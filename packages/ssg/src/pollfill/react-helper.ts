@@ -9,9 +9,14 @@ export interface RootType {
 export interface RootTypeReact extends RootType {
   unmount?: () => void
 }
-export type CreateRootFnType = (container: Element | DocumentFragment) => RootTypeReact
+export type CreateRootFnType = (
+  container: Element | DocumentFragment,
+) => RootTypeReact
 
-export type HydrateRootFnType = (container: Element | DocumentFragment, initialChildren: React.ReactNode) => RootTypeReact
+export type HydrateRootFnType = (
+  container: Element | DocumentFragment,
+  initialChildren: React.ReactNode,
+) => RootTypeReact
 
 const CopyReactDOM = {
   ...ReactDOM,
@@ -34,21 +39,23 @@ interface RenderOptions {
   useLegacyRender?: boolean
 }
 
-export function render(app: React.ReactElement, container: Element | DocumentFragment, renderOptions: RenderOptions = {}) {
+export function render(
+  app: React.ReactElement,
+  container: Element | DocumentFragment,
+  renderOptions: RenderOptions = {},
+) {
   const { useLegacyRender } = renderOptions
 
   if (useLegacyRender || !isReact18) {
     reactRender(app, container)
-  }
-  else if (isReact19) {
+  } else if (isReact19) {
     import('react-dom/client').then(({ default: { createRoot } }) => {
       const root = createRoot(container)
       React.startTransition(() => {
         root.render(app)
       })
     })
-  }
-  else {
+  } else {
     CopyReactDOM.__SECRET_INTERNALS_DO_NOT_USE_OR_YOU_WILL_BE_FIRED.usingClientEntryPoint = true
     const { createRoot } = CopyReactDOM
     if (!createRoot) {
@@ -62,20 +69,22 @@ export function render(app: React.ReactElement, container: Element | DocumentFra
   }
 }
 
-export function hydrate(app: React.ReactElement, container: Element | DocumentFragment, renderOptions: RenderOptions = {}) {
+export function hydrate(
+  app: React.ReactElement,
+  container: Element | DocumentFragment,
+  renderOptions: RenderOptions = {},
+) {
   const { useLegacyRender } = renderOptions
 
   if (useLegacyRender || !isReact18) {
     reactHydrate(app, container)
-  }
-  else if (isReact19) {
+  } else if (isReact19) {
     import('react-dom/client').then(({ default: { hydrateRoot } }) => {
       React.startTransition(() => {
         hydrateRoot(container as Element, app)
       })
     })
-  }
-  else {
+  } else {
     CopyReactDOM.__SECRET_INTERNALS_DO_NOT_USE_OR_YOU_WILL_BE_FIRED.usingClientEntryPoint = true
     const { hydrateRoot } = CopyReactDOM
     if (!hydrateRoot) {

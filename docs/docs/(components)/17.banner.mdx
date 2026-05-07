@@ -6,13 +6,15 @@ badge: New
 
 The `Banner` component is used to display important notifications, announcements (such as new releases), or global alerts across your application.
 
+```tsx
+import { Banner } from 'boltdocs/client'
+```
+
 ## Basic Usage
 
 The banner is designed to be highly customizable. You can inject text, links, and icons by passing them as `children`.
 
 ```tsx
-import { Banner } from 'boltdocs/client'
-
 // Simple banner example
 <Banner className="bg-[#0ae448] text-black">
   <span>Check out our new <a href="https://boltdocs.vercel.app" target="_blank" className="underline font-bold">blog post</a>!</span>

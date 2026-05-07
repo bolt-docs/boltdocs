@@ -24,7 +24,8 @@ function detectKeepAChangelog(content: string): boolean {
   const versionPattern = /^##\s*\[[\d.]+\]\s*-\s*\d{4}-\d{2}-\d{2}/m
   const hasVersionWithDash = versionPattern.test(content)
 
-  const typePattern = /^###\s+(Added|Changed|Deprecated|Removed|Fixed|Security)$/m
+  const typePattern =
+    /^###\s+(Added|Changed|Deprecated|Removed|Fixed|Security)$/m
   const hasKeepATypes = typePattern.test(content)
 
   return hasChangelogHeader && hasVersionWithDash && hasKeepATypes
@@ -39,7 +40,9 @@ function parseKeepAChangelog(content: string): ChangelogVersion[] {
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i].trim()
 
-    const versionMatch = line.match(/^##\s*\[(\d+\.\d+\.\d+[^\]]*)\]\s*-\s*(\d{4}-\d{2}-\d{2})/)
+    const versionMatch = line.match(
+      /^##\s*\[(\d+\.\d+\.\d+[^\]]*)\]\s*-\s*(\d{4}-\d{2}-\d{2})/,
+    )
     if (versionMatch) {
       if (currentVersion) {
         versions.push(currentVersion)
@@ -71,7 +74,9 @@ function parseKeepAChangelog(content: string): ChangelogVersion[] {
       continue
     }
 
-    const typeMatch = line.match(/^###\s+(Added|Changed|Deprecated|Removed|Fixed|Security)$/i)
+    const typeMatch = line.match(
+      /^###\s+(Added|Changed|Deprecated|Removed|Fixed|Security)$/i,
+    )
     if (typeMatch) {
       currentChangeType = typeMatch[1].toLowerCase()
       continue

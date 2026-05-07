@@ -23,26 +23,36 @@ describe('Plugin System', () => {
 
     it('should reject a plugin without a name', () => {
       const plugins = [{ enforce: 'pre' }]
-      expect(() => validatePlugins(plugins, boltdocsVersion)).toThrow(PluginValidationError)
+      expect(() => validatePlugins(plugins, boltdocsVersion)).toThrow(
+        PluginValidationError,
+      )
     })
 
     it('should reject duplicate plugin names', () => {
       const plugins = [{ name: 'dup' }, { name: 'dup' }]
-      expect(() => validatePlugins(plugins, boltdocsVersion)).toThrow('Duplicate plugin name')
+      expect(() => validatePlugins(plugins, boltdocsVersion)).toThrow(
+        'Duplicate plugin name',
+      )
     })
 
     it('should reject incompatible boltdocs version', () => {
       const plugins = [{ name: 'new-plugin', boltdocsVersion: '^2.0.0' }]
-      expect(() => validatePlugins(plugins, boltdocsVersion)).toThrow(PluginCompatibilityError)
+      expect(() => validatePlugins(plugins, boltdocsVersion)).toThrow(
+        PluginCompatibilityError,
+      )
     })
 
     it('should reject path traversal in component paths', () => {
-      const plugins = [{
-        name: 'evil',
-        permissions: ['components'],
-        components: { Evil: '../../etc/passwd' }
-      }]
-      expect(() => validatePlugins(plugins, boltdocsVersion)).toThrow('traversal sequences are not allowed')
+      const plugins = [
+        {
+          name: 'evil',
+          permissions: ['components'],
+          components: { Evil: '../../etc/passwd' },
+        },
+      ]
+      expect(() => validatePlugins(plugins, boltdocsVersion)).toThrow(
+        'traversal sequences are not allowed',
+      )
     })
   })
 
@@ -51,7 +61,7 @@ describe('Plugin System', () => {
       name: 'restricted',
       remarkPlugins: [() => {}],
       vitePlugins: [{} as any],
-      permissions: ['mdx:remark'] // Missing 'vite:config'
+      permissions: ['mdx:remark'], // Missing 'vite:config'
     }
 
     it('should filter capabilities based on permissions', () => {
@@ -61,33 +71,47 @@ describe('Plugin System', () => {
     })
 
     it('should throw on missing permission check', () => {
-      expect(() => PluginSandbox.checkPermission(plugin, 'vite:config')).toThrow(PluginPermissionError)
+      expect(() =>
+        PluginSandbox.checkPermission(plugin, 'vite:config'),
+      ).toThrow(PluginPermissionError)
     })
   })
 
   describe('Lifecycle Manager', () => {
     const config: BoltdocsConfig = { docsDir: 'docs' }
-    
+
     it('should run hooks in correct order (enforce pre/post)', async () => {
       const callOrder: string[] = []
       const plugins: SecureBoltdocsPlugin[] = [
         {
           name: 'normal',
-          hooks: { beforeBuild: () => { callOrder.push('normal') } },
-          permissions: ['hooks:build']
+          hooks: {
+            beforeBuild: () => {
+              callOrder.push('normal')
+            },
+          },
+          permissions: ['hooks:build'],
         },
         {
           name: 'pre',
           enforce: 'pre',
-          hooks: { beforeBuild: () => { callOrder.push('pre') } },
-          permissions: ['hooks:build']
+          hooks: {
+            beforeBuild: () => {
+              callOrder.push('pre')
+            },
+          },
+          permissions: ['hooks:build'],
         },
         {
           name: 'post',
           enforce: 'post',
-          hooks: { beforeBuild: () => { callOrder.push('post') } },
-          permissions: ['hooks:build']
-        }
+          hooks: {
+            beforeBuild: () => {
+              callOrder.push('post')
+            },
+          },
+          permissions: ['hooks:build'],
+        },
       ]
 
       const manager = new PluginLifecycleManager(plugins, config)
@@ -98,27 +122,37 @@ describe('Plugin System', () => {
     it('should isolate errors in hooks', async () => {
       const logs: string[] = []
       // Mock console.error to avoid spamming the test output but still check it
-      const spy = vi.spyOn(console, 'error').mockImplementation((msg) => logs.push(msg))
+      const spy = vi
+        .spyOn(console, 'error')
+        .mockImplementation((msg) => logs.push(msg))
 
       const plugins: SecureBoltdocsPlugin[] = [
         {
           name: 'broken',
-          hooks: { beforeBuild: () => { throw new Error('BOOM') } },
-          permissions: ['hooks:build']
+          hooks: {
+            beforeBuild: () => {
+              throw new Error('BOOM')
+            },
+          },
+          permissions: ['hooks:build'],
         },
         {
           name: 'working',
-          hooks: { beforeBuild: () => { logs.push('working') } },
-          permissions: ['hooks:build']
-        }
+          hooks: {
+            beforeBuild: () => {
+              logs.push('working')
+            },
+          },
+          permissions: ['hooks:build'],
+        },
       ]
 
       const manager = new PluginLifecycleManager(plugins, config)
       await manager.runHook('beforeBuild')
-      
+
       expect(logs).toContain('working')
-      expect(logs.some(l => l.includes('BOOM'))).toBe(true)
-      
+      expect(logs.some((l) => l.includes('BOOM'))).toBe(true)
+
       spy.mockRestore()
     })
 
@@ -128,10 +162,12 @@ describe('Plugin System', () => {
         {
           name: 'ctx-test',
           hooks: {
-            beforeBuild: (ctx) => { capturedCtx = ctx }
+            beforeBuild: (ctx) => {
+              capturedCtx = ctx
+            },
           },
-          permissions: ['hooks:build']
-        }
+          permissions: ['hooks:build'],
+        },
       ]
 
       const manager = new PluginLifecycleManager(plugins, config)
@@ -151,25 +187,27 @@ describe('Plugin System', () => {
         {
           name: 'provider',
           hooks: {
-            beforeBuild: (ctx) => { ctx.store.set('provider', 'api', { url: 'https://api.com' }) }
+            beforeBuild: (ctx) => {
+              ctx.store.set('provider', 'api', { url: 'https://api.com' })
+            },
           },
-          permissions: ['hooks:build']
+          permissions: ['hooks:build'],
         },
         {
           name: 'consumer',
           hooks: {
-            beforeBuild: (ctx) => { 
-              const api = ctx.store.get<{url: string}>('provider', 'api')
+            beforeBuild: (ctx) => {
+              const api = ctx.store.get<{ url: string }>('provider', 'api')
               ctx.store.set('consumer', 'done', api?.url === 'https://api.com')
-            }
+            },
           },
-          permissions: ['hooks:build']
-        }
+          permissions: ['hooks:build'],
+        },
       ]
 
       const manager = new PluginLifecycleManager(plugins, config)
       await manager.runHook('beforeBuild')
-      
+
       expect(manager['store'].get('consumer', 'done')).toBe(true)
     })
   })

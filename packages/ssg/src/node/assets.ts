@@ -28,9 +28,10 @@ export async function collectAssets({
 }: CollectAssetsOpts) {
   const { matchRoutes } = await import('react-router-dom')
   const matches = matchRoutes([...routes], locationArg, base)
-  const routeEntries = matches?.map(item => item.route.entry).filter(Boolean) as string[] ?? []
+  const routeEntries =
+    (matches?.map((item) => item.route.entry).filter(Boolean) as string[]) ?? []
   const dynamicImports = new Set<string>()
-  matches?.forEach(item => {
+  matches?.forEach((item) => {
     let lazyStr = ''
     if (item.route.lazy) {
       lazyStr += item.route.lazy.toString()
@@ -46,10 +47,12 @@ export async function collectAssets({
     }
   })
   const entries = new Set<string>()
-  routeEntries.forEach(e => entries.add(e))
+  routeEntries.forEach((e) => entries.add(e))
   const manifestEntries = [...Object.entries(serverManifest)]
-  dynamicImports.forEach(name => {
-    const result = manifestEntries.find(([_, value]) => value.file.endsWith(name))
+  dynamicImports.forEach((name) => {
+    const result = manifestEntries.find(([_, value]) =>
+      value.file.endsWith(name),
+    )
     if (result) {
       entries.add(result[0])
     }
@@ -57,32 +60,36 @@ export async function collectAssets({
 
   const modules = collectModulesForEntries(manifest, entries)
   const assets = new Set<string>()
-  Array.from(modules).forEach(id => {
+  Array.from(modules).forEach((id) => {
     const files = ssrManifest[id] || []
-    files.forEach(file => {
+    files.forEach((file) => {
       assets.add(file)
     })
   })
   return assets
 }
 
-function collectModulesForEntries(manifest: Manifest, entries: Set<string> | undefined) {
+function collectModulesForEntries(
+  manifest: Manifest,
+  entries: Set<string> | undefined,
+) {
   const mods = new Set<string>()
-  if (!entries)
-    return mods
+  if (!entries) return mods
 
-  for (const entry of entries)
-    collectModules(manifest, entry, mods)
+  for (const entry of entries) collectModules(manifest, entry, mods)
 
   return mods
 }
 
-function collectModules(manifest: Manifest, entry: string | undefined, mods = new Set<string>()) {
-  if (!entry)
-    return mods
+function collectModules(
+  manifest: Manifest,
+  entry: string | undefined,
+  mods = new Set<string>(),
+) {
+  if (!entry) return mods
 
   mods.add(entry)
-  manifest[entry]?.dynamicImports?.forEach(item => {
+  manifest[entry]?.dynamicImports?.forEach((item) => {
     collectModules(manifest, item, mods)
   })
 

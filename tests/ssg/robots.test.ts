@@ -95,7 +95,10 @@ describe('ssg robots.txt', () => {
     const config = {
       robots: {
         rules: [{ userAgent: '*', allow: '/' }],
-        sitemaps: ['https://example.com/sitemap1.xml', 'https://example.com/sitemap2.xml'],
+        sitemaps: [
+          'https://example.com/sitemap1.xml',
+          'https://example.com/sitemap2.xml',
+        ],
       },
     }
 

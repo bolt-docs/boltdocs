@@ -12,7 +12,7 @@ const getParserCacheDir = () => {
   return path.resolve(process.cwd(), config.dir, 'cache/parser')
 }
 
-const PARSER_VERSION = 'v2.2' // Increment this to invalidate all parser caches
+const PARSER_VERSION = 'v2.3' // Increment this to invalidate all parser caches
 
 /**
  * Fast sharded cache for parser results.

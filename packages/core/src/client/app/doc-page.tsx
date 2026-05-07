@@ -29,8 +29,46 @@ export function DocPage({
 
   if (!Content) return null
 
+  // Render dynamic frontmatter components if they exist
+  const formatters: React.ReactNode[] = []
+  if (route?.frontmatter) {
+    const standardKeys = new Set([
+      'title',
+      'description',
+      'permalink',
+      'sidebarPosition',
+      'sidebarLabel',
+      'sidebarHidden',
+      'hidden',
+      'category',
+      'order',
+      'badge',
+      'icon',
+      'date',
+      'lastUpdated',
+      'groupTitle',
+      'groupPosition',
+      'seo',
+    ])
+    Object.entries(route.frontmatter).forEach(([key, value]) => {
+      if (standardKeys.has(key)) return
+      console.log(key, value)
+      const FormatterComponent = allComponents[`Frontmatter_${key}`]
+      if (FormatterComponent) {
+        formatters.push(
+          <FormatterComponent key={key} data={value} route={route} />,
+        )
+      }
+    })
+  }
+
   return (
     <>
+      {formatters.length > 0 && (
+        <div className="boltdocs-frontmatter-formatters mb-8 flex flex-col gap-4">
+          {formatters}
+        </div>
+      )}
       <Content components={allComponents} />
       {route?.lastUpdated && <LastUpdated date={route.lastUpdated} />}
     </>

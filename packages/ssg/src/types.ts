@@ -9,7 +9,6 @@ import type {
 
 type Router = ReturnType<typeof createBrowserRouter>
 
-
 export interface ViteReactSSGOptions<Context = ViteReactSSGContext> {
   /**
    * Set the scripts' loading mode. Only works for `type="module"`.

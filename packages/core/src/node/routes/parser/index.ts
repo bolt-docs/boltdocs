@@ -106,6 +106,7 @@ export async function parseDocFile(
       sidebarLabel: data.sidebarLabel,
       sidebarHidden: data.sidebarHidden || data.hidden,
       seo,
+      frontmatter: data,
     },
     relativeDir: cleanDirName,
     isGroupIndex,

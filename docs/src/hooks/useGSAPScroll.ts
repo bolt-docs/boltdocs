@@ -42,7 +42,10 @@ function getAnimationProps(type: AnimationType, intensity: number) {
     case 'fade-in':
       return { from: { opacity: 0, scale: 0.9 }, to: { opacity: 1, scale: 1 } }
     case 'scale-up':
-      return { from: { opacity: 0, scale: 0.8, rotate: -5 }, to: { opacity: 1, scale: 1, rotate: 0 } }
+      return {
+        from: { opacity: 0, scale: 0.8, rotate: -5 },
+        to: { opacity: 1, scale: 1, rotate: 0 },
+      }
     case 'scale-down':
       return { from: { opacity: 0, scale: 1.2 }, to: { opacity: 1, scale: 1 } }
     case 'slide-left':
@@ -50,17 +53,29 @@ function getAnimationProps(type: AnimationType, intensity: number) {
     case 'slide-right':
       return { from: { opacity: 0, x: -intensity }, to: { opacity: 1, x: 0 } }
     case 'rotate-up':
-      return { from: { opacity: 0, rotate: 10, scale: 0.9 }, to: { opacity: 1, rotate: 0, scale: 1 } }
+      return {
+        from: { opacity: 0, rotate: 10, scale: 0.9 },
+        to: { opacity: 1, rotate: 0, scale: 1 },
+      }
     case 'blur-in':
-      return { from: { opacity: 0, filter: 'blur(20px)' }, to: { opacity: 1, filter: 'blur(0px)' } }
+      return {
+        from: { opacity: 0, filter: 'blur(20px)' },
+        to: { opacity: 1, filter: 'blur(0px)' },
+      }
     case 'reveal-clip':
-      return { from: { clipPath: 'inset(100% 0 0 0)' }, to: { clipPath: 'inset(0% 0 0 0)' } }
+      return {
+        from: { clipPath: 'inset(100% 0 0 0)' },
+        to: { clipPath: 'inset(0% 0 0 0)' },
+      }
     default:
       return { from: { opacity: 0 }, to: { opacity: 1 } }
   }
 }
 
-export function useGSAPScroll(ref: React.RefObject<HTMLElement | null>, options: GSAPScrollOptions = {}) {
+export function useGSAPScroll(
+  ref: React.RefObject<HTMLElement | null>,
+  options: GSAPScrollOptions = {},
+) {
   const {
     animation = 'fade-up',
     start = 'top 90%',
@@ -98,7 +113,10 @@ export function useGSAPScroll(ref: React.RefObject<HTMLElement | null>, options:
   }, [ref, animation, start, end, delay, duration, scrub, intensity])
 }
 
-export function useGSAPParallax(ref: React.RefObject<HTMLElement | null>, speed: number = 0.15) {
+export function useGSAPParallax(
+  ref: React.RefObject<HTMLElement | null>,
+  speed: number = 0.15,
+) {
   useEffect(() => {
     if (!ref.current) return
 
@@ -126,7 +144,8 @@ export function useGSAPSectionReveal(ref: React.RefObject<HTMLElement | null>) {
     const ctx = gsap.context(() => {
       const element = ref.current!
 
-      gsap.fromTo(element,
+      gsap.fromTo(
+        element,
         { opacity: 0, y: 60, scale: 0.98 },
         {
           opacity: 1,
@@ -141,7 +160,7 @@ export function useGSAPSectionReveal(ref: React.RefObject<HTMLElement | null>) {
             scrub: false,
             toggleActions: 'play none none reverse',
           },
-        }
+        },
       )
     }, ref)
 
@@ -149,7 +168,10 @@ export function useGSAPSectionReveal(ref: React.RefObject<HTMLElement | null>) {
   }, [ref])
 }
 
-export function useGSAPStaggerIn(ref: React.RefObject<HTMLElement | null>, options: GSAPScrollOptions = {}) {
+export function useGSAPStaggerIn(
+  ref: React.RefObject<HTMLElement | null>,
+  options: GSAPScrollOptions = {},
+) {
   const {
     start = 'top 85%',
     end = 'bottom 15%',
@@ -182,7 +204,7 @@ export function useGSAPStaggerIn(ref: React.RefObject<HTMLElement | null>, optio
             end,
             toggleActions: 'play none none reverse',
           },
-        }
+        },
       )
     }, ref)
 
@@ -190,13 +212,17 @@ export function useGSAPStaggerIn(ref: React.RefObject<HTMLElement | null>, optio
   }, [ref, start, end, delay, duration, stagger, y, scale])
 }
 
-export function useGSAPExitAnimation(ref: React.RefObject<HTMLElement | null>, direction: 'up' | 'down' | 'left' | 'right' = 'up') {
+export function useGSAPExitAnimation(
+  ref: React.RefObject<HTMLElement | null>,
+  direction: 'up' | 'down' | 'left' | 'right' = 'up',
+) {
   useEffect(() => {
     if (!ref.current) return
 
     const ctx = gsap.context(() => {
       const yValue = direction === 'up' ? -100 : direction === 'down' ? 100 : 0
-      const xValue = direction === 'left' ? -100 : direction === 'right' ? 100 : 0
+      const xValue =
+        direction === 'left' ? -100 : direction === 'right' ? 100 : 0
 
       gsap.to(ref.current, {
         opacity: 0,

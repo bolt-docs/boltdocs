@@ -114,8 +114,7 @@ export async function build(
     cacheDir = '.boltdocs',
   }: ViteReactSSGOptions = mergedOptions
 
-  const beastiesOptions =
-    mergedOptions.beastiesOptions ?? {}
+  const beastiesOptions = mergedOptions.beastiesOptions ?? {}
 
   if (fs.existsSync(ssgOut)) await fs.remove(ssgOut)
 
@@ -161,7 +160,7 @@ export async function build(
     }),
   )
 
-  let unmock = () => { }
+  let unmock = () => {}
   if (mock) {
     const { jsdomGlobal }: { jsdomGlobal: () => () => void } =
       // @ts-expect-error allow js
@@ -185,13 +184,13 @@ export async function build(
           output:
             format === 'esm'
               ? {
-                entryFileNames: '[name].mjs',
-                format: 'esm',
-              }
+                  entryFileNames: '[name].mjs',
+                  format: 'esm',
+                }
               : {
-                entryFileNames: '[name].cjs',
-                format: 'cjs',
-              },
+                  entryFileNames: '[name].cjs',
+                  format: 'cjs',
+                },
           // @ts-expect-error rollup type
           onLog(level, log, handler) {
             if (log.message.includes('react-helmet-async')) return
@@ -215,12 +214,17 @@ export async function build(
     .replace('virtual:', '')
     .replace(/[^a-zA-Z0-9-]/g, '_')
 
-  // If the SSR entry points to an absolute path, Vite/Rolldown 8 typically uses the basename 
+  // If the SSR entry points to an absolute path, Vite/Rolldown 8 typically uses the basename
   // without drive letters or full path mangling for its chunk name.
   // We strip any existing extension (like .tsx) to avoid double extensions like .tsx.mjs
-  const entryBasename = (ssrEntry.includes('/') || ssrEntry.includes('\\'))
-    ? ssrEntry.split(/[/\\]/).pop()!.replace(/\.[^/.]+$/, '').replace(ext, '')
-    : safeEntryName
+  const entryBasename =
+    ssrEntry.includes('/') || ssrEntry.includes('\\')
+      ? ssrEntry
+          .split(/[/\\]/)
+          .pop()!
+          .replace(/\.[^/.]+$/, '')
+          .replace(ext, '')
+      : safeEntryName
 
   const serverEntry =
     prefix + join(ssgOut, entryBasename + ext).replace(/\\/g, '/')
@@ -256,9 +260,9 @@ export async function build(
   const beasties =
     beastiesOptions !== false
       ? await getBeasties(outDir, {
-        publicPath: configBase,
-        ...beastiesOptions,
-      })
+          publicPath: configBase,
+          ...beastiesOptions,
+        })
       : undefined
   if (beasties) {
     console.log(
@@ -289,7 +293,8 @@ export async function build(
   const cachePath = join(finalCacheDir, 'ssg-cache.json')
   const ssgPagesDir = join(finalCacheDir, 'ssg-pages')
 
-  let ssgCache: Record<string, { mtime: number; loaderDataFilePath?: string }> = {}
+  let ssgCache: Record<string, { mtime: number; loaderDataFilePath?: string }> =
+    {}
   try {
     if (fs.existsSync(cachePath)) {
       ssgCache = await fs.readJson(cachePath)
@@ -297,7 +302,10 @@ export async function build(
   } catch (e) {
     // Ignore cache errors
   }
-  const newSsgCache: Record<string, { mtime: number; loaderDataFilePath?: string }> = { ...ssgCache }
+  const newSsgCache: Record<
+    string,
+    { mtime: number; loaderDataFilePath?: string }
+  > = { ...ssgCache }
 
   for (const path of routesPaths) {
     const pathHash = crypto.createHash('md5').update(path).digest('hex')
@@ -315,18 +323,23 @@ export async function build(
 
     const finalOutFile = join(out, filename)
     const normalizedKey = withLeadingSlash(path).replace(/\/$/, '')
-    const sourceFile = routeToSourceFileMap[normalizedKey] || routeToSourceFileMap[path]
+    const sourceFile =
+      routeToSourceFileMap[normalizedKey] || routeToSourceFileMap[path]
 
     let isCached = false
     let sourceMtime = 0
-    if (sourceFile && fs.existsSync(sourceFile) && fs.existsSync(cachedHtmlFile)) {
+    if (
+      sourceFile &&
+      fs.existsSync(sourceFile) &&
+      fs.existsSync(cachedHtmlFile)
+    ) {
       try {
         sourceMtime = Math.round(fs.statSync(sourceFile).mtimeMs)
         const cachedItem = ssgCache[normalizedKey] || ssgCache[path]
         if (cachedItem && Math.round(cachedItem.mtime) === sourceMtime) {
           isCached = true
         }
-      } catch (e) { }
+      } catch (e) {}
     }
 
     if (isCached) {
@@ -337,11 +350,15 @@ export async function build(
 
           // Copy loader data if exists
           const cachedItem = ssgCache[path]
-          if (cachedItem?.loaderDataFilePath && fs.existsSync(cachedLoaderFile)) {
+          if (
+            cachedItem?.loaderDataFilePath &&
+            fs.existsSync(cachedLoaderFile)
+          ) {
             const loaderDataFilePath = cachedItem.loaderDataFilePath
             await fs.ensureDir(join(out, dirname(loaderDataFilePath)))
             await fs.copy(cachedLoaderFile, join(out, loaderDataFilePath))
-            staticLoaderDataManifest[withLeadingSlash(path)] = loaderDataFilePath
+            staticLoaderDataManifest[withLeadingSlash(path)] =
+              loaderDataFilePath
             loaderDataFileCount++
           }
 
@@ -381,13 +398,13 @@ export async function build(
         const assets =
           !app && routerType === 'remix'
             ? await collectAssets({
-              routes: [...routes],
-              locationArg: fetchUrl,
-              base,
-              serverManifest,
-              manifest,
-              ssrManifest,
-            })
+                routes: [...routes],
+                locationArg: fetchUrl,
+                base,
+                serverManifest,
+                manifest,
+                ssrManifest,
+              })
             : new Set<string>()
 
         const {
@@ -465,8 +482,16 @@ export async function build(
           const normalizedKey = withLeadingSlash(path).replace(/\/$/, '')
           const mtimeRounded = Math.round(sourceMtime)
 
-          if (loaderData && Object.keys(loaderData).length > 0 && writtenLoaderDataPath) {
-            await fs.writeFile(cachedLoaderFile, JSON.stringify(loaderData), 'utf-8')
+          if (
+            loaderData &&
+            Object.keys(loaderData).length > 0 &&
+            writtenLoaderDataPath
+          ) {
+            await fs.writeFile(
+              cachedLoaderFile,
+              JSON.stringify(loaderData),
+              'utf-8',
+            )
             newSsgCache[normalizedKey] = {
               mtime: mtimeRounded,
               loaderDataFilePath: writtenLoaderDataPath,

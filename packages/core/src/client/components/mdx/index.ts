@@ -52,4 +52,3 @@ export type { ComponentPreviewProps } from './component-preview'
 
 export { Collapse, CollapseGroup } from './collapse'
 export type { CollapseProps, CollapseGroupProps } from './collapse'
-

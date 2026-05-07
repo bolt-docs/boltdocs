@@ -51,6 +51,12 @@ The Table component provides a consistent, beautifully styled way to display tab
       type: "number",
       defaultValue: "10",
       description: "The number of rows to show per page when paginated."
+    },
+    {
+      name: "variant",
+      type: '"default" | "bordered" | "ghost" | "card"',
+      defaultValue: '"bordered"',
+      description: "The visual style variant of the Table container."
     }
   ]}
 />
@@ -58,6 +64,50 @@ The Table component provides a consistent, beautifully styled way to display tab
 ---
 
 ## Variants & Examples
+
+### Visual Style Variants
+
+Boltdocs supports four beautiful visual variants for Tables. Specify the `variant` prop to choose.
+
+#### Bordered Variant (Default)
+<Table
+  variant="bordered"
+  headers={["Package", "Downloads"]}
+  data={[
+    ["boltdocs", "12k/month"],
+    ["@bdocs/core", "8k/month"]
+  ]}
+/>
+
+#### Card Variant
+<Table
+  variant="card"
+  headers={["Package", "Downloads"]}
+  data={[
+    ["boltdocs", "12k/month"],
+    ["@bdocs/core", "8k/month"]
+  ]}
+/>
+
+#### Ghost Variant
+<Table
+  variant="ghost"
+  headers={["Package", "Downloads"]}
+  data={[
+    ["boltdocs", "12k/month"],
+    ["@bdocs/core", "8k/month"]
+  ]}
+/>
+
+#### Default Variant
+<Table
+  variant="default"
+  headers={["Package", "Downloads"]}
+  data={[
+    ["boltdocs", "12k/month"],
+    ["@bdocs/core", "8k/month"]
+  ]}
+/>
 
 ### Basic Usage
 
