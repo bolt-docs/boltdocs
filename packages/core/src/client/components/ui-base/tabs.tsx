@@ -1,3 +1,4 @@
+import { useEffect } from 'react'
 import { useTabs as useTabsHook } from '../../hooks/use-tabs'
 import { Tabs as T } from '../primitives/tabs'
 import { Link } from '../primitives/link'
@@ -15,6 +16,17 @@ export function Tabs({
 }) {
   const { currentLocale } = useRoutes()
   const { indicatorStyle, tabRefs, activeIndex } = useTabsHook(tabs, routes)
+
+  useEffect(() => {
+    const activeTab = tabRefs.current[activeIndex]
+    if (activeTab) {
+      activeTab.scrollIntoView({
+        behavior: 'smooth',
+        block: 'nearest',
+        inline: 'center',
+      })
+    }
+  }, [activeIndex])
 
   const renderTabIcon = (iconName?: string) => {
     if (!iconName) return null
