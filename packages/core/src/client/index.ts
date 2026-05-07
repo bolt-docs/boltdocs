@@ -63,7 +63,9 @@ export {
   Table,
   Field,
   Link,
-  Image
+  Image,
+  Collapse,
+  CollapseGroup
 } from './components/mdx'
 
 export type {
@@ -82,6 +84,8 @@ export type {
   FieldProps,
   LinkProps,
   ImageProps,
+  CollapseProps,
+  CollapseGroupProps,
 } from './components/mdx'
 
 // Primitives
