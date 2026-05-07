@@ -55,7 +55,7 @@ function parseChangesets(content: string): ChangelogVersion[] {
 
       const version = normalizeVersion(versionMatch[1])
       let type: ChangelogVersion['type'] = 'patch'
-      let date: string | undefined = undefined
+      let date: string | undefined 
 
       const dateMatch = line.match(/\((\d{4}-\d{2}-\d{2})\)/)
       if (dateMatch) {
