@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest'
 import fs from 'node:fs'
 import path from 'node:path'
-import { generateChangelog } from '../packages/core/src/node/changelog/generator'
+import { generateChangelog } from '../../packages/core/src/node/changelog/generator'
 
 const TEST_OUTPUT_DIR = path.resolve('./tests/temp-changelog-output')
 
@@ -23,20 +23,7 @@ describe('Changelog Generator', () => {
     fs.mkdirSync(path.dirname(testChangelog), { recursive: true })
     fs.writeFileSync(
       testChangelog,
-      `# Changelog
-
-## 2.0.0
-
-### Minor Changes
-
-- New feature
-
-## 1.0.0
-
-### Patch Changes
-
-- Bug fix
-`,
+      `# Changelog\n\n## 2.0.0\n\n### Minor Changes\n\n- New feature\n\n## 1.0.0\n\n### Patch Changes\n\n- Bug fix\n`,
     )
 
     await generateChangelog(testChangelog, { output: TEST_OUTPUT_DIR })
@@ -50,14 +37,7 @@ describe('Changelog Generator', () => {
     fs.mkdirSync(path.dirname(testChangelog), { recursive: true })
     fs.writeFileSync(
       testChangelog,
-      `# Changelog
-
-## 1.0.0
-
-### Minor Changes
-
-- New feature added
-`,
+      `# Changelog\n\n## 1.0.0\n\n### Minor Changes\n\n- New feature added\n`,
     )
 
     await generateChangelog(testChangelog, { output: TEST_OUTPUT_DIR })
@@ -80,14 +60,7 @@ describe('Changelog Generator', () => {
     fs.mkdirSync(path.dirname(testChangelog), { recursive: true })
     fs.writeFileSync(
       testChangelog,
-      `# Changelog
-
-## 1.0.0
-
-### Minor Changes
-
-- Test
-`,
+      `# Changelog\n\n## 1.0.0\n\n### Minor Changes\n\n- Test\n`,
     )
 
     await generateChangelog(testChangelog, {
@@ -107,14 +80,7 @@ describe('Changelog Generator', () => {
     fs.mkdirSync(path.dirname(testChangelog), { recursive: true })
     fs.writeFileSync(
       testChangelog,
-      `# Changelog
-
-## 1.0.0 (2024-01-15)
-
-### Patch Changes
-
-- Fixed bug
-`,
+      `# Changelog\n\n## 1.0.0 (2024-01-15)\n\n### Patch Changes\n\n- Fixed bug\n`,
     )
 
     await generateChangelog(testChangelog, { output: TEST_OUTPUT_DIR })
@@ -134,28 +100,7 @@ describe('Changelog Generator', () => {
     fs.mkdirSync(path.dirname(testChangelog), { recursive: true })
     fs.writeFileSync(
       testChangelog,
-      `# Changelog
-
-## 1.0.0
-
-### Minor Changes
-
-- New feature
-
-### Patch Changes
-
-- Bug fix
-
-### Performance Improvements
-
-- Speed improvement
-
-## 0.9.0
-
-### Patch Changes
-
-- Another fix
-`,
+      `# Changelog\n\n## 1.0.0\n\n### Minor Changes\n\n- New feature\n\n### Patch Changes\n\n- Bug fix\n\n### Performance Improvements\n\n- Speed improvement\n\n## 0.9.0\n\n### Patch Changes\n\n- Another fix\n`,
     )
 
     await generateChangelog(testChangelog, { output: TEST_OUTPUT_DIR })
@@ -174,14 +119,7 @@ describe('Changelog Generator', () => {
     fs.mkdirSync(path.dirname(testChangelog), { recursive: true })
     fs.writeFileSync(
       testChangelog,
-      `# Changelog
-
-## 1.0.0
-
-### Patch Changes
-
-- Fix issue by [\`abc123\`](https://github.com/test) Thanks [@developer](https://github.com/developer)
-`,
+      `# Changelog\n\n## 1.0.0\n\n### Patch Changes\n\n- Fix issue by [\`abc123\`](https://github.com/test) Thanks [@developer](https://github.com/developer)\n`,
     )
 
     await generateChangelog(testChangelog, { output: TEST_OUTPUT_DIR })

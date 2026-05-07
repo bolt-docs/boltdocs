@@ -4,7 +4,7 @@ import {
   TransformCache,
   AssetCache,
   flushCache,
-} from '../packages/core/src/node/cache'
+} from '../../packages/core/src/node/cache'
 import fs from 'fs'
 import path from 'path'
 import os from 'os'

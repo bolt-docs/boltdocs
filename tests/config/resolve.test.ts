@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import { resolveConfig } from '../packages/core/src/node/config'
+import { resolveConfig } from '../../packages/core/src/node/config'
 import fs from 'fs'
 import path from 'path'
 import os from 'os'
