@@ -2,6 +2,8 @@ import { useLocation } from 'react-router-dom'
 import type { ComponentType, ReactNode } from 'react'
 import * as ReactHelmetAsync from 'react-helmet-async'
 import { useConfig } from '../../app/config-context'
+import { getTranslated } from '../../utils/i18n'
+import { useRoutes } from '../../hooks/use-routes'
 
 type HelmetModule = {
   Helmet?: ComponentType<{ children?: ReactNode }>
@@ -14,8 +16,8 @@ const Helmet =
   (({ children }) => <>{children}</>)
 
 interface HeadProps {
-  siteTitle: string
-  siteDescription?: string
+  siteTitle?: string | Record<string, string>
+  siteDescription?: string | Record<string, string>
   routes: Array<{
     path: string
     title: string
@@ -27,13 +29,16 @@ interface HeadProps {
 export function Head({ siteTitle, siteDescription, routes }: HeadProps) {
   const location = useLocation()
   const config = useConfig()
+  const { currentLocale } = useRoutes()
 
   // Find the current route's metadata
   const currentRoute = routes?.find?.((r) => r.path === location.pathname)
   const pageTitle = currentRoute?.title
-  const pageDescription = currentRoute?.description || siteDescription || ''
+  const translatedSiteDescription = getTranslated(siteDescription, currentLocale)
+  const pageDescription = currentRoute?.description || translatedSiteDescription || ''
 
-  const finalTitle = pageTitle ? `${pageTitle} | ${siteTitle}` : siteTitle
+  const translatedSiteTitle = getTranslated(siteTitle, currentLocale)
+  const finalTitle = pageTitle ? `${pageTitle} | ${translatedSiteTitle}` : translatedSiteTitle
 
   const seo = currentRoute?.seo || {}
 
