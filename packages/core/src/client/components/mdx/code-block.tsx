@@ -1,5 +1,5 @@
 import { Button } from 'react-aria-components'
-import { Copy, Check, File, ExternalLink } from 'lucide-react'
+import { Copy, Check, File } from 'lucide-react'
 import { cn } from '../../utils/cn'
 import { reactToText } from '../../utils/react-to-text'
 import { useCodeBlock } from './hooks/use-code-block'
@@ -66,7 +66,7 @@ const CopyButton = ({
       <Button
         onPress={handleCopy}
         className={cn(
-          'grid place-items-center size-8 bg-transparent outline-none cursor-pointer transition-all duration-200 hover:scale-110 active:scale-95 [&>svg]:size-4 [&>svg]:stroke-2',
+          'grid place-items-center size-8 bg-transparent outline-none cursor-pointer transition-all duration-200 hover:scale-110 active:scale-95 [&>svg]:size-4 [&>svg]:stroke-2 z-10',
           copied ? 'text-emerald-400' : 'text-muted hover:text-body',
         )}
         aria-label="Copy code"
@@ -91,7 +91,10 @@ export function CodeBlock(props: CodeBlockProps) {
     ...rest
   } = props
 
-  const effectiveHighlightedHtml = highlightedHtml || dataHighlightedHtml
+  const rawHighlightedHtml = highlightedHtml || dataHighlightedHtml
+  const effectiveHighlightedHtml = typeof rawHighlightedHtml === 'string'
+    ? rawHighlightedHtml.replace(/<span class="line">\s*(?:<span[^>]*>\s*<\/span>)?\s*<\/span>\s*(<\/code>\s*<\/pre>)/g, '$1')
+    : rawHighlightedHtml
   const effectiveTitle = title || dataTitle
   const lang = props.lang || dataLang || ''
 
@@ -105,20 +108,20 @@ export function CodeBlock(props: CodeBlockProps) {
     shouldTruncate,
   } = useCodeBlock(props)
 
-  const codeText = reactToText(children)
   const LangIcon = langIconMap[lang]
 
   return (
     <CodePrimitive.CodeBlock plain={plain} className={props.className}>
       {(effectiveTitle || !hideCopy) && (
-        <CodePrimitive.CodeBlockHeader>
+        <CodePrimitive.CodeBlockHeader className={cn({
+          "absolute top-2 left-0 w-full": !effectiveTitle
+        })}>
           <CodePrimitive.CodeBlockGroup>
             {effectiveTitle && (
               <>
                 {LangIcon ? (
                   <LangIcon size={14} />
                 ) : (
-                  // @ts-expect-error
                   <File size={14} className="opacity-60" />
                 )}
                 <span>{effectiveTitle}</span>
@@ -147,7 +150,7 @@ export function CodeBlock(props: CodeBlockProps) {
             className="m-0! p-5! rounded-none! border-none! bg-inherit! font-mono text-[0.875rem] leading-[1.6] overflow-x-auto"
             {...rest}
           >
-            {reactToText(children)}
+            {reactToText(children).trimEnd()}
           </pre>
         )}
 
@@ -157,7 +160,7 @@ export function CodeBlock(props: CodeBlockProps) {
             className={cn(
               shouldTruncate
                 ? 'absolute bottom-0 inset-x-0 h-24 bg-linear-to-t from-(--color-code-bg) to-transparent flex items-end justify-center pb-4 z-10'
-                : 'relative flex justify-center py-4',
+                : 'relative flex justify-center pb-4 pt-1 -mt-4',
             )}
           >
             {/* @ts-ignore */}
