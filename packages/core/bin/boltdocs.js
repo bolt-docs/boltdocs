@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-'use strict'
+
 
 /**
  * Stable entry point for the Boltdocs CLI.
