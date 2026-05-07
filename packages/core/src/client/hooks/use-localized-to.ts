@@ -6,7 +6,9 @@ import { useRoutes } from './use-routes'
  * Hook to automatically localize a path based on the current version and locale context.
  * It ensures that navigation preserves the active version and language across the entire site.
  */
-export function useLocalizedTo(to: RouterLinkProps['to']) {
+export function useLocalizedTo(to: string): string
+export function useLocalizedTo(to: RouterLinkProps['to']): RouterLinkProps['to']
+export function useLocalizedTo(to: RouterLinkProps['to']): RouterLinkProps['to'] {
   const config = useConfig()
   const {
     currentLocale: activeLocale,
@@ -61,7 +63,12 @@ export function useLocalizedTo(to: RouterLinkProps['to']) {
   }
 
   // Strip locales if present
-  if (i18n && parts.length > pIdx && i18n.locales[parts[pIdx]]) pIdx++
+  const isLocale = i18n && parts.length > pIdx && (
+    Array.isArray(i18n.locales)
+      ? i18n.locales.includes(parts[pIdx])
+      : parts[pIdx] in i18n.locales
+  )
+  if (isLocale) pIdx++
 
   // The actual relative route remaining
   const routeContent = parts.slice(pIdx)
