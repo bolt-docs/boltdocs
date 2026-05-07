@@ -1,4 +1,4 @@
-import * as RAC from 'react-aria-components'
+import { Link } from './link'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
 import { cn } from '../../utils/cn'
 import type { ComponentBase } from './types'
@@ -24,7 +24,7 @@ export const PageNav = ({ children, className }: ComponentBase) => {
 const PageNavLink = ({ children, to, direction, className }: PageNavProps) => {
   const isNext = direction === 'next'
   return (
-    <RAC.Link
+    <Link
       href={to}
       className={cn(
         'flex group items-center p-4 rounded-xl border border-subtle bg-surface outline-none no-underline',
@@ -41,7 +41,7 @@ const PageNavLink = ({ children, to, direction, className }: PageNavProps) => {
       {isNext && (
         <ChevronRight className="ml-3 h-5 w-5 text-muted group-hover:text-primary-500 transition-transform group-hover:translate-x-1" />
       )}
-    </RAC.Link>
+    </Link>
   )
 }
 
