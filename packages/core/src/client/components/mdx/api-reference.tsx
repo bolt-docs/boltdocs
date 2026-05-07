@@ -1,6 +1,25 @@
 import { useState } from 'react'
 import { Search, Copy, Check } from 'lucide-react'
 import { cn } from '../../utils/cn'
+import { cva } from 'class-variance-authority'
+import type { VariantProps } from 'class-variance-authority'
+
+const tableVariants = cva(
+  'my-8 transition-all duration-300',
+  {
+    variants: {
+      variant: {
+        default: 'border-none bg-transparent rounded-none p-0',
+        bordered: 'border border-subtle bg-surface/10 rounded-2xl p-5 md:p-6',
+        card: 'border border-subtle bg-surface rounded-2xl p-5 md:p-6',
+        ghost: 'border-none bg-transparent rounded-2xl p-4',
+      },
+    },
+    defaultVariants: {
+      variant: 'card',
+    },
+  },
+)
 
 export interface PropItem {
   name: string
@@ -10,7 +29,7 @@ export interface PropItem {
   description: React.ReactNode
 }
 
-export interface ApiReferenceProps {
+export interface ApiReferenceProps extends VariantProps<typeof tableVariants> {
   title?: string
   props: PropItem[]
   searchable?: boolean
@@ -49,6 +68,7 @@ export function ApiReference({
   title,
   props,
   searchable = false,
+  variant,
   className = '',
 }: ApiReferenceProps) {
   const [searchTerm, setSearchTerm] = useState('')
@@ -72,7 +92,7 @@ export function ApiReference({
   return (
     <div
       className={cn(
-        'my-8 rounded-2xl border border-subtle bg-surface/10 p-5 md:p-6 transition-all duration-300',
+        tableVariants({ variant }),
         className,
       )}
     >

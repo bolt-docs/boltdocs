@@ -3,39 +3,21 @@ import * as RAC from 'react-aria-components'
 import { useTabs } from './hooks/useTabs'
 import { cn } from '../../utils/cn'
 import { CodeBlock } from './code-block'
-import { cva } from 'class-variance-authority'
+import { cva, type VariantProps } from 'class-variance-authority'
 
 const tabListVariants = cva(
-  'relative flex items-center border-b border-subtle gap-1 overflow-x-auto no-scrollbar',
+  'relative flex items-center gap-1 overflow-x-auto no-scrollbar transition-all duration-300',
   {
     variants: {
-      size: {
-        default: 'px-0',
-        compact: 'px-2',
+      variant: {
+        'default': 'border-b border-subtle px-0 pb-px',
+        'bordered': 'border border-subtle bg-transparent p-1.5 rounded-xl',
+        'card': 'border border-subtle bg-surface p-1.5 rounded-xl shadow-xs',
+        'ghost': 'bg-soft/30 p-1.5 rounded-xl',
       },
     },
     defaultVariants: {
-      size: 'default',
-    },
-  },
-)
-
-const tabItemVariants = cva(
-  'flex items-center gap-2 px-4 py-2.5 text-sm font-medium outline-none transition-all duration-200 cursor-pointer bg-transparent border-none select-none whitespace-nowrap',
-  {
-    variants: {
-      isActive: {
-        true: 'text-primary-500',
-        false: 'text-muted hover:text-body',
-      },
-      isDisabled: {
-        true: 'opacity-40 pointer-events-none',
-        false: '',
-      },
-    },
-    defaultVariants: {
-      isActive: false,
-      isDisabled: false,
+      variant: 'card',
     },
   },
 )
@@ -60,12 +42,12 @@ export function Tab({ children }: TabProps) {
   return <div className="py-4">{content}</div>
 }
 
-export interface TabsProps {
+export interface TabsProps extends VariantProps<typeof tabListVariants> {
   defaultIndex?: number
   children: React.ReactNode
 }
 
-export function Tabs({ defaultIndex = 0, children }: TabsProps) {
+export function Tabs({ defaultIndex = 0, children, variant }: TabsProps) {
   const tabs = useMemo(() => {
     return Children.toArray(children).filter(
       (child) =>
@@ -88,7 +70,7 @@ export function Tabs({ defaultIndex = 0, children }: TabsProps) {
       >
         <RAC.TabList
           aria-label="Content Tabs"
-          className={cn(tabListVariants())}
+          className={tabListVariants({ variant })}
         >
           {tabs.map((child, i) => {
             const { label, icon, disabled } = child.props
@@ -103,7 +85,26 @@ export function Tabs({ defaultIndex = 0, children }: TabsProps) {
                   tabRefs.current[i] = el
                 }}
                 className={({ isSelected, isDisabled }) =>
-                  cn(tabItemVariants({ isActive: isSelected, isDisabled }))
+                  cn(
+                    'flex items-center gap-2 px-4 py-2 text-sm font-medium outline-none transition-all duration-200 cursor-pointer select-none whitespace-nowrap rounded-lg',
+                    isDisabled && 'opacity-40 pointer-events-none',
+                    variant === 'default' && [
+                      'rounded-none border-b-2 border-transparent bg-transparent py-2.5',
+                      isSelected ? 'text-primary-500 font-semibold' : 'text-muted hover:text-body'
+                    ],
+                    variant === 'bordered' && [
+                      'px-3.5 py-1.5',
+                      isSelected ? 'bg-primary-500 text-white shadow-xs' : 'text-muted hover:text-body hover:bg-soft/50'
+                    ],
+                    variant === 'card' && [
+                      'px-3.5 py-1.5',
+                      isSelected ? 'bg-surface text-primary-500 shadow-xs border border-subtle' : 'text-muted hover:text-body hover:bg-soft/30'
+                    ],
+                    variant === 'ghost' && [
+                      'px-3.5 py-1.5',
+                      isSelected ? 'bg-soft text-body shadow-3xs' : 'text-muted hover:text-body hover:bg-soft/30'
+                    ]
+                  )
                 }
               >
                 {!!icon && (
@@ -116,11 +117,13 @@ export function Tabs({ defaultIndex = 0, children }: TabsProps) {
             )
           })}
 
-          <div
-            className="absolute bottom-0 h-0.5 bg-primary-500 transition-all duration-300 ease-in-out pointer-events-none"
-            style={indicatorStyle}
-            aria-hidden="true"
-          />
+          {variant === 'default' && (
+            <div
+              className="absolute bottom-0 h-0.5 bg-primary-500 transition-all duration-300 ease-in-out pointer-events-none"
+              style={indicatorStyle}
+              aria-hidden="true"
+            />
+          )}
         </RAC.TabList>
 
         {tabs.map((_tab, i) => (

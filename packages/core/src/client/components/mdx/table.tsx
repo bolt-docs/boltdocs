@@ -9,8 +9,26 @@ import {
   ChevronsRight,
 } from 'lucide-react'
 import { cn } from '../../utils/cn'
+import { cva, type VariantProps } from 'class-variance-authority'
 
-export interface TableProps {
+const tableVariants = cva(
+  'my-6 overflow-hidden transition-all duration-300',
+  {
+    variants: {
+      variant: {
+        default: 'border-none rounded-none',
+        bordered: 'border border-subtle rounded-xl',
+        card: 'border border-subtle bg-surface shadow-xs hover:shadow-sm rounded-xl',
+        ghost: 'border-none bg-transparent rounded-xl'
+      }
+    },
+    defaultVariants: {
+      variant: 'card'
+    }
+  }
+)
+
+export interface TableProps extends VariantProps<typeof tableVariants> {
   headers?: string[]
   data?: (string | React.ReactNode)[][]
   children?: React.ReactNode
@@ -28,6 +46,7 @@ export function Table({
   sortable = false,
   paginated = false,
   pageSize = 10,
+  variant,
 }: TableProps) {
   const {
     sortConfig,
@@ -68,7 +87,7 @@ export function Table({
                 className={cn(
                   'text-left px-3 py-2.5 border-b-2 border-subtle text-body font-semibold text-sm',
                   sortable &&
-                    'cursor-pointer select-none hover:text-primary-400 transition-colors',
+                  'cursor-pointer select-none hover:text-primary-400 transition-colors',
                 )}
               >
                 <div className="flex items-center">
@@ -102,8 +121,8 @@ export function Table({
   return (
     <div
       className={cn(
-        'my-6 rounded-lg border border-subtle overflow-hidden',
-        className,
+        tableVariants({ variant }),
+        className
       )}
     >
       <div className="overflow-x-auto">

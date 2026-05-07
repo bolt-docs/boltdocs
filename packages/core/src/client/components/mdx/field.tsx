@@ -1,6 +1,25 @@
 import { cn } from '../../utils/cn'
+import { cva, type VariantProps } from 'class-variance-authority'
 
-export interface FieldProps {
+
+const fieldVariants = cva(
+  'group relative my-8 transition-all duration-300',
+  {
+    variants: {
+      variant: {
+        default: 'border-b border-subtle rounded-none py-6 last:border-b-0',
+        bordered: 'border border-subtle bg-transparent rounded-2xl p-6 hover:border-strong',
+        card: 'border border-subtle bg-surface/40 p-6 rounded-2xl hover:bg-surface hover:shadow-xl hover:shadow-black/5 hover:-translate-y-0.5',
+        ghost: 'border-none bg-transparent rounded-xl p-4 hover:bg-soft/20'
+      }
+    },
+    defaultVariants: {
+      variant: 'card'
+    }
+  }
+)
+
+export interface FieldProps extends VariantProps<typeof fieldVariants> {
   name: string
   type?: string
   defaultValue?: string
@@ -17,14 +36,13 @@ export function Field({
   required = false,
   children,
   id,
+  variant,
   className = '',
 }: FieldProps) {
   return (
     <article
       className={cn(
-        'group relative my-8 rounded-2xl border border-subtle bg-surface/40 p-6 transition-all duration-300',
-        'hover:bg-surface hover:shadow-xl hover:shadow-black/5 hover:-translate-y-0.5',
-        className,
+        fieldVariants({ variant }), className
       )}
       id={id}
     >

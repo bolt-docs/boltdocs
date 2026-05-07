@@ -41,7 +41,7 @@ export function Video({
   return (
     <div
       ref={containerRef}
-      className="my-6 overflow-hidden rounded-lg border border-subtle"
+      className="my-6 overflow-hidden rounded-xl border border-subtle"
     >
       {isVisible ? (
         <video

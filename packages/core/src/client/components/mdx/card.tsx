@@ -1,6 +1,6 @@
 import type { MouseEvent as ReactMouseEvent } from 'react'
 import { useCallback, useRef } from 'react'
-import * as RAC from 'react-aria-components'
+import { Link, type LinkProps } from '../primitives/link'
 import { cn } from '../../utils/cn'
 import { cva } from 'class-variance-authority'
 import type { VariantProps } from 'class-variance-authority'
@@ -20,9 +20,24 @@ const cardsVariants = cva('grid gap-4 my-6', {
 })
 type CardsVariants = VariantProps<typeof cardsVariants>
 
+const cardVariants = cva('group relative block outline-none overflow-hidden transition-all duration-200 focus-visible:ring-2 focus-visible:ring-primary-500/30', {
+  variants: {
+    variant: {
+      default: 'border-b border-subtle rounded-none p-4 last:border-b-0 hover:bg-soft/10',
+      bordered: 'border border-subtle bg-transparent rounded-xl p-5 hover:border-strong',
+      card: 'border border-subtle bg-surface rounded-xl p-5 shadow-xs hover:shadow-lg hover:border-primary-500/40 hover:shadow-primary-500/5',
+      ghost: 'border-none bg-transparent rounded-xl p-4 hover:bg-soft/30',
+    }
+
+  },
+  defaultVariants: {
+    variant: "card"
+  }
+})
+
 export interface CardsProps
   extends React.HTMLAttributes<HTMLDivElement>,
-    CardsVariants {}
+  CardsVariants { }
 
 export function Cards({
   cols = 3,
@@ -37,19 +52,22 @@ export function Cards({
   )
 }
 
-export interface CardProps extends React.HTMLAttributes<HTMLDivElement> {
+type CardVariant = VariantProps<typeof cardVariants>
+export interface CardProps extends LinkProps, CardVariant {
   title?: string
   icon?: React.ReactNode
   href?: string
+  className?: string
   children?: React.ReactNode
 }
 
 export function Card({
   title,
   icon,
-  href,
   children,
-  className = '',
+  href,
+  className,
+  variant,
   ...rest
 }: CardProps) {
   const cardRef = useRef<HTMLDivElement>(null)
@@ -85,25 +103,17 @@ export function Card({
       </div>
     </>
   )
-
-  const cardClasses = cn(
-    'group relative block rounded-xl border border-subtle bg-surface p-5 outline-none overflow-hidden',
-    'transition-all duration-200 hover:border-primary-500/40 hover:shadow-lg hover:shadow-primary-500/5',
-    'focus-visible:ring-2 focus-visible:ring-primary-500/30',
-    className,
-  )
-
   if (href) {
     return (
-      <RAC.Link
+      <Link
         ref={linkRef}
         href={href}
-        className={cn(cardClasses, 'no-underline cursor-pointer')}
+        className={cn(cardVariants({ variant }), 'no-underline cursor-pointer', className)}
         onMouseMove={handleMouseMove}
         {...(rest as any)}
       >
         {inner}
-      </RAC.Link>
+      </Link>
     )
   }
 
@@ -112,7 +122,7 @@ export function Card({
     <div
       ref={cardRef}
       role="presentation"
-      className={cardClasses}
+      className={cn(cardVariants({ variant }), className)}
       onMouseMove={handleMouseMove}
       {...rest}
     >

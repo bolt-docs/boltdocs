@@ -49,3 +49,7 @@ export type { ApiReferenceProps } from './api-reference'
 
 export { ComponentPreview } from './component-preview'
 export type { ComponentPreviewProps } from './component-preview'
+
+export { Collapse, CollapseGroup } from './collapse'
+export type { CollapseProps, CollapseGroupProps } from './collapse'
+

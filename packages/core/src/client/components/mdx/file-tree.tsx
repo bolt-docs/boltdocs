@@ -21,8 +21,24 @@ import {
   Shell,
   Yaml,
 } from '../icons-dev'
+import { cva, type VariantProps } from 'class-variance-authority'
 
-// --- Constants & Types ---
+const treeVariants = cva(
+  'font-mono text-sm outline-none transition-all duration-300 max-h-[500px] overflow-y-auto scrollbar-thin scrollbar-thumb-border-subtle focus-visible:ring-2 focus-visible:ring-primary-500/20',
+  {
+    variants: {
+      variant: {
+        default: 'border-none bg-transparent rounded-none p-0',
+        bordered: 'border border-subtle bg-transparent rounded-xl p-4',
+        card: 'rounded-xl border border-subtle bg-surface/50 p-4 shadow-sm backdrop-blur-sm',
+        ghost: 'border-none bg-transparent rounded-xl p-3 hover:bg-soft/20'
+      }
+    },
+    defaultVariants: {
+      variant: 'card'
+    }
+  }
+)
 
 const ICON_SIZE = 16
 const STROKE_WIDTH = 2
@@ -52,7 +68,7 @@ const FILE_REGEXES = {
   IMAGE: /\.(png|jpg|jpeg|svg|gif)$/i,
 } as const
 
-export interface FileTreeProps {
+export interface FileTreeProps extends VariantProps<typeof treeVariants> {
   children: React.ReactNode
 }
 
@@ -234,8 +250,6 @@ function parseMdxToData(
   return items
 }
 
-// --- Sub-Components ---
-
 function FileTreeNode({ item }: { item: TreeItemData }) {
   return (
     <RAC.TreeItem
@@ -299,9 +313,7 @@ function FileTreeNode({ item }: { item: TreeItemData }) {
   )
 }
 
-// --- Main Component ---
-
-export function FileTree({ children }: FileTreeProps) {
+export function FileTree({ children, variant = 'card' }: FileTreeProps) {
   const items = useMemo(() => parseMdxToData(children), [children])
 
   return (
@@ -309,11 +321,7 @@ export function FileTree({ children }: FileTreeProps) {
       <RAC.Tree
         items={items}
         aria-label="File Tree"
-        className={cn(
-          'rounded-xl border border-subtle bg-surface/50 p-4 font-mono text-sm shadow-sm backdrop-blur-sm outline-none',
-          'max-h-[500px] overflow-y-auto scrollbar-thin scrollbar-thumb-border-subtle',
-          'focus-visible:ring-2 focus-visible:ring-primary-500/20',
-        )}
+        className={cn(treeVariants({ variant }))}
       >
         {(item) => <FileTreeNode item={item} />}
       </RAC.Tree>
