@@ -36,7 +36,7 @@ const CodeBlock = ({
         'group relative overflow-hidden bg-(--color-code-bg)',
         'contain-layout contain-paint',
         {
-          'my-6 rounded-lg border border-subtle': !plain,
+          'my-6 rounded-xl border border-subtle': !plain,
         },
         className,
       )}
