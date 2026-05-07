@@ -33,8 +33,16 @@ export function injectHtmlMeta(html: string, config: BoltdocsConfig): string {
   }
 
   const theme = config.theme
-  const title = theme?.title || 'Boltdocs'
-  const description = theme?.description || ''
+  let title = theme?.title || 'Boltdocs'
+  if (typeof title === 'object') {
+    const defaultLocale = config.i18n?.defaultLocale || ''
+    title = title[defaultLocale] || Object.values(title)[0] || 'Boltdocs'
+  }
+  let description = theme?.description || ''
+  if (typeof description === 'object') {
+    const defaultLocale = config.i18n?.defaultLocale || ''
+    description = description[defaultLocale] || Object.values(description)[0] || ''
+  }
 
   // Determine favicon
   let favicon = theme?.favicon
