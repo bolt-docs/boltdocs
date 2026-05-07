@@ -73,7 +73,8 @@ export function boltdocsMdxPlugin(
     },
 
     async transform(code, id, options) {
-      if (!id.endsWith('.md') && !id.endsWith('.mdx')) {
+      const [cleanId] = id.split('?')
+      if (!cleanId.endsWith('.md') && !cleanId.endsWith('.mdx')) {
         // @ts-expect-error
         return baseMdxPlugin.transform?.call(this, code, id, options)
       }
@@ -81,7 +82,7 @@ export function boltdocsMdxPlugin(
       // Create a cache key based on path, content, environment mode, and plugin version
       const contentHash = crypto.createHash('md5').update(code).digest('hex')
       const isProd = process.env.NODE_ENV === 'production' ? 'prod' : 'dev'
-      const cacheKey = `${id}:${contentHash}:${isProd}:${MDX_PLUGIN_VERSION}`
+      const cacheKey = `${cleanId}:${contentHash}:${isProd}:${MDX_PLUGIN_VERSION}`
 
       const cached = mdxCache.get(cacheKey)
       if (cached) {
@@ -89,7 +90,12 @@ export function boltdocsMdxPlugin(
       }
 
       // @ts-expect-error
-      const result = await baseMdxPlugin.transform.call(this, code, id, options)
+      const result = await baseMdxPlugin.transform.call(
+        this,
+        code,
+        cleanId,
+        options,
+      )
 
       if (result && typeof result === 'object' && result.code) {
         // In development, inject HMR logic to allow individual MDX modules to hot-reload

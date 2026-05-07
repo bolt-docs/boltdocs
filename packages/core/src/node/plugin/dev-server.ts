@@ -188,12 +188,11 @@ export function createDevServerPlugin(
             return
           }
 
-          // Only process doc files inside docsDir
-          if (
-            !normalized.startsWith(normalizedDocsDir) ||
-            !isDocFile(normalized)
-          )
-            return
+          // Only process doc files inside docsDir (case-insensitive for Windows compatibility)
+          const isInsideDocs = normalized
+            .toLowerCase()
+            .startsWith(normalizedDocsDir.toLowerCase())
+          if (!isInsideDocs || !isDocFile(normalized)) return
 
           // ===== STRUCTURAL CHANGES (add/unlink) → full-reload =====
           if (type === 'add' || type === 'unlink') {
@@ -258,11 +257,8 @@ export function createDevServerPlugin(
                 // Send MDX update event to client with relative path for matching.
                 // The client's create-routes.tsx listens for this to re-import
                 // the updated module without a full page reload.
-                const relPath = normalized.startsWith(normalizedDocsDir)
-                  ? normalized
-                      .slice(normalizedDocsDir.length)
-                      .replace(/^\//, '')
-                  : normalized
+                const relative = path.relative(docsDir, file)
+                const relPath = normalizePath(relative)
 
                 // Invalidate the module in Vite's graph so the next request
                 // for this file triggers a fresh transform (re-runs the MDX compiler).
@@ -312,7 +308,10 @@ export function createDevServerPlugin(
      */
     handleHotUpdate({ file, server: s }) {
       const normalized = normalizePath(file)
-      if (normalized.startsWith(normalizedDocsDir) && isDocFile(normalized)) {
+      const isInsideDocs = normalized
+        .toLowerCase()
+        .startsWith(normalizedDocsDir.toLowerCase())
+      if (isInsideDocs && isDocFile(normalized)) {
         // Returning empty array: we own this update, Vite does nothing.
         return []
       }
