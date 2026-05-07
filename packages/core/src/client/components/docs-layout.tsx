@@ -1,5 +1,4 @@
 import { cn } from '../utils/cn'
-import { useLocation } from '../hooks'
 import { SearchHighlight } from './ui-base/search-highlight'
 
 /**
@@ -75,14 +74,10 @@ function Content({ children, className, style }: SlotProps) {
  * MDX Content wrapper with standard page padding and max-width logic.
  */
 function ContentMdx({ children, className, style }: SlotProps) {
-  const { pathname } = useLocation()
   return (
     <div
       className={cn(
-        'boltdocs-page mx-auto pt-4 pb-20 px-4 sm:px-8',
-        {
-          'max-w-content-max': pathname.includes('/docs/'),
-        },
+        'boltdocs-page mx-auto pt-4 pb-20 px-4 sm:px-8 max-w-content-max',
         className,
       )}
       style={style}
