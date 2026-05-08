@@ -110,6 +110,14 @@ const MdxRouteElement = ({
   )
 }
 
+import { useMdxComponents } from '../app/mdx-components-context'
+
+const NotFoundWrapper = () => {
+  const components = useMdxComponents()
+  const ActiveNotFound = components.NotFound || components['404'] || NotFound
+  return <ActiveNotFound />
+}
+
 import { DocsLayout } from '../app/docs-layout'
 
 export function createRoutes(options: CreateRoutesOptions): RouteRecord[] {
@@ -251,7 +259,7 @@ export function createRoutes(options: CreateRoutesOptions): RouteRecord[] {
     path: '*',
     element: (
       <EffectiveExternalLayout>
-        <NotFound />
+        <NotFoundWrapper />
       </EffectiveExternalLayout>
     ),
   })

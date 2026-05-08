@@ -284,8 +284,8 @@ const OnThisPageLink = ({
       onClick={onClick}
       data-active={internalActive}
       className={cn(
-        'block py-0.5 pl-4 text-[13px] outline-none transition-colors hover:text-body',
-        internalActive ? 'text-primary-500' : 'text-muted',
+        'block py-0.5 pl-4 text-[13px] outline-none transition-colors',
+        internalActive ? 'text-primary-500' : 'text-muted hover:text-body',
         className,
       )}
     >

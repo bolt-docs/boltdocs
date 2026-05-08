@@ -38,10 +38,13 @@ const Heading = ({
 }
 
 import { Loading } from '../components/ui-base/loading'
+import { NotFound } from '../components/ui-base/not-found'
 
 export const mdxComponentsDefault = {
   ...MdxComponents,
   Loading,
+  NotFound,
+  '404': NotFound,
   a: Anchor,
   h1: (props: React.HTMLAttributes<HTMLHeadingElement>) => (
     <Heading level={1} {...props} />

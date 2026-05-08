@@ -34,11 +34,17 @@ export function Head({ siteTitle, siteDescription, routes }: HeadProps) {
   // Find the current route's metadata
   const currentRoute = routes?.find?.((r) => r.path === location.pathname)
   const pageTitle = currentRoute?.title
-  const translatedSiteDescription = getTranslated(siteDescription, currentLocale)
-  const pageDescription = currentRoute?.description || translatedSiteDescription || ''
+  const translatedSiteDescription = getTranslated(
+    siteDescription,
+    currentLocale,
+  )
+  const pageDescription =
+    currentRoute?.description || translatedSiteDescription || ''
 
   const translatedSiteTitle = getTranslated(siteTitle, currentLocale)
-  const finalTitle = pageTitle ? `${pageTitle} | ${translatedSiteTitle}` : translatedSiteTitle
+  const finalTitle = pageTitle
+    ? `${pageTitle} | ${translatedSiteTitle}`
+    : translatedSiteTitle
 
   const seo = currentRoute?.seo || {}
 
