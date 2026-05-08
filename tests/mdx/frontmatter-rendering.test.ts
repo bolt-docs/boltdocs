@@ -120,4 +120,14 @@ tabs:
     expect(element).toBeDefined()
     expect(React.isValidElement(element)).toBe(true)
   })
+
+  it('should include NotFound and 404 in default MDX components', async () => {
+    const { mdxComponentsDefault } = await import(
+      '../../packages/core/src/client/app/mdx-component'
+    )
+    expect(mdxComponentsDefault.NotFound).toBeDefined()
+    expect(mdxComponentsDefault['404']).toBeDefined()
+    expect(typeof mdxComponentsDefault.NotFound).toBe('function')
+    expect(typeof mdxComponentsDefault['404']).toBe('function')
+  })
 })
