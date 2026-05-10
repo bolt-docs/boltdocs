@@ -41,7 +41,8 @@ export function injectHtmlMeta(html: string, config: BoltdocsConfig): string {
   let description = theme?.description || ''
   if (typeof description === 'object') {
     const defaultLocale = config.i18n?.defaultLocale || ''
-    description = description[defaultLocale] || Object.values(description)[0] || ''
+    description =
+      description[defaultLocale] || Object.values(description)[0] || ''
   }
 
   // Determine favicon
