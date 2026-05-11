@@ -26,6 +26,11 @@
       "import": "./dist/client/index.js",
       "require": "./dist/client/index.cjs"
     },
+    "./primitives": {
+      "types": "./dist/client/primitives.d.ts",
+      "import": "./dist/client/primitives.js",
+      "require": "./dist/client/primitives.cjs"
+    },
     "./theme/neutral.css": "./dist/client/theme/neutral.css"
   },
   "files": [
@@ -37,6 +42,8 @@
   "scripts": {
     "build": "tsdown --config-loader unrun",
     "dev": "tsdown --watch --config-loader unrun",
+    "test": "vitest run",
+    "test:watch": "vitest",
     "format": "pnpm exec biome format --write",
     "lint": "pnpm exec biome lint --write",
     "check": "pnpm exec biome check --write"
@@ -62,14 +69,14 @@
     "cac": "7.0.0",
     "class-variance-authority": "0.7.1",
     "clsx": "2.1.1",
-    "fast-glob": "3.3.3",
     "fastest-levenshtein": "^1.0.16",
+    "fdir": "^6.5.0",
     "flexsearch": "0.8.212",
     "github-slugger": "2.0.0",
-    "gray-matter": "4.0.3",
     "isomorphic-dompurify": "3.7.1",
     "lru-cache": "^11.3.6",
     "lucide-react": "0.575.0",
+    "picomatch": "^4.0.4",
     "react-aria-components": "1.16.0",
     "react-helmet-async": "^2.0.1",
     "react-router-dom": "^7.0.0",
@@ -92,11 +99,16 @@
   },
   "packageManager": "pnpm@10.30.2",
   "devDependencies": {
+    "@testing-library/jest-dom": "^6.6.0",
+    "@testing-library/react": "^16.0.0",
     "@types/node": "22.0.0",
+    "@types/picomatch": "^4.0.3",
     "@types/react": "19.0.0",
     "@types/react-dom": "19.0.0",
     "@types/semver": "7.7.1",
+    "jsdom": "^24.1.0",
     "tsdown": "0.21.7",
-    "typescript": "5.9.3"
+    "typescript": "5.9.3",
+    "vitest": "^3.0.0"
   }
 }

@@ -1,6 +1,6 @@
 import path from 'path'
 import fs from 'fs'
-import fastGlob from 'fast-glob'
+import { fdir } from 'fdir'
 import { parseFrontmatter, fileToRoutePath } from '../../utils'
 import type { BoltdocsConfig } from '../../config'
 import {
@@ -113,13 +113,15 @@ export async function generateLinkTree(
     fs.mkdirSync(dotBoltdocsDir, { recursive: true })
   }
 
-  const files =
-    existingFiles ||
-    (await fastGlob(['**/*.md', '**/*.mdx'], {
-      cwd: docsDir,
-      absolute: false,
-      suppressErrors: true,
-    }))
+  let files = existingFiles
+  if (!files) {
+    const api = new fdir()
+      .withFullPaths()
+      .filter((p) => p.endsWith('.md') || p.endsWith('.mdx'))
+      .crawl(docsDir)
+    
+    files = await api.withPromise()
+  }
 
   const base = config?.base || '/docs'
   const routes = await Promise.all(

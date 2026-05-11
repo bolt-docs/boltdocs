@@ -70,6 +70,14 @@ export const ThemeConfigSchema = z.object({
       z.object({
         label: z.union([z.string(), z.record(z.string(), z.string())]),
         href: z.string(),
+        items: z
+          .array(
+            z.object({
+              label: z.union([z.string(), z.record(z.string(), z.string())]),
+              href: z.string(),
+            }),
+          )
+          .optional(),
       }),
     )
     .optional(),

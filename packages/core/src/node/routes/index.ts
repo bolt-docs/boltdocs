@@ -1,5 +1,5 @@
 import path from 'node:path'
-import fastGlob from 'fast-glob'
+import { fdir } from 'fdir'
 import type { BoltdocsConfig } from '../config'
 import { capitalize } from '../utils'
 
@@ -52,12 +52,12 @@ export async function generateRoutes(
   if (!forceScan && cachedFileList) {
     files = cachedFileList
   } else {
-    const rawFiles = await fastGlob(['**/*.md', '**/*.mdx'], {
-      cwd: docsDir,
-      absolute: true,
-      suppressErrors: true,
-      followSymbolicLinks: false,
-    })
+    const api = new fdir()
+      .withFullPaths()
+      .filter((p) => p.endsWith('.md') || p.endsWith('.mdx'))
+      .crawl(docsDir)
+    
+    const rawFiles = await api.withPromise()
 
     // Prioritized prefetch: Sort files to process important ones first
     const PRIORITY_PATTERNS = [

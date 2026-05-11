@@ -1,17 +1,15 @@
 import fs from 'fs'
-import matter from 'gray-matter'
 import DOMPurify from 'isomorphic-dompurify'
 import {
   MAX_PATH_LENGTH,
   ALLOWED_PATH_CHARS,
-  MAX_FRONTMATTER_SIZE,
 } from './security/constants'
 import { FrontmatterSchema, type FrontmatterData } from './schema/frontmatter'
+import { parseFrontmatterFast, MAX_FRONTMATTER_SIZE } from './utils/frontmatter'
 
 export {
   MAX_PATH_LENGTH,
   ALLOWED_PATH_CHARS,
-  MAX_FRONTMATTER_SIZE,
   FrontmatterSchema,
   type FrontmatterData,
 }
@@ -79,7 +77,7 @@ export function getFileMtime(filePath: string): number {
 
 /**
  * Parses frontmatter and markdown content from a file synchronously.
- * Uses `gray-matter` for parsing. Returns the parsed data and the remaining markdown content.
+ * Uses custom parser of frontmatter. Returns the parsed data and the remaining markdown content.
  *
  * @param filePath - The absolute path to the markdown/mdx file
  * @returns An object containing the parsed metadata (`data`) and the raw markdown (`content`)
@@ -94,9 +92,8 @@ export function parseFrontmatter(
 } {
   const raw = fs.readFileSync(filePath, 'utf-8')
   try {
-    const { data, content, matter: rawMatter } = matter(raw)
+    const { data, content, rawMatter } = parseFrontmatterFast(raw)
 
-    // Security: Check frontmatter size
     if (rawMatter && rawMatter.length > MAX_FRONTMATTER_SIZE) {
       logSecurityEvent(
         'FRONTMATTER_TOO_LARGE',
@@ -115,16 +112,11 @@ export function parseFrontmatter(
       return { data, content, raw }
     }
 
-    // Validation: Schema check
     const result = FrontmatterSchema.safeParse(data)
-
-    // Explicitly allow only known fields from the schema for security (unless we use passthrough)
     const validatedData = result.success ? result.data : {}
 
-    // Sanitization: Clean metadata fields
     const sanitizedData: any = { ...validatedData }
 
-    // Auto-populate lastUpdated if missing
     if (!sanitizedData.lastUpdated) {
       sanitizedData.lastUpdated = getFileMtime(filePath)
     }
@@ -138,14 +130,13 @@ export function parseFrontmatter(
     return { data: sanitizedData, content, raw }
   } catch (e) {
     if (e instanceof ValidationError) throw e
-    // If frontmatter is malformed (e.g. while editing), return empty data and raw content
     return { data: {}, content: raw, raw }
   }
 }
 
 /**
  * Parses frontmatter and markdown content from a file asynchronously.
- * Uses `gray-matter` for parsing. Returns the parsed data and the remaining markdown content.
+ * Uses custom parser of frontmatter. Returns the parsed data and the remaining markdown content.
  *
  * @param filePath - The absolute path to the markdown/mdx file
  * @returns An object containing the parsed metadata (`data`) and the raw markdown (`content`)
@@ -160,9 +151,8 @@ export async function parseFrontmatterAsync(
 }> {
   try {
     const raw = await fs.promises.readFile(filePath, 'utf-8')
-    const { data, content, matter: rawMatter } = matter(raw)
+    const { data, content, rawMatter } = parseFrontmatterFast(raw)
 
-    // Security: Check frontmatter size
     if (rawMatter && rawMatter.length > MAX_FRONTMATTER_SIZE) {
       logSecurityEvent(
         'FRONTMATTER_TOO_LARGE',
@@ -181,16 +171,11 @@ export async function parseFrontmatterAsync(
       return { data, content, raw }
     }
 
-    // Validation: Schema check
     const result = FrontmatterSchema.safeParse(data)
-
-    // Explicitly allow only known fields from the schema for security (unless we use passthrough)
     const validatedData = result.success ? result.data : {}
 
-    // Sanitization: Clean metadata fields
     const sanitizedData: any = { ...validatedData }
 
-    // Auto-populate lastUpdated if missing
     if (!sanitizedData.lastUpdated) {
       const stats = await fs.promises.stat(filePath)
       sanitizedData.lastUpdated = stats.mtimeMs
@@ -205,7 +190,6 @@ export async function parseFrontmatterAsync(
     return { data: sanitizedData, content, raw }
   } catch (e) {
     if (e instanceof ValidationError) throw e
-    // If file cannot be read, it might be a race condition during deletion
     try {
       const rawFallback = await fs.promises.readFile(filePath, 'utf-8')
       return { data: {}, content: rawFallback, raw: rawFallback }

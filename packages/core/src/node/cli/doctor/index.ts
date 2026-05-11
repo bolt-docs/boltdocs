@@ -1,6 +1,7 @@
 import path from 'path'
 import fs from 'fs'
-import fastGlob from 'fast-glob'
+import { fdir } from 'fdir'
+import picomatch from 'picomatch'
 import { resolveConfig } from '../../config'
 import * as ui from '../ui'
 import {
@@ -73,12 +74,19 @@ export async function doctorAction(
         `${ui.colors.dim}🔍 Discovering files and routes...${ui.colors.reset}`,
       )
     }
-    const files = await fastGlob(['**/*.md', '**/*.mdx'], {
-      cwd: docsDir,
-      absolute: true,
-      suppressErrors: true,
-      ignore: doctorConfig.exclude,
-    })
+    const isIgnored = picomatch(doctorConfig.exclude || [])
+    const api = new fdir()
+      .withFullPaths()
+      .filter((fullPath) => {
+        const matchesExt = fullPath.endsWith('.md') || fullPath.endsWith('.mdx')
+        if (!matchesExt) return false
+        
+        const relPath = path.relative(docsDir, fullPath).replace(/\\/g, '/')
+        return !isIgnored(relPath)
+      })
+      .crawl(docsDir)
+    
+    const files = await api.withPromise()
     const linkTree = await generateLinkTree(docsDir, root, config, files)
 
     const base = config.base || '/'
