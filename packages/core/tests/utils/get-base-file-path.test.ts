@@ -3,12 +3,16 @@ import { getBaseFilePath } from '../../src/client/utils/get-base-file-path'
 
 describe('getBaseFilePath', () => {
   it('should return original path when no version or locale', () => {
-    expect(getBaseFilePath('/docs/index.md', undefined, undefined)).toBe('/docs/index.md')
+    expect(getBaseFilePath('/docs/index.md', undefined, undefined)).toBe(
+      '/docs/index.md',
+    )
   })
 
   it('should remove version prefix', () => {
     expect(getBaseFilePath('v1/index.md', 'v1', undefined)).toBe('index.md')
-    expect(getBaseFilePath('v1/docs/guide.md', 'v1', undefined)).toBe('docs/guide.md')
+    expect(getBaseFilePath('v1/docs/guide.md', 'v1', undefined)).toBe(
+      'docs/guide.md',
+    )
   })
 
   it('should return index.md when path equals version', () => {
@@ -17,7 +21,9 @@ describe('getBaseFilePath', () => {
 
   it('should remove locale prefix', () => {
     expect(getBaseFilePath('en/index.md', undefined, 'en')).toBe('index.md')
-    expect(getBaseFilePath('es/docs/guide.md', undefined, 'es')).toBe('docs/guide.md')
+    expect(getBaseFilePath('es/docs/guide.md', undefined, 'es')).toBe(
+      'docs/guide.md',
+    )
   })
 
   it('should return index.md when path equals locale', () => {
@@ -42,14 +48,20 @@ describe('getBaseFilePath', () => {
   })
 
   it('should handle nested paths with version and locale', () => {
-    expect(getBaseFilePath('v1/en/guides/getting-started.md', 'v1', 'en')).toBe('guides/getting-started.md')
+    expect(getBaseFilePath('v1/en/guides/getting-started.md', 'v1', 'en')).toBe(
+      'guides/getting-started.md',
+    )
   })
 
   it('should handle version with slash but not matching prefix', () => {
-    expect(getBaseFilePath('/my-v1/docs.md', 'v1', undefined)).toBe('/my-v1/docs.md')
+    expect(getBaseFilePath('/my-v1/docs.md', 'v1', undefined)).toBe(
+      '/my-v1/docs.md',
+    )
   })
 
   it('should handle locale with slash but not matching prefix', () => {
-    expect(getBaseFilePath('/my-en/docs.md', undefined, 'en')).toBe('/my-en/docs.md')
+    expect(getBaseFilePath('/my-en/docs.md', undefined, 'en')).toBe(
+      '/my-en/docs.md',
+    )
   })
 })

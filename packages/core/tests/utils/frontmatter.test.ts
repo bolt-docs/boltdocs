@@ -1,5 +1,8 @@
 import { describe, it, expect } from 'vitest'
-import { parseFrontmatterFast, MAX_FRONTMATTER_SIZE } from '../../src/node/utils/frontmatter'
+import {
+  parseFrontmatterFast,
+  MAX_FRONTMATTER_SIZE,
+} from '../../src/node/utils/frontmatter'
 
 describe('parseFrontmatterFast', () => {
   it('should return empty data when no frontmatter', () => {
@@ -59,7 +62,10 @@ single: 'Single Quotes'
 ---
 `
     const result = parseFrontmatterFast(input)
-    expect(result.data).toEqual({ title: 'Hello World', single: 'Single Quotes' })
+    expect(result.data).toEqual({
+      title: 'Hello World',
+      single: 'Single Quotes',
+    })
   })
 
   it('should parse arrays', () => {

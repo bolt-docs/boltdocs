@@ -48,7 +48,12 @@ describe('cn - classnames utility', () => {
   })
 
   it('should handle mixed inputs', () => {
-    const result = cn('foo', ['bar', 'baz'], { qux: true, quux: false }, true && 'quuz')
+    const result = cn(
+      'foo',
+      ['bar', 'baz'],
+      { qux: true, quux: false },
+      true && 'quuz',
+    )
     expect(result).toBe('foo bar baz qux quuz')
   })
 

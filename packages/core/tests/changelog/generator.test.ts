@@ -19,7 +19,9 @@ describe('Changelog Generator', () => {
   })
 
   it('should generate changelog files', async () => {
-    const testChangelog = path.resolve('./tests/changelog/fixtures/changelog-test.md')
+    const testChangelog = path.resolve(
+      './tests/changelog/fixtures/changelog-test.md',
+    )
     fs.mkdirSync(path.dirname(testChangelog), { recursive: true })
     fs.writeFileSync(
       testChangelog,
@@ -33,7 +35,9 @@ describe('Changelog Generator', () => {
   })
 
   it('should generate files with correct content', async () => {
-    const testChangelog = path.resolve('./tests/changelog/fixtures/changelog-test2.md')
+    const testChangelog = path.resolve(
+      './tests/changelog/fixtures/changelog-test2.md',
+    )
     fs.mkdirSync(path.dirname(testChangelog), { recursive: true })
     fs.writeFileSync(
       testChangelog,
@@ -56,7 +60,9 @@ describe('Changelog Generator', () => {
   })
 
   it('should use custom title', async () => {
-    const testChangelog = path.resolve('./tests/changelog/fixtures/changelog-test3.md')
+    const testChangelog = path.resolve(
+      './tests/changelog/fixtures/changelog-test3.md',
+    )
     fs.mkdirSync(path.dirname(testChangelog), { recursive: true })
     fs.writeFileSync(
       testChangelog,
@@ -76,7 +82,9 @@ describe('Changelog Generator', () => {
   })
 
   it('should handle version with date', async () => {
-    const testChangelog = path.resolve('./tests/changelog/fixtures/changelog-test4.md')
+    const testChangelog = path.resolve(
+      './tests/changelog/fixtures/changelog-test4.md',
+    )
     fs.mkdirSync(path.dirname(testChangelog), { recursive: true })
     fs.writeFileSync(
       testChangelog,
@@ -96,7 +104,9 @@ describe('Changelog Generator', () => {
   })
 
   it('should handle multiple change types', async () => {
-    const testChangelog = path.resolve('./tests/changelog/fixtures/changelog-test5.md')
+    const testChangelog = path.resolve(
+      './tests/changelog/fixtures/changelog-test5.md',
+    )
     fs.mkdirSync(path.dirname(testChangelog), { recursive: true })
     fs.writeFileSync(
       testChangelog,
@@ -115,7 +125,9 @@ describe('Changelog Generator', () => {
   })
 
   it('should include author and commit when available', async () => {
-    const testChangelog = path.resolve('./tests/changelog/fixtures/changelog-test6.md')
+    const testChangelog = path.resolve(
+      './tests/changelog/fixtures/changelog-test6.md',
+    )
     fs.mkdirSync(path.dirname(testChangelog), { recursive: true })
     fs.writeFileSync(
       testChangelog,

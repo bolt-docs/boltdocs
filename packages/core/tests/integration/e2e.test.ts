@@ -26,9 +26,7 @@ describe('E2E integration tests', () => {
       '---\ntitle: Welcome\n---\n\n# Welcome',
     )
 
-    const { generateRoutes } = await import(
-      '../../src/node/routes'
-    )
+    const { generateRoutes } = await import('../../src/node/routes')
     const config = { theme: { title: 'Test' } }
 
     const routes = await generateRoutes(docsDir, config as any, '/docs', true)
@@ -55,9 +53,7 @@ describe('E2E integration tests', () => {
       '---\ntitle: Bienvenido\n---\n\n# Bienvenido',
     )
 
-    const { generateRoutes } = await import(
-      '../../src/node/routes'
-    )
+    const { generateRoutes } = await import('../../src/node/routes')
     const config = {
       i18n: { defaultLocale: 'en', locales: { en: 'English', es: 'Español' } },
       theme: { title: 'Test' },
@@ -78,9 +74,7 @@ describe('cache integration with routes', () => {
       '---\ntitle: Cached Test\n---\n\n# Cached Content',
     )
 
-    const { generateRoutes } = await import(
-      '../../src/node/routes'
-    )
+    const { generateRoutes } = await import('../../src/node/routes')
     const config = { theme: { title: 'Test' } }
 
     const routes1 = await generateRoutes(docsDir, config as any, '/docs', true)
@@ -115,9 +109,7 @@ describe('cache integration with routes', () => {
 
 describe('plugin entry code generation with externalPages', () => {
   it('should generate entry code that imports external pages module', async () => {
-    const { generateEntryCode } = await import(
-      '../../src/node/plugin/entry'
-    )
+    const { generateEntryCode } = await import('../../src/node/plugin/entry')
 
     vi.spyOn(process, 'cwd').mockReturnValue(tempDir)
 
@@ -145,9 +137,7 @@ describe('MDX components integration', () => {
       'export function Note({ children }) { return <div>{children}</div> }',
     )
 
-    const { boltdocsPlugin } = await import(
-      '../../src/node/plugin'
-    )
+    const { boltdocsPlugin } = await import('../../src/node/plugin')
     const plugins = boltdocsPlugin({ docsDir })
     const vmPlugin = plugins.find(
       (p) => p.name === 'vite-plugin-boltdocs-virtual-modules',
@@ -168,9 +158,7 @@ describe('layout integration', () => {
       'export default function Layout({ children }) { return <div>{children}</div> }',
     )
 
-    const { boltdocsPlugin } = await import(
-      '../../src/node/plugin'
-    )
+    const { boltdocsPlugin } = await import('../../src/node/plugin')
     const plugins = boltdocsPlugin({ docsDir })
     const vmPlugin = plugins.find(
       (p) => p.name === 'vite-plugin-boltdocs-virtual-modules',

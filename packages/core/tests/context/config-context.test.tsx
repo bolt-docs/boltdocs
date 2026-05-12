@@ -1,6 +1,10 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen } from '@testing-library/react'
-import { useConfig, ConfigProvider, ConfigContext } from '../../src/client/app/config-context'
+import {
+  useConfig,
+  ConfigProvider,
+  ConfigContext,
+} from '../../src/client/app/config-context'
 import * as React from 'react'
 
 const TestComponent = () => {
@@ -18,7 +22,7 @@ describe('ConfigContext', () => {
     render(
       <ConfigProvider config={config as any}>
         <TestComponent />
-      </ConfigProvider>
+      </ConfigProvider>,
     )
     expect(screen.getByTestId('config-title').textContent).toBe('Test Site')
   })
@@ -34,13 +38,13 @@ describe('ConfigContext', () => {
       theme: {
         title: 'My Docs',
         logo: '/logo.png',
-        navbar: { display: true }
-      }
+        navbar: { display: true },
+      },
     }
     render(
       <ConfigProvider config={config as any}>
         <TestComponent />
-      </ConfigProvider>
+      </ConfigProvider>,
     )
     expect(screen.getByTestId('config-title').textContent).toBe('My Docs')
   })
@@ -50,7 +54,7 @@ describe('ConfigContext', () => {
     render(
       <ConfigProvider config={config as any}>
         <TestComponent />
-      </ConfigProvider>
+      </ConfigProvider>,
     )
     expect(screen.getByTestId('config-title').textContent).toBe('')
   })
@@ -58,12 +62,12 @@ describe('ConfigContext', () => {
   it('should handle i18n config', () => {
     const config = {
       theme: { title: 'i18n Site' },
-      i18n: { defaultLocale: 'en', locales: { en: 'English', es: 'Español' } }
+      i18n: { defaultLocale: 'en', locales: { en: 'English', es: 'Español' } },
     }
     render(
       <ConfigProvider config={config as any}>
         <TestComponent />
-      </ConfigProvider>
+      </ConfigProvider>,
     )
     expect(screen.getByTestId('config-title').textContent).toBe('i18n Site')
   })
@@ -71,13 +75,18 @@ describe('ConfigContext', () => {
   it('should handle versions config', () => {
     const config = {
       theme: { title: 'Versioned Site' },
-      versions: { defaultVersion: 'v1', versions: [{ label: 'v1', path: '/v1' }] }
+      versions: {
+        defaultVersion: 'v1',
+        versions: [{ label: 'v1', path: '/v1' }],
+      },
     }
     render(
       <ConfigProvider config={config as any}>
         <TestComponent />
-      </ConfigProvider>
+      </ConfigProvider>,
     )
-    expect(screen.getByTestId('config-title').textContent).toBe('Versioned Site')
+    expect(screen.getByTestId('config-title').textContent).toBe(
+      'Versioned Site',
+    )
   })
 })

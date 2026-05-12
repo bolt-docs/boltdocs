@@ -13,7 +13,10 @@ vi.mock('react-router-dom')
 describe('useNavbar', () => {
   beforeEach(() => {
     vi.clearAllMocks()
-    ;(useTheme as any).mockReturnValue({ theme: 'light', resolvedTheme: 'light' })
+    ;(useTheme as any).mockReturnValue({
+      theme: 'light',
+      resolvedTheme: 'light',
+    })
     ;(useRoutes as any).mockReturnValue({ currentLocale: 'en' })
     ;(useLocation as any).mockReturnValue({ pathname: '/' })
   })
@@ -21,10 +24,8 @@ describe('useNavbar', () => {
   it('should map simple links with label translation', () => {
     ;(useConfig as any).mockReturnValue({
       theme: {
-        navbar: [
-          { label: { en: 'Home', es: 'Inicio' }, href: '/' }
-        ]
-      }
+        navbar: [{ label: { en: 'Home', es: 'Inicio' }, href: '/' }],
+      },
     })
 
     const { links } = useNavbar()
@@ -37,10 +38,8 @@ describe('useNavbar', () => {
   it('should mark external links correctly', () => {
     ;(useConfig as any).mockReturnValue({
       theme: {
-        navbar: [
-          { label: 'GitHub', href: 'https://github.com/test' }
-        ]
-      }
+        navbar: [{ label: 'GitHub', href: 'https://github.com/test' }],
+      },
     })
 
     const { links } = useNavbar()
@@ -52,10 +51,8 @@ describe('useNavbar', () => {
     ;(useRoutes as any).mockReturnValue({ currentLocale: 'es' })
     ;(useConfig as any).mockReturnValue({
       theme: {
-        navbar: [
-          { label: { en: 'Home', es: 'Inicio' }, href: '/' }
-        ]
-      }
+        navbar: [{ label: { en: 'Home', es: 'Inicio' }, href: '/' }],
+      },
     })
 
     const { links } = useNavbar()
@@ -75,9 +72,9 @@ describe('useNavbar', () => {
       theme: {
         navbar: [
           { label: 'Docs', href: '/docs' },
-          { label: 'Guide', href: '/guide' }
-        ]
-      }
+          { label: 'Guide', href: '/guide' },
+        ],
+      },
     })
 
     const { links } = useNavbar()

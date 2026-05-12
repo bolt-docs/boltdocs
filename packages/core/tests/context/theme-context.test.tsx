@@ -1,6 +1,10 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { render, screen, act } from '@testing-library/react'
-import { useTheme, ThemeProvider, Theme } from '../../src/client/app/theme-context'
+import {
+  useTheme,
+  ThemeProvider,
+  Theme,
+} from '../../src/client/app/theme-context'
 import * as React from 'react'
 
 const TestThemeComponent = () => {
@@ -9,9 +13,15 @@ const TestThemeComponent = () => {
     <div>
       <div data-testid="theme">{theme}</div>
       <div data-testid="resolved-theme">{resolvedTheme}</div>
-      <button data-testid="set-light" onClick={() => setTheme('light')}>Light</button>
-      <button data-testid="set-dark" onClick={() => setTheme('dark')}>Dark</button>
-      <button data-testid="set-system" onClick={() => setTheme('system')}>System</button>
+      <button data-testid="set-light" onClick={() => setTheme('light')}>
+        Light
+      </button>
+      <button data-testid="set-dark" onClick={() => setTheme('dark')}>
+        Dark
+      </button>
+      <button data-testid="set-system" onClick={() => setTheme('system')}>
+        System
+      </button>
     </div>
   )
 }
@@ -19,11 +29,14 @@ const TestThemeComponent = () => {
 describe('ThemeContext', () => {
   beforeEach(() => {
     localStorage.clear()
-    vi.stubGlobal('matchMedia', vi.fn((query: string) => ({
-      matches: query === '(prefers-color-scheme: dark)',
-      addEventListener: vi.fn(),
-      removeEventListener: vi.fn(),
-    })))
+    vi.stubGlobal(
+      'matchMedia',
+      vi.fn((query: string) => ({
+        matches: query === '(prefers-color-scheme: dark)',
+        addEventListener: vi.fn(),
+        removeEventListener: vi.fn(),
+      })),
+    )
   })
 
   afterEach(() => {
@@ -32,14 +45,26 @@ describe('ThemeContext', () => {
   })
 
   it('should provide default theme as system', async () => {
-    render(<ThemeProvider><TestThemeComponent /></ThemeProvider>)
-    await act(async () => { await new Promise(r => setTimeout(r, 100)) })
+    render(
+      <ThemeProvider>
+        <TestThemeComponent />
+      </ThemeProvider>,
+    )
+    await act(async () => {
+      await new Promise((r) => setTimeout(r, 100))
+    })
     expect(screen.getByTestId('theme').textContent).toBe('system')
   })
 
   it('should set theme to light', async () => {
-    render(<ThemeProvider><TestThemeComponent /></ThemeProvider>)
-    await act(async () => { await new Promise(r => setTimeout(r, 100)) })
+    render(
+      <ThemeProvider>
+        <TestThemeComponent />
+      </ThemeProvider>,
+    )
+    await act(async () => {
+      await new Promise((r) => setTimeout(r, 100))
+    })
     await act(async () => {
       screen.getByTestId('set-light').click()
     })
@@ -48,8 +73,14 @@ describe('ThemeContext', () => {
   })
 
   it('should set theme to dark', async () => {
-    render(<ThemeProvider><TestThemeComponent /></ThemeProvider>)
-    await act(async () => { await new Promise(r => setTimeout(r, 100)) })
+    render(
+      <ThemeProvider>
+        <TestThemeComponent />
+      </ThemeProvider>,
+    )
+    await act(async () => {
+      await new Promise((r) => setTimeout(r, 100))
+    })
     await act(async () => {
       screen.getByTestId('set-dark').click()
     })
@@ -59,8 +90,14 @@ describe('ThemeContext', () => {
 
   it('should set theme to system', async () => {
     localStorage.setItem('boltdocs-theme', 'dark')
-    render(<ThemeProvider><TestThemeComponent /></ThemeProvider>)
-    await act(async () => { await new Promise(r => setTimeout(r, 100)) })
+    render(
+      <ThemeProvider>
+        <TestThemeComponent />
+      </ThemeProvider>,
+    )
+    await act(async () => {
+      await new Promise((r) => setTimeout(r, 100))
+    })
     await act(async () => {
       screen.getByTestId('set-system').click()
     })
@@ -69,8 +106,14 @@ describe('ThemeContext', () => {
   })
 
   it('should persist theme to localStorage', async () => {
-    render(<ThemeProvider><TestThemeComponent /></ThemeProvider>)
-    await act(async () => { await new Promise(r => setTimeout(r, 100)) })
+    render(
+      <ThemeProvider>
+        <TestThemeComponent />
+      </ThemeProvider>,
+    )
+    await act(async () => {
+      await new Promise((r) => setTimeout(r, 100))
+    })
     await act(async () => {
       screen.getByTestId('set-dark').click()
     })
@@ -78,8 +121,14 @@ describe('ThemeContext', () => {
   })
 
   it('should apply theme class to document', async () => {
-    render(<ThemeProvider><TestThemeComponent /></ThemeProvider>)
-    await act(async () => { await new Promise(r => setTimeout(r, 100)) })
+    render(
+      <ThemeProvider>
+        <TestThemeComponent />
+      </ThemeProvider>,
+    )
+    await act(async () => {
+      await new Promise((r) => setTimeout(r, 100))
+    })
     await act(async () => {
       screen.getByTestId('set-dark').click()
     })
@@ -88,8 +137,14 @@ describe('ThemeContext', () => {
 
   it('should load saved theme from localStorage', async () => {
     localStorage.setItem('boltdocs-theme', 'light')
-    render(<ThemeProvider><TestThemeComponent /></ThemeProvider>)
-    await act(async () => { await new Promise(r => setTimeout(r, 100)) })
+    render(
+      <ThemeProvider>
+        <TestThemeComponent />
+      </ThemeProvider>,
+    )
+    await act(async () => {
+      await new Promise((r) => setTimeout(r, 100))
+    })
     expect(screen.getByTestId('theme').textContent).toBe('light')
   })
 })

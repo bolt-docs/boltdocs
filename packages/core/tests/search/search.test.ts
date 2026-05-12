@@ -1,8 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import {
-  generateSearchData,
-  type SearchDocument,
-} from '../../src/node/search'
+import { generateSearchData, type SearchDocument } from '../../src/node/search'
 
 describe('search', () => {
   describe('generateSearchData', () => {

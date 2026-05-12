@@ -12,9 +12,7 @@ import { ParserCache } from '../../src/node/routes/parser/cache'
 
 // Mock utils for security testing
 vi.mock('../../src/node/utils', async () => {
-  const actual = (await vi.importActual(
-    '../../src/node/utils',
-  )) as any
+  const actual = (await vi.importActual('../../src/node/utils')) as any
   return {
     ...actual,
     parseFrontmatter: vi.fn(),
@@ -201,9 +199,7 @@ describe('Security: Route Parser', () => {
       const largeYaml = 'title: ' + 'A'.repeat(utils.MAX_FRONTMATTER_SIZE + 1)
       const content = `---\n${largeYaml}\n---\nContent`
 
-      const realUtils = (await vi.importActual(
-        '../../src/node/utils',
-      )) as any
+      const realUtils = (await vi.importActual('../../src/node/utils')) as any
       vi.mocked(utils.parseFrontmatterAsync).mockImplementationOnce(
         realUtils.parseFrontmatterAsync,
       )
@@ -219,9 +215,7 @@ describe('Security: Route Parser', () => {
       const yaml = 'title: Valid Title\nunknown: Invalid Field'
       const content = `---\n${yaml}\n---\nContent`
 
-      const realUtils = (await vi.importActual(
-        '../../src/node/utils',
-      )) as any
+      const realUtils = (await vi.importActual('../../src/node/utils')) as any
       vi.mocked(utils.parseFrontmatterAsync).mockImplementationOnce(
         realUtils.parseFrontmatterAsync,
       )
@@ -238,9 +232,7 @@ describe('Security: Route Parser', () => {
         'title: "<script>alert(1)</script>Title"\ndescription: "<b>Bold</b> Desc"'
       const content = `---\n${yaml}\n---\nContent`
 
-      const realUtils = (await vi.importActual(
-        '../../src/node/utils',
-      )) as any
+      const realUtils = (await vi.importActual('../../src/node/utils')) as any
       vi.mocked(utils.parseFrontmatterAsync).mockImplementationOnce(
         realUtils.parseFrontmatterAsync,
       )

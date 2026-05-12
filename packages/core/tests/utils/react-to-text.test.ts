@@ -32,10 +32,12 @@ describe('reactToText', () => {
   })
 
   it('should extract text from nested elements', () => {
-    const element = React.createElement('div', null, 
+    const element = React.createElement(
+      'div',
+      null,
       React.createElement('span', null, 'Hello'),
       ' ',
-      React.createElement('strong', null, 'World')
+      React.createElement('strong', null, 'World'),
     )
     expect(reactToText(element)).toBe('Hello World')
   })
@@ -49,30 +51,42 @@ describe('reactToText', () => {
   })
 
   it('should use custom resolver for elements', () => {
-    const CustomComponent = (props: { value: string }) => React.createElement('span', null, props.value)
+    const CustomComponent = (props: { value: string }) =>
+      React.createElement('span', null, props.value)
     const resolverMap = new Map()
-    resolverMap.set(CustomComponent, (props: { value: string }) => `[${props.value}]`)
-    
+    resolverMap.set(
+      CustomComponent,
+      (props: { value: string }) => `[${props.value}]`,
+    )
+
     const element = React.createElement(CustomComponent, { value: 'test' })
     expect(reactToText(element, resolverMap)).toBe('[test]')
   })
 
   it('should handle deeply nested elements', () => {
-    const element = React.createElement('div', null,
-      React.createElement('div', null,
-        React.createElement('div', null,
-          React.createElement('span', null, 'Deep')
-        )
-      )
+    const element = React.createElement(
+      'div',
+      null,
+      React.createElement(
+        'div',
+        null,
+        React.createElement(
+          'div',
+          null,
+          React.createElement('span', null, 'Deep'),
+        ),
+      ),
     )
     expect(reactToText(element)).toBe('Deep')
   })
 
   it('should handle elements with multiple children', () => {
-    const element = React.createElement('div', null, 
+    const element = React.createElement(
+      'div',
+      null,
       'Start - ',
       React.createElement('b', null, 'Bold'),
-      ' - End'
+      ' - End',
     )
     expect(reactToText(element)).toBe('Start - Bold - End')
   })
