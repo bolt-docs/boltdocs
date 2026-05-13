@@ -24,23 +24,20 @@ export function useRoutes() {
     p.endsWith('/') && p.length > 1 ? p.slice(0, -1) : p
   const currentPath = normalize(location.pathname)
 
-  // Find the current route matching the pathname
+  // Find the current active route matching the pathname
   const currentRoute = allRoutes?.find?.(
     (r) => normalize(r.path) === currentPath,
   )
 
-  // Derive current locale and version
-  // Priority: URL (currentRoute) > Zustand Store (Persistence) > Config Default
+  // 2. STRICT SOURCE OF TRUTH:
+  // Derive the active states exclusively from the hydrated Context Store.
+  // This ensures that user preference (LocalStorage) takes precedence over ambiguous URL fallbacks.
   const currentLocale = config.i18n
-    ? currentRoute?.locale ||
-      (hasHydrated ? currentLocaleStore : undefined) ||
-      config.i18n.defaultLocale
+    ? currentLocaleStore || config.i18n.defaultLocale
     : undefined
 
   const currentVersion = config.versions
-    ? currentRoute?.version ||
-      (hasHydrated ? currentVersionStore : undefined) ||
-      config.versions.defaultVersion
+    ? currentVersionStore || config.versions.defaultVersion
     : undefined
 
   // Filter routes to those matching the current version and locale
@@ -55,22 +52,33 @@ export function useRoutes() {
     if (!(localeMatch && versionMatch)) return false
 
     // Resolve duplicate paths (aliases) like /docs vs /docs/en
-    // We prefer the version that matches the current route's prefix style
     const i18n = config.i18n
-    if (i18n) {
-      const isCurrentRoutePrefixed = !!currentRoute?.locale
-      const isRoutePrefixed = !!r.locale
+    // 3. Resolve duplicate route aliases (e.g., /docs/page vs /docs/latest/page or /docs/es/page)
+    // If duplicates exist, we only show the style (prefixed or unprefixed) that matches the user's current page style.
+    const isCurrentLocalePrefixed = !!currentRoute?.locale
+    const isCurrentVersionPrefixed = !!currentRoute?.version
 
-      const hasAlternate = allRoutes?.some?.(
-        (alt) =>
-          alt !== r &&
-          alt.filePath === r.filePath &&
-          alt.version === r.version &&
-          (alt.locale || i18n.defaultLocale) ===
-            (r.locale || i18n.defaultLocale),
-      )
+    const isRouteLocalePrefixed = !!r.locale
+    const isRouteVersionPrefixed = !!r.version
 
-      if (hasAlternate && isCurrentRoutePrefixed !== isRoutePrefixed) {
+    const hasAlternate = allRoutes?.some?.(
+      (alt) =>
+        alt !== r &&
+        alt.filePath === r.filePath &&
+        (alt.locale || config.i18n?.defaultLocale || '') ===
+          (r.locale || config.i18n?.defaultLocale || '') &&
+        (alt.version || config.versions?.defaultVersion || '') ===
+          (r.version || config.versions?.defaultVersion || ''),
+    )
+
+    if (hasAlternate) {
+      // Style mismatch checks
+      const localeMismatch =
+        config.i18n && isCurrentLocalePrefixed !== isRouteLocalePrefixed
+      const versionMismatch =
+        config.versions && isCurrentVersionPrefixed !== isRouteVersionPrefixed
+
+      if (localeMismatch || versionMismatch) {
         return false
       }
     }
@@ -78,49 +86,12 @@ export function useRoutes() {
     return true
   })
 
-  // Labels and lists for UI convenience
-  const currentLocaleConfig =
-    config.i18n?.localeConfigs?.[currentLocale as string]
-  const currentLocaleLabel =
-    currentLocaleConfig?.label ||
-    config.i18n?.locales[currentLocale as string] ||
-    currentLocale
-
-  const currentVersionConfig = config.versions?.versions?.find?.(
-    (v) => v.path === currentVersion,
-  )
-  const currentVersionLabel = currentVersionConfig?.label || currentVersion
-
-  const availableLocales = config.i18n
-    ? Object.entries(config.i18n.locales).map(([key, defaultLabel]) => {
-        const localeConfig = config.i18n?.localeConfigs?.[key]
-        return {
-          key: key as import('../../shared/types').BoltdocsLocale,
-          label: localeConfig?.label || defaultLabel,
-          isCurrent: key === currentLocale,
-        }
-      })
-    : []
-
-  const availableVersions = config.versions
-    ? config.versions.versions.map((v) => ({
-        key: v.path as import('../../shared/types').BoltdocsVersion,
-        label: v.label,
-        isCurrent: v.path === currentVersion,
-      }))
-    : []
-
   return {
     routes,
     allRoutes,
     currentRoute,
     currentLocale: currentLocale as import('../../shared/types').BoltdocsLocale,
-    currentLocaleLabel,
-    availableLocales,
     currentVersion:
       currentVersion as import('../../shared/types').BoltdocsVersion,
-    currentVersionLabel,
-    availableVersions,
-    config,
   }
 }
