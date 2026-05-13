@@ -4,7 +4,7 @@ interface LastUpdatedProps {
 
 /**
  * A subtle display for when the page was last updated.
- * Small, opaque, and positioned at the bottom of the content.
+ * Small, opaque, and positioned at the bottom of the content with a thin top border divider.
  */
 export function LastUpdated({ date }: LastUpdatedProps) {
   if (!date) return null
@@ -19,8 +19,9 @@ export function LastUpdated({ date }: LastUpdatedProps) {
   })
 
   return (
-    <div className="mt-16 text-right text-xs opacity-50 italic">
-      Last updated on {formattedDate}
+    <div className="mt-16 pt-6 border-t border-subtle flex items-center justify-between text-xs text-muted select-none">
+      <span></span>
+      <span className="italic">Last updated on {formattedDate}</span>
     </div>
   )
 }

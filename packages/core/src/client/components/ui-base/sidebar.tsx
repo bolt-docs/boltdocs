@@ -1,36 +1,19 @@
-import { useState, useEffect } from 'react'
-import { useSidebar } from '../../hooks/use-sidebar'
 import { Sidebar as SidebarPrimitive } from '../primitives/sidebar'
-import { PoweredBy } from './powered-by'
 import * as LucideIcons from 'lucide-react'
-import virtualIcons from 'virtual:boltdocs-icons'
 import type { ComponentRoute } from '../../types'
 import type { BoltdocsConfig } from '../../../shared/types'
 import { VersionSelector, I18nSelector } from './version-i18n'
 import { ThemeSwitcher } from './theme-toggle'
 import { useNavbar } from '../../hooks/use-navbar'
-import { useLocalizedTo } from '../../hooks/use-localized-to'
 import { useUI } from '../../app/ui-context'
 import { Button } from '../primitives/button'
 
-function getIcon(iconName?: string): React.ElementType | undefined {
-  if (!iconName) return undefined
-  const icons = { ...LucideIcons, ...virtualIcons } as unknown as Record<
-    string,
-    React.ElementType
-  >
-  const IconComponent = icons[iconName] || icons[iconName + 'Icon']
-  return IconComponent || undefined
-}
-
-export function Sidebar({
-  routes,
-  config,
-}: {
+interface SidebarProps {
   routes: ComponentRoute[]
   config: BoltdocsConfig
-}) {
-  const { groups, ungrouped, activePath } = useSidebar(routes)
+}
+
+function SidebarMain({ routes, config }: SidebarProps) {
   const { logo, title, logoProps } = useNavbar()
   const { closeSidebar } = useUI()
 
@@ -40,68 +23,19 @@ export function Sidebar({
       alt={logoProps?.alt || title}
       width={24}
       height={24}
-      className="rounded-md"
+      className="rounded-xl"
     />
   ) : null
 
   const hasUtilities = config.versions || config.i18n
 
-  const sidebarContent = (
-    <>
-      {/* Mobile-only selectors (Below Header) */}
-      {hasUtilities && (
-        <div className="lg:hidden flex flex-col gap-4 mb-10">
-          <div className="flex gap-3">
-            {config.versions && (
-              <VersionSelector className="flex-1 justify-between h-10 bg-surface border-subtle" />
-            )}
-            {config.i18n && (
-              <I18nSelector className="flex-1 justify-between h-10 bg-surface border-subtle" />
-            )}
-          </div>
-          <div className="mt-2 border-b border-subtle" />
-        </div>
-      )}
-
-      {ungrouped.length > 0 && (
-        <SidebarPrimitive.Group className="mb-6">
-          {ungrouped.map((route) => (
-            <SidebarRouteItem
-              key={route.path}
-              route={route}
-              activePath={activePath}
-            />
-          ))}
-        </SidebarPrimitive.Group>
-      )}
-
-      {groups.map((group) => (
-        <SidebarPrimitive.Group
-          key={group.title}
-          title={group.title}
-          icon={getIcon(group.icon)}
-        >
-          {group.routes.map((route) => (
-            <SidebarRouteItem
-              key={route.path}
-              route={route}
-              activePath={activePath}
-            />
-          ))}
-        </SidebarPrimitive.Group>
-      ))}
-
-      <div className="mt-auto pt-10 pb-4">
-        <PoweredBy />
-      </div>
-    </>
-  )
-
   return (
     <>
       {/* Desktop Version */}
       <SidebarPrimitive.Root>
-        <SidebarPrimitive.Content>{sidebarContent}</SidebarPrimitive.Content>
+        <SidebarPrimitive.Content>
+          <SidebarPrimitive.Items routes={routes} />
+        </SidebarPrimitive.Content>
       </SidebarPrimitive.Root>
 
       {/* Mobile Version */}
@@ -114,75 +48,45 @@ export function Sidebar({
             </span>
           </div>
           <div className="flex items-center gap-2">
-            <ThemeSwitcher className="w-24 h-9" />
+            <ThemeSwitcher className="w-24 h-9 rounded-xl" />
             <Button
-              variant="ghost"
-              size="sm"
-              isIconOnly
-              icon={<LucideIcons.X size={20} />}
               onPress={closeSidebar}
-              className="h-9 w-9 text-muted hover:text-body"
+              className="h-9 w-9 flex items-center justify-center bg-transparent border-none outline-none select-none cursor-pointer rounded-xl hover:bg-primary-50/50 text-muted hover:text-body transition-colors"
               aria-label="Close sidebar"
-            />
+            >
+              <LucideIcons.X size={20} />
+            </Button>
           </div>
         </SidebarPrimitive.Header>
-        <SidebarPrimitive.Content>{sidebarContent}</SidebarPrimitive.Content>
+        <SidebarPrimitive.Content>
+          {hasUtilities && (
+            <div className="flex flex-col gap-4 mb-10">
+              <div className="flex gap-3">
+                {config.versions && (
+                  <VersionSelector className="flex-1 justify-between h-10 bg-surface border-subtle rounded-xl" />
+                )}
+                {config.i18n && (
+                  <I18nSelector className="flex-1 justify-between h-10 bg-surface border-subtle rounded-xl" />
+                )}
+              </div>
+              <div className="mt-2 border-b border-subtle" />
+            </div>
+          )}
+          <SidebarPrimitive.Items routes={routes} />
+        </SidebarPrimitive.Content>
       </SidebarPrimitive.Mobile>
     </>
   )
 }
 
-function SidebarRouteItem({
-  route,
-  activePath,
-}: {
-  route: ComponentRoute
-  activePath: string
-}) {
-  const localizedHref = useLocalizedTo(route.path)
-  const isCurrent =
-    activePath ===
-    (localizedHref.endsWith('/') ? localizedHref.slice(0, -1) : localizedHref)
-  const hasChildren = !!route.routes?.length || !!route.subRoutes?.length
-  const children = route.routes || route.subRoutes
-
-  const [isOpen, setIsOpen] = useState(false)
-
-  useEffect(() => {
-    if (activePath.startsWith(localizedHref)) {
-      setIsOpen(true)
-    }
-  }, [activePath, localizedHref])
-
-  if (hasChildren) {
-    return (
-      <SidebarPrimitive.SubGroup
-        label={route.title}
-        href={route.path}
-        active={isCurrent}
-        icon={getIcon(route.icon)}
-        badge={route.badge}
-        isOpen={isOpen}
-        onToggle={() => setIsOpen(!isOpen)}
-      >
-        {children?.map((subRoute) => (
-          <SidebarRouteItem
-            key={subRoute.path}
-            route={subRoute}
-            activePath={activePath}
-          />
-        ))}
-      </SidebarPrimitive.SubGroup>
-    )
-  }
-
-  return (
-    <SidebarPrimitive.Link
-      label={route.title}
-      href={route.path}
-      active={isCurrent}
-      icon={getIcon(route.icon)}
-      badge={route.badge}
-    />
-  )
-}
+export const Sidebar = Object.assign(SidebarMain, {
+  Root: SidebarPrimitive.Root,
+  Mobile: SidebarPrimitive.Mobile,
+  Header: SidebarPrimitive.Header,
+  Content: SidebarPrimitive.Content,
+  Group: SidebarPrimitive.Group,
+  Link: SidebarPrimitive.Link,
+  SubGroup: SidebarPrimitive.SubGroup,
+  Item: SidebarPrimitive.Item,
+  Items: SidebarPrimitive.Items,
+})

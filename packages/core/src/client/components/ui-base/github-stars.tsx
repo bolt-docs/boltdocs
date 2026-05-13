@@ -18,10 +18,12 @@ export function GithubStars({ repo }: { repo: string }) {
       href={`https://github.com/${repo}`}
       target="_blank"
       rel="noopener noreferrer"
-      className="inline-flex items-center gap-2 rounded-md border border-subtle bg-surface px-2.5 py-1.5 text-xs font-medium text-muted transition-all hover:bg-main hover:border-strong hover:text-body"
+      className="inline-flex items-center gap-2 rounded-xl border border-subtle bg-surface px-3 py-1.5 text-xs font-semibold text-muted dark:hover:bg-primary-300/50 hover:bg-primary-200/50 transition-colors duration-100 hover:border-primary-500/50 hover:text-body select-none outline-none"
     >
-      <Github className="h-4 w-4" />
-      {stars && <span className="tabular-nums">{stars}</span>}
+      <Github className="h-4 w-4 text-body" />
+      {stars !== null && (
+        <span className="tabular-nums font-medium">{stars} stars</span>
+      )}
     </a>
   )
 }

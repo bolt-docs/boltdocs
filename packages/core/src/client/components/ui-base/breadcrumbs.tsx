@@ -2,37 +2,43 @@ import { useBreadcrumbs } from '../../hooks/use-breadcrumbs'
 import { Home } from 'lucide-react'
 import { Breadcrumbs as BreadcrumbsRoot } from '../primitives/breadcrumbs'
 import { cn } from '../../utils/cn'
-import { useConfig } from '../../app/config-context'
 
 export function Breadcrumbs() {
   const { crumbs, activeRoute } = useBreadcrumbs()
-  const config = useConfig()
-  const themeConfig = config.theme || {}
-
   if (crumbs.length === 0) return null
 
-  if (!themeConfig?.breadcrumbs) return null
-
   return (
-    <BreadcrumbsRoot.Root>
+    <BreadcrumbsRoot.Root className="gap-2 text-xs sm:text-sm font-medium">
       <BreadcrumbsRoot.Item>
-        <BreadcrumbsRoot.Link href="/">
+        <BreadcrumbsRoot.Link
+          href="/"
+          className="text-muted hover:text-body transition-colors flex items-center"
+        >
           <Home size={14} />
         </BreadcrumbsRoot.Link>
       </BreadcrumbsRoot.Item>
-      {crumbs.map((crumb, i) => (
-        <BreadcrumbsRoot.Item key={`crumb-${crumb.href}-${crumb.label}-${i}`}>
-          <BreadcrumbsRoot.Separator />
-          <BreadcrumbsRoot.Link
-            href={crumb.href}
-            className={cn({
-              'font-medium text-body': crumb.href === activeRoute?.path,
-            })}
+      {crumbs.map((crumb, i) => {
+        const isActive = crumb.href === activeRoute?.path
+        return (
+          <BreadcrumbsRoot.Item
+            key={`crumb-${crumb.href}-${crumb.label}-${i}`}
+            className="gap-2"
           >
-            {crumb.label}
-          </BreadcrumbsRoot.Link>
-        </BreadcrumbsRoot.Item>
-      ))}
+            <BreadcrumbsRoot.Separator className="text-muted/40" />
+            <BreadcrumbsRoot.Link
+              href={crumb.href}
+              className={cn(
+                'transition-colors',
+                isActive
+                  ? 'text-body font-semibold cursor-default pointer-events-none'
+                  : 'text-muted hover:text-body',
+              )}
+            >
+              {crumb.label}
+            </BreadcrumbsRoot.Link>
+          </BreadcrumbsRoot.Item>
+        )
+      })}
     </BreadcrumbsRoot.Root>
   )
 }

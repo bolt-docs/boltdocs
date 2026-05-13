@@ -1,4 +1,5 @@
 import { Suspense, lazy, useState } from 'react'
+import { cn } from '../../utils/cn'
 import { useNavbar } from '../../hooks/use-navbar'
 import { useRoutes } from '../../hooks/use-routes'
 import NavbarPrimitive from '../primitives/navbar'
@@ -32,15 +33,18 @@ export function Navbar() {
   const hasTabs = themeConfig?.tabs && themeConfig.tabs.length > 0
 
   return (
-    <NavbarPrimitive.Root className={hasTabs ? 'border-b-0' : ''}>
+    <NavbarPrimitive.Root
+      className={cn(
+        'border-b border-subtle bg-main/80 backdrop-blur-md',
+        hasTabs && 'border-b-0',
+      )}
+    >
       <NavbarPrimitive.Content>
         <NavbarPrimitive.Left>
           {isDocs && (
             <Button
-              variant="ghost"
-              size="sm"
-              className="mr-2 lg:hidden p-1.5 h-8 w-8"
               onPress={toggleSidebar}
+              className="mr-2 lg:hidden p-1.5 h-8 w-8 flex items-center justify-center bg-transparent border-none outline-none select-none cursor-pointer rounded-xl hover:bg-primary-50/50 transition-colors"
               aria-label={isSidebarOpen ? 'Close sidebar' : 'Open sidebar'}
             >
               {isSidebarOpen ? (
@@ -88,7 +92,7 @@ export function Navbar() {
 
           <div className="hidden sm:flex items-center gap-2">
             {config.i18n && currentLocale && <I18nSelector />}
-            <NavbarPrimitive.Split />
+            <NavbarPrimitive.Split className="bg-subtle" />
           </div>
 
           <div className="hidden md:block">
@@ -102,7 +106,7 @@ export function Navbar() {
           )}
           {social.length > 0 && (
             <div className="hidden md:block">
-              <NavbarPrimitive.Split />
+              <NavbarPrimitive.Split className="bg-subtle" />
             </div>
           )}
           <div className="hidden md:flex items-center gap-1">
@@ -111,19 +115,22 @@ export function Navbar() {
                 key={link}
                 icon={icon}
                 link={link}
-                className="p-1.5"
+                className="p-1.5 text-muted hover:text-body hover:bg-surface rounded-md transition-all focus-visible:ring-2 focus-visible:ring-primary-500/30"
               />
             ))}
           </div>
 
-          <NavbarPrimitive.More onPress={() => setIsMobileMenuOpen(true)} />
+          <NavbarPrimitive.More
+            onPress={() => setIsMobileMenuOpen(true)}
+            className="text-muted hover:text-body active:scale-90 transition-all focus-visible:ring-2 focus-visible:ring-primary-500/30"
+          />
         </NavbarPrimitive.Right>
       </NavbarPrimitive.Content>
 
       <NavbarPrimitive.MobileMenu
         isOpen={isMobileMenuOpen}
         onClose={() => setIsMobileMenuOpen(false)}
-        title={title}
+        className="bg-main/98 backdrop-blur-2xl"
       >
         <div className="flex flex-col gap-1">
           {links.map((link) => (
@@ -165,7 +172,47 @@ export function Navbar() {
 
 function NavbarLinkItem({ link }: { link: NavbarLinkType }) {
   const localizedHref = useLocalizedTo(link.href || '')
-  return <NavbarPrimitive.Link {...(link as any)} href={localizedHref} />
+  const { pathname } = useLocation()
+  const active =
+    pathname === localizedHref || pathname.startsWith(localizedHref + '/')
+  const hasItems = link.items && link.items.length > 0
+
+  if (hasItems) {
+    return (
+      <NavbarPrimitive.Dropdown
+        label={
+          <span
+            className={cn(
+              'transition-colors outline-none font-medium focus-visible:ring-2 focus-visible:ring-primary-500/30 rounded-sm px-2 py-1',
+              active ? 'text-primary-500' : 'text-muted hover:text-body',
+            )}
+          >
+            {link.label as any}
+          </span>
+        }
+      >
+        {link.items?.map((item) => (
+          <NavbarPrimitive.DropdownItem
+            key={item.href}
+            href={useLocalizedTo(item.href || '')}
+            label={item.label as any}
+          />
+        ))}
+      </NavbarPrimitive.Dropdown>
+    )
+  }
+
+  return (
+    <NavbarPrimitive.Link
+      {...(link as any)}
+      href={localizedHref}
+      active={active}
+      className={cn(
+        'transition-colors outline-none font-medium focus-visible:ring-2 focus-visible:ring-primary-500/30 rounded-sm',
+        active ? 'text-primary-500' : 'text-muted hover:text-body',
+      )}
+    />
+  )
 }
 
 function NavbarMobileLinkItem({
@@ -178,6 +225,31 @@ function NavbarMobileLinkItem({
   const localizedHref = useLocalizedTo(link.href || '')
   const { pathname } = useLocation()
   const active = pathname === localizedHref
+  const hasItems = link.items && link.items.length > 0
+
+  if (hasItems) {
+    return (
+      <div className="flex flex-col gap-1">
+        <div
+          className={cn(
+            'px-3 py-2 text-sm transition-all',
+            active ? 'text-body' : 'text-muted/80 hover:text-body',
+          )}
+        >
+          {link.label as any}
+        </div>
+        <div className="flex flex-col gap-1 pl-4">
+          {link.items?.map((item) => (
+            <NavbarMobileLinkItem
+              key={item.href}
+              link={item}
+              onClose={onClose}
+            />
+          ))}
+        </div>
+      </div>
+    )
+  }
 
   return (
     <NavbarPrimitive.MobileLink
@@ -185,6 +257,10 @@ function NavbarMobileLinkItem({
       href={localizedHref}
       active={active}
       onPress={onClose}
+      className={cn(
+        'transition-all',
+        active ? 'text-body' : 'text-muted/80 hover:text-body',
+      )}
     />
   )
 }

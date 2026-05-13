@@ -46,8 +46,8 @@ export function Tabs({
   }
 
   return (
-    <div className="mx-auto max-w-(--breakpoint-3xl) px-4 md:px-6">
-      <T.List className="border-none py-0 scrollbar-hide">
+    <div className="mx-auto max-w-(--breakpoint-3xl) px-4 md:px-6 select-none">
+      <T.List className="border-none py-0 scrollbar-hide relative flex flex-row items-center">
         {tabs.map((tab, index) => {
           const isActive = index === activeIndex
           const firstRoute = routes.find(
@@ -62,7 +62,7 @@ export function Tabs({
               ref={(el: HTMLAnchorElement | null) => {
                 tabRefs.current[index] = el
               }}
-              className={`relative flex items-center gap-2 px-4 py-3 text-sm font-medium transition-colors outline-none whitespace-nowrap ${
+              className={`relative flex items-center gap-2 px-4 py-3.5 text-sm font-semibold transition-colors duration-300 outline-none whitespace-nowrap ${
                 isActive ? 'text-primary-500' : 'text-muted hover:text-body'
               }`}
             >
@@ -71,7 +71,10 @@ export function Tabs({
             </Link>
           )
         })}
-        <T.Indicator style={indicatorStyle} />
+        <T.Indicator
+          style={indicatorStyle}
+          className="h-0.5 bg-primary-500 rounded-full transition-all duration-300"
+        />
       </T.List>
     </div>
   )
