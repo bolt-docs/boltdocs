@@ -19,15 +19,24 @@ export class WorkerPool {
   }[] = []
   private activeWorkers = 0
   private maxWorkers: number
+  private maxQueueSize: number
 
-  constructor(maxWorkers?: number) {
+  /**
+   * @param maxWorkers   - Maximum number of parallel worker threads (default: CPU count - 1).
+   * @param maxQueueSize - Maximum number of tasks that can wait in the queue.
+   *                       Prevents unbounded memory growth on very large doc sets.
+   *                       Defaults to 2000 which comfortably covers most projects.
+   */
+  constructor(maxWorkers?: number, maxQueueSize = 2000) {
     this.maxWorkers = maxWorkers || Math.max(1, os.cpus().length - 1)
+    this.maxQueueSize = maxQueueSize
   }
 
   private idleWorkers: Worker[] = []
 
   /**
    * Dispatches a file parsing task to an available worker.
+   * Rejects immediately if the queue is full (back-pressure).
    */
   async parseFile(
     file: string,
@@ -35,6 +44,14 @@ export class WorkerPool {
     basePath: string,
     config: any,
   ): Promise<ParsedDocFile> {
+    if (this.queue.length >= this.maxQueueSize) {
+      return Promise.reject(
+        new Error(
+          `[boltdocs] WorkerPool queue is full (limit: ${this.maxQueueSize}). ` +
+            `Too many files enqueued simultaneously. Consider increasing maxQueueSize.`,
+        ),
+      )
+    }
     return new Promise((resolve, reject) => {
       this.queue.push({
         task: { type: 'PARSE_FILE', file, docsDir, basePath, config },

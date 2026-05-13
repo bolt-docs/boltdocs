@@ -31,6 +31,7 @@ export interface SSGRouteData {
   sidebarLabel?: string
   sidebarHidden?: boolean
   frontmatter?: Record<string, any>
+  slugParts?: string[]
 }
 
 /**
@@ -67,5 +68,6 @@ export function adaptRoutesForSSG(routes: RouteMeta[]): SSGRouteData[] {
     sidebarLabel: route.sidebarLabel,
     sidebarHidden: route.sidebarHidden,
     frontmatter: route.frontmatter,
+    slugParts: route.slugParts,
   }))
 }

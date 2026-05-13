@@ -69,16 +69,16 @@ export async function parseDocFile(
   const rawFileName = path.basename(resolution.relativePath)
   const cleanFileName = stripNumberPrefix(rawFileName)
 
-  // We use remainingParts for grouping to ignore version/locale/tab segments
-  const dirParts = resolution.remainingParts.slice(0, -1)
-  const cleanDirName =
-    dirParts.length > 0 ? stripNumberPrefix(dirParts[0]) : undefined
+  const cleanSlugParts = resolution.remainingParts.map((p) =>
+    stripNumberPrefix(p),
+  )
+  const slugParts = cleanSlugParts.slice(0, -1)
 
-  const isGroupIndex =
-    resolution.remainingParts.length === 2 &&
-    /^index\.mdx?$/.test(cleanFileName)
+  const isGroupIndex = /^index\.mdx?$/.test(cleanFileName)
   const sidebarPosition =
     data.sidebarPosition ?? extractNumberPrefix(rawFileName)
+
+  const relativeDirString = slugParts.join('/')
 
   const parsed: ParsedDocFile = {
     route: {
@@ -97,6 +97,7 @@ export async function parseDocFile(
       icon: data.icon ? String(data.icon) : undefined,
       tab: resolution.inferredTab,
       subRouteGroup: resolution.subRouteGroup,
+      slugParts, // EXPOSE THE NEW SEGMENTS
       _content: contentData.plainText,
       _rawContent: content,
       date: data.date,
@@ -108,7 +109,7 @@ export async function parseDocFile(
       seo,
       frontmatter: data,
     },
-    relativeDir: cleanDirName,
+    relativeDir: relativeDirString || undefined,
     isGroupIndex,
     inferredTab: resolution.inferredTab,
     groupMeta: isGroupIndex
@@ -116,17 +117,28 @@ export async function parseDocFile(
           title:
             data.groupTitle ||
             sanitizedStrings.title ||
-            (cleanDirName ? capitalize(cleanDirName) : ''),
+            (slugParts.length > 0
+              ? capitalize(slugParts[slugParts.length - 1])
+              : ''),
           position:
             data.groupPosition ??
             data.sidebarPosition ??
-            (cleanDirName ? extractNumberPrefix(dirParts[0]) : undefined),
+            (resolution.remainingParts.length > 1
+              ? extractNumberPrefix(
+                  resolution.remainingParts[
+                    resolution.remainingParts.length - 2
+                  ],
+                )
+              : undefined),
           icon: data.icon ? String(data.icon) : undefined,
         }
       : undefined,
-    inferredGroupPosition: cleanDirName
-      ? extractNumberPrefix(dirParts[0])
-      : undefined,
+    inferredGroupPosition:
+      resolution.remainingParts.length > 1
+        ? extractNumberPrefix(
+            resolution.remainingParts[resolution.remainingParts.length - 2],
+          )
+        : undefined,
   }
 
   // 7. Save to Cache for next time (Async)

@@ -57,6 +57,10 @@ export interface RouteMeta {
   sidebarHidden?: boolean
   /** Raw extensible frontmatter data for custom components and formatters */
   frontmatter?: Record<string, any>
+  /** Optional recursive child routes for deep sidebar hierarchies */
+  subRoutes?: RouteMeta[]
+  /** Clean URL segments stripped of locale/version prefixes */
+  slugParts?: string[]
 }
 
 /**

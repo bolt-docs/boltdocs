@@ -65,15 +65,10 @@ export function resolveRoutePath(
   // Save the remaining parts before cleaning (cleaning removes leading underscores for subRouteGroup)
   const remainingParts = [...parts]
 
-  // 4. Resolve Sub-routes and Clean Parts
+  // 4. Clean Parts (Remove number prefixes if any)
   const cleanParts = parts.map((p) => {
     const noNum = stripNumberPrefix(p)
-    if (noNum.startsWith('_') && noNum !== '_') {
-      subRouteGroup = noNum.substring(1)
-      const prefix = p.substring(0, p.length - noNum.length)
-      return prefix + noNum.substring(1)
-    }
-    return p
+    return noNum
   })
 
   const cleanRelativePath = cleanParts.join('/')

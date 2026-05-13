@@ -12,8 +12,6 @@ export interface ContentData {
   plainText: string
 }
 
-const slugger = new GithubSlugger()
-
 // Pre-compiled regex for cleaning plain text
 const CLEAN_MARKDOWN_REGEX = /[[\]_*`]|#+.*$|\{[^}]+\}/gm
 const CLEAN_LINKS_REGEX = /\((?:[^)]+)\)/g
@@ -22,7 +20,11 @@ export function extractContentData(
   content: string,
   explicitDescription?: string,
 ): ContentData {
-  slugger.reset()
+  // Instantiate per-call instead of reusing a module-level singleton.
+  // The old pattern required slugger.reset() before every use, which is
+  // fragile and NOT safe when workers process files concurrently —
+  // two concurrent calls would share state and corrupt each other's slug IDs.
+  const slugger = new GithubSlugger()
   const headings: { level: number; text: string; id: string }[] = []
 
   // 1. Extract Headings (Single pass for headings)

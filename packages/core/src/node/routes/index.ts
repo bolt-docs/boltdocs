@@ -4,16 +4,32 @@ import type { BoltdocsConfig } from '../config'
 import { capitalize } from '../utils'
 
 import type { RouteMeta, ParsedDocFile } from './types'
-import { docCache, invalidateRouteCache, invalidateFile } from './cache'
+import {
+  docCache,
+  invalidateRouteCache as baseInvalidateRouteCache,
+  invalidateFile,
+} from './cache'
 import { sortRoutes } from './sorter'
 
 // Re-export public API
 export type { RouteMeta }
-export { invalidateRouteCache, invalidateFile }
+export { invalidateFile }
 
 // Cache for file list and localized path computations
 let cachedFileList: string[] | null = null
 const localizedPathCache = new Map<string, string>()
+
+// Coalescing promise for concurrent calls
+let activeGenerationPromise: Promise<RouteMeta[]> | null = null
+
+/**
+ * Invalidates the global route metadata and clears local state.
+ */
+export function invalidateRouteCache(): void {
+  cachedFileList = null
+  localizedPathCache.clear()
+  baseInvalidateRouteCache()
+}
 
 /**
  * Generates the entire route map for the documentation site.
@@ -31,229 +47,258 @@ export async function generateRoutes(
   docsDir: string,
   config?: BoltdocsConfig,
   basePath?: string,
-  forceScan: boolean = true,
+  forceScan: boolean = false,
 ): Promise<RouteMeta[]> {
-  const finalBasePath = basePath || config?.base || '/docs'
-  // Load persistent cache
-  await docCache.load()
-
-  // Clear path computation cache between generations
-  localizedPathCache.clear()
-
-  // Force re-parse if specifically requested (e.g. for content/config changes)
-  if (config?.i18n) {
-    const { ParserCache } = await import('./parser/cache')
-    ParserCache.clear()
-    docCache.invalidateAll()
+  if (activeGenerationPromise) {
+    return activeGenerationPromise
   }
 
-  // 1. FAST SCAN (Skip if incremental and we have a cache)
-  let files: string[]
-  if (!forceScan && cachedFileList) {
-    files = cachedFileList
-  } else {
-    const api = new fdir()
-      .withFullPaths()
-      .filter((p) => p.endsWith('.md') || p.endsWith('.mdx'))
-      .crawl(docsDir)
-    
-    const rawFiles = await api.withPromise()
+  const currentTask = (async (): Promise<RouteMeta[]> => {
+    const finalBasePath = basePath || config?.base || '/docs'
+    // Load persistent cache
+    await docCache.load()
 
-    // Prioritized prefetch: Sort files to process important ones first
-    const PRIORITY_PATTERNS = [
-      /index\./i,
-      /intro/i,
-      /getting-started/i,
-      /readme/i,
-    ]
+    // Clear path computation cache between generations
+    localizedPathCache.clear()
 
-    files = rawFiles.sort((a, b) => {
-      const aBase = path.basename(a)
-      const bBase = path.basename(b)
+    // 1. FAST SCAN (Skip if incremental and we have a cache)
+    let files: string[]
+    if (!forceScan && cachedFileList) {
+      files = cachedFileList
+    } else {
+      const api = new fdir()
+        .withFullPaths()
+        .filter((p) => {
+          const isMd = p.endsWith('.md') || p.endsWith('.mdx')
+          if (!isMd) return false
 
-      const aScore = PRIORITY_PATTERNS.findIndex((p) => p.test(aBase))
-      const bScore = PRIORITY_PATTERNS.findIndex((p) => p.test(bBase))
+          // Get relative path and check if any part starts with an underscore
+          const rel = path.relative(docsDir, p).replace(/\\/g, '/')
+          const segments = rel.split('/')
+          // Exclude if any directory or file itself starts with "_"
+          return !segments.some(
+            (seg) =>
+              seg.startsWith('_') &&
+              seg !== '_index.md' &&
+              seg !== '_index.mdx',
+          )
+        })
+        .crawl(docsDir)
 
-      if (aScore !== -1 && bScore !== -1) return aScore - bScore
-      if (aScore !== -1) return -1
-      if (bScore !== -1) return 1
-      return 0
-    })
+      const rawFiles = await api.withPromise()
 
-    cachedFileList = files
-  }
+      // Prioritized prefetch: Sort files to process important ones first
+      const PRIORITY_PATTERNS = [
+        /index\./i,
+        /intro/i,
+        /getting-started/i,
+        /readme/i,
+      ]
 
-  // Prune cache entries for deleted files
-  docCache.pruneStale(new Set(files))
-
-  // 2. PROCESSING (Parallel Workers in Dev/Prod, Sequential in Tests)
-  const isTest =
-    process.env.NODE_ENV === 'test' || process.env.VITEST === 'true'
-
-  let parsed: ParsedDocFile[]
-  if (isTest) {
-    const { parseDocFile } = await import('./parser')
-    parsed = await Promise.all(
-      files.map(async (file) => {
-        const cached = docCache.get(file)
-        if (cached) return cached
-        const result = await parseDocFile(file, docsDir, finalBasePath, config)
-        docCache.set(file, result)
-        return result
-      }),
-    )
-  } else {
-    const { pool } = await import('./worker-pool')
-
-    // Warmup: Start processing all files immediately
-    const minimalConfig = config
-      ? {
-          i18n: config.i18n,
-          versions: config.versions,
+      const scoredFiles = rawFiles.map((f) => {
+        const base = path.basename(f)
+        const score = PRIORITY_PATTERNS.findIndex((p) => p.test(base))
+        return {
+          f,
+          score: score === -1 ? Number.MAX_SAFE_INTEGER : score,
         }
-      : undefined
+      })
 
-    parsed = await Promise.all(
-      files.map(async (file) => {
-        const cached = docCache.get(file)
-        if (cached) return cached
+      scoredFiles.sort((a, b) => a.score - b.score)
+      files = scoredFiles.map((item) => item.f)
 
-        const result = await pool.parseFile(
-          file,
-          docsDir,
-          finalBasePath,
-          minimalConfig,
-        )
-        docCache.set(file, result)
-        return result
-      }),
-    )
-  }
-
-  // Save cache after processing
-  docCache.save()
-
-  // 3. OPTIMIZED METADATA COLLECTION
-  const groupMeta = new Map<
-    string,
-    { title: string | Record<string, string>; position?: number; icon?: string }
-  >()
-  const groupIndexFiles: ParsedDocFile[] = []
-
-  const defaultLocale = config?.i18n?.defaultLocale || ''
-
-  for (const p of parsed) {
-    if (p.isGroupIndex && p.relativeDir) {
-      groupIndexFiles.push(p)
+      cachedFileList = files
     }
 
-    if (p.relativeDir) {
-      const locale = p.route.locale || defaultLocale
-      const groupKey = `${locale}:${p.relativeDir}`
+    // Prune cache entries for deleted files
+    docCache.pruneStale(new Set(files))
 
-      let entry = groupMeta.get(groupKey)
-      if (!entry) {
-        entry = {
-          title: capitalize(p.relativeDir),
-          position: p.inferredGroupPosition,
-        }
-        groupMeta.set(groupKey, entry)
-      } else {
-        if (
-          entry.position === undefined &&
-          p.inferredGroupPosition !== undefined
-        ) {
-          entry.position = p.inferredGroupPosition
-        }
+    // 2. PROCESSING (Parallel Workers in Dev/Prod, Sequential in Tests)
+    const isTest =
+      process.env.NODE_ENV === 'test' || process.env.VITEST === 'true'
+
+    let parsed: ParsedDocFile[]
+    if (isTest) {
+      const { parseDocFile } = await import('./parser')
+      parsed = await Promise.all(
+        files.map(async (file) => {
+          const cached = docCache.get(file)
+          if (cached) return cached
+          const result = await parseDocFile(
+            file,
+            docsDir,
+            finalBasePath,
+            config,
+          )
+          docCache.set(file, result)
+          return result
+        }),
+      )
+    } else {
+      const { pool } = await import('./worker-pool')
+
+      // Warmup: Start processing all files immediately
+      const minimalConfig = config
+        ? {
+            i18n: config.i18n,
+            versions: config.versions,
+          }
+        : undefined
+
+      parsed = await Promise.all(
+        files.map(async (file) => {
+          const cached = docCache.get(file)
+          if (cached) return cached
+
+          const result = await pool.parseFile(
+            file,
+            docsDir,
+            finalBasePath,
+            minimalConfig,
+          )
+          docCache.set(file, result)
+          return result
+        }),
+      )
+    }
+
+    // Save cache after processing
+    docCache.save()
+
+    // 3. OPTIMIZED METADATA COLLECTION
+    const groupMeta = new Map<
+      string,
+      {
+        title: string | Record<string, string>
+        position?: number
+        icon?: string
       }
-    }
-  }
+    >()
+    const groupIndexFiles: ParsedDocFile[] = []
 
-  // Override with explicit group index metadata
-  for (const p of groupIndexFiles) {
-    const locale = p.route.locale || defaultLocale
-    const groupKey = `${locale}:${p.relativeDir!}`
-    const entry = groupMeta.get(groupKey)!
-    if (p.groupMeta) {
-      entry.title = p.groupMeta.title
-      if (p.groupMeta.position !== undefined)
-        entry.position = p.groupMeta.position
-      if (p.groupMeta.icon) entry.icon = p.groupMeta.icon
-    }
-  }
+    const defaultLocale = config?.i18n?.defaultLocale || ''
 
-  // Override with boltdocs.config.ts sidebarGroups configurations
-  if (config?.theme?.sidebarGroups) {
-    const allLocales = config.i18n
-      ? Object.keys(config.i18n.locales)
-      : [defaultLocale]
+    for (const p of parsed) {
+      if (p.isGroupIndex && p.relativeDir) {
+        groupIndexFiles.push(p)
+      }
 
-    for (const [groupName, groupConfig] of Object.entries(
-      config.theme.sidebarGroups,
-    )) {
-      for (const locale of allLocales) {
-        const groupKey = `${locale}:${groupName}`
-        const entry = groupMeta.get(groupKey)
+      if (p.relativeDir) {
+        const locale = p.route.locale || defaultLocale
+        const groupKey = `${locale}:${p.relativeDir}`
 
-        // Resolve title for this locale
-        let resolvedTitle: string | undefined
-        if (typeof groupConfig.title === 'string') {
-          resolvedTitle = groupConfig.title
-        } else if (groupConfig.title) {
-          resolvedTitle =
-            groupConfig.title[locale] || groupConfig.title[defaultLocale]
-        }
-
-        if (entry) {
-          if (resolvedTitle) entry.title = resolvedTitle
-          if (groupConfig.icon) entry.icon = groupConfig.icon
+        let entry = groupMeta.get(groupKey)
+        if (!entry) {
+          entry = {
+            title: capitalize(p.relativeDir),
+            position: p.inferredGroupPosition,
+          }
+          groupMeta.set(groupKey, entry)
         } else {
-          groupMeta.set(groupKey, {
-            title: resolvedTitle || capitalize(groupName),
-            icon: groupConfig.icon,
-          })
+          if (
+            entry.position === undefined &&
+            p.inferredGroupPosition !== undefined
+          ) {
+            entry.position = p.inferredGroupPosition
+          }
         }
       }
     }
-  }
 
-  // 4. BUILD BASE ROUTES
-  const routes: RouteMeta[] = new Array(parsed.length)
-  for (let i = 0; i < parsed.length; i++) {
-    const p = parsed[i]
-    const dir = p.relativeDir
-    const locale = p.route.locale || defaultLocale
-    const groupKey = dir ? `${locale}:${dir}` : undefined
-    const meta = groupKey ? groupMeta.get(groupKey) : undefined
-
-    let groupTitle: string | undefined
-    if (meta) {
-      if (typeof meta.title === 'string') {
-        groupTitle = meta.title
-      } else {
-        groupTitle = meta.title[locale] || meta.title[defaultLocale]
+    // Override with explicit group index metadata
+    for (const p of groupIndexFiles) {
+      const locale = p.route.locale || defaultLocale
+      const groupKey = `${locale}:${p.relativeDir!}`
+      const entry = groupMeta.get(groupKey)!
+      if (p.groupMeta) {
+        entry.title = p.groupMeta.title
+        if (p.groupMeta.position !== undefined)
+          entry.position = p.groupMeta.position
+        if (p.groupMeta.icon) entry.icon = p.groupMeta.icon
       }
     }
 
-    routes[i] = {
-      ...p.route,
-      group: dir,
-      groupTitle: groupTitle || (dir ? capitalize(dir) : undefined),
-      groupPosition: meta?.position,
-      groupIcon: meta?.icon,
+    // Override with boltdocs.config.ts sidebarGroups configurations
+    if (config?.theme?.sidebarGroups) {
+      const allLocales = config.i18n
+        ? Object.keys(config.i18n.locales)
+        : [defaultLocale]
+
+      for (const [groupName, groupConfig] of Object.entries(
+        config.theme.sidebarGroups,
+      )) {
+        for (const locale of allLocales) {
+          const groupKey = `${locale}:${groupName}`
+          const entry = groupMeta.get(groupKey)
+
+          // Resolve title for this locale
+          let resolvedTitle: string | undefined
+          if (typeof groupConfig.title === 'string') {
+            resolvedTitle = groupConfig.title
+          } else if (groupConfig.title) {
+            resolvedTitle =
+              groupConfig.title[locale] || groupConfig.title[defaultLocale]
+          }
+
+          if (entry) {
+            if (resolvedTitle) entry.title = resolvedTitle
+            if (groupConfig.icon) entry.icon = groupConfig.icon
+          } else {
+            groupMeta.set(groupKey, {
+              title: resolvedTitle || capitalize(groupName),
+              icon: groupConfig.icon,
+            })
+          }
+        }
+      }
     }
+
+    // 4. BUILD BASE ROUTES
+    const routes: RouteMeta[] = new Array(parsed.length)
+    for (let i = 0; i < parsed.length; i++) {
+      const p = parsed[i]
+      const dir = p.relativeDir
+      const locale = p.route.locale || defaultLocale
+      const groupKey = dir ? `${locale}:${dir}` : undefined
+      const meta = groupKey ? groupMeta.get(groupKey) : undefined
+
+      let groupTitle: string | undefined
+      if (meta) {
+        if (typeof meta.title === 'string') {
+          groupTitle = meta.title
+        } else {
+          groupTitle = meta.title[locale] || meta.title[defaultLocale]
+        }
+      }
+
+      routes[i] = {
+        ...p.route,
+        group: dir,
+        groupTitle: groupTitle || (dir ? capitalize(dir) : undefined),
+        groupPosition: meta?.position,
+        groupIcon: meta?.icon,
+      }
+    }
+
+    // 5. OPTIMIZED I18N FALLBACKS
+    let finalRoutes = routes
+    if (config?.i18n) {
+      const fallbacks = generateI18nFallbacks(routes, config, finalBasePath)
+      finalRoutes = [...routes, ...fallbacks]
+    }
+
+    const sorted = sortRoutes(finalRoutes)
+
+    return sorted
+  })()
+
+  activeGenerationPromise = currentTask
+
+  try {
+    return await currentTask
+  } finally {
+    activeGenerationPromise = null
   }
-
-  // 5. OPTIMIZED I18N FALLBACKS
-  let finalRoutes = routes
-  if (config?.i18n) {
-    const fallbacks = generateI18nFallbacks(routes, config, finalBasePath)
-    finalRoutes = [...routes, ...fallbacks]
-  }
-
-  const sorted = sortRoutes(finalRoutes)
-
-  return sorted
 }
 
 /**
