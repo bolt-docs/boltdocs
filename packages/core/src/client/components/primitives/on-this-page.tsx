@@ -11,7 +11,6 @@ import {
 } from 'react'
 import scrollIntoView from 'scroll-into-view-if-needed'
 import { cn } from '../../utils/cn'
-import { useOnChange } from '../../utils/use-on-change'
 import type { ComponentBase } from './types'
 import { getItemId, Observer } from './helpers/observer'
 
@@ -251,41 +250,49 @@ const OnThisPageLink = ({
   const containerRef = use(ScrollContext)
   const id = href ? getItemId(href) : null
   const anchorRef = useRef<HTMLAnchorElement>(null)
-  const [internalActive, setInternalActive] = useState(active)
 
-  useOnChange(
-    id && items ? items.find((i) => i.id === id)?.active : null,
-    (newActive) => {
-      if (newActive !== null && newActive !== internalActive) {
-        setInternalActive(!!newActive)
+  const computedActive =
+    active !== undefined
+      ? active
+      : id && items
+        ? !!items.find((i) => i.id === id)?.active
+        : false
 
-        if (newActive && anchorRef.current && containerRef?.current) {
-          scrollIntoView(anchorRef.current, {
-            behavior: 'smooth',
-            block: 'center',
-            inline: 'center',
-            scrollMode: 'if-needed',
-            boundary: containerRef.current,
-          })
-        }
-      }
-    },
-  )
-
-  // Also sync with external active prop if provided
   useEffect(() => {
-    if (active !== undefined) setInternalActive(active)
-  }, [active])
+    if (computedActive && anchorRef.current && containerRef?.current) {
+      scrollIntoView(anchorRef.current, {
+        behavior: 'smooth',
+        block: 'center',
+        inline: 'center',
+        scrollMode: 'if-needed',
+        boundary: containerRef.current,
+      })
+    }
+  }, [computedActive, containerRef])
+
+  const handleClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
+    if (onClick) {
+      onClick(e)
+    } else if (href && href.startsWith('#')) {
+      e.preventDefault()
+      const elementId = href.slice(1)
+      const el = document.getElementById(elementId)
+      if (el) {
+        el.scrollIntoView({ behavior: 'smooth' })
+        window.history.pushState(null, '', href)
+      }
+    }
+  }
 
   return (
     <a
       ref={anchorRef}
       href={href}
-      onClick={onClick}
-      data-active={internalActive}
+      onClick={handleClick}
+      data-active={computedActive}
       className={cn(
         'block py-0.5 pl-4 text-[13px] outline-none transition-colors',
-        internalActive ? 'text-primary-500' : 'text-muted hover:text-body',
+        computedActive ? 'text-primary-500' : 'text-muted hover:text-body',
         className,
       )}
     >
@@ -298,14 +305,115 @@ const OnThisPageIndicator = ({
   style,
   className,
 }: OnThisPageIndicatorProps) => {
+  const containerRef = useRef<HTMLDivElement>(null)
+  const [internalStyle, setInternalStyle] = useState<React.CSSProperties>({
+    opacity: 0,
+    ...style,
+  })
+
+  const items = useItems()
+
+  useEffect(() => {
+    const parent = containerRef.current?.parentElement
+    if (!parent) return
+
+    const activeLinks = parent.querySelectorAll('a[data-active="true"]')
+
+    if (activeLinks.length > 0) {
+      const firstActiveLink = activeLinks[0] as HTMLElement
+      const lastActiveLink = activeLinks[activeLinks.length - 1] as HTMLElement
+
+      const firstRect = firstActiveLink.getBoundingClientRect()
+      const lastRect = lastActiveLink.getBoundingClientRect()
+      const parentRect = parent.getBoundingClientRect()
+
+      const offsetTop = firstRect.top - parentRect.top
+      const height = lastRect.bottom - firstRect.top
+
+      setInternalStyle({
+        transform: `translateY(${offsetTop}px)`,
+        height: `${height}px`,
+        opacity: 1,
+        ...style,
+      })
+    } else {
+      setInternalStyle({
+        opacity: 0,
+        ...style,
+      })
+    }
+  }, [items, style])
+
   return (
     <div
+      ref={containerRef}
       className={cn(
-        'absolute -left-px w-0.5 rounded-full bg-primary-500 transition-all duration-300',
+        'absolute -left-px w-0.5 rounded-full bg-primary-500',
         className,
       )}
-      style={style}
+      style={{
+        transition:
+          'transform 180ms cubic-bezier(0.2, 0.8, 0.2, 1), height 180ms cubic-bezier(0.2, 0.8, 0.2, 1), opacity 150ms',
+        ...internalStyle,
+      }}
     />
+  )
+}
+
+/**
+ * High-level automated list of toc items
+ */
+export function OnThisPageItems({
+  headings = [],
+  className,
+}: {
+  headings: { level: number; text: string; id: string }[]
+} & ComponentBase) {
+  const activeIds = useActiveAnchors()
+
+  if (headings.length === 0) return null
+
+  return (
+    <OnThisPageList className={className}>
+      <OnThisPageIndicator />
+      {headings.map((h) => (
+        <OnThisPageItem key={h.id} level={h.level}>
+          <OnThisPageLink href={`#${h.id}`} active={activeIds.includes(h.id)}>
+            {h.text}
+          </OnThisPageLink>
+        </OnThisPageItem>
+      ))}
+    </OnThisPageList>
+  )
+}
+
+/**
+ * High-level automated Table of Contents tree
+ */
+export function OnThisPageTree({
+  headings = [],
+  className,
+}: {
+  headings: { level: number; text: string; id: string }[]
+} & ComponentBase) {
+  const toc = useMemo(
+    () =>
+      headings.map((h) => ({ title: h.text, url: `#${h.id}`, depth: h.level })),
+    [headings],
+  )
+
+  const scrollContainerRef = useRef<HTMLDivElement>(null)
+
+  if (headings.length === 0) return null
+
+  return (
+    <AnchorProvider toc={toc} single={false}>
+      <ScrollProvider containerRef={scrollContainerRef}>
+        <OnThisPageContent ref={scrollContainerRef}>
+          <OnThisPageItems headings={headings} className={className} />
+        </OnThisPageContent>
+      </ScrollProvider>
+    </AnchorProvider>
   )
 }
 
@@ -316,3 +424,7 @@ OnThisPage.List = OnThisPageList
 OnThisPage.Item = OnThisPageItem
 OnThisPage.Link = OnThisPageLink
 OnThisPage.Indicator = OnThisPageIndicator
+OnThisPage.Items = OnThisPageItems
+OnThisPage.Tree = OnThisPageTree
+
+export default OnThisPage

@@ -89,23 +89,23 @@ function ContentMdx({ children, className, style }: SlotProps) {
 }
 
 /**
- * Content header row (breadcrumbs + copy markdown).
+ * Content header area (breadcrumbs, title, description, etc).
  */
-function ContentHeader({ children, className, style }: SlotProps) {
+function Header({ children, className, style }: SlotProps) {
   return (
-    <div
-      className={cn('flex items-center justify-between mb-10', className)}
+    <header
+      className={cn('mb-10', className)}
       style={style}
     >
       {children}
-    </div>
+    </header>
   )
 }
 
 /**
  * Footer area inside the content section (page nav).
  */
-function ContentFooter({ children, className, style }: SlotProps) {
+function Footer({ children, className, style }: SlotProps) {
   return (
     <div className={cn('mt-20', className)} style={style}>
       {children}
@@ -117,8 +117,8 @@ interface DocsLayoutComponent extends React.FC<SlotProps> {
   Body: typeof Body
   Content: typeof Content
   ContentMdx: typeof ContentMdx
-  ContentHeader: typeof ContentHeader
-  ContentFooter: typeof ContentFooter
+  Header: typeof Header
+  Footer: typeof Footer
 }
 
 // Attach sub-components to the root
@@ -126,6 +126,6 @@ export const DocsLayout = Object.assign(DocsLayoutRoot, {
   Body,
   Content,
   ContentMdx,
-  ContentHeader,
-  ContentFooter,
+  Header,
+  Footer,
 }) as DocsLayoutComponent

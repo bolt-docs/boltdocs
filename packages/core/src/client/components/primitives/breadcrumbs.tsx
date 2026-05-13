@@ -15,10 +15,7 @@ export const Breadcrumbs = ({
 }: ComponentBase) => {
   return (
     <BreadcrumbsRAC
-      className={cn(
-        'flex items-center gap-1.5 pl-0! mb-0 text-sm text-muted',
-        className,
-      )}
+      className={cn('flex flex-wrap items-center', className)}
       {...props}
     >
       {children as any}
@@ -28,10 +25,7 @@ export const Breadcrumbs = ({
 
 const BreadcrumbsItem = ({ children, className, ...props }: ComponentBase) => {
   return (
-    <Breadcrumb
-      className={cn('flex items-center mb-0 gap-1.5', className)}
-      {...props}
-    >
+    <Breadcrumb className={cn('flex items-center', className)} {...props}>
       {children as any}
     </Breadcrumb>
   )
@@ -44,24 +38,14 @@ const BreadcrumbsLink = ({
   ...props
 }: LinkProps & { className?: string }) => {
   return (
-    <Link
-      href={href}
-      className={cn(
-        'transition-colors outline-none hover:text-body focus-visible:ring-2 focus-visible:ring-primary-500/30 rounded-sm',
-        'current:font-medium current:text-body current:pointer-events-none cursor-pointer',
-        className,
-      )}
-      {...props}
-    >
+    <Link href={href} className={cn('cursor-pointer', className)} {...props}>
       {children as any}
     </Link>
   )
 }
 
 const BreadcrumbsSeparator = ({ className }: ComponentBase) => {
-  return (
-    <ChevronRight size={14} className={cn('shrink-0 text-dim', className)} />
-  )
+  return <ChevronRight size={14} className={cn('shrink-0', className)} />
 }
 
 Breadcrumbs.Root = Breadcrumbs

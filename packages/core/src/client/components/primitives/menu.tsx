@@ -1,25 +1,25 @@
-'use client'
-
 import { Check, ChevronRight } from 'lucide-react'
 import * as RAC from 'react-aria-components'
 import { Children } from 'react'
 import { Popover, type PopoverProps } from './popover'
 import { cn } from '../../utils/cn'
+
 /**
  * MenuTrigger wraps a trigger (usually a Button) and a Menu.
  */
 export interface MenuTriggerProps extends RAC.MenuTriggerProps {
   placement?: PopoverProps['placement']
+  className?: string
 }
 
-function MenuTrigger(props: MenuTriggerProps) {
+function MenuTrigger({ placement, className, ...props }: MenuTriggerProps) {
   const [trigger, menu] = (
     Children.toArray(props.children) as React.ReactElement[]
   ).slice(0, 2)
   return (
     <RAC.MenuTrigger {...props}>
       {trigger as any}
-      <Popover placement={props.placement} className="min-w-35">
+      <Popover placement={placement} className={className}>
         {menu as any}
       </Popover>
     </RAC.MenuTrigger>
@@ -29,14 +29,18 @@ function MenuTrigger(props: MenuTriggerProps) {
 /**
  * SubmenuTrigger for nested menus.
  */
-function SubmenuTrigger(props: RAC.SubmenuTriggerProps) {
+export interface SubmenuTriggerProps extends RAC.SubmenuTriggerProps {
+  className?: string
+}
+
+function SubmenuTrigger({ className, ...props }: SubmenuTriggerProps) {
   const [trigger, menu] = (
     Children.toArray(props.children) as React.ReactElement[]
   ).slice(0, 2)
   return (
     <RAC.SubmenuTrigger {...props}>
       {trigger as any}
-      <Popover offset={-4} crossOffset={-4}>
+      <Popover offset={-4} crossOffset={-4} className={className}>
         {menu as any}
       </Popover>
     </RAC.SubmenuTrigger>
@@ -51,10 +55,7 @@ export function Menu<T extends object>(props: RAC.MenuProps<T>) {
     <RAC.Menu
       {...props}
       className={RAC.composeRenderProps(props.className, (className) =>
-        cn(
-          'p-1.5 outline-none max-h-[inherit] overflow-auto max-w-75',
-          className,
-        ),
+        cn('outline-none overflow-auto', className),
       )}
     />
   )
@@ -72,24 +73,11 @@ function MenuItem(props: RAC.MenuItemProps) {
     <RAC.MenuItem
       {...props}
       textValue={textValue}
-      className={RAC.composeRenderProps(
-        props.className,
-        (className, { isFocused, isDisabled, isSelected }) =>
-          cn(
-            'group relative flex flex-row items-center gap-2 px-2 py-1.5 rounded-lg outline-none cursor-default hover:cursor-pointer transition-none',
-            'text-[12.5px] font-medium',
-            {
-              'bg-surface text-body ring-1 ring-strong/5':
-                isFocused && !isSelected,
-              'text-body': !isSelected && !isFocused,
-              'bg-primary-500/10 text-primary-600 dark:text-primary-400':
-                isSelected,
-              'bg-primary-500/15 ring-1 ring-primary-500/20':
-                isSelected && isFocused,
-              'opacity-40 grayscale pointer-events-none': isDisabled,
-            },
-            className,
-          ),
+      className={RAC.composeRenderProps(props.className, (className) =>
+        cn(
+          'group relative flex flex-row items-center cursor-default outline-none',
+          className,
+        ),
       )}
     >
       {RAC.composeRenderProps(
@@ -97,18 +85,12 @@ function MenuItem(props: RAC.MenuItemProps) {
         (children, { selectionMode, isSelected, hasSubmenu }) => (
           <>
             {selectionMode === 'multiple' && (
-              <span className="flex items-center size-4 shrink-0 justify-center">
-                {isSelected && (
-                  <Check className="size-3.5 stroke-[2.5px] text-primary-500 animate-in zoom-in-50 duration-200" />
-                )}
+              <span className="flex items-center shrink-0 justify-center">
+                {isSelected && <Check className="size-3.5" />}
               </span>
             )}
-            <div className="flex flex-row w-full transition-colors items-center gap-2 py-0.5 px-1">
-              {children}
-            </div>
-            {hasSubmenu && (
-              <ChevronRight className="size-4 ml-auto text-muted group-focused:text-primary-500/70 transition-colors" />
-            )}
+            <div className="flex flex-row w-full items-center">{children}</div>
+            {hasSubmenu && <ChevronRight className="size-4 ml-auto" />}
           </>
         ),
       )}
@@ -130,13 +112,9 @@ function MenuSection<T extends object>({
   return (
     <RAC.MenuSection
       {...props}
-      className={cn('flex flex-col gap-0.5', props.className)}
+      className={cn('flex flex-col', props.className)}
     >
-      {title && (
-        <RAC.Header className="px-3 py-2 text-[10px] font-bold uppercase tracking-[0.075em] text-muted/50 select-none">
-          {title}
-        </RAC.Header>
-      )}
+      {title && <RAC.Header className="select-none">{title}</RAC.Header>}
       <RAC.Collection items={props.items}>{props.children}</RAC.Collection>
     </RAC.MenuSection>
   )
@@ -147,10 +125,7 @@ function MenuSection<T extends object>({
  */
 function MenuSeparator(props: RAC.SeparatorProps) {
   return (
-    <RAC.Separator
-      {...props}
-      className="mx-2 my-1.5 border-t border-subtle/50"
-    />
+    <RAC.Separator {...props} className={cn('border-t', props.className)} />
   )
 }
 

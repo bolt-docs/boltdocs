@@ -31,7 +31,7 @@ const TooltipContent = ({
       offset={8}
       className={(values) =>
         cn(
-          'group z-50 overflow-visible rounded-md bg-surface/90 px-2.5 py-1.5 text-xs font-medium text-body shadow-lg backdrop-blur-md ring-1 ring-subtle outline-hidden select-none',
+          'group z-50 overflow-visible rounded-md bg-surface px-2.5 py-1.5 text-xs font-medium text-body ring-1 ring-subtle outline-hidden select-none',
           'data-entering:animate-in data-entering:fade-in data-entering:zoom-in-95 data-entering:duration-100',
           'data-exiting:animate-out data-exiting:fade-out data-exiting:zoom-out-95 data-exiting:duration-75',
           'data-[placement=top]:slide-in-from-bottom-1',

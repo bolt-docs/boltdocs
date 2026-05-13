@@ -1,15 +1,34 @@
-import { type ReactNode, useRef, useLayoutEffect, useEffect } from 'react'
+import {
+  type ReactNode,
+  useRef,
+  useLayoutEffect,
+  useEffect,
+  useState,
+} from 'react'
 import * as RAC from 'react-aria-components'
 import { cn } from '../../utils/cn'
 import { useUI } from '../../app/ui-context'
-import { Button } from './button'
 import { Link } from './link'
-import { X, ChevronRight } from 'lucide-react'
+import { ChevronRight } from 'lucide-react'
 import type { ComponentBase } from './types'
 import type { ComponentRoute } from '../../types'
+import { useSidebar } from '../../hooks/use-sidebar'
+import { useLocalizedTo } from '../../hooks/use-localized-to'
+import * as LucideIcons from 'lucide-react'
+import virtualIcons from 'virtual:boltdocs-icons'
 
 // Persistent scroll position across navigation (SPA)
 let sidebarScrollPos = 0
+
+function getIcon(iconName?: string): React.ElementType | undefined {
+  if (!iconName) return undefined
+  const icons = { ...LucideIcons, ...virtualIcons } as unknown as Record<
+    string,
+    React.ElementType
+  >
+  const IconComponent = icons[iconName] || icons[iconName + 'Icon']
+  return IconComponent || undefined
+}
 
 /**
  * Internal Badge component for links
@@ -143,7 +162,7 @@ export const SidebarGroup = ({
   className,
 }: { title?: string; icon?: React.ElementType } & ComponentBase) => {
   return (
-    <div className={cn('mb-6', className)}>
+    <div className={className}>
       {title && (
         <h4 className="px-2 mb-2 flex items-center gap-2 text-[11px] font-bold uppercase tracking-widest text-muted/50">
           {Icon && <Icon size={12} />}
@@ -255,6 +274,112 @@ export const SidebarSubGroup = ({
 }
 
 /**
+ * Automated single-route rendering primitive
+ */
+export interface SidebarItemProps extends ComponentBase {
+  route: ComponentRoute
+  activePath: string
+}
+
+export function SidebarItem({
+  route,
+  activePath,
+  className,
+}: SidebarItemProps) {
+  const localizedHref = useLocalizedTo(route.path)
+  const isCurrent =
+    activePath ===
+    (localizedHref.endsWith('/') ? localizedHref.slice(0, -1) : localizedHref)
+  const hasChildren = !!route.routes?.length || !!route.subRoutes?.length
+  const children = route.routes || route.subRoutes
+
+  const [isOpen, setIsOpen] = useState(false)
+
+  useEffect(() => {
+    if (activePath.startsWith(localizedHref)) {
+      setIsOpen(true)
+    }
+  }, [activePath, localizedHref])
+
+  if (hasChildren) {
+    return (
+      <SidebarSubGroup
+        label={route.title}
+        href={route.path}
+        active={isCurrent}
+        icon={getIcon(route.icon)}
+        badge={route.badge}
+        isOpen={isOpen}
+        onToggle={() => setIsOpen(!isOpen)}
+        className={className}
+      >
+        {children?.map((subRoute) => (
+          <SidebarItem
+            key={subRoute.path}
+            route={subRoute}
+            activePath={activePath}
+          />
+        ))}
+      </SidebarSubGroup>
+    )
+  }
+
+  return (
+    <SidebarLink
+      label={route.title}
+      href={route.path}
+      active={isCurrent}
+      icon={getIcon(route.icon)}
+      badge={route.badge}
+      className={className}
+    />
+  )
+}
+
+/**
+ * High-level automated routes data rendering primitive
+ */
+export interface SidebarItemsProps extends ComponentBase {
+  routes: ComponentRoute[]
+}
+
+export function SidebarItems({ routes, className }: SidebarItemsProps) {
+  const { groups, ungrouped, activePath } = useSidebar(routes)
+
+  return (
+    <div className={cn('flex flex-col gap-6', className)}>
+      {ungrouped.length > 0 && (
+        <SidebarGroup>
+          {ungrouped.map((route) => (
+            <SidebarItem
+              key={route.path}
+              route={route}
+              activePath={activePath}
+            />
+          ))}
+        </SidebarGroup>
+      )}
+
+      {groups.map((group) => (
+        <SidebarGroup
+          key={group.title}
+          title={group.title}
+          icon={getIcon(group.icon)}
+        >
+          {group.routes.map((route) => (
+            <SidebarItem
+              key={route.path}
+              route={route}
+              activePath={activePath}
+            />
+          ))}
+        </SidebarGroup>
+      ))}
+    </div>
+  )
+}
+
+/**
  * Main Sidebar Export
  */
 export const Sidebar = Object.assign(SidebarRoot, {
@@ -265,6 +390,8 @@ export const Sidebar = Object.assign(SidebarRoot, {
   Group: SidebarGroup,
   Link: SidebarLink,
   SubGroup: SidebarSubGroup,
+  Item: SidebarItem,
+  Items: SidebarItems,
 })
 
 export default Sidebar

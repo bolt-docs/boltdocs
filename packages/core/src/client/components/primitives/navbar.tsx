@@ -1,20 +1,17 @@
 import { type ReactNode, useState, useEffect } from 'react'
-import { Separator, ToggleButton, Link, cn } from './index'
 import {
   Button as ButtonRAC,
   ModalOverlay,
   Modal,
   Dialog,
+  Separator,
+  ToggleButton,
 } from 'react-aria-components'
-import {
-  Search,
-  Sun,
-  Moon,
-  ExternalLink,
-  MoreVertical,
-  X,
-  ChevronRight,
-} from 'lucide-react'
+import { Link } from './link'
+import { Menu } from './menu'
+import { Popover } from './popover'
+import { cn } from '../../utils/cn'
+import { Sun, Moon, ExternalLink, MoreVertical, X } from 'lucide-react'
 import * as IconsSocials from '../icons-dev'
 import type { ComponentBase } from './types'
 import type { BoltdocsSocialLink } from '../../../shared/types'
@@ -22,7 +19,6 @@ import type { BoltdocsSocialLink } from '../../../shared/types'
 export interface NavbarLinkProps extends Omit<ComponentBase, 'children'> {
   label: ReactNode
   href: string
-  active?: boolean
   to?: 'internal' | 'external'
 }
 
@@ -31,6 +27,7 @@ export interface NavbarLogoProps extends Omit<ComponentBase, 'children'> {
   alt: string
   width?: number
   height?: number
+  href?: string
 }
 
 export interface NavbarSearchTriggerProps extends ComponentBase {
@@ -51,10 +48,7 @@ export interface NavbarSocialsProps extends ComponentBase {
 export const Navbar = ({ children, className, ...props }: ComponentBase) => {
   return (
     <header
-      className={cn(
-        'boltdocs-navbar sticky top-0 z-50 w-full border-b border-subtle bg-main/80 backdrop-blur-md',
-        className,
-      )}
+      className={cn('boltdocs-navbar sticky top-0 z-50 w-full', className)}
       {...props}
     >
       {children}
@@ -172,25 +166,12 @@ const NavbarLinks = ({ children, className }: ComponentBase) => {
   )
 }
 
-const NavbarLink = ({
-  label,
-  href,
-  active,
-  to,
-  className,
-}: NavbarLinkProps) => {
+const NavbarLink = ({ label, href, to, className }: NavbarLinkProps) => {
   return (
     <Link
       href={href}
       target={to === 'external' ? '_blank' : undefined}
-      className={cn(
-        'transition-colors outline-none font-medium focus-visible:ring-2 focus-visible:ring-primary-500/30 rounded-sm',
-        {
-          'text-primary-500': active,
-          'text-muted hover:text-body': !active,
-        },
-        className,
-      )}
+      className={cn('transition-all outline-none', className)}
     >
       {label as any}
       {to === 'external' && (
@@ -202,10 +183,115 @@ const NavbarLink = ({
   )
 }
 
-const NavbarSearchTrigger = ({
+const NavbarDropdown = ({
+  label,
+  className,
+  children,
+}: {
+  label: React.ReactNode
+  className?: string
+  children: React.ReactNode
+}) => {
+  const [isOpen, setIsOpen] = useState(false)
+
+  return (
+    <div
+      className={cn('relative', className)}
+      onMouseEnter={() => {
+        setIsOpen(true)
+      }}
+      onMouseLeave={() => {
+        setIsOpen(false)
+      }}
+    >
+      <div
+        className={cn(
+          'flex items-center gap-1 outline-none cursor-pointer select-none font-medium text-muted hover:text-body transition-colors',
+        )}
+      >
+        {label}
+        <svg
+          className={cn('w-4 h-4 transition-transform', isOpen && 'rotate-180')}
+          fill="none"
+          viewBox="0 0 24 24"
+          stroke="currentColor"
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={2}
+            d="M19 9l-7 7-7-7"
+          />
+        </svg>
+      </div>
+      {isOpen && (
+        <div className="absolute top-full left-0 pt-1 z-[9999]">
+          <div className="min-w-[180px] p-1 bg-surface border border-subtle rounded-md shadow-lg">
+            {children}
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
+const NavbarDropdownItem = ({
+  href,
+  label,
+  className,
+}: {
+  href: string
+  label: string
+  className?: string
+}) => {
+  return (
+    <Link
+      href={href}
+      className={cn('block px-2 py-1.5 rounded hover:bg-surface', className)}
+    >
+      {label}
+    </Link>
+  )
+}
+
+const NavbarSearchTriggerDesktop = ({
   className,
   onPress,
+  children,
 }: NavbarSearchTriggerProps) => {
+  return (
+    <ButtonRAC
+      onPress={onPress}
+      className={cn(
+        'hidden lg:flex items-center justify-between gap-2 px-3 py-2 text-sm outline-none cursor-pointer w-full max-w-[720px]',
+        className,
+      )}
+    >
+      {children}
+    </ButtonRAC>
+  )
+}
+
+const NavbarSearchTriggerMobile = ({
+  className,
+  onPress,
+  children,
+}: NavbarSearchTriggerProps) => {
+  return (
+    <ButtonRAC
+      onPress={onPress}
+      className={cn(
+        'lg:hidden flex h-10 w-10 items-center justify-center outline-none cursor-pointer',
+        className,
+      )}
+      aria-label="Search"
+    >
+      {children}
+    </ButtonRAC>
+  )
+}
+
+const NavbarSearchTriggerKbd = ({ className }: ComponentBase) => {
   const [mounted, setMounted] = useState(false)
   const isMac = mounted && /Mac|iPod|iPhone|iPad/.test(navigator.platform)
 
@@ -214,45 +300,26 @@ const NavbarSearchTrigger = ({
   }, [])
 
   return (
-    <>
-      <ButtonRAC
-        onPress={onPress}
-        className={cn(
-          'hidden lg:flex items-center gap-2 rounded-full border border-subtle bg-surface px-3 py-2 text-sm text-muted outline-none cursor-pointer',
-          'transition-all duration-200 hover:border-strong hover:text-body hover:bg-soft hover:shadow-sm active:scale-[0.98]',
-          'focus-visible:ring-2 focus-visible:ring-primary-500/30',
-          'w-full max-w-[720px] justify-between',
-          className,
-        )}
-      >
-        <div className="flex items-center gap-2">
-          <Search size={16} />
-          <span className="hidden sm:inline-block">Search docs...</span>
-        </div>
-        <div className="hidden sm:flex items-center gap-1 pointer-events-none select-none">
-          <kbd className="flex h-5 items-center justify-center rounded border border-subtle bg-main px-1.5 font-mono text-[10px] font-medium">
-            {isMac ? '⌘' : 'Ctrl'}
-          </kbd>
-          <kbd className="flex h-5 w-5 items-center justify-center rounded border border-subtle bg-main font-mono text-[10px] font-medium">
-            K
-          </kbd>
-        </div>
-      </ButtonRAC>
-
-      <ButtonRAC
-        onPress={onPress}
-        className={cn(
-          'lg:hidden flex h-10 w-10 items-center justify-center rounded-lg text-muted outline-none cursor-pointer',
-          'transition-all duration-200 hover:text-body active:scale-90',
-          'focus-visible:ring-2 focus-visible:ring-primary-500/30',
-          className,
-        )}
-        aria-label="Search"
-      >
-        <Search size={20} />
-      </ButtonRAC>
-    </>
+    <div
+      className={cn(
+        'hidden sm:flex items-center gap-1 pointer-events-none select-none',
+        className,
+      )}
+    >
+      <kbd className="flex items-center justify-center font-mono text-[10px]">
+        {isMac ? '⌘' : 'Ctrl'}
+      </kbd>
+      <kbd className="flex items-center justify-center font-mono text-[10px]">
+        K
+      </kbd>
+    </div>
   )
+}
+
+const NavbarSearchTrigger = {
+  Desktop: NavbarSearchTriggerDesktop,
+  Mobile: NavbarSearchTriggerMobile,
+  Kbd: NavbarSearchTriggerKbd,
 }
 
 const NavbarTheme = ({ className, theme, onThemeChange }: NavbarThemeProps) => {
@@ -260,12 +327,7 @@ const NavbarTheme = ({ className, theme, onThemeChange }: NavbarThemeProps) => {
     <ToggleButton
       isSelected={theme === 'dark'}
       onChange={onThemeChange}
-      className={cn(
-        'rounded-md p-2 text-muted outline-none cursor-pointer',
-        'transition-all duration-300 hover:bg-surface hover:text-body hover:rotate-12 active:scale-90',
-        'focus-visible:ring-2 focus-visible:ring-primary-500/30',
-        className,
-      )}
+      className={cn('outline-none cursor-pointer', className)}
       aria-label="Toggle theme"
     >
       {theme === 'dark' ? <Sun size={20} /> : <Moon size={20} />}
@@ -286,12 +348,7 @@ const NavbarSocials = ({ icon, link, className }: NavbarSocialsProps) => {
       href={link}
       target="_blank"
       rel="noopener noreferrer"
-      className={cn(
-        'rounded-md p-2 text-muted outline-none transition-colors',
-        'hover:bg-surface hover:text-body',
-        'focus-visible:ring-2 focus-visible:ring-primary-500/30',
-        className,
-      )}
+      className={cn('outline-none', className)}
     >
       <Icon name={icon} />
     </Link>
@@ -302,7 +359,7 @@ const NavbarSplit = ({ className }: ComponentBase) => {
   return (
     <Separator
       orientation="vertical"
-      className={cn('h-6 w-px bg-subtle mx-1', className)}
+      className={cn('h-full w-px', className)}
     />
   )
 }
@@ -316,9 +373,7 @@ const NavbarMore = ({ onPress, className }: NavbarMoreProps) => {
     <ButtonRAC
       onPress={onPress}
       className={cn(
-        'md:hidden flex h-10 w-10 items-center justify-center rounded-lg text-muted outline-none cursor-pointer',
-        'transition-all duration-200 hover:text-body active:scale-90',
-        'focus-visible:ring-2 focus-visible:ring-primary-500/30',
+        'md:hidden flex items-center justify-center outline-none cursor-pointer',
         className,
       )}
       aria-label="More navigation"
@@ -331,7 +386,6 @@ const NavbarMore = ({ onPress, className }: NavbarMoreProps) => {
 export interface NavbarMobileMenuProps extends ComponentBase {
   isOpen: boolean
   onClose: () => void
-  title?: string
 }
 
 const NavbarMobileMenu = ({
@@ -346,29 +400,25 @@ const NavbarMobileMenu = ({
       onOpenChange={(open) => !open && onClose()}
       isDismissable={true}
       className={cn(
-        'fixed inset-0 z-[60] bg-main/95 backdrop-blur-xl md:hidden',
-        'entering:animate-in entering:fade-in exiting:animate-out exiting:fade-out duration-300',
+        'fixed inset-0 z-60 md:hidden transition-all duration-100',
+        className,
       )}
     >
-      <Modal
-        className={cn(
-          'fixed inset-0 overflow-y-auto outline-none',
-          'entering:animate-in entering:zoom-in-95 exiting:animate-out exiting:zoom-out-95 duration-300',
-          className,
-        )}
-      >
-        <Dialog className="relative h-full outline-none p-8 flex flex-col bg-main/98 backdrop-blur-xl">
-          <div className="flex justify-end mb-4">
+      <Modal className="fixed inset-0 outline-none">
+        <Dialog className="relative h-full outline-none flex flex-col p-6 pt-[calc(1.5rem+env(safe-area-inset-top,0px))] pb-[calc(1.5rem+env(safe-area-inset-bottom,0px))] px-[calc(1.5rem+env(safe-area-inset-left,0px))]">
+          <div className="flex items-center justify-between mb-6">
+            <span></span>
             <ButtonRAC
               onPress={onClose}
-              className="flex h-10 w-10 items-center justify-center rounded-full text-muted hover:text-body outline-none cursor-pointer transition-all active:scale-90"
+              className="flex items-center justify-center outline-none cursor-pointer text-muted hover:text-body transition-colors"
               aria-label="Close menu"
             >
-              <X size={28} />
+              <X size={24} />
             </ButtonRAC>
           </div>
-
-          <nav className="flex flex-col gap-4">{children}</nav>
+          <nav className="flex-1 overflow-y-auto flex flex-col gap-4">
+            {children}
+          </nav>
         </Dialog>
       </Modal>
     </ModalOverlay>
@@ -378,7 +428,6 @@ const NavbarMobileMenu = ({
 const NavbarMobileLink = ({
   label,
   href,
-  active,
   to,
   onPress,
   className,
@@ -388,24 +437,9 @@ const NavbarMobileLink = ({
       href={href}
       target={to === 'external' ? '_blank' : undefined}
       onClick={onPress}
-      className={cn(
-        'group flex items-center py-2 text-[22px] font-medium transition-all outline-none',
-        {
-          'text-body': active,
-          'text-muted/80 hover:text-body': !active,
-        },
-        className,
-      )}
+      className={cn('group flex items-center outline-none', className)}
     >
-      <span className="relative">
-        {label as any}
-        <span
-          className={cn(
-            'absolute -bottom-1 left-0 h-0.5 bg-primary-500 transition-all duration-300',
-            active ? 'w-full' : 'w-0 group-hover:w-full',
-          )}
-        />
-      </span>
+      {label as any}
     </Link>
   )
 }
@@ -418,6 +452,8 @@ Navbar.Logo = NavbarLogo
 Navbar.Title = NavbarTitle
 Navbar.Links = NavbarLinks
 Navbar.Link = NavbarLink
+Navbar.Dropdown = NavbarDropdown
+Navbar.DropdownItem = NavbarDropdownItem
 Navbar.SearchTrigger = NavbarSearchTrigger
 Navbar.Theme = NavbarTheme
 Navbar.Socials = NavbarSocials

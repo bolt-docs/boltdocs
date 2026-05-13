@@ -1,12 +1,9 @@
+'use client'
+
 import * as RAC from 'react-aria-components'
-import { Search, Hash, FileText, CornerDownLeft, X } from 'lucide-react'
+import { Hash, FileText, CornerDownLeft } from 'lucide-react'
 import { cn } from '../../utils/cn'
 import type { ComponentBase } from './types'
-
-export interface SearchDialogProps extends ComponentBase {
-  isOpen?: boolean
-  onOpenChange?: (isOpen: boolean) => void
-}
 
 export interface SearchDialogItemProps
   extends Omit<RAC.ListBoxItemProps, 'children'> {
@@ -19,37 +16,66 @@ export interface SearchDialogItemIconProps {
   className?: string
 }
 
+/**
+ * Pure, unstyled SearchDialog Overlay (maps to RAC.ModalOverlay)
+ */
 export const SearchDialog = ({
-  children,
-  isOpen,
-  onOpenChange,
   className,
-}: SearchDialogProps) => {
+  ...props
+}: RAC.ModalOverlayProps) => {
   return (
     <RAC.ModalOverlay
-      isOpen={isOpen}
-      onOpenChange={onOpenChange}
-      isDismissable
-      className={cn(
-        'fixed inset-0 z-100 bg-black/40 backdrop-blur-sm px-4 py-4 sm:py-20',
-        'entering:animate-in entering:fade-in exiting:animate-out exiting:fade-out',
-      )}
-    >
-      <RAC.Modal
-        className={cn(
-          'mx-auto w-full max-w-2xl overflow-hidden rounded-xl border border-subtle bg-surface shadow-2xl ring-1 ring-black/5 outline-none',
-          'entering:animate-in entering:fade-in entering:zoom-in-95 exiting:animate-out exiting:fade-out exiting:zoom-out-95',
-          className,
-        )}
-      >
-        <RAC.Dialog className="flex flex-col max-h-[90dvh] sm:max-h-[70vh] focus:outline-none overflow-hidden outline-none">
-          {children as any}
-        </RAC.Dialog>
-      </RAC.Modal>
-    </RAC.ModalOverlay>
+      className={cn('fixed inset-0 z-100', className)}
+      {...props}
+    />
   )
 }
 
+/**
+ * Pure, unstyled SearchDialog Content (maps to RAC.Modal)
+ */
+const SearchDialogContent = ({
+  className,
+  ...props
+}: RAC.ModalOverlayProps) => <RAC.Modal className={cn(className)} {...props} />
+
+/**
+ * Pure, unstyled SearchDialog Dialog (maps to RAC.Dialog)
+ */
+const SearchDialogDialog = ({ className, ...props }: RAC.DialogProps) => (
+  <RAC.Dialog
+    className={cn('flex flex-col focus:outline-none', className)}
+    {...props}
+  />
+)
+
+/**
+ * Pure, unstyled SearchDialog Input Field (maps to RAC.SearchField)
+ */
+const SearchDialogField = ({ className, ...props }: RAC.SearchFieldProps) => (
+  <RAC.SearchField className={cn('flex items-center', className)} {...props} />
+)
+
+/**
+ * Pure, unstyled SearchInput (maps to RAC.Input)
+ */
+const SearchDialogSearchInput = ({ className, ...props }: RAC.InputProps) => (
+  <RAC.Input
+    className={cn('w-full bg-transparent outline-none border-none', className)}
+    {...props}
+  />
+)
+
+/**
+ * Pure, unstyled Clear Button (maps to RAC.Button with slot="clear")
+ */
+const SearchDialogClearButton = ({ className, ...props }: RAC.ButtonProps) => (
+  <RAC.Button slot="clear" className={cn(className)} {...props} />
+)
+
+/**
+ * Pure, unstyled Autocomplete container (maps to RAC.Autocomplete)
+ */
 const SearchDialogAutocomplete = <T extends object>({
   children,
   className,
@@ -73,49 +99,9 @@ const SearchDialogAutocomplete = <T extends object>({
   )
 }
 
-const SearchDialogInput = ({
-  className,
-  value,
-  onChange,
-  onClear,
-  ...props
-}: RAC.InputProps & {
-  className?: string
-  onClear?: () => void
-  onChange?: (val: string) => void
-}) => {
-  return (
-    <RAC.SearchField
-      className="flex items-center gap-3 border-b border-subtle px-4 py-3 sm:py-4"
-      autoFocus
-      value={value as string}
-      onChange={onChange}
-    >
-      <Search className="h-5 w-5 text-muted shrink-0" />
-      <RAC.Input
-        {...props}
-        className={cn(
-          'w-full bg-transparent text-base sm:text-lg text-body placeholder-text-muted outline-none border-none focus:ring-0',
-          className,
-        )}
-        placeholder="Search documentation..."
-      />
-      <div className="flex items-center gap-2">
-        <RAC.Button
-          slot="clear"
-          onPress={onClear}
-          className="p-1 rounded-md text-muted hover:text-body hover:bg-soft outline-none transition-colors cursor-pointer group-empty:invisible"
-        >
-          <X className="h-4 w-4" />
-        </RAC.Button>
-        <div className="hidden sm:flex items-center gap-1.5 rounded-md border border-subtle bg-main px-1.5 py-1 text-[10px] font-medium text-muted">
-          <kbd className="font-sans">ESC</kbd>
-        </div>
-      </div>
-    </RAC.SearchField>
-  )
-}
-
+/**
+ * Pure, unstyled List Box (maps to RAC.ListBox)
+ */
 const SearchDialogList = <T extends object>({
   children,
   className,
@@ -124,17 +110,16 @@ const SearchDialogList = <T extends object>({
   return (
     <RAC.ListBox
       {...props}
-      className={cn(
-        'flex-1 overflow-y-auto p-2 outline-none min-h-0',
-        'scrollbar-hide sm:scrollbar-default',
-        className,
-      )}
+      className={cn('flex-1 overflow-y-auto outline-none min-h-0', className)}
     >
       {children as any}
     </RAC.ListBox>
   )
 }
 
+/**
+ * Pure, unstyled List Box Item (maps to RAC.ListBoxItem)
+ */
 const SearchDialogItemRoot = ({
   children,
   className,
@@ -144,8 +129,7 @@ const SearchDialogItemRoot = ({
     <RAC.ListBoxItem
       {...props}
       className={cn(
-        'group flex items-center gap-3 rounded-lg p-3 text-left outline-none cursor-pointer transition-colors',
-        'text-muted hover:bg-main hover:text-body focus:bg-primary-500 focus:text-white selected:bg-primary-500 selected:text-white',
+        'group flex items-center outline-none cursor-pointer',
         className,
       )}
     >
@@ -177,31 +161,31 @@ const SearchDialogItemIcon = ({
 
 const SearchDialogItemTitle = ({ children, className }: ComponentBase) => {
   return (
-    <span
-      className={cn('block font-medium truncate flex-1 text-sm', className)}
-    >
-      {children}
-    </span>
+    <span className={cn('block truncate flex-1', className)}>{children}</span>
   )
 }
 
 const SearchDialogItemBio = ({ children, className }: ComponentBase) => {
   return (
-    <span
-      className={cn(
-        'ml-2 text-xs opacity-70 truncate hidden sm:inline group-focus:opacity-100',
-        className,
-      )}
-    >
+    <span className={cn('ml-2 truncate hidden sm:inline', className)}>
       {children}
     </span>
   )
 }
 
+// Compound API wiring
 SearchDialog.Root = SearchDialog
+SearchDialog.Overlay = SearchDialog
+SearchDialog.Content = SearchDialogContent
+SearchDialog.Dialog = SearchDialogDialog
 SearchDialog.Autocomplete = SearchDialogAutocomplete
-SearchDialog.Input = SearchDialogInput
 SearchDialog.List = SearchDialogList
+
+SearchDialog.Input = Object.assign(SearchDialogField, {
+  SearchInput: SearchDialogSearchInput,
+  Button: SearchDialogClearButton,
+})
+
 SearchDialog.Item = Object.assign(SearchDialogItemRoot, {
   Icon: SearchDialogItemIcon,
   Title: SearchDialogItemTitle,

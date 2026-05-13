@@ -66,8 +66,8 @@ export interface NavLinkProps
    * Provides access to the active state for conditional children rendering.
    */
   children?:
-  | React.ReactNode
-  | ((props: { isActive: boolean }) => React.ReactNode)
+    | React.ReactNode
+    | ((props: { isActive: boolean }) => React.ReactNode)
   /**
    * Provides access to the active state for conditional styling.
    */
@@ -95,11 +95,7 @@ export const NavLink = (props: NavLinkProps) => {
     typeof children === 'function' ? children({ isActive }) : children
 
   return (
-    <Link
-      {...rest}
-      href={href}
-      className={resolvedClassName}
-    >
+    <Link {...rest} href={href} className={resolvedClassName}>
       {resolvedChildren}
     </Link>
   )

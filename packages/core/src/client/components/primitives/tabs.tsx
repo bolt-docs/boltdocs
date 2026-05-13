@@ -25,10 +25,7 @@ const TabsList = ({ children, className = '' }: ComponentBase) => {
   return (
     <div
       role="tablist"
-      className={cn(
-        'relative flex flex-row flex-nowrap items-center border-b border-subtle overflow-x-auto',
-        className,
-      )}
+      className={cn('relative flex flex-row items-center', className)}
     >
       {children}
     </div>
@@ -46,9 +43,9 @@ const TabsItem = ({
     <button
       role="tab"
       aria-selected={selected}
+      data-selected={selected}
       className={cn(
-        'flex items-center gap-2 px-4 py-2 text-sm font-medium transition-colors outline-none cursor-pointer bg-transparent border-none',
-        selected ? 'text-primary-500' : 'text-muted hover:text-body',
+        'outline-none cursor-pointer bg-transparent border-none',
         className,
       )}
       {...props}
@@ -59,19 +56,11 @@ const TabsItem = ({
 }
 
 const TabsContent = ({ children, className = '' }: ComponentBase) => {
-  return <div className={cn('p-4 outline-none', className)}>{children}</div>
+  return <div className={cn('outline-none', className)}>{children}</div>
 }
 
 const TabsIndicator = ({ className = '', style }: TabsIndicatorProps) => {
-  return (
-    <div
-      className={cn(
-        'absolute bottom-0 h-0.5 bg-primary-500 transition-all duration-300',
-        className,
-      )}
-      style={style}
-    />
-  )
+  return <div className={cn('absolute bottom-0', className)} style={style} />
 }
 
 Tabs.Root = Tabs
