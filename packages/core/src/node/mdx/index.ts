@@ -7,7 +7,6 @@ import crypto from 'crypto'
 
 import type { BoltdocsConfig } from '../config'
 import { mdxCache, MDX_PLUGIN_VERSION } from './cache'
-import { remarkShiki } from './remark-shiki'
 import { rehypeShiki } from './rehype-shiki'
 import { remarkMetaPlugin } from './remark-meta-plugin'
 import { PluginSandbox } from '../plugins'
@@ -28,7 +27,7 @@ let mdxCacheLoaded = false
 export function boltdocsMdxPlugin(
   config?: BoltdocsConfig,
   compiler = mdxPlugin,
-): Plugin {
+ ): Plugin {
   const extraRemarkPlugins =
     config?.plugins?.flatMap((p) => {
       const caps = PluginSandbox.getSanitizedCapabilities(p as any)
@@ -45,7 +44,6 @@ export function boltdocsMdxPlugin(
       remarkGfm,
       remarkFrontmatter,
       remarkMetaPlugin,
-      [remarkShiki, config],
       ...(extraRemarkPlugins as any[]),
     ],
     rehypePlugins: [

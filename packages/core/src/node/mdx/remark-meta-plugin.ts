@@ -1,4 +1,5 @@
 import { visit } from 'unist-util-visit'
+import { MDX_NODES } from './constants'
 
 /**
  * Remark plugin that captures the code fence meta string (e.g., lineNumbers)
@@ -7,7 +8,7 @@ import { visit } from 'unist-util-visit'
  */
 export function remarkMetaPlugin() {
   return (tree: any) => {
-    visit(tree, 'code', (node: any) => {
+    visit(tree, MDX_NODES.CODE, (node: any) => {
       if (node.meta) {
         node.data = node.data || {}
         node.data.hProperties = node.data.hProperties || {}

@@ -1,4 +1,5 @@
 import type { ShikiTransformer } from 'shiki'
+import { SHIKI_CLASSES } from '../constants'
 
 interface ShowLineNumbersOptions {
   /**
@@ -19,12 +20,12 @@ export const showLineNumbers = (
   return {
     name: 'boltdocs:line-numbers',
     pre(node) {
-      const rawMeta = this.options.meta?.__raw || ''
-      const hasLineNumbersMeta = /lineNumbers|showLineNumbers/.test(rawMeta)
+      const parsedMeta = this.options.meta as Record<string, any> | undefined
+      const hasLineNumbersMeta = parsedMeta?.lineNumbers === true
       const shouldAdd = activateByDefault || hasLineNumbersMeta
 
       if (shouldAdd) {
-        this.addClassToHast(node, 'shiki-line-numbers')
+        this.addClassToHast(node, SHIKI_CLASSES.LINE_NUMBERS)
       }
     },
   }

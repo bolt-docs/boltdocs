@@ -1,4 +1,5 @@
 import type { ShikiTransformer } from 'shiki'
+import { SHIKI_CLASSES } from '../constants'
 
 interface ShowWordWrapOptions {
   /**
@@ -19,12 +20,12 @@ export const showWordWrap = (
   return {
     name: 'boltdocs:word-wrap',
     pre(node) {
-      const rawMeta = this.options.meta?.__raw || ''
-      const hasWordWrapMeta = /wordWrap|word-wrap/.test(rawMeta)
+      const parsedMeta = this.options.meta as Record<string, any> | undefined
+      const hasWordWrapMeta = parsedMeta?.wordWrap === true
       const shouldAdd = activateByDefault || hasWordWrapMeta
 
       if (shouldAdd) {
-        this.addClassToHast(node, 'shiki-word-wrap')
+        this.addClassToHast(node, SHIKI_CLASSES.WORD_WRAP)
       }
     },
   }
