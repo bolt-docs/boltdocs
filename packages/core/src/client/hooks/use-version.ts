@@ -1,6 +1,7 @@
 import { useNavigate } from 'react-router-dom'
 import { getBaseFilePath } from '../utils/get-base-file-path'
 import { useRoutes } from './use-routes'
+import { useConfig } from '../app/config-context'
 import { useBoltdocsContext } from '../store/boltdocs-context'
 import type { BoltdocsVersion } from '../../shared/types'
 
@@ -23,9 +24,8 @@ export interface UseVersionReturn {
  */
 export function useVersion(): UseVersionReturn {
   const navigate = useNavigate()
-  const routeContext = useRoutes()
-  const { allRoutes, currentRoute, currentVersion, currentLocale, config } =
-    routeContext
+  const config = useConfig()
+  const { allRoutes, currentRoute, currentVersion, currentLocale } = useRoutes()
   const versions = config.versions
   const { setVersion } = useBoltdocsContext()
 
@@ -35,24 +35,12 @@ export function useVersion(): UseVersionReturn {
     // Update store
     setVersion(version)
 
-    // If we are on the home page or a path that doesn't belong to the documentation,
-    // we stay on the current page.
-    const localePaths = config.i18n
-      ? Object.keys(config.i18n.locales).map((l) => `/${l}`)
-      : []
-    const isHome =
-      !currentRoute ||
-      currentRoute.path === '/' ||
-      currentRoute.path === config.base ||
-      currentRoute.path === '' ||
-      localePaths.includes(currentRoute.path)
-
-    if (isHome) {
-      return
-    }
+    // 3. Attempt derivation or deployment of navigation target
+    const base = config.base || '/docs'
+    const safeBase = base.replace(/\/$/, '')
+    let targetPath = `${safeBase}/${version}${currentLocale ? `/${currentLocale}` : ''}`
 
     if (currentRoute) {
-      let targetPath = `/docs/${version}`
       const baseFile = getBaseFilePath(
         currentRoute.filePath,
         currentRoute.version,
@@ -63,7 +51,8 @@ export function useVersion(): UseVersionReturn {
         (r) =>
           getBaseFilePath(r.filePath, r.version, r.locale) === baseFile &&
           (r.version || versions.defaultVersion) === version &&
-          (currentLocale ? r.locale === currentLocale : !r.locale),
+          (!config.i18n ||
+            (r.locale || config.i18n.defaultLocale) === currentLocale),
       )
 
       if (targetRoute) {
@@ -73,26 +62,46 @@ export function useVersion(): UseVersionReturn {
           (r) =>
             getBaseFilePath(r.filePath, r.version, r.locale) === 'index.md' &&
             (r.version || versions.defaultVersion) === version &&
-            (currentLocale ? r.locale === currentLocale : !r.locale),
+            (!config.i18n ||
+              (r.locale || config.i18n.defaultLocale) === currentLocale),
         )
-        targetPath = versionIndexRoute
-          ? versionIndexRoute.path
-          : `/docs/${version}${currentLocale ? `/${currentLocale}` : ''}`
+        if (versionIndexRoute) {
+          targetPath = versionIndexRoute.path
+        }
       }
-
-      navigate(targetPath)
+    } else {
+      // Recovery mode: if currently on a 404, attempt to find ANY document in the target version
+      const fallbackRoute = allRoutes.find(
+        (r) =>
+          (r.version || versions.defaultVersion) === version &&
+          (!config.i18n ||
+            (r.locale || config.i18n.defaultLocale) === currentLocale),
+      )
+      if (fallbackRoute) {
+        targetPath = fallbackRoute.path
+      }
     }
+
+    navigate(targetPath)
   }
 
-  const availableVersions = routeContext.availableVersions.map((v) => ({
-    ...v,
-    label: v.label as string,
-    value: v.key,
-  }))
+  const currentVersionConfig = versions?.versions?.find?.(
+    (v) => v.path === currentVersion,
+  )
+  const currentVersionLabel = currentVersionConfig?.label || currentVersion
+
+  const availableVersions = versions
+    ? versions.versions.map((v) => ({
+        key: v.path as BoltdocsVersion,
+        label: v.label,
+        value: v.path,
+        isCurrent: v.path === currentVersion,
+      }))
+    : []
 
   return {
     currentVersion,
-    currentVersionLabel: routeContext.currentVersionLabel,
+    currentVersionLabel,
     availableVersions,
     handleVersionChange,
   }
