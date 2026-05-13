@@ -1,6 +1,8 @@
 import { Outlet } from 'react-router-dom'
 import UserLayout from 'virtual:boltdocs-layout'
 import { useRoutes } from '../hooks/use-routes'
+import { useConfig } from './config-context'
+import { Head } from './head'
 
 /**
  * Wraps the docs Outlet with the user's (or default) layout component.
@@ -8,11 +10,19 @@ import { useRoutes } from '../hooks/use-routes'
  * We use useRoutes to pass the current route context to the persistent layout.
  */
 export function DocsLayout() {
-  const { currentRoute } = useRoutes()
+  const config = useConfig()
+  const { currentRoute, allRoutes } = useRoutes()
 
   return (
-    <UserLayout route={currentRoute}>
-      <Outlet />
-    </UserLayout>
+    <>
+      <Head
+        siteTitle={config.theme?.title}
+        siteDescription={config.theme?.description}
+        routes={allRoutes || []}
+      />
+      <UserLayout route={currentRoute}>
+        <Outlet />
+      </UserLayout>
+    </>
   )
 }
