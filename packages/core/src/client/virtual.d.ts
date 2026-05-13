@@ -9,7 +9,7 @@ declare module 'virtual:boltdocs-config' {
 }
 
 declare module 'virtual:boltdocs-layout' {
-  const Layout: React.ComponentType<{ children: React.ReactNode }>
+  const Layout: React.ComponentType<{ children: React.ReactNode; route?: any }>
   export default Layout
 }
 
