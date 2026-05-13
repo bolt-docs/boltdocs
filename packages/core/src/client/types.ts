@@ -52,6 +52,8 @@ export interface ComponentRoute {
   lastUpdated?: string | number | Date
   /** Raw extensible frontmatter data for custom components and formatters */
   frontmatter?: Record<string, any>
+  /** Clean URL segments stripped of locale/version prefixes */
+  slugParts?: string[]
 }
 
 /**
@@ -106,10 +108,9 @@ export interface LayoutProps {
  * Unified type for navbar links.
  */
 export interface NavbarLink {
-  /** Label to display (can be a string or a map of translations) */
   label: string | Record<string, string>
   href: string
   active: boolean
-  /** Optional icon or string for external link indication */
   to?: string
+  items?: NavbarLink[]
 }
