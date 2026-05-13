@@ -1,5 +1,5 @@
 import crypto from 'node:crypto'
-import { parseFrontmatter } from '../utils'
+import { parseFrontmatterAsync } from '../utils'
 
 /**
  * In-memory cache for frontmatter hashes.
@@ -10,11 +10,15 @@ const frontmatterHashes = new Map<string, string>()
 
 /**
  * Computes a fast hash of only the frontmatter section of a file.
+ * Non-blocking: uses async I/O to avoid stalling the Node.js event loop
+ * during HMR file-change events.
  * Returns an empty string if the file has no frontmatter or can't be read.
  */
-export function computeFrontmatterHash(filePath: string): string {
+export async function computeFrontmatterHash(
+  filePath: string,
+): Promise<string> {
   try {
-    const { data } = parseFrontmatter(filePath)
+    const { data } = await parseFrontmatterAsync(filePath)
     const serialized = JSON.stringify(data)
     return crypto.createHash('md5').update(serialized).digest('hex')
   } catch {
