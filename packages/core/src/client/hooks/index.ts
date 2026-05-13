@@ -1,7 +1,6 @@
 export { useNavbar } from './use-navbar'
 export { useSidebar } from './use-sidebar'
 export { useSearch } from './use-search'
-export { useOnThisPage } from './use-onthispage'
 export { useTabs } from './use-tabs'
 export { useVersion } from './use-version'
 export { useI18n } from './use-i18n'
