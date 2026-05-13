@@ -55,6 +55,28 @@ export function useNavbar() {
       return hParts.every((part, i) => pParts[i] === part)
     }
 
+    // Process nested items recursively
+    const processItems = (items?: any[]): NavbarLink[] => {
+      if (!items || items.length === 0) return undefined as any
+      return items.map((subItem: any) => {
+        const subHref = (subItem.href ||
+          subItem.to ||
+          subItem.link ||
+          '') as string
+        return {
+          label: getTranslated(subItem.label || subItem.text, currentLocale),
+          href: subHref,
+          active: getIsActive(subHref),
+          to:
+            subHref.startsWith('http') || subHref.startsWith('//')
+              ? 'external'
+              : undefined,
+        }
+      })
+    }
+
+    const linkItems = processItems(item.items)
+
     return {
       label: getTranslated(item.label || item.text, currentLocale),
       href,
@@ -63,6 +85,7 @@ export function useNavbar() {
         href.startsWith('http') || href.startsWith('//')
           ? 'external'
           : undefined,
+      items: linkItems,
     }
   })
 
