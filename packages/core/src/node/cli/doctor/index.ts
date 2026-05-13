@@ -80,12 +80,16 @@ export async function doctorAction(
       .filter((fullPath) => {
         const matchesExt = fullPath.endsWith('.md') || fullPath.endsWith('.mdx')
         if (!matchesExt) return false
-        
+
         const relPath = path.relative(docsDir, fullPath).replace(/\\/g, '/')
-        return !isIgnored(relPath)
+        const segments = relPath.split('/')
+        const isPrivate = segments.some(
+          (s) => s.startsWith('_') && s !== '_index.md' && s !== '_index.mdx',
+        )
+        return !isIgnored(relPath) && !isPrivate
       })
       .crawl(docsDir)
-    
+
     const files = await api.withPromise()
     const linkTree = await generateLinkTree(docsDir, root, config, files)
 

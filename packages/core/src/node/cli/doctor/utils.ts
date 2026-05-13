@@ -1,5 +1,5 @@
-import path from 'path'
-import fs from 'fs'
+import path from 'node:path'
+import fs from 'node:fs'
 import { fdir } from 'fdir'
 import { parseFrontmatter, fileToRoutePath } from '../../utils'
 import type { BoltdocsConfig } from '../../config'
@@ -119,7 +119,7 @@ export async function generateLinkTree(
       .withFullPaths()
       .filter((p) => p.endsWith('.md') || p.endsWith('.mdx'))
       .crawl(docsDir)
-    
+
     files = await api.withPromise()
   }
 
@@ -141,6 +141,8 @@ export async function generateLinkTree(
 
       if (base === '/') return route
       return (
+        // Use template literal to construct the route and removed concatenations
+
         (base.endsWith('/') ? base : base + '/') +
         (route.startsWith('/') ? route.substring(1) : route)
       )
