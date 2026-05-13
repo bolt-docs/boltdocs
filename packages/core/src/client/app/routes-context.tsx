@@ -1,4 +1,4 @@
-import { createContext, useContext } from 'react'
+import { createContext, use } from 'react'
 import type { ComponentRoute } from '../types'
 
 interface RoutesContextType {
@@ -13,7 +13,7 @@ const RoutesContext = createContext<RoutesContextType>({
  * Hook to access the processed routes list from the closest provider.
  */
 export function useRoutesContext() {
-  return useContext(RoutesContext)
+  return use(RoutesContext)
 }
 
 /**
