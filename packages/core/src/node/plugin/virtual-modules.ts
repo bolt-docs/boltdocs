@@ -9,6 +9,22 @@ import { generateEntryCode } from './entry'
 import path from 'node:path'
 import fs from 'node:fs'
 
+// ---------------------------------------------------------------------------
+// Directory Meta Cache (Fix #5)
+// loadDirectoryMeta runs an fdir crawl on every request, which is expensive.
+// Cache the result in memory; it is invalidated on add/unlink of docs files
+// so stale data is never returned after a structural change.
+// ---------------------------------------------------------------------------
+let _directoryMetaCache: Record<string, any> | null = null
+
+/**
+ * Called by the dev-server watcher whenever a file is added or removed
+ * so that the next config module request re-crawls for meta.json files.
+ */
+export function invalidateDirectoryMetaCache(): void {
+  _directoryMetaCache = null
+}
+
 /**
  * Creates the Vite plugin responsible for resolving and loading all
  * `virtual:boltdocs-*` modules. These virtual modules provide route data,
@@ -104,13 +120,22 @@ export function createVirtualModulesPlugin(
         return `export default ${JSON.stringify(ssgRoutes, null, 2)};`
       }
       if (name === 'config') {
+        // Use cached directory meta to avoid a full fdir crawl on every request.
+        // The cache is invalidated by the dev-server watcher on add/unlink events.
+        if (_directoryMetaCache === null) {
+          const { loadDirectoryMeta } = await import('../routes/meta-loader')
+          _directoryMetaCache = await loadDirectoryMeta(docsDir)
+        }
+        const directoryMeta = _directoryMetaCache
         const clientConfig = {
+          base: config?.base,
           theme: config?.theme,
           i18n: config?.i18n,
           versions: config?.versions,
           siteUrl: config?.siteUrl,
           integrations: config?.integrations,
           plugins: config?.plugins?.map((p) => ({ name: p.name })),
+          directoryMeta,
         }
         return `export default ${JSON.stringify(clientConfig, null, 2)};`
       }

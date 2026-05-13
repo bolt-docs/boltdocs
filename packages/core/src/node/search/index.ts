@@ -10,6 +10,36 @@ export interface SearchDocument {
   version?: string
 }
 
+// Defined once at module scope instead of being re-created on every
+// loop iteration (which was the previous behaviour — one new function
+// object per route, O(N) unnecessary allocations).
+function extractStrings(obj: any): string[] {
+  if (typeof obj === 'string') return [obj]
+  if (Array.isArray(obj)) return obj.flatMap(extractStrings)
+  if (obj && typeof obj === 'object')
+    return Object.values(obj).flatMap(extractStrings)
+  return []
+}
+
+const STANDARD_FRONTMATTER_KEYS = new Set([
+  'title',
+  'description',
+  'permalink',
+  'sidebarPosition',
+  'sidebarLabel',
+  'sidebarHidden',
+  'hidden',
+  'category',
+  'order',
+  'badge',
+  'icon',
+  'date',
+  'lastUpdated',
+  'groupTitle',
+  'groupPosition',
+  'seo',
+])
+
 /**
  * Generates a flat list of searchable documents from the route metadata.
  * Each page is indexed as a primary document, and its sections (headings)
@@ -21,35 +51,10 @@ export function generateSearchData(routes: RouteMeta[]): SearchDocument[] {
   for (const route of routes) {
     let extraSearchText = ''
     if (route.frontmatter) {
-      const standardKeys = new Set([
-        'title',
-        'description',
-        'permalink',
-        'sidebarPosition',
-        'sidebarLabel',
-        'sidebarHidden',
-        'hidden',
-        'category',
-        'order',
-        'badge',
-        'icon',
-        'date',
-        'lastUpdated',
-        'groupTitle',
-        'groupPosition',
-        'seo',
-      ])
       const customValues = Object.entries(route.frontmatter)
-        .filter(([key]) => !standardKeys.has(key))
+        .filter(([key]) => !STANDARD_FRONTMATTER_KEYS.has(key))
         .map(([_, value]) => value)
 
-      const extractStrings = (obj: any): string[] => {
-        if (typeof obj === 'string') return [obj]
-        if (Array.isArray(obj)) return obj.flatMap(extractStrings)
-        if (obj && typeof obj === 'object')
-          return Object.values(obj).flatMap(extractStrings)
-        return []
-      }
       extraSearchText = extractStrings(customValues).join(' ')
     }
 

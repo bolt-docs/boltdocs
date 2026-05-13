@@ -1,14 +1,12 @@
 import type { ViteDevServer, Plugin } from 'vite'
 import { invalidateRouteCache, invalidateFile } from '../routes'
-import {
-  resolveConfigAndGenerateTypes,
-  type BoltdocsConfig,
-  CONFIG_FILES,
-} from '../config'
+import { type BoltdocsConfig, CONFIG_FILES } from '../config'
+import { generateProjectTypes } from '../types-generator'
 import { normalizePath, isDocFile } from '../utils'
 import { SECURITY_HEADERS } from '../security/headers'
 import { getCSPHeader } from '../security/csp'
 import { getHtmlTemplate, injectHtmlMeta } from './html'
+import { invalidateDirectoryMetaCache } from './virtual-modules'
 import {
   computeFrontmatterHash,
   getFrontmatterHash,
@@ -41,7 +39,7 @@ export function createDevServerPlugin(
   docsDir: string,
   normalizedDocsDir: string,
   getConfig: () => BoltdocsConfig,
-  setConfig: (c: BoltdocsConfig) => void,
+  _setConfig: (c: BoltdocsConfig) => void,
   getLifecycle: () => PluginLifecycleManager | undefined,
 ): Plugin {
   const pendingChanges = new Map<string, ReturnType<typeof setTimeout>>()
@@ -55,7 +53,7 @@ export function createDevServerPlugin(
       await lifecycle?.runHook('beforeDev')
 
       // Initial Link Tree generation
-      await generateLinkTree(docsDir, process.cwd(), getConfig()).catch((e) => {
+      generateLinkTree(docsDir, process.cwd(), getConfig()).catch((e) => {
         console.error('[boltdocs] Failed to generate initial link tree:', e)
       })
 
@@ -148,12 +146,14 @@ export function createDevServerPlugin(
             return
           }
 
-          // mdx-components change → invalidate virtual module + full-reload
+          // mdx-components change → invalidate virtual module + regenerate types + full-reload
           if (
             mdxCompExtensions.some((ext) =>
               normalized.endsWith(`mdx-components.${ext}`),
             )
           ) {
+            const currentConfig = getConfig()
+            generateProjectTypes(currentConfig, docsDir)
             invalidateVirtualModule(server, 'mdx-components.tsx')
             server.ws.send({ type: 'full-reload' })
             return
@@ -200,15 +200,21 @@ export function createDevServerPlugin(
               removeFrontmatterHash(file)
             }
             invalidateRouteCache()
-            const newConfig = await resolveConfigAndGenerateTypes(docsDir)
-            setConfig(newConfig)
+            invalidateDirectoryMetaCache()
+
+            // Reuse the existing in-memory config — boltdocs.config.ts did NOT change,
+            // only a doc file was added/removed. Re-parsing the config file would call
+            // Vite's loadConfigFromFile unnecessarily. Only re-generate project types
+            // (fast, synchronous) so editor autocompletion stays up to date.
+            const currentConfig = getConfig()
+            generateProjectTypes(currentConfig, docsDir)
 
             invalidateVirtualModule(server, 'config')
             invalidateVirtualModule(server, 'routes')
             invalidateVirtualModule(server, 'search')
 
-            // Update Link Tree on structural change
-            await generateLinkTree(docsDir, process.cwd(), newConfig).catch(
+            // Update Link Tree on structural change (non-blocking)
+            generateLinkTree(docsDir, process.cwd(), currentConfig).catch(
               (e) => {
                 console.error('[boltdocs] Failed to update link tree:', e)
               },
@@ -218,10 +224,10 @@ export function createDevServerPlugin(
               type: 'custom',
               event: 'boltdocs:config-update',
               data: {
-                theme: newConfig?.theme,
-                i18n: newConfig?.i18n,
-                versions: newConfig?.versions,
-                siteUrl: newConfig?.siteUrl,
+                theme: currentConfig?.theme,
+                i18n: currentConfig?.i18n,
+                versions: currentConfig?.versions,
+                siteUrl: currentConfig?.siteUrl,
               },
             })
             server.ws.send({ type: 'full-reload' })
@@ -240,9 +246,9 @@ export function createDevServerPlugin(
               pendingChanges.delete(normalized)
 
               try {
-                // Check if frontmatter changed
+                // Check if frontmatter changed (async — non-blocking read)
                 const prevHash = getFrontmatterHash(file)
-                const newHash = computeFrontmatterHash(file)
+                const newHash = await computeFrontmatterHash(file)
                 setFrontmatterHash(file, newHash)
 
                 // Invalidate file-level route cache

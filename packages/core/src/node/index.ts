@@ -5,7 +5,7 @@ import { boltdocsPlugin } from './plugin/index'
 import { boltdocsMdxPlugin } from './mdx/index'
 import { SECURITY_HEADERS } from './security/headers'
 import { getCSPHeader } from './security/csp'
-import { resolveConfigAndGenerateTypes } from './config'
+import { resolveConfigAndGenerateTypes, type BoltdocsConfig } from './config'
 import path from 'node:path'
 import { normalizePath } from 'vite'
 export { generateEntryCode } from './plugin/entry'
@@ -71,11 +71,13 @@ export async function createViteConfig(
     plugins: [
       react(),
       tailwindcss(),
-      await boltdocs({
-        ...config,
-        // @ts-expect-error
-        root,
-      }),
+      // Pass the already-resolved config directly to avoid a second call to
+      // resolveConfigAndGenerateTypes that the boltdocs() default export would trigger.
+      ...boltdocsPlugin(
+        { docsDir: 'docs', root } as BoltdocsPluginOptions,
+        config,
+      ),
+      boltdocsMdxPlugin(config),
     ],
     resolve: {
       alias: [

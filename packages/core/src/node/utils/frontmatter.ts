@@ -1,6 +1,6 @@
 /**
  * Fast frontmatter parser optimized
- * Uses indexOf instead of regex for ~5x performance improvement
+ * Uses indexOf instead of regex to extract the frontmatter block
  * Handles: simple key-values, arrays with multiline objects, quoted strings
  */
 
@@ -36,15 +36,10 @@ export function parseFrontmatterFast(input: string): ParsedFrontmatter {
 
   const data = parseYaml(rawMatter)
 
-  const hasMultipleDelimiters = (trimmed.match(/---/g) || []).length >= 2
-  if (hasMultipleDelimiters && Object.keys(data).length === 0) {
-    return { data: {}, content, rawMatter }
-  }
-
   return {
     data,
     content,
-    rawMatter
+    rawMatter,
   }
 }
 
@@ -111,7 +106,7 @@ function parseYaml(yaml: string): Record<string, unknown> {
 
 function parseMultilineValue(
   lines: string[],
-  baseIndent: number
+  baseIndent: number,
 ): { value: unknown; linesConsumed: number } {
   if (lines.length === 0) {
     return { value: undefined, linesConsumed: 0 }
@@ -204,7 +199,10 @@ function parseMultilineValue(
     j++
   }
 
-  return { value: Object.keys(obj).length > 0 ? obj : undefined, linesConsumed: j }
+  return {
+    value: Object.keys(obj).length > 0 ? obj : undefined,
+    linesConsumed: j,
+  }
 }
 
 function parseValue(value: string): unknown {
@@ -218,8 +216,10 @@ function parseValue(value: string): unknown {
     return Number(v)
   }
 
-  if ((v.startsWith('"') && v.endsWith('"')) ||
-    (v.startsWith("'") && v.endsWith("'"))) {
+  if (
+    (v.startsWith('"') && v.endsWith('"')) ||
+    (v.startsWith("'") && v.endsWith("'"))
+  ) {
     return v.slice(1, -1)
   }
 

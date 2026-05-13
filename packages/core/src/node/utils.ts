@@ -1,9 +1,6 @@
 import fs from 'fs'
 import DOMPurify from 'isomorphic-dompurify'
-import {
-  MAX_PATH_LENGTH,
-  ALLOWED_PATH_CHARS,
-} from './security/constants'
+import { MAX_PATH_LENGTH, ALLOWED_PATH_CHARS } from './security/constants'
 import { FrontmatterSchema, type FrontmatterData } from './schema/frontmatter'
 import { parseFrontmatterFast, MAX_FRONTMATTER_SIZE } from './utils/frontmatter'
 
@@ -351,7 +348,14 @@ DOMPurify.addHook('afterSanitizeAttributes', (node) => {
  * @returns The plain text content
  */
 export function stripHtmlTags(html: string): string {
-  return DOMPurify.sanitize(html, { ALLOWED_TAGS: [], KEEP_CONTENT: true })
+  if (!html) return ''
+  return html
+    .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
+    .replace(/<style\b[^<]*(?:(?!<\/style>)<[^<]*)*<\/style>/gi, '')
+    .replace(/<!--[\s\S]*?-->/g, '')
+    .replace(/<[^>]+>/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
 }
 
 /**

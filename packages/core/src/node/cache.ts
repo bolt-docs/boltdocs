@@ -1,8 +1,8 @@
-import fs from 'fs'
-import path from 'path'
-import crypto from 'crypto'
-import zlib from 'zlib'
-import { promisify } from 'util'
+import fs from 'node:fs'
+import path from 'node:path'
+import crypto from 'node:crypto'
+import zlib from 'node:zlib'
+import { promisify } from 'node:util'
 import { LRUCache } from 'lru-cache'
 import { getFileMtime, getCacheConfig } from './utils'
 

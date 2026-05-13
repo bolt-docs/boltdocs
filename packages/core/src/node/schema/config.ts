@@ -104,7 +104,6 @@ export const ThemeConfigSchema = z.object({
     )
     .optional(),
   socialLinks: z.array(SocialLinkSchema).optional(),
-  breadcrumbs: z.boolean().optional(),
   editLink: z
     .string()
     .refine((val) => !val || val.includes(':path'), {
@@ -115,7 +114,6 @@ export const ThemeConfigSchema = z.object({
   version: z.string().max(50).optional(),
   githubRepo: z.string().max(100).optional(),
   favicon: z.string().optional(),
-  poweredBy: z.boolean().optional(),
   tabs: z
     .array(
       z.object({

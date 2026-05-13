@@ -78,8 +78,6 @@ export async function resolveConfig(
         light: 'github-light',
         dark: 'github-dark',
       },
-      poweredBy: true,
-      breadcrumbs: true,
     },
   }
 
@@ -117,8 +115,6 @@ export async function resolveConfig(
     githubRepo: userConfig.githubRepo,
     tabs: userConfig.tabs,
     codeTheme: userConfig.codeTheme,
-    breadcrumbs: userConfig.breadcrumbs,
-    poweredBy: userConfig.poweredBy,
     communityHelp: userConfig.communityHelp,
     version: userConfig.version,
     editLink: userConfig.editLink,
@@ -136,6 +132,7 @@ export async function resolveConfig(
     cleanThemeConfig.navbar = cleanThemeConfig.navbar.map((item: any) => ({
       label: item.label || item.text || '',
       href: item.href || item.link || item.to || '',
+      items: item.items,
     }))
   }
 
@@ -190,6 +187,6 @@ export async function resolveConfigAndGenerateTypes(
   root: string = process.cwd(),
 ): Promise<BoltdocsConfig> {
   const config = await resolveConfig(docsDir, root)
-  generateProjectTypes(config, root)
+  generateProjectTypes(config, docsDir, root)
   return config
 }
