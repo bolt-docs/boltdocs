@@ -2,8 +2,6 @@ packages:
   - packages/*
   - docs
   - tests/*
-  - examples/*
-  - promo/*
 
 onlyBuiltDependencies:
   - sharp
