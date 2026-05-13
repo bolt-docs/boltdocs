@@ -1,4 +1,5 @@
 import type { Plugin as VitePlugin } from 'vite'
+import type { ComponentType } from 'react'
 
 /**
  * Represents a single social link in the configuration.
@@ -33,6 +34,10 @@ export interface BoltdocsThemeConfig {
   navbar?: Array<{
     label: string | Record<string, string>
     href: string
+    items?: Array<{
+      label: string | Record<string, string>
+      href: string
+    }>
   }>
   sidebar?: Record<string, Array<{ text: string; link: string }>>
   sidebarGroups?: Record<
@@ -41,13 +46,11 @@ export interface BoltdocsThemeConfig {
   >
   socialLinks?: BoltdocsSocialLink[]
   footer?: BoltdocsFooterConfig
-  breadcrumbs?: boolean
   editLink?: string
   communityHelp?: string
   version?: string
   githubRepo?: string
   favicon?: string
-  poweredBy?: boolean
   tabs?: Array<{
     id: string
     text: string | Record<string, string>
@@ -200,6 +203,8 @@ export interface BoltdocsConfig {
   security?: BoltdocsSecurityConfig
   seo?: BoltdocsSeoConfig
   integrations?: BoltdocsIntegrationsConfig
+  /** Aggregated metadata from local meta.json files */
+  directoryMeta?: Record<string, any>
   vite?: any // Avoid pulling in entire Vite types here
 }
 
@@ -221,3 +226,20 @@ export type BoltdocsLocale = Boltdocs.Types extends { Locale: infer L }
 export type BoltdocsVersion = Boltdocs.Types extends { Version: infer V }
   ? V
   : string
+
+export type UnpackMdxComponents<T> = T extends { default: infer D } ? D : T
+
+export type TransformMdxComponents<T> = {
+  [K in keyof T as K extends `Frontmatter_${string}` ? never : K]: T[K]
+} & {
+  Frontmatter: {
+    [K in keyof T as K extends `Frontmatter_${infer Name}` ? Name : never]: T[K]
+  }
+}
+
+export type BoltdocsMdxComponents = Boltdocs.Types extends { MdxComponents: infer M }
+  ? TransformMdxComponents<UnpackMdxComponents<M>>
+  : {
+      [key: string]: ComponentType<any>
+      Frontmatter: Record<string, ComponentType<any>>
+    }
