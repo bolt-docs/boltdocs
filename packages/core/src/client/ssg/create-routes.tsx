@@ -2,9 +2,11 @@ import type { RouteRecord } from '@bdocs/ssg'
 import type { ComponentRoute, BoltdocsConfig } from '../types'
 import { MdxPage } from './mdx-page'
 import { BoltdocsShell } from './boltdocs-shell'
-import { NotFound, Loading } from '../components/ui-base'
+import { NotFound } from '../components/ui-base'
+const Loading = () => <div className="text-muted text-sm py-4">Loading...</div>
 import type React from 'react'
 import { Suspense, useState, useEffect } from 'react'
+import { Navigate } from 'react-router-dom'
 
 interface CreateRoutesOptions {
   routesData: ComponentRoute[]
@@ -15,31 +17,6 @@ interface CreateRoutesOptions {
   externalPages?: Record<string, React.ComponentType>
   externalLayout?: React.ComponentType<{ children: React.ReactNode }>
   components?: Record<string, React.ComponentType>
-}
-
-/**
- * Finds the matching module key from import.meta.glob for a given filePath.
- */
-function findModuleKey(
-  modules: Record<string, any>,
-  filePath: string,
-): string | undefined {
-  const normalizedFilePath = filePath.replace(/\\/g, '/')
-  const keys = Object.keys(modules)
-  if (keys.length === 0) return undefined
-
-  // Detect docs directory from keys (e.g., "/docs/...")
-  const firstKey = keys[0].replace(/\\/g, '/')
-  const parts = firstKey.split('/').filter(Boolean)
-  const docsDirName = parts[0] || 'docs'
-
-  const targetKey = `/${docsDirName}/${normalizedFilePath}`
-  const targetKeyAlt = `./${docsDirName}/${normalizedFilePath}`
-
-  return keys.find((key) => {
-    const k = key.replace(/\\/g, '/')
-    return k === targetKey || k === targetKeyAlt || k.endsWith(targetKey)
-  })
 }
 
 /**
@@ -125,14 +102,13 @@ export function createRoutes(options: CreateRoutesOptions): RouteRecord[] {
     routesData,
     config,
     mdxModules,
-    Layout,
-
     externalPages,
     externalLayout,
     components,
   } = options
 
-  const EffectiveExternalLayout = externalLayout || Layout
+  const EffectiveExternalLayout =
+    externalLayout || (({ children }: any) => <>{children}</>)
 
   const withBase = (path: string) => {
     // Future support for base path in config
@@ -145,9 +121,79 @@ export function createRoutes(options: CreateRoutesOptions): RouteRecord[] {
 
   const allMetadata: ComponentRoute[] = [...routesData]
 
+  // Inject virtual explicit routes for default version to ensure paths like /docs/latest/... aren't 404s
+  const defaultVersion = config.versions?.defaultVersion
+  const docsBase = (config.base || '/docs').replace(/\/$/, '')
+
+  if (defaultVersion) {
+    routesData.forEach((route) => {
+      // If this route explicitly already belongs to a version, do not clone.
+      if (route.version) return
+
+      // Compute path without docs base prefix to properly place version token
+      const p = route.path || ''
+      const subPath = p.startsWith(docsBase)
+        ? p.substring(docsBase.length).replace(/^\//, '')
+        : p.replace(/^\//, '')
+
+      // Detect if it already includes the target version segment
+      const hasVersionPrefix =
+        subPath === defaultVersion || subPath.startsWith(`${defaultVersion}/`)
+
+      if (!hasVersionPrefix) {
+        // Standardize reconstruction: [docsBase] / [version] / [remaining_path]
+        const explicitPath =
+          `${docsBase}/${defaultVersion}/${subPath}`
+            .replace(/\/+/g, '/')
+            .replace(/\/$/, '') || '/'
+
+        allMetadata.push({
+          ...route,
+          path: explicitPath,
+          version: defaultVersion,
+        })
+      }
+    })
+  }
+
+  // 0. Build a single pre-computed lookup map for the MDX modules (O(N) build, O(1) access).
+  // This replaces the inner findModuleKey loops that executed an O(N) scan for EVERY route.
+  const moduleMap = new Map<string, string>()
+  const mdxModuleKeys = Object.keys(mdxModules)
+
+  if (mdxModuleKeys.length > 0) {
+    // Detect docs directory structure from keys (e.g., "/docs/intro.md")
+    const firstKeyNormalized = mdxModuleKeys[0].replace(/\\/g, '/')
+    const parts = firstKeyNormalized.split('/').filter(Boolean)
+    const docsDirName = parts[0] || 'docs'
+    const primaryPrefix = `/${docsDirName}/`
+    const altPrefix = `./${docsDirName}/`
+
+    for (const rawKey of mdxModuleKeys) {
+      const k = rawKey.replace(/\\/g, '/')
+      let relativePath = ''
+      if (k.indexOf(primaryPrefix) !== -1) {
+        relativePath = k.substring(
+          k.indexOf(primaryPrefix) + primaryPrefix.length,
+        )
+      } else if (k.startsWith(altPrefix)) {
+        relativePath = k.substring(altPrefix.length)
+      }
+
+      if (relativePath) {
+        moduleMap.set(relativePath, rawKey)
+      } else {
+        // Fallback: store full normalized key as a catch-all
+        moduleMap.set(k, rawKey)
+      }
+    }
+  }
+
   // 1. Documentation routes
-  const docRoutes: RouteRecord[] = routesData.map((route) => {
-    const moduleKey = findModuleKey(mdxModules, route.filePath)
+  const docRoutes: RouteRecord[] = allMetadata.map((route) => {
+    // Perform constant-time lookup using the pre-computed map
+    const normalizedFilePath = route.filePath.replace(/\\/g, '/')
+    const moduleKey = moduleMap.get(normalizedFilePath)
     const moduleLoader = moduleKey ? mdxModules[moduleKey] : null
     const path = withBase(route.path === '' ? '/' : route.path)
 
@@ -179,6 +225,93 @@ export function createRoutes(options: CreateRoutesOptions): RouteRecord[] {
         lastUpdated: route.lastUpdated,
       }),
       getStaticPaths: () => [path],
+    }
+  })
+
+  // 2. Auto-fallback for the base paths (e.g. /docs, /docs/es) to the first documentation page
+  let baseDocsPath = (config.base || '/docs').replace(/\/$/, '')
+  if (!baseDocsPath) baseDocsPath = '/'
+
+  const locales = config.i18n?.locales
+    ? Array.isArray(config.i18n.locales)
+      ? config.i18n.locales
+      : Object.keys(config.i18n.locales)
+    : []
+
+  // 2a. Generate dynamic permutation matrix of version/locale combinations
+  const allVersions = config.versions?.versions?.map((v) => v.path) || []
+
+  const targetBasePaths: Array<{
+    path: string
+    filter: (p: string) => boolean
+  }> = []
+
+  // Insert base root always
+  targetBasePaths.push({
+    path: baseDocsPath,
+    filter: () => true, // Take first available doc generally
+  })
+
+  // Permutation builder: version loop nested with locale loop
+  // Ensures paths like /docs/v2.0, /docs/es, and /docs/v2.0/es ALL receive fallback logic.
+  const subPaths: string[] = []
+  if (allVersions.length > 0) {
+    allVersions.forEach((v) => subPaths.push(`/${v}`))
+  }
+  if (locales.length > 0) {
+    locales.forEach((l) => subPaths.push(`/${l}`))
+  }
+  if (allVersions.length > 0 && locales.length > 0) {
+    allVersions.forEach((v) => {
+      locales.forEach((l) => {
+        subPaths.push(`/${v}/${l}`)
+      })
+    })
+  }
+
+  // Map permutations onto the physical base docs route
+  subPaths.forEach((sp) => {
+    const fullP = baseDocsPath === '/' ? sp : `${baseDocsPath}${sp}`
+    targetBasePaths.push({
+      path: fullP,
+      filter: (rp) => rp.startsWith(fullP.replace(/\/$/, '') + '/'),
+    })
+  })
+
+  // Pre-compute a Set of absolute and normalized path strings from the real routes
+  // to perform O(1) validation checks within the redirection loops below.
+  const docPathRegistry = new Set(
+    docRoutes.map((r) => (r.path || '').replace(/\/$/, '')),
+  )
+
+  // 2b. Deploy smart redirects
+  targetBasePaths.forEach(({ path: bPath, filter }) => {
+    if (bPath === '/') return // Never hijack global app root
+
+    const normalizedPath = bPath.replace(/\/$/, '')
+    const hasExplicitMatch = docPathRegistry.has(normalizedPath)
+
+    if (!hasExplicitMatch) {
+      // Prioritize: Find a real route that begins with this base pattern
+      const matchedRoute = docRoutes.find(
+        (r) => filter(r.path) && r.path !== normalizedPath,
+      )
+
+      // Ultimate fallback: the absolute first document
+      const finalTarget = matchedRoute
+        ? matchedRoute.path
+        : docRoutes.length > 0
+          ? docRoutes[0].path
+          : null
+
+      if (finalTarget) {
+        docRoutes.push({
+          path: bPath,
+          element: <Navigate to={finalTarget} replace />,
+          loader: async () => ({ path: bPath }),
+          getStaticPaths: () => [bPath],
+        })
+      }
     }
   })
 
