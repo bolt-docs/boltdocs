@@ -2,7 +2,7 @@ import { Button } from 'react-aria-components'
 import { Copy, Check, File } from 'lucide-react'
 import { cn } from '../../utils/cn'
 import { reactToText } from '../../utils/react-to-text'
-import { useCodeBlock } from './hooks/use-code-block'
+import { useCodeBlock } from './use-code-block'
 import * as CodePrimitive from '../primitives/code-block'
 import {
   TypeScript,
@@ -92,9 +92,13 @@ export function CodeBlock(props: CodeBlockProps) {
   } = props
 
   const rawHighlightedHtml = highlightedHtml || dataHighlightedHtml
-  const effectiveHighlightedHtml = typeof rawHighlightedHtml === 'string'
-    ? rawHighlightedHtml.replace(/<span class="line">\s*(?:<span[^>]*>\s*<\/span>)?\s*<\/span>\s*(<\/code>\s*<\/pre>)/g, '$1')
-    : rawHighlightedHtml
+  const effectiveHighlightedHtml =
+    typeof rawHighlightedHtml === 'string'
+      ? rawHighlightedHtml.replace(
+          /<span class="line">\s*(?:<span[^>]*>\s*<\/span>)?\s*<\/span>\s*(<\/code>\s*<\/pre>)/g,
+          '$1',
+        )
+      : rawHighlightedHtml
   const effectiveTitle = title || dataTitle
   const lang = props.lang || dataLang || ''
 
@@ -113,9 +117,11 @@ export function CodeBlock(props: CodeBlockProps) {
   return (
     <CodePrimitive.CodeBlock plain={plain} className={props.className}>
       {(effectiveTitle || !hideCopy) && (
-        <CodePrimitive.CodeBlockHeader className={cn({
-          "absolute top-2 left-0 w-full": !effectiveTitle
-        })}>
+        <CodePrimitive.CodeBlockHeader
+          className={cn({
+            'absolute top-2 left-0 w-full': !effectiveTitle,
+          })}
+        >
           <CodePrimitive.CodeBlockGroup>
             {effectiveTitle && (
               <>
@@ -141,7 +147,7 @@ export function CodeBlock(props: CodeBlockProps) {
           <div
             // @ts-expect-error
             ref={preRef}
-            className="shiki-wrapper [&>pre]:m-0! [&>pre]:rounded-none! [&>pre]:border-none! [&>pre]:bg-inherit! [&>pre>code]:grid! [&>pre>code]:p-5! [&>pre>code]:text-[0.875rem]! [&>pre>code]:leading-[1.6]! [&>.shiki.shiki-themes]:bg-transparent!"
+            className="shiki-wrapper overflow-x-auto [&>pre]:m-0! [&>pre]:rounded-none! [&>pre]:border-none! [&>pre]:bg-inherit! [&>pre>code]:grid! [&>pre>code]:p-5! [&>pre>code]:text-[0.875rem]! [&>pre>code]:leading-[1.6]! [&>.shiki.shiki-themes]:bg-transparent!"
             dangerouslySetInnerHTML={{ __html: effectiveHighlightedHtml }}
           />
         ) : (
