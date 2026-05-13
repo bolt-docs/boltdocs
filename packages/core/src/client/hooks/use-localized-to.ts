@@ -8,7 +8,9 @@ import { useRoutes } from './use-routes'
  */
 export function useLocalizedTo(to: string): string
 export function useLocalizedTo(to: RouterLinkProps['to']): RouterLinkProps['to']
-export function useLocalizedTo(to: RouterLinkProps['to']): RouterLinkProps['to'] {
+export function useLocalizedTo(
+  to: RouterLinkProps['to'],
+): RouterLinkProps['to'] {
   const config = useConfig()
   const {
     currentLocale: activeLocale,
@@ -28,9 +30,8 @@ export function useLocalizedTo(to: RouterLinkProps['to']): RouterLinkProps['to']
     return to.replace('site:', '')
   }
 
-  // 0. If it matches a known route exactly (ignoring trailing slashes and hash/query), use it as is.
-  // This allows links to external pages (outside base) to work correctly.
-  const [pathOnly] = to.split(/[?#]/)
+  // 0. Identify if the incoming path is explicitly registered as a known route
+  const [pathOnly, hashAndQuery] = to.split(/([?#].*)/s)
   const normalizedTo =
     pathOnly.endsWith('/') && pathOnly.length > 1
       ? pathOnly.slice(0, -1)
@@ -39,18 +40,24 @@ export function useLocalizedTo(to: RouterLinkProps['to']): RouterLinkProps['to']
   const isKnownRoute = allRoutes?.some((r) => {
     const rp =
       r.path.endsWith('/') && r.path.length > 1 ? r.path.slice(0, -1) : r.path
-    return rp === normalizedTo
+    return rp === (normalizedTo || '/')
   })
-
-  if (isKnownRoute) return to
 
   const i18n = config.i18n
   const versions = config.versions
   const base = (config.base || '/docs').replace(/\/$/, '')
   const baseSegment = base.startsWith('/') ? base.substring(1) : base
 
+  const rawParts = pathOnly.split('/').filter(Boolean)
+
+  // Classify: it's a Doc Path if it explicitly contains base segment,
+  // OR if it's an 'unknown' path (backward compatible fallback assumes unknown = doc).
+  const hasExplicitBase =
+    baseSegment && rawParts.length > 0 && rawParts[0] === baseSegment
+  const isDocsPath = hasExplicitBase || (!isKnownRoute && rawParts.length > 0)
+
   // 3. Clean the 'to' path of ANY existing prefixes to avoid stacking
-  const parts = to.split('/').filter(Boolean)
+  const parts = [...rawParts]
   let pIdx = 0
 
   // Strip base segment if present at start
@@ -63,38 +70,44 @@ export function useLocalizedTo(to: RouterLinkProps['to']): RouterLinkProps['to']
   }
 
   // Strip locales if present
-  const isLocale = i18n && parts.length > pIdx && (
-    Array.isArray(i18n.locales)
+  const isLocale =
+    i18n &&
+    parts.length > pIdx &&
+    (Array.isArray(i18n.locales)
       ? i18n.locales.includes(parts[pIdx])
-      : parts[pIdx] in i18n.locales
-  )
+      : parts[pIdx] in i18n.locales)
   if (isLocale) pIdx++
 
   // The actual relative route remaining
   const routeContent = parts.slice(pIdx)
 
-  // 4. Reconstruct strictly from base
+  // 4. Reconstruct dynamically based on context
   const resultParts: string[] = []
 
-  if (baseSegment) {
-    resultParts.push(baseSegment)
-    if (versions && activeVersion) {
-      resultParts.push(activeVersion)
-    }
-  }
-
-  if (i18n && activeLocale) {
-    resultParts.push(activeLocale)
+  if (isDocsPath) {
+    // Reconstruct DOCS path: /base/version/locale/content
+    if (baseSegment) resultParts.push(baseSegment)
+    if (versions && activeVersion) resultParts.push(activeVersion)
+    if (i18n && activeLocale) resultParts.push(activeLocale)
+  } else {
+    // Reconstruct EXTERNAL path: /locale/content
+    if (i18n && activeLocale) resultParts.push(activeLocale)
   }
 
   resultParts.push(...routeContent)
 
-  const finalPath = `/${resultParts.join('/')}`
+  let finalPath = `/${resultParts.join('/')}`
 
-  // Cleanup trailing slashes unless it's just root
-  if (finalPath.length > 1 && finalPath.endsWith('/')) {
-    return finalPath.slice(0, -1)
+  // Preserve trailing slash if present in input and output isn't just root
+  if (
+    pathOnly.endsWith('/') &&
+    pathOnly.length > 1 &&
+    !finalPath.endsWith('/')
+  ) {
+    finalPath += '/'
   }
 
-  return finalPath || '/'
+  // Restore original query/hash
+  const result = (finalPath || '/') + (hashAndQuery || '')
+  return result
 }

@@ -1,4 +1,11 @@
-import { createContext, use, useMemo, useState } from 'react'
+import { createContext, use, useMemo, useState, useEffect } from 'react'
+
+const PREFERENCES_KEY = 'boltdocs-user-preferences'
+
+interface PersistedState {
+  locale?: string
+  version?: string
+}
 
 export interface BoltdocsState {
   currentLocale: string
@@ -27,32 +34,77 @@ export function BoltdocsProvider({
   initialLocale?: string
   initialVersion?: string
 }) {
-  const getInitialState = () => {
-    if (typeof window === 'undefined')
-      return { locale: initialLocale, version: initialVersion }
-    const parts = window.location.pathname.split('/').filter(Boolean)
-    const locale = initialLocale
-    const version = initialVersion
-    // ...
-    return { locale, version }
+  // Helper to read from storage safely
+  const getSavedPrefs = (): PersistedState => {
+    if (typeof window === 'undefined') return {}
+    try {
+      const raw = localStorage.getItem(PREFERENCES_KEY)
+      return raw ? JSON.parse(raw) : {}
+    } catch {
+      return {}
+    }
   }
 
-  const initialState = getInitialState()
-  const [locale, setLocale] = useState(initialState.locale)
-  const [version, setVersion] = useState(initialState.version)
-  const [hasHydrated, setHasHydrated] = useState(false)
+  // 1. Lazy state initializers prioritize passed URL state, falling back to LocalStorage preference immediately
+  const [locale, setLocaleState] = useState(() => {
+    if (initialLocale) return initialLocale
+    const prefs = getSavedPrefs()
+    return prefs.locale || ''
+  })
 
-  const value = useMemo(
-    () => ({
+  const [version, setVersionState] = useState(() => {
+    if (initialVersion) return initialVersion
+    const prefs = getSavedPrefs()
+    return prefs.version || ''
+  })
+
+  const [hasHydrated, setHasHydrated] = useState(() => {
+    return typeof window !== 'undefined'
+  })
+
+  // Ensure the hydrator runs once client is definitely booted
+  useEffect(() => {
+    setHasHydrated(true)
+  }, [])
+
+  const value = useMemo(() => {
+    const updateLocale = (l: string) => {
+      const newL = l || ''
+      setLocaleState(newL)
+      if (typeof window !== 'undefined') {
+        try {
+          const prefs = getSavedPrefs()
+          localStorage.setItem(
+            PREFERENCES_KEY,
+            JSON.stringify({ ...prefs, locale: newL }),
+          )
+        } catch (e) {}
+      }
+    }
+
+    const updateVersion = (v: string) => {
+      const newV = v || ''
+      setVersionState(newV)
+      if (typeof window !== 'undefined') {
+        try {
+          const prefs = getSavedPrefs()
+          localStorage.setItem(
+            PREFERENCES_KEY,
+            JSON.stringify({ ...prefs, version: newV }),
+          )
+        } catch (e) {}
+      }
+    }
+
+    return {
       currentLocale: locale,
       currentVersion: version,
-      setLocale: (l: string) => setLocale(l || ''),
-      setVersion: (v: string) => setVersion(v || ''),
+      setLocale: updateLocale,
+      setVersion: updateVersion,
       hasHydrated,
       setHasHydrated,
-    }),
-    [locale, version, hasHydrated],
-  )
+    }
+  }, [locale, version, hasHydrated])
 
   // Sync with global registry for dual-package fallback
   if (typeof globalThis !== 'undefined') {
