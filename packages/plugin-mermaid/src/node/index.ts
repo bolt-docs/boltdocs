@@ -1,6 +1,37 @@
 import { visit } from 'unist-util-visit'
 import type { BoltdocsPlugin } from 'boltdocs'
 
+// Consistent type safety definitions for MDAST / MDX nodes
+interface CodeNode {
+  type: 'code'
+  lang?: string
+  value: string
+}
+
+interface MdxJsxAttribute {
+  type: 'mdxJsxAttribute'
+  name: string
+  value: string
+}
+
+interface MdxJsxFlowElement {
+  type: 'mdxJsxFlowElement'
+  name: string
+  attributes: MdxJsxAttribute[]
+  children: any[]
+}
+
+interface ParentNode {
+  children: any[]
+}
+
+const MERMAID_LANG = 'mermaid'
+const CODE_NODE_TYPE = 'code'
+const MDX_JSX_FLOW_TYPE = 'mdxJsxFlowElement'
+const MDX_JSX_ATTR_TYPE = 'mdxJsxAttribute'
+const COMPONENT_NAME = 'Mermaid'
+const CHART_ATTR_NAME = 'chart'
+
 /**
  * A Remark plugin that detects mermaid code blocks and transforms them
  * into <Mermaid /> JSX components. This runs BEFORE any rehype processing,
@@ -8,29 +39,33 @@ import type { BoltdocsPlugin } from 'boltdocs'
  */
 export function remarkMermaid() {
   return (tree: any) => {
-    visit(tree, 'code', (node: any, index: number | undefined, parent: any) => {
-      if (node.lang !== 'mermaid') return
+    visit(
+      tree, 
+      CODE_NODE_TYPE, 
+      (node: CodeNode, index: number | undefined, parent: ParentNode | undefined) => {
+        if (node.lang !== MERMAID_LANG) return
 
-      const rawCode = node.value || ''
+        const rawCode = node.value || ''
 
-      // Replace the code block with a JSX component
-      const newNode = {
-        type: 'mdxJsxFlowElement',
-        name: 'Mermaid',
-        attributes: [
-          {
-            type: 'mdxJsxAttribute',
-            name: 'chart',
-            value: rawCode,
-          },
-        ],
-        children: [],
+        // Replace the code block with a strongly-structured JSX element
+        const newNode: MdxJsxFlowElement = {
+          type: MDX_JSX_FLOW_TYPE,
+          name: COMPONENT_NAME,
+          attributes: [
+            {
+              type: MDX_JSX_ATTR_TYPE,
+              name: CHART_ATTR_NAME,
+              value: rawCode,
+            },
+          ],
+          children: [],
+        }
+
+        if (parent && typeof index === 'number') {
+          parent.children[index] = newNode
+        }
       }
-
-      if (parent && typeof index === 'number') {
-        parent.children[index] = newNode
-      }
-    })
+    )
   }
 }
 
@@ -44,7 +79,7 @@ export default function mermaidPlugin(): BoltdocsPlugin {
     permissions: ['mdx:remark', 'components'],
     remarkPlugins: [remarkMermaid],
     components: {
-      Mermaid: '@bdocs/plugin-mermaid/client',
+      [COMPONENT_NAME]: '@bdocs/plugin-mermaid/client',
     },
   }
 }
