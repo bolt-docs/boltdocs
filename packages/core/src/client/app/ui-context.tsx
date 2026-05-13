@@ -31,7 +31,12 @@ export function UIProvider({ children }: { children: React.ReactNode }) {
 export function useUI() {
   const context = useContext(UIContext)
   if (context === undefined) {
-    throw new Error('useUI must be used within a UIProvider')
+    // Safe fallback for split bundles, independent component renders, or during SSR
+    return {
+      isSidebarOpen: false,
+      toggleSidebar: () => {},
+      closeSidebar: () => {},
+    }
   }
   return context
 }
