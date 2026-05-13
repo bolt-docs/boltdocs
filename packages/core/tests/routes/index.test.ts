@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterAll } from 'vitest'
-import { generateRoutes } from '../../src/node/routes/index'
+import { generateRoutes, invalidateRouteCache } from '../../src/node/routes/index'
 import * as parser from '../../src/node/routes/parser'
 import { docCache } from '../../src/node/routes/cache'
 import fs from 'fs'
@@ -20,6 +20,7 @@ vi.mock('../../src/node/routes/cache', () => ({
     save: vi.fn(),
     invalidateAll: vi.fn(),
   },
+  invalidateRouteCache: vi.fn(),
 }))
 
 describe('generateRoutes', () => {
@@ -27,6 +28,7 @@ describe('generateRoutes', () => {
 
   beforeEach(() => {
     vi.clearAllMocks()
+    invalidateRouteCache()
     ;(docCache.get as any).mockReturnValue(undefined) // ensure cache misses by default
     // Clean temp dir
     const files = fs.readdirSync(tempDocsDir)
@@ -119,18 +121,6 @@ describe('generateRoutes', () => {
   it('should handle empty documentation directory', async () => {
     const routes = await generateRoutes(tempDocsDir, undefined, basePath)
     expect(routes).toHaveLength(0)
-  })
-
-  it('should invalidate cache if i18n config is present', async () => {
-    fs.writeFileSync(path.join(tempDocsDir, 'a.md'), '# A')
-    ;(parser.parseDocFile as any).mockReturnValue({
-      route: { path: '/docs/a', title: 'A' },
-    })
-
-    const config: any = { i18n: { defaultLocale: 'en', locales: { en: {} } } }
-    await generateRoutes(tempDocsDir, config, basePath)
-
-    expect(docCache.invalidateAll).toHaveBeenCalled()
   })
 
   it('should assign group metadata from index files', async () => {

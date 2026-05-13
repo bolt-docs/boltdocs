@@ -447,9 +447,7 @@ describe('config', () => {
               { icon: 'github', link: 'https://github.com' }
             ],
             codeTheme: { light: 'github-light', dark: 'github-dark' },
-            editLink: 'https://github.com/edit/:path',
-            breadcrumbs: true,
-            poweredBy: true
+            editLink: 'https://github.com/edit/:path'
           },
           i18n: {
             defaultLocale: 'en',
