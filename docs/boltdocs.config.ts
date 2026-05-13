@@ -15,7 +15,6 @@ export default defineConfig({
     title: 'boltdocs',
     description:
       'Building documentation for your project has never been easier, with boltdocs you can create beautiful documentation, 80% customizable, with 15+ components.',
-    breadcrumbs: true,
     codeTheme: {
       light: 'github-light',
       dark: 'github-dark',
@@ -29,44 +28,12 @@ export default defineConfig({
     navbar: [
       {
         label: 'Docs',
-        href: '/docs/guides/overview/introduction',
-      },
-      {
-        label: 'API',
-        href: '/docs/api/hooks/use-routes',
-      },
-      {
-        label: 'Components',
-        href: '/docs/components/overview',
+        href: '/docs',
       },
     ],
-    sidebarGroups: {
-      overview: {
-        icon: 'BookOpen',
-      },
-      'core-concepts': {
-        icon: 'Rocket',
-      },
-      customization: {
-        icon: 'Settings',
-      },
-      performance: {
-        icon: 'Zap',
-      },
-      integrations: {
-        icon: 'PlugZap',
-      },
-    },
     editLink:
       'https://github.com/jesusalcaladev/boltdocs/edit/main/docs/docs/:path',
     githubRepo: 'jesusalcaladev/boltdocs',
-    tabs: [
-      { id: 'guides', text: 'Guides', icon: 'SquareLibrary' },
-      { id: 'api', text: 'API', icon: 'Braces' },
-      { id: 'primitives', text: 'Primitives', icon: 'Boxes' },
-      { id: 'components', text: 'Components', icon: 'Component' },
-      { id: 'plugins', text: 'Plugins', icon: 'Plug' },
-    ],
   },
   robots: {
     rules: [

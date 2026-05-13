@@ -10,7 +10,7 @@ export default function HomePage() {
       <Hero />
       {/* <Integrations /> */}
       <StatsSection />
-      <FeaturesGrid />
+      {/* <FeaturesGrid /> */}
       <WhyBoltdocs />
       <CTASection />
     </div>

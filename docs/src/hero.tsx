@@ -1,4 +1,4 @@
-import { Button } from 'boltdocs/client'
+import { Button, Link } from 'boltdocs/primitives'
 import { ArrowRight } from 'lucide-react'
 import Orb from './orb'
 
@@ -36,15 +36,12 @@ export const Hero = () => {
         </p>
 
         <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-          <Button
+          <Link
             href="/docs/guides/overview/introduction"
-            iconPosition="right"
-            icon={<ArrowRight className="size-4" />}
-            rounded={'full'}
             className="bg-body text-main hover:scale-105 transition-transform"
           >
             Get Started
-          </Button>
+          </Link>
         </div>
 
         <div className="mt-16 max-w-4xl mx-auto rounded-3xl overflow-hidden border border-white/5 bg-black/20 backdrop-blur-3xl shadow-2xl relative">

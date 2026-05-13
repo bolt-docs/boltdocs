@@ -1,7 +1,7 @@
 import { useRef } from 'react'
-import { Button } from 'boltdocs/client'
 import { useGSAPScroll } from './hooks/useGSAPScroll'
 import { Grainient } from './grainient'
+import { Link } from 'boltdocs/primitives'
 
 export const CTASection = () => {
   const contentRef = useRef<HTMLDivElement>(null)
@@ -59,23 +59,13 @@ export const CTASection = () => {
             </p>
 
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-              <Button
-                rounded={'full'}
-                size={'lg'}
+              <Link
                 href="/docs/guides/overview/introduction"
                 className="bg-white text-black "
               >
                 Get Started
-              </Button>
-              <Button
-                href="https://github.com/bolt-docs/boltdocs"
-                icon={<GithubIcon />}
-                rounded={'full'}
-                size={'lg'}
-                variant={'secondary'}
-              >
-                GitHub
-              </Button>
+              </Link>
+              <Link href="https://github.com/bolt-docs/boltdocs">GitHub</Link>
             </div>
           </div>
         </div>
