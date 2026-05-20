@@ -158,6 +158,12 @@ export function boltdocsPlugin(
         },
       },
 
+      async buildEnd() {
+        // Terminate worker pool threads to prevent resource leaks
+        const { pool } = await import('../routes/worker-pool')
+        await pool.terminate()
+      },
+
       async closeBundle() {
         if (!isBuild || viteConfig?.build?.ssr) return
 

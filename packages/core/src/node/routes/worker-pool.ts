@@ -72,47 +72,44 @@ export class WorkerPool {
 
       this.activeWorkers++
       const workerPath = this.getWorkerPath()
-      worker = new Worker(workerPath, {
+      const newWorker = new Worker(workerPath, {
         execArgv: workerPath.endsWith('.ts') ? ['--loader', 'tsx'] : [],
       })
+      worker = newWorker
+      this.workers.push(newWorker)
 
-      worker.on('error', (err) => {
-        // If a task was running, it will be handled by the current task's reject
-        // We need to cleanup and spawn a new one later if needed
+      newWorker.on('message', (response: any) => {
+        const task = (newWorker as any).currentTask
+        if (task) {
+          (newWorker as any).currentTask = null
+          if (response.type === 'SUCCESS') {
+            task.resolve(response.result)
+          } else {
+            task.reject(new Error(response.error))
+          }
+        }
+        this.idleWorkers.push(newWorker)
+        this.processNext()
+      })
+
+      newWorker.on('error', (err) => {
+        const task = (newWorker as any).currentTask
+        if (task) {
+          (newWorker as any).currentTask = null
+          task.reject(err)
+        }
         this.activeWorkers--
-        const index = this.idleWorkers.indexOf(worker!)
-        if (index > -1) this.idleWorkers.splice(index, 1)
+        const idleIndex = this.idleWorkers.indexOf(newWorker)
+        if (idleIndex > -1) this.idleWorkers.splice(idleIndex, 1)
+        const allIndex = this.workers.indexOf(newWorker)
+        if (allIndex > -1) this.workers.splice(allIndex, 1)
+        newWorker.terminate()
         this.processNext()
       })
     }
 
-    const { task, resolve, reject } = this.queue.shift()!
-
-    const messageHandler = (response: any) => {
-      worker!.off('message', messageHandler)
-      worker!.off('error', errorHandler)
-
-      if (response.type === 'SUCCESS') {
-        resolve(response.result)
-      } else {
-        reject(new Error(response.error))
-      }
-
-      this.idleWorkers.push(worker!)
-      this.processNext()
-    }
-
-    const errorHandler = (err: any) => {
-      worker!.off('message', messageHandler)
-      worker!.off('error', errorHandler)
-      reject(err)
-      // Worker is dead, don't reuse
-      this.activeWorkers--
-      this.processNext()
-    }
-
-    worker.once('message', messageHandler)
-    worker.once('error', errorHandler)
+    const { task, resolve, reject } = this.queue.shift()!;
+    (worker as any).currentTask = { resolve, reject }
     worker.postMessage(task)
   }
 
@@ -143,11 +140,10 @@ export class WorkerPool {
   }
 
   async terminate() {
-    const allWorkers = [...this.idleWorkers]
-    // Note: this doesn't track active workers that are currently busy
-    // but in Boltdocs they are usually terminated when the process exits
+    const allWorkers = [...this.workers]
     await Promise.all(allWorkers.map((w) => w.terminate()))
     this.idleWorkers = []
+    this.workers = []
     this.activeWorkers = 0
   }
 }
