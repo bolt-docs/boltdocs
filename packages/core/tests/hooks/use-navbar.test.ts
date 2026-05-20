@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { renderHook } from '@testing-library/react'
 import { useNavbar } from '../../src/client/hooks/use-navbar'
 import { useConfig } from '../../src/client/app/config-context'
 import { useTheme } from '../../src/client/app/theme-context'
@@ -28,7 +29,8 @@ describe('useNavbar', () => {
       },
     })
 
-    const { links } = useNavbar()
+    const { result } = renderHook(() => useNavbar())
+    const { links } = result.current
     expect(links).toHaveLength(1)
     expect(links[0].label).toBe('Home')
     expect(links[0].href).toBe('/')
@@ -42,7 +44,8 @@ describe('useNavbar', () => {
       },
     })
 
-    const { links } = useNavbar()
+    const { result } = renderHook(() => useNavbar())
+    const { links } = result.current
     expect(links).toHaveLength(1)
     expect(links[0].to).toBe('external')
   })
@@ -55,14 +58,16 @@ describe('useNavbar', () => {
       },
     })
 
-    const { links } = useNavbar()
+    const { result } = renderHook(() => useNavbar())
+    const { links } = result.current
     expect(links[0].label).toBe('Inicio')
   })
 
   it('should use default title when not configured', () => {
     ;(useConfig as any).mockReturnValue({ theme: {} })
 
-    const { title } = useNavbar()
+    const { result } = renderHook(() => useNavbar())
+    const { title } = result.current
     expect(title).toBe('Boltdocs')
   })
 
@@ -77,7 +82,8 @@ describe('useNavbar', () => {
       },
     })
 
-    const { links } = useNavbar()
+    const { result } = renderHook(() => useNavbar())
+    const { links } = result.current
     expect(links[0].active).toBe(true)
     expect(links[1].active).toBe(false)
   })
