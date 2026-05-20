@@ -30,15 +30,12 @@ export class ParserCache {
     try {
       // 1. Memory Tier (Ultra-fast check)
       const memEntry = memoryCache.get(file)
-
-      // We still need to check mtime, but we can do it asynchronously
-      const stats = await fs.promises.stat(file)
-
-      if (memEntry && memEntry.mtime === stats.mtimeMs) {
+      if (memEntry) {
         return memEntry.data
       }
 
       // 2. Disk Tier
+      const stats = await fs.promises.stat(file)
       const cacheDir = getParserCacheDir()
       const id = crypto.createHash('md5').update(file).digest('hex')
       const shardPath = path.join(cacheDir, `${id}.json`)
@@ -99,6 +96,10 @@ export class ParserCache {
     } catch {
       // Fallback: Skip caching if file cannot be stat'd
     }
+  }
+
+  static invalidate(file: string): void {
+    memoryCache.delete(file)
   }
 
   static clear(): void {

@@ -119,7 +119,7 @@ export function createRoutes(options: CreateRoutesOptions): RouteRecord[] {
     return `${b}${p}` || '/'
   }
 
-  const allMetadata: ComponentRoute[] = [...routesData]
+  const defaultVersionMetadata: ComponentRoute[] = []
 
   // Inject virtual explicit routes for default version to ensure paths like /docs/latest/... aren't 404s
   const defaultVersion = config.versions?.defaultVersion
@@ -147,7 +147,7 @@ export function createRoutes(options: CreateRoutesOptions): RouteRecord[] {
             .replace(/\/+/g, '/')
             .replace(/\/$/, '') || '/'
 
-        allMetadata.push({
+        defaultVersionMetadata.push({
           ...route,
           path: explicitPath,
           version: defaultVersion,
@@ -155,6 +155,8 @@ export function createRoutes(options: CreateRoutesOptions): RouteRecord[] {
       }
     })
   }
+
+  const docMetadata = [...routesData, ...defaultVersionMetadata]
 
   // 0. Build a single pre-computed lookup map for the MDX modules (O(N) build, O(1) access).
   // This replaces the inner findModuleKey loops that executed an O(N) scan for EVERY route.
@@ -190,7 +192,7 @@ export function createRoutes(options: CreateRoutesOptions): RouteRecord[] {
   }
 
   // 1. Documentation routes
-  const docRoutes: RouteRecord[] = allMetadata.map((route) => {
+  const docRoutes: RouteRecord[] = docMetadata.map((route) => {
     // Perform constant-time lookup using the pre-computed map
     const normalizedFilePath = route.filePath.replace(/\\/g, '/')
     const moduleKey = moduleMap.get(normalizedFilePath)
@@ -292,10 +294,16 @@ export function createRoutes(options: CreateRoutesOptions): RouteRecord[] {
     const hasExplicitMatch = docPathRegistry.has(normalizedPath)
 
     if (!hasExplicitMatch) {
-      // Prioritize: Find a real route that begins with this base pattern
-      const matchedRoute = docRoutes.find(
-        (r) => filter(r.path) && r.path !== normalizedPath,
-      )
+      const defaultTab = config.theme?.tabs?.[0]?.id
+      const defaultTabPath = defaultTab
+        ? `${normalizedPath}/${defaultTab}`.replace(/\/+/g, '/')
+        : null
+
+      // Prioritize: Find a real route that matches the default tab first, then fall back to the first route beginning with this pattern.
+      const matchedRoute =
+        defaultTabPath && docPathRegistry.has(defaultTabPath.replace(/\/$/, ''))
+          ? docRoutes.find((r) => r.path.replace(/\/$/, '') === defaultTabPath.replace(/\/$/, ''))
+          : docRoutes.find((r) => filter(r.path) && r.path !== normalizedPath)
 
       // Ultimate fallback: the absolute first document
       const finalTarget = matchedRoute
@@ -324,12 +332,13 @@ export function createRoutes(options: CreateRoutesOptions): RouteRecord[] {
   const children: RouteRecord[] = [docsLayoutRoute]
 
   // 3. External pages
+  const externalMetadata: ComponentRoute[] = []
   if (externalPages) {
     Object.entries(externalPages).forEach(([rawPath, ExtComponent]) => {
       // Use the path exactly as defined in externalPages
       const path = rawPath
       if (!children.find((r) => r.path === path)) {
-        allMetadata.push({
+        externalMetadata.push({
           path,
           locale: config.i18n?.defaultLocale,
           title:
@@ -359,7 +368,7 @@ export function createRoutes(options: CreateRoutesOptions): RouteRecord[] {
           Object.keys(config.i18n.locales).forEach((locale) => {
             const localePath = `/${locale}${rawPath === '/' ? '' : rawPath}`
             if (!children.find((r) => r.path === localePath)) {
-              allMetadata.push({
+              externalMetadata.push({
                 path: localePath,
                 locale,
                 title: rawPath,
@@ -396,6 +405,8 @@ export function createRoutes(options: CreateRoutesOptions): RouteRecord[] {
       </EffectiveExternalLayout>
     ),
   })
+
+  const allMetadata = [...docMetadata, ...externalMetadata]
 
   // Wrap everything in the Boltdocs shell (providers)
   return [

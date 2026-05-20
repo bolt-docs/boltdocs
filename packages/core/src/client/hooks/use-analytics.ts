@@ -159,6 +159,8 @@ export interface UseAnalyticsOptions {
   excludePatterns?: RegExp[]
 }
 
+const CONFIG_INSTANCE_SYMBOL = Symbol.for('__BDOCS_CONFIG_INSTANCE__')
+
 export function useAnalytics(options: UseAnalyticsOptions = {}) {
   const {
     config: optionsConfig,
@@ -168,7 +170,6 @@ export function useAnalytics(options: UseAnalyticsOptions = {}) {
     excludePatterns = [],
   } = options
 
-  const CONFIG_INSTANCE_SYMBOL = Symbol.for('__BDOCS_CONFIG_INSTANCE__')
   const globalConfig =
     typeof globalThis !== 'undefined'
       ? ((globalThis as any)[CONFIG_INSTANCE_SYMBOL] as

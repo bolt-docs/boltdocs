@@ -22,30 +22,24 @@ const SHARDS_DIR = 'shards'
  * Simple background task queue to prevent blocking the main thread during IO.
  */
 class BackgroundQueue {
-  private queue: Promise<any> = Promise.resolve()
-  private pendingCount = 0
+  private activeTasks = new Set<Promise<any>>()
 
   add(task: () => Promise<any>) {
-    this.pendingCount++
-    this.queue = this.queue
-      .then(async () => {
-        try {
-          await task()
-        } catch (e) {
-          // Task failed, but don't block subsequent tasks
-        }
-      })
+    const promise = Promise.resolve()
+      .then(task)
+      .catch(() => {})
       .finally(() => {
-        this.pendingCount--
+        this.activeTasks.delete(promise)
       })
+    this.activeTasks.add(promise)
   }
 
   async flush() {
-    await this.queue
+    await Promise.all(Array.from(this.activeTasks))
   }
 
   get pending() {
-    return this.pendingCount
+    return this.activeTasks.size
   }
 }
 
@@ -112,7 +106,12 @@ export class FileCache<T> {
         await mkdir(path.dirname(target), { recursive: true })
         let buffer = Buffer.from(content)
         if (useCompress) {
-          buffer = zlib.gzipSync(buffer)
+          buffer = await new Promise<Buffer>((resolve, reject) => {
+            zlib.gzip(buffer, (err, res) => {
+              if (err) reject(err)
+              else resolve(res)
+            })
+          })
         }
         const tempPath = `${target}.${crypto.randomBytes(4).toString('hex')}.tmp`
         await writeFile(tempPath, buffer)
@@ -246,7 +245,12 @@ export class TransformCache {
           const shardPath = path.resolve(this.shardsDir, `${hash}.gz`)
           try {
             const compressed = await readFile(shardPath)
-            const decompressed = zlib.gunzipSync(compressed).toString('utf-8')
+            const decompressed = await new Promise<string>((resolve, reject) => {
+              zlib.gunzip(compressed, (err, res) => {
+                if (err) reject(err)
+                else resolve(res.toString('utf-8'))
+              })
+            })
             this.memoryCache.set(key, decompressed)
             return { key, val: decompressed }
           } catch (e) {

@@ -1,3 +1,4 @@
+import { useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { getBaseFilePath } from '../utils/get-base-file-path'
 import { useRoutes } from './use-routes'
@@ -148,27 +149,29 @@ export function useI18n(): UseI18nReturn {
   const currentLocaleLabel =
     currentLocaleConfig?.label || defaultLabel || currentLocale
 
-  const availableLocales = i18n
-    ? Array.isArray(i18n.locales)
-      ? i18n.locales.map((key) => {
-          const localeConfig = i18n?.localeConfigs?.[key]
-          return {
-            key: key as BoltdocsLocale,
-            label: localeConfig?.label || key,
-            value: key,
-            isCurrent: key === currentLocale,
-          }
-        })
-      : Object.entries(i18n.locales).map(([key, label]) => {
-          const localeConfig = i18n?.localeConfigs?.[key]
-          return {
-            key: key as BoltdocsLocale,
-            label: localeConfig?.label || label,
-            value: key,
-            isCurrent: key === currentLocale,
-          }
-        })
-    : []
+  const availableLocales = useMemo(() => {
+    return i18n
+      ? Array.isArray(i18n.locales)
+        ? i18n.locales.map((key) => {
+            const localeConfig = i18n?.localeConfigs?.[key]
+            return {
+              key: key as BoltdocsLocale,
+              label: localeConfig?.label || key,
+              value: key,
+              isCurrent: key === currentLocale,
+            }
+          })
+        : Object.entries(i18n.locales).map(([key, label]) => {
+            const localeConfig = i18n?.localeConfigs?.[key]
+            return {
+              key: key as BoltdocsLocale,
+              label: localeConfig?.label || label,
+              value: key,
+              isCurrent: key === currentLocale,
+            }
+          })
+      : []
+  }, [i18n, currentLocale])
 
   return {
     currentLocale,

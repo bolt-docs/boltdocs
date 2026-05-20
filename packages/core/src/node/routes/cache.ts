@@ -1,5 +1,6 @@
 import { FileCache } from '../cache'
 import type { ParsedDocFile } from './types'
+import { ParserCache } from './parser/cache'
 
 /**
  * Persistent cache for parsed documentation files.
@@ -13,6 +14,7 @@ const docCache = new FileCache<ParsedDocFile>({ name: 'routes' })
  */
 export function invalidateRouteCache(): void {
   docCache.invalidateAll()
+  ParserCache.clear()
 }
 
 /**
@@ -23,6 +25,7 @@ export function invalidateRouteCache(): void {
  */
 export function invalidateFile(filePath: string): void {
   docCache.invalidate(filePath)
+  ParserCache.invalidate(filePath)
 }
 
 export { docCache }

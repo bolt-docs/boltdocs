@@ -153,6 +153,11 @@ function highlightTerms(container: Element, terms: string[]) {
   const combinedPattern = terms.map(prepareRegex).join('|')
   const regex = new RegExp(`(${combinedPattern})`, 'gi')
 
+  const matchRegexes = terms.map((term) => {
+    const p = prepareRegex(term)
+    return new RegExp(`^${p}$`, 'i')
+  })
+
   nodes.forEach((textNode) => {
     const text = textNode.textContent
     if (text && regex.test(text)) {
@@ -160,10 +165,7 @@ function highlightTerms(container: Element, terms: string[]) {
       const parts = text.split(regex)
 
       parts.forEach((part) => {
-        const isMatch = terms.some((term) => {
-          const p = prepareRegex(term)
-          return new RegExp(`^${p}$`, 'i').test(part)
-        })
+        const isMatch = matchRegexes.some((rx) => rx.test(part))
 
         if (isMatch) {
           const mark = document.createElement('mark')

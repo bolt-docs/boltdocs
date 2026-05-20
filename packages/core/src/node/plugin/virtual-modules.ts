@@ -16,6 +16,7 @@ import fs from 'node:fs'
 // so stale data is never returned after a structural change.
 // ---------------------------------------------------------------------------
 let _directoryMetaCache: Record<string, any> | null = null
+let _searchDataCache: string | null = null
 
 /**
  * Called by the dev-server watcher whenever a file is added or removed
@@ -23,6 +24,7 @@ let _directoryMetaCache: Record<string, any> | null = null
  */
 export function invalidateDirectoryMetaCache(): void {
   _directoryMetaCache = null
+  _searchDataCache = null
 }
 
 /**
@@ -209,9 +211,12 @@ export default UserLayout;`
       }
 
       if (name === 'search') {
-        const routes = await generateRoutes(docsDir, config)
-        const searchData = generateSearchData(routes)
-        return `export default ${JSON.stringify(searchData, null, 2)};`
+        if (!_searchDataCache) {
+          const routes = await generateRoutes(docsDir, config)
+          const searchData = generateSearchData(routes)
+          _searchDataCache = `export default ${JSON.stringify(searchData, null, 2)};`
+        }
+        return _searchDataCache
       }
 
       if (name === 'client') {

@@ -146,8 +146,9 @@ export async function parseFrontmatterAsync(
   content: string
   raw: string
 }> {
+  let raw = ''
   try {
-    const raw = await fs.promises.readFile(filePath, 'utf-8')
+    raw = await fs.promises.readFile(filePath, 'utf-8')
     const { data, content, rawMatter } = parseFrontmatterFast(raw)
 
     if (rawMatter && rawMatter.length > MAX_FRONTMATTER_SIZE) {
@@ -187,12 +188,7 @@ export async function parseFrontmatterAsync(
     return { data: sanitizedData, content, raw }
   } catch (e) {
     if (e instanceof ValidationError) throw e
-    try {
-      const rawFallback = await fs.promises.readFile(filePath, 'utf-8')
-      return { data: {}, content: rawFallback, raw: rawFallback }
-    } catch {
-      return { data: {}, content: '', raw: '' }
-    }
+    return { data: {}, content: raw, raw }
   }
 }
 

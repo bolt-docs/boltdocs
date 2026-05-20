@@ -1,3 +1,4 @@
+import { useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { getBaseFilePath } from '../utils/get-base-file-path'
 import { useRoutes } from './use-routes'
@@ -90,14 +91,16 @@ export function useVersion(): UseVersionReturn {
   )
   const currentVersionLabel = currentVersionConfig?.label || currentVersion
 
-  const availableVersions = versions
-    ? versions.versions.map((v) => ({
-        key: v.path as BoltdocsVersion,
-        label: v.label,
-        value: v.path,
-        isCurrent: v.path === currentVersion,
-      }))
-    : []
+  const availableVersions = useMemo(() => {
+    return versions
+      ? versions.versions.map((v) => ({
+          key: v.path as BoltdocsVersion,
+          label: v.label,
+          value: v.path,
+          isCurrent: v.path === currentVersion,
+        }))
+      : []
+  }, [versions, currentVersion])
 
   return {
     currentVersion,
