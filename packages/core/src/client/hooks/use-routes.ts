@@ -1,3 +1,4 @@
+import { useMemo } from 'react'
 import { useLocation } from 'react-router-dom'
 import { useConfig } from '../app/config-context'
 import { useRoutesContext } from '../app/routes-context'
@@ -41,50 +42,61 @@ export function useRoutes() {
     : undefined
 
   // Filter routes to those matching the current version and locale
-  const routes = allRoutes?.filter?.((r) => {
-    const localeMatch = config.i18n
-      ? (r.locale || config.i18n.defaultLocale) === currentLocale
-      : true
-    const versionMatch = config.versions
-      ? (r.version || config.versions.defaultVersion) === currentVersion
-      : true
+  const routes = useMemo(() => {
+    if (!allRoutes) return []
 
-    if (!(localeMatch && versionMatch)) return false
+    // Pre-calculate alternate presence using a Map of maps or a composite key
+    // Key: filePath | (locale || defaultLocale) | (version || defaultVersion)
+    const alternateCounts = new Map<string, number>()
+    const defaultLocale = config.i18n?.defaultLocale || ''
+    const defaultVersion = config.versions?.defaultVersion || ''
 
-    // Resolve duplicate paths (aliases) like /docs vs /docs/en
-    const i18n = config.i18n
-    // 3. Resolve duplicate route aliases (e.g., /docs/page vs /docs/latest/page or /docs/es/page)
-    // If duplicates exist, we only show the style (prefixed or unprefixed) that matches the user's current page style.
-    const isCurrentLocalePrefixed = !!currentRoute?.locale
-    const isCurrentVersionPrefixed = !!currentRoute?.version
-
-    const isRouteLocalePrefixed = !!r.locale
-    const isRouteVersionPrefixed = !!r.version
-
-    const hasAlternate = allRoutes?.some?.(
-      (alt) =>
-        alt !== r &&
-        alt.filePath === r.filePath &&
-        (alt.locale || config.i18n?.defaultLocale || '') ===
-          (r.locale || config.i18n?.defaultLocale || '') &&
-        (alt.version || config.versions?.defaultVersion || '') ===
-          (r.version || config.versions?.defaultVersion || ''),
-    )
-
-    if (hasAlternate) {
-      // Style mismatch checks
-      const localeMismatch =
-        config.i18n && isCurrentLocalePrefixed !== isRouteLocalePrefixed
-      const versionMismatch =
-        config.versions && isCurrentVersionPrefixed !== isRouteVersionPrefixed
-
-      if (localeMismatch || versionMismatch) {
-        return false
-      }
+    for (const r of allRoutes) {
+      const locale = r.locale || defaultLocale
+      const version = r.version || defaultVersion
+      const key = `${r.filePath}::${locale}::${version}`
+      alternateCounts.set(key, (alternateCounts.get(key) || 0) + 1)
     }
 
-    return true
-  })
+    return allRoutes.filter((r) => {
+      const localeMatch = config.i18n
+        ? (r.locale || config.i18n.defaultLocale) === currentLocale
+        : true
+      const versionMatch = config.versions
+        ? (r.version || config.versions.defaultVersion) === currentVersion
+        : true
+
+      if (!(localeMatch && versionMatch)) return false
+
+      // Resolve duplicate paths (aliases) like /docs vs /docs/en
+      // 3. Resolve duplicate route aliases (e.g., /docs/page vs /docs/latest/page or /docs/es/page)
+      // If duplicates exist, we only show the style (prefixed or unprefixed) that matches the user's current page style.
+      const isCurrentLocalePrefixed = !!currentRoute?.locale
+      const isCurrentVersionPrefixed = !!currentRoute?.version
+
+      const isRouteLocalePrefixed = !!r.locale
+      const isRouteVersionPrefixed = !!r.version
+
+      const locale = r.locale || defaultLocale
+      const version = r.version || defaultVersion
+      const key = `${r.filePath}::${locale}::${version}`
+      const hasAlternate = (alternateCounts.get(key) || 0) > 1
+
+      if (hasAlternate) {
+        // Style mismatch checks
+        const localeMismatch =
+          config.i18n && isCurrentLocalePrefixed !== isRouteLocalePrefixed
+        const versionMismatch =
+          config.versions && isCurrentVersionPrefixed !== isRouteVersionPrefixed
+
+        if (localeMismatch || versionMismatch) {
+          return false
+        }
+      }
+
+      return true
+    })
+  }, [allRoutes, config, currentLocale, currentVersion, currentRoute])
 
   return {
     routes,

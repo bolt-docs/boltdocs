@@ -40,6 +40,15 @@ export function useSearch(routes: ComponentRoute[]) {
     setIndex(newIndex)
   }, [isOpen, index])
 
+  // Pre-index searchData for O(1) lookups
+  const searchDataMap = useMemo(() => {
+    const map = new Map<string, SearchDataItem>()
+    for (const doc of searchData as SearchDataItem[]) {
+      map.set(doc.id, doc)
+    }
+    return map
+  }, [])
+
   const list = useMemo(() => {
     if (!query) {
       // Default results: just active routes
@@ -70,7 +79,7 @@ export function useSearch(routes: ComponentRoute[]) {
     const seen = new Set<string>()
 
     for (const id of searchResults) {
-      const doc = (searchData as SearchDataItem[]).find((d) => d.id === id)
+      const doc = searchDataMap.get(id as string)
       if (!doc) continue
 
       // Filter by locale and version
@@ -92,7 +101,7 @@ export function useSearch(routes: ComponentRoute[]) {
     }
 
     return results.slice(0, 10)
-  }, [query, index, currentLocale, currentVersion, routes])
+  }, [query, index, currentLocale, currentVersion, routes, searchDataMap])
 
   return {
     isOpen,

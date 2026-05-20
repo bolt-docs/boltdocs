@@ -293,13 +293,15 @@ export function SidebarItem({
   const hasChildren = !!route.routes?.length || !!route.subRoutes?.length
   const children = route.routes || route.subRoutes
 
-  const [isOpen, setIsOpen] = useState(false)
+  const [isOpen, setIsOpen] = useState(() => activePath.startsWith(localizedHref))
+  const [prevActivePath, setPrevActivePath] = useState(activePath)
 
-  useEffect(() => {
+  if (activePath !== prevActivePath) {
+    setPrevActivePath(activePath)
     if (activePath.startsWith(localizedHref)) {
       setIsOpen(true)
     }
-  }, [activePath, localizedHref])
+  }
 
   if (hasChildren) {
     return (
