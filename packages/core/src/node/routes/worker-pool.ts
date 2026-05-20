@@ -78,6 +78,24 @@ export class WorkerPool {
       worker = newWorker
       this.workers.push(newWorker)
 
+      const cleanupWorker = (w: Worker, err?: Error) => {
+        const allIndex = this.workers.indexOf(w)
+        if (allIndex === -1) return // Already cleaned up
+
+        const task = (w as any).currentTask
+        if (task) {
+          (w as any).currentTask = null
+          task.reject(err || new Error('Worker terminated unexpectedly'))
+        }
+
+        this.activeWorkers--
+        const idleIndex = this.idleWorkers.indexOf(w)
+        if (idleIndex > -1) this.idleWorkers.splice(idleIndex, 1)
+        this.workers.splice(allIndex, 1)
+        w.terminate()
+        this.processNext()
+      }
+
       newWorker.on('message', (response: any) => {
         const task = (newWorker as any).currentTask
         if (task) {
@@ -93,18 +111,13 @@ export class WorkerPool {
       })
 
       newWorker.on('error', (err) => {
-        const task = (newWorker as any).currentTask
-        if (task) {
-          (newWorker as any).currentTask = null
-          task.reject(err)
+        cleanupWorker(newWorker, err)
+      })
+
+      newWorker.on('exit', (code) => {
+        if (code !== 0) {
+          cleanupWorker(newWorker, new Error(`Worker exited with code ${code}`))
         }
-        this.activeWorkers--
-        const idleIndex = this.idleWorkers.indexOf(newWorker)
-        if (idleIndex > -1) this.idleWorkers.splice(idleIndex, 1)
-        const allIndex = this.workers.indexOf(newWorker)
-        if (allIndex > -1) this.workers.splice(allIndex, 1)
-        newWorker.terminate()
-        this.processNext()
       })
     }
 
