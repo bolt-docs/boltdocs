@@ -2,17 +2,16 @@ import { useMemo } from 'react'
 import { useLocation } from 'react-router-dom'
 import { useConfig } from '../app/config-context'
 import type { ComponentRoute } from '../types'
+import { normalizePath } from '../utils/path'
 
 export function useSidebar(routes: ComponentRoute[]) {
   const config = useConfig()
   const location = useLocation()
 
-  const normalize = (p: string) =>
-    p.endsWith('/') && p.length > 1 ? p.slice(0, -1) : p
-  const currentPath = normalize(location.pathname)
+  const currentPath = normalizePath(location.pathname)
 
   return useMemo(() => {
-    const activeRoute = routes.find((r) => normalize(r.path) === currentPath)
+    const activeRoute = routes.find((r) => normalizePath(r.path) === currentPath)
     const activeTabId = activeRoute?.tab?.toLowerCase()
 
     const filteredRoutes = activeTabId

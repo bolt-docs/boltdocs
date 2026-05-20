@@ -3,6 +3,7 @@ import { useLocation } from 'react-router-dom'
 import { useConfig } from '../app/config-context'
 import { useRoutesContext } from '../app/routes-context'
 import { useBoltdocsContext } from '../store/boltdocs-context'
+import { normalizePath } from '../utils/path'
 
 /**
  * Hook to access the framework's routing state.
@@ -21,13 +22,11 @@ export function useRoutes() {
     currentVersion: currentVersionStore,
   } = useBoltdocsContext()
 
-  const normalize = (p: string) =>
-    p.endsWith('/') && p.length > 1 ? p.slice(0, -1) : p
-  const currentPath = normalize(location.pathname)
+  const currentPath = normalizePath(location.pathname)
 
   // Find the current active route matching the pathname
   const currentRoute = allRoutes?.find?.(
-    (r) => normalize(r.path) === currentPath,
+    (r) => normalizePath(r.path) === currentPath,
   )
 
   // 2. STRICT SOURCE OF TRUTH:
