@@ -3,7 +3,7 @@ import remarkGfm from 'remark-gfm'
 import remarkFrontmatter from 'remark-frontmatter'
 import rehypeSlug from 'rehype-slug'
 import type { Plugin } from 'vite'
-import crypto from 'crypto'
+import crypto from 'node:crypto'
 
 import type { BoltdocsConfig } from '../config'
 import { mdxCache, MDX_PLUGIN_VERSION } from './cache'
@@ -27,7 +27,7 @@ let mdxCacheLoaded = false
 export function boltdocsMdxPlugin(
   config?: BoltdocsConfig,
   compiler = mdxPlugin,
- ): Plugin {
+): Plugin {
   const extraRemarkPlugins =
     config?.plugins?.flatMap((p) => {
       const caps = PluginSandbox.getSanitizedCapabilities(p as any)
@@ -63,7 +63,6 @@ export function boltdocsMdxPlugin(
         await mdxCache.load()
         mdxCacheLoaded = true
       }
-      // @ts-expect-error
       if (baseMdxPlugin.buildStart) {
         // @ts-expect-error
         await baseMdxPlugin.buildStart.call(this)
@@ -82,7 +81,7 @@ export function boltdocsMdxPlugin(
       const isProd = process.env.NODE_ENV === 'production' ? 'prod' : 'dev'
       const cacheKey = `${cleanId}:${contentHash}:${isProd}:${MDX_PLUGIN_VERSION}`
 
-      const cached = mdxCache.get(cacheKey)
+      const cached = await mdxCache.getAsync(cacheKey)
       if (cached) {
         return { code: cached, map: null }
       }
@@ -110,7 +109,6 @@ export function boltdocsMdxPlugin(
     async buildEnd() {
       mdxCache.save()
       await mdxCache.flush()
-      // @ts-expect-error
       if (baseMdxPlugin.buildEnd) {
         // @ts-expect-error
         await baseMdxPlugin.buildEnd.call(this)

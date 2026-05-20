@@ -290,6 +290,36 @@ export class TransformCache {
   }
 
   /**
+   * Retrieves a cached transformation asynchronously. Fast lookup via index, lazy loading from disk.
+   */
+  async getAsync(key: string): Promise<string | null> {
+    // 1. Check memory first (LRU)
+    const mem = this.memoryCache.get(key)
+    if (mem) return mem
+
+    // 2. Check index
+    const hash = this.index.get(key)
+    if (!hash) return null
+
+    // 3. Load from shard asynchronously
+    const shardPath = path.resolve(this.shardsDir, `${hash}.gz`)
+    try {
+      if (!fs.existsSync(shardPath)) return null
+      const compressed = await readFile(shardPath)
+      const decompressed = await new Promise<string>((resolve, reject) => {
+        zlib.gunzip(compressed, (err, res) => {
+          if (err) reject(err)
+          else resolve(res.toString('utf-8'))
+        })
+      })
+      this.memoryCache.set(key, decompressed)
+      return decompressed
+    } catch (e) {
+      return null
+    }
+  }
+
+  /**
    * Stores a transformation result.
    */
   set(key: string, result: string): void {
@@ -329,6 +359,7 @@ export class TransformCache {
  */
 export class AssetCache {
   private readonly assetsDir: string
+  private hashMap = new Map<string, { hash: string; mtime: number }>()
 
   constructor(root: string = process.cwd()) {
     const config = getCacheConfig()
@@ -336,10 +367,17 @@ export class AssetCache {
   }
 
   private getFileHash(filePath: string): string {
-    return crypto
+    const mtime = getFileMtime(filePath)
+    const cached = this.hashMap.get(filePath)
+    if (cached && cached.mtime === mtime) {
+      return cached.hash
+    }
+    const hash = crypto
       .createHash('md5')
       .update(fs.readFileSync(filePath))
       .digest('hex')
+    this.hashMap.set(filePath, { hash, mtime })
+    return hash
   }
 
   get(sourcePath: string, cacheKey: string): string | null {
