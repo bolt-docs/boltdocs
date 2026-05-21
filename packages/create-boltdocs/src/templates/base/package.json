@@ -15,11 +15,11 @@
     "react-dom": "^19.2.5"
   },
   "devDependencies": {
-    "@tailwindcss/vite": "^4.2.2",
+    "@tailwindcss/vite": "^4.3.0",
     "@types/react": "^19.1.0",
     "@types/react-dom": "^19.1.0",
     "boltdocs": "latest",
-    "tailwindcss": "^4.2.2",
+    "tailwindcss": "^4.3.0",
     "typescript": "^5.0.0"
   }
 }
