@@ -1,5 +1,11 @@
 # boltdocs
 
+## 2.7.1
+
+### Patch Changes
+
+- [`044ce18`](https://github.com/bolt-docs/boltdocs/commit/044ce18cf54812e486f0af0befdf952e26ebb2f9) Thanks [@jesusalcaladev](https://github.com/jesusalcaladev)! - fix: repared error of ssg
+
 ## 2.7.0
 
 ### Minor Changes
