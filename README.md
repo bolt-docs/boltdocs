@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="assets/light.svg" width="100%" alt="Boltdocs Brand" />
+  <img src="assets/light.svg" width="20%" alt="Boltdocs Brand" />
 </p>
 
 > **The next-generation, high-performance documentation framework powered by React and Vite.**
