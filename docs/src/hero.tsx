@@ -1,6 +1,7 @@
-import { Button, Link } from 'boltdocs/primitives'
+import { Link } from 'boltdocs/primitives'
 import { ArrowRight } from 'lucide-react'
 import Orb from './orb'
+import { latest } from './data/version.json'
 
 export const Hero = () => {
   return (
@@ -15,7 +16,7 @@ export const Hero = () => {
       <div className="w-full mx-auto text-center relative z-10">
         <div className="inline-flex items-center gap-3 p-1 pr-4 rounded-full bg-white/5 border border-white/10 hover:border-primary-400/30 transition-all cursor-pointer group mb-10 backdrop-blur-sm">
           <span className="px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest text-black bg-white">
-            v2.6.2
+            v{latest}
           </span>
           <span className="text-sm font-bold text-body/60 group-hover:text-body transition-colors flex items-center gap-2">
             Available now!
@@ -49,18 +50,6 @@ export const Hero = () => {
           >
             Read the API
           </Link>
-        </div>
-
-        <div className="mt-16 max-w-4xl mx-auto rounded-3xl overflow-hidden border border-white/5 bg-black/20 backdrop-blur-3xl shadow-2xl relative">
-          <video
-            autoPlay
-            loop
-            muted
-            playsInline
-            className="w-full h-auto aspect-video object-cover"
-          >
-            <source src="/boltdocs-video.mp4" type="video/mp4" />
-          </video>
         </div>
       </div>
     </section>

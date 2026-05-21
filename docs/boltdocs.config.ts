@@ -59,12 +59,11 @@ export default defineConfig({
       alt: 'Boltdocs Logo',
     },
     tabs: [
-      { id: 'guides', text: 'Guides', icon: 'BookOpen' },
-      { id: 'integrations', text: 'Integrations', icon: 'Puzzle' },
-      { id: 'api', text: 'API', icon: 'Code2' },
-      { id: 'plugins', text: 'Plugins', icon: 'Package' },
-      { id: 'components', text: 'Components', icon: 'Layers' },
-      { id: 'changelog', text: 'Changelog', icon: 'Clock' },
+      { id: 'guides', text: 'Guides', },
+      { id: 'integrations', text: 'Integrations', },
+      { id: 'api', text: 'API', },
+      { id: 'plugins', text: 'Plugins', },
+      { id: 'components', text: 'Components', },
     ],
     navbar: [
       {

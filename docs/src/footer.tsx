@@ -65,12 +65,6 @@ export const Footer = () => {
               >
                 API Reference
               </Link>
-              <Link
-                href="/docs/changelog"
-                className="hover:text-primary-500 transition-colors"
-              >
-                Changelog
-              </Link>
             </div>
           </div>
         </div>
