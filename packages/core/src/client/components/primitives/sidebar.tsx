@@ -145,7 +145,10 @@ export function SidebarContent({ children, className }: ComponentBase) {
   return (
     <div
       ref={scrollRef}
-      className={cn('flex-1 overflow-y-auto p-4 custom-scrollbar', className)}
+      className={cn(
+        'flex-1 overflow-y-auto p-4 pb-16 custom-scrollbar',
+        className,
+      )}
     >
       <nav className="flex flex-col gap-6">{children}</nav>
     </div>
@@ -293,7 +296,9 @@ export function SidebarItem({
   const hasChildren = !!route.routes?.length || !!route.subRoutes?.length
   const children = route.routes || route.subRoutes
 
-  const [isOpen, setIsOpen] = useState(() => activePath.startsWith(localizedHref))
+  const [isOpen, setIsOpen] = useState(() =>
+    activePath.startsWith(localizedHref),
+  )
   const [prevActivePath, setPrevActivePath] = useState(activePath)
 
   if (activePath !== prevActivePath) {

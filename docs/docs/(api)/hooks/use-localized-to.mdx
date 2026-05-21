@@ -1,0 +1,64 @@
+---
+title: useLocalizedTo
+description: Utility hook to automatically append locale and version segments to path links.
+---
+
+The `useLocalizedTo` hook prefixes path links with the active version and locale language codes so that users do not lose their current location context when clicking internal anchors.
+
+---
+
+## Import
+
+```tsx
+import { useLocalizedTo } from 'boltdocs/client'
+```
+
+---
+
+## Method Signature
+
+```ts
+function useLocalizedTo(to: string): string
+```
+
+### Parameters
+
+- **`to`** (`string`): The destination relative link path (e.g. `/getting-started`).
+
+### Return Value
+
+- Returns the fully constructed destination path string containing the active version and language subdirectories (e.g. `/docs/2.x/es/getting-started`).
+
+---
+
+## Behavior Rules
+
+- **Unchanged Inputs**: Absolute external links (`http://`, `https://`, `//`) or target hash anchors (`#installation`) are bypassed and returned unmodified.
+- **Docs Context Resolution**: If the configuration contains `base` paths, the hook injects the active version tag and locale code between the base and content directories:
+  `"/getting-started"` ➔ `"/docs/[version]/[locale]/getting-started"`
+- **External Page Context**: Non-doc routing URLs are prefixed only with the active locale code:
+  `"/about"` ➔ `"/es/about"`
+
+---
+
+## Usage Example
+
+Below is a custom link selector component that handles routing localization using the `useLocalizedTo` hook:
+
+```tsx
+import React from 'react'
+import { useLocalizedTo } from 'boltdocs/client'
+
+export default function LocalLink({ href, label }: { href: string; label: string }) {
+  const targetPath = useLocalizedTo(href)
+
+  return (
+    <a
+      href={targetPath}
+      className="text-sm text-zinc-500 hover:text-zinc-950 transition-colors"
+    >
+      {label}
+    </a>
+  )
+}
+```

@@ -1,0 +1,180 @@
+---
+title: Custom Layout
+sidebarPosition: 4
+description: Override the default docs layout with your own React component using docs/layout.tsx.
+---
+
+Boltdocs wraps every MDX page in a layout. By default, it uses `DocsLayout` which includes the navbar, sidebar, content area, and on-this-page navigation. You can override this by creating a custom layout.
+
+---
+
+## Creating a Custom Layout
+
+Create `docs/layout.tsx` in your docs folder:
+
+```tsx
+import { DocsLayout } from 'boltdocs/client'
+
+export default function Layout({ children }: { children: React.ReactNode }) {
+  return <DocsLayout>{children}</DocsLayout>
+}
+```
+
+This replaces the default layout for **all** pages in your docs.
+
+---
+
+## Full Custom Layout
+
+For complete control, build your own layout from primitives:
+
+```tsx
+import { Navbar, Sidebar, OnThisPage, Breadcrumbs, PageNav } from 'boltdocs/client'
+
+export default function CustomLayout({
+  children,
+  frontmatter,
+  headings,
+}: {
+  children: React.ReactNode
+  frontmatter: Record<string, any>
+  headings: { id: string; text: string; level: number }[]
+}) {
+  return (
+    <div className="min-h-screen">
+      <Navbar />
+      <div className="flex">
+        <Sidebar />
+        <div className="flex-1 max-w-4xl mx-auto px-8 py-12">
+          <Breadcrumbs />
+          <article className="prose dark:prose-invert max-w-none">
+            {children}
+          </article>
+          <OnThisPage headings={headings} />
+          <PageNav />
+        </div>
+      </div>
+    </div>
+  )
+}
+```
+
+---
+
+## Layout Props
+
+Your custom layout receives these props:
+
+| Prop | Type | Description |
+| :--- | :--- | :--- |
+| **`children`** | `ReactNode` | The rendered MDX content |
+| **`frontmatter`** | `Record<string, any>` | The current page's frontmatter fields |
+| **`headings`** | `Heading[]` | Extracted headings for on-this-page |
+
+### `Heading` Type
+
+```ts
+interface Heading {
+  id: string
+  text: string
+  level: number // 1-6 (h1-h6)
+}
+```
+
+---
+
+## Using DocsLayout Components
+
+Boltdocs exports layout primitives you can mix and match:
+
+| Component | Purpose |
+| :--- | :--- |
+| **`DocsLayout`** | Default layout with navbar, sidebar, content, on-this-page |
+| **`Navbar`** | Top navigation bar with tabs and search |
+| **`Sidebar`** | Left sidebar with groups and collapsible sections |
+| **`OnThisPage`** | Right-side table of contents |
+| **`Breadcrumbs`** | Path navigation below navbar |
+| **`PageNav`** | Previous/next page navigation at bottom |
+| **`SearchDialog`** | Global search modal |
+
+---
+
+## Layout Example: Landing Page Style
+
+```tsx
+import { Navbar, SearchDialog } from 'boltdocs/client'
+
+export default function LandingLayout({
+  children,
+}: {
+  children: React.ReactNode
+}) {
+  return (
+    <div className="min-h-screen bg-gradient-to-b from-white to-zinc-50 dark:from-zinc-900 dark:to-zinc-950">
+      <Navbar />
+      <SearchDialog />
+      <main className="max-w-5xl mx-auto px-6 py-20">
+        {children}
+      </main>
+    </div>
+  )
+}
+```
+
+---
+
+## Conditional Layouts
+
+Use frontmatter to select different layouts:
+
+```tsx
+// docs/layout.tsx
+import { DocsLayout } from 'boltdocs/client'
+
+export default function Layout(props: any) {
+  if (props.frontmatter?.layout === 'landing') {
+    return <LandingLayout {...props} />
+  }
+  return <DocsLayout>{props.children}</DocsLayout>
+}
+```
+
+Then in your MDX:
+
+```md
+---
+title: Welcome
+layout: landing
+---
+```
+
+---
+
+## Combining with External Pages
+
+External pages (`pages-external/`) have their own `layout` export. Use the same approach for consistency:
+
+```tsx
+// docs/pages-external/index.tsx
+import { Navbar } from 'boltdocs/client'
+import CustomPage from './CustomPage'
+
+export const pages = {
+  '/custom': CustomPage,
+}
+
+export const layout = ({ children }: { children: React.ReactNode }) => (
+  <div className="custom-wrapper">
+    <Navbar />
+    {children}
+  </div>
+)
+```
+
+---
+
+## Performance Notes
+
+- Custom layouts are rendered server-side during SSG
+- In dev mode, layout changes trigger hot reload
+- Heavy custom layouts may slow initial page load — keep them lean

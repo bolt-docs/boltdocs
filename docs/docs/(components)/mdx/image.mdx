@@ -1,0 +1,36 @@
+---
+title: Image
+sidebarPosition: 4
+description: Render theme-aware, responsive, and beautifully styled images using the Image component.
+---
+
+Boltdocs automatically styles default Markdown images, giving them a subtle shadow, rounded corners, and centered alignment. Additionally, you can use the `<Image>` component directly to configure theme-aware behaviors.
+
+---
+
+## Usage
+
+### Standard Markdown Images
+Standard Markdown image definitions are automatically intercepted and rendered with Boltdocs' premium styling:
+
+```mdx
+![Architecture Diagram](/public/light.svg)
+```
+
+### Theme-Aware Rendering
+You can use the `<Image>` component to render different assets depending on whether the user is viewing the site in light or dark mode.
+
+```mdx
+<Image src="/public/light.svg" alt="System Flow" theme="light" />
+<Image src="/public/dark.svg" alt="System Flow" theme="dark" />
+```
+
+---
+
+## Props
+
+| Prop | Type | Default | Description |
+| :--- | :--- | :--- | :--- |
+| **`src`** | `string` | *Required* | Absolute or relative path to the image asset. |
+| **`alt`** | `string` | `''` | Alternative description text for screen readers and SEO. |
+| **`theme`** | `'light' \| 'dark'` | `undefined` | Restricts visibility to a single theme. The image is hidden when the other theme is active. |

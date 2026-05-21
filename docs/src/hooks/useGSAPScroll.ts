@@ -31,6 +31,7 @@ interface GSAPScrollOptions {
   scale?: number
   intensity?: number
   clipDirection?: 'top' | 'bottom' | 'left' | 'right'
+  once?: boolean
 }
 
 function getAnimationProps(type: AnimationType, intensity: number) {
@@ -86,6 +87,7 @@ export function useGSAPScroll(
     y = 60,
     scale = 0.9,
     intensity = 60,
+    once = true,
   } = options
 
   useEffect(() => {
@@ -104,13 +106,14 @@ export function useGSAPScroll(
           start,
           end,
           scrub,
-          toggleActions: 'play none none reverse',
+          once,
+          toggleActions: once ? 'play none none none' : 'play none none reverse',
         },
       })
     }, ref)
 
     return () => ctx.revert()
-  }, [ref, animation, start, end, delay, duration, scrub, intensity])
+  }, [ref, animation, start, end, delay, duration, scrub, intensity, once])
 }
 
 export function useGSAPParallax(
@@ -158,7 +161,8 @@ export function useGSAPSectionReveal(ref: React.RefObject<HTMLElement | null>) {
             start: 'top 85%',
             end: 'top 50%',
             scrub: false,
-            toggleActions: 'play none none reverse',
+            once: true,
+            toggleActions: 'play none none none',
           },
         },
       )
@@ -180,6 +184,7 @@ export function useGSAPStaggerIn(
     stagger = 0.1,
     y = 40,
     scale = 0.95,
+    once = true,
   } = options
 
   useEffect(() => {
@@ -202,14 +207,15 @@ export function useGSAPStaggerIn(
             trigger: ref.current,
             start,
             end,
-            toggleActions: 'play none none reverse',
+            once,
+            toggleActions: once ? 'play none none none' : 'play none none reverse',
           },
         },
       )
     }, ref)
 
     return () => ctx.revert()
-  }, [ref, start, end, delay, duration, stagger, y, scale])
+  }, [ref, start, end, delay, duration, stagger, y, scale, once])
 }
 
 export function useGSAPExitAnimation(

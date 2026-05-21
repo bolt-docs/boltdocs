@@ -1,0 +1,86 @@
+---
+title: useI18n
+description: Manage and switch between different languages/locales.
+---
+
+The `useI18n` hook returns details about the active documentation locale, lists available languages defined in `boltdocs.config.ts`, and provides a helper function to change the active locale.
+
+---
+
+## Import
+
+```tsx
+import { useI18n } from 'boltdocs/client'
+```
+
+---
+
+## Response Schema
+
+The hook returns the following object parameters:
+
+```ts
+interface UseI18nReturn {
+  currentLocale: string | undefined      // The active language locale string (e.g. 'en', 'es')
+  currentLocaleLabel: string | undefined // The human-readable label of the active language
+  availableLocales: LocaleOption[]       // List of all locales configured in the workspace
+  handleLocaleChange: (locale: string) => void // Navigates and re-routes to the targeted locale
+}
+
+interface LocaleOption {
+  key: string                            // Locale key matching directory naming (e.g. 'en')
+  label: string                          // Human-readable language descriptor (e.g. 'English')
+  value: string                          // Matching routing path prefix
+  isCurrent: boolean                     // True if this option is the active locale
+}
+```
+
+---
+
+## Usage Example
+
+Below is a reference language selection dropdown component crafted using custom buttons and the `useI18n` hook:
+
+```tsx
+import React, { useState } from 'react'
+import { useI18n } from 'boltdocs/client'
+
+export default function LanguageSelector() {
+  const { currentLocaleLabel, availableLocales, handleLocaleChange } = useI18n()
+  const [isOpen, setIsOpen] = useState(false)
+
+  if (availableLocales.length <= 1) return null
+
+  return (
+    <div className="relative inline-block text-left">
+      <button
+        onClick={() => setIsOpen(!isOpen)}
+        className="px-3 py-1.5 border rounded-lg text-sm bg-surface hover:bg-zinc-50 dark:hover:bg-zinc-900 transition-colors"
+      >
+        Language: <span className="font-semibold">{currentLocaleLabel}</span>
+      </button>
+
+      {isOpen && (
+        <div className="absolute right-0 mt-2 w-48 border rounded-lg bg-surface shadow-lg z-50 p-1 flex flex-col gap-1">
+          {availableLocales.map((loc) => (
+            <button
+              key={loc.key}
+              onClick={() => {
+                handleLocaleChange(loc.key)
+                setIsOpen(false)
+              }}
+              className={`w-full text-left px-3 py-2 text-xs rounded-md transition-colors ${
+                loc.isCurrent
+                  ? 'bg-primary-500/10 text-primary-600 font-semibold'
+                  : 'hover:bg-zinc-100 dark:hover:bg-zinc-800'
+              }`}
+            >
+              {loc.label}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+```

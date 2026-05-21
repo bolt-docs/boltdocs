@@ -76,10 +76,7 @@ function Content({ children, className, style }: SlotProps) {
 function ContentMdx({ children, className, style }: SlotProps) {
   return (
     <div
-      className={cn(
-        'boltdocs-page mx-auto pt-4 pb-20 px-4 sm:px-8 max-w-content-max',
-        className,
-      )}
+      className={cn('boltdocs-page mx-auto pt-4 pb-20 px-4 sm:px-8', className)}
       style={style}
     >
       <SearchHighlight />
@@ -93,10 +90,7 @@ function ContentMdx({ children, className, style }: SlotProps) {
  */
 function Header({ children, className, style }: SlotProps) {
   return (
-    <header
-      className={cn('mb-10', className)}
-      style={style}
-    >
+    <header className={cn('mb-10', className)} style={style}>
       {children}
     </header>
   )

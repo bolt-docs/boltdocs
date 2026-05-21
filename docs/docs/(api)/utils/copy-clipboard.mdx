@@ -1,0 +1,62 @@
+---
+title: copyToClipboard
+description: "Safely write string values to the user's system clipboard using browser APIs."
+---
+
+The `copyToClipboard` utility attempts to write string data to the operating system clipboard, with fallbacks for older browsers.
+
+---
+
+## Import
+
+```tsx
+import { copyToClipboard } from 'boltdocs/client'
+```
+
+---
+
+## Signature
+
+```ts
+function copyToClipboard(text: string): Promise<boolean>
+```
+
+### Returns
+A promise resolving to `true` if copying succeeded, and `false` if it encountered permission errors or browser capability failures.
+
+---
+
+## Example: Code Snippet Copy Trigger
+
+```tsx
+import React, { useState } from 'react'
+import { copyToClipboard } from 'boltdocs/client'
+
+interface CodeBoxProps {
+  code: string
+}
+
+export function CodeBox({ code }: CodeBoxProps) {
+  const [copied, setCopied] = useState(false)
+
+  const handleCopy = async () => {
+    const success = await copyToClipboard(code)
+    if (success) {
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    }
+  }
+
+  return (
+    <div className="relative border rounded p-4 bg-zinc-950 text-white font-mono text-sm">
+      <pre>{code}</pre>
+      <button
+        onClick={handleCopy}
+        className="absolute top-2 right-2 px-2 py-1 text-xs bg-zinc-800 rounded hover:bg-zinc-700"
+      >
+        {copied ? 'Copied! ✓' : 'Copy'}
+      </button>
+    </div>
+  )
+}
+```

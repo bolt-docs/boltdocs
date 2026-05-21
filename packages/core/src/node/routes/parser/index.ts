@@ -28,10 +28,25 @@ export async function parseDocFile(
   const cached = await ParserCache.get(file)
   if (cached) return cached
 
+  const normalizedFile = file.replace(/\\/g, '/')
+  const normalizedDocsDir = docsDir.replace(/\\/g, '/')
+
   // 1. Security Validation (Now deferred after cache miss)
-  const decodedFile = validateFilePath(file)
-  const absoluteFile = path.resolve(decodedFile)
-  const absoluteDocsDir = path.resolve(docsDir)
+  const decodedFile = validateFilePath(normalizedFile)
+  let absoluteFile = path.resolve(decodedFile)
+  let absoluteDocsDir = path.resolve(normalizedDocsDir)
+
+  if (path.sep === '/') {
+    const toPosix = (p: string) => {
+      let resolved = p.replace(/\\/g, '/')
+      if (/^[a-zA-Z]:/.test(resolved)) {
+        resolved = resolved.replace(/^[a-zA-Z]:/, '')
+      }
+      return path.resolve(resolved)
+    }
+    absoluteFile = toPosix(decodedFile)
+    absoluteDocsDir = toPosix(normalizedDocsDir)
+  }
 
   const relativePathForSecurity = path
     .relative(absoluteDocsDir, absoluteFile)
@@ -87,7 +102,9 @@ export async function parseDocFile(
       filePath: resolution.relativePath,
       title:
         sanitizedStrings.title ||
-        stripNumberPrefix(path.basename(file, path.extname(file))),
+        stripNumberPrefix(
+          path.basename(normalizedFile, path.extname(normalizedFile)),
+        ),
       description: contentData.description,
       sidebarPosition,
       headings: contentData.headings,

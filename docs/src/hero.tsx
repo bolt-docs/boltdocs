@@ -23,24 +23,31 @@ export const Hero = () => {
           </span>
         </div>
 
-        <h1 className="text-2xl md:text-4xl lg:text-5xl font-bold text-body mb-8">
-          The documentation engine <br className="hidden md:block" />
-          <span className="bg-linear-to-r from-primary-400 via-purple-600 to-purple-200 bg-clip-text text-transparent">
-            Modern
+        <h1 className="text-4xl md:text-6xl lg:text-7xl font-black text-body tracking-tighter mb-8 leading-tight">
+          The modern <br className="hidden md:block" />
+          <span className="bg-linear-to-r from-primary-400 via-primary-500 to-purple-500 bg-clip-text text-transparent drop-shadow-sm">
+            documentation engine
           </span>
         </h1>
 
-        <p className="max-w-xl mx-auto text-sm md:text-lg text-body/70 mb-10">
-          Boltdocs is a high-performance developer documentation, optimized for
-          speed, and beautiful by design.
+        <p className="max-w-2xl mx-auto text-base md:text-xl text-body/70 mb-10 leading-relaxed font-medium">
+          Building documentation for your project has never been easier. Create
+          beautiful, highly customizable, and extremely fast sites out of the
+          box.
         </p>
 
         <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
           <Link
-            href="/docs/guides/overview/introduction"
-            className="bg-body text-main hover:scale-105 transition-transform"
+            href="/docs/guides"
+            className="px-8 py-4 bg-primary-500 text-white font-bold rounded-full hover:scale-105 hover:shadow-[0_0_30px_rgba(235,88,40,0.4)] transition-all duration-300 flex items-center justify-center border-0"
           >
-            Get Started
+            Get Started <ArrowRight className="w-5 h-5 ml-2" />
+          </Link>
+          <Link
+            href="/docs/api"
+            className="px-8 py-4 bg-transparent backdrop-blur-md text-body font-bold rounded-full border border-white/10 hover:bg-white/5 hover:scale-105 transition-all duration-300 flex items-center justify-center"
+          >
+            Read the API
           </Link>
         </div>
 

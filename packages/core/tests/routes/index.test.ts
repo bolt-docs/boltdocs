@@ -1,5 +1,8 @@
 import { describe, it, expect, vi, beforeEach, afterAll } from 'vitest'
-import { generateRoutes, invalidateRouteCache } from '../../src/node/routes/index'
+import {
+  generateRoutes,
+  invalidateRouteCache,
+} from '../../src/node/routes/index'
 import * as parser from '../../src/node/routes/parser'
 import { docCache } from '../../src/node/routes/cache'
 import fs from 'fs'

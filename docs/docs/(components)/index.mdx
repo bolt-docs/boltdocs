@@ -1,0 +1,106 @@
+---
+title: Components
+sidebarPosition: 1
+description: Complete reference for Boltdocs components — MDX content components and layout primitives.
+---
+
+Boltdocs provides three categories of components:
+
+1. **MDX Components** — Available inside `.mdx` content files.
+2. **Layout Primitives** — Structural components for composing custom documentation page layouts.
+3. **UI Primitives** — Modular, fully accessible interface controls.
+
+---
+
+## MDX Components
+
+These components are automatically registered globally and available in every `.mdx` file:
+
+| Component | Description |
+| :--- | :--- |
+| **`<Callout>`** | Alert boxes with variants: note, info, tip, warning, danger. |
+| **`<Card>` / `<Cards>`** | Grid of clickable cards for dashboard navigation. |
+| **`<Field>`** | Inline API property descriptor rows. |
+| **`<Image>`** | Theme-aware layout-friendly images with legends. |
+| **`<Mermaid>`** | Diagram rendering block (requires mermaid plugin). |
+
+---
+
+## Layout Primitives
+
+Structural components exported from `'boltdocs/primitives'` used to construct custom documentation layouts:
+
+| Component | Description |
+| :--- | :--- |
+| **`DocsLayout`** | Main shell container for the docs page grid. |
+| **`Navbar`** | Top header navigation bar with tabs and triggers. |
+| **`Sidebar`** | Left sidebar directory navigation list. |
+| **`SearchDialog`** | Accessible overlay search dialog modal. |
+| **`OnThisPage`** | Right column table of contents scroll-spy tracker. |
+| **`Breadcrumbs`** | Inline path tracker breadcrumb bar. |
+| **`PageNav`** | Pager navigation links for adjacent pages. |
+| **`ErrorBoundary`** | Interactive React runtime error boundary. |
+
+---
+
+## UI Primitives
+
+Generic accessible user interface components exported from `'boltdocs/primitives'`:
+
+| Component | Description |
+| :--- | :--- |
+| **`Button`** | Accessible press trigger wrapping React Aria. |
+| **`ButtonGroup`** | Layout container grouping adjacent buttons. |
+| **`Tabs`** | Composable tabbed panel switcher. |
+| **`Popover`** | Floating contextual overlay dialog. |
+| **`Tooltip`** | Hover/focus popup helper label bubble. |
+| **`Link`** | Localized SPA routing anchor tag. |
+| **`Heading`** | Renders HTML headings with automated anchor links. |
+| **`Menu`** | Dropdown option action and nesting selection menus. |
+| **`Skeleton`** | Pulsing loading state placeholder. |
+
+---
+
+## Quick Start
+
+### Using MDX Components
+
+```mdx
+<Callout variant="tip" title="Pro Tip">
+  Use Cards to link to related pages!
+</Callout>
+
+<Cards>
+  <Card title="Installation" href="/docs/guides/getting-started/installation">
+    Get started in 2 minutes
+  </Card>
+</Cards>
+```
+
+### Using Primitives
+
+```tsx
+import { Navbar, Sidebar, OnThisPage } from 'boltdocs/primitives'
+
+export function MyLayout({ children, headings }) {
+  return (
+    <div>
+      <Navbar />
+      <div className="flex">
+        <Sidebar />
+        <main>{children}</main>
+        <OnThisPage headings={headings} />
+      </div>
+    </div>
+  )
+}
+```
+
+---
+
+## Related Sections
+
+- [MDX Components](/docs/components/mdx/callout) — Callout, Card, Field, Image, and Mermaid component references.
+- [Layout Primitives](/docs/components/layout/docs-layout) — Core structural components like Navbar, Sidebar, and DocsLayout.
+- [UI Primitives](/docs/components/ui/button) — Generic accessible primitives like Button, Tabs, Menu, and Popover.
+- [Custom Layouts](/docs/guides/advanced/custom-layout) — Build your own docs layout from scratch.

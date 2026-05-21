@@ -1,0 +1,180 @@
+---
+title: SEO & Robots
+sidebarPosition: 6
+description: Automatic sitemap, robots.txt, meta tags, and Open Graph images for search engines and social sharing.
+---
+
+Boltdocs automatically generates SEO metadata for every page. This includes sitemap.xml, robots.txt, canonical URLs, Open Graph tags, and Twitter Cards.
+
+---
+
+## Configuration
+
+### Basic SEO
+
+```ts
+export default defineConfig({
+  siteUrl: 'https://docs.example.com',
+  seo: {
+    indexing: 'all', // or 'none', 'noindex'
+    thumbnails: {
+      background: '/og-image.webp',
+    },
+  },
+})
+```
+
+### Robots.txt
+
+```ts
+export default defineConfig({
+  robots: {
+    rules: [
+      {
+        userAgent: '*',
+        allow: '/',
+        disallow: ['/private/', '/draft/'],
+      },
+    ],
+    sitemaps: ['https://docs.example.com/sitemap.xml'],
+  },
+})
+```
+
+---
+
+## SEO Config Reference
+
+### `SeoConfig`
+
+| Property | Type | Default | Description |
+| :--- | :--- | :--- | :--- |
+| **`indexing`** | `'all' \| 'none' \| 'noindex'` | `'all'` | Controls `<meta name="robots">` tag. |
+| **`thumbnails`** | `ThumbnailConfig` | — | Open Graph image settings. |
+| **`defaultImage`** | `string` | — | Fallback OG image for pages without frontmatter. |
+
+### `ThumbnailConfig`
+
+| Property | Type | Description |
+| :--- | :--- | :--- |
+| **`background`** | `string` | Path to background image for OG cards. |
+| **`theme`** | `'light' \| 'dark'` | Theme for auto-generated thumbnails. |
+
+---
+
+## Robots Config Reference
+
+| Property | Type | Description |
+| :--- | :--- | :--- |
+| **`rules`** | `RobotRule[]` | Array of crawling rules. |
+| **`sitemaps`** | `string[]` | URLs to sitemap.xml files. |
+
+### `RobotRule`
+
+| Property | Type | Description |
+| :--- | :--- | :--- |
+| **`userAgent`** | `string` | Target user agent (e.g., `'*'` for all). |
+| **`allow`** | `string \| string[]` | Paths to allow. |
+| **`disallow`** | `string \| string[]` | Paths to disallow. |
+| **`crawlDelay`** | `number` | Delay between requests (in seconds). |
+
+---
+
+## Auto-Generated Files
+
+### sitemap.xml
+
+Generated at build time. Contains all indexed routes with:
+- `loc` — Full URL
+- `lastmod` — Last modified date (from git or file mtime)
+- `changefreq` — Page update frequency
+- `priority` — Calculated from sidebar position
+
+### robots.txt
+
+Generated from your `robots` config. Example output:
+
+```
+User-Agent: *
+Allow: /
+Disallow: /private/
+Sitemap: https://docs.example.com/sitemap.xml
+```
+
+---
+
+## Per-Page SEO Override
+
+Override global SEO settings in frontmatter:
+
+```md
+---
+title: Internal Page
+seo:
+  noindex: true
+  og:image: /custom-og.png
+  twitter:card: summary
+---
+```
+
+| Property | Type | Description |
+| :--- | :--- | :--- |
+| **`noindex`** | `boolean` | Add noindex meta tag. |
+| **`og:image`** | `string` | Custom Open Graph image. |
+| **`og:type`** | `string` | Open Graph type (default: `'website'`). |
+| **`twitter:card`** | `string` | Twitter card type. |
+
+---
+
+## Open Graph Images
+
+Boltdocs auto-generates OG images using `seo.thumbnails.background`. Each page gets a generated image with:
+- Your background image
+- Page title overlaid
+- Site name in corner
+
+### Manual OG Image
+
+Override per-page:
+
+```md
+---
+seo:
+  og:image: /assets/my-custom-og.png
+---
+```
+
+Or globally:
+
+```ts
+export default defineConfig({
+  seo: {
+    defaultImage: '/default-og.png',
+  },
+})
+```
+
+---
+
+## Canonical URLs
+
+Canonical URLs are auto-generated for every page based on `siteUrl` + page path. This helps consolidate duplicate content issues.
+
+---
+
+## Troubleshooting
+
+### sitemap.xml missing
+
+Ensure `siteUrl` is set in your config.
+
+### Duplicate content
+
+Check canonical URLs in page source. Use `permalink` frontmatter to set consistent URLs.
+
+### OG images not showing
+
+Verify `seo.thumbnails.background` points to a valid image. Check social media card validators:
+
+- [Facebook Debugger](https://developers.facebook.com/tools/debug/)
+- [Twitter Card Validator](https://cards-dev.twitter.com/validator)

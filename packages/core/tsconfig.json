@@ -13,12 +13,7 @@
     "paths": {
       "@/*": ["src/*"],
       "@client/*": ["src/client/*"],
-      "@node/*": ["src/node/*"],
-      "@theme/*": ["src/client/theme/*"],
-      "@components/*": ["src/client/components/*"],
-      "@integrations/*": ["src/client/integrations/*"],
-      "@hooks/*": ["src/client/hooks/*"],
-      "@primitives/*": ["src/client/components/primitives/*"]
+      "@node/*": ["src/node/*"]
     }
   },
   "include": ["src"],

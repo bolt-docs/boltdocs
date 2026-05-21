@@ -1,0 +1,101 @@
+---
+title: Integrations
+sidebarPosition: 1
+description: Connect Boltdocs with external services — analytics, search, i18n, versioning, SEO, and more.
+---
+
+import { BarChart, Tag, Globe, Search, GitBranch, Bot } from 'lucide-react'
+
+Boltdocs integrates with popular services and provides built-in features for search, localization, versioning, and SEO. This section covers all available integrations.
+
+---
+
+## Available Integrations
+
+<Cards cols={3}>
+  <Card title="Google Analytics 4" icon={<BarChart />} href="/docs/integrations/ga4">
+    Track page views and custom events with GA4.
+  </Card>
+  <Card title="Google Tag Manager" icon={<Tag />} href="/docs/integrations/gtm">
+    Deploy and manage tags, analytics, and custom scripts with GTM.
+  </Card>
+  <Card title="Internationalization" icon={<Globe />} href="/docs/integrations/i18n">
+    Multi-language docs with folder-based routing.
+  </Card>
+  <Card title="Search" icon={<Search />} href="/docs/integrations/search">
+    Built-in full-text search — no external service needed.
+  </Card>
+  <Card title="Versioning" icon={<GitBranch />} href="/docs/integrations/versioning">
+    Multiple documentation versions side by side.
+  </Card>
+  <Card title="SEO & Robots" icon={<Bot />} href="/docs/integrations/robots-seo">
+    Automatic sitemap, robots.txt, and meta tags.
+  </Card>
+</Cards>
+
+---
+
+## Built-in Features
+
+### Search
+
+Boltdocs ships with zero-dependency full-text search. The search index is built at compile time and embedded in the client bundle. No API keys, no external services.
+
+- **Indexing:** Titles, headings, descriptions, body text
+- **Trigger:** `Cmd+K` / `Ctrl+K` or click the search button
+- **Customization:** Use `useSearch()` hook or `<SearchDialog>` component
+
+### Internationalization
+
+Locale-based routing using folder conventions. Supports RTL languages, automatic fallbacks for untranslated pages, and locale-specific theming.
+
+- **Config:** `i18n.defaultLocale`, `i18n.locales`
+- **Folder structure:** `docs/es/`, `docs/fr/`
+- **RTL support:** Set `direction: 'rtl'` in locale config
+
+### Versioning
+
+Maintain multiple documentation versions (v1, v2, etc.) in parallel. Each version is a folder at the root of `docs/`.
+
+- **Config:** `versions.defaultVersion`, `versions.versions`
+- **Folder structure:** `docs/v1/`, `docs/v2/`
+- **Version switcher:** Built into the default layout
+
+### SEO & Robots
+
+Automatic meta tags, Open Graph images, sitemap.xml, and robots.txt generation. Fine-grained control per page via frontmatter.
+
+- **Config:** `seo`, `robots`, `siteUrl`
+- **Auto-generated:** `sitemap.xml`, `robots.txt`
+- **Per-page:** Override via frontmatter `seo` field
+
+---
+
+## External Services
+
+### Google Analytics 4
+
+Track page views and custom events. Configure via `integrations.ga4` in your config:
+
+```ts
+integrations: {
+  ga4: {
+    measurementId: 'G-XXXXXXXXXX',
+  },
+}
+```
+
+Page views are tracked automatically. Use the `useTrackEvent()` hook for custom events.
+
+---
+
+## Configuration Reference
+
+| Key | Type | Description |
+| :--- | :--- | :--- |
+| **`integrations.ga4`** | `GA4Config` | Google Analytics 4 settings |
+| **`i18n`** | `I18nConfig` | Internationalization settings |
+| **`versions`** | `VersionsConfig` | Versioning settings |
+| **`seo`** | `SeoConfig` | Global SEO defaults |
+| **`robots`** | `RobotsConfig` | robots.txt configuration |
+| **`siteUrl`** | `string` | Required for absolute URLs in sitemap/og:image |

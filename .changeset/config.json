@@ -12,5 +12,5 @@
   "access": "public",
   "baseBranch": "main",
   "updateInternalDependencies": "patch",
-  "ignore": ["docs", "promo", "examples", "scripts", "tests", "assets"]
+  "ignore": ["docs", "scripts", "tests", "assets"]
 }

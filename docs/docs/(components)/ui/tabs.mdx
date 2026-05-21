@@ -1,0 +1,100 @@
+---
+title: Tabs
+sidebarPosition: 3
+description: Composable layout tabs container for toggling between views.
+---
+
+The `Tabs` primitive provides a modular, keyboard-navigable component structure for organizing content into discrete pane directories.
+
+---
+
+## Import
+
+```tsx
+import { Tabs } from 'boltdocs/primitives'
+```
+
+---
+
+## Quick Start
+
+Compose tab buttons and panels using sub-components:
+
+```tsx
+import React, { useState } from 'react'
+import { Tabs } from 'boltdocs/primitives'
+
+export default function CustomTabs() {
+  const [activeTab, setActiveTab] = useState('tab-1')
+
+  return (
+    <Tabs>
+      <Tabs.List className="border-b border-subtle mb-4">
+        <Tabs.Item
+          id="tab-1"
+          selected={activeTab === 'tab-1'}
+          onClick={() => setActiveTab('tab-1')}
+          className="px-4 py-2 text-sm font-semibold data-[selected=true]:text-primary-500 border-b-2 border-transparent data-[selected=true]:border-primary-500"
+        >
+          Overview
+        </Tabs.Item>
+        <Tabs.Item
+          id="tab-2"
+          selected={activeTab === 'tab-2'}
+          onClick={() => setActiveTab('tab-2')}
+          className="px-4 py-2 text-sm font-semibold data-[selected=true]:text-primary-500 border-b-2 border-transparent data-[selected=true]:border-primary-500"
+        >
+          API Reference
+        </Tabs.Item>
+      </Tabs.List>
+
+      <Tabs.Content>
+        {activeTab === 'tab-1' && <div>Overview content dashboard...</div>}
+        {activeTab === 'tab-2' && <div>Detailed API reference description...</div>}
+      </Tabs.Content>
+    </Tabs>
+  )
+}
+```
+
+---
+
+## Composable Sub-Components
+
+The `Tabs` primitive provides the following namespaces for layout customisation:
+
+| Component | HTML Tag | Description | Props |
+| :--- | :--- | :--- | :--- |
+| **`Tabs.Root`** / **`Tabs`** | `<div>` | Top-level tabs block wrapper. | [`ComponentBaseProps`](#componentbaseprops-common) |
+| **`Tabs.List`** | `<div>` (tablist) | Holds tab category triggers. | [`ComponentBaseProps`](#componentbaseprops-common) |
+| **`Tabs.Item`** | `<button>` (tab) | The individual tab button selector cell. | [`Tabs.Item Props`](#tabsitem-props) |
+| **`Tabs.Content`** | `<div>` (tabpanel) | View container wrapping active content sections. | [`ComponentBaseProps`](#componentbaseprops-common) |
+| **`Tabs.Indicator`** | `<div>` | An absolute positioning highlight line showing the active tab. | [`Tabs.Indicator Props`](#tabsindicator-props) |
+
+---
+
+## Component Props
+
+### ComponentBaseProps (Common)
+
+| Property | Type | Default | Description |
+| :--- | :--- | :--- | :--- |
+| **`children`** | `ReactNode` | `undefined` | Children content elements. |
+| **`className`** | `string` | `undefined` | Custom CSS utility classes. |
+| **`style`** | `CSSProperties` | `undefined` | Inline style settings. |
+
+### `Tabs.Item` Props
+
+| Property | Type | Default | Description |
+| :--- | :--- | :--- | :--- |
+| **`id`** | `string` | *Required* | Unique selector key matching the tab content panel. |
+| **`selected`** | `boolean` | `false` | Highlight active selection state. |
+| **`disabled`** | `boolean` | `false` | Prevents selection click triggers. |
+| **`onClick`** | `() => void` | `undefined` | Triggered selection callback handler. |
+| **`onKeyDown`** | `(e: KeyboardEvent) => void` | `undefined` | Keypress trigger callback handler. |
+
+### `Tabs.Indicator` Props
+
+| Property | Type | Default | Description |
+| :--- | :--- | :--- | :--- |
+| **`style`** | `CSSProperties` | `undefined` | Dynamic coordinates mapping styles (e.g. `transform`, `width`). |

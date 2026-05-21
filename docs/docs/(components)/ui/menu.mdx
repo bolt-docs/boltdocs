@@ -1,0 +1,106 @@
+---
+title: Menu
+sidebarPosition: 8
+description: Composable dropdown and nesting context menus.
+---
+
+The `Menu` primitive is a modular navigation and option selector dropdown component that supports keyboard accessibility, nested sub-menus, search indexing, and selection checkboxes.
+
+---
+
+## Import
+
+```tsx
+import { Menu } from 'boltdocs/primitives'
+```
+
+---
+
+## Quick Start
+
+Compose a fully accessible actions dropdown menu:
+
+```tsx
+import { Menu, Button } from 'boltdocs/primitives'
+
+export default function FileActions() {
+  return (
+    <Menu.Trigger placement="bottom start">
+      <Button className="px-4 py-2 bg-primary-500 text-white rounded-lg">
+        Actions
+      </Button>
+      <Menu className="p-1 bg-surface border border-subtle rounded-lg shadow-lg w-48 flex flex-col gap-0.5">
+        <Menu.Item
+          onAction={() => alert('New document created!')}
+          className="px-3 py-1.5 text-xs text-body hover:bg-soft rounded cursor-default"
+        >
+          New File
+        </Menu.Item>
+        <Menu.Item
+          onAction={() => alert('Document copied!')}
+          className="px-3 py-1.5 text-xs text-body hover:bg-soft rounded cursor-default"
+        >
+          Duplicate File
+        </Menu.Item>
+        <Menu.Separator className="border-t border-subtle my-1" />
+        <Menu.Item
+          onAction={() => alert('Document deleted!')}
+          className="px-3 py-1.5 text-xs text-danger-500 hover:bg-danger-500/10 rounded cursor-default"
+        >
+          Delete File
+        </Menu.Item>
+      </Menu>
+    </Menu.Trigger>
+  )
+}
+```
+
+---
+
+## Composable Sub-Components
+
+Compose rich selection menus and nested layout trees using the following namespaces:
+
+| Component | HTML Tag | Description | Props |
+| :--- | :--- | :--- | :--- |
+| **`Menu.Root`** / **`Menu`** | `<div>` (menu) | Wrapper containing the menu items list viewport. | [`MenuProps`](#menuprops) |
+| **`Menu.Trigger`** | Wrapper | Wraps the trigger Button and the Menu overlay popup. | [`MenuTriggerProps`](#menutriggerprops) |
+| **`Menu.SubTrigger`** | Wrapper | Wraps parent trigger items and nested child submenu layers. | [`SubmenuTriggerProps`](#submenutriggerprops) |
+| **`Menu.Item`** | `<div>` (menuitem) | A single clickable item inside the menu selection list. | [`MenuItemProps`](#menuitemprops) |
+| **`Menu.Section`** | `<div>` | Groups a collection of items under a specific section label. | [`MenuSectionProps`](#menusectionprops) |
+| **`Menu.Separator`** | `<hr>` | Visual separator dividing option categories. | `SeparatorProps` |
+
+---
+
+## Component Props
+
+### `MenuProps`
+
+Inherits standard React Aria `MenuProps` settings:
+
+| Property | Type | Default | Description |
+| :--- | :--- | :--- | :--- |
+| **`onAction`** | `(key: Key) => void` | `undefined` | Callback invoked when any non-disabled item is clicked/selected. |
+| **`className`** | `string` | `undefined` | Custom CSS classes. |
+
+### `MenuTriggerProps`
+
+Inherits React Aria `MenuTriggerProps` plus:
+
+| Property | Type | Default | Description |
+| :--- | :--- | :--- | :--- |
+| **`placement`** | `'bottom' \| 'top' \| 'left' \| 'right' \| 'start' \| 'end'` | `'bottom'` | Alignment position relative to trigger. |
+
+### `MenuItemProps`
+
+Inherits standard React Aria `MenuItemProps` (e.g. `isDisabled`, `onAction`):
+
+| Property | Type | Default | Description |
+| :--- | :--- | :--- | :--- |
+| **`textValue`** | `string` | `undefined` | Text equivalent value matching the item for auto-suggest type-ahead. |
+
+### `MenuSectionProps`
+
+| Property | Type | Default | Description |
+| :--- | :--- | :--- | :--- |
+| **`title`** | `string` | `undefined` | Section label heading text. |

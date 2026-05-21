@@ -51,16 +51,35 @@ const similarityCache = new Map<
   { bestMatch: string; similarity: number }
 >()
 
+const MAX_SIMILARITY_THRESHOLD = 0.8
+
 export function getCachedSimilarity(
   link: string,
   routes: string[],
 ): { bestMatch: string; similarity: number } {
   if (similarityCache.has(link)) return similarityCache.get(link)!
 
+  const linkLen = link.length
   let bestMatch = ''
   let maxSim = 0
+
   for (const route of routes) {
     if (route === link) continue
+
+    const routeLen = route.length
+    const maxLen = Math.max(linkLen, routeLen)
+    if (maxLen === 0) continue
+
+    const lenDiffRatio = Math.abs(linkLen - routeLen) / maxLen
+    const minPossibleSim = 1 - lenDiffRatio
+
+    if (
+      minPossibleSim <= MAX_SIMILARITY_THRESHOLD &&
+      minPossibleSim <= maxSim
+    ) {
+      continue
+    }
+
     const sim = getSimilarity(link, route)
     if (sim > maxSim) {
       maxSim = sim

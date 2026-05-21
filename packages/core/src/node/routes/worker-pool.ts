@@ -84,7 +84,7 @@ export class WorkerPool {
 
         const task = (w as any).currentTask
         if (task) {
-          (w as any).currentTask = null
+          ;(w as any).currentTask = null
           task.reject(err || new Error('Worker terminated unexpectedly'))
         }
 
@@ -99,7 +99,7 @@ export class WorkerPool {
       newWorker.on('message', (response: any) => {
         const task = (newWorker as any).currentTask
         if (task) {
-          (newWorker as any).currentTask = null
+          ;(newWorker as any).currentTask = null
           if (response.type === 'SUCCESS') {
             task.resolve(response.result)
           } else {
@@ -121,8 +121,8 @@ export class WorkerPool {
       })
     }
 
-    const { task, resolve, reject } = this.queue.shift()!;
-    (worker as any).currentTask = { resolve, reject }
+    const { task, resolve, reject } = this.queue.shift()!
+    ;(worker as any).currentTask = { resolve, reject }
     worker.postMessage(task)
   }
 

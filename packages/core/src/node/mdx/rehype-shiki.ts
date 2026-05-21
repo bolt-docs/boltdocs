@@ -2,7 +2,13 @@ import { visit } from 'unist-util-visit'
 import type { BoltdocsConfig } from '../config'
 import { getShikiAdapter, parseMetaString, escapeHtml } from './shiki-adapter'
 import type { ElementNode } from './types'
-import { DATA_ATTRIBUTES, DEFAULTS, HTML_TAGS, MDX_NODES, SHIKI_CLASSES } from './constants'
+import {
+  DATA_ATTRIBUTES,
+  DEFAULTS,
+  HTML_TAGS,
+  MDX_NODES,
+  SHIKI_CLASSES,
+} from './constants'
 
 /**
  * Custom rehype plugin to perform syntax highlighting at build time for
@@ -18,7 +24,7 @@ export function rehypeShiki(config?: BoltdocsConfig) {
     visit(tree, MDX_NODES.ELEMENT, (node: ElementNode) => {
       // Handle standard Markdown code blocks: <pre><code>...</code></pre>
       if (
-        node.tagName === HTML_TAGS.PRE && 
+        node.tagName === HTML_TAGS.PRE &&
         node.children?.[0]?.type === MDX_NODES.ELEMENT &&
         node.children[0].tagName === HTML_TAGS.CODE
       ) {
@@ -28,20 +34,24 @@ export function rehypeShiki(config?: BoltdocsConfig) {
           c.startsWith('language-'),
         )
         const lang = langMatch ? langMatch.slice(9) : DEFAULTS.MDX_DEFAULT_LANG
+
+        // Skip Shiki highlighting for mermaid blocks since they are client-side rendered
+        if (lang === 'mermaid') {
+          return
+        }
+
         const code = codeNode.children?.[0]?.value || ''
 
         // Extract original markdown meta string
         const metaStr: string =
-          codeNode.properties?.metastring || 
-          (codeNode as any).data?.meta || 
-          ''
+          codeNode.properties?.metastring || (codeNode as any).data?.meta || ''
 
         // Parse metadata robustly using structured approach
         const parsedMeta = parseMetaString(metaStr)
-        
+
         const options = adapter.getOptions(lang, parsedMeta)
         let html = ''
-        
+
         try {
           html = highlighter.codeToHtml(code, options)
         } catch (error) {
@@ -51,7 +61,7 @@ export function rehypeShiki(config?: BoltdocsConfig) {
         }
 
         node.properties = node.properties || {}
-        
+
         // Bind title to data attribute if defined
         if (parsedMeta.title) {
           node.properties[DATA_ATTRIBUTES.TITLE] = parsedMeta.title
@@ -61,7 +71,7 @@ export function rehypeShiki(config?: BoltdocsConfig) {
         node.properties[DATA_ATTRIBUTES.HIGHLIGHTED] = 'true'
         node.properties[DATA_ATTRIBUTES.HIGHLIGHTED_HTML] = html
         node.properties[DATA_ATTRIBUTES.LANG] = lang
-        
+
         // Clear the pre children as we rendered statically via data-highlighted-html
         node.children = []
       }

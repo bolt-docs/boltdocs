@@ -1,0 +1,99 @@
+---
+title: Breadcrumbs
+sidebarPosition: 6
+description: "A navigation path indicator showing the user's location in the documentation hierarchy."
+---
+
+The `Breadcrumbs` component displays a horizontal chain of breadcrumb links indicating the navigation structure of the current active page.
+
+---
+
+## Import
+
+```tsx
+import { Breadcrumbs } from 'boltdocs/primitives'
+```
+
+---
+
+## Composable Breadcrumbs Example
+
+Using the primitive `Breadcrumbs` sub-components, you can design a custom breadcrumbs indicator. The example below shows how to fetch the path segments via `useBreadcrumbs` and render them with custom icons and separators:
+
+```tsx
+// docs/components/CustomBreadcrumbs.tsx
+import React from 'react'
+import { Breadcrumbs } from 'boltdocs/primitives'
+import { useBreadcrumbs } from 'boltdocs/client'
+import { Home } from 'lucide-react'
+
+export default function CustomBreadcrumbs() {
+  const { crumbs, activeRoute } = useBreadcrumbs()
+
+  if (crumbs.length === 0) return null
+
+  return (
+    <Breadcrumbs.Root className="flex items-center gap-2 text-sm font-medium">
+      
+      {/* 1. Home Base Node */}
+      <Breadcrumbs.Item>
+        <Breadcrumbs.Link href="/" className="text-muted hover:text-body transition-colors flex items-center">
+          <Home size={14} />
+        </Breadcrumbs.Link>
+      </Breadcrumbs.Item>
+
+      {/* 2. Sibling Nodes */}
+      {crumbs.map((crumb, idx) => {
+        const isActive = crumb.href === activeRoute?.path
+
+        return (
+          <Breadcrumbs.Item key={`${crumb.href}-${idx}`} className="gap-2">
+            <Breadcrumbs.Separator className="text-muted/40" />
+            <Breadcrumbs.Link
+              href={crumb.href}
+              className={isActive
+                ? 'text-body font-semibold cursor-default pointer-events-none'
+                : 'text-muted hover:text-body transition-colors'
+              }
+            >
+              {crumb.label}
+            </Breadcrumbs.Link>
+          </Breadcrumbs.Item>
+        )
+      })}
+    </Breadcrumbs.Root>
+  )
+}
+```
+
+---
+
+## Composable Sub-Components
+
+The `Breadcrumbs` primitive provides the following sub-components for structure customization:
+
+| Component | HTML Tag | Description | Props |
+| :--- | :--- | :--- | :--- |
+| **`Breadcrumbs.Root`** / **`Breadcrumbs`** | `<nav>` | The main wrapping inline nav container shell. | [`ComponentBaseProps`](#componentbaseprops-common) |
+| **`Breadcrumbs.Item`** | `<li>` | The individual breadcrumb cell container. | [`ComponentBaseProps`](#componentbaseprops-common) |
+| **`Breadcrumbs.Link`** | `<a>` | An optimized anchor element linking to a parent routing category. | [`Breadcrumbs.Link Props`](#breadcrumbslink-props) |
+| **`Breadcrumbs.Separator`** | `<span>` | Renders a directional separation icon (defaults to Chevron Right icon). | [`ComponentBaseProps`](#componentbaseprops-common) |
+
+---
+
+## Component Props
+
+### ComponentBaseProps (Common)
+
+| Property | Type | Default | Description |
+| :--- | :--- | :--- | :--- |
+| **`children`** | `ReactNode` | `undefined` | Children content elements. |
+| **`className`** | `string` | `undefined` | Custom CSS utility classes. |
+| **`style`** | `CSSProperties` | `undefined` | Inline styling overrides. |
+
+### `Breadcrumbs.Link` Props
+
+| Property | Type | Default | Description |
+| :--- | :--- | :--- | :--- |
+| **`href`** | `string` | *Required* | Navigation route destination path. |
+| **`className`** | `string` | `undefined` | CSS class style override. |

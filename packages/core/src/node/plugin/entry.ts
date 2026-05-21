@@ -52,7 +52,7 @@ const ${name} = _comp_${name}.default || _comp_${name}['${name}'] || _comp_${nam
     ? 'externalPages: _external_module.pages, externalLayout: _external_module.layout,'
     : ''
 
-  // Use eager loading so all pages are available synchronously for instant navigation.
+  // Use eager loading for instant content display - modules are pre-loaded.
   const globMode = '{ eager: true }'
 
   return `

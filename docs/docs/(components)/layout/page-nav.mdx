@@ -1,0 +1,108 @@
+---
+title: PageNav
+sidebarPosition: 7
+description: Previous/next page navigation buttons rendered at the bottom of pages.
+---
+
+The `PageNav` component displays navigation controls at the bottom of pages, pointing readers to the logically preceding or following chapters.
+
+---
+
+## Import
+
+```tsx
+import { PageNav } from 'boltdocs/primitives'
+```
+
+---
+
+## Composable Page Navigation Example
+
+Using the primitive `PageNav` sub-components, you can compose a custom footer pager. The example below shows how to retrieve active page sibling metadata via `usePageNav` and structure the links with custom borders and layout styles:
+
+```tsx
+// docs/components/CustomFooterNav.tsx
+import React from 'react'
+import { PageNav } from 'boltdocs/primitives'
+import { usePageNav } from 'boltdocs/client'
+
+export default function CustomFooterNav() {
+  const { prevPage, nextPage } = usePageNav()
+
+  if (!prevPage && !nextPage) return null
+
+  return (
+    <PageNav.Root className="border-t border-subtle pt-8 mt-12 grid grid-cols-2 gap-4">
+      {/* 1. Previous Page Direction */}
+      {prevPage ? (
+        <PageNav.Link
+          to={prevPage.path}
+          direction="prev"
+          className="group p-4 rounded-xl border border-zinc-200 dark:border-zinc-800 hover:border-primary-500 transition-colors"
+        >
+          <PageNav.Title className="text-xs uppercase font-bold text-zinc-400 dark:text-zinc-500 group-hover:text-primary-500 transition-colors">
+            Previous Chapter
+          </PageNav.Title>
+          <PageNav.Description className="text-sm font-semibold text-zinc-800 dark:text-zinc-200 mt-1">
+            {prevPage.title}
+          </PageNav.Description>
+        </PageNav.Link>
+      ) : (
+        <div /> // Column offset spacer
+      )}
+
+      {/* 2. Next Page Direction */}
+      {nextPage ? (
+        <PageNav.Link
+          to={nextPage.path}
+          direction="next"
+          className="group p-4 rounded-xl border border-zinc-200 dark:border-zinc-800 hover:border-primary-500 transition-colors text-right"
+        >
+          <PageNav.Title className="text-xs uppercase font-bold text-zinc-400 dark:text-zinc-500 group-hover:text-primary-500 transition-colors">
+            Next Chapter
+          </PageNav.Title>
+          <PageNav.Description className="text-sm font-semibold text-zinc-800 dark:text-zinc-200 mt-1">
+            {nextPage.title}
+          </PageNav.Description>
+        </PageNav.Link>
+      ) : (
+        <div /> // Column offset spacer
+      )}
+    </PageNav.Root>
+  )
+}
+```
+
+---
+
+## Composable Sub-Components
+
+The `PageNav` primitive provides the following sub-components for structure customization:
+
+| Component | HTML Tag | Description | Props |
+| :--- | :--- | :--- | :--- |
+| **`PageNav.Root`** / **`PageNav`** | `<nav>` | The main outer flex grid container holding pager links. | [`ComponentBaseProps`](#componentbaseprops-common) |
+| **`PageNav.Link`** | `<a>` | An optimized anchor element linking to adjacent pages. Renders chevron arrows automatically. | [`PageNav.Link Props`](#pagenavlink-props) |
+| **`PageNav.Title`** | `<span>` | Directional helper label text (e.g. "Next" or "Previous"). | [`ComponentBaseProps`](#componentbaseprops-common) |
+| **`PageNav.Description`** | `<div>` | Heading title text of the target sibling page document. | [`ComponentBaseProps`](#componentbaseprops-common) |
+| **`PageNav.Icon`** | `<span>` | A layout container used to house custom arrow or caret graphics. | [`ComponentBaseProps`](#componentbaseprops-common) |
+
+---
+
+## Component Props
+
+### ComponentBaseProps (Common)
+
+| Property | Type | Default | Description |
+| :--- | :--- | :--- | :--- |
+| **`children`** | `ReactNode` | `undefined` | Children content elements. |
+| **`className`** | `string` | `undefined` | Custom CSS utility classes. |
+| **`style`** | `CSSProperties` | `undefined` | Inline style settings. |
+
+### `PageNav.Link` Props
+
+| Property | Type | Default | Description |
+| :--- | :--- | :--- | :--- |
+| **`to`** | `string` | *Required* | Sibling routing destination path. |
+| **`direction`** | `'prev' \| 'next'` | *Required* | Direction indicator to control flex ordering and chevrons. |
+| **`className`** | `string` | `undefined` | Custom utility classes. |

@@ -1,0 +1,45 @@
+---
+title: useTheme
+description: Retrieve and update the active color theme (light/dark mode).
+---
+
+The `useTheme` hook lets components subscribe to and modify the active UI color theme.
+
+---
+
+## Import
+
+```tsx
+import { useTheme } from 'boltdocs/client'
+```
+
+---
+
+## Return Values
+
+| Property | Type | Description |
+| :--- | :--- | :--- |
+| **`theme`** | `'light' \| 'dark'` | The active color mode. |
+| **`setTheme`** | `(t: 'light' \| 'dark') => void` | Directly set a specific color mode. |
+| **`toggleTheme`** | `() => void` | Alternate the theme between light and dark modes. |
+
+---
+
+## Example: Custom Theme Toggle Button
+
+```tsx
+import { useTheme } from 'boltdocs/client'
+
+export function ThemeButton() {
+  const { theme, toggleTheme } = useTheme()
+
+  return (
+    <button
+      onClick={toggleTheme}
+      className="p-2 border rounded bg-zinc-100 dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100"
+    >
+      Active: {theme === 'dark' ? '🌙 Dark Mode' : '☀️ Light Mode'}
+    </button>
+  )
+}
+```

@@ -45,13 +45,18 @@ export default defineConfig([
       ],
     },
     async onSuccess() {
-      const src = path.resolve(__dirname, 'src/client/theme/base.css')
+      const src = path.resolve(__dirname, 'src/client/theme/neutral.css')
+      const resetSrc = path.resolve(__dirname, 'src/client/theme/reset.css')
       const destDir = path.resolve(__dirname, 'dist/client/theme')
       if (!fs.existsSync(destDir)) {
         fs.mkdirSync(destDir, { recursive: true })
       }
+
       fs.copyFileSync(src, path.resolve(destDir, 'neutral.css'))
-      console.log('✓ Theme base.css copied as neutral.css to dist')
+      console.log('✓ Theme neutral.css copied to dist')
+
+      fs.copyFileSync(resetSrc, path.resolve(destDir, 'reset.css'))
+      console.log('✓ Theme reset.css copied to dist')
     },
   },
   // Client Build
@@ -59,6 +64,7 @@ export default defineConfig([
     entry: {
       'client/index': 'src/client/index.ts',
       'client/primitives': 'src/client/primitives.ts',
+      'client/mdx': 'src/client/mdx.ts',
     },
     format: ['esm', 'cjs'],
     dts: true,

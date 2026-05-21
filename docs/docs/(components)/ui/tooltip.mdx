@@ -1,0 +1,69 @@
+---
+title: Tooltip
+sidebarPosition: 5
+description: Popup overlay showing supplementary details on element hover.
+---
+
+The `Tooltip` primitive provides accessible, keyboard-aware helper label overlays that appear on mouse hover or element focus.
+
+---
+
+## Import
+
+```tsx
+import { Tooltip } from 'boltdocs/primitives'
+```
+
+---
+
+## Quick Start
+
+Wrap an interactive element to attach a hover/focus helper bubble description:
+
+```tsx
+import { Tooltip, Button } from 'boltdocs/primitives'
+
+export default function App() {
+  return (
+    <Tooltip content="Permanently delete project metadata files" delay={300}>
+      <Button className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700">
+        Delete Repository
+      </Button>
+    </Tooltip>
+  )
+}
+```
+
+---
+
+## Composable Sub-Components
+
+If you need full control over the trigger flow lifecycle, you can compose tooltips using the nested components:
+
+| Component | HTML Tag | Description | Props |
+| :--- | :--- | :--- | :--- |
+| **`Tooltip.Root`** / **`Tooltip`** | Wrapper | Auto-trigger wrapper that manages hover delays and states. | [`Tooltip Props`](#tooltip-props) |
+| **`Tooltip.Content`** | `<div>` | Floating container rendering the tooltip description box and overlay arrow. | [`TooltipContent Props`](#tooltipcontent-props) |
+
+---
+
+## Component Props
+
+### `Tooltip` Props
+
+| Property | Type | Default | Description |
+| :--- | :--- | :--- | :--- |
+| **`content`** | `ReactNode` | *Required* | The content text or graphics to render inside the popover tooltip. |
+| **`children`** | `ReactElement` | *Required* | The interactive trigger target element (must support hover/focus event hooks). |
+| **`delay`** | `number` | `500` | Hover duration delay in milliseconds before the tooltip fades in. |
+| **`closeDelay`** | `number` | `0` | Delay duration in milliseconds before the tooltip fades out on mouse leave. |
+| **`placement`** | `'bottom' \| 'top' \| 'left' \| 'right'` | `'top'` | Preferred positioning alignment side. |
+
+### `Tooltip.Content` Props
+
+Inherits standard React Aria `TooltipProps` properties:
+
+| Property | Type | Default | Description |
+| :--- | :--- | :--- | :--- |
+| **`className`** | `string` | `undefined` | Custom CSS utility class overrides. |
+| **`style`** | `CSSProperties` | `undefined` | Inline styling overrides. |

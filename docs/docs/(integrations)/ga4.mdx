@@ -1,0 +1,196 @@
+---
+title: Google Analytics 4
+sidebarPosition: 5
+description: Track page views and custom events in your documentation using Google Analytics 4.
+---
+
+Boltdocs integrates with Google Analytics 4 (GA4) to give you insights into how users navigate your documentation.
+
+---
+
+## Quick Start
+
+### Step 1: Get your Measurement ID
+
+Create a GA4 property in [Google Analytics](https://analytics.google.com/) and get your Measurement ID (starts with `G-`).
+
+### Step 2: Configure in boltdocs.config.ts
+
+```ts
+export default defineConfig({
+  integrations: {
+    ga4: {
+      measurementId: 'G-XXXXXXXXXX',
+    },
+  },
+})
+```
+
+### Step 3: Deploy
+
+The GA4 script is automatically injected into every page. Page views are tracked automatically.
+
+---
+
+## What Gets Tracked
+
+### Automatic Events
+
+| Event | Description |
+| :--- | :--- |
+| **`page_view`** | Fired on every page navigation (including client-side navigation) |
+| **`first_visit`** | New user session |
+| **`session_start`** | New session |
+
+### Custom Events
+
+You can track custom events using the `useTrackEvent()` hook:
+
+```tsx
+import { useTrackEvent } from 'boltdocs'
+
+export function MyComponent() {
+  const trackEvent = useTrackEvent()
+
+  const handleClick = () => {
+    trackEvent('button_click', {
+      button_id: 'downloadPdf',
+      button_location: 'sidebar',
+    })
+  }
+
+  return <button onClick={handleClick}>Download PDF</button>
+}
+```
+
+---
+
+## Configuration Reference
+
+| Property | Type | Required | Description |
+| :--- | :--- | :--- | :--- |
+| **`measurementId`** | `string` | ✓ | Your GA4 Measurement ID (e.g., `'G-XXXXXXXXXX'`) |
+| **`debug`** | `boolean` | — | Enable GA4 debug mode (logs to console) |
+| **`anonymizeIp`** | `boolean` | — | Anonymize user IP addresses (defaults to `true`) |
+| **`sendPageView`** | `boolean` | — | Enable automatic initial page view tracking (defaults to `true`) |
+| **`cookieFlags`** | `string` | — | Custom cookie flags (e.g., `'SameSite=None;Secure'`) |
+| **`autoTrack`** | `AutoTrackConfig` | — | Custom configuration for automatic tracking (see below) |
+
+### Auto-Track Options (`autoTrack`)
+
+| Sub-Property | Type | Default | Description |
+| :--- | :--- | :--- | :--- |
+| **`pageViews`** | `boolean` | `true` | Track page views automatically on client-side route changes |
+| **`downloads`** | `boolean` | `false` | Track file download links |
+| **`externalLinks`** | `boolean` | `false` | Track clicks on outbound external links |
+| **`search`** | `boolean` | `true` | Track searches performed on the site |
+
+### Advanced Example
+
+```ts
+integrations: {
+  ga4: {
+    measurementId: 'G-XXXXXXXXXX',
+    debug: false,
+    anonymizeIp: true,
+    sendPageView: true,
+    cookieFlags: 'SameSite=None;Secure',
+    autoTrack: {
+      pageViews: true,
+      downloads: true,
+      externalLinks: true,
+      search: true,
+    },
+  },
+}
+```
+
+---
+
+## Using the Hooks
+
+### `useAnalytics()`
+
+Access the full analytics API:
+
+```tsx
+import { useAnalytics } from 'boltdocs'
+
+function MyComponent() {
+  const { trackEvent, trackPageView, setUserProperties } = useAnalytics()
+
+  // Track a custom event
+  trackEvent('search', { query: 'installation' })
+
+  // Track a page view manually
+  trackPageView('/docs/guides/getting-started/installation', 'Installation')
+
+  // Set user properties
+  setUserProperties({ plan: 'enterprise' })
+}
+```
+
+### `useTrackPageView()`
+
+Simplified page view tracking:
+
+```tsx
+import { useTrackPageView } from 'boltdocs'
+
+function DocPage({ title, path }) {
+  const trackPageView = useTrackPageView()
+
+  // Auto-track on mount
+  useEffect(() => {
+    trackPageView(path, title)
+  }, [path, title])
+}
+```
+
+### `useTrackEvent()`
+
+Track arbitrary events:
+
+```tsx
+import { useTrackEvent } from 'boltdocs'
+
+function SearchBox() {
+  const trackEvent = useTrackEvent()
+
+  return (
+    <input
+      onChange={(e) => {
+        trackEvent('search_input', { query: e.target.value })
+      }}
+    />
+  )
+}
+```
+
+---
+
+## Respecting User Privacy
+
+Boltdocs does not implement cookie consent. For GDPR compliance, consider:
+
+1. Adding a cookie consent banner in your custom layout
+2. Only calling GA4 functions after consent is granted
+3. Configuring GA4 to respect Do Not Track
+
+---
+
+## Troubleshooting
+
+### Events not appearing
+
+1. Verify the Measurement ID is correct
+2. Check browser console for errors
+3. Use GA4 DebugView to see events in real-time
+
+### Duplicate page views
+
+Page views are tracked automatically on navigation. Don't call `trackPageView` manually unless needed.
+
+### Build errors
+
+Ensure `integrations.ga4.measurementId` is a string starting with `G-`.

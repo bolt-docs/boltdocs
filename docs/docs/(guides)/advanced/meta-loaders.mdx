@@ -1,0 +1,145 @@
+---
+title: Meta Loaders
+sidebarPosition: 8
+description: Control sidebar groups with meta.json or _meta.json — per-directory metadata for titles, icons, order, and collapsible state.
+---
+
+Boltdocs automatically loads `meta.json` or `_meta.json` files from your docs directories to control sidebar group metadata without editing every individual page.
+
+---
+
+## How It Works
+
+Place a `meta.json` file in any folder inside `docs/`. Boltdocs scans for these files at build time and applies the metadata to that directory's sidebar group.
+
+```
+docs/
+├── guides/
+│   ├── meta.json          ← applies to all guides/ pages
+│   ├── index.md
+│   ├── installation.md
+│   └── configuration.md
+└── api/
+    ├── _meta.json         ← also works with underscore prefix
+    └── reference.md
+```
+
+---
+
+## meta.json Reference
+
+| Property | Type | Description |
+| :--- | :--- | :--- |
+| **`title`** | `string` | Display name for this sidebar group. |
+| **`order`** | `string[] \| number` | Explicit ordering — either a position number or an array of page slugs in desired order. |
+| **`icon`** | `string` | Lucide icon name or raw SVG string for the group icon. |
+| **`collapsible`** | `boolean` | Whether users can collapse/expand this group. Default: `true`. |
+| **`collapsed`** | `boolean` | Whether the group starts collapsed on page load. Default: `false`. |
+
+---
+
+## Examples
+
+### Basic Group Configuration
+
+```json
+{
+  "title": "Getting Started",
+  "icon": "Rocket"
+}
+```
+
+### Collapsed by Default
+
+```json
+{
+  "title": "Advanced Topics",
+  "collapsed": true,
+  "collapsible": true
+}
+```
+
+### Custom Ordering
+
+```json
+{
+  "title": "Guide",
+  "order": ["installation", "configuration", "deployment"]
+}
+```
+
+Or use a numeric position:
+
+```json
+{
+  "title": "Guide",
+  "order": 2
+}
+```
+
+---
+
+## Full Example
+
+```
+docs/
+├── (guides)/
+│   ├── meta.json
+│   ├── index.md
+│   ├── installation.md
+│   └── configuration.md
+└── (api)/
+    ├── meta.json
+    └── reference.md
+```
+
+**guides/meta.json:**
+```json
+{
+  "title": "Guides",
+  "icon": "BookOpen",
+  "collapsible": true,
+  "collapsed": false
+}
+```
+
+**api/meta.json:**
+```json
+{
+  "title": "API Reference",
+  "icon": "Code2",
+  "collapsed": true
+}
+```
+
+---
+
+## Difference Between meta.json and _meta.json
+
+Both work identically. The underscore variant is useful when you want the file to be hidden from the docs but still loaded:
+
+- `meta.json` — Visible in some IDEs, may appear in file browsers
+- `_meta.json` — Excluded from routing like other underscore-prefixed paths
+
+Use whichever fits your workflow.
+
+---
+
+## Precedence
+
+Meta.json settings are applied in this order (later overrides earlier):
+
+1. `theme.sidebarGroups` in config (global)
+2. `meta.json` / `_meta.json` in folder
+3. Frontmatter on folder's `index.md` (e.g., `groupTitle`, `groupPosition`)
+
+---
+
+## Debugging
+
+If meta.json isn't taking effect:
+
+1. Verify the file is named exactly `meta.json` or `_meta.json`
+2. Check for valid JSON (no trailing commas)
+3. Ensure the file is inside a folder containing `.md` or `.mdx` files
+4. Check the console for "[Boltdocs] Failed to read meta.json" warnings

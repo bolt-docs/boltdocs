@@ -1,0 +1,77 @@
+---
+title: Link
+sidebarPosition: 6
+description: Router-integrated localized link anchors.
+---
+
+The `Link` and `NavLink` primitives extend standard HTML anchor links by integrating language locales, base directories, and SPA route navigation.
+
+---
+
+## Import
+
+```tsx
+import { Link, NavLink } from 'boltdocs/primitives'
+```
+
+---
+
+## Quick Start
+
+Create localized, SPA-aware routing links:
+
+```tsx
+import { Link, NavLink } from 'boltdocs/primitives'
+
+export default function SidebarNav() {
+  return (
+    <div className="flex flex-col gap-2">
+      {/* 1. Standard localized navigation */}
+      <Link href="/getting-started" className="text-primary-500 hover:underline">
+        Getting Started
+      </Link>
+
+      {/* 2. NavLink with automatic active state highlighting */}
+      <NavLink
+        href="/api/config-reference"
+        className={({ isActive }) =>
+          `px-3 py-1 rounded text-sm ${isActive ? 'bg-primary-500 text-white' : 'text-muted hover:bg-soft'}`
+        }
+      >
+        Config Reference
+      </NavLink>
+    </div>
+  )
+}
+```
+
+---
+
+## Under-the-Hood Mechanics
+
+* **Localization**: Direct `href` strings (like `/getting-started`) are automatically parsed and translated through the `useLocalizedTo` hook. For instance, on a Spanish localized page, `/getting-started` is transformed to `/es/getting-started` transparently.
+* **SPA Routing**: Internal link clicks intercept default browser navigation to perform fast client-side routing, preventing full page reloads.
+
+---
+
+## Component Props
+
+### `Link` Props
+
+Inherits all standard HTML `anchor` (`<a>`) element attributes:
+
+| Property | Type | Default | Description |
+| :--- | :--- | :--- | :--- |
+| **`href`** | `string` | `undefined` | Target destination route path (e.g. `/docs/getting-started`). |
+| **`prefetch`** | `'hover' \| 'none'` | `'hover'` | Preloading strategy for router link targets. |
+
+### `NavLink` Props
+
+Extends standard `Link` properties:
+
+| Property | Type | Default | Description |
+| :--- | :--- | :--- | :--- |
+| **`href`** | `string` | `undefined` | Target destination path. |
+| **`end`** | `boolean` | `false` | If set to `true`, the link is only highlighted active when the route paths match exactly. |
+| **`className`** | `string \| ((props: { isActive: boolean }) => string)` | `undefined` | Style class name, supporting conditional logic functions. |
+| **`children`** | `ReactNode \| ((props: { isActive: boolean }) => ReactNode)` | `undefined` | Child nodes, supporting conditional rendering functions. |

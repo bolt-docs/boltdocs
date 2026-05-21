@@ -168,3 +168,39 @@ describe('layout integration', () => {
     expect(code).toContain('UserLayout')
   })
 })
+
+describe('virtual:boltdocs-icons integration', () => {
+  it('should load custom icons file if present', async () => {
+    const docsDir = path.join(tempDir, 'docs')
+    fs.mkdirSync(docsDir, { recursive: true })
+
+    fs.writeFileSync(
+      path.join(docsDir, 'icons.tsx'),
+      'export const MyCustomIcon = () => <svg></svg>',
+    )
+
+    const { boltdocsPlugin } = await import('../../src/node/plugin')
+    const plugins = boltdocsPlugin({ docsDir })
+    const vmPlugin = plugins.find(
+      (p) => p.name === 'vite-plugin-boltdocs-virtual-modules',
+    )!
+
+    const code = await vmPlugin.load!('\0virtual:boltdocs-icons')
+    expect(code).toContain('icons.tsx')
+    expect(code).toContain('export default icons;')
+  })
+
+  it('should return empty object if custom icons file is not present', async () => {
+    const docsDir = path.join(tempDir, 'docs')
+    fs.mkdirSync(docsDir, { recursive: true })
+
+    const { boltdocsPlugin } = await import('../../src/node/plugin')
+    const plugins = boltdocsPlugin({ docsDir })
+    const vmPlugin = plugins.find(
+      (p) => p.name === 'vite-plugin-boltdocs-virtual-modules',
+    )!
+
+    const code = await vmPlugin.load!('\0virtual:boltdocs-icons')
+    expect(code).toBe('export default {};')
+  })
+})

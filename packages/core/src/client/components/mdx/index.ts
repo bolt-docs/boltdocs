@@ -4,6 +4,8 @@ import { TableComponents } from './table'
 import { Callout } from './callout'
 import { CodeBlock } from './code-block'
 import { ImageComponents } from './image'
+import { Card } from './card'
+import { Cards } from './cards'
 
 export const mdx_components_default = {
   ...Typographics,
@@ -12,4 +14,6 @@ export const mdx_components_default = {
   pre: CodeBlock,
   Field,
   Callout,
+  Card,
+  Cards,
 }

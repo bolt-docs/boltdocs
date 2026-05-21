@@ -41,7 +41,7 @@ export function ScrollHandler() {
         const elementPosition = elementRect - containerTop
         const offsetPosition = elementPosition - offset + getScrollTop()
 
-        scrollTo(offsetPosition, 'smooth')
+        scrollTo(offsetPosition, 'auto')
         return
       }
     }

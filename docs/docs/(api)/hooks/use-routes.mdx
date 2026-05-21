@@ -1,0 +1,75 @@
+---
+title: useRoutes
+description: Access metadata and config mappings for all compiled documentation pages.
+---
+
+The `useRoutes` hook gives access to metadata for all generated page paths, along with localized version configurations.
+
+---
+
+## Import
+
+```tsx
+import { useRoutes } from 'boltdocs/client'
+```
+
+---
+
+## Return Values
+
+| Property | Type | Description |
+| :--- | :--- | :--- |
+| **`allRoutes`** | `RouteMeta[]` | Listing of all compiled documentation page routing records. |
+| **`currentRoute`** | `RouteMeta \| undefined` | Metadata representing the active route route. |
+| **`currentLocale`** | `string \| undefined` | The active language locale identifier. |
+| **`currentVersion`** | `string \| undefined` | The active configuration version tag. |
+
+---
+
+## RouteMeta Interface
+
+```ts
+interface RouteMeta {
+  path: string              // URL path route (e.g. '/docs/guides')
+  title: string             // Page title from frontmatter or heading
+  description?: string      // Page description from frontmatter
+  headings: Heading[]       // Array of MDX headers in the file
+  frontmatter: any          // Raw frontmatter metadata map
+  sidebarPosition?: number  // Custom sorting index for left side navigation
+}
+```
+
+---
+
+## Example: Displaying Sub-Pages Index
+
+```tsx
+import { useRoutes } from 'boltdocs/client'
+
+export function GuideList() {
+  const { allRoutes, currentRoute } = useRoutes()
+
+  // Filter routes that are children of the current path
+  const subPages = allRoutes.filter(
+    (route) =>
+      route.path.startsWith(currentRoute?.path || '') &&
+      route.path !== currentRoute?.path
+  )
+
+  return (
+    <div className="my-6">
+      <h3 className="text-lg font-bold mb-2">In this section:</h3>
+      <ul className="list-disc pl-5">
+        {subPages.map((route) => (
+          <li key={route.path}>
+            <a href={route.path} className="text-blue-500 hover:underline">
+              {route.title}
+            </a>
+            {route.description && <p className="text-xs text-gray-500">{route.description}</p>}
+          </li>
+        ))}
+      </ul>
+    </div>
+  )
+}
+```

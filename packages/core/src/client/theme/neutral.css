@@ -1,0 +1,141 @@
+@theme {
+  --font-display: "Inter", "ui-sans-serif", "system-ui", sans-serif;
+  --font-sans: "Inter", "ui-sans-serif", "system-ui", sans-serif;
+  --font-mono:
+    "JetBrains Mono", "ui-monospace", "SFMono-Regular", Menlo, Monaco, Consolas,
+    "liberation mono", "courier new", monospace;
+
+  --breakpoint-3xl: 120rem;
+
+  /* Premium Terracotta brand Palette (#eb5828) */
+  --color-primary-50: #fef4f0;
+  --color-primary-100: #fde4da;
+  --color-primary-200: #fbc8b6;
+  --color-primary-300: #faa184;
+  --color-primary-400: #f6724a;
+  --color-primary-500: #eb5828;
+  /* Core brand Terracotta Orange */
+  --color-primary-600: #d34013;
+  --color-primary-700: #ab300c;
+  --color-primary-800: #842308;
+  --color-primary-900: #5a1503;
+
+  /* Intellectual warm Neutral Palette (#faf9f5 / #141413) */
+  --color-neutral-50: #faf9f5;
+  /* Elegant Light Background */
+  --color-neutral-100: #f5f4ee;
+  /* Soft backgrounds and cards */
+  --color-neutral-200: #eae8de;
+  /* Subtle border */
+  --color-neutral-300: #d9d6c7;
+  /* Strong border */
+  --color-neutral-400: #b5b19c;
+  --color-neutral-500: #8a8670;
+  /* Muted warm gray text */
+  --color-neutral-600: #706c57;
+  --color-neutral-700: #4a483a;
+  /* Paragraph text */
+  --color-neutral-800: #25241d;
+  --color-neutral-900: #141413;
+  /* Elegant Soft Black text / Dark mode main background */
+  --color-neutral-950: #080807;
+
+  /* Semantic Status Colors */
+  --color-danger-500: oklch(0.63 0.24 27);
+  --color-success-500: oklch(0.72 0.19 150);
+  --color-warning-500: oklch(0.78 0.17 75);
+  --color-info-500: oklch(0.62 0.19 260);
+
+  /* Modern Organic Rounded Radii (Warmer and More Rounded) */
+  --radius-sm: 0.375rem;
+  --radius-md: 0.5rem;
+  --radius-lg: 1rem;
+  /* 16px */
+  --radius-xl: 1.25rem;
+  /* 20px */
+  --radius-2xl: 1.5rem;
+  /* 24px */
+  --radius-full: 99999rem;
+
+  --ease-fluid: cubic-bezier(0.3, 0, 0, 1);
+  --ease-snappy: cubic-bezier(0.2, 0, 0, 1);
+
+  /* Semantic Colors - Default (Light Parchment) */
+  --color-main: var(--color-neutral-50);
+  --color-surface: #ffffff;
+  /* Pure soft white for cards */
+  --color-soft: var(--color-neutral-100);
+  --color-body: var(--color-neutral-900);
+  --color-paragraph: var(--color-neutral-700);
+  --color-muted: var(--color-neutral-500);
+  --color-dim: var(--color-neutral-400);
+  --color-subtle: var(--color-neutral-200);
+  --color-strong: var(--color-neutral-300);
+  --color-code-bg: var(--color-neutral-100);
+  --color-code-text: #eb5828;
+
+  /* Semantic Colors - Dark Override (handled via standard CSS overrides below the @theme block) */
+
+  /* Spacing and Dimensions */
+  --spacing-navbar: 3.5rem;
+  --spacing-sidebar: 16rem;
+  --spacing-toc: 16rem;
+  --spacing-content-max: 54rem;
+
+  @keyframes pulse {
+    0%,
+    100% {
+      opacity: 1;
+    }
+
+    50% {
+      opacity: 0.5;
+    }
+  }
+
+  @keyframes fade-in {
+    from {
+      opacity: 0;
+    }
+
+    to {
+      opacity: 1;
+    }
+  }
+}
+
+@variant dark 
+(
+&:where(.dark, .dark *));
+
+.animate-pulse {
+  animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+.animate-fade-in {
+  animation: fade-in 0.1s ease-out forwards;
+}
+
+:root[data-theme="dark"],
+:root.dark {
+  --color-main: #141413;
+  /* Deep warm charcoal background */
+  --color-surface: #1e1e1d;
+  /* Slightly lighter warm charcoal for cards */
+  --color-soft: #252524;
+  /* Warm dark gray for containers */
+  --color-body: #f3f3f2;
+  /* Soft warm white body text */
+  --color-paragraph: #d5d5d3;
+  /* Warm light gray text */
+  --color-muted: #9a9a97;
+  /* Warm muted text */
+  --color-dim: #767673;
+  --color-subtle: #2c2c2a;
+  /* Subtle dark border */
+  --color-strong: #3c3c39;
+  /* Strong dark border */
+  --color-code-bg: #1c1c1b;
+  --color-code-text: #eb5828;
+  /* Outstanding terracotta orange inline code */
+}

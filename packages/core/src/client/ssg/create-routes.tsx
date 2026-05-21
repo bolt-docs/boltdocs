@@ -5,7 +5,7 @@ import { BoltdocsShell } from './boltdocs-shell'
 import { NotFound } from '../components/ui-base'
 const Loading = () => <div className="text-muted text-sm py-4">Loading...</div>
 import type React from 'react'
-import { Suspense, useState, useEffect } from 'react'
+import { useEffect } from 'react'
 import { Navigate } from 'react-router-dom'
 
 interface CreateRoutesOptions {
@@ -34,30 +34,8 @@ const MdxRouteElement = ({
   route: ComponentRoute
   components: any
 }) => {
-  const isLazy = typeof moduleLoader === 'function'
+  const MDXComponent = moduleLoader?.default ?? moduleLoader ?? null
 
-  // For eager mode, resolve component synchronously.
-  const eagerComponent = !isLazy
-    ? (moduleLoader?.default ?? moduleLoader ?? null)
-    : null
-
-  const [MDXComponent, setMDXComponent] = useState<React.ComponentType | null>(
-    () => eagerComponent,
-  )
-
-  // On first mount, load the module if in lazy mode.
-  useEffect(() => {
-    if (!isLazy || !moduleLoader) return
-    let cancelled = false
-    moduleLoader().then((m: any) => {
-      if (!cancelled) setMDXComponent(() => m.default || m)
-    })
-    return () => {
-      cancelled = true
-    }
-  }, [isLazy, moduleLoader])
-
-  // Listen for Boltdocs MDX HMR events.
   useEffect(() => {
     if (!import.meta.hot || !moduleKey) return
 
@@ -67,10 +45,9 @@ const MdxRouteElement = ({
 
       if (incoming !== routeFile) return
 
-      // Use a cache-busting URL to fetch the freshly compiled version.
       const cacheBustUrl = moduleKey + '?t=' + Date.now()
       import(/* @vite-ignore */ cacheBustUrl).then((m: any) => {
-        setMDXComponent(() => m.default || m)
+        MDXComponent
       })
     }
 
@@ -80,11 +57,7 @@ const MdxRouteElement = ({
 
   if (!MDXComponent) return <Loading />
 
-  return (
-    <Suspense fallback={<Loading />}>
-      <MdxPage MDXComponent={MDXComponent} mdxComponents={components} />
-    </Suspense>
-  )
+  return <MdxPage MDXComponent={MDXComponent} mdxComponents={components} />
 }
 
 import { useMdxComponents } from '../app/mdx-components-context'
@@ -286,12 +259,29 @@ export function createRoutes(options: CreateRoutesOptions): RouteRecord[] {
     docRoutes.map((r) => (r.path || '').replace(/\/$/, '')),
   )
 
+  // Pre-compute external pages paths so we do not hijack them with redirects
+  const externalPaths = new Set<string>()
+  if (externalPages) {
+    Object.keys(externalPages).forEach((rawPath) => {
+      const p = rawPath.startsWith('/') ? rawPath : `/${rawPath}`
+      externalPaths.add(p.replace(/\/$/, ''))
+      if (config.i18n) {
+        Object.keys(config.i18n.locales).forEach((locale) => {
+          externalPaths.add(
+            `/${locale}${p === '/' ? '' : p}`.replace(/\/$/, ''),
+          )
+        })
+      }
+    })
+  }
+
   // 2b. Deploy smart redirects
   targetBasePaths.forEach(({ path: bPath, filter }) => {
     if (bPath === '/') return // Never hijack global app root
 
     const normalizedPath = bPath.replace(/\/$/, '')
-    const hasExplicitMatch = docPathRegistry.has(normalizedPath)
+    const hasExplicitMatch =
+      docPathRegistry.has(normalizedPath) || externalPaths.has(normalizedPath)
 
     if (!hasExplicitMatch) {
       const defaultTab = config.theme?.tabs?.[0]?.id
@@ -302,7 +292,10 @@ export function createRoutes(options: CreateRoutesOptions): RouteRecord[] {
       // Prioritize: Find a real route that matches the default tab first, then fall back to the first route beginning with this pattern.
       const matchedRoute =
         defaultTabPath && docPathRegistry.has(defaultTabPath.replace(/\/$/, ''))
-          ? docRoutes.find((r) => r.path.replace(/\/$/, '') === defaultTabPath.replace(/\/$/, ''))
+          ? docRoutes.find(
+              (r) =>
+                r.path.replace(/\/$/, '') === defaultTabPath.replace(/\/$/, ''),
+            )
           : docRoutes.find((r) => filter(r.path) && r.path !== normalizedPath)
 
       // Ultimate fallback: the absolute first document
@@ -335,8 +328,8 @@ export function createRoutes(options: CreateRoutesOptions): RouteRecord[] {
   const externalMetadata: ComponentRoute[] = []
   if (externalPages) {
     Object.entries(externalPages).forEach(([rawPath, ExtComponent]) => {
-      // Use the path exactly as defined in externalPages
-      const path = rawPath
+      // Use the raw path directly (do not prefix with base docs path)
+      const path = rawPath.startsWith('/') ? rawPath : `/${rawPath}`
       if (!children.find((r) => r.path === path)) {
         externalMetadata.push({
           path,
@@ -363,7 +356,7 @@ export function createRoutes(options: CreateRoutesOptions): RouteRecord[] {
           getStaticPaths: () => [path],
         })
 
-        // Also add i18n variants for external pages if needed
+        // Also add i18n variants for external pages if needed (do not prefix with base docs path)
         if (config.i18n) {
           Object.keys(config.i18n.locales).forEach((locale) => {
             const localePath = `/${locale}${rawPath === '/' ? '' : rawPath}`

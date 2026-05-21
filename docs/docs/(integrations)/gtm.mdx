@@ -1,0 +1,83 @@
+---
+title: Google Tag Manager
+sidebarPosition: 6
+description: Deploy and manage marketing tags, custom scripts, and analytics with Google Tag Manager.
+---
+
+Google Tag Manager (GTM) allows you to manage tags, tracking pixels, and custom scripts on your Boltdocs site without editing code directly.
+
+---
+
+## Quick Start
+
+### Step 1: Get your GTM Container ID
+
+Sign in to your [Google Tag Manager](https://tagmanager.google.com/) account and copy your Container ID (starts with `GTM-`).
+
+### Step 2: Configure in boltdocs.config.ts
+
+```ts
+export default defineConfig({
+  integrations: {
+    gtm: {
+      tagId: 'GTM-XXXXXX',
+    },
+  },
+})
+```
+
+### Step 3: Deploy
+
+Boltdocs automatically injects the official GTM script into the page head and the fallback iframe noscript block into the page body.
+
+---
+
+## Configuration Reference
+
+| Property | Type | Required | Description |
+| :--- | :--- | :--- | :--- |
+| **`tagId`** | `string` | ✓ | Your GTM Container ID (e.g., `'GTM-XXXXXX'`). |
+| **`dataLayerName`** | `string` | — | The name of the global GTM dataLayer variable (defaults to `'dataLayer'`). |
+| **`preview`** | `string` | — | GTM environment query parameter string for testing drafted tags. |
+
+### Advanced Example
+
+```ts
+integrations: {
+  gtm: {
+    tagId: 'GTM-XXXXXX',
+    dataLayerName: 'customDataLayer',
+    preview: 'env-3&auth=xxxxx',
+  },
+}
+```
+
+---
+
+## Using the DataLayer
+
+You can interact with GTM by pushing events directly onto the dataLayer. In your custom components:
+
+```tsx
+export function LeadButton() {
+  const handlePush = () => {
+    // If you customized dataLayerName, replace 'dataLayer' with your custom name
+    const dataLayer = (window as any).dataLayer || [];
+    dataLayer.push({
+      event: 'form_submission',
+      category: 'lead',
+      action: 'click',
+    });
+  };
+
+  return (
+    <button onClick={handlePush}>
+      Submit Form
+    </button>
+  );
+}
+```
+
+<Callout variant="warning" title="GDPR & Consent management">
+  Make sure you configure GTM to respect user consent before loading third-party marketing tags, especially if you are serving users in the EU.
+</Callout>

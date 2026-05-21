@@ -1,0 +1,169 @@
+---
+title: SearchDialog
+sidebarPosition: 4
+description: The search modal component for performing full-text search across documentation pages.
+---
+
+The `SearchDialog` provides an accessible, fully customizable command palette overlay allowing users to instantly look up routes, headings, and descriptions.
+
+---
+
+## Import
+
+```tsx
+import { SearchDialog } from 'boltdocs/primitives'
+```
+
+---
+
+## Composable Search Dialog Example
+
+Using the primitive `SearchDialog` sub-components, you can compose a custom search window overlay. The example below shows how to wire the overlay to the search state hook and build a clean modal dialog with customized list results and icon selections:
+
+```tsx
+// docs/components/CustomSearchDialog.tsx
+import React from 'react'
+import { SearchDialog } from 'boltdocs/primitives'
+import { useSearch } from 'boltdocs/client'
+
+export default function CustomSearchDialog() {
+  const { isOpen, close, query, setQuery, results } = useSearch()
+
+  return (
+    <SearchDialog
+      isOpen={isOpen}
+      onOpenChange={(open) => !open && close()}
+      className="bg-black/40 backdrop-blur-xs flex items-center justify-center p-4 transition-all"
+    >
+      <SearchDialog.Content className="w-full max-w-xl bg-white dark:bg-zinc-900 border border-subtle rounded-xl shadow-2xl overflow-hidden">
+        <SearchDialog.Dialog>
+          
+          {/* 1. Styled Search Input Header */}
+          <SearchDialog.Input className="flex items-center border-b border-subtle px-4 py-3">
+            <SearchDialog.Input.SearchInput
+              value={query}
+              onChange={(e) => setQuery((e.target as HTMLInputElement).value)}
+              placeholder="Search documentation..."
+              className="text-sm placeholder-zinc-400 outline-none"
+            />
+            {query && (
+              <SearchDialog.Input.Button className="text-xs text-muted hover:text-body">
+                Clear
+              </SearchDialog.Input.Button>
+            )}
+          </SearchDialog.Input>
+
+          {/* 2. Scrollable Results List Box */}
+          {results.length > 0 && (
+            <SearchDialog.Autocomplete>
+              <SearchDialog.List className="p-2 max-h-96 overflow-y-auto space-y-1">
+                {results.map((item) => (
+                  <SearchDialog.Item
+                    key={item.path}
+                    id={item.path}
+                    className="p-2.5 rounded-lg transition-colors hover:bg-zinc-100 dark:hover:bg-zinc-800"
+                  >
+                    {/* Visual indicators for regular pages vs deep headings */}
+                    <SearchDialog.Item.Icon
+                      isHeading={item.path.includes('#')}
+                      className="text-muted mr-3"
+                    />
+                    
+                    <SearchDialog.Item.Title className="text-sm font-medium text-body">
+                      {item.title}
+                    </SearchDialog.Item.Title>
+                    
+                    {item.description && (
+                      <SearchDialog.Item.Bio className="text-xs text-muted">
+                        {item.description}
+                      </SearchDialog.Item.Bio>
+                    )}
+                  </SearchDialog.Item>
+                ))}
+              </SearchDialog.List>
+            </SearchDialog.Autocomplete>
+          )}
+
+          {/* Fallback empty message */}
+          {query && results.length === 0 && (
+            <div className="p-8 text-center text-sm text-muted">
+              No results found for "{query}"
+            </div>
+          )}
+
+        </SearchDialog.Dialog>
+      </SearchDialog.Content>
+    </SearchDialog>
+  )
+}
+```
+
+---
+
+## Composable Sub-Components
+
+The `SearchDialog` primitive provides the following sub-components for structure customization:
+
+| Component | HTML Tag | Description | Props |
+| :--- | :--- | :--- | :--- |
+| **`SearchDialog`** / **`SearchDialog.Overlay`** | `<div>` (Backdrop) | The backdrop overlay element dimming the page background. | [`ModalOverlayProps`](#modaloverlayprops) |
+| **`SearchDialog.Content`** | `<div>` (Modal) | The floating dialog layout wrapper containing the dialog shell. | [`ModalProps`](#modalprops) |
+| **`SearchDialog.Dialog`** | `<dialog>` | The interactive dialog container mapping focus and keyboard controls. | [`DialogProps`](#dialogprops) |
+| **`SearchDialog.Input`** | `<div>` | Wraps the search input form layout. | [`SearchFieldProps`](#searchfieldprops) |
+| **`SearchDialog.Input.SearchInput`** | `<input>` | The inner text input control itself. | [`InputProps`](#inputprops) |
+| **`SearchDialog.Input.Button`** | `<button>` | A button to clear the active input query text. | `ButtonProps` with `slot="clear"` |
+| **`SearchDialog.Autocomplete`** | `<div>` | A wrapper aligning autocompletion list queries and highlights. | [`AutocompleteProps`](#autocompleteprops) |
+| **`SearchDialog.List`** | `<ul>` | The vertical list results scroller viewport. | [`ListBoxProps`](#listboxprops) |
+| **`SearchDialog.Item`** | `<li>` | The individual result cell element. | [`SearchDialogItemProps`](#searchdialogitemprops) |
+| **`SearchDialog.Item.Icon`** | `<span>` | Renders standard result indicators (hash `#` for headings, sheet for pages). | [`Icon Props`](#icon-props) |
+| **`SearchDialog.Item.Title`** | `<div>` | Main matching result text label. | [`ComponentBaseProps`](#componentbaseprops-common) |
+| **`SearchDialog.Item.Bio`** | `<div>` | Supporting description or section snippet context label. | [`ComponentBaseProps`](#componentbaseprops-common) |
+
+---
+
+## Component Props
+
+### ComponentBaseProps (Common)
+
+| Property | Type | Default | Description |
+| :--- | :--- | :--- | :--- |
+| **`children`** | `ReactNode` | `undefined` | Children content elements. |
+| **`className`** | `string` | `undefined` | Custom CSS utility classes. |
+| **`style`** | `CSSProperties` | `undefined` | Inline style settings. |
+
+### `ModalOverlayProps` & `ModalProps`
+
+Inherits standard React-Aria `ModalOverlayProps` and `ModalProps` settings (e.g. `isOpen`, `onOpenChange`, `isDismissable`).
+
+### `DialogProps`
+
+Inherits standard React-Aria `DialogProps` configurations.
+
+### `SearchFieldProps`
+
+Inherits standard React-Aria `SearchFieldProps` settings (e.g. `value`, `onChange`).
+
+### `InputProps`
+
+Inherits standard HTML `input` elements properties.
+
+### `AutocompleteProps`
+
+Custom wrapper configuration that handles query search term highlighting.
+
+### `ListBoxProps`
+
+Inherits standard React-Aria `ListBoxProps` (e.g. `items`, `selectionMode`).
+
+### `SearchDialogItemProps`
+
+| Property | Type | Default | Description |
+| :--- | :--- | :--- | :--- |
+| **`id`** | `Key` | *Required* | Unique item index key. |
+| **`textValue`** | `string` | *Required* | Raw text contents for keyboard searching. |
+
+### `Icon` Props
+
+| Property | Type | Default | Description |
+| :--- | :--- | :--- | :--- |
+| **`isHeading`** | `boolean` | `false` | If true, renders a heading section icon. Otherwise, renders a document page icon. |

@@ -1,0 +1,114 @@
+---
+title: Installation
+sidebarPosition: 1
+description: Install Boltdocs and run your first documentation site in under two minutes.
+---
+
+Boltdocs requires **Node.js 18+** and a package manager. We recommend `pnpm` for its speed and disk efficiency, but `npm` and `yarn` work just as well.
+
+<Callout variant="tip" title="Scaffold a full project instantly">
+  If you're starting from scratch, use `create-boltdocs` to generate a complete project with all the boilerplate in place:
+  ```sh
+  pnpm create boltdocs@latest my-docs
+  ```
+  Then skip straight to [running the dev server](#run-the-dev-server).
+</Callout>
+
+---
+
+## Manual Installation
+
+If you're adding Boltdocs to an existing project, install it as a dev dependency:
+
+```sh
+# pnpm
+pnpm add -D boltdocs
+
+# npm
+npm install --save-dev boltdocs
+
+# yarn
+yarn add --dev boltdocs
+```
+
+---
+
+## Create the Docs Directory
+
+Boltdocs expects your content to live in a `docs/` folder at the root of your project. Create it and add your first page:
+
+```sh
+mkdir docs
+echo "# Hello, Boltdocs!" > docs/index.md
+```
+
+---
+
+## Add a Config File
+
+Create `boltdocs.config.ts` in the root of your project:
+
+```ts
+import { defineConfig } from 'boltdocs'
+
+export default defineConfig({
+  siteUrl: 'https://my-project.com',
+  theme: {
+    title: 'My Project Docs',
+    githubRepo: 'my-org/my-project',
+  },
+})
+```
+
+This file is the single source of truth for your documentation site. You don't need a `vite.config.ts` — Boltdocs generates the full Vite configuration internally.
+
+---
+
+## Add Scripts to `package.json`
+
+```json
+{
+  "scripts": {
+    "docs:dev": "boltdocs",
+    "docs:build": "boltdocs build",
+    "docs:preview": "boltdocs preview"
+  }
+}
+```
+
+---
+
+## Run the Dev Server
+
+```sh
+pnpm docs:dev
+```
+
+Open [http://localhost:5173](http://localhost:5173) and you'll see your documentation site running locally with hot reload.
+
+<Callout variant="note">
+  The first startup is slightly slower as Boltdocs builds its internal route map and warms the file cache. Subsequent restarts are near-instant.
+</Callout>
+
+---
+
+## Build for Production
+
+```sh
+pnpm docs:build
+```
+
+The output lands in `dist/`. Every page is pre-rendered as static HTML, with a client bundle for navigation and search.
+
+---
+
+## What's Next?
+
+<Cards cols={2}>
+  <Card title="Configuration" href="/docs/guides/getting-started/configuration" icon="settings">
+    Learn how to customize the title, logo, navigation, and every other option in your config file.
+  </Card>
+  <Card title="File-System Routing" href="/docs/guides/getting-started/file-routing" icon="route">
+    Learn how Boltdocs turns your `docs/` folder into a full navigation structure.
+  </Card>
+</Cards>

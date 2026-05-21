@@ -1,0 +1,72 @@
+---
+title: Heading
+sidebarPosition: 7
+description: Accessible document title headings with automated slug anchors.
+---
+
+The `Heading` primitive is a wrapper element that renders HTML title headers (`<h1>` to `<h6>`) and automatically appends clipboard anchor links when provided with an `id`.
+
+---
+
+## Import
+
+```tsx
+import { Heading } from 'boltdocs/primitives'
+```
+
+---
+
+## Quick Start
+
+Render a header with automated anchor link wrapping:
+
+```tsx
+import { Heading } from 'boltdocs/primitives'
+
+export default function SectionHeader() {
+  return (
+    <Heading
+      level={2}
+      id="project-architecture"
+      className="text-2xl font-bold text-body border-b border-subtle pb-2"
+    >
+      Project Architecture
+    </Heading>
+  )
+}
+```
+
+---
+
+## Anchor Positions
+
+You can customize where the Lucide anchor link symbol appears:
+
+### Wrap Position (Default)
+Wraps the entire text content inside a router-local hyperlink, rendering the link icon at the right edge when hovered.
+
+### Before / After Positions
+Renders the link icon as a standalone prefix or suffix:
+
+```tsx
+<Heading level={3} id="options" anchorPosition="before">
+  Configuration Options
+</Heading>
+```
+
+---
+
+## Component Props
+
+The `Heading` component accepts standard HTML heading attributes plus:
+
+| Property | Type | Default | Description |
+| :--- | :--- | :--- | :--- |
+| **`level`** | `1 \| 2 \| 3 \| 4 \| 5 \| 6` | *Required* | Renders the corresponding HTML heading element (e.g. `1` outputs `<h1>`). |
+| **`id`** | `string` | `undefined` | Section unique slug identifier. Required to enable anchor linking. |
+| **`showAnchor`** | `boolean` | `true` | Toggles whether to output hover/click anchor symbols. |
+| **`anchorPosition`** | `'wrap' \| 'before' \| 'after'` | `'wrap'` | Determines the layout orientation of link icons. |
+| **`anchorIcon`** | `ReactNode` | `LucideLink` | Custom SVG graphics component to override default link graphics. |
+| **`anchorClassName`** | `string` | `undefined` | Custom styling overrides for the anchor anchor wrapping link element. |
+| **`className`** | `string` | `undefined` | CSS class style override for heading. |
+| **`style`** | `CSSProperties` | `undefined` | Inline style settings. |

@@ -73,7 +73,7 @@ export class ShikiAdapter {
    */
   getOptions(lang: string, meta: string | ParsedMeta): CodeToHastOptions {
     const theme = this.getTheme()
-    
+
     let parsedMeta: ParsedMeta = {}
     let rawMeta = ''
 
@@ -115,7 +115,11 @@ export class ShikiAdapter {
    * Renders code to HTML using the Boltdocs Shiki pipeline.
    * Safely handles highlighter exceptions by falling back to escaped pre.
    */
-  async render(code: string, lang: string, meta: string | ParsedMeta): Promise<string> {
+  async render(
+    code: string,
+    lang: string,
+    meta: string | ParsedMeta,
+  ): Promise<string> {
     try {
       const highlighter = await this.getHighlighter()
       const options = this.getOptions(lang, meta)
@@ -149,7 +153,7 @@ let _adapterThemeConfigStr: string | undefined = undefined
  */
 export function getShikiAdapter(config?: BoltdocsConfig): ShikiAdapter {
   const currentThemeStr = JSON.stringify(config?.theme?.codeTheme || null)
-  
+
   if (_adapterInstance === null || _adapterThemeConfigStr !== currentThemeStr) {
     _adapterInstance = new ShikiAdapter(config)
     _adapterThemeConfigStr = currentThemeStr

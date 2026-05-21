@@ -57,6 +57,28 @@ export function createDevServerPlugin(
         console.error('[boltdocs] Failed to generate initial link tree:', e)
       })
 
+      // Asynchronous background pre-warming of routes
+      setTimeout(async () => {
+        try {
+          const { generateRoutes } = await import('../routes')
+          const routes = await generateRoutes(docsDir, getConfig())
+          for (const route of routes) {
+            if (route.filePath) {
+              const rel = path
+                .relative(process.cwd(), route.filePath)
+                .replace(/\\/g, '/')
+              const viteUrl = rel.startsWith('/') ? rel : `/${rel}`
+              // Warm up the module cache asynchronously
+              await server.transformRequest(viteUrl).catch(() => {})
+              // Brief delay to prevent blocking the event loop
+              await new Promise((resolve) => setTimeout(resolve, 50))
+            }
+          }
+        } catch {
+          // Fall back silently on any background failures
+        }
+      }, 1000)
+
       // --- Security middleware ---
       server.middlewares.use((_req, res, next) => {
         const isProd = process.env.NODE_ENV === 'production'

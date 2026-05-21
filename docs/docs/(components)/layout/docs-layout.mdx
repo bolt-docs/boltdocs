@@ -1,0 +1,215 @@
+---
+title: DocsLayout
+sidebarPosition: 1
+description: The main wrapper component for standard documentation pages in Boltdocs.
+---
+
+The `DocsLayout` component is the high-level container that structures standard documentation pages.
+
+---
+
+## Import
+
+```tsx
+import { DocsLayout } from 'boltdocs/primitives'
+```
+
+---
+
+## Composable Layout Assembly Example
+
+The primitive `DocsLayout` and its accompanying layout modules are structured using a **composable sub-components pattern**. This lets you define exact HTML wrappers and inject custom style classes around headers, sidebars, content regions, and footers.
+
+Here is an example showing how to assemble a complete custom layout using only primitives (without relying on pre-styled theme files):
+
+```tsx
+// docs/layout.tsx
+import {
+  DocsLayout,
+  Navbar,
+  Sidebar,
+  OnThisPage,
+  Breadcrumbs,
+  PageNav,
+  ErrorBoundary
+} from 'boltdocs/primitives'
+import { useRoutes } from 'boltdocs/client'
+
+export default function CustomLayout({ children }) {
+  // Query routes and active page details from context
+  const { routes, currentRoute } = useRoutes()
+
+  return (
+    <DocsLayout className="selection:bg-primary-500/10">
+      {/* Composable Navbar Primitive */}
+      <Navbar className="bg-white dark:bg-black border-b">
+        <Navbar.Content>
+          <Navbar.Left>
+            <Navbar.Logo src="/logo-light.svg" alt="Branding" />
+            <Navbar.Title>Framework Docs</Navbar.Title>
+          </Navbar.Left>
+          <Navbar.Right>
+            {/* Add custom search box triggers or theme toggles here */}
+          </Navbar.Right>
+        </Navbar.Content>
+      </Navbar>
+
+      <DocsLayout.Body className="bg-zinc-50 dark:bg-zinc-950">
+        {/* Composable Sidebar Primitive */}
+        <Sidebar className="border-r">
+          <Sidebar.Content>
+            <Sidebar.Items routes={routes} />
+          </Sidebar.Content>
+        </Sidebar>
+
+        {/* Content Shell */}
+        <DocsLayout.Content className="scroll-smooth">
+          <DocsLayout.ContentMdx className="max-w-4xl pt-8 pb-20">
+            {/* Header section containing breadcrumbs and page details */}
+            <DocsLayout.Header>
+              <Breadcrumbs />
+              {currentRoute?.title && (
+                <h1 className="text-3xl font-bold mt-4">{currentRoute.title}</h1>
+              )}
+              {currentRoute?.description && (
+                <p className="text-zinc-500 mt-2">{currentRoute.description}</p>
+              )}
+            </DocsLayout.Header>
+
+            {/* Main MDX page content wrapped inside an Error Boundary */}
+            <ErrorBoundary>
+              <article className="prose dark:prose-invert">
+                {children}
+              </article>
+            </ErrorBoundary>
+
+            {/* Footer section containing previous/next navigation buttons */}
+            <DocsLayout.Footer>
+              <PageNav />
+            </DocsLayout.Footer>
+          </DocsLayout.ContentMdx>
+        </DocsLayout.Content>
+
+        {/* Composable Table of Contents (Scroll Spy) */}
+        <OnThisPage headings={currentRoute?.headings} />
+      </DocsLayout.Body>
+    </DocsLayout>
+  )
+}
+```
+
+---
+
+## Real-World Production Reference
+
+Below is a complete, production-ready reference implementation demonstrating how to build a unified page wrapper. It connects the custom `Navbar`, `Sidebar`, breadcrumbs, previous/next page navigation guides, global error boundary fallback views, and table of contents sidebars:
+
+```tsx
+// docs/components/ProductionLayout.tsx
+import React from 'react'
+import { DocsLayout } from 'boltdocs/primitives'
+import { useRoutes, useConfig } from 'boltdocs/client'
+import ProductionNavbar from './ProductionNavbar'
+import ProductionSidebar from './ProductionSidebar'
+import CustomBreadcrumbs from './CustomBreadcrumbs'
+import CustomPageNav from './CustomPageNav'
+import CustomErrorBoundary from './CustomErrorBoundary'
+import CustomOnThisPage from './CustomOnThisPage'
+
+interface LayoutProps {
+  children?: React.ReactNode
+}
+
+export default function ProductionLayout({ children }: LayoutProps) {
+  const { routes, currentRoute } = useRoutes()
+  const config = useConfig()
+
+  return (
+    <DocsLayout className="selection:bg-primary-500/10 selection:text-primary-500 min-h-screen">
+      {/* 1. Cohesive Header Navigation */}
+      <ProductionNavbar />
+
+      {/* 2. Main Page Body */}
+      <DocsLayout.Body className="bg-main">
+        
+        {/* Responsive Sidebar component */}
+        <ProductionSidebar />
+
+        {/* 3. Center Reading content flow */}
+        <DocsLayout.Content className="scroll-smooth">
+          <DocsLayout.ContentMdx className="max-w-5xl px-4 pt-8 pb-24 mx-auto">
+            
+            {/* Header: breadcrumb trails and dynamic page meta title details */}
+            <DocsLayout.Header>
+              <div className="mb-4 border-b border-subtle pb-4">
+                <CustomBreadcrumbs />
+              </div>
+
+              {currentRoute?.title && (
+                <h1 className="text-4xl font-bold tracking-tight text-body mb-3">
+                  {currentRoute.title}
+                </h1>
+              )}
+              {currentRoute?.description && (
+                <p className="text-lg text-muted mb-6 leading-relaxed">
+                  {currentRoute.description}
+                </p>
+              )}
+            </DocsLayout.Header>
+
+            {/* Main content body wrapped in an Error Boundary */}
+            <CustomErrorBoundary>
+              <div className="prose dark:prose-invert max-w-none">
+                {children}
+              </div>
+            </CustomErrorBoundary>
+
+            {/* Footer containing navigation guides */}
+            <DocsLayout.Footer className="mt-12">
+              <CustomPageNav />
+            </DocsLayout.Footer>
+
+          </DocsLayout.ContentMdx>
+        </DocsLayout.Content>
+
+        {/* 4. Table of contents right-hand column */}
+        <CustomOnThisPage
+          headings={currentRoute?.headings}
+          editLink={config.theme?.editLink}
+          communityHelp={config.theme?.communityHelp}
+          filePath={currentRoute?.filePath}
+        />
+      </DocsLayout.Body>
+    </DocsLayout>
+  )
+}
+```
+
+---
+
+## Composable Sub-Components
+
+The `DocsLayout` primitive provides the following slot container components:
+
+| Component | HTML Tag | Description | Props |
+| :--- | :--- | :--- | :--- |
+| **`DocsLayout.Root`** / **`DocsLayout`** | `<div>` | Top-level flex column container for the entire site page layout. | [`ComponentBaseProps`](#componentbaseprops-common) |
+| **`DocsLayout.Body`** | `<div>` | Flex row wrapper that groups the sidebar, main content area, and right-hand table of contents. | [`ComponentBaseProps`](#componentbaseprops-common) |
+| **`DocsLayout.Content`** | `<main>` | Scrollable outer container of the core page reading flow. | [`ComponentBaseProps`](#componentbaseprops-common) |
+| **`DocsLayout.ContentMdx`** | `<div>` | Padded content container enforcing maximum content reading constraints. | [`ComponentBaseProps`](#componentbaseprops-common) |
+| **`DocsLayout.Header`** | `<header>` | Upper section wrapper inside the reading flow (e.g. for breadcrumbs and title). | [`ComponentBaseProps`](#componentbaseprops-common) |
+| **`DocsLayout.Footer`** | `<footer>` | Lower section wrapper inside the reading flow (e.g. for navigation links). | [`ComponentBaseProps`](#componentbaseprops-common) |
+
+---
+
+## Component Props
+
+### ComponentBaseProps (Common)
+
+All primitive sub-components accept these common properties for styling and content injection:
+
+| Property | Type | Default | Description |
+| :--- | :--- | :--- | :--- |
+| **`children`** | `ReactNode` | `undefined` | The content elements to render inside the container. |
+| **`className`** | `string` | `undefined` | Tailwind or custom CSS classes for utility styling. |
+| **`style`** | `CSSProperties` | `undefined` | Inline styling overrides. |

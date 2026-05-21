@@ -1,0 +1,111 @@
+---
+title: Overview
+sidebarPosition: 1
+description: Everything you need to build, configure, and customize a Boltdocs documentation site — from installation to advanced layout customization.
+---
+
+import { Download, Settings, Route, File, Layout, Globe, Code2, FileText, FolderCog, Palette, Zap, Paintbrush } from 'lucide-react'
+
+Boltdocs turns a folder of Markdown files into a fully rendered, search-indexed, and SEO-optimized documentation site. These guides walk you through every layer of the framework — from getting your first page live in two minutes to building fully custom layouts and injecting your own React components into MDX.
+
+---
+
+## Where to Start
+
+<Cards cols={2}>
+  <Card title="Installation" icon={<Download />} href="/docs/guides/getting-started/installation">
+    Get Boltdocs running in under two minutes using `create-boltdocs` or manual setup.
+  </Card>
+  <Card title="Configuration" icon={<Settings />} href="/docs/guides/getting-started/configuration">
+    A guided tour of every key in `boltdocs.config.ts` and what it controls.
+  </Card>
+  <Card title="File-System Routing" icon={<Route />} href="/docs/guides/getting-started/file-routing">
+    Understand how your `docs/` folder structure maps to routes, sidebar groups, and tab sections.
+  </Card>
+  <Card title="Frontmatter" icon={<File />} href="/docs/guides/getting-started/frontmatter">
+    Control routing, sidebar display, SEO, and page metadata from any `.md` or `.mdx` file.
+  </Card>
+</Cards>
+
+---
+
+## Project Structure
+
+A freshly scaffolded Boltdocs project looks like this:
+
+```
+my-docs/
+├── docs/                  # All your content lives here
+│   ├── (guides)/
+│   │   └── index.mdx
+│   └── index.md           # Root page → /docs
+├── public/                # Static assets (images, fonts, favicons)
+│   ├── dark.svg
+│   └── light.svg
+├── src/
+│   └── components/        # Your custom React components
+├── boltdocs.config.ts     # The brain of your docs site
+├── index.html             # Vite HTML entry point
+├── index.css              # Global styles
+└── package.json
+```
+
+### Key Directories
+
+**`docs/`** — Everything here becomes a page. Boltdocs recursively scans for `.md` and `.mdx` files and turns them into routes. The folder structure maps directly to the URL structure.
+
+**`boltdocs.config.ts`** — The single source of truth. Controls theme, navigation, plugins, SEO, i18n, and more. Boltdocs generates the full Vite configuration internally — no separate `vite.config.ts` needed.
+
+**`public/`** — Static assets served at your site root. Reference them in Markdown with a root-relative path like `/my-image.png`.
+
+**`src/components/`** — Your custom React components, available for import in `.mdx` files or registration as global MDX components via plugins.
+
+| Optional File | Purpose |
+| :--- | :--- |
+| `docs/layout.tsx` | Custom docs layout wrapping all pages |
+| `docs/**/meta.json` | Override sidebar group titles, icons, and ordering per directory |
+| `doctor.json` | Config for the `boltdocs doctor` link checker |
+
+<Callout variant="info" title="No vite.config.ts needed">
+  Boltdocs generates the entire Vite configuration from `boltdocs.config.ts`. To extend Vite (e.g., add a custom plugin), use the `vite` key inside `defineConfig` or write a Boltdocs plugin that exposes `vitePlugins`.
+</Callout>
+
+---
+
+## All Guides
+
+<Cards cols={3}>
+  <Card title="Installation" icon={<Download />} href="/docs/guides/getting-started/installation">
+    Install and run your first docs site.
+  </Card>
+  <Card title="Configuration" icon={<Settings />} href="/docs/guides/getting-started/configuration">
+    Full walkthrough of `boltdocs.config.ts`.
+  </Card>
+  <Card title="File-System Routing" icon={<Route />} href="/docs/guides/getting-started/file-routing">
+    Routing, sidebar groups, tabs, and ordering.
+  </Card>
+  <Card title="Custom Layout" icon={<Layout />} href="/docs/guides/advanced/custom-layout">
+    Override the default layout with your own React component.
+  </Card>
+  <Card title="External Pages" icon={<Globe />} href="/docs/guides/advanced/external-page">
+    Register non-MDX React pages into the Boltdocs router.
+  </Card>
+  <Card title="MDX Injection" icon={<Code2 />} href="/docs/guides/advanced/mdx-inject">
+    Add custom React components globally to your MDX pipeline.
+  </Card>
+  <Card title="Frontmatter" icon={<FileText />} href="/docs/guides/getting-started/frontmatter">
+    Full frontmatter field reference.
+  </Card>
+  <Card title="Meta Loaders" icon={<FolderCog />} href="/docs/guides/advanced/meta-loaders">
+    Control sidebar groups with `meta.json`.
+  </Card>
+  <Card title="Custom Icons" icon={<Palette />} href="/docs/guides/advanced/custom-icons">
+    Use Lucide icons or raw SVGs throughout your site.
+  </Card>
+  <Card title="Custom Themes" icon={<Paintbrush />} href="/docs/guides/advanced/custom-theme">
+    Build custom color palettes and styling variables with reset.css.
+  </Card>
+  <Card title="Cache & Environment" icon={<Zap />} href="/docs/guides/advanced/cache">
+    How caching works and the `.env` variables that control it.
+  </Card>
+</Cards>

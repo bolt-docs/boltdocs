@@ -1,0 +1,77 @@
+---
+title: useSearch
+description: Access search query, results, and open/close controls programmatically.
+---
+
+The `useSearch` hook provides programmatic control over the documentation's full-text search state and search result data.
+
+---
+
+## Import
+
+```tsx
+import { useSearch } from 'boltdocs/client'
+```
+
+---
+
+## Return Values
+
+| Property | Type | Description |
+| :--- | :--- | :--- |
+| **`query`** | `string` | The current text value of the search query. |
+| **`setQuery`** | `(q: string) => void` | Updates the search query and triggers search indexing. |
+| **`results`** | `SearchResult[]` | Array of matching search results ordered by relevance score. |
+| **`isOpen`** | `boolean` | True if the search dialog/overlay modal is currently open. |
+| **`open`** | `() => void` | Opens the search dialog. |
+| **`close`** | `() => void` | Closes the search dialog and clears the active query. |
+
+---
+
+## SearchResult Interface
+
+```ts
+interface SearchResult {
+  path: string          // Absolute page route path
+  title: string         // Main page title
+  description?: string  // Page description
+  headings?: string[]   // Headings matching the search query
+  tab?: string          // Active folder tab grouping
+}
+```
+
+---
+
+## Example: Inline Search Input
+
+```tsx
+import { useSearch } from 'boltdocs/client'
+
+export function SimpleSearch() {
+  const { query, setQuery, results } = useSearch()
+
+  return (
+    <div className="search-box">
+      <input
+        type="search"
+        value={query}
+        onChange={(e) => setQuery(e.target.value)}
+        placeholder="Type to search..."
+        className="w-full border p-2 rounded"
+      />
+      {query && (
+        <ul className="results-list">
+          {results.map((res) => (
+            <li key={res.path}>
+              <a href={res.path} className="font-semibold text-blue-500">
+                {res.title}
+              </a>
+              {res.description && <p className="text-sm text-gray-500">{res.description}</p>}
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  )
+}
+```

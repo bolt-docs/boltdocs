@@ -1,0 +1,77 @@
+---
+title: Callout
+sidebarPosition: 1
+description: Use Callouts to highlight important information, tips, warnings, or breaking changes in your documentation.
+---
+
+The `<Callout>` component is used to draw a reader's attention to critical side-notes, tips, or warning details. It supports five color-coded and icon-labeled variants out-of-the-box.
+
+---
+
+## Usage
+
+```mdx
+<Callout variant="note" title="Useful Tip">
+  Here is a standard notice to provide context to the user.
+</Callout>
+```
+
+---
+
+## Variants
+
+Here are the five visual variants available:
+
+### Note (Default)
+Used for neutral, supplementary explanations.
+
+```mdx
+<Callout variant="note" title="Note">
+  This is a neutral side-note.
+</Callout>
+```
+
+### Info
+Used to highlight key technical aspects or characteristics.
+
+```mdx
+<Callout variant="info" title="Info">
+  This explains the internal rendering mechanics.
+</Callout>
+```
+
+### Tip
+Used for best practices and efficiency suggestions.
+
+```mdx
+<Callout variant="tip" title="Tip">
+  Use code-splitting to reduce bundle sizes!
+</Callout>
+```
+
+### Warning
+Used for pitfalls, deprecation notices, or conditions that need caution.
+
+```mdx
+<Callout variant="warning" title="Warning">
+  Keep in mind that legacy APIs might be removed in future versions.
+</Callout>
+```
+
+### Danger
+Used for breaking changes, security warnings, or critical risks.
+
+```mdx
+<Callout variant="danger" title="Breaking Change">
+  Upgrading to version 2 requires schema migrations.
+</Callout>
+```
+
+---
+
+## Props
+
+| Prop | Type | Default | Description |
+| :--- | :--- | :--- | :--- |
+| **`variant`** | `'note' \| 'info' \| 'tip' \| 'warning' \| 'danger'` | `'note'` | The visual style, icon, and colors applied to the callout container. |
+| **`title`** | `string` | *(Variant name)* | Bold label shown at the top of the callout box. |

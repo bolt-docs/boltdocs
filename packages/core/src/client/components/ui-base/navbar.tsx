@@ -23,13 +23,13 @@ const SearchDialog = lazy(() =>
 
 export function Navbar() {
   const { links, title, logo, logoProps, github, social, config } = useNavbar()
-  const { routes, allRoutes, currentVersion, currentLocale } = useRoutes()
+  const { routes, allRoutes, currentRoute, currentVersion, currentLocale } = useRoutes()
   const { pathname } = useLocation()
   const { isSidebarOpen, toggleSidebar } = useUI()
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
 
   const themeConfig = config.theme || {}
-  const isDocs = pathname.startsWith('/docs')
+  const isDocs = !!currentRoute?.filePath
   const hasTabs = themeConfig?.tabs && themeConfig.tabs.length > 0
 
   return (

@@ -1,0 +1,51 @@
+---
+title: Button
+sidebarPosition: 1
+description: Interactive primitive button wrapping React Aria Components.
+---
+
+The `Button` primitive is an unstyled, fully accessible interactive button component that supports keyboard navigation, screen reader accessibility, and hover/focus/press states.
+
+---
+
+## Import
+
+```tsx
+import { Button } from 'boltdocs/primitives'
+```
+
+---
+
+## Quick Start
+
+Create an accessible, styled interactive button wrapper:
+
+```tsx
+import { Button } from 'boltdocs/primitives'
+
+export default function PrimaryButton() {
+  return (
+    <Button
+      onPress={() => alert('Button Pressed!')}
+      className="px-4 py-2 bg-primary-500 text-white rounded-lg hover:bg-primary-600 focus:outline-2 focus:outline-primary-500"
+    >
+      Click Me
+    </Button>
+  )
+}
+```
+
+---
+
+## Component Props
+
+The `Button` component accepts all properties from React Aria's `ButtonProps` plus common utility styles:
+
+| Property | Type | Default | Description |
+| :--- | :--- | :--- | :--- |
+| **`onPress`** | `(e: PressEvent) => void` | `undefined` | Callback fired when the button is pressed (either via click, touch, or keyboard space/enter). |
+| **`isDisabled`** | `boolean` | `false` | Disables the button, preventing interactions and setting `aria-disabled="true"`. |
+| **`type`** | `'button' \| 'submit' \| 'reset'` | `'button'` | The HTML button element type. |
+| **`className`** | `string` | `undefined` | Custom CSS utility class overrides. |
+| **`style`** | `CSSProperties` | `undefined` | Inline styling overrides. |
+| **`children`** | `ReactNode` | `undefined` | The label text or graphic elements to render inside the button. |

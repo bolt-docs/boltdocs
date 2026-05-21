@@ -15,7 +15,7 @@
       "external": false,
       "timeout": 10000,
       "concurrency": 10,
-      "ignore": []
+      "ignore": ["banner-dark.webp", "light.svg", "dark.svg", "public/"]
     },
     "i18n": {
       "enabled": true

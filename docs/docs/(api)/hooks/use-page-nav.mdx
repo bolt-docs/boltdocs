@@ -1,0 +1,66 @@
+---
+title: usePageNav
+description: Access previous and next documentation page routes relative to the active sidebar.
+---
+
+The `usePageNav` hook resolves the adjacent nodes in the sidebar list to construct previous and next page link triggers.
+
+---
+
+## Import
+
+```tsx
+import { usePageNav } from 'boltdocs/client'
+```
+
+---
+
+## Return Values
+
+| Property | Type | Description |
+| :--- | :--- | :--- |
+| **`prev`** | `PageNavItem \| null` | Metadata of the preceding page, or `null` if on the first page. |
+| **`next`** | `PageNavItem \| null` | Metadata of the succeeding page, or `null` if on the last page. |
+
+---
+
+## PageNavItem Schema
+
+```ts
+interface PageNavItem {
+  title: string   // Page display label
+  path: string    // URL path route
+}
+```
+
+---
+
+## Example: Pagination Buttons
+
+```tsx
+import { usePageNav } from 'boltdocs/client'
+
+export function PaginationControl() {
+  const { prev, next } = usePageNav()
+
+  return (
+    <div className="flex justify-between items-center mt-8 pt-4 border-t border-zinc-200">
+      {prev ? (
+        <a href={prev.path} className="px-4 py-2 border rounded hover:bg-zinc-50 text-sm">
+          ← {prev.title}
+        </a>
+      ) : (
+        <span className="text-zinc-300 text-sm">First Page</span>
+      )}
+      
+      {next ? (
+        <a href={next.path} className="px-4 py-2 border rounded hover:bg-zinc-50 text-sm">
+          {next.title} →
+        </a>
+      ) : (
+        <span className="text-zinc-300 text-sm">End of Guide</span>
+      )}
+    </div>
+  )
+}
+```

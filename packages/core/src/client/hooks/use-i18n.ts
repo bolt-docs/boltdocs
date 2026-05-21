@@ -38,13 +38,13 @@ export function useI18n(): UseI18nReturn {
 
     const base = config.base || '/'
     const safeBase = base === '/' ? '' : base.replace(/\/$/, '')
-    const isDocsPath = currentRoute?.path?.startsWith(safeBase)
+    const isDocRoute = !!currentRoute?.filePath
 
     let targetPath = ''
 
     if (currentRoute) {
       // Case A: We are on a known route. Determine if it is doc or external.
-      if (isDocsPath) {
+      if (isDocRoute) {
         // Documentation Context logic
         const baseFile = getBaseFilePath(
           currentRoute.filePath,

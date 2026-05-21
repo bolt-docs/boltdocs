@@ -1,0 +1,151 @@
+---
+title: Cache & Environment
+sidebarPosition: 10
+description: How Boltdocs caching works, what gets cached, and the environment variables that control it.
+---
+
+Boltdocs caches parsed files and transformations to make subsequent builds and dev server restarts fast. This guide covers how the cache works and how to configure it.
+
+---
+
+## How Caching Works
+
+Boltdocs uses a multi-layer caching system:
+
+1. **Memory LRU Cache** — Fast in-process cache for hot data
+2. **Disk Cache** — Persisted to `.boltdocs/` directory for reuse across restarts
+3. **Invalidation** — Automatic based on file mtime and content hash
+
+### What Gets Cached
+
+| Cache Type | What's Stored | Location |
+| :--- | :--- | :--- |
+| **Parser Cache** | Frontmatter, headings, metadata for each `.md`/`.mdx` file | `.boltdocs/cache/parser/` |
+| **MDX Transform** | Compiled MDX code for each file | `.boltdocs/cache/mdx/` |
+| **Route Cache** | Built route objects with all metadata | `.boltdocs/cache/routes/` |
+
+---
+
+## Cache Behavior
+
+### Development Mode
+
+- Cache is loaded on startup for instant navigation
+- Files are watched — changes invalidate relevant cache entries
+- Full rebuild only when config or plugins change
+
+### Production Build
+
+- Cold start builds from scratch
+- Cache written to disk for future use
+- CI/CD environments get consistent builds
+
+---
+
+## Environment Variables
+
+Configure caching behavior via environment variables:
+
+| Variable | Type | Default | Description |
+| :--- | :--- | :--- | :--- |
+| **`BOLTDOCS_CACHE_DIR`** | `string` | `.boltdocs` | Directory for all cache files |
+| **`BOLTDOCS_NO_CACHE`** | `boolean` | `false` | Set to `1` to disable all caching |
+| **`BOLTDOCS_CACHE_LRU_LIMIT`** | `number` | `2000` | Max entries in memory LRU cache |
+| **`BOLTDOCS_CACHE_LRU_TTL`** | `number` | `14400000` | TTL in ms (default 4 hours) |
+| **`BOLTDOCS_CACHE_COMPRESS`** | `boolean` | `true` | Enable gzip compression for cache files |
+
+### Usage Examples
+
+```bash
+# Disable all caching (useful for debugging)
+BOLTDOCS_NO_CACHE=1 pnpm docs:dev
+
+# Use custom cache directory
+BOLTDOCS_CACHE_DIR=.cache/boltdocs pnpm docs:dev
+
+# Increase cache size for large projects
+BOLTDOCS_CACHE_LRU_LIMIT=5000 pnpm docs:dev
+```
+
+---
+
+## Cache Invalidation
+
+The cache automatically invalidates when:
+
+1. **File content changes** — Detected via content hash
+2. **File is deleted** — Cache entry removed
+3. **Config changes** — Full invalidation triggered
+4. **Plugin version changes** — MDX cache invalidated
+
+### Manual Invalidation
+
+Delete the cache directory:
+
+```bash
+rm -rf .boltdocs
+```
+
+Or in development, the dev server auto-invalidates on file changes.
+
+---
+
+## Cache Location
+
+By default, cache lives in `.boltdocs/` at your project root:
+
+```
+my-docs/
+├── .boltdocs/
+│   ├── cache/
+│   │   ├── parser/         ← Parser results (JSON)
+│   │   ├── mdx/           ← MDX compiled code
+│   │   └── routes/        ← Route metadata
+│   └── config/            ← Cached config resolution
+├── docs/
+└── boltdocs.config.ts
+```
+
+---
+
+## Troubleshooting
+
+### Cache corruption
+
+If you suspect corrupted cache entries:
+
+```bash
+# Clear all caches
+rm -rf .boltdocs
+
+# Restart dev server
+pnpm docs:dev
+```
+
+### Stale content in production
+
+Ensure your CI pipeline starts fresh:
+
+```bash
+# Clean before build
+rm -rf .boltdocs
+pnpm docs:build
+```
+
+### Large cache size
+
+For very large documentation sites:
+
+```bash
+# Disable compression to save CPU at the cost of disk space
+BOLTDOCS_CACHE_COMPRESS=0 pnpm docs:build
+```
+
+---
+
+## Performance Notes
+
+- First startup is slower — cache is being populated
+- Subsequent startups are near-instant (< 100ms)
+- The more pages you have, the more cache helps
+- Cache compression adds ~10% CPU overhead but saves ~70% disk

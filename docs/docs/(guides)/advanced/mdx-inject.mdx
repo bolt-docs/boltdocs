@@ -1,0 +1,120 @@
+---
+title: MDX Components Registry
+sidebarPosition: 6
+description: Inject custom React components globally or override default HTML tags using the mdx-components.tsx registry.
+---
+
+Boltdocs allows you to register custom React components that become available in every `.mdx` file without explicit imports. This is perfect for styling default Markdown elements, introducing custom layout blocks, or using third-party components.
+
+---
+
+## The `mdx-components.tsx` Registry
+
+To register global components, create an `mdx-components.tsx` (or `mdx-components.ts` / `.jsx` / `.js`) file in the root of your `docs` directory.
+
+### Example Configuration
+
+```tsx title="docs/mdx-components.tsx"
+import type { ComponentType } from 'react'
+import { Card, Cards } from 'boltdocs/client'
+
+// Import your own custom components
+import MyCustomAlert from './src/components/MyCustomAlert'
+import Highlight from './src/components/Highlight'
+
+const mdxComponents: Record<string, ComponentType<any>> = {
+  // 1. Expose custom components globally
+  MyCustomAlert,
+  Highlight,
+  Card,
+  Cards,
+
+  // 2. Override default HTML elements
+  h2: ({ children, ...props }) => (
+    <h2 className="text-2xl font-bold my-4 text-primary" {...props}>
+      {children}
+    </h2>
+  ),
+  
+  a: ({ href, children, ...props }) => (
+    <a href={href} className="underline text-blue-600 hover:text-blue-800" {...props}>
+      {children}
+    </a>
+  ),
+}
+
+export default mdxComponents
+```
+
+---
+
+## Using Registered Components
+
+Once added to `mdx-components.tsx`, you can use these components inside any `.mdx` file without importing them:
+
+```mdx
+---
+title: Sample Page
+---
+
+# Welcome
+
+This is a custom alert component:
+
+<MyCustomAlert type="success">
+  This alert is globally available!
+</MyCustomAlert>
+
+You can also use inline highlights:
+
+This is <Highlight color="yellow">important text</Highlight>.
+```
+
+---
+
+## Overriding Standard Markdown Elements
+
+You can override standard Markdown tags by mapping the HTML tag names to your custom React components:
+
+| Tag | Markdown Syntax | Description |
+| :--- | :--- | :--- |
+| `h1`–`h6` | `#` to `######` | Headers |
+| `a` | `[Link]\(...\)` | Anchor links |
+| `pre` | ` ``` ` | Code block wrappers |
+| `code` | `` `code` `` | Inline code code tags |
+| `img` | `![Alt]\(...\)` | Images |
+| `table` | Tables | Table containers |
+
+For example, to wrap all tables in a custom responsive container:
+
+```tsx title="docs/mdx-components.tsx"
+export default {
+  table: (props) => (
+    <div style={{ overflowX: 'auto' }}>
+      <table {...props} />
+    </div>
+  ),
+}
+```
+
+---
+
+## Advanced: Injecting via Plugins
+
+If you are developing a reusable plugin, you can inject MDX components using the plugin's `components` configuration:
+
+```ts title="my-plugin.ts"
+import type { BoltdocsPlugin } from 'boltdocs'
+
+export default function myPlugin(): BoltdocsPlugin {
+  return {
+    name: 'my-plugin',
+    components: {
+      // Key: component name in MDX, Value: path to the module
+      MyComponent: './src/components/MyComponent.tsx',
+    },
+  }
+}
+```
+
+Refer to the [Mermaid Plugin](/docs/components/mdx/mermaid) for a real-world example of plugin-based component injection.

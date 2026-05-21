@@ -28,6 +28,23 @@ const TestThemeComponent = () => {
 
 describe('ThemeContext', () => {
   beforeEach(() => {
+    if (typeof localStorage === 'undefined') {
+      const store: Record<string, string> = {}
+      global.localStorage = {
+        getItem: (key: string) => store[key] || null,
+        setItem: (key: string, value: string) => {
+          store[key] = value
+        },
+        removeItem: (key: string) => {
+          delete store[key]
+        },
+        clear: () => {
+          for (const k in store) delete store[k]
+        },
+        length: 0,
+        key: (index: number) => '',
+      }
+    }
     localStorage.clear()
     vi.stubGlobal(
       'matchMedia',
@@ -41,7 +58,9 @@ describe('ThemeContext', () => {
 
   afterEach(() => {
     vi.unstubAllGlobals()
-    localStorage.clear()
+    if (typeof localStorage !== 'undefined') {
+      localStorage.clear()
+    }
   })
 
   it('should provide default theme as system', async () => {

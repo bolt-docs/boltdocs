@@ -1,0 +1,72 @@
+---
+title: ButtonGroup
+sidebarPosition: 2
+description: Layout wrapper to group and align related action buttons.
+---
+
+The `ButtonGroup` primitive allows you to group multiple adjacent buttons into a single horizontal or vertical unit, automatically handling border merging and corner radius clipping.
+
+---
+
+## Import
+
+```tsx
+import { ButtonGroup } from 'boltdocs/primitives'
+```
+
+---
+
+## Quick Start
+
+Group buttons together horizontally:
+
+```tsx
+import { Button, ButtonGroup } from 'boltdocs/primitives'
+
+export default function FilterGroup() {
+  return (
+    <ButtonGroup className="rounded-lg border border-subtle overflow-hidden">
+      <Button className="px-4 py-2 bg-surface hover:bg-soft text-body border-r border-subtle">
+        Tab 1
+      </Button>
+      <Button className="px-4 py-2 bg-surface hover:bg-soft text-body border-r border-subtle">
+        Tab 2
+      </Button>
+      <Button className="px-4 py-2 bg-surface hover:bg-soft text-body">
+        Tab 3
+      </Button>
+    </ButtonGroup>
+  )
+}
+```
+
+---
+
+## Layout Configurations
+
+### Horizontal Alignment (Default)
+By default, `<ButtonGroup>` aligns button children in a row. It strips internal adjacent border margins and applies left and right border radii properly to the outer edges.
+
+### Vertical Alignment
+Set `vertical` to `true` to stack the button children in a vertical column structure.
+
+```tsx
+<ButtonGroup vertical className="rounded-md">
+  <Button className="px-4 py-2 border-b border-subtle">Stack Top</Button>
+  <Button className="px-4 py-2 border-b border-subtle">Stack Middle</Button>
+  <Button className="px-4 py-2">Stack Bottom</Button>
+</ButtonGroup>
+```
+
+---
+
+## Component Props
+
+The `ButtonGroup` component accepts these layout configuration properties:
+
+| Property | Type | Default | Description |
+| :--- | :--- | :--- | :--- |
+| **`vertical`** | `boolean` | `false` | Stacks the buttons vertically if set to `true`. Otherwise, arranges them in a horizontal flex row. |
+| **`children`** | `ReactNode` | *Required* | The buttons or interactive list nodes to group. |
+| **`className`** | `string` | `undefined` | Custom CSS utility class overrides. |
+| **`style`** | `CSSProperties` | `undefined` | Inline styling overrides. |

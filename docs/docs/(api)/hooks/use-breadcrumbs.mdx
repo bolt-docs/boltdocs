@@ -1,0 +1,59 @@
+---
+title: useBreadcrumbs
+description: Fetch the list of parent paths leading to the current active page.
+---
+
+The `useBreadcrumbs` hook computes the path segment breadcrumb hierarchy for the currently active route.
+
+---
+
+## Import
+
+```tsx
+import { useBreadcrumbs } from 'boltdocs/client'
+```
+
+---
+
+## Return Values
+
+| Property | Type | Description |
+| :--- | :--- | :--- |
+| **`breadcrumbs`** | `Breadcrumb[]` | Array of path segment definitions from root to current page. |
+
+---
+
+## Breadcrumb Schema
+
+```ts
+interface Breadcrumb {
+  label: string    // Visible text representation of the segment
+  path: string     // Target URL path route
+}
+```
+
+---
+
+## Example: Custom Top Path Banner
+
+```tsx
+import { useBreadcrumbs } from 'boltdocs/client'
+
+export function CustomHeaderPath() {
+  const { breadcrumbs } = useBreadcrumbs()
+
+  return (
+    <div className="bg-zinc-50 dark:bg-zinc-900 px-4 py-2 border-b flex gap-1 text-xs">
+      <span className="text-zinc-400">Current Position:</span>
+      {breadcrumbs.map((crumb, idx) => (
+        <span key={crumb.path}>
+          {idx > 0 && <span className="mx-1 text-zinc-400">›</span>}
+          <a href={crumb.path} className="hover:text-blue-500 text-zinc-600 dark:text-zinc-300">
+            {crumb.label}
+          </a>
+        </span>
+      ))}
+    </div>
+  )
+}
+```

@@ -27,7 +27,7 @@ function DocsLayoutComponent({ children }: DocsLayoutThemeProps) {
       <DocsLayoutPrimitive.Body className="bg-main">
         <Sidebar routes={filteredRoutes || []} config={config} />
         <DocsLayoutPrimitive.Content className="animate-in fade-in duration-500 scroll-smooth">
-          <DocsLayoutPrimitive.ContentMdx className="max-w-4xl pt-8 pb-24">
+          <DocsLayoutPrimitive.ContentMdx className="max-w-5xl px-2 pt-8 pb-24">
             <DocsLayoutPrimitive.Header>
               <div className="mb-4 border-b border-subtle pb-4 flex flex-wrap items-center justify-between gap-3">
                 <Breadcrumbs />
@@ -48,7 +48,6 @@ function DocsLayoutComponent({ children }: DocsLayoutThemeProps) {
                   {currentRoute.description}
                 </p>
               )}
-
             </DocsLayoutPrimitive.Header>
 
             <ErrorBoundary>
@@ -57,7 +56,7 @@ function DocsLayoutComponent({ children }: DocsLayoutThemeProps) {
               </div>
             </ErrorBoundary>
 
-            <DocsLayoutPrimitive.Footer className="mt-16 pt-8 border-t border-subtle">
+            <DocsLayoutPrimitive.Footer>
               <PageNav />
             </DocsLayoutPrimitive.Footer>
           </DocsLayoutPrimitive.ContentMdx>

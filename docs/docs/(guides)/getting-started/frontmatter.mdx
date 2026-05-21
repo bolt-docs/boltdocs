@@ -1,0 +1,179 @@
+---
+title: Frontmatter
+sidebarPosition: 7
+description: Full reference for every frontmatter field Boltdocs understands, including routing, sidebar, SEO, and display metadata.
+---
+
+Frontmatter is a block of YAML at the very top of any `.md` or `.mdx` file, enclosed by triple dashes (`---`). Boltdocs reads it to control routing, sidebar display, SEO, and page metadata.
+
+```md
+---
+title: Getting Started
+description: Install and run Boltdocs in under two minutes.
+sidebarPosition: 1
+badge: New
+---
+
+# Getting Started
+
+Your page content starts here...
+```
+
+---
+
+## Full Reference
+
+| Property | Type | Default | Description |
+| :--- | :--- | :--- | :--- |
+| **`title`** | `string` | Filename | The page title shown in the sidebar, browser tab, and OG tags. If omitted, Boltdocs uses the filename (with numeric prefix stripped). |
+| **`description`** | `string` | First paragraph | A short description for SEO meta tags and search result snippets. Max 500 characters. |
+| **`permalink`** | `string` | — | Override the auto-generated URL for this page (e.g., `'/docs/my-custom-path'`). |
+| **`sidebarPosition`** | `number` | — | Explicit position of this page within its sidebar group. Lower numbers appear first. |
+| **`sidebarLabel`** | `string` | `title` | A shorter label to display in the sidebar instead of the full page title. |
+| **`sidebarHidden`** | `boolean` | `false` | Hide this page from the sidebar while keeping it accessible via its URL. |
+| **`hidden`** | `boolean` | `false` | Alias for `sidebarHidden`. |
+| **`order`** | `number` | — | Alternative ordering field. Behaves the same as `sidebarPosition`. |
+| **`badge`** | `string \| BadgeConfig` | — | A badge displayed next to the page title in the sidebar. See [`BadgeConfig`](#badgeconfig) below. |
+| **`icon`** | `string` | — | A Lucide icon name (e.g., `'Rocket'`) or raw SVG string displayed next to the page title. |
+| **`date`** | `string \| Date` | — | Publication date of the page. Used in blog-style docs or changelogs. |
+| **`lastUpdated`** | `string \| Date` | — | Timestamp shown in the "Last updated" footer. |
+| **`category`** | `string` | — | Free-form category label (max 50 characters). |
+| **`groupTitle`** | `string` | Folder name | On an `index.md` file, overrides the sidebar group title for the enclosing folder. |
+| **`groupPosition`** | `number` | — | On an `index.md` file, sets the sort position of the entire group in the sidebar. |
+| **`seo`** | `Record<string, any>` | — | Custom Open Graph and meta tag overrides. See [`seo`](#seo-field) below. |
+
+---
+
+## `BadgeConfig`
+
+The `badge` field accepts either a plain string or an object with an optional expiry date. When an expiry is set and the date has passed, Boltdocs automatically hides the badge.
+
+| Property | Type | Description |
+| :--- | :--- | :--- |
+| **`text`** | `string` | The badge label (e.g., `'New'`, `'Beta'`, `'Deprecated'`). Max 50 characters. |
+| **`expires`** | `string` | An ISO 8601 date string. After this date, the badge is no longer shown. |
+
+**Examples:**
+
+```md
+---
+# Simple string badge
+badge: New
+
+# Badge with expiry date
+badge:
+  text: Beta
+  expires: '2026-12-31'
+---
+```
+
+---
+
+## `seo` Field
+
+Override or extend the auto-generated SEO meta tags for a specific page:
+
+```md
+---
+seo:
+  og:image: /assets/my-custom-og-image.png
+  og:type: article
+  twitter:card: summary_large_image
+---
+```
+
+Any keys you provide here are merged on top of Boltdocs' default generated tags.
+
+---
+
+## Permalink Override
+
+Use `permalink` to decouple a page's URL from its file location. This is useful for migrating content without breaking existing links:
+
+```md
+---
+title: Legacy Setup Guide
+permalink: /docs/setup
+---
+```
+
+The file can live anywhere in `docs/`, but it will always be served at `/docs/setup`.
+
+<Callout variant="warning" title="Permalink conflicts">
+  If two pages share the same `permalink`, the last one processed wins and a warning is printed to the console. Always ensure permalinks are unique.
+</Callout>
+
+---
+
+## Custom Frontmatter & `useMdxComponents`
+
+You are not limited to the built-in frontmatter properties. You can add arbitrary custom keys to any page's frontmatter block to attach extra metadata (e.g. authors, versions, or status labels):
+
+```md
+---
+title: Advanced Guide
+author_name: "Jane Doe"
+version_added: "v2.1.0"
+---
+```
+
+To render these custom fields using customized UI components, you can register components with a `Frontmatter_` prefix inside your `docs/mdx-components.tsx` file.
+
+### Step 1: Register Custom Frontmatter Components
+Export your formatter components prefixing their names with `Frontmatter_`:
+
+```tsx title="docs/mdx-components.tsx"
+// Mapped component for the 'author' frontmatter key
+function Frontmatter_author({ value }: { value: string }) {
+  return (
+    <div className="flex items-center gap-2 mt-2">
+      <span className="text-xs font-semibold text-zinc-500">Author:</span>
+      <span className="text-sm text-zinc-900 dark:text-zinc-100">{value}</span>
+    </div>
+  )
+}
+
+// Mapped component for the 'version' frontmatter key
+function Frontmatter_version({ value }: { value: string }) {
+  return (
+    <span className="inline-block bg-primary-500/10 text-primary-500 text-xs px-2 py-0.5 rounded-full">
+      Added in {value}
+    </span>
+  )
+}
+
+export default {
+  Frontmatter_author,
+  Frontmatter_version,
+} 
+```
+
+### Step 2: Retrieve and Render via the Hook
+In your layout or custom components, you can call the `useMdxComponents` hook to fetch your frontmatter registry. Boltdocs automatically strip the `Frontmatter_` prefix and places these components in a nested `Frontmatter` namespace:
+
+```tsx title="docs/layout.tsx"
+import { useMdxComponents, useRoutes } from 'boltdocs/client'
+
+export default function CustomLayout({ children }) {
+  const { currentRoute } = useRoutes()
+  const components = useMdxComponents()
+
+  // Extract the custom frontmatter data from the current route
+  const author = currentRoute?.frontmatter?.author
+  const version = currentRoute?.frontmatter?.version
+
+  // Get the mapped formatter components
+  const AuthorFormatter = components.Frontmatter?.author
+  const VersionFormatter = components.Frontmatter?.version
+
+  return (
+    <div>
+      <header>
+        {AuthorFormatter && author && <AuthorFormatter value={author} />}
+        {VersionFormatter && version && <VersionFormatter value={version} />}
+      </header>
+      <main>{children}</main>
+    </div>
+  )
+}
+```

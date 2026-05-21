@@ -1,0 +1,139 @@
+---
+title: Versioning
+sidebarPosition: 4
+description: Maintain multiple versions of your documentation side by side using folder conventions and the versions config key.
+---
+
+Versioning lets you keep multiple parallel editions of your documentation live at the same time — one for each major release of your project. Users can switch between them, and older versions remain accessible without any manual maintenance.
+
+---
+
+## How It Works
+
+Like locales, versions are **folder-based**. Each version lives in a subfolder at the root of `docs/`. Boltdocs maps those folders to versioned URL prefixes.
+
+```
+docs/
+├── index.md            → /docs/guide (default / current version)
+├── guide/
+│   └── index.md        → /docs/guide
+└── v1/
+    └── guide/
+        └── index.md    → /docs/v1/guide
+```
+
+---
+
+## Quick Start
+
+### Step 1: Add versions to your config
+
+```ts
+export default defineConfig({
+  versions: {
+    defaultVersion: 'v2',
+    versions: [
+      { label: 'v2 (latest)', path: 'v2' },
+      { label: 'v1',          path: 'v1' },
+    ],
+  },
+})
+```
+
+### Step 2: Create version folders
+
+```sh
+mkdir docs/v2 docs/v1
+```
+
+### Step 3: Add your versioned content
+
+```
+docs/
+├── v2/
+│   ├── guide/
+│   │   └── index.md    → /docs/v2/guide
+│   └── api/
+│       └── config.md   → /docs/v2/api/config
+└── v1/
+    └── guide/
+        └── index.md    → /docs/v1/guide
+```
+
+---
+
+## Config Reference
+
+### `BoltdocsVersionsConfig`
+
+| Property | Type | Required | Description |
+| :--- | :--- | :--- | :--- |
+| **`defaultVersion`** | `string` | ✓ | The version `path` that is considered the current/default. Pages for this version don't necessarily need their own folder if you want them at the root. |
+| **`prefix`** | `string` | — | A string prepended to every version's path inside `docs/` (e.g., `'v'` → folders become `docs/v1/`, `docs/v2/`). |
+| **`versions`** | `VersionConfig[]` | ✓ | The ordered list of available versions. First item appears first in version switcher. |
+
+### `VersionConfig`
+
+| Property | Type | Required | Description |
+| :--- | :--- | :--- | :--- |
+| **`label`** | `string` | ✓ | Human-readable label for this version (e.g., `'v2 (latest)'`). Displayed in the version switcher UI. |
+| **`path`** | `string` | ✓ | The folder name in `docs/` and the URL segment for this version (e.g., `'v1'`). |
+
+---
+
+## Using a Folder Prefix
+
+If you want all version folders to share a common prefix (e.g., `docs/releases/v1/`, `docs/releases/v2/`), set the `prefix` option:
+
+```ts
+export default defineConfig({
+  versions: {
+    defaultVersion: 'v2',
+    prefix: 'releases/',
+    versions: [
+      { label: 'v2 (latest)', path: 'v2' },
+      { label: 'v1',          path: 'v1' },
+    ],
+  },
+})
+```
+
+This maps `docs/releases/v2/guide.md` → `/docs/releases/v2/guide`.
+
+---
+
+## Combining Versioning with i18n
+
+When both versioning and i18n are active, the folder hierarchy is always **version first, then locale**:
+
+```
+docs/
+└── v2/
+    ├── guide.md         → /docs/v2/guide      (default locale)
+    └── es/
+        └── guide.md     → /docs/v2/es/guide   (Spanish)
+```
+
+<Callout variant="warning" title="Order matters">
+  The version segment is always resolved before the locale segment. Place locale folders **inside** version folders, not the other way around. The reverse structure (`docs/es/v2/`) is not supported.
+</Callout>
+
+---
+
+## Versioned URLs
+
+Given this config:
+
+```ts
+versions: {
+  defaultVersion: 'v2',
+  versions: [
+    { label: 'v2', path: 'v2' },
+    { label: 'v1', path: 'v1' },
+  ],
+}
+```
+
+A file at `docs/v1/guide/install.md` resolves to `/docs/v1/guide/install`. A file at `docs/v2/guide/install.md` resolves to `/docs/v2/guide/install`.
+
+The version switcher in the default layout lets users jump between versions while staying on the equivalent page.

@@ -33,7 +33,11 @@ export function useNavbar() {
           const parts = p.split('/').filter(Boolean)
           let i = 0
           // Skip locale
-          if (config.i18n?.locales && parts[i] && config.i18n.locales[parts[i]]) {
+          if (
+            config.i18n?.locales &&
+            parts[i] &&
+            config.i18n.locales[parts[i]]
+          ) {
             i++
           }
           // Skip version

@@ -1,0 +1,154 @@
+---
+title: Internationalization (i18n)
+sidebarPosition: 2
+description: Set up multi-language documentation with folder-based locale routing, automatic fallbacks for untranslated pages, and RTL support.
+---
+
+Boltdocs has first-class support for multi-language documentation. Locales are driven by **folder conventions** — place your translated pages in locale-named subfolders, and Boltdocs handles routing, fallbacks, and locale switching automatically.
+
+---
+
+## How It Works
+
+Locale detection is file-system based. When a file lives under a folder whose name matches a configured locale code, Boltdocs assigns that locale to the route:
+
+```
+docs/
+├── index.md           → /docs          (default locale: 'en')
+├── guide.md           → /docs/guide    (default locale: 'en')
+└── es/
+    ├── index.md       → /docs/es       (locale: 'es')
+    └── guide.md       → /docs/es/guide (locale: 'es')
+```
+
+---
+
+## Quick Start
+
+### Step 1: Add i18n to your config
+
+```ts
+export default defineConfig({
+  i18n: {
+    defaultLocale: 'en',
+    locales: ['en', 'es', 'fr'],
+  },
+})
+```
+
+### Step 2: Create locale folders
+
+Create a subfolder for each non-default locale inside `docs/`:
+
+```sh
+mkdir docs/es docs/fr
+```
+
+### Step 3: Add translated pages
+
+```
+docs/
+├── getting-started.md          # English (default)
+├── es/
+│   └── getting-started.md      # Spanish translation
+└── fr/
+    └── getting-started.md      # French translation
+```
+
+That's it. The locale switcher (if your layout includes one) and the URL structure are automatically set up.
+
+---
+
+## Automatic Fallbacks
+
+If a translated page doesn't exist for a locale, Boltdocs automatically **generates a fallback route** that serves the default locale's content. The URL is still locale-prefixed so the locale switcher works correctly:
+
+- `/docs/es/advanced` will serve the English `advanced.md` if `docs/es/advanced.md` doesn't exist.
+
+<Callout variant="note">
+  Fallback routes are generated at build time. End users land on the page without any error, though the content will be in the default language. You can detect this in a custom layout using the `useI18n()` hook to show a "Translation pending" banner.
+</Callout>
+
+---
+
+## i18n Config Reference
+
+### `BoltdocsI18nConfig`
+
+| Property | Type | Required | Description |
+| :--- | :--- | :--- | :--- |
+| **`defaultLocale`** | `string` | ✓ | The locale code for your primary language (e.g., `'en'`). Pages at the root of `docs/` (not inside a locale folder) belong to this locale. |
+| **`locales`** | `string[] \| Record<string, string>` | ✓ | All supported locale codes. Can be an array of codes or a map of `{ code: label }` pairs. |
+| **`localeConfigs`** | `Record<string, LocaleConfig>` | — | Per-locale display and behavior settings. See [`LocaleConfig`](#localeconfig) below. |
+
+### `LocaleConfig`
+
+| Property | Type | Default | Description |
+| :--- | :--- | :--- | :--- |
+| **`label`** | `string` | Locale code | Human-readable name for this locale (e.g., `'English'`, `'Español'`). |
+| **`direction`** | `'ltr' \| 'rtl'` | `'ltr'` | Text direction. Set to `'rtl'` for right-to-left languages like Arabic or Hebrew. |
+| **`htmlLang`** | `string` | Locale code | The `lang` attribute value for the `<html>` tag (e.g., `'en-US'`, `'ar'`). |
+| **`calendar`** | `string` | — | The calendar system to use for date formatting (e.g., `'islamic'`, `'buddhist'`). |
+
+---
+
+## Full Config Example
+
+```ts
+export default defineConfig({
+  i18n: {
+    defaultLocale: 'en',
+    locales: {
+      en: 'English',
+      es: 'Español',
+      ar: 'العربية',
+    },
+    localeConfigs: {
+      en: {
+        label: 'English',
+        direction: 'ltr',
+        htmlLang: 'en-US',
+      },
+      es: {
+        label: 'Español',
+        direction: 'ltr',
+        htmlLang: 'es-ES',
+      },
+      ar: {
+        label: 'العربية',
+        direction: 'rtl',
+        htmlLang: 'ar',
+      },
+    },
+  },
+})
+```
+
+---
+
+## RTL Support
+
+Setting `direction: 'rtl'` on a locale config tells Boltdocs to flip the layout for that locale. The sidebar moves to the right, navigation arrows are mirrored, and `dir="rtl"` is set on the `<html>` element.
+
+---
+
+## Translating Theme Strings
+
+Properties like `theme.title`, `theme.description`, and navbar labels support locale key maps, letting you translate the UI shell along with the content:
+
+```ts
+export default defineConfig({
+  theme: {
+    title: {
+      en: 'My Project',
+      es: 'Mi Proyecto',
+      ar: 'مشروعي',
+    },
+    navbar: [
+      {
+        label: { en: 'Docs', es: 'Documentación', ar: 'المستندات' },
+        href: '/docs',
+      },
+    ],
+  },
+})

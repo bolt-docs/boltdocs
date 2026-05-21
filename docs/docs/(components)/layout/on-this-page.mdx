@@ -1,0 +1,169 @@
+---
+title: OnThisPage
+sidebarPosition: 5
+description: A table of contents navigation panel that displays and highlights headers of the current page.
+---
+
+The `OnThisPage` component renders a floating navigation panel listing headings from the current document, dynamically highlighting active sections as the user scrolls.
+
+---
+
+## Import
+
+```tsx
+import { OnThisPage } from 'boltdocs/primitives'
+```
+
+---
+
+## Composable Scroll-Spy Example
+
+Using the primitive `OnThisPage` modules, you can assemble a fully custom table of contents. The example below shows how to compose a layout with custom titles, list containers, active indicator lines, and smooth scroll behaviors:
+
+```tsx
+// docs/components/CustomTOC.tsx
+import React, { useRef } from 'react'
+import { OnThisPage, AnchorProvider, ScrollProvider } from 'boltdocs/primitives'
+import { useRoutes } from 'boltdocs/client'
+
+export default function CustomTOC() {
+  const { currentRoute } = useRoutes()
+  const scrollContainerRef = useRef<HTMLDivElement>(null)
+
+  const headings = currentRoute?.headings || []
+  if (headings.length === 0) return null
+
+  // Convert headings database to standard TOC structure
+  const tocItems = headings.map((h) => ({
+    title: h.text,
+    url: `#${h.id}`,
+    depth: h.level,
+  }))
+
+  return (
+    <OnThisPage className="border-l border-subtle pl-6 py-6 bg-transparent">
+      {/* 1. Static Title Header */}
+      <OnThisPage.Header className="text-xs font-bold uppercase tracking-wider text-zinc-400 mb-4">
+        Table of Contents
+      </OnThisPage.Header>
+
+      {/* 2. Scroll-Spy Context Wrapper Providers */}
+      <AnchorProvider toc={tocItems} single={false}>
+        <ScrollProvider containerRef={scrollContainerRef}>
+          
+          {/* 3. Masked Scrollable Viewport */}
+          <OnThisPage.Content ref={scrollContainerRef} className="max-h-[80vh]">
+            <OnThisPage.List className="relative border-l border-zinc-200 dark:border-zinc-800">
+              
+              {/* 4. Active Section Accent Indicator */}
+              <OnThisPage.Indicator className="bg-primary-500" />
+              
+              {/* 5. Hierarchical Link Mapping */}
+              {headings.map((h) => (
+                <OnThisPage.Item key={h.id} level={h.level}>
+                  <OnThisPage.Link href={`#${h.id}`}>
+                    {h.text}
+                  </OnThisPage.Link>
+                </OnThisPage.Item>
+              ))}
+
+            </OnThisPage.List>
+          </OnThisPage.Content>
+
+        </ScrollProvider>
+      </AnchorProvider>
+    </OnThisPage>
+  )
+}
+```
+
+> [!TIP]
+> If you don't want to map items manually, you can use the high-level primitive wrapper `<OnThisPage.Tree headings={headings} />` to automatically mount the observers, indicators, and list links inside an active layout.
+
+---
+
+## Composable Sub-Components
+
+The `OnThisPage` primitive provides the following sub-components for structure customization:
+
+| Component | HTML Tag | Description | Props |
+| :--- | :--- | :--- | :--- |
+| **`OnThisPage.Root`** / **`OnThisPage`** | `<nav>` | The outer container wrapper representing the sticky desktop right column navigation area. | [`ComponentBaseProps`](#componentbaseprops-common) |
+| **`OnThisPage.Header`** | `<div>` | A typography title block to label the table of contents. | [`ComponentBaseProps`](#componentbaseprops-common) |
+| **`OnThisPage.Content`** | `<div>` | Scrollable viewport container with hidden scrollbars. | [`OnThisPage.Content Props`](#onthispagecontent-props) |
+| **`OnThisPage.List`** | `<ul>` | List element shell that wraps the item anchors. | [`ComponentBaseProps`](#componentbaseprops-common) |
+| **`OnThisPage.Item`** | `<li>` | Single list item cell wrapper. Indents H3 elements. | [`OnThisPage.Item Props`](#onthispageitem-props) |
+| **`OnThisPage.Link`** | `<a>` | Anchor link element that intercepts click events to perform smooth viewport scrollings. | [`OnThisPage.Link Props`](#onthispagelink-props) |
+| **`OnThisPage.Indicator`** | `<div>` | A floating vertical highlight track indicator showing the active anchor link. | [`ComponentBaseProps`](#componentbaseprops-common) |
+| **`OnThisPage.Items`** | Varies | Loop helper rendering active links and indicators automatically based on heading configs. | [`OnThisPage.Items Props`](#onthispageitems-props) |
+| **`OnThisPage.Tree`** | `<nav>` | High-level automated component grouping containing all providers, observers, and items. | [`OnThisPage.Tree Props`](#onthispagetree-props) |
+
+---
+
+## Component Props
+
+### ComponentBaseProps (Common)
+
+| Property | Type | Default | Description |
+| :--- | :--- | :--- | :--- |
+| **`children`** | `ReactNode` | `undefined` | Children content elements. |
+| **`className`** | `string` | `undefined` | Custom CSS utility classes. |
+| **`style`** | `CSSProperties` | `undefined` | Inline style overrides. |
+
+### `OnThisPage.Content` Props
+
+| Property | Type | Default | Description |
+| :--- | :--- | :--- | :--- |
+| **`ref`** | `Ref<HTMLDivElement>` | `undefined` | Ref instance for the container element. |
+| **`scrollRef`** | `RefObject<HTMLElement>` | `undefined` | Ref of the main viewport content element to spy scrolling on. |
+
+### `OnThisPage.Item` Props
+
+| Property | Type | Default | Description |
+| :--- | :--- | :--- | :--- |
+| **`level`** | `number` | `undefined` | The heading hierarchy depth. Depth of `3` triggers inner padding. |
+
+### `OnThisPage.Link` Props
+
+| Property | Type | Default | Description |
+| :--- | :--- | :--- | :--- |
+| **`href`** | `string` | *Required* | Element target anchor ID (e.g. `'#installation'`). |
+| **`active`** | `boolean` | `false` | Highlight active override toggle. |
+| **`onClick`** | `(event) => void` | `undefined` | Custom click intercept callback. |
+
+### `OnThisPage.Items` Props
+
+| Property | Type | Default | Description |
+| :--- | :--- | :--- | :--- |
+| **`headings`** | `TOCItemType[]` | *Required* | Raw page headers data to map. |
+
+### `OnThisPage.Tree` Props
+
+| Property | Type | Default | Description |
+| :--- | :--- | :--- | :--- |
+| **`headings`** | `TOCItemType[]` | *Required* | Headers array mapping for active rendering. |
+
+---
+
+## Under-the-Hood Contexts
+
+If you are constructing a fully bespoke tracker, you can import and wrap your layout in the custom React context providers exposed via `OnThisPage`:
+
+| Context Provider | Description | Props |
+| :--- | :--- | :--- |
+| **`AnchorProvider`** | Watches scroll events using IntersectionObserver and tracks the active page header. | [`AnchorProviderProps`](#anchorproviderprops) |
+| **`ScrollProvider`** | Auto-scrolls the table of contents lists to keep the active item aligned in viewport center. | [`ScrollProviderProps`](#scrollproviderprops) |
+
+### `AnchorProviderProps`
+
+| Property | Type | Default | Description |
+| :--- | :--- | :--- | :--- |
+| **`toc`** | `TOCItemType[]` | *Required* | Table of contents headers array to observe. |
+| **`single`** | `boolean` | `false` | If true, only activates one item at a time. |
+| **`observerOptions`** | `IntersectionObserverInit` | `undefined` | IntersectionObserver options override. |
+
+### `ScrollProviderProps`
+
+| Property | Type | Default | Description |
+| :--- | :--- | :--- | :--- |
+| **`containerRef`** | `RefObject<HTMLElement>` | *Required* | Ref of scroll container element holding the links list. |

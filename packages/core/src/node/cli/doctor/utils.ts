@@ -1,7 +1,11 @@
 import path from 'node:path'
 import fs from 'node:fs'
 import { fdir } from 'fdir'
-import { parseFrontmatter, fileToRoutePath } from '../../utils'
+import {
+  parseFrontmatter,
+  parseFrontmatterAsync,
+  fileToRoutePath,
+} from '../../utils'
 import type { BoltdocsConfig } from '../../config'
 import {
   type DoctorConfig,
@@ -38,7 +42,7 @@ export function getFileData(
   if (cached) return cached
 
   const promise = (async () => {
-    const parsed = parseFrontmatter(filePath, false)
+    const parsed = await parseFrontmatterAsync(filePath, false)
     return { raw: parsed.raw, data: parsed.data, content: parsed.content }
   })()
 
@@ -46,7 +50,7 @@ export function getFileData(
   return promise
 }
 
-const fileExistsCache = new Map<string, boolean>()
+export const fileExistsCache = new Map<string, boolean>()
 
 export function cachedExists(filePath: string): boolean {
   if (fileExistsCache.has(filePath)) return fileExistsCache.get(filePath)!
@@ -124,30 +128,39 @@ export async function generateLinkTree(
   }
 
   const base = config?.base || '/docs'
-  const routes = await Promise.all(
-    files.map(async (file) => {
-      const absFile = path.isAbsolute(file) ? file : path.resolve(docsDir, file)
-      const relFile = path.relative(docsDir, absFile)
+  const routes: string[] = []
 
-      const { data } = await getFileData(absFile)
-      let route: string
-      if (data.permalink) {
-        route = data.permalink.startsWith('/')
-          ? data.permalink
-          : `/${data.permalink}`
-      } else {
-        route = fileToRoutePath(relFile)
-      }
+  const CHUNK_SIZE = 100
+  for (let i = 0; i < files.length; i += CHUNK_SIZE) {
+    const chunk = files.slice(i, i + CHUNK_SIZE)
+    const chunkRoutes = await Promise.all(
+      chunk.map(async (file) => {
+        const absFile = path.isAbsolute(file)
+          ? file
+          : path.resolve(docsDir, file)
+        const relFile = path.relative(docsDir, absFile)
 
-      if (base === '/') return route
-      return (
-        // Use template literal to construct the route and removed concatenations
+        const { data } = await getFileData(absFile)
+        let route: string
+        if (data.permalink) {
+          route = data.permalink.startsWith('/')
+            ? data.permalink
+            : `/${data.permalink}`
+        } else {
+          route = fileToRoutePath(relFile)
+        }
 
-        (base.endsWith('/') ? base : base + '/') +
-        (route.startsWith('/') ? route.substring(1) : route)
-      )
-    }),
-  )
+        if (base === '/') return route
+        return (
+          // Use template literal to construct the route and removed concatenations
+
+          (base.endsWith('/') ? base : base + '/') +
+          (route.startsWith('/') ? route.substring(1) : route)
+        )
+      }),
+    )
+    routes.push(...chunkRoutes)
+  }
 
   if (!routes.includes(base)) routes.push(base)
 

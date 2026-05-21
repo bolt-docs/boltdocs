@@ -237,7 +237,9 @@ export type TransformMdxComponents<T> = {
   }
 }
 
-export type BoltdocsMdxComponents = Boltdocs.Types extends { MdxComponents: infer M }
+export type BoltdocsMdxComponents = Boltdocs.Types extends {
+  MdxComponents: infer M
+}
   ? TransformMdxComponents<UnpackMdxComponents<M>>
   : {
       [key: string]: ComponentType<any>

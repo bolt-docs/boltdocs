@@ -1,0 +1,52 @@
+---
+title: useLocation
+description: Wrapper around React Router DOM location hook to access current router path metadata.
+---
+
+The `useLocation` hook exposes details about the current URL route location (pathname, search queries, and navigation state parameters) in custom components.
+
+---
+
+## Import
+
+```tsx
+import { useLocation } from 'boltdocs/client'
+```
+
+---
+
+## Response Schema
+
+The hook returns the standard location structure from React Router:
+
+```ts
+interface Location {
+  pathname: string      // The absolute route path string (e.g. '/docs/getting-started')
+  search: string        // Query parameters starting with '?' (e.g. '?query=setup')
+  hash: string          // Anchor segment starting with '#' (e.g. '#installation')
+  state: any            // Optional state data payload passed during navigation
+  key: string           // Unique key string assigned to this history location
+}
+```
+
+---
+
+## Usage Example
+
+Below is a custom tracking widget showing how to capture location changes using the `useLocation` hook:
+
+```tsx
+import React, { useEffect } from 'react'
+import { useLocation } from 'boltdocs/client'
+
+export default function AnalyticsTracker() {
+  const location = useLocation()
+
+  useEffect(() => {
+    // Record page view events on route changes
+    console.log(`Visited page: ${location.pathname}${location.search}`)
+  }, [location])
+
+  return null
+}
+```

@@ -1,0 +1,57 @@
+---
+title: defineConfig
+description: Define TypeScript-validated configurations inside boltdocs.config.ts.
+---
+
+The `defineConfig` utility is a compile-time configuration helper that provides TypeScript type completion and property verification.
+
+---
+
+## Import
+
+Unlike client-side hooks and utilities, `defineConfig` runs in the Node build environment and is imported from the root package:
+
+```ts
+import { defineConfig } from 'boltdocs'
+```
+
+---
+
+## Signature
+
+```ts
+function defineConfig(config: BoltdocsConfig): BoltdocsConfig
+```
+
+---
+
+## Example: Configuration Structure
+
+```ts
+// boltdocs.config.ts
+import { defineConfig } from 'boltdocs'
+import mermaidPlugin from '@bdocs/plugin-mermaid'
+
+export default defineConfig({
+  siteUrl: 'https://docs.example.com',
+  title: 'My Custom Framework',
+  description: 'Clean developers guides.',
+  theme: {
+    logo: {
+      light: '/logo-light.svg',
+      dark: '/logo-dark.svg'
+    },
+    tabs: [
+      { id: 'guides', title: 'Guides', href: '/docs/guides' },
+      { id: 'api', title: 'API Reference', href: '/docs/api' }
+    ]
+  },
+  plugins: [
+    mermaidPlugin({
+      themes: {
+        light: { primaryColor: '#f3f4f6' }
+      }
+    })
+  ]
+})
+```

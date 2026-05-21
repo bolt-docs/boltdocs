@@ -31,7 +31,13 @@
       "import": "./dist/client/primitives.js",
       "require": "./dist/client/primitives.cjs"
     },
-    "./theme/neutral.css": "./dist/client/theme/neutral.css"
+    "./mdx": {
+      "types": "./dist/client/mdx.d.ts",
+      "import": "./dist/client/mdx.js",
+      "require": "./dist/client/mdx.cjs"
+    },
+    "./theme/neutral.css": "./src/client/theme/neutral.css",
+    "./theme/reset.css": "./src/client/theme/reset.css"
   },
   "files": [
     "dist",
@@ -75,7 +81,7 @@
     "github-slugger": "2.0.0",
     "isomorphic-dompurify": "3.7.1",
     "lru-cache": "^11.3.6",
-    "lucide-react": "0.575.0",
+    "lucide-react": "1.16.0",
     "picomatch": "^4.0.4",
     "react-aria-components": "1.16.0",
     "react-helmet-async": "^2.0.1",

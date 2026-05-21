@@ -1,0 +1,29 @@
+---
+title: Field
+sidebarPosition: 3
+description: Document API properties, configuration keys, or schema definitions inline with the Field component.
+---
+
+The `<Field>` component is a clean way to document specific settings, configuration parameters, or API properties. It renders a clean border, monospace parameter details, badges for types, and labels indicating if the parameter is required.
+
+---
+
+## Usage
+
+```mdx
+<Field name="siteUrl" type="string" required>
+  The production URL of your documentation site. Used to generate sitemaps, robots.txt, and configure canonical links for SEO.
+</Field>
+```
+
+---
+
+## Props
+
+| Prop | Type | Default | Description |
+| :--- | :--- | :--- | :--- |
+| **`name`** | `string` | *Required* | The name of the property, variable, or option in monospace code styling. |
+| **`type`** | `string` | `undefined` | The type representation of the property (e.g. `'string'`, `'number'`, `'boolean'`). |
+| **`required`** | `boolean` | `false` | If true, displays a red `'required'` badge next to the type. |
+| **`description`** | `string` | `undefined` | Optional summary text. You can also specify the description directly as child elements for formatting support. |
+| **`children`** | `ReactNode` | `undefined` | The body description explaining what the field is for. |

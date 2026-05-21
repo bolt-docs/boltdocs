@@ -58,14 +58,19 @@ export const CTASection = () => {
               thousands of developers already using Boltdocs.
             </p>
 
-            <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mt-8">
               <Link
-                href="/docs/guides/overview/introduction"
-                className="bg-white text-black "
+                href="/docs/guides"
+                className="px-8 py-4 bg-white text-black font-bold rounded-full hover:scale-105 hover:shadow-[0_0_30px_rgba(255,255,255,0.4)] transition-all duration-300 flex items-center justify-center border-0"
               >
                 Get Started
               </Link>
-              <Link href="https://github.com/bolt-docs/boltdocs">GitHub</Link>
+              <Link
+                href="https://github.com/jesusalcaladev/boltdocs"
+                className="px-8 py-4 bg-white/5 backdrop-blur-md text-white font-bold rounded-full border border-white/20 hover:bg-white/10 hover:scale-105 transition-all duration-300 flex items-center justify-center gap-2"
+              >
+                <GithubIcon /> GitHub
+              </Link>
             </div>
           </div>
         </div>

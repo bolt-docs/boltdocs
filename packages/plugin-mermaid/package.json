@@ -24,7 +24,8 @@
   },
   "scripts": {
     "build": "tsdown --config-loader unrun",
-    "dev": "tsdown --watch --config-loader unrun"
+    "dev": "tsdown --watch --config-loader unrun",
+    "test": "vitest run"
   },
   "packageManager": "pnpm@10.30.2",
   "author": "Jesus Alcala",

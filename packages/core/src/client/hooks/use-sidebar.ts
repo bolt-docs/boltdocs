@@ -11,7 +11,9 @@ export function useSidebar(routes: ComponentRoute[]) {
   const currentPath = normalizePath(location.pathname)
 
   return useMemo(() => {
-    const activeRoute = routes.find((r) => normalizePath(r.path) === currentPath)
+    const activeRoute = routes.find(
+      (r) => normalizePath(r.path) === currentPath,
+    )
     const activeTabId = activeRoute?.tab?.toLowerCase()
 
     const filteredRoutes = activeTabId
@@ -29,7 +31,6 @@ export function useSidebar(routes: ComponentRoute[]) {
         directoryMeta[cleanKey === '' ? '.' : cleanKey] = value
       }
     }
-
 
     // 1. Helper to format labels
     const capitalize = (str: string) =>

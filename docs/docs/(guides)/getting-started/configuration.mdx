@@ -1,0 +1,233 @@
+---
+title: Configuration
+sidebarPosition: 2
+description: A guided walkthrough of every top-level key in boltdocs.config.ts and the real-world problems each one solves.
+---
+
+`boltdocs.config.ts` is the single configuration file for your entire documentation site. It lives at the root of your project alongside `package.json` and controls everything from the site title to the plugin stack and SEO behavior.
+
+```ts
+import { defineConfig } from 'boltdocs'
+
+export default defineConfig({
+  siteUrl: 'https://my-project.com',
+  base: '/docs',
+  theme: {
+    title: 'My Project',
+    githubRepo: 'my-org/my-project',
+  },
+})
+```
+
+Boltdocs reads this file at startup and generates a complete Vite configuration internally. You never need to touch a `vite.config.ts`.
+
+---
+
+## Top-Level Keys
+
+| Property | Type | Default | Description |
+| :--- | :--- | :--- | :--- |
+| **`siteUrl`** | `string` | `undefined` | The production URL of your site. Critical for generating `sitemap.xml` and canonical SEO tags. |
+| **`base`** | `string` | `'/'` | The sub-path where the docs site is deployed (e.g., `/docs`). All static assets and internal links will be relative to this. |
+| **`docsDir`** | `string` | `'./docs'` | Path to the directory containing your Markdown content. Relative to the project root. |
+| **`plugins`** | `BoltdocsPlugin[]` | `[]` | An array of Boltdocs plugins. See the [Plugins tab](/docs/plugins) for the full plugin system reference. |
+| **`theme`** | [`ThemeConfig`](#themeconfig) | — | Controls the visual appearance, navigation, sidebar, and display options. |
+| **`seo`** | [`SeoConfig`](#seoconfig) | — | Controls indexing behavior and Open Graph thumbnail generation. |
+| **`robots`** | [`RobotsConfig`](#robotsconfig) | — | Generates `robots.txt` and links your sitemap. |
+| **`integrations`** | [`IntegrationsConfig`](#integrationsconfig) | — | Enables third-party integrations such as Google Analytics 4 and Google Tag Manager. |
+| **`i18n`** | [`I18nConfig`](#i18nconfig) | — | Enables multi-language documentation with locale-based folder routing. |
+| **`versions`** | [`VersionsConfig`](#versionsconfig) | — | Enables side-by-side versioned documentation. |
+| **`security`** | [`SecurityConfig`](#securityconfig) | — | Configures HTTP security headers and CSP rules. |
+| **`vite`** | `ViteUserConfig` | — | Extends the internally generated Vite config with custom options. |
+
+---
+
+## `ThemeConfig`
+
+Controls the entire visual shell of your documentation site.
+
+| Property | Type | Default | Description |
+| :--- | :--- | :--- | :--- |
+| **`title`** | `string \| Record<string, string>` | `'Boltdocs'` | The main title shown in the navbar and browser tabs. Supports i18n locale key maps. |
+| **`description`** | `string` | — | A short description used in default SEO meta tags. |
+| **`logo`** | [`LogoConfig`](#logoconfig) | `undefined` | Custom logo images for light and dark modes. |
+| **`favicon`** | `string` | — | Path to the favicon (relative to `public/`). |
+| **`githubRepo`** | `string` | — | Repository in `owner/repo` format. Enables the GitHub link in the navbar automatically. |
+| **`navbar`** | `NavbarItem[]` | — | Top-level navigation links. Supports nested dropdown items. |
+| **`tabs`** | `TabConfig[]` | — | Horizontal tab strip above the sidebar. See [File-System Routing](/docs/guides/getting-started/file-routing). |
+| **`sidebar`** | `SidebarConfig` | — | Manually defined sidebar structure (disables auto-discovery for those prefixes). |
+| **`sidebarGroups`** | `Record<string, SidebarGroupConfig>` | — | Override group titles and icons without defining a full manual sidebar. |
+| **`codeTheme`** | [`CodeThemeConfig`](#codethemeconfig) | — | Shiki theme used for code block highlighting. |
+| **`editLink`** | `string` | — | URL template for the "Edit this page" link. Use `:path` as a placeholder for the current file's relative path. |
+| **`socialLinks`** | `SocialLink[]` | — | Extra icon links (Twitter/X, Discord, etc.) displayed in the navbar. |
+| **`communityHelp`** | `string` | — | Support link (e.g. Discord, slack or forum URL) shown in the page footer. |
+| **`version`** | `string` | — | Release version string displayed in the navbar. |
+
+### `LogoConfig`
+
+| Property | Type | Default | Description |
+| :--- | :--- | :--- | :--- |
+| **`dark`** | `string` | — | Path to the logo image shown in dark mode (relative to `public/`). |
+| **`light`** | `string` | — | Path to the logo image shown in light mode. |
+| **`alt`** | `string` | Title | Alt text for the logo `<img>`. |
+| **`width`** | `number` | — | Explicit pixel width for the logo image. |
+| **`height`** | `number` | — | Explicit pixel height for the logo image. |
+
+### `CodeThemeConfig`
+
+| Property | Type | Default | Description |
+| :--- | :--- | :--- | :--- |
+| **`light`** | `string` | `'github-light'` | Shiki theme name for light mode. |
+| **`dark`** | `string` | `'github-dark'` | Shiki theme name for dark mode. |
+
+Available themes: `github-light`, `github-dark`, `tokyo-night`, `dracula`, `nord`, `one-dark-pro`, `one-light`.
+
+---
+
+## `SeoConfig`
+
+Controls how search engines index your site and how social shares look.
+
+| Property | Type | Default | Description |
+| :--- | :--- | :--- | :--- |
+| **`indexing`** | `'all' \| 'none' \| 'noindex' \| 'nofollow'` | `'all'` | Controls the `<meta name="robots">` directive applied to every page. |
+| **`thumbnails`** | [`ThumbnailConfig`](#thumbnailconfig) | — | Generates Open Graph images for each page using a background template. |
+
+### `ThumbnailConfig`
+
+| Property | Type | Description |
+| :--- | :--- | :--- |
+| **`background`** | `string` | Path (relative to `public/`) to the background image used for OG thumbnails. |
+
+---
+
+## `RobotsConfig`
+
+Generates a `robots.txt` file at build time.
+
+| Property | Type | Description |
+| :--- | :--- | :--- |
+| **`rules`** | `RobotsRule[]` | Array of crawl rules. Each rule accepts `userAgent`, `allow`, and `disallow`. |
+| **`sitemaps`** | `string[]` | Full URLs to your sitemap(s) to include in `robots.txt`. |
+
+```ts
+export default defineConfig({
+  robots: {
+    rules: [
+      { userAgent: '*', allow: '/' },
+    ],
+    sitemaps: ['https://my-project.com/sitemap.xml'],
+  },
+})
+```
+
+---
+
+## `IntegrationsConfig`
+
+| Property | Type | Description |
+| :--- | :--- | :--- |
+| **`ga4`** | [`GA4Config`](#ga4config) | Google Analytics 4 configuration. |
+| **`gtm`** | [`GTMConfig`](#gtmconfig) | Google Tag Manager configuration. |
+
+### `GA4Config`
+
+| Property | Type | Description |
+| :--- | :--- | :--- |
+| **`measurementId`** | `string` | Your GA4 Measurement ID (e.g., `'G-XXXXXXXXXX'`). Boltdocs injects the tracking script automatically. |
+
+### `GTMConfig`
+
+| Property | Type | Description |
+| :--- | :--- | :--- |
+| **`tagId`** | `string` | Your Google Tag Manager Container ID (e.g., `'GTM-XXXXXX'`). |
+| **`dataLayerName`** | `string` | Custom name for GTM dataLayer (defaults to `'dataLayer'`). |
+| **`preview`** | `string` | GTM preview/environment identifier query string. |
+
+---
+
+## `I18nConfig`
+
+| Property | Type | Required | Description |
+| :--- | :--- | :--- | :--- |
+| **`defaultLocale`** | `string` | ✓ | The primary language code (e.g., `'en'`). |
+| **`locales`** | `string[] \| Record<string, string>` | ✓ | All supported locale codes. |
+| **`localeConfigs`** | `Record<string, LocaleConfig>` | — | Per-locale display settings (label, direction, htmlLang). |
+
+See the [Internationalization guide](/docs/integrations/i18n) for full details.
+
+---
+
+## `VersionsConfig`
+
+| Property | Type | Required | Description |
+| :--- | :--- | :--- | :--- |
+| **`defaultVersion`** | `string` | ✓ | The version path considered the current default. |
+| **`versions`** | `VersionConfig[]` | ✓ | Ordered list of available versions. |
+| **`prefix`** | `string` | — | String prepended to every version's folder path. |
+
+See the [Versioning guide](/docs/integrations/versioning) for full details.
+
+---
+
+## `SecurityConfig`
+
+Configure response headers, security settings, and Content Security Policy (CSP).
+
+| Property | Type | Description |
+| :--- | :--- | :--- |
+| **`enableCSP`** | `boolean` | Set to `true` to inject a default secure Content Security Policy header. |
+| **`headers`** | `Record<string, string>` | Custom HTTP headers sent on all requests. |
+| **`customHeaders`** | `Record<string, string>` | Additional override headers for the web server. |
+
+---
+
+## Full Example
+
+```ts
+import { defineConfig } from 'boltdocs'
+import mermaidPlugin from '@bdocs/plugin-mermaid'
+
+export default defineConfig({
+  siteUrl: 'https://my-project.com',
+  base: '/docs',
+  plugins: [mermaidPlugin()],
+  seo: {
+    indexing: 'all',
+    thumbnails: {
+      background: '/og-image.webp',
+    },
+  },
+  theme: {
+    title: 'My Project',
+    description: 'My project documentation.',
+    logo: {
+      dark: '/logo-light.svg',
+      light: '/logo-dark.svg',
+      alt: 'My Project Logo',
+    },
+    githubRepo: 'my-org/my-project',
+    codeTheme: {
+      light: 'github-light',
+      dark: 'github-dark',
+    },
+    editLink: 'https://github.com/my-org/my-project/edit/main/docs/:path',
+    tabs: [
+      { id: 'guides', text: 'Guides', icon: 'BookOpen' },
+      { id: 'api', text: 'API', icon: 'Code2' },
+    ],
+    navbar: [
+      { label: 'Docs', href: '/docs' },
+    ],
+  },
+  robots: {
+    rules: [{ userAgent: '*', allow: '/' }],
+    sitemaps: ['https://my-project.com/sitemap.xml'],
+  },
+  integrations: {
+    ga4: {
+      measurementId: 'G-XXXXXXXXXX',
+    },
+  },
+})
+```

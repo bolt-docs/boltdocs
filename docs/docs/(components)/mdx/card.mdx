@@ -1,0 +1,45 @@
+---
+title: Card & Cards
+sidebarPosition: 2
+description: Organize navigation or highlight important features in responsive card grids using the Card and Cards components.
+---
+
+The `<Card>` and `<Cards>` components allow you to group related links, features, or external resources into clean, clickable tiles.
+
+---
+
+## Usage
+
+Use `<Cards>` as a responsive grid wrapper, and populate it with individual `<Card>` children.
+
+```mdx
+import { Rocket, Settings } from 'lucide-react'
+
+<Cards cols={2}>
+  <Card title="Quick Install" icon={<Rocket />} href="/docs/guides/getting-started/installation">
+    Install Boltdocs in under 2 minutes.
+  </Card>
+  <Card title="Configuration" icon={<Settings />} href="/docs/guides/getting-started/configuration">
+    Configure boltdocs.config.ts to match your project needs.
+  </Card>
+</Cards>
+```
+
+---
+
+## Cards Props
+
+| Prop | Type | Default | Description |
+| :--- | :--- | :--- | :--- |
+| **`cols`** | `1 \| 2 \| 3 \| 4` | `2` | Number of columns in the grid layout on desktop screens. |
+
+---
+
+## Card Props
+
+| Prop | Type | Default | Description |
+| :--- | :--- | :--- | :--- |
+| **`title`** | `string` | *Required* | Bold header text displayed at the top of the card. |
+| **`icon`** | `ReactNode` | `undefined` | A Lucide icon or custom SVG element to display next to the card title. |
+| **`href`** | `string` | `undefined` | Target link destination. When provided, makes the entire card a clickable link. Supports internal route paths and external URLs. |
+| **`children`** | `ReactNode` | `undefined` | Body description text or custom React elements. |

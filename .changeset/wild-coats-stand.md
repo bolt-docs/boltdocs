@@ -7,11 +7,14 @@
 - **feat**: Doctor is now stable.
 - **feat**: Added banner on site home page.
 - **feat**: Added Google Analytics 4 support & Google Tag Manager support.
-- **feat**: Added Changelog Generator.
-- **feat**: Added new props Image Component
-  - Zoomable
-  - Caption
-- **feat**: Fixed the UI to have a better look.
+- **feat**: Added Changelog Generator. he UI to have a better look.
+- **feat**: Updated File-Routing to support new features.
+          - Support Deeper Nested routes
+          - Support metadata file naming (meta.json & _meta.json)
+          - Support collapsible/collapsed directories
+          - Support custom directory icons
+- **feat**: Added `base` support for base-url routing.
+- **feat**: Added custom-frontmatter & extended MDX frontmatter support.
 - **feat**: Search highlight now works with accents & Mark search works on dynamic content.
 - **fix**: Improved mobile support and responsive layout consistency across the site.
 - **fix**: Resolved styling issues and improved integration for Mermaid diagrams.

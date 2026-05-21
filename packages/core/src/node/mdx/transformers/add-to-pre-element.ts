@@ -7,7 +7,7 @@ const addTitleProperty = (): ShikiTransformer => {
     pre(node) {
       const parsedMeta = this.options.meta as Record<string, any> | undefined
       const title = parsedMeta?.title
-      
+
       if (title) {
         node.properties[DATA_ATTRIBUTES.TITLE] = title
       }

@@ -1,0 +1,118 @@
+---
+title: API Reference
+sidebarPosition: 1
+description: Complete API reference for Boltdocs — React hooks, layout components, and configuration helpers.
+---
+
+import { Settings, Search, Palette, Layers, Map, ChevronsRight, ArrowRight, Globe, GitBranch, FolderOpen, Compass, Link, Terminal } from 'lucide-react'
+
+This section provides reference documentation for all public APIs exported by the `boltdocs` framework packages.
+
+---
+
+## Architecture Overview
+
+Boltdocs splits its modules into separate entrypoints to isolate server-side configurations from browser-side interactive elements:
+
+| Module Import | Purpose | Environment |
+| :--- | :--- | :--- |
+| **`boltdocs`** | Project configuration schemas & plugins | Node / Build |
+| **`boltdocs/client`** | Default styled React components, context hooks, & helpers | Browser / SSR |
+| **`boltdocs/primitives`** | Unstyled primitive elements for crafting custom layouts | Browser / SSR |
+
+---
+
+## React Hooks
+
+Hooks let you consume Boltdocs state (active theme, navigation links, locale selections, search indexes) directly in your custom components.
+
+<Cards cols={2}>
+  <Card title="useConfig" icon={<Settings />} href="/docs/api/hooks/use-config">
+    Retrieve the parsed global Boltdocs configuration object.
+  </Card>
+  <Card title="useSearch" icon={<Search />} href="/docs/api/hooks/use-search">
+    Retrieve search query, results, and open/close toggles.
+  </Card>
+  <Card title="useTheme" icon={<Palette />} href="/docs/api/hooks/use-theme">
+    Access and toggle between light and dark UI themes.
+  </Card>
+  <Card title="useNavbar" icon={<Layers />} href="/docs/api/hooks/use-navbar">
+    Retrieve active navigation configurations, logo details, and social links.
+  </Card>
+  <Card title="useRoutes" icon={<Map />} href="/docs/api/hooks/use-routes">
+    Read metadata list for all generated pages.
+  </Card>
+  <Card title="useBreadcrumbs" icon={<ChevronsRight />} href="/docs/api/hooks/use-breadcrumbs">
+    Access navigation breadcrumbs for current location.
+  </Card>
+  <Card title="usePageNav" icon={<ArrowRight />} href="/docs/api/hooks/use-page-nav">
+    Determine the logically preceding or following page routes.
+  </Card>
+  <Card title="useI18n" icon={<Globe />} href="/docs/api/hooks/use-i18n">
+    Manage and switch between different languages/locales.
+  </Card>
+  <Card title="useVersion" icon={<GitBranch />} href="/docs/api/hooks/use-version">
+    Manage and switch between different documentation versions.
+  </Card>
+  <Card title="useTabs" icon={<FolderOpen />} href="/docs/api/hooks/use-tabs">
+    Retrieve category tabs and active sliding indicator style values.
+  </Card>
+  <Card title="useLocation" icon={<Compass />} href="/docs/api/hooks/use-location">
+    Wrapper around React Router DOM location hook to access current router path metadata.
+  </Card>
+  <Card title="useLocalizedTo" icon={<Link />} href="/docs/api/hooks/use-localized-to">
+    Utility hook to automatically append locale and version segments to path links.
+  </Card>
+</Cards>
+
+---
+
+## Utilities
+
+Helper functions for combining styles, translation indexing, text compilation, and config validation.
+
+<Cards cols={3}>
+  <Card title="cn" href="/docs/api/utils/cn">
+    Merge Tailwind styles.
+  </Card>
+  <Card title="getTranslated" href="/docs/api/utils/i18n">
+    Locale lookup utility.
+  </Card>
+  <Card title="reactToText" href="/docs/api/utils/react-to-text">
+    Extract JSX plain text.
+  </Card>
+  <Card title="copyToClipboard" href="/docs/api/utils/copy-clipboard">
+    Write to clipboard.
+  </Card>
+  <Card title="defineConfig" href="/docs/api/utils/define-config">
+    TypeScript config helper.
+  </Card>
+</Cards>
+
+---
+
+## Command Line Interface (CLI)
+
+Boltdocs includes CLI commands to build, preview, debug, and auto-fix documentation structures.
+
+<Cards cols={1}>
+  <Card title="CLI Reference" icon={<Terminal />} href="/docs/api/cli">
+    Learn about core workflow commands (dev, build, preview), health diagnostics (doctor), and the changelog generator.
+  </Card>
+</Cards>
+
+---
+
+## Type Exports
+
+Import TypeScript interfaces directly from `'boltdocs'` (for configuration schemas) or `'boltdocs/client'` (for client-side routing elements):
+
+### Build Config Types
+```ts
+import type { BoltdocsConfig, BoltdocsPlugin } from 'boltdocs'
+```
+
+### Client Context Types
+```ts
+import type { RouteMeta, SidebarGroup, Heading } from 'boltdocs/client'
+```

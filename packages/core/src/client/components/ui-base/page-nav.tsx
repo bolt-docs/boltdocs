@@ -11,7 +11,7 @@ export function PageNav() {
   if (!prevPage && !nextPage) return null
 
   return (
-    <PageNavPrimitive.Root className="mt-16 pt-8 border-t border-subtle grid sm:grid-cols-2 gap-4 animate-in fade-in slide-in-from-bottom-4 duration-700 select-none">
+    <PageNavPrimitive.Root className="pt-8 border-t border-subtle grid sm:grid-cols-2 gap-4 animate-in fade-in slide-in-from-bottom-4 duration-700 select-none">
       {prevPage ? (
         <PageNavPrimitive.Link
           to={prevPage.path}

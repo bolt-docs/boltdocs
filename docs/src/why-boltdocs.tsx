@@ -74,7 +74,7 @@ export const WhyBoltdocs = () => {
           {DIFFERENTIATORS.map((item, idx) => (
             <div
               key={idx}
-              className="group p-6 rounded-2xl bg-surface border border-white/5 hover:border-primary-400/20 transition-all duration-300"
+              className="group p-6 rounded-3xl bg-surface/80 backdrop-blur-sm border border-subtle hover:border-primary-500/30 hover:bg-surface hover:-translate-y-1 hover:shadow-2xl hover:shadow-primary-500/10 transition-all duration-500"
             >
               <div className="flex items-start gap-4">
                 <div className="shrink-0 p-2 rounded-lg bg-primary-500/10 text-primary-400 group-hover:bg-primary-500/20 group-hover:scale-110 transition-all duration-300">
@@ -95,7 +95,7 @@ export const WhyBoltdocs = () => {
 
         <div className="mt-12 text-center">
           <a
-            href="/docs/guides/overview/introduction"
+            href="/docs/guides"
             className="inline-flex items-center gap-2 text-primary-400 font-semibold hover:gap-3 transition-all group"
           >
             Get started in 30 seconds

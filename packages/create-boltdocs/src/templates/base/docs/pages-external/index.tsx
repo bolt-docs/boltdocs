@@ -1,6 +1,6 @@
 import { Navbar } from 'boltdocs/client'
 import { Footer } from '../../src/components/footer'
-import { HomePage } from '../../src/pages/home'
+import { HomePage } from './home'
 
 /**
  * Custom external routes.

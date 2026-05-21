@@ -245,12 +245,14 @@ export class TransformCache {
           const shardPath = path.resolve(this.shardsDir, `${hash}.gz`)
           try {
             const compressed = await readFile(shardPath)
-            const decompressed = await new Promise<string>((resolve, reject) => {
-              zlib.gunzip(compressed, (err, res) => {
-                if (err) reject(err)
-                else resolve(res.toString('utf-8'))
-              })
-            })
+            const decompressed = await new Promise<string>(
+              (resolve, reject) => {
+                zlib.gunzip(compressed, (err, res) => {
+                  if (err) reject(err)
+                  else resolve(res.toString('utf-8'))
+                })
+              },
+            )
             this.memoryCache.set(key, decompressed)
             return { key, val: decompressed }
           } catch (e) {

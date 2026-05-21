@@ -14,6 +14,7 @@ import {
   loadDoctorConfig,
   getFileData,
   backupFile,
+  fileExistsCache,
 } from './utils'
 import { checkMetadata, checkLinks, checkI18n, checkSidebar } from './checkers'
 
@@ -91,6 +92,9 @@ export async function doctorAction(
       .crawl(docsDir)
 
     const files = await api.withPromise()
+    for (const f of files) {
+      fileExistsCache.set(f, true)
+    }
     const linkTree = await generateLinkTree(docsDir, root, config, files)
 
     const base = config.base || '/'
@@ -118,18 +122,6 @@ export async function doctorAction(
       routeIndexWithSlash,
       routeIndexWithoutSlash,
       basePrefix,
-    }
-
-    if (reportFormat === 'pretty') {
-      ui.info(
-        `${ui.colors.dim}📦 Pre-loading documentation files...${ui.colors.reset}`,
-      )
-    }
-    const BATCH_SIZE = 100
-    for (let i = 0; i < files.length; i += BATCH_SIZE) {
-      await Promise.all(
-        files.slice(i, i + BATCH_SIZE).map((f) => getFileData(f)),
-      )
     }
 
     if (reportFormat === 'pretty') {

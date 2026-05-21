@@ -1,0 +1,104 @@
+---
+title: ErrorBoundary
+sidebarPosition: 8
+description: Error boundary container for catching rendering errors in documentation components.
+---
+
+The `ErrorBoundary` component catches unexpected JavaScript exceptions in its descendant components and displays a clean, user-friendly fallback view rather than crashing the entire page.
+
+---
+
+## Import
+
+```tsx
+import { ErrorBoundary, ErrorBoundaryFallback } from 'boltdocs/primitives'
+```
+
+---
+
+## Composable Fallback Example
+
+Using the primitive `ErrorBoundary` and its props, you can pass a custom fallback component that receives the thrown `error` object and a `resetErrorBoundary` callback function to let users retry rendering without reloading the browser:
+
+```tsx
+// docs/components/CustomErrorWrapper.tsx
+import React from 'react'
+import { ErrorBoundary, ErrorBoundaryFallback } from 'boltdocs/primitives'
+
+// 1. Define a custom interactive error panel
+function MyCustomFallback({ error, resetErrorBoundary }: { error: Error; resetErrorBoundary: () => void }) {
+  return (
+    <div className="flex flex-col gap-3 p-6 border-2 border-red-500 bg-red-50/50 rounded-xl max-w-md mx-auto text-center">
+      <h4 className="font-bold text-red-600">Widget Crash Detected</h4>
+      <p className="text-xs text-zinc-500">{error.message}</p>
+      <button
+        onClick={resetErrorBoundary}
+        className="mt-2 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg text-xs font-semibold"
+      >
+        Retry Rendering
+      </button>
+    </div>
+  )
+}
+
+// 2. Wrap fragile layout components
+export default function SafeLayoutSection({ children }) {
+  return (
+    <ErrorBoundary
+      FallbackComponent={MyCustomFallback}
+      onError={(error, info) => {
+        // Log crash metadata to external services
+        console.error('Logged crash:', error, info)
+      }}
+      onReset={() => {
+        // Clear cached app state or context values prior to retry
+        console.log('Reset state triggered')
+      }}
+    >
+      {children}
+    </ErrorBoundary>
+  )
+}
+```
+
+---
+
+## Composable Sub-Components
+
+The `ErrorBoundary` primitive provides the following component references:
+
+| Component | HTML Tag | Description | Props |
+| :--- | :--- | :--- | :--- |
+| **`ErrorBoundary`** | Wrapper | Catch descendant runtime exceptions and mount fallback UI. | [`ErrorBoundary Props`](#errorboundary-props) |
+| **`ErrorBoundaryFallback`** | `<div>` | Default warning card fallback view containing a Retry button. | [`ComponentBaseProps`](#componentbaseprops-common) |
+
+---
+
+## Component Props
+
+### ComponentBaseProps (Common)
+
+| Property | Type | Default | Description |
+| :--- | :--- | :--- | :--- |
+| **`children`** | `ReactNode` | `undefined` | Children content elements. |
+| **`className`** | `string` | `undefined` | Custom CSS utility classes. |
+| **`style`** | `CSSProperties` | `undefined` | Inline style settings. |
+
+### `ErrorBoundary` Props
+
+| Property | Type | Default | Description |
+| :--- | :--- | :--- | :--- |
+| **`children`** | `ReactNode` | *Required* | Descendant components to monitor for render errors. |
+| **`FallbackComponent`** | `ComponentType<FallbackProps>` | `undefined` | A React component to render when an error is caught. Receives the `error` and `resetErrorBoundary` properties. |
+| **`fallback`** | `ReactNode` | `undefined` | A static React node to render when an error is caught. |
+| **`onError`** | `(error: Error, info: ErrorInfo) => void` | `undefined` | Callback fired when the boundary intercepts an exception. |
+| **`onReset`** | `() => void` | `undefined` | Callback fired when `resetErrorBoundary` is invoked by the fallback component. |
+
+### `FallbackProps` Schema
+
+The fallback component specified in `FallbackComponent` receives the following props:
+
+| Property | Type | Description |
+| :--- | :--- | :--- |
+| **`error`** | `Error` | The caught JavaScript exception object. |
+| **`resetErrorBoundary`** | `() => void` | Triggers state clearing to retry component rendering. |

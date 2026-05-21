@@ -1,0 +1,247 @@
+---
+title: File-System Routing
+sidebarPosition: 3
+description: Complete guide to routing, sidebar groups, ordering, and tabs — how Boltdocs turns your docs/ folder into navigation.
+---
+
+**Your file system is your sitemap.** Every `.md` or `.mdx` file inside `docs/` automatically becomes a page. No route configuration, no imports — just files.
+
+---
+
+## The Basics
+
+Boltdocs recursively scans your `docs/` directory and maps file paths to URL routes:
+
+| File | URL |
+| :--- | :--- |
+| `docs/index.md` | `/docs` |
+| `docs/guide.md` | `/docs/guide` |
+| `docs/guide/index.md` | `/docs/guide` |
+| `docs/guide/advanced.md` | `/docs/guide/advanced` |
+| `docs/api/config.md` | `/docs/api/config` |
+
+File extensions (`.md`, `.mdx`) are always stripped from the final URL. An `index.md` inside a folder resolves to the folder's root route and becomes the group's collapsible header in the sidebar.
+
+---
+
+## Sidebar Groups
+
+Folders automatically create sidebar groups. Every file inside a folder is listed as a child item of that group.
+
+```
+docs/
+├── index.md              → /docs (ungrouped, first in sidebar)
+├── guide/
+│   ├── index.md          → /docs/guide (group header)
+│   ├── installation.md   → /docs/guide/installation
+│   └── configuration.md  → /docs/guide/configuration
+└── api/
+    └── config.md         → /docs/api/config
+```
+
+The group title defaults to the capitalized folder name (`guide` → `Guide`). Override with `groupTitle` frontmatter or `theme.sidebarGroups` in config.
+
+---
+
+## Controlling Order
+
+### Numeric Filename Prefix
+
+Prefix filenames with a number to control sidebar order. The prefix is stripped from the URL:
+
+```
+docs/
+├── 01-introduction.md    → /docs/introduction (order: 1)
+├── 02-installation.md    → /docs/installation (order: 2)
+├── 03-guide/
+│   ├── index.md
+│   ├── 01-setup.md
+│   └── 02-advanced.md
+```
+
+### sidebarPosition Frontmatter
+
+Alternatively, set `sidebarPosition` directly in frontmatter:
+
+```md
+---
+title: Installation
+sidebarPosition: 1
+---
+```
+
+<Callout variant="note">
+  If both a numeric prefix and `sidebarPosition` exist, the frontmatter value takes precedence.
+</Callout>
+
+---
+
+## Excluding Files
+
+Files or folders starting with `_` are **excluded from routing**:
+
+```
+docs/
+├── _drafts/              ← excluded entirely
+│   └── new-feature.md
+├── _shared.mdx           ← excluded from routes
+└── guide/
+    └── index.md          ← included normally
+```
+
+**Exception:** `_index.md` acts as an invisible group index for setting group-level metadata without creating a visible page.
+
+---
+
+## Tabs
+
+Tabs divide documentation into horizontal sections above the sidebar. Tab ID is determined by wrapping a folder name in parentheses:
+
+```
+docs/
+├── (guides)/              ← all pages belong to "guides" tab
+│   ├── index.md
+│   └── installation.md
+├── (api)/                 ← all pages belong to "api" tab
+│   └── config.md
+```
+
+The parentheses are **stripped from the URL** — `/docs/guides/getting-started/installation`, not `/docs/(guides)/getting-started/installation`.
+
+### Defining Tabs in Config
+
+```ts title="boltdocs.config.ts"
+export default defineConfig({
+  theme: {
+    tabs: [
+      { id: 'guides', text: 'Guides', icon: 'BookOpen' },
+      { id: 'api', text: 'API', icon: 'Code2' },
+      { id: 'changelog', text: 'Changelog', icon: 'History' },
+    ],
+  },
+})
+```
+
+### Tab Config Reference
+
+| Property | Type | Required | Description |
+| :--- | :--- | :--- | :--- |
+| **`id`** | `string` | ✓ | Must match folder name (without parentheses). |
+| **`text`** | `string` | ✓ | Label shown in the tab strip. |
+| **`icon`** | `string` | — | Lucide icon name or raw SVG. |
+
+### Combining Tabs with i18n
+
+Locale folders go **inside** tab folders:
+
+```
+docs/
+├── (guides)/
+│   ├── index.md          → /docs/guides (default locale)
+│   └── es/
+│       └── index.md      → /docs/es/guides (Spanish)
+```
+
+---
+
+## Customizing Group Titles & Icons
+
+### Via Config
+
+```ts title="boltdocs.config.ts"
+export default defineConfig({
+  theme: {
+    sidebarGroups: {
+      guides: {
+        title: 'Getting Started',
+        icon: 'BookOpen',
+      },
+    },
+  },
+})
+```
+
+### Via meta.json
+
+Create `meta.json` in any folder:
+
+```json title="docs/guide/meta.json"
+{
+  "title": "Getting Started",
+  "icon": "Rocket",
+  "collapsible": true,
+  "collapsed": false
+}
+```
+
+| Property | Type | Description |
+| :--- | :--- | :--- |
+| **`title`** | `string` | Display name for the sidebar group. |
+| **`order`** | `string[] \| number` | Explicit ordering. |
+| **`icon`** | `string` | Lucide icon name or raw SVG. |
+| **`collapsible`** | `boolean` | Whether users can collapse the group. |
+| **`collapsed`** | `boolean` | Whether the group starts collapsed. |
+
+---
+
+## Manual Sidebar
+
+For complete control, define the sidebar manually:
+
+```ts title="boltdocs.config.ts"
+export default defineConfig({
+  theme: {
+    sidebar: {
+      '/docs/guides': [
+        { text: 'Introduction', link: '/docs/guides/getting-started/introduction' },
+        { text: 'Installation', link: '/docs/guides/getting-started/installation' },
+      ],
+    },
+  },
+})
+```
+
+<Callout variant="warning">
+  When you define `theme.sidebar` for a prefix, auto-discovery is disabled for that prefix.
+</Callout>
+
+---
+
+## Hiding Pages
+
+To keep a page accessible but hidden from the sidebar:
+
+```md title="docs/guide/internal-reference.md"
+---
+title: Internal Reference
+sidebarHidden: true
+---
+```
+
+Hidden pages are still indexed for search.
+
+---
+
+## Priority Scanning
+
+On startup, Boltdocs prioritizes:
+1. `index.*` files
+2. Files matching `intro*`
+3. Files matching `getting-started*`
+4. All other files
+
+---
+
+## How Routes Are Built
+
+```mermaid title="Route Building"
+ flowd`chart TD
+  A["Scan docs/ with fdir"] --> B["Filter: .md / .mdx only"]
+  B --> C["Filter: Exclude _ prefixed paths"]
+  C --> D["Priority sort"]
+  D --> E["Parallel parse (frontmatter + headings)"]
+  E --> F["Resolve path (strip version, locale, tab, number prefix)"]
+  F --> G["Build RouteMeta (path, title, group, badge, tab...)"]
+  G --> H["Sort routes (by position, then alphabetically)"]
+  H --> I["Sidebar + Router"]
+```

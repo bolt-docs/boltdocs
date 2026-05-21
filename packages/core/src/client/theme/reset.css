@@ -1,0 +1,189 @@
+@layer base {
+  *,
+  *::before,
+  *::after {
+    box-sizing: border-box;
+  }
+
+  html,
+  body {
+    margin: 0;
+    padding: 0;
+    min-height: 100%;
+    overflow-x: hidden;
+  }
+
+  body {
+    @apply bg-main text-body antialiased;
+    font-family: var(--font-sans);
+    line-height: 1.7;
+  }
+
+  a {
+    text-decoration: none;
+  }
+
+  /* Scroll-margin-top for anchor scrolling */
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    scroll-margin-top: 6rem;
+  }
+
+  /* Scrollbar */
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background-color: var(--color-strong);
+    border-radius: 9999px;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background-color: var(--color-muted);
+  }
+
+  /* ═══ Content Area ═══ */
+  .boltdocs-content {
+    scrollbar-width: none;
+  }
+
+  .boltdocs-content::-webkit-scrollbar {
+    display: none;
+  }
+
+  /* ═══ MDX Page - Mobile Text Overflow Prevention ═══ */
+  .boltdocs-page {
+    overflow-wrap: break-word;
+    word-break: break-word;
+  }
+
+  /* Inline code inside prose shouldn't force horizontal overflow */
+  .boltdocs-page :not(pre) > code {
+    word-break: break-all;
+  }
+
+  .scrollbar-hide {
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+
+  /* Hide native search cancel button */
+  input::-webkit-search-cancel-button,
+  input::-webkit-search-decoration,
+  input::-webkit-search-results-button,
+  input::-webkit-search-results-decoration {
+    display: none;
+  }
+
+  /* Shiki Styles are defined below */
+
+  /* ═══ Shiki Styles ═══ */
+
+  /* Shiki Light/Dark Mode */
+  :root .shiki,
+  :root .shiki span {
+    font-family: var(--font-mono);
+    font-size: 12px !important;
+    background-color: transparent !important;
+  }
+
+  :root.dark .shiki,
+  :root.dark .shiki span {
+    color: var(--shiki-dark) !important;
+  }
+
+  /* Base Shiki Pre & Span Styles */
+  pre.shiki {
+    @apply py-2 text-[12px] leading-[1.6];
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  pre.shiki span.line {
+    @apply relative block px-4 py-0;
+    min-height: 1.6em;
+  }
+
+  /* Shiki Word Wrap */
+  pre.shiki-word-wrap {
+    @apply whitespace-pre-wrap break-words;
+  }
+
+  pre.shiki-word-wrap span.line {
+    @apply block w-full;
+  }
+
+  /* Shiki Line Numbers */
+  pre.shiki-line-numbers code {
+    counter-reset: step;
+    counter-increment: step 0;
+  }
+
+  pre.shiki-line-numbers .line {
+    @apply !pl-12;
+  }
+
+  /* Hide the last line if it is completely empty to avoid extra numbers or spacing */
+  pre.shiki .line:last-child:empty,
+  pre.shiki .line:last-child:has(> :empty),
+  pre.shiki-line-numbers .line:last-child:empty,
+  pre.shiki-line-numbers .line:last-child:has(> :empty) {
+    display: none;
+  }
+
+  pre.shiki-line-numbers .line::before {
+    counter-increment: step;
+    content: counter(step);
+    @apply absolute left-0 top-0 inline-flex w-10 justify-end pr-3;
+    @apply text-[11px] text-muted opacity-30 select-none;
+    line-height: inherit;
+    /* Sync with line text */
+  }
+
+  /* Shiki Highlight */
+  pre span.shiki-line-highlight {
+    @apply relative z-0 inline-block w-full;
+
+    &::after {
+      content: "";
+      @apply absolute top-0 left-0 -z-10 h-full w-full border-l-2 border-primary-500 !bg-primary-500/10 opacity-100;
+    }
+  }
+
+  /* Shiki Notation Diff */
+  pre.has-diff span.line.diff {
+    @apply relative inline-block w-full;
+  }
+
+  pre.has-diff span.line.diff.add {
+    @apply !bg-emerald-500/10 dark:!bg-emerald-500/10;
+
+    &::before {
+      content: "+";
+      @apply absolute left-2 text-emerald-500 font-bold;
+    }
+  }
+
+  pre.has-diff span.line.diff.remove {
+    @apply !bg-danger-500/10 opacity-70;
+
+    &::before {
+      content: "-";
+      @apply absolute left-2 text-danger-500 font-bold;
+    }
+  }
+}

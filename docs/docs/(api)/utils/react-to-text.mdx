@@ -1,0 +1,56 @@
+---
+title: reactToText
+description: Strip React component markup trees to plain text string content.
+---
+
+The `reactToText` utility recursively parses a React node tree (including nested children and layouts) and joins the string segments into a single plain text string. It is useful for building custom search indexes, descriptive cards, and text previews.
+
+---
+
+## Import
+
+```tsx
+import { reactToText } from 'boltdocs/client'
+```
+
+---
+
+## Signature
+
+```ts
+function reactToText(node: React.ReactNode): string
+```
+
+### Parameters
+- **`node`**: Any valid React node or component instance.
+
+---
+
+## Example: Building a Title Attribute from Children
+
+```tsx
+import { reactToText } from 'boltdocs/client'
+
+interface HeaderBlockProps {
+  children: React.ReactNode
+}
+
+export function HeaderBlock({ children }: HeaderBlockProps) {
+  // Convert children like "Hello <strong>World</strong>" to plain "Hello World"
+  const textTitle = reactToText(children)
+
+  return (
+    <div className="group relative">
+      <h2 title={textTitle} className="text-xl font-semibold">
+        {children}
+      </h2>
+      <button
+        onClick={() => navigator.clipboard.writeText(textTitle)}
+        className="opacity-0 group-hover:opacity-100 text-xs ml-2 text-zinc-400"
+      >
+        Copy Text
+      </button>
+    </div>
+  )
+}
+```

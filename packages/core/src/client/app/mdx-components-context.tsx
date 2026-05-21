@@ -27,7 +27,9 @@ export function useMdxComponents(): BoltdocsMdxComponents {
     (!context || Object.keys(context).length === 0) &&
     (globalThis as any)[MDX_COMPONENTS_INSTANCE_SYMBOL]
   ) {
-    return (globalThis as any)[MDX_COMPONENTS_INSTANCE_SYMBOL] as BoltdocsMdxComponents
+    return (globalThis as any)[
+      MDX_COMPONENTS_INSTANCE_SYMBOL
+    ] as BoltdocsMdxComponents
   }
 
   return context as any as BoltdocsMdxComponents

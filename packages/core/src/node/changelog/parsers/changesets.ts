@@ -1,5 +1,5 @@
 import type { ChangelogParser } from './base'
-import type { ChangelogVersion, ChangelogChange } from '../../types'
+import type { ChangelogVersion, ChangelogChange } from '../types'
 import {
   normalizeVersion,
   extractAuthor,

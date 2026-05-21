@@ -2,20 +2,81 @@ import { useEffect, useRef, useState } from 'react'
 import mermaid from 'mermaid'
 import { useTheme } from 'boltdocs/client'
 
-export interface MermaidProps {
-  chart: string
+export interface MermaidThemeVariables {
+  primaryColor?: string
+  primaryTextColor?: string
+  primaryBorderColor?: string
+  lineColor?: string
+  secondaryColor?: string
+  tertiaryColor?: string
+  nodeBorder?: string
+  mainBkg?: string
+  nodeTextColor?: string
+  edgeLabelBackground?: string
+  clusterBkg?: string
+  clusterBorder?: string
+  [key: string]: string | undefined
 }
 
-export function Mermaid({ chart }: MermaidProps) {
+export interface MermaidConfig {
+  themes?: {
+    light?: MermaidThemeVariables
+    dark?: MermaidThemeVariables
+  }
+}
+
+const defaultLightTheme: MermaidThemeVariables = {
+  primaryColor: '#f8fafc',
+  primaryTextColor: '#0f172a',
+  primaryBorderColor: '#e2e8f0',
+  lineColor: '#64748b',
+  secondaryColor: '#f1f5f9',
+  tertiaryColor: '#ffffff',
+  nodeBorder: '#e2e8f0',
+  mainBkg: '#ffffff',
+  nodeTextColor: '#0f172a',
+  edgeLabelBackground: '#f8fafc',
+  clusterBkg: '#f8fafc',
+  clusterBorder: '#e2e8f0',
+}
+
+const defaultDarkTheme: MermaidThemeVariables = {
+  primaryColor: '#1e293b',
+  primaryTextColor: '#f8fafc',
+  primaryBorderColor: '#334155',
+  lineColor: '#94a3b8',
+  secondaryColor: '#0f172a',
+  tertiaryColor: '#1e293b',
+  nodeBorder: '#334155',
+  mainBkg: '#0f172a',
+  nodeTextColor: '#f8fafc',
+  edgeLabelBackground: '#1e293b',
+  clusterBkg: '#1e293b',
+  clusterBorder: '#334155',
+}
+
+export interface MermaidProps {
+  chart: string
+  config?: MermaidConfig
+}
+
+export function Mermaid({ chart, config: propConfig }: MermaidProps) {
   const containerRef = useRef<HTMLDivElement>(null)
   const [svgStr, setSvgStr] = useState<string>('')
   const [error, setError] = useState<string | null>(null)
   const { resolvedTheme } = useTheme()
 
+  const pluginConfig: MermaidConfig = propConfig || {}
+  const themes = pluginConfig.themes || {
+    light: defaultLightTheme,
+    dark: defaultDarkTheme,
+  }
+  const lightTheme = themes.light || defaultLightTheme
+  const darkTheme = themes.dark || defaultDarkTheme
+
   useEffect(() => {
     let isMounted = true
 
-    // Generate a unique ID for this mermaid diagram to avoid DOM collisions
     const id = `mermaid-${Math.random().toString(36).substring(2, 11)}`
 
     const renderDiagram = async () => {
@@ -28,37 +89,7 @@ export function Mermaid({ chart }: MermaidProps) {
           securityLevel: 'loose',
           fontFamily:
             'var(--font-sans, Inter, ui-sans-serif, system-ui, sans-serif)',
-          themeVariables: isDark
-            ? {
-                // Dark Theme Variables
-                primaryColor: '#1e293b',
-                primaryTextColor: '#f8fafc',
-                primaryBorderColor: '#334155',
-                lineColor: '#94a3b8',
-                secondaryColor: '#0f172a',
-                tertiaryColor: '#1e293b',
-                nodeBorder: '#334155',
-                mainBkg: '#0f172a',
-                nodeTextColor: '#f8fafc',
-                edgeLabelBackground: '#1e293b',
-                clusterBkg: '#1e293b',
-                clusterBorder: '#334155',
-              }
-            : {
-                // Light Theme Variables
-                primaryColor: '#f8fafc',
-                primaryTextColor: '#0f172a',
-                primaryBorderColor: '#e2e8f0',
-                lineColor: '#64748b',
-                secondaryColor: '#f1f5f9',
-                tertiaryColor: '#ffffff',
-                nodeBorder: '#e2e8f0',
-                mainBkg: '#ffffff',
-                nodeTextColor: '#0f172a',
-                edgeLabelBackground: '#f8fafc',
-                clusterBkg: '#f8fafc',
-                clusterBorder: '#e2e8f0',
-              },
+          themeVariables: isDark ? darkTheme : lightTheme,
           darkMode: isDark,
         })
 

@@ -1,0 +1,109 @@
+---
+title: Code Blocks
+sidebarPosition: 5
+description: Use Shiki syntax highlighting, titles, line numbers, word-wrapping, and copying in Markdown code blocks.
+---
+
+Fenced code blocks in Boltdocs use **Shiki** for syntax highlighting. They are computed entirely at build time, ensuring fast page load speeds with zero client-side performance cost.
+
+---
+
+## Usage
+
+Create code blocks using standard markdown triple backticks. Specify the language identifier for highlighting support.
+
+```ts
+// Example: src/index.ts
+export function greet(name: string): string {
+  return `Hello, ${name}!`
+}
+```
+
+---
+
+## Code Block Parameters (Meta Properties)
+
+Boltdocs supports custom parameters in the code block's header line to configure titles, line numbers, and word wrapping dynamically.
+
+### 1. Title Banner
+Add `title="file_name.extension"` to display a styled header containing the filename and a matching language icon:
+
+````markdown
+```tsx title="components/Button.tsx"
+export const Button = () => <button>Click me</button>;
+```
+````
+
+### 2. Line Numbers
+Add `showLineNumbers` (or `lineNumbers`) to display line numbers beside your code:
+
+````markdown
+```ts showLineNumbers
+const num = 42;
+console.log(num);
+```
+````
+
+### 3. Word Wrapping
+Add `wordWrap` (or `word-wrap`) to break long code lines, avoiding the default horizontal scrollbar:
+
+````markdown
+```css wordWrap
+.very-long-class-selector-that-needs-to-wrap-rather-than-overflowing-and-creating-a-scrollbar {
+  color: red;
+}
+```
+````
+
+### Combining Parameters
+You can combine these attributes in any order:
+
+````markdown
+```json title="package.json" showLineNumbers wordWrap
+{
+  "name": "my-cool-package",
+  "version": "1.0.0",
+  "description": "A very descriptive paragraph that will wrap onto multiple lines in the generated code block render rather than causing horizontal scrollbars."
+}
+```
+````
+
+---
+
+## Configuration
+
+You can customize the Shiki themes in `boltdocs.config.ts`. You can choose different themes for light and dark modes:
+
+```ts
+// boltdocs.config.ts
+import { defineConfig } from 'boltdocs'
+
+export default defineConfig({
+  theme: {
+    codeTheme: {
+      light: 'github-light',
+      dark: 'github-dark',
+    },
+  },
+})
+```
+
+---
+
+## Supported Themes
+
+The following syntax highlighting themes are supported out-of-the-box:
+
+- `github-light` / `github-dark`
+- `tokyo-night`
+- `dracula`
+- `nord`
+- `one-dark-pro`
+- `one-light`
+
+---
+
+## Enhanced Features
+
+- **Copy Code Button**: A floating copy button is automatically added to the top-right corner of every code block.
+- **Word Wrapping**: Long code lines overflow cleanly with a scrollbar or wrap when the `wordWrap` or `word-wrap` parameter is set.

@@ -1,0 +1,380 @@
+---
+title: Navbar
+sidebarPosition: 2
+description: Top navigation bar containing site branding, tab items, and search actions.
+---
+
+The `Navbar` component displays site logos, navigation links, documentation tabs, and search triggers.
+
+---
+
+## Import
+
+```tsx
+import { Navbar } from 'boltdocs/primitives'
+```
+
+---
+
+## Composable Navbar Example
+
+Using the primitive `Navbar` and its sub-components, you can design a fully custom navigation bar. The example below shows how to construct a header with active tab matching, search triggers, social integrations, and theme toggles:
+
+```tsx
+// docs/components/CustomNavbar.tsx
+import React, { useState } from 'react'
+import { Navbar } from 'boltdocs/primitives'
+import { useNavbar, useTheme, useSearch } from 'boltdocs/client'
+
+export default function CustomNavbar() {
+  const { links, theme, logo, title } = useNavbar()
+  const { toggleTheme } = useTheme()
+  const { openSearch } = useSearch()
+  const [mobileOpen, setMobileOpen] = useState(false)
+
+  return (
+    <Navbar className="bg-white/80 dark:bg-black/80 backdrop-blur-md border-b border-subtle">
+      <Navbar.Content>
+        {/* Left Section: Branding */}
+        <Navbar.Left>
+          {logo && <Navbar.Logo src={logo} alt={title} href="/" />}
+          <Navbar.Title className="font-bold text-lg">{title}</Navbar.Title>
+        </Navbar.Left>
+
+        {/* Center Section: Main Nav Links */}
+        <Navbar.Center>
+          {links.map((link) => (
+            <Navbar.Link
+              key={link.href}
+              href={link.href}
+              label={link.label}
+              className={link.active ? 'text-primary font-medium' : 'text-muted'}
+            />
+          ))}
+        </Navbar.Center>
+
+        {/* Right Section: Actions */}
+        <Navbar.Right>
+          {/* Custom Search Dialog Trigger */}
+          <Navbar.SearchTrigger onPress={openSearch} />
+
+          {/* Theme Toggle Button */}
+          <Navbar.Theme
+            theme={theme}
+            onThemeChange={(isDark) => toggleTheme()}
+          />
+
+          {/* Github Social Button */}
+          <Navbar.Socials icon="github" link="https://github.com/myorg/myrepo" />
+
+          {/* Mobile Drawer Trigger (More Vertical Icon) */}
+          <Navbar.More onPress={() => setMobileOpen(true)} className="lg:hidden" />
+        </Navbar.Right>
+      </Navbar.Content>
+
+      {/* Responsive Mobile Drawer Menu */}
+      <Navbar.MobileMenu isOpen={mobileOpen} onClose={() => setMobileOpen(false)}>
+        {links.map((link) => (
+          <Navbar.MobileLink
+            key={link.href}
+            href={link.href}
+            label={link.label}
+            onPress={() => setMobileOpen(false)}
+            className="text-lg py-2"
+          />
+        ))}
+      </Navbar.MobileMenu>
+    </Navbar>
+```
+
+---
+
+## Real-World Production Reference
+
+Below is a complete, production-ready reference implementation demonstrating how to build a fully featured navigation bar (similar to the built-in theme navbar). It integrates version switching dropdowns, locale translation switches, responsive sidebar toggles, sub-link menus, theme modes, and a responsive mobile menu:
+
+```tsx
+// docs/components/ProductionNavbar.tsx
+import React, { useState } from 'react'
+import { Navbar, Menu, Button } from 'boltdocs/primitives'
+import {
+  useNavbar,
+  useTheme,
+  useSearch,
+  useVersion,
+  useI18n,
+  useUI,
+  useLocation,
+  useLocalizedTo
+} from 'boltdocs/client'
+import { Menu as MenuIcon, X, ChevronDown, Languages } from 'lucide-react'
+
+export default function ProductionNavbar() {
+  const { links, title, logo, logoProps, github, social, config } = useNavbar()
+  const { theme, toggleTheme } = useTheme()
+  const { openSearch } = useSearch()
+  const { isSidebarOpen, toggleSidebar } = useUI()
+  const { pathname } = useLocation()
+  const [mobileOpen, setMobileOpen] = useState(false)
+
+  // 1. Version Switcher Dropdown
+  const { currentVersionLabel, availableVersions, handleVersionChange } = useVersion()
+  const VersionDropdown = availableVersions.length > 0 && (
+    <Menu.Trigger>
+      <Button className="flex items-center gap-1.5 px-3 py-1.5 border rounded-xl text-xs bg-surface font-semibold text-body hover:bg-zinc-50 dark:hover:bg-zinc-900 transition-all">
+        <span>{currentVersionLabel}</span>
+        <ChevronDown size={14} className="opacity-60" />
+      </Button>
+      <Menu.Root className="w-40 bg-white dark:bg-zinc-900 border border-subtle rounded-xl p-1.5 shadow-md flex flex-col gap-0.5">
+        <Menu.Section items={availableVersions}>
+          {(version) => (
+            <Menu.Item
+              key={version.value}
+              onPress={() => handleVersionChange(version.value)}
+              className="px-3 py-2 text-xs rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800 cursor-pointer outline-none"
+            >
+              {version.label}
+            </Menu.Item>
+          )}
+        </Menu.Section>
+      </Menu.Root>
+    </Menu.Trigger>
+  )
+
+  // 2. Language/i18n Selector Dropdown
+  const { currentLocale, availableLocales, handleLocaleChange } = useI18n()
+  const LocaleDropdown = availableLocales.length > 0 && (
+    <Menu.Trigger>
+      <Button className="flex items-center gap-1.5 px-3 py-1.5 border border-subtle bg-surface rounded-xl text-xs font-semibold text-body hover:bg-zinc-50 dark:hover:bg-zinc-900 transition-all">
+        <Languages size={14} className="text-primary-500" />
+        <span className="uppercase">{currentLocale}</span>
+        <ChevronDown size={14} className="opacity-60" />
+      </Button>
+      <Menu.Root className="w-40 bg-white dark:bg-zinc-900 border border-subtle rounded-xl p-1.5 shadow-md flex flex-col gap-0.5">
+        <Menu.Section items={availableLocales}>
+          {(locale) => (
+            <Menu.Item
+              key={locale.value}
+              onPress={() => handleLocaleChange(locale.value)}
+              className="px-3 py-2 text-xs rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800 cursor-pointer outline-none"
+            >
+              {locale.label}
+            </Menu.Item>
+          )}
+        </Menu.Section>
+      </Menu.Root>
+    </Menu.Trigger>
+  )
+
+  return (
+    <Navbar className="bg-main/80 backdrop-blur-md border-b border-subtle">
+      <Navbar.Content>
+        
+        {/* Left Section: Mobile sidebar toggler, Logo, Title, and Version selection */}
+        <Navbar.Left>
+          {pathname.startsWith('/docs') && (
+            <Button
+              onPress={toggleSidebar}
+              className="mr-2 lg:hidden p-1.5 text-muted hover:text-body rounded-lg hover:bg-surface transition-colors"
+            >
+              {isSidebarOpen ? <X size={20} /> : <MenuIcon size={20} />}
+            </Button>
+          )}
+
+          {logo && <Navbar.Logo src={logo} alt={logoProps?.alt || title} href="/" />}
+          <Navbar.Title href="/">{title}</Navbar.Title>
+          
+          <div className="hidden sm:block">
+            {VersionDropdown}
+          </div>
+        </Navbar.Left>
+
+        {/* Center Section: Search dialog trigger bar */}
+        <Navbar.Center>
+          <Navbar.SearchTrigger onPress={openSearch} />
+        </Navbar.Center>
+
+        {/* Right Section: Navigation Links, i18n switch, theme toggle, Github stars & socials */}
+        <Navbar.Right>
+          {/* Main Desktop Links */}
+          <Navbar.Links>
+            {links.map((link) => {
+              const localizedHref = useLocalizedTo(link.href || '')
+              const active = pathname === localizedHref || pathname.startsWith(localizedHref + '/')
+              const hasItems = link.items && link.items.length > 0
+
+              if (hasItems) {
+                return (
+                  <Navbar.Dropdown
+                    key={link.href}
+                    label={
+                      <span className={`px-2 py-1 font-medium transition-colors cursor-pointer ${
+                        active ? 'text-primary' : 'text-muted hover:text-body'
+                      }`}>
+                        {link.label}
+                      </span>
+                    }
+                  >
+                    {link.items?.map((sub) => (
+                      <Navbar.DropdownItem
+                        key={sub.href}
+                        href={useLocalizedTo(sub.href || '')}
+                        label={sub.label}
+                      />
+                    ))}
+                  </Navbar.Dropdown>
+                )
+              }
+
+              return (
+                <Navbar.Link
+                  key={link.href}
+                  href={localizedHref}
+                  label={link.label}
+                  active={active}
+                  className={active ? 'text-primary font-semibold' : 'text-muted hover:text-body'}
+                />
+              )
+            })}
+          </Navbar.Links>
+
+          {/* Desktop utility settings */}
+          <div className="hidden sm:flex items-center gap-2">
+            {LocaleDropdown}
+            <Navbar.Split className="bg-subtle" />
+          </div>
+
+          <Navbar.Theme theme={theme} onThemeChange={toggleTheme} />
+
+          {/* Social connections (e.g. GitHub Link button) */}
+          {github && (
+            <Navbar.Socials icon="github" link={github} />
+          )}
+
+          {/* More trigger for mobile drawers */}
+          <Navbar.More onPress={() => setMobileOpen(true)} className="lg:hidden" />
+        </Navbar.Right>
+      </Navbar.Content>
+
+      {/* Mobile Drawer menu overlay */}
+      <Navbar.MobileMenu isOpen={mobileOpen} onClose={() => setMobileOpen(false)}>
+        <div className="flex flex-col gap-1">
+          {links.map((link) => {
+            const localizedHref = useLocalizedTo(link.href || '')
+            const active = pathname === localizedHref
+
+            return (
+              <Navbar.MobileLink
+                key={link.href}
+                href={localizedHref}
+                label={link.label}
+                active={active}
+                onPress={() => setMobileOpen(false)}
+                className="text-lg py-2"
+              />
+            )
+          })}
+        </div>
+
+        {/* Unified versions and locales selection list in mobile view */}
+        <div className="mt-6 border-t border-subtle pt-6 flex flex-col gap-4">
+          <div className="flex justify-between items-center px-4">
+            <span className="text-xs text-muted font-semibold uppercase">Version</span>
+            {VersionDropdown}
+          </div>
+          <div className="flex justify-between items-center px-4">
+            <span className="text-xs text-muted font-semibold uppercase">Language</span>
+            {LocaleDropdown}
+          </div>
+        </div>
+      </Navbar.MobileMenu>
+    </Navbar>
+  )
+}
+```
+
+---
+
+## Composable Sub-Components
+
+The `Navbar` primitive provides the following sub-components for structure customization:
+
+| Component | HTML Tag | Description | Props |
+| :--- | :--- | :--- | :--- |
+| **`Navbar.Root`** / **`Navbar`** | `<header>` | The main outer navbar container shell. | [`ComponentBaseProps`](#componentbaseprops-common) |
+| **`Navbar.Content`** | `<div>` | Centered layout container containing the inner flex items. | [`ComponentBaseProps`](#componentbaseprops-common) |
+| **`Navbar.Left`** / **`Navbar.Center`** / **`Navbar.Right`** | `<div>` | Flex row alignment zones for logos, nav links, and action buttons. | [`ComponentBaseProps`](#componentbaseprops-common) |
+| **`Navbar.Logo`** | `<img>` wrapped in `<a>` | Renders a branding image logo wrapped in a client Router Link. | [`Navbar.Logo Props`](#navbarlogo-props) |
+| **`Navbar.Title`** | `<span>` | Renders a plain-text typography branding label header. | [`ComponentBaseProps`](#componentbaseprops-common) |
+| **`Navbar.Link`** | `<a>` | Renders an optimized anchor link to a page route. | [`Navbar.Link Props`](#navbarlink-props) |
+| **`Navbar.SearchTrigger`** | `<button>` | A fully accessible button to trigger the search dialog. | [`Navbar.SearchTrigger Props`](#navbarsearchtrigger-props) |
+| **`Navbar.Theme`** | `<button>` | Renders a light/dark mode switcher icon button. | [`Navbar.Theme Props`](#navbartheme-props) |
+| **`Navbar.Socials`** | `<a>` | A social link icon shortcut (e.g. GitHub, Discord, Twitter). | [`Navbar.Socials Props`](#navbarsocials-props) |
+| **`Navbar.MobileMenu`** | `<div>` (Modal) | A sliding responsive modal drawer overlay for mobile screens. | [`Navbar.MobileMenu Props`](#navbarmobilemenu-props) |
+| **`Navbar.MobileLink`** | `<a>` | Sized navigation items designed for mobile drawer menus. | [`Navbar.MobileLink Props`](#navbarmobilelink-props) |
+
+---
+
+## Component Props
+
+### ComponentBaseProps (Common)
+
+| Property | Type | Default | Description |
+| :--- | :--- | :--- | :--- |
+| **`children`** | `ReactNode` | `undefined` | Children content elements. |
+| **`className`** | `string` | `undefined` | Custom CSS utility classes. |
+| **`style`** | `CSSProperties` | `undefined` | Inline style settings. |
+
+### `Navbar.Logo` Props
+
+| Property | Type | Default | Description |
+| :--- | :--- | :--- | :--- |
+| **`src`** | `string` | *Required* | Path to the logo image file. |
+| **`alt`** | `string` | *Required* | Accessibility alternative text description. |
+| **`href`** | `string` | `'/'` | Target route path for clicking the logo. |
+| **`width`** | `number` | `24` | Image width dimension. |
+| **`height`** | `number` | `24` | Image height dimension. |
+
+### `Navbar.Link` Props
+
+| Property | Type | Default | Description |
+| :--- | :--- | :--- | :--- |
+| **`label`** | `ReactNode` | *Required* | Display label content text. |
+| **`href`** | `string` | *Required* | Routing destination path. |
+| **`to`** | `'internal' \| 'external'` | `'internal'` | Whether navigation is internal routing or an external link. |
+
+### `Navbar.SearchTrigger` Props
+
+| Property | Type | Default | Description |
+| :--- | :--- | :--- | :--- |
+| **`onPress`** | `() => void` | *Required* | Pressed trigger action callback. |
+
+### `Navbar.Theme` Props
+
+| Property | Type | Default | Description |
+| :--- | :--- | :--- | :--- |
+| **`theme`** | `'dark' \| 'light'` | *Required* | Active theme selection. |
+| **`onThemeChange`** | `(isSelected: boolean) => void` | *Required* | Theme toggle change callback. |
+
+### `Navbar.Socials` Props
+
+| Property | Type | Default | Description |
+| :--- | :--- | :--- | :--- |
+| **`icon`** | `'github' \| 'discord' \| 'twitter'` | *Required* | Target social network icon graphics. |
+| **`link`** | `string` | *Required* | URL link path. |
+
+### `Navbar.MobileMenu` Props
+
+| Property | Type | Default | Description |
+| :--- | :--- | :--- | :--- |
+| **`isOpen`** | `boolean` | `false` | Active sliding visibility status. |
+| **`onClose`** | `() => void` | *Required* | Dismiss trigger callback. |
+| **`children`** | `ReactNode` | *Required* | Mobile drawer menu content cells. |
+
+### `Navbar.MobileLink` Props
+
+Inherits all [`Navbar.Link Props`](#navbarlink-props) plus:
+
+| Property | Type | Default | Description |
+| :--- | :--- | :--- | :--- |
+| **`onPress`** | `() => void` | `undefined` | Custom callback on click (e.g. to close drawers automatically). |

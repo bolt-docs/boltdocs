@@ -1,0 +1,52 @@
+---
+title: Skeleton
+sidebarPosition: 9
+description: Pulsing loading state placeholder component.
+---
+
+The `Skeleton` primitive renders animated pulsing placeholder shapes to represent content blocks (such as text headings, media cards, or profile pictures) while assets are fetching.
+
+---
+
+## Import
+
+```tsx
+import { Skeleton } from 'boltdocs/primitives'
+```
+
+---
+
+## Quick Start
+
+Mock a loading state of a user profile card:
+
+```tsx
+import { Skeleton } from 'boltdocs/primitives'
+
+export default function ProfileLoadingCard() {
+  return (
+    <div className="flex items-center gap-4 p-4 border border-subtle rounded-xl max-w-sm">
+      {/* 1. Circle skeleton for profile photo */}
+      <Skeleton variant="circle" className="size-12 shrink-0" />
+
+      {/* 2. Text rect placeholders */}
+      <div className="flex-1 flex flex-col gap-2">
+        <Skeleton variant="rect" className="h-4 w-2/3" />
+        <Skeleton variant="rect" className="h-3 w-1/2" />
+      </div>
+    </div>
+  )
+}
+```
+
+---
+
+## Component Props
+
+The `Skeleton` component accepts standard HTML `div` properties plus:
+
+| Property | Type | Default | Description |
+| :--- | :--- | :--- | :--- |
+| **`variant`** | `'rect' \| 'circle'` | `'rect'` | Shape structure style. Renders rounded-full for `'circle'` and rounded-md for `'rect'`. |
+| **`className`** | `string` | `undefined` | Custom CSS utility class overrides (e.g. mapping dimensions like `w-full h-8`). |
+| **`style`** | `CSSProperties` | `undefined` | Inline style settings. |

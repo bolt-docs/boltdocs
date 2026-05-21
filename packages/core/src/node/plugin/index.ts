@@ -185,22 +185,25 @@ export function boltdocsPlugin(
     ),
 
     // === 4. Image optimizer ===
-    ViteImageOptimizer({
-      includePublic: true,
-      png: { quality: 80 },
-      jpeg: { quality: 80 },
-      jpg: { quality: 80 },
-      webp: { quality: 80 },
-      avif: { quality: 80 },
-      svg: {
-        multipass: true,
-        plugins: [
-          {
-            name: 'preset-default',
-          },
-        ] as any,
-      },
-    }),
+    {
+      ...ViteImageOptimizer({
+        includePublic: true,
+        png: { quality: 80 },
+        jpeg: { quality: 80 },
+        jpg: { quality: 80 },
+        webp: { quality: 80 },
+        avif: { quality: 80 },
+        svg: {
+          multipass: true,
+          plugins: [
+            {
+              name: 'preset-default',
+            },
+          ] as any,
+        },
+      }),
+      apply: 'build',
+    } as Plugin,
 
     // === 5. Extra plugins from Boltdocs plugins ===
     ...(() => resolvedExtraVitePlugins)(),
