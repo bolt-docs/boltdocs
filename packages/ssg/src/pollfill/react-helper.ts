@@ -49,11 +49,9 @@ export function render(
   if (useLegacyRender || !isReact18) {
     reactRender(app, container)
   } else if (isReact19) {
-    import('react-dom/client').then(({ default: { createRoot } }) => {
+    import('react-dom/client').then(({ createRoot }) => {
       const root = createRoot(container)
-      React.startTransition(() => {
-        root.render(app)
-      })
+      root.render(app)
     })
   } else {
     CopyReactDOM.__SECRET_INTERNALS_DO_NOT_USE_OR_YOU_WILL_BE_FIRED.usingClientEntryPoint = true
@@ -63,9 +61,7 @@ export function render(
     }
     const root = createRoot(container)
     CopyReactDOM.__SECRET_INTERNALS_DO_NOT_USE_OR_YOU_WILL_BE_FIRED.usingClientEntryPoint = false
-    React.startTransition(() => {
-      root.render(app)
-    })
+    root.render(app)
   }
 }
 
@@ -79,10 +75,8 @@ export function hydrate(
   if (useLegacyRender || !isReact18) {
     reactHydrate(app, container)
   } else if (isReact19) {
-    import('react-dom/client').then(({ default: { hydrateRoot } }) => {
-      React.startTransition(() => {
-        hydrateRoot(container as Element, app)
-      })
+    import('react-dom/client').then(({ hydrateRoot }) => {
+      hydrateRoot(container as Element, app)
     })
   } else {
     CopyReactDOM.__SECRET_INTERNALS_DO_NOT_USE_OR_YOU_WILL_BE_FIRED.usingClientEntryPoint = true
@@ -90,9 +84,7 @@ export function hydrate(
     if (!hydrateRoot) {
       throw new Error('hydrateRoot not found')
     }
-    React.startTransition(() => {
-      hydrateRoot(container, app)
-      CopyReactDOM.__SECRET_INTERNALS_DO_NOT_USE_OR_YOU_WILL_BE_FIRED.usingClientEntryPoint = false
-    })
+    hydrateRoot(container, app)
+    CopyReactDOM.__SECRET_INTERNALS_DO_NOT_USE_OR_YOU_WILL_BE_FIRED.usingClientEntryPoint = false
   }
 }

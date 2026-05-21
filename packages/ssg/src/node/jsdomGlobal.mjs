@@ -86,7 +86,12 @@ export function jsdomGlobal(html = defaultHtml, options = {}) {
   // add access to our jsdom instance
   global.$jsdom = jsdom
 
-  const cleanup = () => KEYS.forEach((key) => delete global[key])
+  const cleanup = () => {
+    KEYS.forEach((key) => delete global[key])
+    try {
+      window.close()
+    } catch (e) {}
+  }
 
   document.destroy = cleanup
 

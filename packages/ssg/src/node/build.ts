@@ -6,7 +6,7 @@ import type {
   ViteReactSSGOptions,
 } from '../types'
 import { createRequire } from 'node:module'
-import { dirname, isAbsolute, join } from 'node:path'
+import { dirname, isAbsolute, join, relative } from 'node:path'
 import fs from 'fs-extra'
 import { JSDOM } from 'jsdom'
 import { blue, cyan, dim, gray, green, red, yellow } from 'kolorist'
@@ -37,6 +37,75 @@ function buildBundlerOptions<T extends Record<string, unknown>>(options: T) {
     ? { rolldownOptions: options }
     : { rollupOptions: options }
 }
+
+function getFilesRecursively(
+  dir: string,
+  baseDir: string,
+  docsDirName: string,
+  outDirName: string,
+): string[] {
+  const files: string[] = []
+  if (!fs.existsSync(dir)) return files
+  const list = fs.readdirSync(dir)
+  for (const file of list) {
+    const filePath = join(dir, file)
+    const relPath = relative(baseDir, filePath).replace(/\\/g, '/')
+    const stat = fs.statSync(filePath)
+
+    // Ignore node_modules, .git, .boltdocs, .turbo, dist, and docs directory containing content
+    if (
+      relPath.startsWith('node_modules/') ||
+      relPath === 'node_modules' ||
+      relPath.startsWith('.git/') ||
+      relPath === '.git' ||
+      relPath.startsWith('.boltdocs/') ||
+      relPath === '.boltdocs' ||
+      relPath.startsWith('.turbo/') ||
+      relPath === '.turbo' ||
+      relPath.startsWith(`${outDirName}/`) ||
+      relPath === outDirName ||
+      relPath.startsWith(`${docsDirName}/`) ||
+      relPath === docsDirName
+    ) {
+      continue
+    }
+
+    if (stat.isDirectory()) {
+      files.push(
+        ...getFilesRecursively(filePath, baseDir, docsDirName, outDirName),
+      )
+    } else {
+      files.push(filePath)
+    }
+  }
+  return files
+}
+
+function computeClientCodeHash(
+  root: string,
+  docsDirName: string,
+  outDirName: string,
+): string {
+  try {
+    const files = getFilesRecursively(root, root, docsDirName, outDirName)
+    // Sort files to ensure deterministic hash
+    files.sort()
+
+    const hasher = crypto.createHash('sha256')
+    for (const file of files) {
+      const stat = fs.statSync(file)
+      const relPath = relative(root, file).replace(/\\/g, '/')
+      hasher.update(relPath)
+      hasher.update(stat.mtimeMs.toString())
+      hasher.update(stat.size.toString())
+    }
+    return hasher.digest('hex')
+  } catch (e) {
+    // If anything fails, return a random hash so we force rebuild
+    return Math.random().toString(36).substring(2, 12)
+  }
+}
+
 export type SSRManifest = Record<string, string[]>
 export interface ManifestItem {
   css?: string[]
@@ -118,6 +187,40 @@ export async function build(
 
   if (fs.existsSync(ssgOut)) await fs.remove(ssgOut)
 
+  const finalCacheDir = isAbsolute(cacheDir) ? cacheDir : join(root, cacheDir)
+  const hashFile = join(finalCacheDir, 'client-hash.txt')
+  const templateHtmlFile = join(finalCacheDir, 'template-index.html')
+
+  let docsDirName = 'docs'
+  const sourceFiles = Object.values(routeToSourceFileMap)
+  if (sourceFiles.length > 0) {
+    const firstFile = sourceFiles[0]
+    const relativeFirst = relative(root, firstFile).replace(/\\/g, '/')
+    const parts = relativeFirst.split('/')
+    if (parts.length > 0) {
+      docsDirName = parts[0]
+    }
+  }
+
+  const out = isAbsolute(outDir) ? outDir : join(root, outDir)
+  const currentClientHash = computeClientCodeHash(root, docsDirName, outDir)
+
+  let canBypassClientBuild = false
+  try {
+    if (
+      fs.existsSync(hashFile) &&
+      fs.existsSync(templateHtmlFile) &&
+      fs.existsSync(out)
+    ) {
+      const savedHash = await fs.readFile(hashFile, 'utf-8')
+      if (savedHash.trim() === currentClientHash) {
+        canBypassClientBuild = true
+      }
+    }
+  } catch (e) {
+    // Ignore and run full client build
+  }
+
   const clientLogger = createLogger()
   const loggerWarn = clientLogger.warn
   clientLogger.warn = (msg: string, options) => {
@@ -129,36 +232,48 @@ export async function build(
     }
     loggerWarn(msg, options)
   }
-  // client
-  buildLog('Build for client...')
-  await viteBuild(
-    mergeConfig(viteConfig, {
-      build: {
-        manifest: true,
-        ssrManifest: true,
-        ...buildBundlerOptions({
-          input: {
-            app: join(root, htmlEntry || './index.html'),
-          },
-          // @ts-expect-error rollup type
-          onLog(level, log, handler) {
-            if (log.message.includes('react-helmet-async')) return
-            handler(level, log)
-          },
-        }),
-      },
-      customLogger: clientLogger,
-      mode: config.mode,
-      plugins: [
-        {
-          name: 'vite-react-ssg:get-oup-dir',
-          configResolved(resolvedConfig) {
-            outDir = resolvedConfig.build.outDir || 'dist'
-          },
-        } as PluginOption,
-      ],
-    }),
-  )
+
+  if (canBypassClientBuild) {
+    buildLog('Client code unchanged. Bypassing client build...')
+    await fs.ensureDir(out)
+    await fs.copy(templateHtmlFile, join(out, htmlEntry))
+  } else {
+    // client
+    buildLog('Build for client...')
+    await viteBuild(
+      mergeConfig(viteConfig, {
+        build: {
+          manifest: true,
+          ssrManifest: true,
+          ...buildBundlerOptions({
+            input: {
+              app: join(root, htmlEntry || './index.html'),
+            },
+            // @ts-expect-error rollup type
+            onLog(level, log, handler) {
+              if (log.message.includes('react-helmet-async')) return
+              handler(level, log)
+            },
+          }),
+        },
+        customLogger: clientLogger,
+        mode: config.mode,
+        plugins: [
+          {
+            name: 'vite-react-ssg:get-oup-dir',
+            configResolved(resolvedConfig) {
+              outDir = resolvedConfig.build.outDir || 'dist'
+            },
+          } as PluginOption,
+        ],
+      }),
+    )
+
+    // Save the template index.html to cache
+    await fs.ensureDir(finalCacheDir)
+    await fs.copy(join(out, htmlEntry), templateHtmlFile)
+    await fs.writeFile(hashFile, currentClientHash, 'utf-8')
+  }
 
   let unmock = () => {}
   if (mock) {
@@ -270,7 +385,6 @@ export async function build(
     )
   }
 
-  const out = isAbsolute(outDir) ? outDir : join(root, outDir)
   const ssrManifest: SSRManifest = JSON.parse(
     await fs.readFile(join(out, ...dotVitedir, 'ssr-manifest.json'), 'utf-8'),
   )
@@ -289,7 +403,6 @@ export async function build(
   let loaderDataFileCount = 0
 
   // Load the previous SSG cache metadata
-  const finalCacheDir = isAbsolute(cacheDir) ? cacheDir : join(root, cacheDir)
   const cachePath = join(finalCacheDir, 'ssg-cache.json')
   const ssgPagesDir = join(finalCacheDir, 'ssg-pages')
 
@@ -328,16 +441,14 @@ export async function build(
 
     let isCached = false
     let sourceMtime = 0
-    if (
-      sourceFile &&
-      fs.existsSync(sourceFile) &&
-      fs.existsSync(cachedHtmlFile)
-    ) {
+    if (sourceFile && fs.existsSync(sourceFile)) {
       try {
         sourceMtime = Math.round(fs.statSync(sourceFile).mtimeMs)
-        const cachedItem = ssgCache[normalizedKey] || ssgCache[path]
-        if (cachedItem && Math.round(cachedItem.mtime) === sourceMtime) {
-          isCached = true
+        if (fs.existsSync(cachedHtmlFile)) {
+          const cachedItem = ssgCache[normalizedKey] || ssgCache[path]
+          if (cachedItem && Math.round(cachedItem.mtime) === sourceMtime) {
+            isCached = true
+          }
         }
       } catch (e) {}
     }
@@ -349,7 +460,7 @@ export async function build(
           await fs.copy(cachedHtmlFile, finalOutFile)
 
           // Copy loader data if exists
-          const cachedItem = ssgCache[path]
+          const cachedItem = ssgCache[normalizedKey] || ssgCache[path]
           if (
             cachedItem?.loaderDataFilePath &&
             fs.existsSync(cachedLoaderFile)
@@ -451,6 +562,7 @@ export async function build(
         renderPreloadLinks(jsdom.window.document, assets)
 
         const html = jsdom.serialize()
+        jsdom.window.close()
         let transformed = (await onPageRendered?.(path, html, appCtx)) || html
         transformed = transformed.replace(
           SCRIPT_COMMENT_PLACEHOLDER,
