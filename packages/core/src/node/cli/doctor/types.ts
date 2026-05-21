@@ -9,7 +9,7 @@ export interface LinkTree {
 export type { DoctorConfig }
 
 export const DEFAULT_DOCTOR_CONFIG: DoctorConfig = {
-  $schema: 'https://boltdocs.dev/schemas/doctor-config.schema.json',
+  $schema: 'https://boltdocs.vercel.app/schemas/doctor-config.schema.json',
   checks: {
     metadata: {
       enabled: true,
