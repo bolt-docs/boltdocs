@@ -1,5 +1,11 @@
 # @bdocs/plugin-mermaid
 
+## 0.2.1
+
+### Patch Changes
+
+- [`b04fce4`](https://github.com/bolt-docs/boltdocs/commit/b04fce42678230b607adcde349e8bb95f6dca1f3) Thanks [@jesusalcaladev](https://github.com/jesusalcaladev)! - - **fix**: Updated variables-css
+
 ## 0.2.0
 
 ### Minor Changes
