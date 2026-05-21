@@ -1,5 +1,12 @@
 # create-boltdocs
 
+## 0.2.2
+
+### Patch Changes
+
+- [`b04fce4`](https://github.com/bolt-docs/boltdocs/commit/b04fce42678230b607adcde349e8bb95f6dca1f3) Thanks [@jesusalcaladev](https://github.com/jesusalcaladev)! - - **fix**: Updated theme colors
+  - **fix**: Updated templates
+
 ## 0.2.1
 
 ### Patch Changes
