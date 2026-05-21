@@ -1,5 +1,5 @@
 import * as React from 'react'
-import { Link as LucideLink } from 'lucide-react'
+import { Link as LucideLink } from '../ui-base/icons'
 import { Link } from './link'
 import { cn } from '../../utils/cn'
 

@@ -1,7 +1,7 @@
 'use client'
 
 import * as RAC from 'react-aria-components'
-import { Hash, FileText, CornerDownLeft } from 'lucide-react'
+import { Hash, FileText, CornerDownLeft } from '../ui-base/icons'
 import { cn } from '../../utils/cn'
 import type { ComponentBase } from './types'
 

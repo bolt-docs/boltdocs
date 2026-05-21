@@ -1,4 +1,4 @@
-import { Info, Lightbulb, AlertTriangle, AlertCircle } from 'lucide-react'
+import { Info, Lightbulb, AlertTriangle, AlertCircle } from '../ui-base/icons'
 import { cn } from '../../utils/cn'
 
 export type CalloutVariant = 'note' | 'tip' | 'warning' | 'danger' | 'info'

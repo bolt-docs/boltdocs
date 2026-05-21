@@ -1,4 +1,4 @@
-import { useLayoutEffect } from 'react'
+import { useEffect, useLayoutEffect } from 'react'
 import { useLocation } from 'react-router-dom'
 
 /**
@@ -9,22 +9,20 @@ import { useLocation } from 'react-router-dom'
 export function ScrollHandler() {
   const { pathname, hash } = useLocation()
 
-  // biome-ignore lint/correctness/useExhaustiveDependencies: pathname is used as a trigger for scroll-to-top on navigation
-  useLayoutEffect(() => {
+  // Helper to handle scroll logic
+  const handleScroll = (behavior: ScrollBehavior = 'auto') => {
     const container = document.querySelector('.boltdocs-content') || window
 
-    // Helper to get scroll top
     const getScrollTop = () => {
       if (container === window) return window.scrollY
       return (container as HTMLElement).scrollTop
     }
 
-    // Helper to scroll
-    const scrollTo = (top: number, behavior: ScrollBehavior = 'auto') => {
+    const scrollTo = (top: number, scrollBehavior: ScrollBehavior) => {
       if (container === window) {
-        window.scrollTo({ top, behavior })
+        window.scrollTo({ top, behavior: scrollBehavior })
       } else {
-        ;(container as HTMLElement).scrollTo({ top, behavior })
+        ;(container as HTMLElement).scrollTo({ top, behavior: scrollBehavior })
       }
     }
 
@@ -41,14 +39,36 @@ export function ScrollHandler() {
         const elementPosition = elementRect - containerTop
         const offsetPosition = elementPosition - offset + getScrollTop()
 
-        scrollTo(offsetPosition, 'auto')
-        return
+        scrollTo(offsetPosition, behavior)
+        return true
       }
     }
 
-    // Scroll to top on navigation when no hash is specified
-    scrollTo(0)
+    scrollTo(0, behavior)
+    return false
+  }
+
+  // 1. Immediate sync scroll before paint
+  // biome-ignore lint/correctness/useExhaustiveDependencies: pathname is used as a trigger for scroll-to-top on navigation
+  useLayoutEffect(() => {
+    handleScroll('auto')
+  }, [pathname, hash])
+
+  // 2. Delayed async scroll as fallback/stabilizer after paint & passive effects
+  useEffect(() => {
+    // Immediate run after paint (helps override old component unmount/revert side effects)
+    handleScroll('auto')
+
+    // Double-check inside requestAnimationFrame to catch concurrent renders or dynamic layout recalculations
+    const rafId = requestAnimationFrame(() => {
+      handleScroll('auto')
+      // Dispatch resize event so external components/scroll libraries (like GSAP ScrollTrigger) recalculate trigger offsets
+      window.dispatchEvent(new Event('resize'))
+    })
+
+    return () => cancelAnimationFrame(rafId)
   }, [pathname, hash])
 
   return null
 }
+

@@ -4,7 +4,7 @@ import {
 } from 'react-aria-components'
 import { Link } from './link'
 import type { LinkProps } from 'react-aria-components'
-import { ChevronRight } from 'lucide-react'
+import { ChevronRight } from '../ui-base/icons'
 import { cn } from '../../utils/cn'
 import type { ComponentBase } from './types'
 

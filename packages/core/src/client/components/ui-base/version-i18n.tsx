@@ -2,7 +2,7 @@ import { useVersion } from '../../hooks/use-version'
 import { useI18n } from '../../hooks/use-i18n'
 import { Menu } from '../primitives/menu'
 import { Button } from '../primitives/button'
-import { ChevronDown, Languages } from 'lucide-react'
+import { ChevronDown, Languages } from './icons'
 import { cn } from '../../utils/cn'
 
 export function VersionSelector({ className }: { className?: string }) {

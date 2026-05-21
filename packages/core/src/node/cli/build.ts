@@ -46,6 +46,7 @@ export async function buildAction(root: string = process.cwd()) {
       viteConfig,
     )
     ui.success('SSG build completed successfully!')
+    process.exit(0)
   } catch (e) {
     ui.error('Build failed:', e)
     process.exit(1)

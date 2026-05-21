@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Copy, Check, ExternalLink, ChevronDown } from 'lucide-react'
+import { Copy, Check, ExternalLink, ChevronDown } from './icons'
 import { Button } from '../primitives/button'
 import { ButtonGroup } from '../primitives/button-group'
 import { Menu } from '../primitives/menu'

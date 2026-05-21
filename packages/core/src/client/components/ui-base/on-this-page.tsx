@@ -1,6 +1,6 @@
 import { OnThisPage as OTP } from '../primitives/on-this-page'
 import type { OnThisPageProps } from '../../types'
-import { Pencil, CircleHelp, TextAlignStart } from 'lucide-react'
+import { Pencil, CircleHelp, TextAlignStart } from './icons'
 
 export function OnThisPage({
   headings = [],

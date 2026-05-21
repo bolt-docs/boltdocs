@@ -1,5 +1,5 @@
 import { useEffect, useCallback } from 'react'
-import { Search } from 'lucide-react'
+import { Search } from './icons'
 import { useSearch } from '../../hooks/use-search'
 import { SearchDialog as SearchDialogPrimitive } from '../primitives/search-dialog'
 import Navbar from '../primitives/navbar'

@@ -1,5 +1,5 @@
 import { Sidebar as SidebarPrimitive } from '../primitives/sidebar'
-import * as LucideIcons from 'lucide-react'
+import { X } from './icons'
 import type { ComponentRoute } from '../../types'
 import type { BoltdocsConfig } from '../../../shared/types'
 import { VersionSelector, I18nSelector } from './version-i18n'
@@ -54,7 +54,7 @@ function SidebarMain({ routes, config }: SidebarProps) {
               className="h-9 w-9 flex items-center justify-center bg-transparent border-none outline-none select-none cursor-pointer rounded-xl hover:bg-primary-50/50 text-muted hover:text-body transition-colors"
               aria-label="Close sidebar"
             >
-              <LucideIcons.X size={20} />
+              <X size={20} />
             </Button>
           </div>
         </SidebarPrimitive.Header>

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { X } from 'lucide-react'
+import { X } from './icons'
 
 export interface BannerProps extends React.HTMLAttributes<HTMLDivElement> {
   /**

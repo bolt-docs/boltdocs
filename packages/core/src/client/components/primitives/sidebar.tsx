@@ -9,12 +9,12 @@ import * as RAC from 'react-aria-components'
 import { cn } from '../../utils/cn'
 import { useUI } from '../../app/ui-context'
 import { Link } from './link'
-import { ChevronRight } from 'lucide-react'
+import { ChevronRight } from '../ui-base/icons'
 import type { ComponentBase } from './types'
 import type { ComponentRoute } from '../../types'
 import { useSidebar } from '../../hooks/use-sidebar'
 import { useLocalizedTo } from '../../hooks/use-localized-to'
-import * as LucideIcons from 'lucide-react'
+import * as DefaultIcons from '../ui-base/icons'
 import virtualIcons from 'virtual:boltdocs-icons'
 
 // Persistent scroll position across navigation (SPA)
@@ -22,7 +22,7 @@ let sidebarScrollPos = 0
 
 function getIcon(iconName?: string): React.ElementType | undefined {
   if (!iconName) return undefined
-  const icons = { ...LucideIcons, ...virtualIcons } as unknown as Record<
+  const icons = { ...DefaultIcons, ...virtualIcons } as unknown as Record<
     string,
     React.ElementType
   >

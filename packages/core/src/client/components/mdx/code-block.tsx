@@ -1,5 +1,5 @@
 import { Button } from 'react-aria-components'
-import { Copy, Check, File } from 'lucide-react'
+import { Copy, Check, File } from '../ui-base/icons'
 import { cn } from '../../utils/cn'
 import { reactToText } from '../../utils/react-to-text'
 import { useCodeBlock } from './use-code-block'

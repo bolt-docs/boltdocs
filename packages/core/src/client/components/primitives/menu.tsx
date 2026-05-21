@@ -1,4 +1,4 @@
-import { Check, ChevronRight } from 'lucide-react'
+import { Check, ChevronRight } from '../ui-base/icons'
 import * as RAC from 'react-aria-components'
 import { Children } from 'react'
 import { Popover, type PopoverProps } from './popover'

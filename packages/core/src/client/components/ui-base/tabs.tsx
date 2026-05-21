@@ -3,7 +3,8 @@ import { useTabs as useTabsHook } from '../../hooks/use-tabs'
 import { Tabs as T } from '../primitives/tabs'
 import { Link } from '../primitives/link'
 import type { BoltdocsTab, ComponentRoute } from '../../types'
-import * as Icons from 'lucide-react'
+import * as DefaultIcons from './icons'
+import virtualIcons from 'virtual:boltdocs-icons'
 import { getTranslated } from '../../utils/i18n'
 import { useRoutes } from '../../hooks/use-routes'
 
@@ -38,9 +39,10 @@ export function Tabs({
         />
       )
     }
-    const LucideIcon = (Icons as Record<string, any>)[iconName]
-    if (LucideIcon) {
-      return <LucideIcon size={16} />
+    const icons = { ...DefaultIcons, ...virtualIcons } as Record<string, any>
+    const TabIcon = icons[iconName] || icons[iconName + 'Icon']
+    if (TabIcon) {
+      return <TabIcon size={16} />
     }
     return <img src={iconName} alt="" className="h-4 w-4 object-contain" />
   }
