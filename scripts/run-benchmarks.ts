@@ -108,6 +108,17 @@ function writeConfigs() {
   )
   fs.writeFileSync(path.join(BOLTDOCS_DIR, 'index.css'), '') // empty stylesheet
 
+  // Boltdocs package.json to set type: module and avoid ESM reparsing warning/overhead
+  const boltdocsPkg = {
+    name: 'benchmark-boltdocs',
+    private: true,
+    type: 'module',
+  }
+  fs.writeFileSync(
+    path.join(BOLTDOCS_DIR, 'package.json'),
+    JSON.stringify(boltdocsPkg, null, 2),
+  )
+
   // Boltdocs index.html (Required by Vite/SSG)
   const boltdocsHtml = `<!doctype html>
 <html lang="en">
@@ -229,7 +240,7 @@ function measureBuild(command: string, args: string[], cwd: string): number {
   const start = process.hrtime.bigint()
   const result = child_process.spawnSync(command, args, {
     cwd,
-    stdio: 'ignore',
+    stdio: 'inherit',
   })
   if (result.status !== 0) {
     throw new Error(`Build failed with exit code ${result.status}`)
@@ -467,7 +478,7 @@ async function run() {
 
   // Clean up sandbox to keep workspace clean
   console.log(`Cleaning sandbox...`)
-  fs.rmSync(TEMP_ROOT, { recursive: true, force: true })
+  // fs.rmSync(TEMP_ROOT, { recursive: true, force: true })
 }
 
 run().catch((err) => {
