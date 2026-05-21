@@ -107,7 +107,9 @@ export function useGSAPScroll(
           end,
           scrub,
           once,
-          toggleActions: once ? 'play none none none' : 'play none none reverse',
+          toggleActions: once
+            ? 'play none none none'
+            : 'play none none reverse',
         },
       })
     }, ref)
@@ -208,7 +210,9 @@ export function useGSAPStaggerIn(
             start,
             end,
             once,
-            toggleActions: once ? 'play none none none' : 'play none none reverse',
+            toggleActions: once
+              ? 'play none none none'
+              : 'play none none reverse',
           },
         },
       )

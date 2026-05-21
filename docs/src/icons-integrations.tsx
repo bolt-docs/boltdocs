@@ -2,14 +2,15 @@ import type { SVGProps } from 'react'
 
 export const GoogleAnalytics = (props: SVGProps<SVGSVGElement>) => (
   <svg
-    {...props}
     version="1.1"
     id="google_analytics__Layer_1"
     xmlnsXlink="http://www.w3.org/1999/xlink"
     x="0px"
     y="0px"
+    stroke='currentColor'
     viewBox="0 0 2195.9 2430.9"
     xmlSpace="preserve"
+    {...props}
   >
     <title>Google Analytics</title>
     <g>
@@ -18,16 +19,3 @@ export const GoogleAnalytics = (props: SVGProps<SVGSVGElement>) => (
     </g>
   </svg>
 )
-
-const Codesandbox = (props: SVGProps<SVGSVGElement>) => (
-  <svg {...props} fill="none" viewBox="0 0 600 600">
-    <path
-      fill="#DCFF50"
-      fillRule="evenodd"
-      d="M150 150h299.832v300H150V150Zm269.168 30.682v238.636H180.665V180.682h238.503Z"
-      clipRule="evenodd"
-    />
-  </svg>
-)
-
-export { Codesandbox }

@@ -64,7 +64,7 @@ export default defineConfig({
       { id: 'api', text: 'API', icon: 'Code2' },
       { id: 'plugins', text: 'Plugins', icon: 'Package' },
       { id: 'components', text: 'Components', icon: 'Layers' },
-      { id: "changelog", text: "Changelog", icon: "Clock" }
+      { id: 'changelog', text: 'Changelog', icon: 'Clock' },
     ],
     navbar: [
       {
@@ -76,13 +76,13 @@ export default defineConfig({
             href: '/docs/guides',
           },
           {
-            label: "Installation",
-            href: "/docs/guides/installation"
+            label: 'Installation',
+            href: '/docs/guides/installation',
           },
           {
-            label: " Configuration",
-            href: "/docs/guides/configuration"
-          }
+            label: ' Configuration',
+            href: '/docs/guides/configuration',
+          },
         ],
       },
     ],

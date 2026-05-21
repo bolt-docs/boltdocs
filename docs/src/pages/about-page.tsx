@@ -5,7 +5,7 @@ import { useGSAPStaggerIn } from '../hooks/useGSAPScroll'
 
 export default function AboutPage() {
   const contentRef = useRef<HTMLDivElement>(null)
-  
+
   // Apply a clean, minimalist vertical fade-up stagger on all child paragraphs/headers
   useGSAPStaggerIn(contentRef, { stagger: 0.08, duration: 0.6, y: 15 })
 
@@ -13,7 +13,6 @@ export default function AboutPage() {
     <div className="font-sans antialiased min-h-screen bg-main text-body flex flex-col justify-start">
       <div className="max-w-2xl mx-auto px-6 py-28 md:py-36 w-full flex-grow">
         <div ref={contentRef} className="flex flex-col gap-10">
-          
           {/* Header Metadata */}
           <div>
             <span className="font-mono text-xs uppercase tracking-widest text-primary-400 block mb-3">
@@ -31,7 +30,11 @@ export default function AboutPage() {
               Our Mission
             </h2>
             <p className="text-body/75 leading-relaxed text-base md:text-lg">
-              Writing documentation is often treated as an afterthought because the tools to build it are either too complex, too slow, or visually unappealing by default. We created Boltdocs to provide a zero-configuration, edge-ready, and highly customizable engine that teams actually enjoy using.
+              Writing documentation is often treated as an afterthought because
+              the tools to build it are either too complex, too slow, or
+              visually unappealing by default. We created Boltdocs to provide a
+              zero-configuration, edge-ready, and highly customizable engine
+              that teams actually enjoy using.
             </p>
           </div>
 
@@ -41,7 +44,9 @@ export default function AboutPage() {
               Open Source
             </h2>
             <p className="text-body/75 leading-relaxed text-base md:text-lg">
-              Boltdocs is proudly open source under the MIT License. We believe the best tools are built collaboratively, and we welcome contributions from developers all around the world.
+              Boltdocs is proudly open source under the MIT License. We believe
+              the best tools are built collaboratively, and we welcome
+              contributions from developers all around the world.
             </p>
           </div>
 
@@ -51,19 +56,23 @@ export default function AboutPage() {
               The Developer
             </h2>
             <p className="text-body/75 leading-relaxed text-base md:text-lg">
-              Boltdocs is built and maintained by <strong className="text-body font-bold">Jesus Alcala</strong>. Passionate about enhancing developer productivity, Jesus created Boltdocs to solve common documentation pain points and deliver a superior writing experience.
+              Boltdocs is built and maintained by{' '}
+              <strong className="text-body font-bold">Jesus Alcala</strong>.
+              Passionate about enhancing developer productivity, Jesus created
+              Boltdocs to solve common documentation pain points and deliver a
+              superior writing experience.
             </p>
-            
+
             <div className="pt-3">
               <Link
                 href="https://github.com/jesusalcaladev"
                 className="inline-flex items-center gap-2 px-5 py-2.5 bg-white/5 hover:bg-white/10 text-body font-bold rounded-xl border border-white/10 hover:border-white/20 transition-all duration-300 cursor-pointer text-sm"
               >
-                <GithubIcon className="w-4.5 h-4.5" /> Follow @jesusalcaladev on GitHub
+                <GithubIcon className="w-4.5 h-4.5" /> Follow @jesusalcaladev on
+                GitHub
               </Link>
             </div>
           </div>
-
         </div>
       </div>
     </div>
@@ -72,7 +81,10 @@ export default function AboutPage() {
 
 const GithubIcon = ({ className }: { className?: string }) => (
   <svg
-    className={cn("w-4 h-4 transition-transform group-hover:scale-110", className)}
+    className={cn(
+      'w-4 h-4 transition-transform group-hover:scale-110',
+      className,
+    )}
     fill="currentColor"
     viewBox="0 0 24 24"
   >

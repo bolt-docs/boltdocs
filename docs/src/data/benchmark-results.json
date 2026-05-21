@@ -1,0 +1,24 @@
+{
+  "pageCount": 100,
+  "timestamp": "2026-05-21T22:05:02.013Z",
+  "buildTimeCold": {
+    "boltdocs": 18.42,
+    "docusaurus": 44.69,
+    "ratio": 2.4
+  },
+  "buildTimeWarm": {
+    "boltdocs": 19.04,
+    "docusaurus": 9.93,
+    "ratio": 0.5
+  },
+  "devServerStart": {
+    "boltdocs": 2629,
+    "docusaurus": 3132,
+    "ratio": 1.2
+  },
+  "bundleSize": {
+    "boltdocs": 6237,
+    "docusaurus": 3835,
+    "ratio": 0.6
+  }
+}
