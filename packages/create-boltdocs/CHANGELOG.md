@@ -1,5 +1,11 @@
 # create-boltdocs
 
+## 0.2.3
+
+### Patch Changes
+
+- [`3410ffa`](https://github.com/bolt-docs/boltdocs/commit/3410ffadcb03ec61d41429c9c36e2104123a6568) Thanks [@jesusalcaladev](https://github.com/jesusalcaladev)! - fix: added home page into of pages-external
+
 ## 0.2.2
 
 ### Patch Changes
