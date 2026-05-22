@@ -1,5 +1,12 @@
 # boltdocs
 
+## 2.7.5
+
+### Patch Changes
+
+- [`b9af040`](https://github.com/bolt-docs/boltdocs/commit/b9af040f70158409ae563b2b6776efa6d3607707) Thanks [@jesusalcaladev](https://github.com/jesusalcaladev)! - perf: refine incremental build caching and fix loader hash stability
+  fix: ensure docs layout wrapper is constrained to the base docs path to prevent hijacking external routes (like homepage/about) during client-side hydration.
+
 ## 2.7.4
 
 ### Patch Changes
