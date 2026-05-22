@@ -1,5 +1,11 @@
 # create-boltdocs
 
+## 0.2.4
+
+### Patch Changes
+
+- [`2ca7562`](https://github.com/bolt-docs/boltdocs/commit/2ca7562b7f6b95955426afdbf15b94b82b5d3e60) Thanks [@jesusalcaladev](https://github.com/jesusalcaladev)! - update create-boltdocs templates
+
 ## 0.2.3
 
 ### Patch Changes
