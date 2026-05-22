@@ -98,6 +98,11 @@ export function createRoutes(options: CreateRoutesOptions): RouteRecord[] {
   const defaultVersion = config.versions?.defaultVersion
   const docsBase = (config.base || '/docs').replace(/\/$/, '')
 
+  // Base path under which all doc routes are nested (e.g., "/docs")
+  // Used to compute relative child paths for correct React Router nesting
+  let baseDocsPath = (config.base || '/docs').replace(/\/$/, '')
+  if (!baseDocsPath) baseDocsPath = '/'
+
   if (defaultVersion) {
     routesData.forEach((route) => {
       // If this route explicitly already belongs to a version, do not clone.
@@ -170,7 +175,12 @@ export function createRoutes(options: CreateRoutesOptions): RouteRecord[] {
     const normalizedFilePath = route.filePath.replace(/\\/g, '/')
     const moduleKey = moduleMap.get(normalizedFilePath)
     const moduleLoader = moduleKey ? mdxModules[moduleKey] : null
-    const path = withBase(route.path === '' ? '/' : route.path)
+    const fullPath = withBase(route.path === '' ? '/' : route.path)
+    const path = fullPath === baseDocsPath
+      ? '.'
+      : fullPath.startsWith(baseDocsPath + '/')
+        ? fullPath.slice(baseDocsPath.length + 1)
+        : fullPath
 
     return {
       path,
@@ -204,8 +214,6 @@ export function createRoutes(options: CreateRoutesOptions): RouteRecord[] {
   })
 
   // 2. Auto-fallback for the base paths (e.g. /docs, /docs/es) to the first documentation page
-  let baseDocsPath = (config.base || '/docs').replace(/\/$/, '')
-  if (!baseDocsPath) baseDocsPath = '/'
 
   const locales = config.i18n?.locales
     ? Array.isArray(config.i18n.locales)
@@ -306,11 +314,16 @@ export function createRoutes(options: CreateRoutesOptions): RouteRecord[] {
           : null
 
       if (finalTarget) {
+        const redirectPath = bPath === baseDocsPath
+          ? '.'
+          : bPath.startsWith(baseDocsPath + '/')
+            ? bPath.slice(baseDocsPath.length + 1)
+            : bPath
         docRoutes.push({
-          path: bPath,
+          path: redirectPath,
           element: <Navigate to={finalTarget} replace />,
-          loader: async () => ({ path: bPath }),
-          getStaticPaths: () => [bPath],
+          loader: async () => ({ path: redirectPath }),
+          getStaticPaths: () => [redirectPath],
         })
       }
     }

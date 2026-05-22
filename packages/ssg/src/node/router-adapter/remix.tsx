@@ -34,7 +34,7 @@ export class RemixAdapter implements IRouterAdapter<ViteReactSSGContext> {
     const { StaticRouterProvider, createStaticHandler, createStaticRouter } =
       await import('react-router-dom')
     const dataRoutes = convertRoutesToDataRoutes([...routes], (route) => route)
-    const { query } = createStaticHandler(dataRoutes)
+    const { query } = createStaticHandler(dataRoutes, { basename: base })
     const _context = await query(request)
 
     if (_context instanceof Response) throw _context
