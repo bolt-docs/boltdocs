@@ -318,6 +318,7 @@ export function createRoutes(options: CreateRoutesOptions): RouteRecord[] {
 
   // Group all documentation routes under the persistent DocsLayout
   const docsLayoutRoute: RouteRecord = {
+    path: baseDocsPath,
     element: <DocsLayout />,
     children: docRoutes,
   }
