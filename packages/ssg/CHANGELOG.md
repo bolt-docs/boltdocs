@@ -1,5 +1,11 @@
 # @bdocs/ssg
 
+## 0.0.3
+
+### Patch Changes
+
+- [`e5e5ebb`](https://github.com/bolt-docs/boltdocs/commit/e5e5ebbf370acdeb9eaab77a296f37493f7b5d0f) Thanks [@jesusalcaladev](https://github.com/jesusalcaladev)! - fix: resolve SSG route resolution causing home page content to leak into all routes
+
 ## 0.0.2
 
 ### Patch Changes
