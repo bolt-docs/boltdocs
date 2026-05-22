@@ -6,7 +6,6 @@ import { NotFound } from '../components/ui-base'
 const Loading = () => <div className="text-muted text-sm py-4">Loading...</div>
 import type React from 'react'
 import { useEffect } from 'react'
-import { Navigate } from 'react-router-dom'
 
 interface CreateRoutesOptions {
   routesData: ComponentRoute[]
@@ -298,7 +297,7 @@ export function createRoutes(options: CreateRoutesOptions): RouteRecord[] {
         : null
 
       // Prioritize: Find a real route that matches the default tab first, then fall back to the first route beginning with this pattern.
-      const matchedRoute =
+      let matchedRouteObj: RouteRecord | undefined =
         defaultTabPath && docPathRegistry.has(defaultTabPath.replace(/\/$/, ''))
           ? docRoutes.find(
               (r) =>
@@ -307,13 +306,11 @@ export function createRoutes(options: CreateRoutesOptions): RouteRecord[] {
           : docRoutes.find((r) => filter(r.path) && r.path !== normalizedPath)
 
       // Ultimate fallback: the absolute first document
-      const finalTarget = matchedRoute
-        ? matchedRoute.path
-        : docRoutes.length > 0
-          ? docRoutes[0].path
-          : null
+      if (!matchedRouteObj && docRoutes.length > 0) {
+        matchedRouteObj = docRoutes[0]
+      }
 
-      if (finalTarget) {
+      if (matchedRouteObj) {
         const redirectPath = bPath === baseDocsPath
           ? '.'
           : bPath.startsWith(baseDocsPath + '/')
@@ -321,9 +318,9 @@ export function createRoutes(options: CreateRoutesOptions): RouteRecord[] {
             : bPath
         docRoutes.push({
           path: redirectPath,
-          element: <Navigate to={finalTarget} replace />,
-          loader: async () => ({ path: redirectPath }),
-          getStaticPaths: () => [redirectPath],
+          element: matchedRouteObj.element,
+          loader: matchedRouteObj.loader,
+          getStaticPaths: () => [],
         })
       }
     }

@@ -59,6 +59,12 @@ export async function routesToPaths(routes?: Readonly<RouteRecord[]>) {
   function handlePath(path: string | undefined, prefix: string) {
     // check for leading slash
     if (path != null) {
+      if (path === '.') {
+        // "." means "same path as parent" in React Router, not a literal segment
+        const resolved = prefix || '/'
+        paths.add(resolved)
+        return resolved
+      }
       path =
         prefix && !path.startsWith('/')
           ? `${prefix}${path ? `/${path}` : ''}`
