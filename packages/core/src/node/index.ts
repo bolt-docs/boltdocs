@@ -61,6 +61,7 @@ export async function createViteConfig(
         'react-dom/client',
         'react-helmet-async',
         'react-router-dom',
+        'react-fast-compare',
         'use-sync-external-store/shim',
       ],
       rolldownOptions: {},
@@ -117,6 +118,7 @@ export async function createViteConfig(
           'react-dom',
           'react/jsx-runtime',
           'react/jsx-dev-runtime',
+          'react-fast-compare',
           ...(config.vite?.ssr?.optimizeDeps?.include || []),
         ],
       },
@@ -127,6 +129,7 @@ export async function createViteConfig(
         'react-aria-components',
         '@react-aria/collections',
         '@react-aria/utils',
+        'react-router-dom',
       ],
     },
     server: {

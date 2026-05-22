@@ -135,11 +135,18 @@ export function boltdocsPlugin(
                   'react-dom/client',
                   'react-router-dom',
                   'react-helmet-async',
+                  'react-fast-compare',
                 ],
                 exclude: ['boltdocs', 'boltdocs/client'],
               },
               resolve: {
                 dedupe: ['react', 'react-dom'],
+              },
+              ssr: {
+                optimizeDeps: {
+                  include: ['react-fast-compare'],
+                },
+                noExternal: ['react-router-dom'],
               },
             }
           },
