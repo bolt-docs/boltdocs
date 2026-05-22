@@ -1,7 +1,7 @@
 import type { Plugin, InlineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
-import { boltdocsPlugin } from './plugin/index'
+import { boltdocsPlugin, getExternalAbsolutePaths } from './plugin/index'
 import { boltdocsMdxPlugin } from './mdx/index'
 import { SECURITY_HEADERS } from './security/headers'
 import { getCSPHeader } from './security/csp'
@@ -10,6 +10,9 @@ import path from 'node:path'
 import { normalizePath } from 'vite'
 export { generateEntryCode } from './plugin/entry'
 import type { BoltdocsPluginOptions } from './plugin/index'
+import { createRequire } from 'node:module'
+
+const req = createRequire(import.meta.url)
 
 export default async function boltdocs(
   options?: BoltdocsPluginOptions,
@@ -22,7 +25,10 @@ export default async function boltdocs(
     ...options,
   }
 
-  return [...boltdocsPlugin(mergedOptions, config), boltdocsMdxPlugin(config)]
+  return [
+    ...boltdocsPlugin(mergedOptions, config),
+    boltdocsMdxPlugin(config),
+  ]
 }
 
 /**
@@ -62,13 +68,11 @@ export async function createViteConfig(
         'react-helmet-async',
         'react-router-dom',
         'react-fast-compare',
+        'invariant',
         'use-sync-external-store/shim',
       ],
-      rolldownOptions: {},
     },
-    build: {
-      rolldownOptions: {},
-    },
+    build: {},
     plugins: [
       react(),
       tailwindcss(),
@@ -106,30 +110,32 @@ export async function createViteConfig(
       dedupe: [
         'react',
         'react-dom',
-        'react-router-dom',
-        'react-helmet-async',
-        '@bdocs/ssg',
       ],
     },
     ssr: {
+      external: [
+        'react',
+        'react-dom',
+        'react-router-dom',
+        'react-helmet-async',
+        '@bdocs/ssg',
+        'react-fast-compare',
+        'invariant',
+        ...getExternalAbsolutePaths(),
+      ],
       optimizeDeps: {
         include: [
-          'react',
-          'react-dom',
-          'react/jsx-runtime',
-          'react/jsx-dev-runtime',
           'react-fast-compare',
+          'invariant',
           ...(config.vite?.ssr?.optimizeDeps?.include || []),
         ],
       },
       noExternal: [
         'boltdocs',
         /@bdocs\/(?!ssg).*/,
-        'react-helmet-async',
         'react-aria-components',
         '@react-aria/collections',
         '@react-aria/utils',
-        'react-router-dom',
       ],
     },
     server: {

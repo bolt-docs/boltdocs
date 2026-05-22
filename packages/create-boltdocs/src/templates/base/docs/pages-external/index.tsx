@@ -11,7 +11,7 @@ export const pages = {
 }
 
 export const layout = ({ children }: { children: React.ReactNode }) => (
-  <div className="pb-10">
+  <div className="pb-10 px-10">
     <Navbar />
     {children}
     <Footer />

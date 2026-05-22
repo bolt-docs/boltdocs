@@ -1,30 +1,55 @@
-import { Card, Cards } from 'boltdocs/client'
+import { Card, Cards, useI18n } from 'boltdocs/client'
 import { Route, FileText, Settings, Sparkles } from 'lucide-react'
 
 const features = [
   {
-    title: 'File-route',
-    description: 'Generate routes from file structure.',
+    title: {
+      en: 'File-route',
+      es: 'Rutas de archivos',
+    },
+    description: {
+      en: 'Generate routes from file structure.',
+      es: 'Genera rutas a partir de la estructura de archivos.',
+    },
     Icon: Route,
   },
   {
-    title: 'Markdown',
-    description: 'Support Markdown for writing documentation.',
+    title: {
+      en: 'Markdown',
+      es: 'Markdown',
+    },
+    description: {
+      en: 'Support Markdown for writing documentation.',
+      es: 'Soporte de Markdown para escribir documentación.',
+    },
     Icon: FileText,
   },
   {
-    title: 'Customizable',
-    description: 'Customizable to your needs.',
+    title: {
+      en: 'Customizable',
+      es: 'Personalizable',
+    },
+    description: {
+      en: 'Customizable to your needs.',
+      es: 'Personalizable a tus necesidades.',
+    },
     Icon: Settings,
   },
   {
-    title: 'Secure by design',
-    description: 'Boltdocs is secure by design.',
+    title: {
+      en: 'Secure by design',
+      es: 'Seguro por diseño',
+    },
+    description: {
+      en: 'Boltdocs is secure by design.',
+      es: 'Boltdocs es seguro por diseño.',
+    },
     Icon: Sparkles,
   },
 ]
 
 export function HomePage() {
+  const { currentLocale } = useI18n()
   return (
     <div className="w-full h-[calc(100vh-120px)] flex items-center gap-10">
       <div className="flex flex-col justify-center py-10">
@@ -36,11 +61,15 @@ export function HomePage() {
       <Cards cols={4}>
         {features.map((feature) => (
           <Card
-            key={feature.title}
-            title={feature.title}
+            key={feature.title.en}
+            title={feature.title[currentLocale as keyof typeof feature.title]}
             icon={<feature.Icon />}
           >
-            {feature.description}
+            {
+              feature.description[
+                currentLocale as keyof typeof feature.description
+              ]
+            }
           </Card>
         ))}
       </Cards>

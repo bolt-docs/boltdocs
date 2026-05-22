@@ -7,5 +7,5 @@ const locale = {
 
 export function Footer() {
   const { currentLocale } = useI18n()
-  return <footer>{locale[currentLocale ?? 'en']}</footer>
+  return <footer>{locale[currentLocale as keyof typeof locale]}</footer>
 }
