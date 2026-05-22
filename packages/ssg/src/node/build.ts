@@ -158,8 +158,6 @@ export async function build(
   const config = await resolveConfig(viteConfig, 'build', mode, mode)
   const cwd = process.cwd()
   const root = config.root || cwd
-  const hash = Math.random().toString(36).substring(2, 12)
-  const ssgOut = join(root, '.vite-react-ssg-temp', hash)
   let outDir = config.build.outDir || 'dist'
   const configBase = config.base
 
@@ -185,12 +183,6 @@ export async function build(
 
   const beastiesOptions = mergedOptions.beastiesOptions ?? {}
 
-  if (fs.existsSync(ssgOut)) await fs.remove(ssgOut)
-
-  const finalCacheDir = isAbsolute(cacheDir) ? cacheDir : join(root, cacheDir)
-  const hashFile = join(finalCacheDir, 'client-hash.txt')
-  const templateHtmlFile = join(finalCacheDir, 'template-index.html')
-
   let docsDirName = 'docs'
   const sourceFiles = Object.values(routeToSourceFileMap)
   if (sourceFiles.length > 0) {
@@ -204,6 +196,14 @@ export async function build(
 
   const out = isAbsolute(outDir) ? outDir : join(root, outDir)
   const currentClientHash = computeClientCodeHash(root, docsDirName, outDir)
+  const hash = currentClientHash.substring(0, 12)
+  const ssgOut = join(root, '.vite-react-ssg-temp', hash)
+
+  if (fs.existsSync(ssgOut)) await fs.remove(ssgOut)
+
+  const finalCacheDir = isAbsolute(cacheDir) ? cacheDir : join(root, cacheDir)
+  const hashFile = join(finalCacheDir, 'client-hash.txt')
+  const templateHtmlFile = join(finalCacheDir, 'template-index.html')
 
   let canBypassClientBuild = false
   try {
@@ -441,7 +441,7 @@ export async function build(
 
     let isCached = false
     let sourceMtime = 0
-    if (sourceFile && fs.existsSync(sourceFile)) {
+    if (canBypassClientBuild && sourceFile && fs.existsSync(sourceFile)) {
       try {
         sourceMtime = Math.round(fs.statSync(sourceFile).mtimeMs)
         if (fs.existsSync(cachedHtmlFile)) {
