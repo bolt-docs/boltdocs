@@ -5,14 +5,13 @@
 | RSS / Atom feed | | 
 | Blog (posts, tags, autores, paginación) | |
 | Drafts / preview mode | |
-| Incremental builds (solo páginas cambiadas) | In-progress |
+| Incremental builds (solo páginas cambiadas) | Done |
 | AI search (RAG semántico) | |
 | Partial hydration / islands architecture | |
-| Streaming SSR en dev (percepción) | |
+| Streaming SSR en dev (percepción) | In-progress |
 | OpenAPI / Swagger con playground interactivo | |
 | Multi-instance docs | |
-| Visual editor / CMS integration | |
-| Performance budgets en Doctor | |
+| Performance budgets en Doctor | In-progress |
 | Preconnect / DNS-prefetch automático | |
 | Build farm distribuido (multi-máquina) | |
 
