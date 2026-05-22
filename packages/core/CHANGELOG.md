@@ -1,5 +1,11 @@
 # boltdocs
 
+## 2.7.3
+
+### Patch Changes
+
+- [`ca0f95a`](https://github.com/bolt-docs/boltdocs/commit/ca0f95a1e34289c5f591497d513786fd2917ff4a) Thanks [@jesusalcaladev](https://github.com/jesusalcaladev)! - fix: resolve CJS/ESM interop issues for react-fast-compare and react-router-dom - Add react-fast-compare to optimizeDeps.include (browser) and ssr.optimizeDeps.include (SSR) to fix missing default export - Add react-router-dom to ssr.noExternal to fix 'module is not defined' in Vite 8 SSR module runner - Apply same fixes to plugin config hook for consumer-side usage
+
 ## 2.7.2
 
 ### Patch Changes
