@@ -53,7 +53,10 @@ export function ViteReactSSG(
             routerOptions.routes,
             transformStaticLoaderRoute,
           ),
-          { future: routerFeature },
+          {
+            basename: BASE_URL === '/' ? undefined : BASE_URL,
+            future: routerFeature,
+          },
         )
       : undefined
 
@@ -168,7 +171,10 @@ export function ViteReactSSG(
         return fetch(url)
       } else {
         const { url } = request
-        const { pathname } = new URL(url)
+        let { pathname } = new URL(url)
+        if (pathname !== '/' && pathname.endsWith('/')) {
+          pathname = pathname.slice(0, -1)
+        }
 
         // Initialize data cache if needed
         if (!window.__VITE_REACT_SSG_STATIC_LOADER_DATA__) {

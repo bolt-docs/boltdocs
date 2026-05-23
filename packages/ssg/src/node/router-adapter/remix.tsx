@@ -26,7 +26,15 @@ export class RemixAdapter implements IRouterAdapter<ViteReactSSGContext> {
 
   async render(path: string) {
     const { base, routes, getStyleCollector, routerOptions } = this.context
-    const fetchUrl = `http://localhost${withLeadingSlash(path)}`
+    const leading = withLeadingSlash(path)
+    let fullPath = leading
+    if (base !== '/') {
+      const prefix = withLeadingSlash(base).replace(/\/$/, '')
+      if (!leading.startsWith(prefix + '/') && leading !== prefix) {
+        fullPath = `${prefix}${leading}`
+      }
+    }
+    const fetchUrl = `http://localhost${fullPath}`
     const request = new Request(fetchUrl)
     const styleCollector = getStyleCollector ? await getStyleCollector() : null
     const helmetContext = {} as FilledContext

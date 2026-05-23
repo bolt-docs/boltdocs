@@ -161,9 +161,16 @@ function getLoaderDataFilePath(routePath: string, hash: string): string {
   return `static-loader-data${withLeadingSlash(normalized)}.${hash}.json`
 }
 
-function getNormalizedPathKey(routePath: string): string {
+function getNormalizedPathKey(routePath: string, base: string = '/'): string {
   const leading = withLeadingSlash(routePath)
-  return leading === '/' ? '/' : leading.replace(/\/$/, '')
+  let full = leading
+  if (base !== '/') {
+    const prefix = withLeadingSlash(base).replace(/\/$/, '')
+    if (!leading.startsWith(prefix + '/') && leading !== prefix) {
+      full = `${prefix}${leading}`
+    }
+  }
+  return full !== '/' && full.endsWith('/') ? full.slice(0, -1) : full
 }
 
 function DefaultIncludedRoutes(
@@ -494,7 +501,7 @@ export async function build(
             const loaderDataFilePath = cachedItem.loaderDataFilePath
             await fs.ensureDir(join(out, dirname(loaderDataFilePath)))
             await fs.copy(cachedLoaderFile, join(out, loaderDataFilePath))
-            staticLoaderDataManifest[getNormalizedPathKey(path)] =
+            staticLoaderDataManifest[getNormalizedPathKey(path, configBase)] =
               loaderDataFilePath
             loaderDataFileCount++
           }
@@ -567,7 +574,7 @@ export async function build(
             join(out, loaderDataFilePath),
             JSON.stringify(loaderData),
           )
-          staticLoaderDataManifest[getNormalizedPathKey(path)] = loaderDataFilePath
+          staticLoaderDataManifest[getNormalizedPathKey(path, configBase)] = loaderDataFilePath
           loaderDataFileCount++
         }
 
@@ -587,17 +594,31 @@ export async function build(
 
         renderPreloadLinks(jsdom.window.document, assets)
 
+        const doc = jsdom.window.document
+        const scriptTags = doc.querySelectorAll('script')
+        let hydrationScriptContent = ''
+        for (const script of scriptTags) {
+          if (script.textContent?.includes('window.__staticRouterHydrationData')) {
+            hydrationScriptContent = script.textContent
+            script.remove()
+            break
+          }
+        }
+
         const html = jsdom.serialize()
         jsdom.window.close()
         let transformed = (await onPageRendered?.(path, html, appCtx)) || html
         let loaderDataScript = ''
         if (loaderData && Object.keys(loaderData).length > 0) {
           const safeLoaderDataJSON = JSON.stringify(loaderData).replace(/</g, '\\u003c')
-          loaderDataScript = `\nwindow.__VITE_REACT_SSG_STATIC_LOADER_DATA__ = { '${getNormalizedPathKey(path)}': ${safeLoaderDataJSON} };`
+          loaderDataScript = `window.__VITE_REACT_SSG_STATIC_LOADER_DATA__ = { '${getNormalizedPathKey(path, configBase)}': ${safeLoaderDataJSON} };`
         }
+        const headerScript = `<script>window.__VITE_REACT_SSG_HASH__ = '${hash}';${loaderDataScript}${hydrationScriptContent}</script>`
+        transformed = transformed.replace('<head>', `<head>${headerScript}`)
+        // Clean up the script placeholder
         transformed = transformed.replace(
-          SCRIPT_COMMENT_PLACEHOLDER,
-          `window.__VITE_REACT_SSG_HASH__ = '${hash}';${loaderDataScript}`,
+          `<script>${SCRIPT_COMMENT_PLACEHOLDER}</script>`,
+          '',
         )
         if (beasties) {
           transformed = (await crittersQueue.add(() =>
