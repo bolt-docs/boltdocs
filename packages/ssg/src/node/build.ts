@@ -52,20 +52,23 @@ function getFilesRecursively(
     const relPath = relative(baseDir, filePath).replace(/\\/g, '/')
     const stat = fs.statSync(filePath)
 
-    // Ignore node_modules, .git, .boltdocs, .turbo, dist, and docs directory containing content
+    // Ignore directories like node_modules, .git, etc., at any depth,
+    // and ignore docs/dist only at the root level.
+    const parts = relPath.split('/')
     if (
-      relPath.startsWith('node_modules/') ||
-      relPath === 'node_modules' ||
-      relPath.startsWith('.git/') ||
-      relPath === '.git' ||
-      relPath.startsWith('.boltdocs/') ||
-      relPath === '.boltdocs' ||
-      relPath.startsWith('.turbo/') ||
-      relPath === '.turbo' ||
-      relPath.startsWith(`${outDirName}/`) ||
-      relPath === outDirName ||
-      relPath.startsWith(`${docsDirName}/`) ||
-      relPath === docsDirName
+      parts.includes('node_modules') ||
+      parts.includes('.git') ||
+      parts.includes('.boltdocs') ||
+      parts.includes('.turbo') ||
+      parts.includes('dist') ||
+      parts.includes('coverage')
+    ) {
+      continue
+    }
+
+    if (
+      (docsDirName && parts[0] === docsDirName) ||
+      (outDirName && parts[0] === outDirName)
     ) {
       continue
     }
@@ -88,6 +91,23 @@ function computeClientCodeHash(
 ): string {
   try {
     const files = getFilesRecursively(root, root, docsDirName, outDirName)
+
+    // Scan framework packages if running in the workspace to invalidate cache on framework changes
+    const workspaceRoot = join(root, '..')
+    const packagesDir = join(workspaceRoot, 'packages')
+    if (
+      fs.existsSync(packagesDir) &&
+      fs.existsSync(join(packagesDir, 'core/package.json'))
+    ) {
+      const frameworkFiles = getFilesRecursively(
+        packagesDir,
+        packagesDir,
+        '',
+        '',
+      )
+      files.push(...frameworkFiles)
+    }
+
     // Sort files to ensure deterministic hash
     files.sort()
 
@@ -139,6 +159,11 @@ function getLoaderDataFilePath(routePath: string, hash: string): string {
         ? `${routePath}index`
         : routePath
   return `static-loader-data${withLeadingSlash(normalized)}.${hash}.json`
+}
+
+function getNormalizedPathKey(routePath: string): string {
+  const leading = withLeadingSlash(routePath)
+  return leading === '/' ? '/' : leading.replace(/\/$/, '')
 }
 
 function DefaultIncludedRoutes(
@@ -469,7 +494,7 @@ export async function build(
             const loaderDataFilePath = cachedItem.loaderDataFilePath
             await fs.ensureDir(join(out, dirname(loaderDataFilePath)))
             await fs.copy(cachedLoaderFile, join(out, loaderDataFilePath))
-            staticLoaderDataManifest[withLeadingSlash(path)] =
+            staticLoaderDataManifest[getNormalizedPathKey(path)] =
               loaderDataFilePath
             loaderDataFileCount++
           }
@@ -542,7 +567,7 @@ export async function build(
             join(out, loaderDataFilePath),
             JSON.stringify(loaderData),
           )
-          staticLoaderDataManifest[withLeadingSlash(path)] = loaderDataFilePath
+          staticLoaderDataManifest[getNormalizedPathKey(path)] = loaderDataFilePath
           loaderDataFileCount++
         }
 
@@ -565,9 +590,14 @@ export async function build(
         const html = jsdom.serialize()
         jsdom.window.close()
         let transformed = (await onPageRendered?.(path, html, appCtx)) || html
+        let loaderDataScript = ''
+        if (loaderData && Object.keys(loaderData).length > 0) {
+          const safeLoaderDataJSON = JSON.stringify(loaderData).replace(/</g, '\\u003c')
+          loaderDataScript = `\nwindow.__VITE_REACT_SSG_STATIC_LOADER_DATA__ = { '${getNormalizedPathKey(path)}': ${safeLoaderDataJSON} };`
+        }
         transformed = transformed.replace(
           SCRIPT_COMMENT_PLACEHOLDER,
-          `window.__VITE_REACT_SSG_HASH__ = '${hash}'`,
+          `window.__VITE_REACT_SSG_HASH__ = '${hash}';${loaderDataScript}`,
         )
         if (beasties) {
           transformed = (await crittersQueue.add(() =>

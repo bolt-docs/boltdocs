@@ -1,6 +1,7 @@
 import type { ReactElement } from 'react'
 import * as ReactDOM from 'react-dom'
 import * as React from 'react'
+import { createRoot as reactCreateRoot, hydrateRoot as reactHydrateRoot } from 'react-dom/client'
 
 export interface RootType {
   render: (container: ReactElement) => void
@@ -33,7 +34,6 @@ const CopyReactDOM = {
 const { version, render: reactRender, hydrate: reactHydrate } = CopyReactDOM
 
 const isReact18 = Number((version || '').split('.')[0]) > 17
-const isReact19 = Number((version || '').split('.')[0]) > 18
 
 interface RenderOptions {
   useLegacyRender?: boolean
@@ -48,19 +48,8 @@ export function render(
 
   if (useLegacyRender || !isReact18) {
     reactRender(app, container)
-  } else if (isReact19) {
-    import('react-dom/client').then(({ createRoot }) => {
-      const root = createRoot(container)
-      root.render(app)
-    })
   } else {
-    CopyReactDOM.__SECRET_INTERNALS_DO_NOT_USE_OR_YOU_WILL_BE_FIRED.usingClientEntryPoint = true
-    const { createRoot } = CopyReactDOM
-    if (!createRoot) {
-      throw new Error('createRoot not found')
-    }
-    const root = createRoot(container)
-    CopyReactDOM.__SECRET_INTERNALS_DO_NOT_USE_OR_YOU_WILL_BE_FIRED.usingClientEntryPoint = false
+    const root = reactCreateRoot(container)
     root.render(app)
   }
 }
@@ -74,17 +63,8 @@ export function hydrate(
 
   if (useLegacyRender || !isReact18) {
     reactHydrate(app, container)
-  } else if (isReact19) {
-    import('react-dom/client').then(({ hydrateRoot }) => {
-      hydrateRoot(container as Element, app)
-    })
   } else {
-    CopyReactDOM.__SECRET_INTERNALS_DO_NOT_USE_OR_YOU_WILL_BE_FIRED.usingClientEntryPoint = true
-    const { hydrateRoot } = CopyReactDOM
-    if (!hydrateRoot) {
-      throw new Error('hydrateRoot not found')
-    }
-    hydrateRoot(container, app)
-    CopyReactDOM.__SECRET_INTERNALS_DO_NOT_USE_OR_YOU_WILL_BE_FIRED.usingClientEntryPoint = false
+    reactHydrateRoot(container, app)
   }
 }
+

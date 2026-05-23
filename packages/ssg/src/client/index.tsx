@@ -167,6 +167,21 @@ export function ViteReactSSG(
           : `${request.url}?${dataQuery}`
         return fetch(url)
       } else {
+        const { url } = request
+        const { pathname } = new URL(url)
+
+        // Initialize data cache if needed
+        if (!window.__VITE_REACT_SSG_STATIC_LOADER_DATA__) {
+          window.__VITE_REACT_SSG_STATIC_LOADER_DATA__ = {}
+        }
+
+        // If we already have the loader data inlined/cached (e.g. initial hydration), return it synchronously!
+        if (window.__VITE_REACT_SSG_STATIC_LOADER_DATA__[pathname]) {
+          const routeData =
+            window.__VITE_REACT_SSG_STATIC_LOADER_DATA__[pathname]?.[route.id!]
+          return routeData ?? null
+        }
+
         // Load manifest index if not cached
         if (!window.__VITE_REACT_SSG_STATIC_LOADER_MANIFEST__) {
           const manifestUrl = joinUrlSegments(
@@ -194,20 +209,12 @@ export function ViteReactSSG(
           }
         }
 
-        const { url } = request
-        const { pathname } = new URL(url)
-
         const manifest = window.__VITE_REACT_SSG_STATIC_LOADER_MANIFEST__
         const dataFilePath = manifest?.[pathname]
 
         // No loader data for this route
         if (!dataFilePath) {
           return null
-        }
-
-        // Initialize data cache if needed
-        if (!window.__VITE_REACT_SSG_STATIC_LOADER_DATA__) {
-          window.__VITE_REACT_SSG_STATIC_LOADER_DATA__ = {}
         }
 
         // Load route data file if not cached
