@@ -175,11 +175,12 @@ export function createRoutes(options: CreateRoutesOptions): RouteRecord[] {
     const moduleKey = moduleMap.get(normalizedFilePath)
     const moduleLoader = moduleKey ? mdxModules[moduleKey] : null
     const fullPath = withBase(route.path === '' ? '/' : route.path)
-    const path = fullPath === baseDocsPath
-      ? '.'
-      : fullPath.startsWith(baseDocsPath + '/')
-        ? fullPath.slice(baseDocsPath.length + 1)
-        : fullPath
+    const path =
+      fullPath === baseDocsPath
+        ? '.'
+        : fullPath.startsWith(baseDocsPath + '/')
+          ? fullPath.slice(baseDocsPath.length + 1)
+          : fullPath
 
     return {
       path,
@@ -311,17 +312,45 @@ export function createRoutes(options: CreateRoutesOptions): RouteRecord[] {
       }
 
       if (matchedRouteObj) {
-        const redirectPath = bPath === baseDocsPath
-          ? '.'
-          : bPath.startsWith(baseDocsPath + '/')
-            ? bPath.slice(baseDocsPath.length + 1)
-            : bPath
+        const redirectPath =
+          bPath === baseDocsPath
+            ? '.'
+            : bPath.startsWith(baseDocsPath + '/')
+              ? bPath.slice(baseDocsPath.length + 1)
+              : bPath
         docRoutes.push({
           path: redirectPath,
           element: matchedRouteObj.element,
           loader: matchedRouteObj.loader,
           getStaticPaths: () => [],
         })
+
+        const matchedMetaObj = docMetadata.find((m) => {
+          const fullPath = withBase(m.path === '' ? '/' : m.path)
+          const p =
+            fullPath === baseDocsPath
+              ? '.'
+              : fullPath.startsWith(baseDocsPath + '/')
+                ? fullPath.slice(baseDocsPath.length + 1)
+                : fullPath
+          return p === matchedRouteObj.path
+        })
+
+        if (matchedMetaObj) {
+          const canonicalPath = withBase(matchedMetaObj.path)
+          const canonicalUrl = config.siteUrl
+            ? `${config.siteUrl.replace(/\/$/, '')}${canonicalPath}`
+            : canonicalPath
+
+          docMetadata.push({
+            ...matchedMetaObj,
+            path: bPath,
+            seo: {
+              ...matchedMetaObj.seo,
+              canonical: canonicalUrl,
+            },
+          })
+        }
       }
     }
   })

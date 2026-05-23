@@ -282,28 +282,44 @@ export const SidebarSubGroup = ({
 export interface SidebarItemProps extends ComponentBase {
   route: ComponentRoute
   activePath: string
+  activeRoute?: ComponentRoute
 }
 
 export function SidebarItem({
   route,
   activePath,
+  activeRoute,
   className,
 }: SidebarItemProps) {
   const localizedHref = useLocalizedTo(route.path)
   const isCurrent =
     activePath ===
-    (localizedHref.endsWith('/') ? localizedHref.slice(0, -1) : localizedHref)
+      (localizedHref.endsWith('/')
+        ? localizedHref.slice(0, -1)
+        : localizedHref) ||
+    (!!activeRoute?.filePath &&
+      !!route.filePath &&
+      activeRoute.filePath === route.filePath)
   const hasChildren = !!route.routes?.length || !!route.subRoutes?.length
   const children = route.routes || route.subRoutes
 
-  const [isOpen, setIsOpen] = useState(() =>
-    activePath.startsWith(localizedHref),
+  const [isOpen, setIsOpen] = useState(
+    () =>
+      activePath.startsWith(localizedHref) ||
+      (!!activeRoute?.filePath &&
+        !!route.filePath &&
+        activeRoute.filePath === route.filePath),
   )
   const [prevActivePath, setPrevActivePath] = useState(activePath)
 
   if (activePath !== prevActivePath) {
     setPrevActivePath(activePath)
-    if (activePath.startsWith(localizedHref)) {
+    if (
+      activePath.startsWith(localizedHref) ||
+      (!!activeRoute?.filePath &&
+        !!route.filePath &&
+        activeRoute.filePath === route.filePath)
+    ) {
       setIsOpen(true)
     }
   }
@@ -325,6 +341,7 @@ export function SidebarItem({
             key={subRoute.path}
             route={subRoute}
             activePath={activePath}
+            activeRoute={activeRoute}
           />
         ))}
       </SidebarSubGroup>
@@ -351,7 +368,7 @@ export interface SidebarItemsProps extends ComponentBase {
 }
 
 export function SidebarItems({ routes, className }: SidebarItemsProps) {
-  const { groups, ungrouped, activePath } = useSidebar(routes)
+  const { groups, ungrouped, activePath, activeRoute } = useSidebar(routes)
 
   return (
     <div className={cn('flex flex-col gap-6', className)}>
@@ -362,6 +379,7 @@ export function SidebarItems({ routes, className }: SidebarItemsProps) {
               key={route.path}
               route={route}
               activePath={activePath}
+              activeRoute={activeRoute}
             />
           ))}
         </SidebarGroup>
@@ -378,6 +396,7 @@ export function SidebarItems({ routes, className }: SidebarItemsProps) {
               key={route.path}
               route={route}
               activePath={activePath}
+              activeRoute={activeRoute}
             />
           ))}
         </SidebarGroup>
