@@ -25,10 +25,7 @@ export default async function boltdocs(
     ...options,
   }
 
-  return [
-    ...boltdocsPlugin(mergedOptions, config),
-    boltdocsMdxPlugin(config),
-  ]
+  return [...boltdocsPlugin(mergedOptions, config), boltdocsMdxPlugin(config)]
 }
 
 /**
@@ -107,10 +104,7 @@ export async function createViteConfig(
           replacement: 'react',
         },
       ],
-      dedupe: [
-        'react',
-        'react-dom',
-      ],
+      dedupe: ['react', 'react-dom'],
     },
     ssr: {
       external: [

@@ -210,7 +210,8 @@ export async function build(
     if (
       fs.existsSync(hashFile) &&
       fs.existsSync(templateHtmlFile) &&
-      fs.existsSync(out)
+      fs.existsSync(out) &&
+      fs.existsSync(join(out, 'assets'))
     ) {
       const savedHash = await fs.readFile(hashFile, 'utf-8')
       if (savedHash.trim() === currentClientHash) {

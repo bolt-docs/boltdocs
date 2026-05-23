@@ -47,13 +47,11 @@ Boltdocs is a monorepo documentation framework using Turborepo, pnpm workspaces,
 - Config: `boltdocs.config.ts` (user-facing)
 - Docs source: `docs/` directory
 - Packages: `packages/` directory
-Summary of Investigation
-I've thoroughly investigated the repository and identified the key information needed for an effective AGENTS.md file:
 
-1. Repository Structure: This is a Turborepo monorepo with pnpm workspaces
-2. Main Package: packages/core contains the CLI and core functionality
-3. Development Workflow: Uses pnpm, Turborepo, Vitest, and Biome
-4. Key Commands: pnpm run dev, pnpm run build, pnpm run test, pnpm run release
-5. Testing: Vitest-based testing in the tests/ directory
-6. Release Process: Changesets-based versioning with automated releases
-7. Tooling: pnpm 10.30.2, Turborepo, Vitest, Biome, cac CLI framework
+## SSG / Routing Architecture
+
+- **Route generation**: `packages/core/src/client/ssg/create-routes.tsx` — builds route tree from doc metadata, creates relative child routes under parent `/docs`, and injects fallback redirect routes for base paths like `/docs`
+- **SSG path collection**: `packages/ssg/src/node/utils.ts` (`routesToPaths`) — iterates routes and collects paths for SSG rendering. `path="."` (React Router's "same path as parent") is handled specially to produce the parent's path (e.g., `/docs`) instead of `prefix + "/."` (e.g., `/docs/.`)
+- **SSG render adapter**: `packages/ssg/src/node/router-adapter/remix.tsx` (`RemixAdapter.render`) — uses `createStaticHandler` from react-router-dom for SSR
+- **Redirect routes**: Fallback routes for `/docs` (and version/locale variants) reuse the first matched route's `element` and `loader` instead of using `<Navigate>` or `redirect()`. This avoids hydration mismatches and loader data key conflicts client-side
+- **Key path rule**: `.` in React Router means "match the parent's URL path" — NOT a literal URL segment. SSG must account for this when mapping routes to static paths

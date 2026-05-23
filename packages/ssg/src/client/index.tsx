@@ -19,6 +19,8 @@ import { deserializeState } from '../utils/state'
 
 export * from '../types'
 
+const sessionTimestamp = Date.now()
+
 export function ViteReactSSG(
   routerOptions: RouterOptions,
   fn?: (context: ViteReactSSGContext<true>) => Promise<void> | void,
@@ -171,9 +173,25 @@ export function ViteReactSSG(
             BASE_URL,
             `static-loader-data-manifest-${window.__VITE_REACT_SSG_HASH__}.json`,
           )
-          window.__VITE_REACT_SSG_STATIC_LOADER_MANIFEST__ = await (
-            await fetch(withLeadingSlash(manifestUrl))
-          ).json()
+          try {
+            const response = await fetch(
+              `${withLeadingSlash(manifestUrl)}?t=${sessionTimestamp}`,
+            )
+            if (response.ok) {
+              window.__VITE_REACT_SSG_STATIC_LOADER_MANIFEST__ = await response.json()
+            } else {
+              console.error(
+                `[vite-react-ssg] Failed to fetch static loader manifest: ${response.status} ${response.statusText}`,
+              )
+              window.__VITE_REACT_SSG_STATIC_LOADER_MANIFEST__ = {}
+            }
+          } catch (error) {
+            console.error(
+              '[vite-react-ssg] Error loading static loader manifest:',
+              error,
+            )
+            window.__VITE_REACT_SSG_STATIC_LOADER_MANIFEST__ = {}
+          }
         }
 
         const { url } = request
@@ -195,9 +213,25 @@ export function ViteReactSSG(
         // Load route data file if not cached
         if (!window.__VITE_REACT_SSG_STATIC_LOADER_DATA__[pathname]) {
           const dataUrl = joinUrlSegments(BASE_URL, dataFilePath)
-          window.__VITE_REACT_SSG_STATIC_LOADER_DATA__[pathname] = await (
-            await fetch(withLeadingSlash(dataUrl))
-          ).json()
+          try {
+            const response = await fetch(
+              `${withLeadingSlash(dataUrl)}?t=${sessionTimestamp}`,
+            )
+            if (response.ok) {
+              window.__VITE_REACT_SSG_STATIC_LOADER_DATA__[pathname] = await response.json()
+            } else {
+              console.error(
+                `[vite-react-ssg] Failed to fetch loader data for ${pathname}: ${response.status} ${response.statusText}`,
+              )
+              window.__VITE_REACT_SSG_STATIC_LOADER_DATA__[pathname] = {}
+            }
+          } catch (error) {
+            console.error(
+              `[vite-react-ssg] Error loading loader data for ${pathname}:`,
+              error,
+            )
+            window.__VITE_REACT_SSG_STATIC_LOADER_DATA__[pathname] = {}
+          }
         }
 
         const routeData =

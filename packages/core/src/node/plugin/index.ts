@@ -91,7 +91,11 @@ function resolveEsm(packageName: string, customReq = req): string {
     }
 
     if (typeof relativePath === 'object') {
-      relativePath = (relativePath as any).import || (relativePath as any).default || (relativePath as any).require || ''
+      relativePath =
+        (relativePath as any).import ||
+        (relativePath as any).default ||
+        (relativePath as any).require ||
+        ''
     }
 
     if (relativePath) {
@@ -121,20 +125,29 @@ export function getExternalAbsolutePaths(): string[] {
   // 1. Resolve relative to boltdocs package in consumer app, or process.cwd()
   let baseReq = req
   try {
-    const pkgJsonPath = path.join(process.cwd(), 'node_modules/boltdocs/package.json')
+    const pkgJsonPath = path.join(
+      process.cwd(),
+      'node_modules/boltdocs/package.json',
+    )
     if (fs.existsSync(pkgJsonPath)) {
       const realPkgPath = fs.realpathSync(pkgJsonPath)
       baseReq = _node_module.createRequire(realPkgPath)
     } else {
-      baseReq = _node_module.createRequire(path.join(process.cwd(), 'package.json'))
+      baseReq = _node_module.createRequire(
+        path.join(process.cwd(), 'package.json'),
+      )
     }
-  } catch (e) { }
+  } catch (e) {}
 
   // Resolve direct externals
   for (const ext of externals) {
     try {
       let resolved = ''
-      if (ext === '@bdocs/ssg' || ext === 'react-router-dom' || ext === 'react-helmet-async') {
+      if (
+        ext === '@bdocs/ssg' ||
+        ext === 'react-router-dom' ||
+        ext === 'react-helmet-async'
+      ) {
         resolved = resolveEsm(ext, baseReq)
       } else {
         resolved = baseReq.resolve(ext)
@@ -142,7 +155,7 @@ export function getExternalAbsolutePaths(): string[] {
       if (resolved) {
         paths.push(fs.realpathSync(resolved))
       }
-    } catch (e) { }
+    } catch (e) {}
   }
 
   // Fallback to local resolve if baseReq is different from local req
@@ -150,7 +163,11 @@ export function getExternalAbsolutePaths(): string[] {
     for (const ext of externals) {
       try {
         let resolved = ''
-        if (ext === '@bdocs/ssg' || ext === 'react-router-dom' || ext === 'react-helmet-async') {
+        if (
+          ext === '@bdocs/ssg' ||
+          ext === 'react-router-dom' ||
+          ext === 'react-helmet-async'
+        ) {
           resolved = resolveEsm(ext, req)
         } else {
           resolved = req.resolve(ext)
@@ -158,7 +175,7 @@ export function getExternalAbsolutePaths(): string[] {
         if (resolved) {
           paths.push(fs.realpathSync(resolved))
         }
-      } catch (e) { }
+      } catch (e) {}
     }
   }
 
@@ -171,11 +188,11 @@ export function getExternalAbsolutePaths(): string[] {
   for (const sub of subpaths) {
     try {
       paths.push(fs.realpathSync(baseReq.resolve(sub)))
-    } catch (e) { }
+    } catch (e) {}
     if (baseReq !== req) {
       try {
         paths.push(fs.realpathSync(req.resolve(sub)))
-      } catch (e) { }
+      } catch (e) {}
     }
   }
 
@@ -229,7 +246,6 @@ export function boltdocsPlugin(
           (env as any).ssr ||
           userConfig.build?.ssr
         )
-
 
         // Load env variables
         const envDir = userConfig.envDir || process.cwd()
@@ -336,10 +352,7 @@ export function boltdocsPlugin(
               ...getExternalAbsolutePaths(),
             ],
             optimizeDeps: {
-              include: [
-                'react-fast-compare',
-                'invariant',
-              ],
+              include: ['react-fast-compare', 'invariant'],
             },
             noExternal: [],
           },
@@ -364,7 +377,8 @@ export function boltdocsPlugin(
             id === ext ||
             id.startsWith(ext + '/') ||
             id.includes(`/node_modules/${ext}/`) ||
-            (ext.startsWith('@') && id.includes(`/node_modules/${ext.replace('/', path.sep)}/`))
+            (ext.startsWith('@') &&
+              id.includes(`/node_modules/${ext.replace('/', path.sep)}/`)),
         )
         if (match) {
           if (options?.ssr) {
@@ -373,35 +387,48 @@ export function boltdocsPlugin(
               // Construct baseReq dynamically
               let baseReq = req
               try {
-                const pkgJsonPath = path.join(process.cwd(), 'node_modules/boltdocs/package.json')
+                const pkgJsonPath = path.join(
+                  process.cwd(),
+                  'node_modules/boltdocs/package.json',
+                )
                 if (fs.existsSync(pkgJsonPath)) {
                   const realPkgPath = fs.realpathSync(pkgJsonPath)
                   baseReq = _node_module.createRequire(realPkgPath)
                 } else {
-                  baseReq = _node_module.createRequire(path.join(process.cwd(), 'package.json'))
+                  baseReq = _node_module.createRequire(
+                    path.join(process.cwd(), 'package.json'),
+                  )
                 }
-              } catch (e) { }
+              } catch (e) {}
 
               try {
-                if (match === '@bdocs/ssg' || match === 'react-router-dom' || match === 'react-helmet-async') {
+                if (
+                  match === '@bdocs/ssg' ||
+                  match === 'react-router-dom' ||
+                  match === 'react-helmet-async'
+                ) {
                   resolvedId = resolveEsm(id, baseReq)
                 } else {
                   resolvedId = baseReq.resolve(id)
                 }
               } catch (e) {
                 try {
-                  if (match === '@bdocs/ssg' || match === 'react-router-dom' || match === 'react-helmet-async') {
+                  if (
+                    match === '@bdocs/ssg' ||
+                    match === 'react-router-dom' ||
+                    match === 'react-helmet-async'
+                  ) {
                     resolvedId = resolveEsm(id, req)
                   } else {
                     resolvedId = req.resolve(id)
                   }
-                } catch (e2) { }
+                } catch (e2) {}
               }
             }
 
             try {
               resolvedId = fs.realpathSync(resolvedId)
-            } catch (e) { }
+            } catch (e) {}
 
             return {
               id: resolvedId,

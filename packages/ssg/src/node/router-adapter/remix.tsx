@@ -35,7 +35,16 @@ export class RemixAdapter implements IRouterAdapter<ViteReactSSGContext> {
       await import('react-router-dom')
     const dataRoutes = convertRoutesToDataRoutes([...routes], (route) => route)
     const { query } = createStaticHandler(dataRoutes, { basename: base })
-    const _context = await query(request)
+    let _context = await query(request)
+
+    // Follow redirects (e.g., /docs -> /docs/guides) during SSR
+    if (_context instanceof Response) {
+      const location = _context.headers.get('Location')
+      if (location) {
+        const redirectUrl = `http://localhost${withLeadingSlash(location)}`
+        _context = await query(new Request(redirectUrl))
+      }
+    }
 
     if (_context instanceof Response) throw _context
 
