@@ -20,7 +20,7 @@ export const Footer = () => {
   })
 
   return (
-    <footer className="w-full bg-surface text-body px-6 md:px-12 pt-20 pb-10 mt-20 border-t border-white/5 relative overflow-hidden">
+    <footer className="w-full bg-surface text-body px-6 md:px-12 pt-20 pb-10 border-t border-white/5 relative overflow-hidden">
       <div className="max-w-[1400px] mx-auto w-full">
         {/* Top Section */}
         <div
@@ -34,7 +34,7 @@ export const Footer = () => {
           <div className="grid grid-cols-2 gap-x-20 gap-y-3 text-sm font-medium">
             <div className="flex flex-col gap-3">
               <Link
-                href="/docs"
+                href="/docs/guides"
                 className="hover:text-primary-500 transition-colors"
               >
                 Documentation

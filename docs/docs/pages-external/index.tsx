@@ -1,7 +1,7 @@
 import { Navbar } from 'boltdocs/client'
 import { Footer } from '../../src/footer'
-import HomePage from '../../src/pages/home-page'
-import AboutPage from '../../src/pages/about-page'
+import HomePage from './home-page'
+import AboutPage from './about-page'
 import { useLocation } from 'react-router-dom'
 
 /**

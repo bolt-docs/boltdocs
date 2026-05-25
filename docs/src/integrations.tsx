@@ -7,7 +7,7 @@ import {
   Puzzle,
   Code2,
 } from 'lucide-react'
-import { GoogleAnalytics } from './icons-integrations'
+import { GoogleAnalytics } from './icons'
 
 const INTEGRATIONS = [
   { name: 'Google Analytics 4', icon: <GoogleAnalytics className="w-5 h-5" /> },
