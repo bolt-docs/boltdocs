@@ -5,9 +5,7 @@ import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { execSync } from 'node:child_process'
 import prompts from 'prompts'
-import picocolors from 'picocolors'
-
-const { green, yellow, bold, cyan, magenta, blue, red, dim } = picocolors
+import { colors, info, warn, error, success } from '@bdocs/dui'
 
 function getPackageManager() {
   const userAgent = process.env.npm_config_user_agent
@@ -46,16 +44,16 @@ async function run() {
   const pkgManager = getPackageManager()
 
   console.log(
-    blue(
-      bold(`
+    colors.blue(
+      colors.bold(`
   ____   ___  _     _____ ____   ___   ____ ____ 
- | __ ) / _ \\| |   |_   _|  _ \\ / _ \\ / ___/ ___|
- |  _ \\| | | | |     | | | | | | | | | |   \\___ \\
- | |_) | |_| | |___  | | | |_| | |_| | |___ ___) |
- |____/ \\___/|_____| |_| |____/ \\___/ \\____|____/`),
+  | __ ) / _ \\| |   |_   _|  _ \\ / _ \\ / ___/ ___|
+  |  _ \\| | | | |     | | | | | | | | | |   \\___ \\
+  | |_) | |_| | |___  | | | |_| | |_| | |___ ___) |
+  |____/ \\___/|_____| |_| |____/ \\___/ \\____|____/`),
     ),
   )
-  console.log(dim(`\n  v0.0.4 - The modern documentation framework\n`))
+  console.log(colors.dim(`\n  v0.0.4 - The modern documentation framework\n`))
 
   const response = await prompts([
     {
@@ -85,37 +83,31 @@ async function run() {
     {
       type: 'confirm',
       name: 'install',
-      message: `Install dependencies with ${bold(pkgManager)}?`,
+      message: `Install dependencies with ${colors.bold(pkgManager)}?`,
       initial: true,
     },
   ])
 
   if (!response.projectName || !response.template) {
-    console.log(yellow('\nOperation canceled.'))
+    warn('Operation canceled.')
     return
   }
 
   const projectDir = path.join(process.cwd(), response.projectName)
 
   if (fs.existsSync(projectDir)) {
-    console.error(
-      red(`\nError: Directory "${response.projectName}" already exists.`),
-    )
+    error(`Directory "${response.projectName}" already exists.`)
     process.exit(1)
   }
 
-  console.log(dim(`\nBuilding your documentation site...\n`))
+  info('Building your documentation site...')
 
   // 1. Resolve template directory
   const __dirname = path.dirname(fileURLToPath(import.meta.url))
   const templateDir = path.resolve(__dirname, 'templates', response.template)
 
   if (!fs.existsSync(templateDir)) {
-    console.error(
-      red(
-        `\nError: Template "${response.template}" not found at ${templateDir}`,
-      ),
-    )
+    error(`Template "${response.template}" not found at ${templateDir}`)
     process.exit(1)
   }
 
@@ -125,38 +117,28 @@ async function run() {
       name: response.projectName,
       title: response.projectName,
     })
-    console.log(
-      `${green('✔')} Created project structure and applied "${response.template}" preset`,
-    )
-  } catch (error) {
-    console.error(
-      red(
-        `\nError copying template: ${error instanceof Error ? error.message : String(error)}`,
-      ),
-    )
+    success(`Created project structure and applied "${response.template}" preset`)
+  } catch (e) {
+    error(`Error copying template: ${e instanceof Error ? e.message : String(e)}`)
     process.exit(1)
   }
 
   // 3. Install dependencies if requested
   if (response.install) {
-    console.log(cyan(`\nInstalling dependencies with ${pkgManager}...\n`))
+    info(`Installing dependencies with ${pkgManager}...`)
     try {
       execSync(`${pkgManager} install`, { cwd: projectDir, stdio: 'inherit' })
-      console.log(`\n${green('✔')} Dependencies installed successfully`)
+      success('Dependencies installed successfully')
     } catch (e) {
-      console.log(
-        yellow(
-          `\nCould not install dependencies automatically. Please run "${pkgManager} install".`,
-        ),
-      )
+      warn(`Could not install dependencies automatically. Please run "${pkgManager} install".`)
     }
   }
 
-  console.log(bold(green('\n✨ All set! Your documentation is ready. ✨\n')))
+  success('✨ All set! Your documentation is ready. ✨')
   console.log(`To start developing:`)
   console.log(`  cd ${response.projectName}`)
   if (!response.install) console.log(`  ${pkgManager} install`)
   console.log(`  ${pkgManager} run dev\n`)
 }
 
-run().catch(console.error)
+run().catch((e) => error('Unhandled error', e))

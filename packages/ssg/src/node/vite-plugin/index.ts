@@ -2,6 +2,7 @@ import type { Connect, ModuleNode, PluginOption, ViteDevServer } from 'vite'
 import type { ViteReactSSGContext as ViteReactSSGTanstackContext } from '../../client/tanstack'
 import type { ViteReactSSGContext, ViteReactSSGOptions } from '../../types'
 import type { CreateRootFactory } from '../build'
+import { error } from '@bdocs/dui'
 import { send } from 'vite'
 import { joinUrlSegments, stripBase } from '~/utils/path'
 import { createLink, renderHTML } from '../html'
@@ -125,7 +126,7 @@ export function ssrServerPlugin({
           send(req, res, transformed, 'html', { headers })
         } catch (e: any) {
           server.ssrFixStacktrace(e)
-          console.error(`[vite-react-ssg] error: ${e.stack}`)
+          error('SSR render error', e)
           res.statusCode = 500
           res.end(e.stack)
         }

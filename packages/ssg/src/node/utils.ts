@@ -1,14 +1,11 @@
 import type { ResolvedConfig } from 'vite'
 import type { RouteRecord } from '../types'
 import { join } from 'node:path'
-import { blue, gray, yellow } from 'kolorist'
+import { colors, info } from '@bdocs/dui'
 import { version } from '../../package.json'
 
 export function buildLog(text: string, count?: number) {
-  // eslint-disable-next-line no-console
-  console.log(
-    `\n${gray('[vite-react-ssg]')} ${yellow(text)}${count ? blue(` (${count})`) : ''}`,
-  )
+  info(`${text}${count ? colors.blue(` (${count})`) : ''}`)
 }
 
 export function getSize(str: string) {

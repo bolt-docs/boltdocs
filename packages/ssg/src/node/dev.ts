@@ -2,7 +2,7 @@ import type { InlineConfig, ViteDevServer } from 'vite'
 import type { ViteReactSSGOptions } from '../types'
 import { join } from 'node:path'
 import fs from 'node:fs/promises'
-import { bgLightCyan, bold, cyan, dim, green, red, reset } from 'kolorist'
+import { colors, error } from '@bdocs/dui'
 import {
   createServer as createViteServer,
   resolveConfig,
@@ -108,7 +108,7 @@ export async function dev(
     server.bindCLIShortcuts({ print: true })
     return server
   } catch (err: any) {
-    console.error(`${red('failed to start server. error:')}\n${err.stack}`)
+    error(`failed to start server: ${err?.message ?? err}`)
     process.exit(1)
   }
 }
@@ -127,14 +127,14 @@ export function printServerInfo(server: ViteDevServer, onlyUrl = false): void {
 
   if (globalThis.__ssr_start_time) {
     const elapsed = Math.round(performance.now() - globalThis.__ssr_start_time)
-    ssrReadyMessage += ` ready in ${reset(bold(`${elapsed}ms`))}`
+    ssrReadyMessage += ` ready in ${colors.reset(colors.bold(`${elapsed}ms`))}`
   }
 
-  info(`\n ${bgLightCyan(` VITE-REACT-SSG v${version} `)}`, {
+  info(`\n ${colors.cyan(` VITE-REACT-SSG v${version} `)}`, {
     clear: !server.config.logger.hasWarned,
   })
-  info(`${cyan(`\n  VITE v${viteVersion}`) + dim(ssrReadyMessage)}\n`)
-  info(green('  dev server running at:'))
+  info(`${colors.cyan(`\n  VITE v${viteVersion}`) + colors.dim(ssrReadyMessage)}\n`)
+  info(colors.green('  dev server running at:'))
 
   server.printUrls()
 }

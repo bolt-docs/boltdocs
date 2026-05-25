@@ -1,4 +1,4 @@
-/* eslint-disable no-console */
+import { colors, info, warn, success, error } from '@bdocs/dui'
 import type { InlineConfig, PluginOption } from 'vite'
 import type {
   RouteRecord,
@@ -9,7 +9,6 @@ import { createRequire } from 'node:module'
 import { dirname, isAbsolute, join, relative } from 'node:path'
 import fs from 'fs-extra'
 import { JSDOM } from 'jsdom'
-import { blue, cyan, dim, gray, green, red, yellow } from 'kolorist'
 import {
   createLogger,
   mergeConfig,
@@ -413,9 +412,7 @@ export async function build(
         })
       : undefined
   if (beasties) {
-    console.log(
-      `${gray('[vite-react-ssg]')} ${blue('Critical CSS generation enabled via `beasties`')}`,
-    )
+    info('Critical CSS generation enabled via `beasties`')
   }
 
   const ssrManifest: SSRManifest = JSON.parse(
@@ -753,14 +750,14 @@ export async function build(
     await pwaPlugin.generateSW()
   }
 
-  console.log(`\n${gray('[vite-react-ssg]')} ${green('Build finished.')}`)
+  success('Build finished.')
 
   await onFinished?.(outDir)
 
   const waitInSeconds = 15
   const timeout = setTimeout(() => {
-    console.log(
-      `${gray('[vite-react-ssg]')} ${yellow(`Build process still running after ${waitInSeconds}s`)}.  There might be something misconfigured in your setup. Force exit.`,
+    warn(
+      `Build process still running after ${waitInSeconds}s. There might be something misconfigured in your setup. Force exit.`,
     )
     process.exit(0)
   }, waitInSeconds * 1000)
@@ -792,9 +789,7 @@ async function formatHtml(
         plugins: [parserHTML],
       })
     } catch (e: any) {
-      console.error(
-        `${gray('[vite-react-ssg]')} ${red(`Error formatting html: ${e?.message}`)}`,
-      )
+      error(`Error formatting html: ${e?.message}`)
       return html
     }
   }

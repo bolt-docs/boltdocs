@@ -67,25 +67,30 @@ Replace the ANSI-raw `ui.ts` with wrappers around `@bdocs/dui`. Keep the same pu
 
 ---
 
-## Phase 5: SSG — `packages/ssg/`
+## Phase 5: SSG — `packages/ssg/` ✅
 
 Replace `kolorist` with `@bdocs/dui`:
 
-- [ ] `ssg/src/node/utils.ts` `buildLog()` → `dui.logger.info` with `[boltdocs]` prefix
-- [ ] `ssg/src/node/build.ts` all console calls → `dui.logger.*` / `dui.colors`
-- [ ] `ssg/src/node/dev.ts` `printServerInfo()` → `dui.box.devServer()`
-- [ ] `ssg/src/node/cli.ts` → `dui.logger.*`
-- [ ] Remove `kolorist` dependency from `@bdocs/ssg`
+- [x] `ssg/src/node/utils.ts` `buildLog()` → `dui.logger.info` with `[boltdocs]` prefix
+- [x] `ssg/src/node/build.ts` all `console.log/error` calls → `dui.logger.*` / `dui.colors`
+- [x] `ssg/src/node/dev.ts` `printServerInfo()` kolorist colors → `dui.colors`; `console.error` → `dui.error`
+- [x] `ssg/src/node/cli.ts` → `dui.logger.error`
+- [x] `ssg/src/utils/state.ts` `console.error` → `dui.error`
+- [x] `ssg/src/node/vite-plugin/index.ts` `console.error` → `dui.error`
+- [x] `ssg/src/invariant.ts` `console.error` → `dui.error`
+- [x] Remove `kolorist` dependency from `@bdocs/ssg`
+- [x] Add `@bdocs/dui` as dependency
 
 ---
 
-## Phase 6: create-boltdocs — `packages/create-boltdocs/`
+## Phase 6: create-boltdocs — `packages/create-boltdocs/` ✅
 
 Replace `picocolors` direct use with `@bdocs/dui`:
 
-- [ ] `create-boltdocs/src/index.ts` all console calls → `dui.logger.*`
-- [ ] Colors via `dui.colors` instead of direct picocolors
-- [ ] Could keep picocolors as transitive dep via dui
+- [x] `create-boltdocs/src/index.ts` all `console.log/error` → `dui.logger.*` (info/warn/error/success)
+- [x] Colors via `dui.colors` instead of direct picocolors
+- [x] Remove `picocolors` from direct dependencies (transitive via dui)
+- [x] Add `@bdocs/dui` as dependency
 
 ---
 

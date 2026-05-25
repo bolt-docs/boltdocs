@@ -1,4 +1,4 @@
-import { bold, gray, red, reset, underline } from 'kolorist'
+import { colors, error } from '@bdocs/dui'
 import yargs from 'yargs'
 import { hideBin } from 'yargs/helpers'
 import { build } from './build'
@@ -70,12 +70,8 @@ yargs(hideBin(process.argv))
     },
   )
   .fail((msg, err, yargs) => {
-    console.error(
-      `\n${gray('[vite-react-ssg]')} ${bold(red('An internal error occurred.'))}`,
-    )
-    console.error(
-      `${gray('[vite-react-ssg]')} ${reset(`Please report an issue, if none already exists: ${underline('https://github.com/daydreamer-riri/vite-react-ssg/issues')}`)}`,
-    )
+    error('An internal error occurred.')
+    error(`Please report an issue, if none already exists: https://github.com/daydreamer-riri/vite-react-ssg/issues`)
     yargs.exit(1, err)
   })
   .showHelpOnFail(false)

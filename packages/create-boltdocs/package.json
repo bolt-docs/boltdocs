@@ -22,7 +22,7 @@
   ],
   "packageManager": "pnpm@10.30.2",
   "dependencies": {
-    "picocolors": "^1.1.0",
+    "@bdocs/dui": "workspace:*",
     "prompts": "^2.4.2"
   },
   "devDependencies": {
