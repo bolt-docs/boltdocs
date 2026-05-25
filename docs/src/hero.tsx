@@ -1,7 +1,7 @@
 import { Link } from 'boltdocs/primitives'
 import { ArrowRight } from 'lucide-react'
 import Orb from './orb'
-import { latest } from './data/version.json'
+import { getVersion } from './data/version'
 
 export const Hero = () => {
   return (
@@ -16,7 +16,7 @@ export const Hero = () => {
       <div className="w-full mx-auto text-center relative z-10">
         <div className="inline-flex items-center gap-3 p-1 pr-4 rounded-full bg-white/5 border border-white/10 hover:border-primary-400/30 transition-all cursor-pointer group mb-10 backdrop-blur-sm">
           <span className="px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest text-black bg-white">
-            v{latest}
+            v{getVersion()}
           </span>
           <span className="text-sm font-bold text-body/60 group-hover:text-body transition-colors flex items-center gap-2">
             Available now!

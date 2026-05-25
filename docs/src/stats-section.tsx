@@ -1,7 +1,7 @@
 import { useRef } from 'react'
 import { Code2, Zap, Search, Award } from 'lucide-react'
 import { useGSAPStaggerIn } from './hooks/useGSAPScroll'
-import { latest } from './data/version.json'
+import { getVersion } from './data/version'
 
 const STATS = [
   {
@@ -27,7 +27,7 @@ const STATS = [
   },
   {
     icon: <Award className="w-5 h-5" />,
-    value: `v${latest}`,
+    value: `v${getVersion()}`,
     label: 'Latest Version',
     color: 'text-primary-500',
     bgColor: 'bg-primary-500/10',
