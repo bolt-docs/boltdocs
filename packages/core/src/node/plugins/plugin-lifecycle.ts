@@ -8,6 +8,7 @@ import type {
 } from './plugin-types'
 import { BoltdocsPluginStore } from './plugin-store'
 import { PluginSandbox } from './plugin-sandbox'
+import * as dui from '@bdocs/dui'
 
 /**
  * Manages the lifecycle of all loaded plugins, ensuring hooks are executed
@@ -105,13 +106,12 @@ export class PluginLifecycleManager {
   private createLogger(pluginName: string): PluginLogger {
     const prefix = `[plugin:${pluginName}]`
     return {
-      info: (msg) => console.log(`${prefix} INFO: ${msg}`),
-      warn: (msg) => console.warn(`${prefix} WARN: ${msg}`),
+      info: (msg) => dui.info(`${prefix} ${msg}`),
+      warn: (msg) => dui.warn(`${prefix} ${msg}`),
       error: (msg) => {
-        const message = msg instanceof Error ? msg.message : msg
-        console.error(`${prefix} ERROR: ${message}`)
+        dui.error(`${prefix} ${msg instanceof Error ? msg.message : msg}`)
       },
-      debug: (msg) => console.debug(`${prefix} DEBUG: ${msg}`),
+      debug: (msg) => dui.debug(`${prefix} ${msg}`),
     }
   }
 }

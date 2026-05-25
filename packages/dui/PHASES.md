@@ -53,15 +53,17 @@ Replace the ANSI-raw `ui.ts` with wrappers around `@bdocs/dui`. Keep the same pu
 
 ---
 
-## Phase 4: Core Plugin/Debug Logging
+## Phase 4: Core Plugin/Debug Logging ✅
 
-- [ ] `plugin/dev-server.ts` raw `console.error` → `dui.logger.error`
-- [ ] `plugin-lifecycle.ts` raw `console.log/warn/error` → `dui.logger.*`
-- [ ] `plugin-sandbox.ts` → `dui.logger.warn`
-- [ ] `config.ts` → `dui.logger.warn`
-- [ ] `meta-loader.ts` — fix `[Boltdocs]` → `[boltdocs]` via `dui.logger.*`
-- [ ] `utils.ts` `logSecurityEvent` → `dui.logger.error`
-- [ ] `tsdown.config.ts` copy scripts → `dui.logger.*`
+- [x] `plugin/dev-server.ts` raw `console.error` → `dui.logger.error` (already using `dui.error()`)
+- [x] `plugin-lifecycle.ts` raw `console.log/warn/error` → `dui.logger.*`
+- [x] `plugin-sandbox.ts` → `dui.logger.warn`
+- [x] `config.ts` → `dui.logger.warn`
+- [x] `meta-loader.ts` — fix `[Boltdocs]` → `dui.logger.*`
+- [x] `utils.ts` `logSecurityEvent` → `dui.logger.error`
+- [x] `colorMap` unused export removed from `@bdocs/dui`
+- [x] `warn()` updated to accept optional `err` param (match `error()` API)
+- [x] All 433 tests pass, 34 test files
 
 ---
 

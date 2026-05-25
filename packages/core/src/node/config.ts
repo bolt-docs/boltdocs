@@ -4,6 +4,7 @@ import { loadConfigFromFile } from 'vite'
 import { BoltdocsConfigSchema } from './schema/config'
 import { ValidationError } from './errors'
 import { generateProjectTypes } from './types-generator'
+import { warn } from '@bdocs/dui'
 import type {
   BoltdocsConfig,
   BoltdocsThemeConfig,
@@ -98,7 +99,7 @@ export async function resolveConfig(
           break
         }
       } catch (e) {
-        console.warn(`[boltdocs] Failed to load config from ${filename}:`, e)
+        warn(`Failed to load config from ${filename}:`, e)
       }
     }
   }

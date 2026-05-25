@@ -1,6 +1,7 @@
 import { PluginPermissionError } from './plugin-errors'
 import { hasPermission } from './plugin-validator'
 import type { SecureBoltdocsPlugin, PluginPermission } from './plugin-types'
+import { warn } from '@bdocs/dui'
 
 /**
  * The Sandbox provides a protective layer that ensures plugins only use
@@ -54,8 +55,8 @@ export class PluginSandbox {
     } catch (error) {
       if (error instanceof PluginPermissionError) {
         // Log skip instead of failing hard for permissions in some contexts
-        console.warn(
-          `[boltdocs] Skipping hook '${hookName}' for plugin '${plugin.name}': ${error.message}`,
+        warn(
+          `Skipping hook '${hookName}' for plugin '${plugin.name}': ${error.message}`,
         )
         return undefined
       }

@@ -11,6 +11,7 @@ export {
   type FrontmatterData,
 }
 import { ValidationError } from './errors'
+import { error } from '@bdocs/dui'
 
 // Removed centralized constants - now in security.config.ts
 
@@ -429,7 +430,7 @@ export function logSecurityEvent(
     }
   }
 
-  console.error(
+  error(
     `[SECURITY][${timestamp}] TYPE: ${type} | MESSAGE: ${message} | DETAILS: ${JSON.stringify(
       redactedDetails,
     )}`,

@@ -1,6 +1,7 @@
 import fs from 'node:fs/promises'
 import path from 'node:path'
 import { fdir } from 'fdir'
+import { warn, error } from '@bdocs/dui'
 
 export interface DirectoryMeta {
   title?: string
@@ -45,11 +46,11 @@ export async function loadDirectoryMeta(
       if (settled.status === 'fulfilled') {
         results[settled.value.key] = settled.value.content
       } else {
-        console.warn('[Boltdocs] Failed to read meta.json:', settled.reason)
+        warn('Failed to read meta.json:', settled.reason)
       }
     }
   } catch (e) {
-    console.error('[Boltdocs] Error loading directory metadata:', e)
+    error('Error loading directory metadata:', e)
   }
 
   return results

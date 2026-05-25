@@ -15,8 +15,8 @@ export function info(msg: string): void {
   log('stdout', null, msg)
 }
 
-export function warn(msg: string): void {
-  log('stdout', colors.yellow, msg)
+export function warn(msg: string, err?: unknown): void {
+  log('stdout', colors.yellow, msg, err)
 }
 
 export function error(msg: string, err?: unknown): void {
