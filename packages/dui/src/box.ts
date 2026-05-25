@@ -1,5 +1,6 @@
 import { colors } from './colors'
-import { padCenter, fitWidth, terminalWidth } from './utils'
+import { padCenter, fitWidth, terminalWidth, visibleLength } from './utils'
+import { getConfig } from './config'
 
 export type BoxBorderStyle = 'single' | 'double' | 'round'
 
@@ -25,41 +26,77 @@ export interface BoxOptions {
   padding?: number
 }
 
-function buildLines(lines: string[], opts: BoxOptions): string {
-  const b = BORDERS[opts.style ?? 'double']
-  const pad = opts.padding ?? 1
+// Internal resolved options — all required fields after normalization in box()
+interface ResolvedBoxOptions {
+  title?: string
+  width: number
+  style: BoxBorderStyle
+  padding: number
+}
+
+/** Truncates `s` to `max` visible characters, appending '…' if needed. */
+function truncate(s: string, max: number): string {
+  return visibleLength(s) > max ? s.slice(0, max - 1) + '…' : s
+}
+
+function buildLines(lines: string[], opts: ResolvedBoxOptions): string {
+  const b = BORDERS[opts.style]
+  const pad = opts.padding
   const innerPad = ' '.repeat(pad)
   const result: string[] = []
 
   if (opts.title) {
-    const titleMax = (opts.width! - 4)
-    const title = opts.title.length > titleMax ? opts.title.slice(0, titleMax - 1) + '…' : opts.title
-    const remaining = Math.max(0, opts.width! - title.length - 5)
+    const title = truncate(opts.title, opts.width - 4)
+    const titleLen = visibleLength(title)
+    // Total line = tl(1) + h(1) + space(1) + title + space(1) + remaining + tr(1)
+    // Must equal opts.width + 2 → remaining = opts.width - titleLen - 3
+    const remaining = Math.max(0, opts.width - titleLen - 3)
     result.push(b.tl + b.h + ` ${colors.bold(title)} ` + b.h.repeat(remaining) + b.tr)
-    result.push(`${b.v}${' '.repeat(opts.width!)}${b.v}`)
+    result.push(`${b.v}${' '.repeat(opts.width)}${b.v}`)
   } else {
-    result.push(b.tl + b.h.repeat(opts.width!) + b.tr)
+    result.push(b.tl + b.h.repeat(opts.width) + b.tr)
   }
 
   for (const line of lines) {
     const inner = innerPad + line + innerPad
-    const padded = fitWidth(inner, opts.width!)
+    const padded = fitWidth(inner, opts.width)
     result.push(`${b.v}${padded}${b.v}`)
   }
 
   if (opts.title) {
-    result.push(`${b.v}${' '.repeat(opts.width!)}${b.v}`)
+    result.push(`${b.v}${' '.repeat(opts.width)}${b.v}`)
   }
 
-  result.push(b.bl + b.h.repeat(opts.width!) + b.br)
+  result.push(b.bl + b.h.repeat(opts.width) + b.br)
   return result.join('\n')
+}
+
+function buildServerBox(title: string, lines: string[], W: number): string {
+  const b = BORDERS['double']
+  const result: string[] = []
+  const titleLen = visibleLength(title)
+  const remaining = Math.max(0, W - titleLen - 3)
+  result.push(b.tl + b.h + ` ${colors.bold(title)} ` + b.h.repeat(remaining) + b.tr)
+  result.push(`${b.v}${' '.repeat(W)}${b.v}`)
+
+  for (const line of lines) {
+    if (line.length === 0) {
+      result.push(`${b.v}${' '.repeat(W)}${b.v}`)
+    } else {
+      const padding = W - 1 - visibleLength(line)
+      result.push(`${b.v} ${line}${' '.repeat(Math.max(0, padding))}${b.v}`)
+    }
+  }
+
+  result.push(b.bl + b.h.repeat(W) + b.br)
+  return '\n' + result.join('\n') + '\n'
 }
 
 export function box(lines: string[], opts?: BoxOptions): string {
   const style = opts?.style ?? 'double'
   const padding = opts?.padding ?? 1
-  const maxContent = lines.reduce((m, l) => Math.max(m, l.length), 0)
-  const titleLen = opts?.title ? opts.title.length + 2 : 0
+  const maxContent = lines.reduce((m, l) => Math.max(m, visibleLength(l)), 0)
+  const titleLen = opts?.title ? visibleLength(opts.title) + 2 : 0
   const minWidth = Math.max(maxContent + padding * 2, titleLen + 2, 20)
   const termWidth = Math.min(terminalWidth(), 80)
   const width = opts?.width ? Math.min(opts.width, termWidth) : Math.min(minWidth, termWidth)
@@ -85,32 +122,12 @@ export function devServer(localUrl: string, networkUrl: string | null): string {
     ? `  ${colors.green('➜')}  ${colors.green('Network:')} ${colors.cyan(networkUrl)}`
     : `  ${colors.green('➜')}  ${colors.green('Network:')} ${colors.gray('use --host to expose')}`
 
-  const lines: string[] = [
+  return buildServerBox(getConfig().devServerTitle, [
     `  ${colors.green('➜')}  ${colors.green('Local:')}   ${colors.cyan(localUrl)}`,
     netLine,
     '',
     `  ${colors.dim('press h + enter for help')}`,
-  ]
-
-  const b = BORDERS['double']
-  const result: string[] = []
-  const title = 'boltdocs dev server'
-  const remaining = Math.max(0, W - title.length - 3)
-  result.push(b.tl + b.h + ` ${colors.bold(title)} ` + b.h.repeat(remaining) + b.tr)
-  result.push(`${b.v}${' '.repeat(W)}${b.v}`)
-
-  for (const line of lines) {
-    if (line.length === 0) {
-      result.push(`${b.v}${' '.repeat(W)}${b.v}`)
-    } else {
-      const rawLen = line.replace(/\x1b\[[0-9;]*m/g, '').length
-      const padding = W - 1 - rawLen
-      result.push(`${b.v} ${line}${' '.repeat(Math.max(0, padding))}${b.v}`)
-    }
-  }
-
-  result.push(b.bl + b.h.repeat(W) + b.br)
-  return '\n' + result.join('\n') + '\n'
+  ], W)
 }
 
 export function previewServer(localUrl: string, networkUrl: string | null): string {
@@ -119,26 +136,10 @@ export function previewServer(localUrl: string, networkUrl: string | null): stri
     ? `  ${colors.green('➜')}  ${colors.green('Network:')} ${colors.cyan(networkUrl)}`
     : `  ${colors.green('➜')}  ${colors.green('Network:')} ${colors.gray('use --host to expose')}`
 
-  const lines: string[] = [
+  return buildServerBox(getConfig().previewServerTitle, [
     `  ${colors.green('➜')}  ${colors.green('Local:')}   ${colors.cyan(localUrl)}`,
     netLine,
-  ]
-
-  const b = BORDERS['double']
-  const result: string[] = []
-  const title = 'boltdocs preview server'
-  const remaining = Math.max(0, W - title.length - 3)
-  result.push(b.tl + b.h + ` ${colors.bold(title)} ` + b.h.repeat(remaining) + b.tr)
-  result.push(`${b.v}${' '.repeat(W)}${b.v}`)
-
-  for (const line of lines) {
-    const rawLen = line.replace(/\x1b\[[0-9;]*m/g, '').length
-    const padding = W - 1 - rawLen
-    result.push(`${b.v} ${line}${' '.repeat(Math.max(0, padding))}${b.v}`)
-  }
-
-  result.push(b.bl + b.h.repeat(W) + b.br)
-  return '\n' + result.join('\n') + '\n'
+  ], W)
 }
 
 export function updateAvailable(current: string, latest: string): string {
@@ -149,7 +150,7 @@ export function updateAvailable(current: string, latest: string): string {
     '',
     `  ${colors.dim('Current:')} ${colors.red(current)}  ${colors.gray('→')}  ${colors.green(latest)}`,
     '',
-    `  ${colors.dim('Run:')}  ${colors.bold('npm install boltdocs@latest')}`,
+    `  ${colors.dim('Run:')}  ${colors.bold(getConfig().updateCommand)}`,
   ]
 
   const b = BORDERS['double']
@@ -160,8 +161,7 @@ export function updateAvailable(current: string, latest: string): string {
     if (line.length === 0) {
       result.push(`${b.v}${' '.repeat(W)}${b.v}`)
     } else {
-      const rawLen = line.replace(/\x1b\[[0-9;]*m/g, '').length
-      const padding = W - rawLen
+      const padding = W - visibleLength(line)
       result.push(`${b.v}${line}${' '.repeat(Math.max(0, padding))}${b.v}`)
     }
   }
