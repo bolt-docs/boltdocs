@@ -204,7 +204,10 @@ export function ViteReactSSG(
       return route
     }
 
-    const loader: RouteRecord['loader'] = async ({ request }) => {
+    const originalLoader = route.loader
+
+    route.loader = async (args) => {
+      const { request } = args
       if (process.env.NODE_ENV === 'development') {
         const routeId = encodeURIComponent(route.id!)
         const dataQuery = `_data=${routeId}`
@@ -219,19 +222,16 @@ export function ViteReactSSG(
           pathname = pathname.slice(0, -1)
         }
 
-        // Initialize data cache if needed
         if (!window.__VITE_REACT_SSG_STATIC_LOADER_DATA__) {
           window.__VITE_REACT_SSG_STATIC_LOADER_DATA__ = {}
         }
 
-        // If we already have the loader data inlined/cached (e.g. initial hydration), return it synchronously!
         if (window.__VITE_REACT_SSG_STATIC_LOADER_DATA__[pathname]) {
           const routeData =
             window.__VITE_REACT_SSG_STATIC_LOADER_DATA__[pathname]?.[route.id!]
-          return routeData ?? null
+          return routeData ?? originalLoader(args)
         }
 
-        // Load manifest index if not cached
         if (!window.__VITE_REACT_SSG_STATIC_LOADER_MANIFEST__) {
           const manifestUrl = joinUrlSegments(
             BASE_URL,
@@ -261,12 +261,10 @@ export function ViteReactSSG(
         const manifest = window.__VITE_REACT_SSG_STATIC_LOADER_MANIFEST__
         const dataFilePath = manifest?.[pathname]
 
-        // No loader data for this route
         if (!dataFilePath) {
-          return null
+          return originalLoader(args)
         }
 
-        // Load route data file if not cached
         if (!window.__VITE_REACT_SSG_STATIC_LOADER_DATA__[pathname]) {
           const dataUrl = joinUrlSegments(BASE_URL, dataFilePath)
           try {
@@ -283,7 +281,8 @@ export function ViteReactSSG(
             }
           } catch (error) {
             console.error(
-              `[vite-react-ssg] Error loading loader data for ${pathname}:`,
+              '[vite-react-ssg] Error loading loader data for',
+              pathname,
               error,
             )
             window.__VITE_REACT_SSG_STATIC_LOADER_DATA__[pathname] = {}
@@ -292,10 +291,9 @@ export function ViteReactSSG(
 
         const routeData =
           window.__VITE_REACT_SSG_STATIC_LOADER_DATA__[pathname]?.[route.id!]
-        return routeData ?? null
+        return routeData ?? originalLoader(args)
       }
     }
-    route.loader = loader
     return route
   }
 }
