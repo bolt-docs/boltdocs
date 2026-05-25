@@ -205,7 +205,11 @@ export async function checkLinks(ctx: DoctorContext): Promise<DoctorIssue[]> {
     const scanContent =
       content.length > MAX_SCAN_SIZE ? content.slice(0, MAX_SCAN_SIZE) : content
 
-    const matches = [...scanContent.matchAll(combinedRegex)]
+    const cleanedContent = scanContent
+      .replace(/```[\s\S]*?```/g, '')
+      .replace(/`[^`\n]*`/g, '')
+
+    const matches = [...cleanedContent.matchAll(combinedRegex)]
 
     for (const match of matches) {
       const originalLink = match[1] || match[2]

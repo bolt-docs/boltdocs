@@ -257,6 +257,38 @@ describe('doctor unified tests', () => {
     expect(calls).not.toContain('Broken internal link')
   })
 
+  it('should not flag links inside fenced code blocks or inline code', async () => {
+    const sourceFile = path.join(docsDir, 'source.mdx')
+    fs.writeFileSync(
+      sourceFile,
+      [
+        '---',
+        'title: "Code Block Test"',
+        'description: "A valid description for the code block test page to avoid metadata warnings."',
+        '---',
+        '',
+        '```tsx',
+        '<Link href="/non-existent-route" />',
+        '```',
+        '',
+        'Inline code: `[broken](/another-missing)` and `href="/also-missing"`',
+        '',
+        '[real-link](/guide)',
+      ].join('\n'),
+    )
+
+    await doctorAction(tempDir)
+
+    const calls = (console.log as any).mock.calls
+      .map((c: any) => c[0])
+      .join('\n')
+    expect(calls).not.toContain('"/non-existent-route"')
+    expect(calls).not.toContain('"/another-missing"')
+    expect(calls).not.toContain('"/also-missing"')
+    expect(calls).not.toContain('Broken internal link')
+    expect(calls).toContain('Everything looks perfect')
+  })
+
   it('should handle links with non-ASCII characters and spaces', async () => {
     const specialFile = path.join(docsDir, 'página con espacios.md')
     fs.writeFileSync(specialFile, '---\ntitle: E\n---\n# Especial')
