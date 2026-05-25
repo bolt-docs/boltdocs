@@ -13,10 +13,16 @@ export async function devAction(root: string = process.cwd()) {
   notifyUpdateAvailable()
   try {
     const viteConfig = await createViteConfig(root, 'development')
+    viteConfig.logLevel = 'warn'
+    viteConfig.clearScreen = false
     const server = await createServer(viteConfig)
     await server.listen()
-    server.printUrls()
-    server.bindCLIShortcuts({ print: true })
+    const urls = server.resolvedUrls
+    ui.printDevServerInfo(
+      urls?.local?.[0] ?? 'http://localhost:5173',
+      urls?.network?.[0] ?? null,
+    )
+    server.bindCLIShortcuts({ print: false })
   } catch (e) {
     ui.error('Failed to start dev server:', e)
     process.exit(1)

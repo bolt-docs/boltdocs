@@ -73,3 +73,74 @@ export function box(title: string) {
   console.log(`┃  ${colors.bold}${title}${colors.reset}${colors.cyan}  ┃`)
   console.log(`┗${line}┛${colors.reset}\n`)
 }
+
+const BOX_W = 54
+
+export function printDevServerInfo(
+  localUrl: string,
+  networkUrl: string | null,
+): void {
+  const line = '═'.repeat(BOX_W)
+  const titleRaw = 'boltdocs dev server'
+  const localRaw = `  ➜  Local:   ${localUrl}`
+  const netRaw = networkUrl
+    ? `  ➜  Network: ${networkUrl}`
+    : '  ➜  Network: use --host to expose'
+  const helpRaw = '  press h + enter for help'
+  const titlePad = BOX_W - titleRaw.length
+
+  console.log(`\n${colors.cyan}╔${line}╗${colors.reset}`)
+  console.log(
+    `${colors.cyan}║${colors.reset}${' '.repeat(Math.floor(titlePad / 2))}${colors.bold}${titleRaw}${colors.reset}${' '.repeat(Math.ceil(titlePad / 2))}${colors.cyan}║${colors.reset}`,
+  )
+  console.log(`${colors.cyan}║${colors.reset}${' '.repeat(BOX_W)}${colors.cyan}║${colors.reset}`)
+  console.log(
+    `${colors.cyan}║${colors.reset}  ${colors.green}➜${colors.reset}  ${colors.green}Local:${colors.reset}   ${colors.cyan}${localUrl}${colors.reset}${' '.repeat(BOX_W - localRaw.length)}${colors.cyan}║${colors.reset}`,
+  )
+  if (networkUrl) {
+    console.log(
+      `${colors.cyan}║${colors.reset}  ${colors.green}➜${colors.reset}  ${colors.green}Network:${colors.reset} ${colors.cyan}${networkUrl}${colors.reset}${' '.repeat(BOX_W - netRaw.length)}${colors.cyan}║${colors.reset}`,
+    )
+  } else {
+    console.log(
+      `${colors.cyan}║${colors.reset}  ${colors.green}➜${colors.reset}  ${colors.green}Network:${colors.reset} ${colors.gray}use --host to expose${colors.reset}${' '.repeat(BOX_W - netRaw.length)}${colors.cyan}║${colors.reset}`,
+    )
+  }
+  console.log(`${colors.cyan}║${colors.reset}${' '.repeat(BOX_W)}${colors.cyan}║${colors.reset}`)
+  console.log(
+    `${colors.cyan}║${colors.reset}  ${colors.dim}press h + enter for help${colors.reset}${' '.repeat(BOX_W - helpRaw.length)}${colors.cyan}║${colors.reset}`,
+  )
+  console.log(`${colors.cyan}╚${line}╝${colors.reset}\n`)
+}
+
+export function printPreviewServerInfo(
+  localUrl: string,
+  networkUrl: string | null,
+): void {
+  const line = '═'.repeat(BOX_W)
+  const titleRaw = 'boltdocs preview server'
+  const localRaw = `  ➜  Local:   ${localUrl}`
+  const netRaw = networkUrl
+    ? `  ➜  Network: ${networkUrl}`
+    : '  ➜  Network: use --host to expose'
+  const titlePad = BOX_W - titleRaw.length
+
+  console.log(`\n${colors.cyan}╔${line}╗${colors.reset}`)
+  console.log(
+    `${colors.cyan}║${colors.reset}${' '.repeat(Math.floor(titlePad / 2))}${colors.bold}${titleRaw}${colors.reset}${' '.repeat(Math.ceil(titlePad / 2))}${colors.cyan}║${colors.reset}`,
+  )
+  console.log(`${colors.cyan}║${colors.reset}${' '.repeat(BOX_W)}${colors.cyan}║${colors.reset}`)
+  console.log(
+    `${colors.cyan}║${colors.reset}  ${colors.green}➜${colors.reset}  ${colors.green}Local:${colors.reset}   ${colors.cyan}${localUrl}${colors.reset}${' '.repeat(BOX_W - localRaw.length)}${colors.cyan}║${colors.reset}`,
+  )
+  if (networkUrl) {
+    console.log(
+      `${colors.cyan}║${colors.reset}  ${colors.green}➜${colors.reset}  ${colors.green}Network:${colors.reset} ${colors.cyan}${networkUrl}${colors.reset}${' '.repeat(BOX_W - netRaw.length)}${colors.cyan}║${colors.reset}`,
+    )
+  } else {
+    console.log(
+      `${colors.cyan}║${colors.reset}  ${colors.green}➜${colors.reset}  ${colors.green}Network:${colors.reset} ${colors.gray}use --host to expose${colors.reset}${' '.repeat(BOX_W - netRaw.length)}${colors.cyan}║${colors.reset}`,
+    )
+  }
+  console.log(`${colors.cyan}╚${line}╝${colors.reset}\n`)
+}

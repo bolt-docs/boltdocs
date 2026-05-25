@@ -64,8 +64,14 @@ export async function buildAction(root: string = process.cwd()) {
 export async function previewAction(root: string = process.cwd()) {
   try {
     const viteConfig = await createViteConfig(root, 'production')
+    viteConfig.logLevel = 'warn'
+    viteConfig.clearScreen = false
     const previewServer = await preview(viteConfig)
-    previewServer.printUrls()
+    const urls = previewServer.resolvedUrls
+    ui.printPreviewServerInfo(
+      urls?.local?.[0] ?? 'http://localhost:4173',
+      urls?.network?.[0] ?? null,
+    )
   } catch (e) {
     ui.error('Failed to start preview server:', e)
     process.exit(1)
