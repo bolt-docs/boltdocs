@@ -1,5 +1,20 @@
 # boltdocs
 
+## 2.7.9
+
+### Patch Changes
+
+- [`d600cdf`](https://github.com/bolt-docs/boltdocs/commit/d600cdf1086009762409323802c9b7302bb327df) Thanks [@jesusalcaladev](https://github.com/jesusalcaladev)! - Fix false positive "broken internal link" reports for URLs inside fenced code blocks and inline code in the `boltdocs doctor` command. The link checker now strips code block content before scanning for links, preventing demo/example code from being treated as actual broken links.
+
+- [`ac10e5b`](https://github.com/bolt-docs/boltdocs/commit/ac10e5be26a93a5ca2403f72a670b806461cbc20) Thanks [@jesusalcaladev](https://github.com/jesusalcaladev)! - Fix duplicate sidebar links caused by fallback metadata entries copying `filePath` and `slugParts` from the original route. The fallback entry now sets `filePath: ''` and `slugParts: []` so the sidebar code skips it.
+
+- [`ae0d6ad`](https://github.com/bolt-docs/boltdocs/commit/ae0d6ad51ba81b83f6d9ef45e310133c7072d883) Thanks [@jesusalcaladev](https://github.com/jesusalcaladev)! - Rewrite README with benchmark comparisons, tech stack showcase, detailed features with code examples, ecosystem table, roadmap, and improved structure. Add README to `packages/core/` for npm package display.
+
+- [`9e7094d`](https://github.com/bolt-docs/boltdocs/commit/9e7094d2e5ebc2e0b7f14cce0fb61ee9f69b5db3) Thanks [@jesusalcaladev](https://github.com/jesusalcaladev)! - Show update notification when a new version of boltdocs is available. The `dev`, `build`, and `doctor` commands now check the npm registry and display a colored box with the current and latest version when an upgrade is available.
+
+- Updated dependencies [[`ee67a51`](https://github.com/bolt-docs/boltdocs/commit/ee67a5141282d4cbc9db0cf839c2073364f3f44a)]:
+  - @bdocs/ssg@0.0.6
+
 ## 2.7.8
 
 ### Patch Changes
