@@ -594,14 +594,14 @@ export async function build(
 
         renderPreloadLinks(jsdom.window.document, assets)
 
+        // React Router v7's StaticRouterProvider renders its own
+        // __staticRouterHydrationData script INSIDE the SSR HTML tree.
+        // We must REMOVE it from inside #root (where it would break
+        // hydrateRoot) and instead inject our own in <head>.
         const doc = jsdom.window.document
-        const scriptTags = doc.querySelectorAll('script')
-        let hydrationScriptContent = ''
-        for (const script of scriptTags) {
+        for (const script of doc.querySelectorAll('script')) {
           if (script.textContent?.includes('window.__staticRouterHydrationData')) {
-            hydrationScriptContent = script.textContent
             script.remove()
-            break
           }
         }
 
@@ -613,6 +613,24 @@ export async function build(
           const safeLoaderDataJSON = JSON.stringify(loaderData).replace(/</g, '\\u003c')
           loaderDataScript = `window.__VITE_REACT_SSG_STATIC_LOADER_DATA__ = { '${getNormalizedPathKey(path, configBase)}': ${safeLoaderDataJSON} };`
         }
+
+        // Always generate our OWN hydration script from routerContext
+        // instead of reusing React Router's built-in one. React Router's
+        // output wraps the JSON in JSON.parse(...) which is valid but
+        // ties us to React Router's serialisation format.  Owning the
+        // serialisation ourselves keeps it under our control and means
+        // the value is assigned directly as a plain object literal.
+        let hydrationScriptContent = ''
+        if (routerContext) {
+          const payload = {
+            loaderData: routerContext.loaderData ?? {},
+            actionData: routerContext.actionData ?? null,
+            errors: routerContext.errors ?? null,
+          }
+          const safeJson = JSON.stringify(payload).replace(/</g, '\\u003c')
+          hydrationScriptContent = `window.__staticRouterHydrationData = ${safeJson};`
+        }
+
         const headerScript = `<script>window.__VITE_REACT_SSG_HASH__ = '${hash}';${loaderDataScript}${hydrationScriptContent}</script>`
         transformed = transformed.replace('<head>', `<head>${headerScript}`)
         // Clean up the script placeholder

@@ -1,0 +1,27 @@
+---
+title: Troubleshooting
+sidebarPosition: 20
+description: Common issues and how to resolve them when working with Boltdocs.
+---
+
+### `serve -s` shows the home page on every route
+
+If you're testing the static build locally with `pnpx serve -s .`, you might notice that every URL (e.g., `/about`, `/docs/guides`) renders the home page instead of the expected content.
+
+**Why this happens**
+
+The `-s` (single-page app) flag tells `serve` to fall back to `index.html` for any route that doesn't match a file. Because `serve` does not automatically resolve `/about` to `about.html` (or `about/index.html`) in this mode, the fallback kicks in and serves the root page instead.
+
+**Fix**
+
+Use `serve` **without** the `-s` flag:
+
+```sh
+pnpx serve . -l 3000
+```
+
+Without `-s`, `serve` correctly resolves URL paths to their corresponding generated HTML files (e.g., `/about` → `about.html`, `/docs/guides` → `docs/guides.html`).
+
+**Production deployments**
+
+This issue does not occur on production platforms like **Vercel**, **Netlify**, or **Cloudflare Pages** — they all handle clean-URL-to-file resolution correctly by default. The `-s` flag behavior is specific to local testing with the `serve` package.

@@ -318,8 +318,20 @@ export function createRoutes(options: CreateRoutesOptions): RouteRecord[] {
             : bPath.startsWith(baseDocsPath + '/')
               ? bPath.slice(baseDocsPath.length + 1)
               : bPath
+
+        // Use `index: true` for the docs base path (e.g. /docs) instead of
+        // `path: '.'`. The dot-path is a client-only React Router feature: it
+        // means "same URL as parent" in createBrowserRouter, but createStaticHandler
+        // does not recognise it during SSG. This caused the static handler to skip
+        // the fallback loader entirely → loaderData was empty for /docs → the SSR
+        // rendered an empty content slot while the client hydrated with the first
+        // doc's element → structural mismatch → visual page duplication on refresh.
+        // Index routes are correctly matched by both browser and static handler.
+        const isBasePathFallback = redirectPath === '.'
         docRoutes.push({
-          path: redirectPath,
+          ...(isBasePathFallback
+            ? { index: true as const }
+            : { path: redirectPath }),
           element: matchedRouteObj.element,
           loader: matchedRouteObj.loader,
           getStaticPaths: () => [],

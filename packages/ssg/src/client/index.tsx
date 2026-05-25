@@ -21,6 +21,21 @@ export * from '../types'
 
 const sessionTimestamp = Date.now()
 
+/**
+ * Ensures the hydration data is a plain object before passing it to
+ * createBrowserRouter. If the server-side serialisation produced garbage
+ * (e.g. a string instead of an object due to double-JSON.stringify bugs),
+ * we return undefined rather than letting React Router choke on invalid data.
+ * An undefined hydrationData is safer than a malformed one — the router will
+ * still run its loaders, but at least it won't crash or misbehave silently.
+ */
+function sanitizeHydrationData(
+  data: unknown,
+): { loaderData?: Record<string, unknown>; actionData?: unknown; errors?: unknown } | undefined {
+  if (!data || typeof data !== 'object' || Array.isArray(data)) return undefined
+  return data as { loaderData?: Record<string, unknown>; actionData?: unknown; errors?: unknown }
+}
+
 export function ViteReactSSG(
   routerOptions: RouterOptions,
   fn?: (context: ViteReactSSGContext<true>) => Promise<void> | void,
@@ -56,6 +71,14 @@ export function ViteReactSSG(
           {
             basename: BASE_URL === '/' ? undefined : BASE_URL,
             future: routerFeature,
+            // Pre-populate the router's loader-data cache with what the server
+            // already rendered. Without this, React Router starts empty and runs
+            // all loaders asynchronously before the first paint, producing a
+            // client vDOM that differs from the SSR HTML → hydration mismatch
+            // → React 19 renders both trees simultaneously → visual duplication.
+            hydrationData: sanitizeHydrationData(
+              window.__staticRouterHydrationData,
+            ),
           },
         )
       : undefined
@@ -139,6 +162,7 @@ export function ViteReactSSG(
       window.__VITE_REACT_SSG_CONTEXT__ = context
 
       const { router } = context
+
       const app = (
         <HelmetProvider>
           <RouterProvider router={router!} />
@@ -161,6 +185,25 @@ export function ViteReactSSG(
     if (!isSSR) {
       return route
     }
+
+    // CRITICAL: Only wrap routes that already have a loader defined.
+    //
+    // React Router v7 initializes with `hydrationData` and marks the router as
+    // `initialized = true`. However, if any matched route has a loader but its
+    // route ID is absent from `hydrationData.loaderData`, React Router detects
+    // "loader without pre-fetched data" and re-runs the full navigation cycle.
+    //
+    // Before this guard, `transformStaticLoaderRoute` was adding a static-data
+    // fetcher to EVERY route — including layout routes like BoltdocsShell and
+    // DocsLayout that have no original loader. Those newly-added loaders had no
+    // corresponding entries in `hydrationData`, so React Router re-navigated on
+    // every hydration. The resulting asynchronous re-render produced a client
+    // vDOM that differed from the server-rendered HTML, causing React 19 to
+    // render both trees simultaneously → visual page duplication on refresh.
+    if (!route.loader) {
+      return route
+    }
+
     const loader: RouteRecord['loader'] = async ({ request }) => {
       if (process.env.NODE_ENV === 'development') {
         const routeId = encodeURIComponent(route.id!)
@@ -268,6 +311,18 @@ declare global {
     >
     __VITE_REACT_SSG_HASH__: string
     __VITE_REACT_SSG_CONTEXT__: ViteReactSSGContext<true>
+    /**
+     * Injected by the SSG build into every page's <head>.
+     * Contains the React Router static handler context (loaderData, actionData,
+     * errors) produced during server-side rendering of that page.
+     * Passed as `hydrationData` to createBrowserRouter so the client router
+     * starts with the correct loader data without re-fetching anything.
+     */
+    __staticRouterHydrationData?: {
+      loaderData?: Record<string, unknown>
+      actionData?: Record<string, unknown> | null
+      errors?: Record<string, unknown> | null
+    }
   }
 }
 

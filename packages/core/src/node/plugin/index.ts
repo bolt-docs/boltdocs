@@ -278,11 +278,10 @@ export function boltdocsPlugin(
         }
 
         return {
-          // @ts-expect-error - @bdocs/ssg options
           ssgOptions: {
             entry: 'boltdocs/entry',
             htmlEntry: 'index.html',
-            dirStyle: 'nested',
+            dirStyle: 'flat',
             includeAllRoutes: true,
             mock: true,
             script: 'async',
@@ -457,6 +456,45 @@ export function boltdocsPlugin(
 
         await lifecycle?.runHook('afterBuild')
         await lifecycle?.runHook('buildEnd')
+      },
+
+      /**
+       * Rewrite requests so that Vite's preview server serves nested SSG
+       * HTML files correctly (e.g. /about → /about/index.html), mirroring
+       * the behaviour of Vercel's `cleanUrls: true`.
+       *
+       * Without this, Vite falls back to the root index.html for every
+       * path that does not have a matching file, causing the homepage SSR
+       * content to hydrate on subpage URLs and producing visible duplication.
+       */
+      configurePreviewServer(server) {
+        // Middleware added DIRECTLY (without returning a function) runs BEFORE
+        // Vite's internal static-file middleware, so the URL rewrite takes effect
+        // before the file is looked up.  If wrapped in a returned function it
+        // would run AFTER – too late to change which file is served.
+        const outDir = viteConfig?.build?.outDir
+          ? path.resolve(
+              viteConfig.root || process.cwd(),
+              viteConfig.build.outDir,
+            )
+          : path.resolve(process.cwd(), 'dist')
+
+        server.middlewares.use((req, _res, next) => {
+          const rawUrl = req.url || '/'
+          // Strip query-string and hash so we only deal with the pathname.
+          const pathname = rawUrl.split('?')[0].split('#')[0]
+          // Only rewrite extension-less paths (not /assets/foo.js etc.)
+          if (path.extname(pathname)) return next()
+
+          const normalised = pathname.replace(/\/$/, '') || '/'
+          const candidate = path.join(outDir, normalised, 'index.html')
+
+          if (normalised !== '/' && fs.existsSync(candidate)) {
+            // Rewrite so the static-serve middleware picks up the right file.
+            req.url = `${normalised}/index.html${rawUrl.includes('?') ? `?${rawUrl.split('?')[1]}` : ''}`
+          }
+          next()
+        })
       },
     },
 
