@@ -2,7 +2,7 @@ import path from 'path'
 import fs from 'fs'
 import { fdir } from 'fdir'
 import picomatch from 'picomatch'
-import { colors, double, single, confirm, info, success, warn, error, dividerLog } from '@bdocs/dui'
+import { colors, double, single, round, bullet, tasks, confirm, info, success, warn, error, dividerLog } from '@bdocs/dui'
 import { resolveConfig } from '../../config'
 import { notifyUpdateAvailable } from '../../update-check'
 import {
@@ -58,10 +58,6 @@ export async function doctorAction(
   try {
     const doctorConfig = await loadDoctorConfig(root)
     const { format: reportFormat } = doctorConfig.reporting
-    if (reportFormat === 'pretty') {
-      console.log(single('DOCTOR - Documentation Health Check', []))
-    }
-
     const start = performance.now()
     const config = await resolveConfig('docs', root)
     const docsDir = path.resolve(root, 'docs')
@@ -69,6 +65,13 @@ export async function doctorAction(
       if (reportFormat === 'pretty')
         error(`Docs dir not found at ${docsDir}`)
       process.exit(1)
+    }
+
+    if (reportFormat === 'pretty') {
+      console.log(double('✦ DOCTOR — Documentation Health Check', [
+        `  ${colors.dim('Docs dir:')} ${docsDir}`,
+        `  ${colors.dim('Reports:')} ${root}/.boltdocs/`,
+      ]))
     }
 
     if (reportFormat === 'pretty') {
@@ -142,6 +145,15 @@ export async function doctorAction(
       ...sidebarIssues,
     ]
 
+    if (reportFormat === 'pretty') {
+      console.log(`\n${tasks([
+        { label: `Metadata checks ${metadataIssues.length > 0 ? `— ${metadataIssues.length} issue${metadataIssues.length !== 1 ? 's' : ''}` : '— OK'}`, done: metadataIssues.length === 0 },
+        { label: `Link checks ${linkIssues.length > 0 ? `— ${linkIssues.length} issue${linkIssues.length !== 1 ? 's' : ''}` : '— OK'}`, done: linkIssues.length === 0 },
+        { label: `i18n checks ${i18nIssues.length > 0 ? `— ${i18nIssues.length} issue${i18nIssues.length !== 1 ? 's' : ''}` : '— OK'}`, done: i18nIssues.length === 0 },
+        { label: `Sidebar checks ${sidebarIssues.length > 0 ? `— ${sidebarIssues.length} issue${sidebarIssues.length !== 1 ? 's' : ''}` : '— OK'}`, done: sidebarIssues.length === 0 },
+      ])}`)
+    }
+
     // 1. Handle Automatic Fixes
     let fixedCount = 0
     if (options.fix) {
@@ -207,9 +219,9 @@ export async function doctorAction(
       )
 
       if (issues.length > 0) {
-                dividerLog()
+        dividerLog()
         for (const [file, fileIssues] of Object.entries(groupedIssues)) {
-          console.log(`\n${colors.bold(colors.cyan(`📄 ${file}`))}`)
+          const issueLines: string[] = []
           for (const issue of fileIssues) {
             const icon =
               issue.level === 'high'
@@ -223,57 +235,54 @@ export async function doctorAction(
                 : issue.level === 'warning'
                   ? colors.yellow
                   : colors.blue
-            console.log(
-              `   ${icon} ${color(issue.level.toUpperCase())}: ${issue.message}`,
+            issueLines.push(
+              `${icon} ${color(issue.level.toUpperCase())}: ${issue.message}`,
             )
             if (issue.suggestion) {
-              console.log(
-                `      ${colors.dim(`💡 Suggestion: ${issue.suggestion}`)}`,
+              issueLines.push(
+                `   ${colors.dim(`💡 ${issue.suggestion}`)}`,
               )
             }
             if (options.fix && issue.fix) {
-              console.log(
-                `      ${colors.green('✅ Fixed automatically')}`,
+              issueLines.push(
+                `   ${colors.green('✅ Fixed automatically')}`,
               )
             }
           }
+          console.log(`\n${single(`📄 ${file}`, issueLines)}`)
         }
-                dividerLog()
+        dividerLog()
       }
 
       if (issues.length === 0) {
-        success(
-          'Everything looks perfect! Your documentation is in great shape. ✨',
-        )
+        console.log(round('✨ Documentation Health Check', [
+          '  Everything looks perfect!',
+          '  Your documentation is in great shape.',
+          '',
+          `  ${colors.dim(`Scanned ${files.length} file${files.length !== 1 ? 's' : ''} in ${duration}s`)}`,
+        ]))
       } else {
-        const summaryLines: string[] = []
-        if (high > 0)
-          summaryLines.push(
-            `  ${colors.red(`● ${high} Critical Error${high !== 1 ? 's' : ''}`)}`,
-          )
-        if (warning > 0)
-          summaryLines.push(
-            `  ${colors.yellow(`● ${warning} Warning${warning !== 1 ? 's' : ''}`)}`,
-          )
-        if (low > 0)
-          summaryLines.push(
-            `  ${colors.blue(`● ${low} Improvement${low !== 1 ? 's' : ''}`)}`,
-          )
+        const summaryBullets: string[] = []
+        if (high > 0) summaryBullets.push(colors.red(`${high} Critical Error${high !== 1 ? 's' : ''}`))
+        if (warning > 0) summaryBullets.push(colors.yellow(`${warning} Warning${warning !== 1 ? 's' : ''}`))
+        if (low > 0) summaryBullets.push(colors.blue(`${low} Improvement${low !== 1 ? 's' : ''}`))
 
-        console.log(`\n${double(`Diagnosis Results (${duration}s)`, summaryLines)}\n`)
+        const summaryLines: string[] = [
+          ...bullet(summaryBullets).split('\n').map(l => l.trimStart()),
+          '',
+          colors.dim(`Scanned ${files.length} file${files.length !== 1 ? 's' : ''} in ${duration}s`),
+        ]
+
+        console.log(`\n${double('Diagnosis Results', summaryLines)}\n`)
 
         if (fixedCount > 0) {
           success(`Successfully fixed ${fixedCount} issues automatically!`)
         }
 
         if (high > 0) {
-          console.log(
-            colors.red(colors.bold('[boltdocs] Please fix the critical errors before building for production.')),
-          )
+          error('Please fix the critical errors before building for production.')
         } else {
-          success(
-            '[boltdocs] No critical issues found. You are ready to go!',
-          )
+          success('No critical issues found. You are ready to go!')
         }
       }
     }
