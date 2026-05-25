@@ -1,5 +1,14 @@
 # @bdocs/ssg
 
+## 0.0.7
+
+### Patch Changes
+
+- [`36a7d09`](https://github.com/bolt-docs/boltdocs/commit/36a7d093a0304620ddaed6c2ed8616edbaa62987) Thanks [@jesusalcaladev](https://github.com/jesusalcaladev)! - Replace `kolorist` with `@bdocs/dui` for all terminal output. Migrates `build.ts`, `dev.ts`, `cli.ts`, `utils.ts` (buildLog), `vite-plugin/index.ts`, `state.ts`, and `invariant.ts` — all `console.*` calls replaced with `dui.logger.*` and all `kolorist` colors replaced with `dui.colors`. Removes `kolorist` dependency.
+
+- Updated dependencies [[`a780571`](https://github.com/bolt-docs/boltdocs/commit/a78057165a087b36793ceced3bf5799631b9261a), [`375264f`](https://github.com/bolt-docs/boltdocs/commit/375264fb24912fa51da39ccb9fbc78b3a4962b72), [`b736267`](https://github.com/bolt-docs/boltdocs/commit/b736267f8764ab92f9b4fb3ee1f9f0b0bd07e6e0), [`f478f53`](https://github.com/bolt-docs/boltdocs/commit/f478f539a6da7a32c9ecef44fda0013b7b478133), [`f0be317`](https://github.com/bolt-docs/boltdocs/commit/f0be317824d34e6827284a342af946de53396c18)]:
+  - @bdocs/dui@0.1.1
+
 ## 0.0.6
 
 ### Patch Changes
