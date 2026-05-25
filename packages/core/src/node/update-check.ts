@@ -1,12 +1,10 @@
 import { createRequire } from 'node:module'
-import { colors } from './cli/ui'
+import * as dui from '@bdocs/dui'
 
 const req = createRequire(import.meta.url)
 
 let lastCheck = 0
 const CHECK_INTERVAL = 86_400_000
-
-const BOX_WIDTH = 54
 
 export function isNewerVersion(a: string, b: string): boolean {
   const pa = a.split('-')[0].split('.').map(Number)
@@ -46,45 +44,8 @@ export async function getCurrentVersion(): Promise<string> {
   }
 }
 
-function padCenter(s: string, w: number): string {
-  const pad = Math.max(0, w - s.length)
-  return ' '.repeat(Math.floor(pad / 2)) + s + ' '.repeat(Math.ceil(pad / 2))
-}
-
-function padLeft(s: string, w: number): string {
-  return s + ' '.repeat(Math.max(0, w - s.length))
-}
-
 export function renderUpdateBox(current: string, latest: string): string {
-  const line = '═'.repeat(BOX_WIDTH)
-  const lines: string[] = []
-
-  lines.push(`${colors.cyan}╔${line}╗${colors.reset}`)
-
-  const titleRaw = '🚀  Update available!'
-  lines.push(
-    `${colors.cyan}║${colors.reset}${padCenter(titleRaw, BOX_WIDTH)}${colors.cyan}║${colors.reset}`,
-  )
-
-  lines.push(`${colors.cyan}║${colors.reset}${' '.repeat(BOX_WIDTH)}${colors.cyan}║${colors.reset}`)
-
-  const versionRaw = `Current: ${current}  →  ${latest}`
-  const versionDisplay = `${colors.dim}Current:${colors.reset} ${colors.red}${current}${colors.reset}  ${colors.gray}→${colors.reset}  ${colors.green}${latest}${colors.reset}`
-  lines.push(
-    `${colors.cyan}║${colors.reset}  ${versionDisplay}${padLeft('', BOX_WIDTH - 2 - versionRaw.length)}${colors.cyan}║${colors.reset}`,
-  )
-
-  lines.push(`${colors.cyan}║${colors.reset}${' '.repeat(BOX_WIDTH)}${colors.cyan}║${colors.reset}`)
-
-  const runRaw = 'Run:  npm install boltdocs@latest'
-  const runDisplay = `${colors.dim}Run:${colors.reset}  ${colors.bold}npm install boltdocs@latest${colors.reset}`
-  lines.push(
-    `${colors.cyan}║${colors.reset}  ${runDisplay}${padLeft('', BOX_WIDTH - 2 - runRaw.length)}${colors.cyan}║${colors.reset}`,
-  )
-
-  lines.push(`${colors.cyan}╚${line}╝${colors.reset}`)
-
-  return '\n' + lines.join('\n') + '\n'
+  return dui.updateAvailable(current, latest)
 }
 
 export async function notifyUpdateAvailable(): Promise<void> {
@@ -100,5 +61,5 @@ export async function notifyUpdateAvailable(): Promise<void> {
 
   if (!isNewerVersion(latest, current)) return
 
-  console.log(renderUpdateBox(current, latest))
+  console.log(dui.updateAvailable(current, latest))
 }

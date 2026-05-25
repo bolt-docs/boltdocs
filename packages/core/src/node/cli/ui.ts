@@ -1,7 +1,9 @@
 import readline from 'node:readline'
+import * as dui from '@bdocs/dui'
 
 /**
  * ANSI Escape sequences for terminal coloring and styling.
+ * Kept for backward compatibility with callers that use ANSI concatenation.
  */
 export const colors = {
   reset: '\x1b[0m',
@@ -41,106 +43,45 @@ export function formatLog(message: string, style: string = ''): string {
 }
 
 export function info(message: string) {
-  console.log(formatLog(message))
+  dui.info(message)
 }
 
 export function warn(message: string) {
-  console.log(formatLog(message, colors.yellow))
+  dui.warn(message)
 }
 
 export function error(message: string, error?: any) {
-  console.error(formatLog(message, colors.red))
-  if (error) console.error(error)
+  dui.error(message, error)
 }
 
 export function success(message: string) {
-  console.log(formatLog(message, colors.green))
+  dui.success(message)
 }
 
 /**
  * Prints a horizontal divider.
  */
 export function divider() {
-  console.log(colors.gray + '─'.repeat(50) + colors.reset)
+  dui.dividerLog()
 }
 
 /**
  * Prints a boxed title.
  */
 export function box(title: string) {
-  const line = '━'.repeat(title.length + 4)
-  console.log(`\n${colors.cyan}┏${line}┓`)
-  console.log(`┃  ${colors.bold}${title}${colors.reset}${colors.cyan}  ┃`)
-  console.log(`┗${line}┛${colors.reset}\n`)
+  console.log(dui.single(title, []))
 }
-
-const BOX_W = 54
 
 export function printDevServerInfo(
   localUrl: string,
   networkUrl: string | null,
 ): void {
-  const line = '═'.repeat(BOX_W)
-  const titleRaw = 'boltdocs dev server'
-  const localRaw = `  ➜  Local:   ${localUrl}`
-  const netRaw = networkUrl
-    ? `  ➜  Network: ${networkUrl}`
-    : '  ➜  Network: use --host to expose'
-  const helpRaw = '  press h + enter for help'
-  const titlePad = BOX_W - titleRaw.length
-
-  console.log(`\n${colors.cyan}╔${line}╗${colors.reset}`)
-  console.log(
-    `${colors.cyan}║${colors.reset}${' '.repeat(Math.floor(titlePad / 2))}${colors.bold}${titleRaw}${colors.reset}${' '.repeat(Math.ceil(titlePad / 2))}${colors.cyan}║${colors.reset}`,
-  )
-  console.log(`${colors.cyan}║${colors.reset}${' '.repeat(BOX_W)}${colors.cyan}║${colors.reset}`)
-  console.log(
-    `${colors.cyan}║${colors.reset}  ${colors.green}➜${colors.reset}  ${colors.green}Local:${colors.reset}   ${colors.cyan}${localUrl}${colors.reset}${' '.repeat(BOX_W - localRaw.length)}${colors.cyan}║${colors.reset}`,
-  )
-  if (networkUrl) {
-    console.log(
-      `${colors.cyan}║${colors.reset}  ${colors.green}➜${colors.reset}  ${colors.green}Network:${colors.reset} ${colors.cyan}${networkUrl}${colors.reset}${' '.repeat(BOX_W - netRaw.length)}${colors.cyan}║${colors.reset}`,
-    )
-  } else {
-    console.log(
-      `${colors.cyan}║${colors.reset}  ${colors.green}➜${colors.reset}  ${colors.green}Network:${colors.reset} ${colors.gray}use --host to expose${colors.reset}${' '.repeat(BOX_W - netRaw.length)}${colors.cyan}║${colors.reset}`,
-    )
-  }
-  console.log(`${colors.cyan}║${colors.reset}${' '.repeat(BOX_W)}${colors.cyan}║${colors.reset}`)
-  console.log(
-    `${colors.cyan}║${colors.reset}  ${colors.dim}press h + enter for help${colors.reset}${' '.repeat(BOX_W - helpRaw.length)}${colors.cyan}║${colors.reset}`,
-  )
-  console.log(`${colors.cyan}╚${line}╝${colors.reset}\n`)
+  console.log(dui.devServer(localUrl, networkUrl))
 }
 
 export function printPreviewServerInfo(
   localUrl: string,
   networkUrl: string | null,
 ): void {
-  const line = '═'.repeat(BOX_W)
-  const titleRaw = 'boltdocs preview server'
-  const localRaw = `  ➜  Local:   ${localUrl}`
-  const netRaw = networkUrl
-    ? `  ➜  Network: ${networkUrl}`
-    : '  ➜  Network: use --host to expose'
-  const titlePad = BOX_W - titleRaw.length
-
-  console.log(`\n${colors.cyan}╔${line}╗${colors.reset}`)
-  console.log(
-    `${colors.cyan}║${colors.reset}${' '.repeat(Math.floor(titlePad / 2))}${colors.bold}${titleRaw}${colors.reset}${' '.repeat(Math.ceil(titlePad / 2))}${colors.cyan}║${colors.reset}`,
-  )
-  console.log(`${colors.cyan}║${colors.reset}${' '.repeat(BOX_W)}${colors.cyan}║${colors.reset}`)
-  console.log(
-    `${colors.cyan}║${colors.reset}  ${colors.green}➜${colors.reset}  ${colors.green}Local:${colors.reset}   ${colors.cyan}${localUrl}${colors.reset}${' '.repeat(BOX_W - localRaw.length)}${colors.cyan}║${colors.reset}`,
-  )
-  if (networkUrl) {
-    console.log(
-      `${colors.cyan}║${colors.reset}  ${colors.green}➜${colors.reset}  ${colors.green}Network:${colors.reset} ${colors.cyan}${networkUrl}${colors.reset}${' '.repeat(BOX_W - netRaw.length)}${colors.cyan}║${colors.reset}`,
-    )
-  } else {
-    console.log(
-      `${colors.cyan}║${colors.reset}  ${colors.green}➜${colors.reset}  ${colors.green}Network:${colors.reset} ${colors.gray}use --host to expose${colors.reset}${' '.repeat(BOX_W - netRaw.length)}${colors.cyan}║${colors.reset}`,
-    )
-  }
-  console.log(`${colors.cyan}╚${line}╝${colors.reset}\n`)
+  console.log(dui.previewServer(localUrl, networkUrl))
 }

@@ -68,6 +68,7 @@
   "author": "Jesus Alcala",
   "license": "MIT",
   "dependencies": {
+    "@bdocs/dui": "workspace:*",
     "@bdocs/ssg": "workspace:*",
     "@mdx-js/rollup": "3.1.1",
     "@tailwindcss/vite": "4.3.0",

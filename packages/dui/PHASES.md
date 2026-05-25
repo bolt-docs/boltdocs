@@ -1,0 +1,110 @@
+# @bdocs/dui — Implementation Phases
+
+This document tracks the gradual migration of terminal output across the Boltdocs monorepo to use `@bdocs/dui` as the single source of truth for all CLI/styled output.
+
+---
+
+## Phase 0: Package creation ✅
+
+- [x] Scaffold `packages/dui/` (package.json, tsdown.config.ts, tsconfig.json)
+- [x] Implement `colors.ts` — picocolors wrapper
+- [x] Implement `utils.ts` — padCenter, padLeft, fitWidth, terminalWidth, stripAnsi
+- [x] Implement `logger.ts` — info, warn, error, success, debug
+- [x] Implement `divider.ts` — configurable terminal divider
+- [x] Implement `list.ts` — bullet, ordered, tasks
+- [x] Implement `box.ts` — builder + pre-built (devServer, previewServer, updateAvailable)
+- [x] Implement `index.ts` — barrel exports
+- [x] Build passes
+- [x] README.md
+
+---
+
+## Phase 1: Core CLI — `packages/core/src/node/cli/ui.ts`
+
+Replace the ANSI-raw `ui.ts` with wrappers around `@bdocs/dui`. Keep the same public API so nothing breaks.
+
+- [ ] `colors` → re-export `dui.colors`
+- [ ] `info/warn/error/success/divider/box` → delegate to `dui.logger.*` and `dui.box.*`
+- [ ] `printDevServerInfo` / `printPreviewServerInfo` → delegate to `dui.*`
+- [ ] `confirm` → keep as-is (prompt logic)
+- [ ] Remove copy of `padCenter`/`padLeft` from `update-check.ts` → use `dui.*`
+- [ ] Remove copy of `renderUpdateBox` from `update-check.ts` → use `dui.updateAvailable`
+- [ ] `notifyUpdateAvailable` → use `dui.updateAvailable`
+- [ ] Verify 0 regressions in tests
+
+---
+
+## Phase 2: Core Doctor — `packages/core/src/node/cli/doctor/`
+
+- [ ] Doctor issue display → use `dui.list.*`, `dui.logger.*`
+- [ ] Doctor summary → use `dui.box.*`
+- [ ] Remove direct ANSI usage in `doctor/index.ts`
+
+---
+
+## Phase 3: Core Changelog — `packages/core/src/node/changelog/`
+
+- [ ] `console.log('📄 Reading...')` → `dui.logger.info`
+- [ ] `console.warn('⚠️...')` → `dui.logger.warn`
+- [ ] `console.log('✅ Generated...')` → `dui.logger.success`
+- [ ] Use `dui.box.*` for summary output
+
+---
+
+## Phase 4: Core Plugin/Debug Logging
+
+- [ ] `plugin/dev-server.ts` raw `console.error` → `dui.logger.error`
+- [ ] `plugin-lifecycle.ts` raw `console.log/warn/error` → `dui.logger.*`
+- [ ] `plugin-sandbox.ts` → `dui.logger.warn`
+- [ ] `config.ts` → `dui.logger.warn`
+- [ ] `meta-loader.ts` — fix `[Boltdocs]` → `[boltdocs]` via `dui.logger.*`
+- [ ] `utils.ts` `logSecurityEvent` → `dui.logger.error`
+- [ ] `tsdown.config.ts` copy scripts → `dui.logger.*`
+
+---
+
+## Phase 5: SSG — `packages/ssg/`
+
+Replace `kolorist` with `@bdocs/dui`:
+
+- [ ] `ssg/src/node/utils.ts` `buildLog()` → `dui.logger.info` with `[boltdocs]` prefix
+- [ ] `ssg/src/node/build.ts` all console calls → `dui.logger.*` / `dui.colors`
+- [ ] `ssg/src/node/dev.ts` `printServerInfo()` → `dui.box.devServer()`
+- [ ] `ssg/src/node/cli.ts` → `dui.logger.*`
+- [ ] Remove `kolorist` dependency from `@bdocs/ssg`
+
+---
+
+## Phase 6: create-boltdocs — `packages/create-boltdocs/`
+
+Replace `picocolors` direct use with `@bdocs/dui`:
+
+- [ ] `create-boltdocs/src/index.ts` all console calls → `dui.logger.*`
+- [ ] Colors via `dui.colors` instead of direct picocolors
+- [ ] Could keep picocolors as transitive dep via dui
+
+---
+
+## Phase 7: plugin-mermaid — `packages/plugin-mermaid/`
+
+- [ ] Node-side console output → `dui.logger.*`
+- [ ] Client-side stays as-is (can't use node-only dui in browser)
+
+---
+
+## Phase 8: Client-side considerations
+
+- [ ] Evaluate if a browser-safe subset of `dui` is needed
+- [ ] If yes, split into `@bdocs/dui/node` and `@bdocs/dui/client`
+- [ ] If no, leave as node-only
+
+---
+
+## Legend
+
+| Status | Meaning |
+|--------|---------|
+| `✅` | Done |
+| `🔄` | In progress |
+| `⬜` | Not started |
+| `❌` | Blocked |

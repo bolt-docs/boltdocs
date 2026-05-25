@@ -144,6 +144,9 @@ importers:
 
   packages/core:
     dependencies:
+      '@bdocs/dui':
+        specifier: workspace:*
+        version: link:../dui
       '@bdocs/ssg':
         specifier: workspace:*
         version: link:../ssg
@@ -292,6 +295,22 @@ importers:
         version: 0.21.7(@emnapi/core@1.9.2)(@emnapi/runtime@1.9.2)(synckit@0.11.12)(typescript@5.9.3)
       typescript:
         specifier: ^5.5.0
+        version: 5.9.3
+
+  packages/dui:
+    dependencies:
+      picocolors:
+        specifier: ^1.1.0
+        version: 1.1.1
+    devDependencies:
+      '@types/node':
+        specifier: ^22.0.0
+        version: 22.0.0
+      tsdown:
+        specifier: ^0.21.7
+        version: 0.21.9(synckit@0.11.12)(typescript@5.9.3)
+      typescript:
+        specifier: ^5.9.3
         version: 5.9.3
 
   packages/plugin-mermaid:
