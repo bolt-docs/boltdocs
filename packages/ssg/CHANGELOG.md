@@ -1,5 +1,11 @@
 # @bdocs/ssg
 
+## 0.0.6
+
+### Patch Changes
+
+- [`ee67a51`](https://github.com/bolt-docs/boltdocs/commit/ee67a5141282d4cbc9db0cf839c2073364f3f44a) Thanks [@jesusalcaladev](https://github.com/jesusalcaladev)! - Fall back to the original route loader when the static data manifest or data file is unavailable, instead of returning null. This prevents 'Cannot read properties of null' crashes on navigation when the loader data fetch fails.
+
 ## 0.0.5
 
 ### Patch Changes
