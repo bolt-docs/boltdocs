@@ -357,6 +357,8 @@ export function createRoutes(options: CreateRoutesOptions): RouteRecord[] {
           docMetadata.push({
             ...matchedMetaObj,
             path: bPath,
+            filePath: '',
+            slugParts: [],
             seo: {
               ...matchedMetaObj.seo,
               canonical: canonicalUrl,
