@@ -2,6 +2,7 @@ import path from 'path'
 import fs from 'fs'
 import { fdir } from 'fdir'
 import picomatch from 'picomatch'
+import { colors, double } from '@bdocs/dui'
 import { resolveConfig } from '../../config'
 import * as ui from '../ui'
 import { notifyUpdateAvailable } from '../../update-check'
@@ -58,8 +59,6 @@ export async function doctorAction(
   try {
     const doctorConfig = await loadDoctorConfig(root)
     const { format: reportFormat } = doctorConfig.reporting
-    const { colors } = ui
-
     if (reportFormat === 'pretty') {
       ui.box('DOCTOR - Documentation Health Check')
     }
@@ -74,9 +73,7 @@ export async function doctorAction(
     }
 
     if (reportFormat === 'pretty') {
-      ui.info(
-        `${ui.colors.dim}🔍 Discovering files and routes...${ui.colors.reset}`,
-      )
+      ui.info(colors.dim('🔍 Discovering files and routes...'))
     }
     const isIgnored = picomatch(doctorConfig.exclude || [])
     const api = new fdir()
@@ -128,9 +125,7 @@ export async function doctorAction(
     }
 
     if (reportFormat === 'pretty') {
-      ui.info(
-        `${ui.colors.dim}🧪 Running diagnostic checks in parallel...${ui.colors.reset}`,
-      )
+      ui.info(colors.dim('🧪 Running diagnostic checks in parallel...'))
     }
 
     const [metadataIssues, linkIssues, i18nIssues, sidebarIssues] =
@@ -215,7 +210,7 @@ export async function doctorAction(
       if (issues.length > 0) {
         ui.divider()
         for (const [file, fileIssues] of Object.entries(groupedIssues)) {
-          console.log(`\n${colors.bold}${colors.cyan}📄 ${file}${colors.reset}`)
+          console.log(`\n${colors.bold(colors.cyan(`📄 ${file}`))}`)
           for (const issue of fileIssues) {
             const icon =
               issue.level === 'high'
@@ -230,16 +225,16 @@ export async function doctorAction(
                   ? colors.yellow
                   : colors.blue
             console.log(
-              `   ${icon} ${color}${issue.level.toUpperCase()}${colors.reset}: ${issue.message}`,
+              `   ${icon} ${color(issue.level.toUpperCase())}: ${issue.message}`,
             )
             if (issue.suggestion) {
               console.log(
-                `      ${colors.dim}💡 Suggestion: ${issue.suggestion}${colors.reset}`,
+                `      ${colors.dim(`💡 Suggestion: ${issue.suggestion}`)}`,
               )
             }
             if (options.fix && issue.fix) {
               console.log(
-                `      ${colors.green}✅ Fixed automatically${colors.reset}`,
+                `      ${colors.green('✅ Fixed automatically')}`,
               )
             }
           }
@@ -252,17 +247,21 @@ export async function doctorAction(
           'Everything looks perfect! Your documentation is in great shape. ✨',
         )
       } else {
-        console.log(
-          `\n${colors.bold}Diagnosis Results (${duration}s):${colors.reset}`,
-        )
+        const summaryLines: string[] = []
         if (high > 0)
-          console.log(
-            `   ${colors.red}● ${high} Critical Errors${colors.reset}`,
+          summaryLines.push(
+            `  ${colors.red(`● ${high} Critical Error${high !== 1 ? 's' : ''}`)}`,
           )
         if (warning > 0)
-          console.log(`   ${colors.yellow}● ${warning} Warnings${colors.reset}`)
+          summaryLines.push(
+            `  ${colors.yellow(`● ${warning} Warning${warning !== 1 ? 's' : ''}`)}`,
+          )
         if (low > 0)
-          console.log(`   ${colors.blue}● ${low} Improvements${colors.reset}`)
+          summaryLines.push(
+            `  ${colors.blue(`● ${low} Improvement${low !== 1 ? 's' : ''}`)}`,
+          )
+
+        console.log(`\n${double(`Diagnosis Results (${duration}s)`, summaryLines)}\n`)
 
         if (fixedCount > 0) {
           ui.success(`Successfully fixed ${fixedCount} issues automatically!`)
@@ -270,7 +269,7 @@ export async function doctorAction(
 
         if (high > 0) {
           console.log(
-            `\n${colors.red}${colors.bold}[boltdocs] Please fix the critical errors before building for production.${colors.reset}`,
+            colors.red(colors.bold('[boltdocs] Please fix the critical errors before building for production.')),
           )
         } else {
           ui.success(

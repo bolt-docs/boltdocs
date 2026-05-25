@@ -29,16 +29,13 @@ function buildLines(lines: string[], opts: BoxOptions): string {
   const b = BORDERS[opts.style ?? 'double']
   const pad = opts.padding ?? 1
   const innerPad = ' '.repeat(pad)
-  const innerWidth = opts.width! - pad * 2
-
   const result: string[] = []
 
   if (opts.title) {
-    const titleMax = innerWidth - 2
+    const titleMax = (opts.width! - 4)
     const title = opts.title.length > titleMax ? opts.title.slice(0, titleMax - 1) + '…' : opts.title
-    const titleLine = `${b.tl}${b.h} ${colors.bold}${title}${colors.reset} ${b.h}`
-    const remaining = opts.width! - titleLine.length + title.length + 4
-    result.push(b.tl + b.h + ` ${colors.bold}${title}${colors.reset} ` + b.h.repeat(Math.max(0, remaining)) + b.tr)
+    const remaining = Math.max(0, opts.width! - title.length - 5)
+    result.push(b.tl + b.h + ` ${colors.bold(title)} ` + b.h.repeat(remaining) + b.tr)
     result.push(`${b.v}${' '.repeat(opts.width!)}${b.v}`)
   } else {
     result.push(b.tl + b.h.repeat(opts.width!) + b.tr)
@@ -85,20 +82,21 @@ export function round(title: string, lines: string[]): string {
 export function devServer(localUrl: string, networkUrl: string | null): string {
   const W = Math.min(terminalWidth(), 60)
   const netLine = networkUrl
-    ? `  ${colors.green}➜${colors.reset}  ${colors.green}Network:${colors.reset} ${colors.cyan}${networkUrl}${colors.reset}`
-    : `  ${colors.green}➜${colors.reset}  ${colors.green}Network:${colors.reset} ${colors.gray}use --host to expose${colors.reset}`
+    ? `  ${colors.green('➜')}  ${colors.green('Network:')} ${colors.cyan(networkUrl)}`
+    : `  ${colors.green('➜')}  ${colors.green('Network:')} ${colors.gray('use --host to expose')}`
 
   const lines: string[] = [
-    `  ${colors.green}➜${colors.reset}  ${colors.green}Local:${colors.reset}   ${colors.cyan}${localUrl}${colors.reset}`,
+    `  ${colors.green('➜')}  ${colors.green('Local:')}   ${colors.cyan(localUrl)}`,
     netLine,
     '',
-    `  ${colors.dim}press h + enter for help${colors.reset}`,
+    `  ${colors.dim('press h + enter for help')}`,
   ]
 
   const b = BORDERS['double']
   const result: string[] = []
   const title = 'boltdocs dev server'
-  result.push(b.tl + b.h + ` ${colors.bold}${title}${colors.reset} ` + b.h.repeat(Math.max(0, W - title.length - 3)) + b.tr)
+  const remaining = Math.max(0, W - title.length - 3)
+  result.push(b.tl + b.h + ` ${colors.bold(title)} ` + b.h.repeat(remaining) + b.tr)
   result.push(`${b.v}${' '.repeat(W)}${b.v}`)
 
   for (const line of lines) {
@@ -118,18 +116,19 @@ export function devServer(localUrl: string, networkUrl: string | null): string {
 export function previewServer(localUrl: string, networkUrl: string | null): string {
   const W = Math.min(terminalWidth(), 60)
   const netLine = networkUrl
-    ? `  ${colors.green}➜${colors.reset}  ${colors.green}Network:${colors.reset} ${colors.cyan}${networkUrl}${colors.reset}`
-    : `  ${colors.green}➜${colors.reset}  ${colors.green}Network:${colors.reset} ${colors.gray}use --host to expose${colors.reset}`
+    ? `  ${colors.green('➜')}  ${colors.green('Network:')} ${colors.cyan(networkUrl)}`
+    : `  ${colors.green('➜')}  ${colors.green('Network:')} ${colors.gray('use --host to expose')}`
 
   const lines: string[] = [
-    `  ${colors.green}➜${colors.reset}  ${colors.green}Local:${colors.reset}   ${colors.cyan}${localUrl}${colors.reset}`,
+    `  ${colors.green('➜')}  ${colors.green('Local:')}   ${colors.cyan(localUrl)}`,
     netLine,
   ]
 
   const b = BORDERS['double']
   const result: string[] = []
   const title = 'boltdocs preview server'
-  result.push(b.tl + b.h + ` ${colors.bold}${title}${colors.reset} ` + b.h.repeat(Math.max(0, W - title.length - 3)) + b.tr)
+  const remaining = Math.max(0, W - title.length - 3)
+  result.push(b.tl + b.h + ` ${colors.bold(title)} ` + b.h.repeat(remaining) + b.tr)
   result.push(`${b.v}${' '.repeat(W)}${b.v}`)
 
   for (const line of lines) {
@@ -148,9 +147,9 @@ export function updateAvailable(current: string, latest: string): string {
   const lines: string[] = [
     padCenter('🚀  Update available!', W),
     '',
-    `  ${colors.dim}Current:${colors.reset} ${colors.red}${current}${colors.reset}  ${colors.gray}→${colors.reset}  ${colors.green}${latest}${colors.reset}`,
+    `  ${colors.dim('Current:')} ${colors.red(current)}  ${colors.gray('→')}  ${colors.green(latest)}`,
     '',
-    `  ${colors.dim}Run:${colors.reset}  ${colors.bold}npm install boltdocs@latest${colors.reset}`,
+    `  ${colors.dim('Run:')}  ${colors.bold('npm install boltdocs@latest')}`,
   ]
 
   const b = BORDERS['double']

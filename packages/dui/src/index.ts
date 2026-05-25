@@ -1,4 +1,4 @@
-export { colors, colorMap } from './colors'
+export { colors, colorMap, ansiCodes } from './colors'
 export { info, warn, error, success, debug } from './logger'
 export { box, double, single, round, devServer, previewServer, updateAvailable } from './box'
 export type { BoxOptions, BoxBorderStyle } from './box'

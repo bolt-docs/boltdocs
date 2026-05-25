@@ -1,5 +1,6 @@
 import path from 'path'
 import fs from 'fs'
+import { colors } from '@bdocs/dui'
 import { normalizePath, FrontmatterSchema } from '../../utils'
 import type { DoctorContext, DoctorIssue } from './types'
 import { getSeverity, getFileData, cachedExists, fileCache } from './utils'
@@ -339,7 +340,7 @@ export async function checkLinks(ctx: DoctorContext): Promise<DoctorIssue[]> {
 
   if (externalLinks.size > 0) {
     ui.info(
-      `${ui.colors.gray}Verifying ${externalLinks.size} external links...${ui.colors.reset}`,
+      colors.gray(`Verifying ${externalLinks.size} external links...`),
     )
     const urlToFile = new Map<string, string[]>()
     for (const item of externalLinks) {

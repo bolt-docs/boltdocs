@@ -1,9 +1,9 @@
 import { colors } from './colors'
 
-const PREFIX = `${colors.bold}[boltdocs]${colors.reset}`
+const PREFIX = colors.bold('[boltdocs]')
 
 function log(stream: 'stdout' | 'stderr', color: ((s: string) => string) | null, msg: string, extra?: unknown): void {
-  const prefix = color ? `${color(PREFIX)}` : PREFIX
+  const prefix = color ? color(PREFIX) : PREFIX
   const out = stream === 'stderr' ? console.error : console.log
   out(`${prefix} ${msg}`)
   if (extra !== undefined) {
