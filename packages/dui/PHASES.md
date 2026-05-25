@@ -19,26 +19,28 @@ This document tracks the gradual migration of terminal output across the Boltdoc
 
 ---
 
-## Phase 1: Core CLI — `packages/core/src/node/cli/ui.ts`
+## Phase 1: Core CLI — `packages/core/src/node/cli/ui.ts` ✅
 
 Replace the ANSI-raw `ui.ts` with wrappers around `@bdocs/dui`. Keep the same public API so nothing breaks.
 
-- [ ] `colors` → re-export `dui.colors`
-- [ ] `info/warn/error/success/divider/box` → delegate to `dui.logger.*` and `dui.box.*`
-- [ ] `printDevServerInfo` / `printPreviewServerInfo` → delegate to `dui.*`
-- [ ] `confirm` → keep as-is (prompt logic)
-- [ ] Remove copy of `padCenter`/`padLeft` from `update-check.ts` → use `dui.*`
-- [ ] Remove copy of `renderUpdateBox` from `update-check.ts` → use `dui.updateAvailable`
-- [ ] `notifyUpdateAvailable` → use `dui.updateAvailable`
-- [ ] Verify 0 regressions in tests
+- [x] `colors` → re-export `dui.colors` (picocolors)
+- [x] `info/warn/error/success/divider/box` → delegate to `dui.logger.*` and `dui.box.*`
+- [x] `printDevServerInfo` / `printPreviewServerInfo` → delegate to `dui.*`
+- [x] `confirm` → keep as-is (prompt logic), use picocolors for styling
+- [x] Remove copy of `padCenter`/`padLeft` from `update-check.ts` → use `dui.*`
+- [x] Remove copy of `renderUpdateBox` from `update-check.ts` → use `dui.updateAvailable`
+- [x] `notifyUpdateAvailable` → use `dui.updateAvailable`
+- [x] Verify 0 regressions in tests
+- [x] Remove raw ANSI escape codes (`ansiCodes`) from dui and ui.ts — all code uses picocolors functions
 
 ---
 
-## Phase 2: Core Doctor — `packages/core/src/node/cli/doctor/`
+## Phase 2: Core Doctor — `packages/core/src/node/cli/doctor/` ✅
 
-- [ ] Doctor issue display → use `dui.list.*`, `dui.logger.*`
-- [ ] Doctor summary → use `dui.box.*`
-- [ ] Remove direct ANSI usage in `doctor/index.ts`
+- [x] Doctor issue display → use picocolors functions via `@bdocs/dui`
+- [x] Doctor summary → use `dui.box.double()`
+- [x] Remove direct ANSI usage in `doctor/index.ts`
+- [x] Remove `ui.colors` usage in `checkers.ts` → use `colors` from `@bdocs/dui`
 
 ---
 

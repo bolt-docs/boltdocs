@@ -1,8 +1,7 @@
 import readline from 'node:readline'
-import { ansiCodes } from '@bdocs/dui'
 import * as dui from '@bdocs/dui'
 
-export const colors = { ...ansiCodes }
+export const colors = dui.colors
 
 export function confirm(message: string): Promise<boolean> {
   const rl = readline.createInterface({
@@ -11,15 +10,18 @@ export function confirm(message: string): Promise<boolean> {
   })
 
   return new Promise((resolve) => {
-    rl.question(`${formatLog(message, colors.yellow)} (y/N): `, (answer) => {
+    const prompt = dui.colors.yellow(dui.colors.bold(`[boltdocs] ${message}`))
+    rl.question(`${prompt} (y/N): `, (answer) => {
       rl.close()
       resolve(answer.toLowerCase() === 'y' || answer.toLowerCase() === 'yes')
     })
   })
 }
 
-export function formatLog(message: string, style: string = ''): string {
-  return `${style}${colors.bold}[boltdocs]${colors.reset} ${message}${colors.reset}`
+export function formatLog(message: string, style?: (s: string) => string): string {
+  const prefix = dui.colors.bold('[boltdocs]')
+  const full = `${prefix} ${message}`
+  return style ? style(full) : full
 }
 
 export function info(message: string) {
