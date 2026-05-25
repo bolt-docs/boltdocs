@@ -503,12 +503,12 @@ export async function build(
             loaderDataFileCount++
           }
 
-          config.logger.info(
-            `${dim(`${outDir}/`)}${cyan(filename.padEnd(15, ' '))}  ${green('(cached)')}`,
+          info(
+            `${colors.dim(`${outDir}/`)}${colors.cyan(filename.padEnd(15, ' '))}  ${colors.green('(cached)')}`,
           )
         } catch (err: any) {
           throw new Error(
-            `${gray('[vite-react-ssg]')} Error on cached page: ${cyan(path)}\n${err.stack}`,
+            `Error on cached page: ${path}\n${err.stack}`,
           )
         }
       })
@@ -682,12 +682,12 @@ export async function build(
           }
         }
 
-        config.logger.info(
-          `${dim(`${outDir}/`)}${cyan(filename.padEnd(15, ' '))}  ${dim(getSize(formatted))}`,
+        info(
+          `${colors.dim(`${outDir}/`)}${colors.cyan(filename.padEnd(15, ' '))}  ${colors.dim(getSize(formatted))}`,
         )
       } catch (err: any) {
         throw new Error(
-          `${gray('[vite-react-ssg]')} ${red(`Error on page: ${cyan(path)}`)}\n${err.stack}`,
+          `Error on page: ${path}\n${err.stack}`,
         )
       }
     })
@@ -736,8 +736,8 @@ export async function build(
     join(out, `static-loader-data-manifest-${hash}.json`),
     staticLoaderDataManifestString,
   )
-  config.logger.info(
-    `${dim(`${outDir}/`)}${cyan(`static-loader-data-manifest-${hash}.json`.padEnd(15, ' '))}  ${dim(getSize(staticLoaderDataManifestString))}`,
+  info(
+    `${colors.dim(`${outDir}/`)}${colors.cyan(`static-loader-data-manifest-${hash}.json`.padEnd(15, ' '))}  ${colors.dim(getSize(staticLoaderDataManifestString))}`,
   )
 
   await fs.remove(join(root, '.vite-react-ssg-temp'))
