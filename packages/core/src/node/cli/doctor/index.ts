@@ -4,6 +4,7 @@ import { fdir } from 'fdir'
 import picomatch from 'picomatch'
 import { resolveConfig } from '../../config'
 import * as ui from '../ui'
+import { notifyUpdateAvailable } from '../../update-check'
 import {
   type DoctorContext,
   type DoctorIssue,
@@ -51,6 +52,8 @@ export async function doctorAction(
     await doctorInit(root)
     return
   }
+
+  notifyUpdateAvailable()
 
   try {
     const doctorConfig = await loadDoctorConfig(root)

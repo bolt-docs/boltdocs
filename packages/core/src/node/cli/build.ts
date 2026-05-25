@@ -5,6 +5,7 @@ import * as ui from './ui'
 import path from 'node:path'
 import { generateRoutes } from '../routes/index'
 import { resolveConfig } from '../config'
+import { notifyUpdateAvailable } from '../update-check'
 
 /**
  * Logic for the `boltdocs build` command.
@@ -13,6 +14,7 @@ import { resolveConfig } from '../config'
  * @param root - The project root directory
  */
 export async function buildAction(root: string = process.cwd()) {
+  notifyUpdateAvailable()
   try {
     const viteConfig = await createViteConfig(root, 'production')
 
