@@ -1,5 +1,6 @@
 import { visit, SKIP } from 'unist-util-visit'
 import type { BoltdocsPlugin } from 'boltdocs'
+import { warn } from '@bdocs/dui'
 
 export interface MermaidThemeVariables {
   primaryColor?: string
@@ -115,7 +116,7 @@ function remarkMermaid() {
         },
       )
     } catch (e) {
-      console.warn('[Mermaid plugin] Failed to transform code blocks:', e)
+      warn('Failed to transform Mermaid code blocks:', e)
     }
   }
 }

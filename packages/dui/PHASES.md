@@ -94,10 +94,11 @@ Replace `picocolors` direct use with `@bdocs/dui`:
 
 ---
 
-## Phase 7: plugin-mermaid — `packages/plugin-mermaid/`
+## Phase 7: plugin-mermaid — `packages/plugin-mermaid/` ✅
 
-- [ ] Node-side console output → `dui.logger.*`
-- [ ] Client-side stays as-is (can't use node-only dui in browser)
+- [x] Node-side console output (`src/node/index.ts`) → `dui.logger.warn`
+- [x] Client-side stays as-is (`src/client/Mermaid.tsx` — browser, can't use dui)
+- [x] Add `@bdocs/dui` as dependency
 
 ---
 
