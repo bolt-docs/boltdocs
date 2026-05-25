@@ -1,11 +1,10 @@
 import path from 'path'
 import fs from 'fs'
-import { colors } from '@bdocs/dui'
+import { colors, info } from '@bdocs/dui'
 import { normalizePath, FrontmatterSchema } from '../../utils'
 import type { DoctorContext, DoctorIssue } from './types'
 import { getSeverity, getFileData, cachedExists, fileCache } from './utils'
 import { getCachedSimilarity } from './similarity'
-import * as ui from '../ui'
 
 /**
  * Check for frontmatter and SEO metadata issues.
@@ -339,7 +338,7 @@ export async function checkLinks(ctx: DoctorContext): Promise<DoctorIssue[]> {
   }
 
   if (externalLinks.size > 0) {
-    ui.info(
+    info(
       colors.gray(`Verifying ${externalLinks.size} external links...`),
     )
     const urlToFile = new Map<string, string[]>()

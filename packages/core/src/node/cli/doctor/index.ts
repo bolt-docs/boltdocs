@@ -2,9 +2,8 @@ import path from 'path'
 import fs from 'fs'
 import { fdir } from 'fdir'
 import picomatch from 'picomatch'
-import { colors, double } from '@bdocs/dui'
+import { colors, double, single, confirm, info, success, warn, error, dividerLog } from '@bdocs/dui'
 import { resolveConfig } from '../../config'
-import * as ui from '../ui'
 import { notifyUpdateAvailable } from '../../update-check'
 import {
   type DoctorContext,
@@ -30,15 +29,15 @@ export { checkMetadata, checkLinks, checkI18n, checkSidebar }
 export async function doctorInit(root: string) {
   const configPath = path.resolve(root, 'doctor.json')
   if (fs.existsSync(configPath)) {
-    ui.warn(`"doctor.json" already exists at ${root}.`)
+    warn(`"doctor.json" already exists at ${root}.`)
     return
   }
 
   try {
     fs.writeFileSync(configPath, JSON.stringify(DEFAULT_DOCTOR_CONFIG, null, 2))
-    ui.success(`Created "doctor.json" with default configuration.`)
+    success(`Created "doctor.json" with default configuration.`)
   } catch (e) {
-    ui.error(`Failed to create "doctor.json": ${e}`)
+    error(`Failed to create "doctor.json": ${e}`)
   }
 }
 
@@ -60,7 +59,7 @@ export async function doctorAction(
     const doctorConfig = await loadDoctorConfig(root)
     const { format: reportFormat } = doctorConfig.reporting
     if (reportFormat === 'pretty') {
-      ui.box('DOCTOR - Documentation Health Check')
+      console.log(single('DOCTOR - Documentation Health Check', []))
     }
 
     const start = performance.now()
@@ -68,12 +67,12 @@ export async function doctorAction(
     const docsDir = path.resolve(root, 'docs')
     if (!fs.existsSync(docsDir)) {
       if (reportFormat === 'pretty')
-        ui.error(`Docs dir not found at ${docsDir}`)
+        error(`Docs dir not found at ${docsDir}`)
       process.exit(1)
     }
 
     if (reportFormat === 'pretty') {
-      ui.info(colors.dim('🔍 Discovering files and routes...'))
+      info(colors.dim('🔍 Discovering files and routes...'))
     }
     const isIgnored = picomatch(doctorConfig.exclude || [])
     const api = new fdir()
@@ -125,7 +124,7 @@ export async function doctorAction(
     }
 
     if (reportFormat === 'pretty') {
-      ui.info(colors.dim('🧪 Running diagnostic checks in parallel...'))
+      info(colors.dim('🧪 Running diagnostic checks in parallel...'))
     }
 
     const [metadataIssues, linkIssues, i18nIssues, sidebarIssues] =
@@ -149,7 +148,7 @@ export async function doctorAction(
       for (const issue of issues) {
         if (issue.fix) {
           if (ctx.doctorConfig.fix.confirmChanges) {
-            const confirmed = await ui.confirm(
+            const confirmed = await confirm(
               `Fix issue in "${issue.file}": ${issue.message}?`,
             )
             if (!confirmed) continue
@@ -208,7 +207,7 @@ export async function doctorAction(
       )
 
       if (issues.length > 0) {
-        ui.divider()
+                dividerLog()
         for (const [file, fileIssues] of Object.entries(groupedIssues)) {
           console.log(`\n${colors.bold(colors.cyan(`📄 ${file}`))}`)
           for (const issue of fileIssues) {
@@ -239,11 +238,11 @@ export async function doctorAction(
             }
           }
         }
-        ui.divider()
+                dividerLog()
       }
 
       if (issues.length === 0) {
-        ui.success(
+        success(
           'Everything looks perfect! Your documentation is in great shape. ✨',
         )
       } else {
@@ -264,7 +263,7 @@ export async function doctorAction(
         console.log(`\n${double(`Diagnosis Results (${duration}s)`, summaryLines)}\n`)
 
         if (fixedCount > 0) {
-          ui.success(`Successfully fixed ${fixedCount} issues automatically!`)
+          success(`Successfully fixed ${fixedCount} issues automatically!`)
         }
 
         if (high > 0) {
@@ -272,7 +271,7 @@ export async function doctorAction(
             colors.red(colors.bold('[boltdocs] Please fix the critical errors before building for production.')),
           )
         } else {
-          ui.success(
+          success(
             '[boltdocs] No critical issues found. You are ready to go!',
           )
         }
@@ -287,13 +286,13 @@ export async function doctorAction(
       warning > doctorConfig.reporting.maxWarnings
     ) {
       if (reportFormat === 'pretty')
-        ui.error(
+        error(
           `Failed: Too many warnings (${warning} > ${doctorConfig.reporting.maxWarnings})`,
         )
       process.exit(1)
     }
   } catch (e) {
-    ui.error(`Doctor failed: ${e}`)
+    error(`Doctor failed: ${e}`)
     process.exit(1)
   }
 }

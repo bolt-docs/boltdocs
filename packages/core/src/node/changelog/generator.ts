@@ -1,5 +1,6 @@
 import fs from 'node:fs'
 import path from 'node:path'
+import { info, warn, success, double } from '@bdocs/dui'
 import { parseChangelog, readChangelogFile } from './parser'
 import type { ChangelogVersion } from './types'
 
@@ -29,13 +30,13 @@ export async function generateChangelog(
   const inferTab = options.inferTab !== false
   const limit = options.limit ? Math.max(1, options.limit) : undefined
 
-  console.log(`📄 Reading changelog from: ${filePath}`)
+  info(`📄 Reading changelog from: ${filePath}`)
 
   const content = readChangelogFile(filePath)
   const versions = parseChangelog(content)
 
   if (versions.length === 0) {
-    console.warn('⚠️  No versions found in changelog')
+    warn('⚠️  No versions found in changelog')
     return
   }
 
@@ -43,7 +44,7 @@ export async function generateChangelog(
 
   if (!fs.existsSync(outputDir)) {
     fs.mkdirSync(outputDir, { recursive: true })
-    console.log(`📁 Created directory: ${outputDir}`)
+    info(`📁 Created directory: ${outputDir}`)
   }
 
   for (const [i, version] of limitedVersions.entries()) {
@@ -52,7 +53,7 @@ export async function generateChangelog(
     const filePath = path.join(outputDir, filename)
 
     fs.writeFileSync(filePath, mdContent, 'utf-8')
-    console.log(`✅ Generated: ${filename}`)
+    success(`Generated: ${filename}`)
   }
 
   const totalVersions =
@@ -60,9 +61,13 @@ export async function generateChangelog(
       ? `${limit} of ${versions.length} versions`
       : `${versions.length} versions`
 
-  console.log(`\n✨ Generated ${totalVersions} changelog pages in ${outputDir}`)
-  console.log(`\n📝 Add this to your navbar in boltdocs.config.ts:`)
-  console.log(`   { label: '${title}', href: '/changelog' }`)
+  const summaryLines = [
+    `  ✨ Generated ${totalVersions} changelog pages in ${outputDir}`,
+    '',
+    `  📝 Add this to your navbar in boltdocs.config.ts:`,
+    `     { label: '${title}', href: '/changelog' }`,
+  ]
+  console.log(`\n${double('Changelog Generation', summaryLines)}\n`)
 }
 
 function generateMarkdown(

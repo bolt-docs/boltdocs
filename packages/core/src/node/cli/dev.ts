@@ -1,6 +1,6 @@
 import { createServer } from '@bdocs/ssg/node'
 import { createViteConfig } from '../index'
-import * as ui from './ui'
+import { error, devServer } from '@bdocs/dui'
 import { notifyUpdateAvailable } from '../update-check'
 
 /**
@@ -18,13 +18,15 @@ export async function devAction(root: string = process.cwd()) {
     const server = await createServer(viteConfig)
     await server.listen()
     const urls = server.resolvedUrls
-    ui.printDevServerInfo(
-      urls?.local?.[0] ?? 'http://localhost:5173',
-      urls?.network?.[0] ?? null,
+    console.log(
+      devServer(
+        urls?.local?.[0] ?? 'http://localhost:5173',
+        urls?.network?.[0] ?? null,
+      ),
     )
     server.bindCLIShortcuts({ print: false })
   } catch (e) {
-    ui.error('Failed to start dev server:', e)
+    error('Failed to start dev server:', e)
     process.exit(1)
   }
 }

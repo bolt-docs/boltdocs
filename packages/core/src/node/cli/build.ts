@@ -1,7 +1,7 @@
 import { preview } from 'vite'
 import { build as ssgBuild } from '@bdocs/ssg/node'
 import { createViteConfig } from '../index'
-import * as ui from './ui'
+import { success, error, previewServer } from '@bdocs/dui'
 import path from 'node:path'
 import { generateRoutes } from '../routes/index'
 import { resolveConfig } from '../config'
@@ -47,10 +47,10 @@ export async function buildAction(root: string = process.cwd()) {
       },
       viteConfig,
     )
-    ui.success('SSG build completed successfully!')
+    success('SSG build completed successfully!')
     process.exit(0)
   } catch (e) {
-    ui.error('Build failed:', e)
+    error('Build failed:', e)
     process.exit(1)
   }
 }
@@ -68,12 +68,14 @@ export async function previewAction(root: string = process.cwd()) {
     viteConfig.clearScreen = false
     const previewServer = await preview(viteConfig)
     const urls = previewServer.resolvedUrls
-    ui.printPreviewServerInfo(
-      urls?.local?.[0] ?? 'http://localhost:4173',
-      urls?.network?.[0] ?? null,
+    console.log(
+      previewServer(
+        urls?.local?.[0] ?? 'http://localhost:4173',
+        urls?.network?.[0] ?? null,
+      ),
     )
   } catch (e) {
-    ui.error('Failed to start preview server:', e)
+    error('Failed to start preview server:', e)
     process.exit(1)
   }
 }

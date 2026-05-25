@@ -2,7 +2,15 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import fs from 'fs'
 import path from 'path'
 import os from 'os'
-import * as ui from '../../src/node/cli/ui'
+
+// eslint-disable-next-line import/order
+vi.mock('@bdocs/dui', async (importOriginal) => {
+  const actual = await importOriginal() as typeof import('@bdocs/dui')
+  return {
+    ...actual,
+    confirm: vi.fn().mockResolvedValue(true),
+  }
+})
 
 // Hoist the mock config so it's available for the hoisted vi.mock
 const { mockConfig } = vi.hoisted(() => ({
@@ -70,8 +78,8 @@ describe('doctor unified tests', () => {
 
     vi.stubGlobal('process', { ...process, exit: vi.fn() })
     vi.spyOn(console, 'log').mockImplementation(() => {})
-    // Mock ui.confirm to always confirm in tests
-    vi.spyOn(ui, 'confirm').mockResolvedValue(true)
+    // Mock confirm to always confirm in tests
+    vi.spyOn({ confirm }, 'confirm').mockResolvedValue(true)
   })
 
   afterEach(() => {

@@ -44,12 +44,12 @@ Replace the ANSI-raw `ui.ts` with wrappers around `@bdocs/dui`. Keep the same pu
 
 ---
 
-## Phase 3: Core Changelog — `packages/core/src/node/changelog/`
+## Phase 3: Core Changelog — `packages/core/src/node/changelog/` ✅
 
-- [ ] `console.log('📄 Reading...')` → `dui.logger.info`
-- [ ] `console.warn('⚠️...')` → `dui.logger.warn`
-- [ ] `console.log('✅ Generated...')` → `dui.logger.success`
-- [ ] Use `dui.box.*` for summary output
+- [x] `console.log('📄 Reading...')` → `dui.logger.info`
+- [x] `console.warn('⚠️...')` → `dui.logger.warn`
+- [x] `console.log('✅ Generated...')` → `dui.logger.success`
+- [x] Use `dui.box.double()` for summary output
 
 ---
 

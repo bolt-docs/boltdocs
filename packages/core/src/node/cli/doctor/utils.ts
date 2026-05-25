@@ -12,7 +12,7 @@ import {
   DEFAULT_DOCTOR_CONFIG,
   type DoctorContext,
 } from './types'
-import * as ui from '../ui'
+import { warn } from '@bdocs/dui'
 
 export function getSeverity(
   ctx: DoctorContext,
@@ -100,7 +100,7 @@ export async function loadDoctorConfig(root: string): Promise<DoctorConfig> {
         ],
       }
     } catch (e) {
-      ui.warn(`Failed to parse doctor.json: ${e}`)
+      warn(`Failed to parse doctor.json: ${e}`)
     }
   }
   return DEFAULT_DOCTOR_CONFIG
