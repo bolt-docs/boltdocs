@@ -1,6 +1,16 @@
 #!/usr/bin/env node
+import { configure } from '@bdocs/dui'
 import cac from 'cac'
 import { devAction, buildAction, previewAction } from './cli/index'
+
+// Configure @bdocs/dui with boltdocs-specific values once, at process start.
+// All packages that share this process (ssg, plugins, etc.) inherit this config.
+configure({
+  prefix: 'boltdocs',
+  devServerTitle: 'boltdocs dev server',
+  previewServerTitle: 'boltdocs preview server',
+  updateCommand: 'pnpm add boltdocs@latest',
+})
 
 const cli = cac('boltdocs')
 

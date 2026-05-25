@@ -1,5 +1,5 @@
-import path from 'path'
-import fs from 'fs'
+import path from 'node:path'
+import fs from 'node:fs'
 import { colors, info } from '@bdocs/dui'
 import { normalizePath, FrontmatterSchema } from '../../utils'
 import type { DoctorContext, DoctorIssue } from './types'
@@ -338,9 +338,7 @@ export async function checkLinks(ctx: DoctorContext): Promise<DoctorIssue[]> {
   }
 
   if (externalLinks.size > 0) {
-    info(
-      colors.gray(`Verifying ${externalLinks.size} external links...`),
-    )
+    info(colors.gray(`Verifying ${externalLinks.size} external links...`))
     const urlToFile = new Map<string, string[]>()
     for (const item of externalLinks) {
       if (!urlToFile.has(item.url)) urlToFile.set(item.url, [])

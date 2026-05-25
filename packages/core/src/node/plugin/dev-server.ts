@@ -16,6 +16,7 @@ import {
 import type { PluginLifecycleManager } from '../plugins'
 import { generateLinkTree } from '../cli/doctor'
 import path from 'node:path'
+import { error } from '@bdocs/dui'
 
 /**
  * Debounce delay for content changes (ms).
@@ -54,7 +55,7 @@ export function createDevServerPlugin(
 
       // Initial Link Tree generation
       generateLinkTree(docsDir, process.cwd(), getConfig()).catch((e) => {
-        console.error('[boltdocs] Failed to generate initial link tree:', e)
+        error('Failed to generate initial link tree:', e)
       })
 
       // Asynchronous background pre-warming of routes
@@ -238,7 +239,7 @@ export function createDevServerPlugin(
             // Update Link Tree on structural change (non-blocking)
             generateLinkTree(docsDir, process.cwd(), currentConfig).catch(
               (e) => {
-                console.error('[boltdocs] Failed to update link tree:', e)
+                error('Failed to update link tree:', e)
               },
             )
 
@@ -303,15 +304,12 @@ export function createDevServerPlugin(
                   data: { file: normalized, relPath },
                 })
               } catch (e) {
-                console.error(
-                  `[boltdocs] HMR error processing content change:`,
-                  e,
-                )
+                error('HMR error processing content change:', e)
               }
             }, DEBOUNCE_MS),
           )
         } catch (e) {
-          console.error(`[boltdocs] HMR error during ${type} event:`, e)
+          error(`HMR error during ${type} event:`, e)
         }
       }
 
