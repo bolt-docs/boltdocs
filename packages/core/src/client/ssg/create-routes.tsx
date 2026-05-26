@@ -5,7 +5,7 @@ import { BoltdocsShell } from './boltdocs-shell'
 import { NotFound } from '../components/ui-base'
 const Loading = () => <div className="text-muted text-sm py-4">Loading...</div>
 import type React from 'react'
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 
 interface CreateRoutesOptions {
   routesData: ComponentRoute[]
@@ -18,11 +18,64 @@ interface CreateRoutesOptions {
   components?: Record<string, React.ComponentType>
 }
 
+function resolveModuleLoader(loader: any): Promise<any> {
+  return typeof loader === 'function' ? loader() : Promise.resolve(loader)
+}
+
 /**
- * Stable component to render MDX pages.
- * By being outside createRoutes, it prevents React from unmounting the page on HMR.
+ * Renders an MDX page from a lazy getter (client builds).
+ * Uses state-based loading: the getter is called in useEffect and the
+ * resolved module is cached in state. With the background prefetcher
+ * running in the entry module, the module is already loaded by the
+ * time the user navigates, making this effectively instant.
  */
-const MdxRouteElement = ({
+const LazyMdxElement = ({
+  getModule,
+  moduleKey,
+  route,
+  components,
+}: {
+  getModule: (() => Promise<any>) | null
+  moduleKey: string | undefined
+  route: ComponentRoute
+  components: any
+}) => {
+  const [mod, setMod] = useState<any>(null)
+
+  useEffect(() => {
+    let cancelled = false
+    if (getModule) {
+      resolveModuleLoader(getModule).then((m: any) => {
+        if (!cancelled) setMod(m)
+      })
+    }
+    return () => { cancelled = true }
+  }, [getModule])
+
+  useEffect(() => {
+    if (!import.meta.hot || !moduleKey) return
+    const handler = (data: { relPath: string }) => {
+      const incoming = data.relPath.replace(/\\/g, '/').replace(/^\//, '')
+      const routeFile = route.filePath.replace(/\\/g, '/').replace(/^\//, '')
+      if (incoming !== routeFile) return
+      const cacheBustUrl = moduleKey + '?t=' + Date.now()
+      import(/* @vite-ignore */ cacheBustUrl).then((m: any) => {
+        setMod(m)
+      })
+    }
+    import.meta.hot.on('boltdocs:mdx-update', handler)
+    return () => import.meta.hot?.off('boltdocs:mdx-update', handler)
+  }, [moduleKey, route.filePath])
+
+  if (!mod) return <Loading />
+  const MDXComponent = mod.default ?? mod
+  return <MdxPage MDXComponent={MDXComponent} mdxComponents={components} />
+}
+
+/**
+ * Renders an MDX page from an eagerly loaded module (SSR builds).
+ */
+const EagerMdxElement = ({
   moduleLoader,
   moduleKey,
   route,
@@ -33,29 +86,19 @@ const MdxRouteElement = ({
   route: ComponentRoute
   components: any
 }) => {
-  const MDXComponent = moduleLoader?.default ?? moduleLoader ?? null
-
   useEffect(() => {
     if (!import.meta.hot || !moduleKey) return
-
     const handler = (data: { relPath: string }) => {
       const incoming = data.relPath.replace(/\\/g, '/').replace(/^\//, '')
       const routeFile = route.filePath.replace(/\\/g, '/').replace(/^\//, '')
-
       if (incoming !== routeFile) return
-
-      const cacheBustUrl = moduleKey + '?t=' + Date.now()
-      import(/* @vite-ignore */ cacheBustUrl).then((m: any) => {
-        MDXComponent
-      })
     }
-
     import.meta.hot.on('boltdocs:mdx-update', handler)
     return () => import.meta.hot?.off('boltdocs:mdx-update', handler)
   }, [moduleKey, route.filePath])
 
+  const MDXComponent = moduleLoader?.default ?? moduleLoader ?? null
   if (!MDXComponent) return <Loading />
-
   return <MdxPage MDXComponent={MDXComponent} mdxComponents={components} />
 }
 
@@ -168,6 +211,11 @@ export function createRoutes(options: CreateRoutesOptions): RouteRecord[] {
     }
   }
 
+  // Detect lazy vs eager module loading mode.
+  // Lazy mode: mdxModules[key] is a function () => Promise<Module> (client builds).
+  // Eager mode: mdxModules[key] is the Module directly (SSR builds).
+  const isLazy = mdxModuleKeys.length > 0 && typeof mdxModules[mdxModuleKeys[0]] === 'function'
+
   // 1. Documentation routes
   const docRoutes: RouteRecord[] = docMetadata.map((route) => {
     // Perform constant-time lookup using the pre-computed map
@@ -184,8 +232,16 @@ export function createRoutes(options: CreateRoutesOptions): RouteRecord[] {
 
     return {
       path,
-      element: (
-        <MdxRouteElement
+      element: isLazy ? (
+        <LazyMdxElement
+          key={moduleKey || path}
+          getModule={moduleLoader}
+          moduleKey={moduleKey}
+          route={route}
+          components={components}
+        />
+      ) : (
+        <EagerMdxElement
           key={moduleKey || path}
           moduleKey={moduleKey}
           moduleLoader={moduleLoader}

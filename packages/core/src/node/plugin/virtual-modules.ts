@@ -72,15 +72,13 @@ export function createVirtualModulesPlugin(
     },
 
     async load(id) {
-      const viteConfig = getViteConfig()
-      const isBuild = viteConfig?.command === 'build'
       const config = getConfig()
 
       if (
         id.includes('boltdocs-entry.tsx') ||
         id === '\0virtual:boltdocs-entry'
       ) {
-        return generateEntryCode(options, config, isBuild)
+        return generateEntryCode(options, config)
       }
 
       if (
@@ -142,7 +140,7 @@ export function createVirtualModulesPlugin(
         return `export default ${JSON.stringify(clientConfig, null, 2)};`
       }
       if (name === 'entry') {
-        const code = generateEntryCode(options, config, isBuild)
+        const code = generateEntryCode(options, config)
         return code
       }
       if (name === 'mdx-components') {

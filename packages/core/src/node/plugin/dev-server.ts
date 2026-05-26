@@ -59,21 +59,23 @@ export function createDevServerPlugin(
       })
 
       // Asynchronous background pre-warming of routes
+      // Compiles MDX files in parallel batches so Vite's module cache is warm
+      // when the browser's background prefetcher requests them.
       setTimeout(async () => {
         try {
           const { generateRoutes } = await import('../routes')
           const routes = await generateRoutes(docsDir, getConfig())
-          for (const route of routes) {
-            if (route.filePath) {
-              const rel = path
-                .relative(process.cwd(), route.filePath)
-                .replace(/\\/g, '/')
-              const viteUrl = rel.startsWith('/') ? rel : `/${rel}`
-              // Warm up the module cache asynchronously
-              await server.transformRequest(viteUrl).catch(() => {})
-              // Brief delay to prevent blocking the event loop
-              await new Promise((resolve) => setTimeout(resolve, 50))
-            }
+          const files = routes.filter(r => r.filePath).map(r => r.filePath)
+          const BATCH_SIZE = 8
+          for (let i = 0; i < files.length; i += BATCH_SIZE) {
+            const batch = files.slice(i, i + BATCH_SIZE)
+            await Promise.allSettled(
+              batch.map((file) => {
+                const rel = path.relative(process.cwd(), file).replace(/\\/g, '/')
+                const viteUrl = rel.startsWith('/') ? rel : `/${rel}`
+                return server.transformRequest(viteUrl)
+              }),
+            )
           }
         } catch {
           // Fall back silently on any background failures

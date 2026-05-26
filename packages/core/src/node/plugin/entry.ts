@@ -15,7 +15,6 @@ import fs from 'fs'
 export function generateEntryCode(
   options: BoltdocsPluginOptions,
   config?: BoltdocsConfig,
-  isBuild: boolean = false,
 ): string {
   // Auto-import index.css if it exists
   const cssPath = path.resolve(process.cwd(), 'index.css')
@@ -52,8 +51,32 @@ const ${name} = _comp_${name}.default || _comp_${name}['${name}'] || _comp_${nam
     ? 'externalPages: _external_module.pages, externalLayout: _external_module.layout,'
     : ''
 
-  // Use eager loading for instant content display - modules are pre-loaded.
-  const globMode = '{ eager: true }'
+  // SSR builds need eager glob (synchronous access during renderToString).
+  // Client builds (dev + prod) use lazy glob + background prefetch for fast first paint.
+  const isSSR = process.env.VITE_SSG === 'true'
+  const globMode = isSSR ? '{ eager: true }' : '{}'
+
+  // Background prefetch: after first paint, load all MDX modules in batches
+  // so navigation is instant (modules already in Vite/browser cache).
+  const prefetchCode = isSSR ? '' : `
+if (typeof window !== 'undefined') {
+  const prefetchAll = () => {
+    const getters = Object.values(mdxModules)
+    if (getters.length === 0) return
+    let i = 0
+    const nextBatch = () => {
+      if (i >= getters.length) return
+      const batch = getters.slice(i, i + 6)
+      i += batch.length
+      Promise.allSettled(batch.map(fn => fn())).then(() => {
+        setTimeout(nextBatch, 0)
+      })
+    }
+    ;(typeof requestIdleCallback === 'function' ? requestIdleCallback : function(cb) { setTimeout(cb, 500) })(nextBatch)
+  }
+  prefetchAll()
+}
+`
 
   return `
 import { ViteReactSSG, createRoutes } from 'boltdocs/client';
@@ -85,5 +108,6 @@ export const createRoot = ViteReactSSG(
     }
   },
 );
+${prefetchCode}
 `
 }
