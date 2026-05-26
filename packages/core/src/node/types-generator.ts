@@ -3,7 +3,7 @@ import path from 'node:path'
 import type { BoltdocsConfig } from '../shared/types'
 
 /**
- * Generates a declaration file (.boltdocs/types.d.ts) to provide strict typing
+ * Generates a declaration file (.boltdocs/generated/types.d.ts) to provide strict typing
  * for locales, versions, route paths, and custom components based on the project files.
  */
 export function generateProjectTypes(
@@ -12,7 +12,7 @@ export function generateProjectTypes(
   root: string = process.cwd(),
   routePaths?: string[],
 ) {
-  const dotBoltdocsDir = path.resolve(root, '.boltdocs')
+  const dotBoltdocsDir = path.resolve(root, '.boltdocs', 'generated')
   if (!fs.existsSync(dotBoltdocsDir)) {
     fs.mkdirSync(dotBoltdocsDir, { recursive: true })
   }
@@ -90,7 +90,7 @@ export function writeLinkTree(
   routePaths: string[],
   root: string = process.cwd(),
 ): void {
-  const dotBoltdocsDir = path.resolve(root, '.boltdocs')
+  const dotBoltdocsDir = path.resolve(root, '.boltdocs', 'generated')
   if (!fs.existsSync(dotBoltdocsDir)) {
     fs.mkdirSync(dotBoltdocsDir, { recursive: true })
   }

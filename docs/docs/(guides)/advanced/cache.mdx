@@ -13,7 +13,7 @@ Boltdocs caches parsed files and transformations to make subsequent builds and d
 Boltdocs uses a multi-layer caching system:
 
 1. **Memory LRU Cache** — Fast in-process cache for hot data
-2. **Disk Cache** — Persisted to `.boltdocs/` directory for reuse across restarts
+2. **Disk Cache** — Persisted to `.boltdocs/` directory (organized under `.boltdocs/cache/`, `.boltdocs/build/`, `.boltdocs/generated/`, `.boltdocs/reports/`) for reuse across restarts
 3. **Invalidation** — Automatic based on file mtime and content hash
 
 ### What Gets Cached
@@ -48,7 +48,7 @@ Configure caching behavior via environment variables:
 
 | Variable | Type | Default | Description |
 | :--- | :--- | :--- | :--- |
-| **`BOLTDOCS_CACHE_DIR`** | `string` | `.boltdocs` | Directory for all cache files |
+| **`BOLTDOCS_CACHE_DIR`** | `string` | `.boltdocs/cache` | Directory for core processing cache files |
 | **`BOLTDOCS_NO_CACHE`** | `boolean` | `false` | Set to `1` to disable all caching |
 | **`BOLTDOCS_CACHE_LRU_LIMIT`** | `number` | `2000` | Max entries in memory LRU cache |
 | **`BOLTDOCS_CACHE_LRU_TTL`** | `number` | `14400000` | TTL in ms (default 4 hours) |
@@ -97,11 +97,23 @@ By default, cache lives in `.boltdocs/` at your project root:
 ```
 my-docs/
 ├── .boltdocs/
+│   ├── build/
+│   │   ├── framework-hash.txt
+│   │   ├── template-index.html
+│   │   ├── render-cache.json
+│   │   └── pages/         ← Per-page cached HTML
 │   ├── cache/
-│   │   ├── parser/         ← Parser results (JSON)
+│   │   ├── parser/        ← Parser results (JSON)
 │   │   ├── mdx/           ← MDX compiled code
-│   │   └── routes/        ← Route metadata
-│   └── config/            ← Cached config resolution
+│   │   ├── routes/        ← Route metadata
+│   │   └── assets/        ← Processed assets
+│   ├── generated/
+│   │   ├── types.d.ts
+│   │   └── link-tree.json
+│   ├── reports/
+│   │   ├── doctor.json
+│   │   └── performance.json
+│   └── backups/           ← Doctor fix backups
 ├── docs/
 └── boltdocs.config.ts
 ```

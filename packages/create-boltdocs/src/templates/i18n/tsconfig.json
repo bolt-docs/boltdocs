@@ -17,6 +17,6 @@
     "jsx": "react-jsx",
     "baseUrl": "."
   },
-  "include": ["docs", "src", ".boltdocs/types.d.ts"],
+  "include": ["docs", "src", ".boltdocs/generated/types.d.ts"],
   "references": [{ "path": "./tsconfig.node.json" }]
 }

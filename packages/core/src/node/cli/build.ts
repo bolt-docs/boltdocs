@@ -43,7 +43,7 @@ export async function buildAction(root: string = process.cwd()) {
       {
         entry: 'boltdocs/entry',
         routeToSourceFileMap,
-        cacheDir: path.resolve(root, '.boltdocs'),
+        cacheDir: path.resolve(root, '.boltdocs/build'),
       },
       viteConfig,
     )

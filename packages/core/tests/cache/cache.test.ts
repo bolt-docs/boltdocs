@@ -80,7 +80,7 @@ describe('cache system', () => {
       cache.save()
 
       // Before flush, file might not exist yet
-      const cacheFile = path.join(tempDir, '.boltdocs', 'queue-test.json.gz')
+      const cacheFile = path.join(tempDir, '.boltdocs', 'cache', 'queue-test.json.gz')
 
       // After flush, file should exist
       await cache.flush()
@@ -99,8 +99,8 @@ describe('cache system', () => {
 
       await flushCache()
 
-      const file1 = path.join(tempDir, '.boltdocs', 'multi1.json.gz')
-      const file2 = path.join(tempDir, '.boltdocs', 'multi2.json.gz')
+      const file1 = path.join(tempDir, '.boltdocs', 'cache', 'multi1.json.gz')
+      const file2 = path.join(tempDir, '.boltdocs', 'cache', 'multi2.json.gz')
 
       expect(fs.existsSync(file1)).toBe(true)
       expect(fs.existsSync(file2)).toBe(true)
@@ -206,12 +206,12 @@ describe('cache system', () => {
       cache.save()
       await cache.flush()
 
-      const cacheFile = path.join(tempDir, '.boltdocs', 'uncompressed.json')
+      const cacheFile = path.join(tempDir, '.boltdocs', 'cache', 'uncompressed.json')
       expect(fs.existsSync(cacheFile)).toBe(true)
     })
 
     it('should handle corrupted cache files gracefully', async () => {
-      const cacheDir = path.join(tempDir, '.boltdocs')
+      const cacheDir = path.join(tempDir, '.boltdocs', 'cache')
       fs.mkdirSync(cacheDir, { recursive: true })
       fs.writeFileSync(path.join(cacheDir, 'corrupt.json'), 'invalid json')
 
@@ -255,7 +255,7 @@ describe('cache system', () => {
       const hash = (cache as any).index.get('k1')
       const shardPath = path.join(
         tempDir,
-        '.boltdocs',
+        '.boltdocs', 'cache',
         'transform-corrupt',
         'shards',
         `${hash}.gz`,
@@ -296,7 +296,7 @@ describe('cache system', () => {
       await cache1.flush()
 
       // Verify index.json was created
-      const baseDir = path.join(tempDir, '.boltdocs', 'transform-persist')
+      const baseDir = path.join(tempDir, '.boltdocs', 'cache', 'transform-persist')
       const indexPath = path.join(baseDir, 'index.json')
 
       // Check that the directory was created
@@ -315,7 +315,7 @@ describe('cache system', () => {
     })
 
     it('should handle corrupted index files', async () => {
-      const cacheDir = path.join(tempDir, '.boltdocs', 'transform-bad')
+      const cacheDir = path.join(tempDir, '.boltdocs', 'cache', 'transform-bad')
       fs.mkdirSync(cacheDir, { recursive: true })
       fs.writeFileSync(path.join(cacheDir, 'index.json'), 'bad json')
 
@@ -381,7 +381,7 @@ describe('cache system', () => {
       cache.set(source, 'v1', 'content')
       cache.clear()
 
-      expect(fs.existsSync(path.join(tempDir, '.boltdocs', 'assets'))).toBe(
+      expect(fs.existsSync(path.join(tempDir, '.boltdocs', 'cache', 'assets'))).toBe(
         false,
       )
     })
@@ -396,7 +396,7 @@ describe('cache system', () => {
       await flushCache()
 
       // After flush, file should be written
-      const cacheFile = path.join(tempDir, '.boltdocs', 'flush-test.json.gz')
+      const cacheFile = path.join(tempDir, '.boltdocs', 'cache', 'flush-test.json.gz')
       expect(fs.existsSync(cacheFile)).toBe(true)
     })
   })

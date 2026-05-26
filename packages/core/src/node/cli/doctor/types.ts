@@ -49,7 +49,7 @@ export const DEFAULT_DOCTOR_CONFIG: DoctorConfig = {
   },
   reporting: {
     format: 'pretty',
-    outputFile: '.boltdocs/doctor-report.json',
+    outputFile: '.boltdocs/reports/doctor.json',
     failOnError: false,
     maxWarnings: -1,
   },

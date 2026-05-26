@@ -113,10 +113,10 @@ export function writePerformanceMetrics(
   outDir: string,
   metrics: PerformanceMetrics,
 ) {
-  const dotBoltdocs = path.resolve(outDir, '..', '.boltdocs')
-  if (!fs.existsSync(dotBoltdocs)) {
-    fs.mkdirSync(dotBoltdocs, { recursive: true })
+  const reportsDir = path.resolve(outDir, '..', '.boltdocs', 'reports')
+  if (!fs.existsSync(reportsDir)) {
+    fs.mkdirSync(reportsDir, { recursive: true })
   }
-  const filePath = join(dotBoltdocs, 'performance-metrics.json')
+  const filePath = join(reportsDir, 'performance.json')
   fs.writeFileSync(filePath, JSON.stringify(metrics, null, 2))
 }

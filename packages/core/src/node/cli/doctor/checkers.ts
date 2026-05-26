@@ -557,7 +557,7 @@ export async function checkPerformance(
   const perfConfig = ctx.doctorConfig.checks.performance
   if (!perfConfig?.enabled) return issues
 
-  const metricsPath = path.resolve(ctx.root, '.boltdocs', 'performance-metrics.json')
+  const metricsPath = path.resolve(ctx.root, '.boltdocs', 'reports', 'performance.json')
   if (!fs.existsSync(metricsPath)) {
     issues.push({
       file: '(build)',

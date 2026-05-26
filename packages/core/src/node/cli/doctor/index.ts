@@ -70,7 +70,7 @@ export async function doctorAction(
     if (reportFormat === 'pretty') {
       console.log(double('✦ DOCTOR — Documentation Health Check', [
         `  ${colors.dim('Docs dir:')} ${docsDir}`,
-        `  ${colors.dim('Reports:')} ${root}/.boltdocs/`,
+        `  ${colors.dim('Reports:')} ${root}/.boltdocs/reports/`,
       ]))
     }
 

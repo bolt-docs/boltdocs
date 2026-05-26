@@ -131,7 +131,7 @@ export async function generateLinkTree(
   config?: BoltdocsConfig,
   existingFiles?: string[],
 ): Promise<any> {
-  const dotBoltdocsDir = path.resolve(root, '.boltdocs')
+  const dotBoltdocsDir = path.resolve(root, '.boltdocs', 'generated')
   if (!fs.existsSync(dotBoltdocsDir)) {
     fs.mkdirSync(dotBoltdocsDir, { recursive: true })
   }

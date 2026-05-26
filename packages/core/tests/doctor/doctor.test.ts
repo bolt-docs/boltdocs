@@ -91,7 +91,7 @@ describe('doctor unified tests', () => {
 
   it('generateLinkTree should create link-tree.json', async () => {
     await generateLinkTree(docsDir, tempDir, mockConfig as any)
-    const treePath = path.join(tempDir, '.boltdocs', 'link-tree.json')
+    const treePath = path.join(tempDir, '.boltdocs', 'generated', 'link-tree.json')
 
     expect(fs.existsSync(treePath)).toBe(true)
     const tree = JSON.parse(fs.readFileSync(treePath, 'utf-8'))

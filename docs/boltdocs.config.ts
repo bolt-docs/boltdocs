@@ -1,4 +1,4 @@
-/// <reference path="./.boltdocs/types.d.ts" />
+/// <reference path="./.boltdocs/generated/types.d.ts" />
 import { defineConfig } from 'boltdocs'
 import mermaidPlugin from '@bdocs/plugin-mermaid'
 

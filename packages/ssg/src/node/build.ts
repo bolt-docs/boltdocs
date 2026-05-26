@@ -212,7 +212,7 @@ export async function build(
     concurrency = 20,
     rootContainerId = 'root',
     routeToSourceFileMap = {},
-    cacheDir = '.boltdocs',
+    cacheDir = '.boltdocs/build',
   }: ViteReactSSGOptions = mergedOptions
 
   const beastiesOptions = mergedOptions.beastiesOptions ?? {}
@@ -498,7 +498,7 @@ export async function build(
 
     let isCached = false
     let sourceMtime = 0
-    if (canBypassClientBuild && sourceFile && fs.existsSync(sourceFile)) {
+    if (sourceFile && fs.existsSync(sourceFile)) {
       try {
         sourceMtime = Math.round(fs.statSync(sourceFile).mtimeMs)
         if (fs.existsSync(cachedHtmlFile)) {
@@ -514,7 +514,19 @@ export async function build(
       queue.add(async () => {
         try {
           await fs.ensureDir(dirname(finalOutFile))
-          await fs.copy(cachedHtmlFile, finalOutFile)
+
+          if (canBypassClientBuild) {
+            // Hash unchanged, direct copy
+            await fs.copy(cachedHtmlFile, finalOutFile)
+          } else {
+            // Hash changed, replace hash in cached HTML
+            let content = await fs.readFile(cachedHtmlFile, 'utf-8')
+            content = content.replace(
+              /window\.__VITE_REACT_SSG_HASH__\s*=\s*'[^']*'/,
+              `window.__VITE_REACT_SSG_HASH__ = '${hash}'`,
+            )
+            await fs.writeFile(finalOutFile, content, 'utf-8')
+          }
 
           // Copy loader data if exists
           const cachedItem = ssgCache[normalizedKey] || ssgCache[path]
@@ -522,7 +534,9 @@ export async function build(
             cachedItem?.loaderDataFilePath &&
             fs.existsSync(cachedLoaderFile)
           ) {
-            const loaderDataFilePath = cachedItem.loaderDataFilePath
+            const loaderDataFilePath = canBypassClientBuild
+              ? cachedItem.loaderDataFilePath
+              : getLoaderDataFilePath(path, hash)
             await fs.ensureDir(join(out, dirname(loaderDataFilePath)))
             await fs.copy(cachedLoaderFile, join(out, loaderDataFilePath))
             staticLoaderDataManifest[getNormalizedPathKey(path, configBase)] =
