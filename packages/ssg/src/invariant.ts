@@ -12,7 +12,9 @@ import { error } from '@bdocs/dui'
 
 export default function invariant(value: any, message?: string) {
   if (value === false || value === null || typeof value === 'undefined') {
-    error('The following error is a bug in Vite-react-ssg; please open an issue! https://github.com/Daydreamer-riri/vite-react-ssg/issues/new')
+    error(
+      'The following error is a bug in Boltdocs SSG; please open an issue! https://github.com/bolt-docs/boltdocs/issues/new',
+    )
     throw new Error(message)
   }
 }
