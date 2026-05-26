@@ -257,12 +257,25 @@ export async function build(
   const loggerWarn = clientLogger.warn
   clientLogger.warn = (msg: string, options) => {
     if (
-      msg.includes('vite:resolve') &&
       msg.includes('externalized for browser compatibility')
     ) {
       return
     }
     loggerWarn(msg, options)
+  }
+  const loggerInfo = clientLogger.info
+  clientLogger.info = (msg: string, options) => {
+    // Suppress verbose asset chunk listing and gzip computation
+    if (
+      msg.startsWith('dist/') ||
+      msg.startsWith('.vite-react-ssg-temp/') ||
+      msg.startsWith('rendering chunks') ||
+      msg === 'computing gzip size...' ||
+      (msg.includes('built in') && msg.includes('s'))
+    ) {
+      return
+    }
+    loggerInfo(msg, options)
   }
 
   if (canBypassClientBuild) {
@@ -300,6 +313,7 @@ export async function build(
         ],
       }),
     )
+    buildLog('Client build complete')
 
     // Save the template index.html to cache
     await fs.ensureDir(finalCacheDir)
@@ -345,9 +359,11 @@ export async function build(
           },
         }),
       },
+      customLogger: clientLogger,
       mode: config.mode,
     }),
   )
+  buildLog('Server build complete')
 
   const prefix =
     format === 'esm' && process.platform === 'win32' ? 'file://' : ''
