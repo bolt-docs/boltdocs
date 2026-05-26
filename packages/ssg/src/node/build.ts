@@ -1,4 +1,4 @@
-import { colors, info, warn, success, error } from '@bdocs/dui'
+import { colors, info, warn, success, error, dividerLog } from '@bdocs/dui'
 import type { InlineConfig, PluginOption } from 'vite'
 import type {
   RouteRecord,
@@ -284,6 +284,7 @@ export async function build(
     await fs.copy(templateHtmlFile, join(out, htmlEntry))
   } else {
     // client
+    dividerLog()
     buildLog('Build for client...')
     await viteBuild(
       mergeConfig(viteConfig, {
@@ -320,6 +321,8 @@ export async function build(
     await fs.copy(join(out, htmlEntry), templateHtmlFile)
     await fs.writeFile(hashFile, currentClientHash, 'utf-8')
   }
+
+  dividerLog()
 
   let unmock = () => {}
   if (mock) {
@@ -418,6 +421,7 @@ export async function build(
 
   routesPaths = Array.from(new Set(routesPaths))
 
+  dividerLog()
   buildLog('Rendering Pages...', routesPaths.length)
 
   const beasties =
@@ -742,6 +746,7 @@ export async function build(
     // Ignore cache and pruning errors
   }
 
+  dividerLog()
   buildLog('Generating static loader data...', loaderDataFileCount)
   const staticLoaderDataManifestString = JSON.stringify(
     staticLoaderDataManifest,
@@ -766,6 +771,7 @@ export async function build(
     await pwaPlugin.generateSW()
   }
 
+  dividerLog()
   success('Build finished.')
 
   await onFinished?.(outDir)
