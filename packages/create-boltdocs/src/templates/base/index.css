@@ -10,4 +10,4 @@
   @source directive tells Tailwind to scan Boltdocs client components 
   inside node_modules for class usage and generate the necessary CSS.
 */
-@source "./node_modules/boltdocs/src/client";
+@source "./node_modules/boltdocs/dist";

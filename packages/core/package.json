@@ -36,13 +36,12 @@
       "import": "./dist/client/mdx.js",
       "require": "./dist/client/mdx.cjs"
     },
-    "./theme/neutral.css": "./src/client/theme/neutral.css",
-    "./theme/reset.css": "./src/client/theme/reset.css"
+    "./theme/neutral.css": "./dist/client/theme/neutral.css",
+    "./theme/reset.css": "./dist/client/theme/reset.css"
   },
   "files": [
     "dist",
     "bin",
-    "src/client",
     "src/shared"
   ],
   "scripts": {

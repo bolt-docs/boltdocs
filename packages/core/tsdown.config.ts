@@ -69,7 +69,7 @@ export default defineConfig([
     format: ['esm', 'cjs'],
     dts: true,
     tsconfig: './tsconfig.json',
-    minify: true,
+    minify: false,
     platform: 'browser',
     shims: true,
     clean: false,
