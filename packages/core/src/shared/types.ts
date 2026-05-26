@@ -33,13 +33,16 @@ export interface BoltdocsThemeConfig {
       }
   navbar?: Array<{
     label: string | Record<string, string>
-    href: string
+    href: BoltdocsRoutePathWithFallback
     items?: Array<{
       label: string | Record<string, string>
-      href: string
+      href: BoltdocsRoutePathWithFallback
     }>
   }>
-  sidebar?: Record<string, Array<{ text: string; link: string }>>
+  sidebar?: Record<
+    string,
+    Array<{ text: string; link: BoltdocsRoutePathWithFallback }>
+  >
   sidebarGroups?: Record<
     string,
     { title?: string | Record<string, string>; icon?: string }
@@ -215,10 +218,23 @@ export interface BoltdocsConfig {
 declare global {
   namespace Boltdocs {
     interface Types {}
+
+    /**
+     * Marker interface augmented by generated code to provide strict route path typing.
+     * When no types have been generated (e.g., before first dev server start),
+     * keyof is never, and BoltdocsRoutePath falls back to string.
+     */
+    interface RoutePaths {}
   }
 }
 
 export type BoltdocsTypes = Boltdocs.Types
+
+export type BoltdocsRoutePath = keyof Boltdocs.RoutePaths
+
+export type BoltdocsRoutePathWithFallback = BoltdocsRoutePath extends never
+  ? string
+  : BoltdocsRoutePath
 
 export type BoltdocsLocale = Boltdocs.Types extends { Locale: infer L }
   ? L

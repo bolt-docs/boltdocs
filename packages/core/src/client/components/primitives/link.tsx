@@ -1,8 +1,10 @@
 import { useNavigate, useLocation } from 'react-router-dom'
 import { useLocalizedTo } from '../../hooks/use-localized-to'
 import { cn } from '../../utils/cn'
+import type { BoltdocsRoutePathWithFallback } from '../../types'
 export interface LinkProps
-  extends React.AnchorHTMLAttributes<HTMLAnchorElement> {
+  extends Omit<React.AnchorHTMLAttributes<HTMLAnchorElement>, 'href'> {
+  href?: BoltdocsRoutePathWithFallback
   /** Should prefetch the page on hover? Default 'hover' */
   prefetch?: 'hover' | 'none'
 }

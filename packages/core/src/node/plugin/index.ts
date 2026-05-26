@@ -2,11 +2,8 @@ import { type Plugin, type ResolvedConfig, loadEnv } from 'vite'
 import { generateRoutes } from '../routes'
 import { adaptRoutesForSSG } from '../routes/route-adapter'
 import { ViteImageOptimizer } from 'vite-plugin-image-optimizer'
-import {
-  resolveConfigAndGenerateTypes,
-  type BoltdocsConfig,
-  CONFIG_FILES,
-} from '../config'
+import { resolveConfig, type BoltdocsConfig } from '../config'
+import { generateProjectTypes, writeLinkTree } from '../types-generator'
 import { normalizePath } from '../utils'
 import { generateSitemap } from '../seo/sitemap'
 import { generateRobotsTxt } from '../seo/robots'
@@ -252,9 +249,17 @@ export function boltdocsPlugin(
         const envs = loadEnv(env.mode, envDir, '')
         Object.assign(process.env, envs)
 
-        // Resolve config async if not already passed
+        // Resolve config and generate routes/types async if not already passed
         if (!config) {
-          config = await resolveConfigAndGenerateTypes(docsDir)
+          config = await resolveConfig(docsDir)
+          const routes = await generateRoutes(docsDir, config)
+          const routePaths = routes.map((r) => r.path)
+          const basePath = (config.base || '/docs').replace(/\/$/, '')
+          if (!routePaths.includes(basePath)) {
+            routePaths.push(basePath)
+          }
+          generateProjectTypes(config, docsDir, undefined, routePaths)
+          writeLinkTree(routePaths)
         }
 
         // Secure Plugin Initialization

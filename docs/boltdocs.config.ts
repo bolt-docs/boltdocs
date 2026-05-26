@@ -1,3 +1,4 @@
+/// <reference path="./.boltdocs/types.d.ts" />
 import { defineConfig } from 'boltdocs'
 import mermaidPlugin from '@bdocs/plugin-mermaid'
 
@@ -59,11 +60,11 @@ export default defineConfig({
       alt: 'Boltdocs Logo',
     },
     tabs: [
-      { id: 'guides', text: 'Guides', },
-      { id: 'integrations', text: 'Integrations', },
-      { id: 'api', text: 'API', },
-      { id: 'plugins', text: 'Plugins', },
-      { id: 'components', text: 'Components', },
+      { id: 'guides', text: 'Guides' },
+      { id: 'integrations', text: 'Integrations' },
+      { id: 'api', text: 'API' },
+      { id: 'plugins', text: 'Plugins' },
+      { id: 'components', text: 'Components' },
     ],
     navbar: [
       {
@@ -76,11 +77,11 @@ export default defineConfig({
           },
           {
             label: 'Installation',
-            href: '/docs/guides/installation',
+            href: '/docs/guides/getting-started/installation',
           },
           {
             label: ' Configuration',
-            href: '/docs/guides/configuration',
+            href: '/docs/guides/getting-started/configuration',
           },
         ],
       },

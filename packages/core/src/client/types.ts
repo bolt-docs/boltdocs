@@ -1,5 +1,9 @@
 import type * as React from 'react'
-export type { BoltdocsConfig } from '../shared/types'
+export type {
+  BoltdocsConfig,
+  BoltdocsRoutePath,
+  BoltdocsRoutePathWithFallback,
+} from '../shared/types'
 
 /**
  * Metadata provided by the server for a specific route.
@@ -109,7 +113,7 @@ export interface LayoutProps {
  */
 export interface NavbarLink {
   label: string | Record<string, string>
-  href: string
+  href: BoltdocsRoutePathWithFallback
   active: boolean
   to?: string
   items?: NavbarLink[]

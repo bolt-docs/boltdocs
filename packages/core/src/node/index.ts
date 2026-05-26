@@ -5,7 +5,9 @@ import { boltdocsPlugin, getExternalAbsolutePaths } from './plugin/index'
 import { boltdocsMdxPlugin } from './mdx/index'
 import { SECURITY_HEADERS } from './security/headers'
 import { getCSPHeader } from './security/csp'
-import { resolveConfigAndGenerateTypes, type BoltdocsConfig } from './config'
+import { resolveConfig, type BoltdocsConfig } from './config'
+import { generateRoutes } from './routes'
+import { generateProjectTypes, writeLinkTree } from './types-generator'
 import path from 'node:path'
 import { normalizePath } from 'vite'
 export { generateEntryCode } from './plugin/entry'
@@ -18,7 +20,15 @@ export default async function boltdocs(
   options?: BoltdocsPluginOptions,
 ): Promise<Plugin[]> {
   const docsDir = options?.docsDir || 'docs'
-  const config = await resolveConfigAndGenerateTypes(docsDir)
+  const config = await resolveConfig(docsDir)
+  const routes = await generateRoutes(docsDir, config)
+  const routePaths = routes.map((r) => r.path)
+  const basePath = (config.base || '/docs').replace(/\/$/, '')
+  if (!routePaths.includes(basePath)) {
+    routePaths.push(basePath)
+  }
+  generateProjectTypes(config, docsDir, undefined, routePaths)
+  writeLinkTree(routePaths)
 
   // Merge options with config
   const mergedOptions: BoltdocsPluginOptions = {
@@ -36,7 +46,15 @@ export async function createViteConfig(
   root: string,
   mode: 'development' | 'production' = 'development',
 ): Promise<InlineConfig> {
-  const config = await resolveConfigAndGenerateTypes('docs', root)
+  const config = await resolveConfig('docs', root)
+  const routes = await generateRoutes('docs', config)
+  const routePaths = routes.map((r) => r.path)
+  const basePath = (config.base || '/docs').replace(/\/$/, '')
+  if (!routePaths.includes(basePath)) {
+    routePaths.push(basePath)
+  }
+  generateProjectTypes(config, 'docs', root, routePaths)
+  writeLinkTree(routePaths)
   const isProd = mode === 'production'
 
   // Prepare security headers
