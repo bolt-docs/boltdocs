@@ -314,7 +314,7 @@ export async function build(
         ],
       }),
     )
-    buildLog('Client build complete')
+    success('Client build complete')
 
     // Save the template index.html to cache
     await fs.ensureDir(finalCacheDir)
@@ -366,7 +366,7 @@ export async function build(
       mode: config.mode,
     }),
   )
-  buildLog('Server build complete')
+  success('Server build complete')
 
   const prefix =
     format === 'esm' && process.platform === 'win32' ? 'file://' : ''
@@ -452,6 +452,10 @@ export async function build(
   const staticLoaderDataManifest: StaticLoaderDataManifest = {}
   let loaderDataFileCount = 0
 
+  let renderedCount = 0
+  let cachedCount = 0
+  let renderedSize = 0
+
   // Load the previous SSG cache metadata
   const cachePath = join(finalCacheDir, 'ssg-cache.json')
   const ssgPagesDir = join(finalCacheDir, 'ssg-pages')
@@ -523,9 +527,7 @@ export async function build(
             loaderDataFileCount++
           }
 
-          info(
-            `${colors.dim(`${outDir}/`)}${colors.cyan(filename.padEnd(15, ' '))}  ${colors.green('(cached)')}`,
-          )
+          cachedCount++
         } catch (err: any) {
           throw new Error(
             `Error on cached page: ${path}\n${err.stack}`,
@@ -702,9 +704,8 @@ export async function build(
           }
         }
 
-        info(
-          `${colors.dim(`${outDir}/`)}${colors.cyan(filename.padEnd(15, ' '))}  ${colors.dim(getSize(formatted))}`,
-        )
+        renderedCount++
+        renderedSize += formatted.length
       } catch (err: any) {
         throw new Error(
           `Error on page: ${path}\n${err.stack}`,
@@ -714,6 +715,10 @@ export async function build(
   }
 
   await queue.start().onIdle()
+
+  const totalPages = renderedCount + cachedCount
+  const totalSizeMB = (renderedSize / 1024 / 1024).toFixed(2)
+  info(`${colors.cyan(String(totalPages).padStart(3, ' '))} pages rendered  ${colors.dim(`(${renderedCount} new, ${cachedCount} cached, ${totalSizeMB} MB)`)}`)
 
   // Save the updated cache index
   try {
