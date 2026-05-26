@@ -1,5 +1,4 @@
 import { useEffect, useRef, useState } from 'react'
-import mermaid from 'mermaid'
 import { useTheme } from 'boltdocs/client'
 
 export interface MermaidThemeVariables {
@@ -76,12 +75,17 @@ export function Mermaid({ chart, config: propConfig }: MermaidProps) {
 
   useEffect(() => {
     let isMounted = true
+    let abort = false
 
     const id = `mermaid-${Math.random().toString(36).substring(2, 11)}`
 
     const renderDiagram = async () => {
       try {
         const isDark = resolvedTheme === 'dark'
+
+        const { default: mermaid } = await import('mermaid')
+
+        if (abort) return
 
         mermaid.initialize({
           startOnLoad: false,
@@ -110,6 +114,7 @@ export function Mermaid({ chart, config: propConfig }: MermaidProps) {
 
     return () => {
       isMounted = false
+      abort = true
     }
   }, [chart, resolvedTheme])
 
@@ -121,12 +126,23 @@ export function Mermaid({ chart, config: propConfig }: MermaidProps) {
     )
   }
 
+  if (!svgStr) {
+    return (
+      <div
+        ref={containerRef}
+        className="mermaid-container my-8 flex min-h-[100px] items-center justify-center overflow-auto rounded-xl border border-subtle bg-surface/30 p-8 backdrop-blur-sm"
+      >
+        <pre className="w-full overflow-auto text-xs text-secondary/60 leading-relaxed font-mono">
+          <code>{chart}</code>
+        </pre>
+      </div>
+    )
+  }
+
   return (
     <div
       ref={containerRef}
-      className={`mermaid-container my-8 flex min-h-[100px] items-center justify-center overflow-auto rounded-xl border border-subtle bg-surface/30 p-8 backdrop-blur-sm transition-colors duration-300 ${
-        !svgStr ? 'animate-pulse' : ''
-      }`}
+      className="mermaid-container my-8 flex min-h-[100px] items-center justify-center overflow-auto rounded-xl border border-subtle bg-surface/30 p-8 backdrop-blur-sm transition-colors duration-300"
       dangerouslySetInnerHTML={{ __html: svgStr }}
     />
   )

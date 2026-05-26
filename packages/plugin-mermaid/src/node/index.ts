@@ -82,10 +82,33 @@ const MERMAID_LANG = 'mermaid'
 const CODE_NODE_TYPE = 'code'
 const MDX_JSX_FLOW_TYPE = 'mdxJsxFlowElement'
 const MDX_JSX_ATTR_TYPE = 'mdxJsxAttribute'
+const MDX_JSX_ATTR_EXPR_TYPE = 'mdxJsxAttributeValueExpression'
 const COMPONENT_NAME = 'Mermaid'
 const CHART_ATTR_NAME = 'chart'
+const CONFIG_ATTR_NAME = 'config'
 
-function remarkMermaid() {
+function toJSExpr(value: unknown): string {
+  if (typeof value === 'string') {
+    const escaped = value.replace(/\\/g, '\\\\').replace(/'/g, "\\'")
+    return `'${escaped}'`
+  }
+  if (typeof value === 'number' || typeof value === 'boolean') {
+    return String(value)
+  }
+  if (value === null) return 'null'
+  if (Array.isArray(value)) {
+    return `[${value.map(toJSExpr).join(',')}]`
+  }
+  if (typeof value === 'object') {
+    const entries = Object.entries(value as Record<string, unknown>)
+      .filter(([, v]) => v !== undefined)
+      .map(([k, v]) => `${k}:${toJSExpr(v)}`)
+    return `{${entries.join(',')}}`
+  }
+  return String(value)
+}
+
+function remarkMermaid(config: { themes: { light: MermaidThemeVariables; dark: MermaidThemeVariables } }) {
   return (tree: any) => {
     if (!tree) return
     try {
@@ -106,6 +129,14 @@ function remarkMermaid() {
                 type: MDX_JSX_ATTR_TYPE,
                 name: CHART_ATTR_NAME,
                 value: rawCode,
+              },
+              {
+                type: MDX_JSX_ATTR_TYPE,
+                name: CONFIG_ATTR_NAME,
+                value: {
+                  type: MDX_JSX_ATTR_EXPR_TYPE,
+                  value: toJSExpr(config),
+                },
               },
             ],
             children: [],
@@ -128,22 +159,15 @@ export default function mermaidPlugin(
 
   const lightTheme = { ...defaultLightTheme, ...themes.light }
   const darkTheme = { ...defaultDarkTheme, ...themes.dark }
+  const mergedConfig = { themes: { light: lightTheme, dark: darkTheme } }
 
   return {
     name: 'boltdocs-plugin-mermaid',
     version: '0.0.2',
     permissions: ['mdx:remark', 'components'],
-    remarkPlugins: [remarkMermaid()],
+    remarkPlugins: [remarkMermaid(mergedConfig)],
     components: {
       [COMPONENT_NAME]: '@bdocs/plugin-mermaid/client',
-    },
-    clientContext: {
-      mermaidConfig: {
-        themes: {
-          light: lightTheme,
-          dark: darkTheme,
-        },
-      },
     },
   }
 }
