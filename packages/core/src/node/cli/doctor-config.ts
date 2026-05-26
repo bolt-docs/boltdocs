@@ -73,6 +73,44 @@ export interface DoctorConfig {
     i18n: {
       enabled: boolean
     }
+    /**
+     * Performance budget checks (build metrics against thresholds).
+     */
+    performance?: {
+      /**
+       * Whether to run performance budget checks.
+       */
+      enabled: boolean
+      /**
+       * Budget thresholds for build metrics.
+       */
+      budgets: {
+        /**
+         * Maximum total JS bundle size (e.g. "200kb", "1mb").
+         */
+        maxJSBundleSize?: string
+        /**
+         * Maximum total CSS bundle size (e.g. "30kb").
+         */
+        maxCSSBundleSize?: string
+        /**
+         * Maximum HTML size for any single page (e.g. "80kb").
+         */
+        maxPageHTMLSize?: string
+        /**
+         * Maximum total size of image assets in KB.
+         */
+        maxImagesKB?: number
+        /**
+         * Maximum build time in milliseconds.
+         */
+        maxBuildTime?: number
+        /**
+         * Maximum number of font files.
+         */
+        maxFontCount?: number
+      }
+    }
   }
   /**
    * Automated fix behavior and safety settings.

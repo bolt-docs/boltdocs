@@ -29,6 +29,7 @@ import { detectEntry, renderHTML, SCRIPT_COMMENT_PLACEHOLDER } from './html'
 import { renderPreloadLinks } from './preload-links'
 import { getAdapter } from './router-adapter'
 import { buildLog, getSize, resolveAlias, routesToPaths } from './utils'
+import { collectPerformanceMetrics, writePerformanceMetrics } from './performance'
 
 const dotVitedir = Number.parseInt(viteVersion) >= 5 ? ['.vite'] : []
 function buildBundlerOptions<T extends Record<string, unknown>>(options: T) {
@@ -193,6 +194,8 @@ export async function build(
   const configBase = config.base
 
   const mergedOptions = Object.assign({}, config.ssgOptions || {}, ssgOptions)
+  const buildStartTime = performance.now()
+
   const {
     script = 'sync',
     mock = false,
@@ -775,6 +778,11 @@ export async function build(
     buildLog('Regenerate PWA...')
     await pwaPlugin.generateSW()
   }
+
+  const buildTime = Math.round(performance.now() - buildStartTime)
+  const metrics = await collectPerformanceMetrics(out, buildTime)
+  writePerformanceMetrics(root, metrics)
+  buildLog(`Build took ${(buildTime / 1000).toFixed(1)}s — JS: ${(metrics.totalJSBundleSize / 1024).toFixed(0)}kb, CSS: ${(metrics.totalCSSBundleSize / 1024).toFixed(0)}kb, Pages: ${metrics.pages.length}`)
 
   dividerLog()
   success('Build finished.')

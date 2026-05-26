@@ -127,7 +127,7 @@ boltdocs doctor --check-external  # Verify external links too
 - **Broken internal link detection** — finds links pointing to non-existent files
 - **Missing metadata warnings** — flags pages without titles in frontmatter
 - **Orphaned translation detection** — identifies missing locale counterparts
-- **Performance budgets** — upcoming: set thresholds for build time and bundle size
+- **Performance budgets** — `boltdocs doctor --budget` checks JS/CSS/HTML size, image assets, and build time against configurable thresholds in `doctor.json`
 
 ### 🔌 Plugin System
 
@@ -233,7 +233,7 @@ export default defineConfig({
 - [ ] Streaming SSR in dev
 - [ ] OpenAPI / Swagger with interactive playground
 - [ ] Multi-instance docs
-- [ ] Performance budgets in Doctor
+- [x] Performance budgets in Doctor
 - [ ] Preconnect / DNS-prefetch automation
 - [ ] Distributed build farm
 

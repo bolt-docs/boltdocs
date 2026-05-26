@@ -19,6 +19,17 @@
     },
     "i18n": {
       "enabled": true
+    },
+    "performance": {
+      "enabled": true,
+      "budgets": {
+        "maxJSBundleSize": "300kb",
+        "maxCSSBundleSize": "50kb",
+        "maxPageHTMLSize": "100kb",
+        "maxImagesKB": 800,
+        "maxBuildTime": 45000,
+        "maxFontCount": 4
+      }
     }
   },
   "fix": {
@@ -42,7 +53,8 @@
     "shortMetadata": "low",
     "missingMetadata": "warning",
     "malformedFrontmatter": "high",
-    "invalidFrontmatter": "high"
+    "invalidFrontmatter": "high",
+    "budgetExceeded": "warning"
   },
   "exclude": []
 }

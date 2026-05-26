@@ -30,6 +30,17 @@ export const DEFAULT_DOCTOR_CONFIG: DoctorConfig = {
     i18n: {
       enabled: true,
     },
+    performance: {
+      enabled: true,
+      budgets: {
+        maxJSBundleSize: '200kb',
+        maxCSSBundleSize: '30kb',
+        maxPageHTMLSize: '80kb',
+        maxImagesKB: 500,
+        maxBuildTime: 30000,
+        maxFontCount: 3,
+      },
+    },
   },
   fix: {
     confirmChanges: false,
@@ -53,6 +64,7 @@ export const DEFAULT_DOCTOR_CONFIG: DoctorConfig = {
     missingMetadata: 'warning',
     malformedFrontmatter: 'high',
     invalidFrontmatter: 'high',
+    budgetExceeded: 'warning',
   },
   exclude: [],
 }
@@ -64,7 +76,7 @@ export interface DoctorContext {
   doctorConfig: DoctorConfig
   linkTree: LinkTree
   files: string[]
-  options: { fix?: boolean; checkExternal?: boolean }
+  options: { fix?: boolean; checkExternal?: boolean; budget?: boolean }
   routeIndex: Set<string>
   routeIndexWithSlash: Set<string>
   routeIndexWithoutSlash: Set<string>

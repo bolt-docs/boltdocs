@@ -28,10 +28,11 @@ cli
   )
   .option('--check-external', 'Verify external links (slower)')
   .option('--init', 'Initialize doctor.json with default configuration')
+  .option('--budget', 'Check build performance against configured budgets')
   .action(
     async (
       root: string,
-      options: { fix?: boolean; checkExternal?: boolean; init?: boolean },
+      options: { fix?: boolean; checkExternal?: boolean; init?: boolean; budget?: boolean },
     ) => {
       const { doctorAction } = await import('./cli/doctor')
       await doctorAction(root, options)

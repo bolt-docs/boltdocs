@@ -105,11 +105,63 @@
             }
           },
           "additionalProperties": false,
-          "required": ["enabled"]
+          "required": [
+            "enabled"
+          ]
+        },
+        "performance": {
+          "description": "Performance budget checks (build metrics against thresholds).",
+          "type": "object",
+          "properties": {
+            "enabled": {
+              "description": "Whether to run performance budget checks.",
+              "type": "boolean"
+            },
+            "budgets": {
+              "description": "Budget thresholds for build metrics.",
+              "type": "object",
+              "properties": {
+                "maxJSBundleSize": {
+                  "description": "Maximum total JS bundle size (e.g. \"200kb\", \"1mb\").",
+                  "type": "string"
+                },
+                "maxCSSBundleSize": {
+                  "description": "Maximum total CSS bundle size (e.g. \"30kb\").",
+                  "type": "string"
+                },
+                "maxPageHTMLSize": {
+                  "description": "Maximum HTML size for any single page (e.g. \"80kb\").",
+                  "type": "string"
+                },
+                "maxImagesKB": {
+                  "description": "Maximum total size of image assets in KB.",
+                  "type": "number"
+                },
+                "maxBuildTime": {
+                  "description": "Maximum build time in milliseconds.",
+                  "type": "number"
+                },
+                "maxFontCount": {
+                  "description": "Maximum number of font files.",
+                  "type": "number"
+                }
+              },
+              "additionalProperties": false
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "budgets",
+            "enabled"
+          ]
         }
       },
       "additionalProperties": false,
-      "required": ["i18n", "links", "metadata"]
+      "required": [
+        "i18n",
+        "links",
+        "metadata"
+      ]
     },
     "fix": {
       "description": "Automated fix behavior and safety settings.",
@@ -129,7 +181,11 @@
         }
       },
       "additionalProperties": false,
-      "required": ["backupFiles", "backupPath", "confirmChanges"]
+      "required": [
+        "backupFiles",
+        "backupPath",
+        "confirmChanges"
+      ]
     },
     "reporting": {
       "description": "Configuration for diagnostic reports and CI/CD exit behavior.",
@@ -137,7 +193,11 @@
       "properties": {
         "format": {
           "description": "Output format of the report.",
-          "enum": ["json", "pretty", "silent"],
+          "enum": [
+            "json",
+            "pretty",
+            "silent"
+          ],
           "type": "string"
         },
         "outputFile": {
@@ -154,13 +214,22 @@
         }
       },
       "additionalProperties": false,
-      "required": ["failOnError", "format", "maxWarnings"]
+      "required": [
+        "failOnError",
+        "format",
+        "maxWarnings"
+      ]
     },
     "severity": {
       "description": "Severity overrides for different types of issues.\nCan be 'high', 'warning', 'low', or 'off'.",
       "type": "object",
       "additionalProperties": {
-        "enum": ["high", "low", "off", "warning"],
+        "enum": [
+          "high",
+          "low",
+          "off",
+          "warning"
+        ],
         "type": "string"
       }
     },
@@ -173,6 +242,12 @@
     }
   },
   "additionalProperties": false,
-  "required": ["checks", "exclude", "fix", "reporting", "severity"],
+  "required": [
+    "checks",
+    "exclude",
+    "fix",
+    "reporting",
+    "severity"
+  ],
   "$schema": "http://json-schema.org/draft-07/schema#"
 }

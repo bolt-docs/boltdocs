@@ -14,6 +14,17 @@ import {
 } from './types'
 import { warn } from '@bdocs/dui'
 
+export function parseBudget(value: string | number | undefined, defaultVal: number): number {
+  if (value === undefined || value === null) return defaultVal
+  if (typeof value === 'number') return value
+  const match = value.toLowerCase().match(/^(\d+(?:\.\d+)?)\s*(b|kb|mb|gb)?$/)
+  if (!match) return defaultVal
+  const num = Number.parseFloat(match[1])
+  const unit = match[2] || 'b'
+  const multipliers: Record<string, number> = { b: 1, kb: 1024, mb: 1024 * 1024, gb: 1024 * 1024 * 1024 }
+  return Math.round(num * (multipliers[unit] || 1))
+}
+
 export function getSeverity(
   ctx: DoctorContext,
   type: string,
@@ -86,6 +97,14 @@ export async function loadDoctorConfig(root: string): Promise<DoctorConfig> {
           i18n: {
             ...DEFAULT_DOCTOR_CONFIG.checks.i18n,
             ...userConfig.checks?.i18n,
+          },
+          performance: {
+            ...DEFAULT_DOCTOR_CONFIG.checks.performance,
+            ...userConfig.checks?.performance,
+            budgets: {
+              ...DEFAULT_DOCTOR_CONFIG.checks.performance?.budgets,
+              ...userConfig.checks?.performance?.budgets,
+            },
           },
         },
         fix: { ...DEFAULT_DOCTOR_CONFIG.fix, ...userConfig.fix },

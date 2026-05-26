@@ -3,7 +3,7 @@ import fs from 'node:fs'
 import { colors, info } from '@bdocs/dui'
 import { normalizePath, FrontmatterSchema } from '../../utils'
 import type { DoctorContext, DoctorIssue } from './types'
-import { getSeverity, getFileData, cachedExists, fileCache } from './utils'
+import { getSeverity, getFileData, cachedExists, fileCache, parseBudget } from './utils'
 import { getCachedSimilarity } from './similarity'
 
 /**
@@ -533,6 +533,128 @@ export async function checkSidebar(ctx: DoctorContext): Promise<DoctorIssue[]> {
         })
       }
     }
+  }
+
+  return issues
+}
+
+interface PerfMetrics {
+  buildTime: number
+  totalJSBundleSize: number
+  totalCSSBundleSize: number
+  totalImagesSize: number
+  fontCount: number
+  pages: Array<{ route: string; htmlSize: number }>
+}
+
+/**
+ * Check build performance metrics against configured budgets.
+ */
+export async function checkPerformance(
+  ctx: DoctorContext,
+): Promise<DoctorIssue[]> {
+  const issues: DoctorIssue[] = []
+  const perfConfig = ctx.doctorConfig.checks.performance
+  if (!perfConfig?.enabled) return issues
+
+  const metricsPath = path.resolve(ctx.root, '.boltdocs', 'performance-metrics.json')
+  if (!fs.existsSync(metricsPath)) {
+    issues.push({
+      file: '(build)',
+      level: getSeverity(ctx, 'budgetExceeded', 'warning'),
+      message: 'Performance metrics not found. Run `boltdocs build` first.',
+    })
+    return issues
+  }
+
+  let metrics: PerfMetrics
+  try {
+    metrics = JSON.parse(fs.readFileSync(metricsPath, 'utf-8'))
+  } catch {
+    issues.push({
+      file: '(build)',
+      level: getSeverity(ctx, 'budgetExceeded', 'warning'),
+      message: 'Failed to parse performance metrics file.',
+    })
+    return issues
+  }
+
+  const budgets = perfConfig.budgets
+  const level = getSeverity(ctx, 'budgetExceeded', 'warning')
+
+  const jsLimit = parseBudget(budgets?.maxJSBundleSize, Infinity)
+  const cssLimit = parseBudget(budgets?.maxCSSBundleSize, Infinity)
+  const htmlLimit = parseBudget(budgets?.maxPageHTMLSize, Infinity)
+  const imageLimitKB = budgets?.maxImagesKB ?? Infinity
+  const buildTimeLimit = budgets?.maxBuildTime ?? Infinity
+  const fontLimit = budgets?.maxFontCount ?? Infinity
+
+  if (jsLimit !== Infinity && metrics.totalJSBundleSize > jsLimit) {
+    const actual = (metrics.totalJSBundleSize / 1024).toFixed(0)
+    const expected = (jsLimit / 1024).toFixed(0)
+    issues.push({
+      file: '(build)',
+      level,
+      message: `JS bundle size exceeds budget: ${actual}kb > ${expected}kb`,
+      suggestion: 'Code-split large dependencies or lazy-load route components.',
+    })
+  }
+
+  if (cssLimit !== Infinity && metrics.totalCSSBundleSize > cssLimit) {
+    const actual = (metrics.totalCSSBundleSize / 1024).toFixed(0)
+    const expected = (cssLimit / 1024).toFixed(0)
+    issues.push({
+      file: '(build)',
+      level,
+      message: `CSS bundle size exceeds budget: ${actual}kb > ${expected}kb`,
+      suggestion: 'Remove unused styles or split CSS by route.',
+    })
+  }
+
+  if (htmlLimit !== Infinity) {
+    for (const page of metrics.pages) {
+      if (page.htmlSize > htmlLimit) {
+        const actual = (page.htmlSize / 1024).toFixed(0)
+        const expected = (htmlLimit / 1024).toFixed(0)
+        issues.push({
+          file: page.route,
+          level,
+          message: `Page HTML size exceeds budget: ${actual}kb > ${expected}kb`,
+          suggestion: 'Reduce the amount of inline content or split into sub-pages.',
+        })
+      }
+    }
+  }
+
+  const imageBytesLimitKB = imageLimitKB * 1024
+  if (imageLimitKB !== Infinity && metrics.totalImagesSize > imageBytesLimitKB) {
+    const actual = (metrics.totalImagesSize / 1024).toFixed(0)
+    issues.push({
+      file: '(build)',
+      level,
+      message: `Image assets exceed budget: ${actual}kb > ${imageLimitKB}kb`,
+      suggestion: 'Optimize images with lossy compression or use next-gen formats (webp/avif).',
+    })
+  }
+
+  if (buildTimeLimit !== Infinity && metrics.buildTime > buildTimeLimit) {
+    const actual = (metrics.buildTime / 1000).toFixed(1)
+    const expected = (buildTimeLimit / 1000).toFixed(1)
+    issues.push({
+      file: '(build)',
+      level,
+      message: `Build time exceeds budget: ${actual}s > ${expected}s`,
+      suggestion: 'Check for large unoptimized assets or increase `concurrency` in SSG options.',
+    })
+  }
+
+  if (fontLimit !== Infinity && metrics.fontCount > fontLimit) {
+    issues.push({
+      file: '(build)',
+      level,
+      message: `Font files exceed budget: ${metrics.fontCount} > ${fontLimit}`,
+      suggestion: 'Reduce the number of font families or use variable fonts.',
+    })
   }
 
   return issues

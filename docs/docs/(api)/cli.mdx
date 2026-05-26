@@ -66,6 +66,9 @@ npx boltdocs doctor --check-external
 
 # Initialize default doctor.json config file
 npx boltdocs doctor --init
+
+# Check build performance against configured budgets
+npx boltdocs doctor --budget
 ```
 
 ### CLI Command Options
@@ -75,6 +78,7 @@ npx boltdocs doctor --init
 | **`--fix`** | Automatically corrects repairable issues like broken relative paths and aligns missing i18n keys. |
 | **`--check-external`** | Performs asynchronous network verification for external web links. (Slower) |
 | **`--init`** | Creates a default `doctor.json` configuration file in the project root folder. |
+| **`--budget`** | Checks build performance metrics against configured budgets. Requires a prior `boltdocs build`. |
 
 ---
 
@@ -104,6 +108,17 @@ You can customize the diagnostic checks, target files, severities, and CI/CD par
     },
     "i18n": {
       "enabled": true
+    },
+    "performance": {
+      "enabled": true,
+      "budgets": {
+        "maxJSBundleSize": "200kb",
+        "maxCSSBundleSize": "30kb",
+        "maxPageHTMLSize": "80kb",
+        "maxImagesKB": 500,
+        "maxBuildTime": 30000,
+        "maxFontCount": 3
+      }
     }
   },
   "fix": {
@@ -127,7 +142,8 @@ You can customize the diagnostic checks, target files, severities, and CI/CD par
     "shortMetadata": "low",
     "missingMetadata": "warning",
     "malformedFrontmatter": "high",
-    "invalidFrontmatter": "high"
+    "invalidFrontmatter": "high",
+    "budgetExceeded": "warning"
   },
   "exclude": []
 }
@@ -140,6 +156,7 @@ You can customize the diagnostic checks, target files, severities, and CI/CD par
 | **`metadata`** | [`MetadataChecks`](#metadatachecks) | Defaults | SEO title, description length, and required frontmatter. |
 | **`links`** | [`LinkChecks`](#linkchecks) | Defaults | Internal/external links, timeout, concurrency settings, and ignores. |
 | **`i18n`** | [`I18nChecks`](#i18nchecks) | Defaults | Translation synchronization validity. |
+| **`performance`** | [`PerformanceChecks`](#performancechecks) | Defaults | Build performance budgets against thresholds. |
 
 #### MetadataChecks
 
@@ -168,6 +185,24 @@ You can customize the diagnostic checks, target files, severities, and CI/CD par
 | Property | Type | Default | Description |
 | :--- | :--- | :--- | :--- |
 | **`enabled`** | `boolean` | `true` | Checks for missing keys in localized versions compared to default. |
+
+#### PerformanceChecks
+
+| Property | Type | Default | Description |
+| :--- | :--- | :--- | :--- |
+| **`enabled`** | `boolean` | `true` | Run performance budget checks on build output. |
+| **`budgets`** | `object` | See below | Threshold overrides for each metric. |
+
+The `budgets` object supports these optional thresholds:
+
+| Property | Type | Default | Description |
+| :--- | :--- | :--- | :--- |
+| **`maxJSBundleSize`** | `string` | `"200kb"` | Max total JS bundle size (supports `b`, `kb`, `mb` suffixes). |
+| **`maxCSSBundleSize`** | `string` | `"30kb"` | Max total CSS bundle size. |
+| **`maxPageHTMLSize`** | `string` | `"80kb"` | Max HTML size for a single page. |
+| **`maxImagesKB`** | `number` | `500` | Max total image asset size in KB. |
+| **`maxBuildTime`** | `number` | `30000` | Max build time in milliseconds. |
+| **`maxFontCount`** | `number` | `3` | Max number of font files. |
 
 #### Automated Fix Behavior (`fix`)
 

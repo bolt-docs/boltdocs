@@ -17,11 +17,11 @@ import {
   backupFile,
   fileExistsCache,
 } from './utils'
-import { checkMetadata, checkLinks, checkI18n, checkSidebar } from './checkers'
+import { checkMetadata, checkLinks, checkI18n, checkSidebar, checkPerformance } from './checkers'
 
 export * from './types'
 export { generateLinkTree, loadDoctorConfig }
-export { checkMetadata, checkLinks, checkI18n, checkSidebar }
+export { checkMetadata, checkLinks, checkI18n, checkSidebar, checkPerformance }
 
 /**
  * Initialize doctor.json with default configuration.
@@ -130,28 +130,44 @@ export async function doctorAction(
       info(colors.dim('🧪 Running diagnostic checks in parallel...'))
     }
 
-    const [metadataIssues, linkIssues, i18nIssues, sidebarIssues] =
-      await Promise.all([
-        checkMetadata(ctx),
-        checkLinks(ctx),
-        checkI18n(ctx),
-        checkSidebar(ctx),
-      ])
+    const checkers: Promise<DoctorIssue[]>[] = [
+      checkMetadata(ctx),
+      checkLinks(ctx),
+      checkI18n(ctx),
+      checkSidebar(ctx),
+    ]
+
+    if (options.budget) {
+      checkers.push(checkPerformance(ctx))
+    }
+
+    const [metadataIssues, linkIssues, i18nIssues, sidebarIssues, ...extra] =
+      await Promise.all(checkers)
+
+    const performanceIssues = options.budget ? extra[0] : []
 
     const issues = [
       ...metadataIssues,
       ...linkIssues,
       ...i18nIssues,
       ...sidebarIssues,
+      ...performanceIssues,
     ]
 
     if (reportFormat === 'pretty') {
-      console.log(`\n${tasks([
+      const taskItems = [
         { label: `Metadata checks ${metadataIssues.length > 0 ? `— ${metadataIssues.length} issue${metadataIssues.length !== 1 ? 's' : ''}` : '— OK'}`, done: metadataIssues.length === 0 },
         { label: `Link checks ${linkIssues.length > 0 ? `— ${linkIssues.length} issue${linkIssues.length !== 1 ? 's' : ''}` : '— OK'}`, done: linkIssues.length === 0 },
         { label: `i18n checks ${i18nIssues.length > 0 ? `— ${i18nIssues.length} issue${i18nIssues.length !== 1 ? 's' : ''}` : '— OK'}`, done: i18nIssues.length === 0 },
         { label: `Sidebar checks ${sidebarIssues.length > 0 ? `— ${sidebarIssues.length} issue${sidebarIssues.length !== 1 ? 's' : ''}` : '— OK'}`, done: sidebarIssues.length === 0 },
-      ])}`)
+      ]
+      if (options.budget) {
+        taskItems.push({
+          label: `Performance budget ${performanceIssues.length > 0 ? `— ${performanceIssues.length} issue${performanceIssues.length !== 1 ? 's' : ''}` : '— OK'}`,
+          done: performanceIssues.length === 0,
+        })
+      }
+      console.log(`\n${tasks(taskItems)}`)
     }
 
     // 1. Handle Automatic Fixes

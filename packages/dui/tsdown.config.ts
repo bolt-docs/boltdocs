@@ -7,6 +7,6 @@ export default defineConfig({
   clean: true,
   tsconfig: './tsconfig.json',
   deps: {
-    neverBundle: ['picocolors'],
+    neverBundle: ['picocolors', 'string-width'],
   },
 })
