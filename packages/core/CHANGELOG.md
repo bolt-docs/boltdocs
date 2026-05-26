@@ -1,5 +1,11 @@
 # boltdocs
 
+## 2.7.11
+
+### Patch Changes
+
+- [`1182df9`](https://github.com/bolt-docs/boltdocs/commit/1182df9a1964409da9e0e4b7b1977f9ec887e4aa) Thanks [@jesusalcaladev](https://github.com/jesusalcaladev)! - Exclude src/client from published files, point Tailwind @source to dist, disable minify for client build
+
 ## 2.7.10
 
 ### Patch Changes
