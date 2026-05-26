@@ -10,7 +10,7 @@
 | Partial hydration / islands architecture | |
 | OpenAPI / Swagger con playground interactivo | |
 | Multi-instance docs | |
-| Performance budgets en Doctor | In-progress |
+| Performance budgets en Doctor | Done |
 | Preconnect / DNS-prefetch automático | |
 | Build farm distribuido (multi-máquina) | |
 
