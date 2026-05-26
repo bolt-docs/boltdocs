@@ -128,7 +128,6 @@ export async function createViteConfig(
       external: [
         'react',
         'react-dom',
-        'react-router-dom',
         'react-helmet-async',
         '@bdocs/ssg',
         'react-fast-compare',
@@ -148,6 +147,7 @@ export async function createViteConfig(
         'react-aria-components',
         '@react-aria/collections',
         '@react-aria/utils',
+        'react-router-dom',
       ],
     },
     server: {

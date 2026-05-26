@@ -25,7 +25,7 @@ const TabsList = ({ children, className = '' }: ComponentBase) => {
   return (
     <div
       role="tablist"
-      className={cn('relative flex flex-row items-center', className)}
+      className={cn('relative flex flex-row items-center overflow-x-auto', className)}
     >
       {children}
     </div>

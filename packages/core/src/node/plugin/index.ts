@@ -348,7 +348,6 @@ export function boltdocsPlugin(
             external: [
               'react',
               'react-dom',
-              'react-router-dom',
               'react-helmet-async',
               '@bdocs/ssg',
               'react-fast-compare',
@@ -358,7 +357,7 @@ export function boltdocsPlugin(
             optimizeDeps: {
               include: ['react-fast-compare', 'invariant'],
             },
-            noExternal: [],
+            noExternal: ['react-router-dom'],
           },
         }
       },

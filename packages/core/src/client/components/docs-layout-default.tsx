@@ -27,7 +27,7 @@ function DocsLayoutComponent({ children }: DocsLayoutThemeProps) {
       <DocsLayoutPrimitive.Body className="bg-main">
         <Sidebar routes={filteredRoutes || []} config={config} />
         <DocsLayoutPrimitive.Content className="animate-in fade-in duration-500 scroll-smooth">
-          <DocsLayoutPrimitive.ContentMdx className="max-w-3xl sm:max-w-4xl lg:max-w-4xl px-2 pt-8 pb-24">
+          <DocsLayoutPrimitive.ContentMdx className="max-w-3xl sm:max-w-4xl lg:max-w-4xl px-4 sm:px-6 pt-8 pb-24">
             <DocsLayoutPrimitive.Header>
               <div className="mb-4 border-b border-subtle pb-4 flex flex-wrap items-center justify-between gap-3">
                 <Breadcrumbs />

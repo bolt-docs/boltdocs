@@ -49,7 +49,7 @@ export function Tabs({
 
   return (
     <div className="mx-auto max-w-(--breakpoint-3xl) px-4 md:px-6 select-none">
-      <T.List className="border-none py-0 scrollbar-hide relative flex flex-row items-center">
+      <T.List className="border-none py-0 scrollbar-hide relative flex flex-row items-center overflow-x-auto">
         {tabs.map((tab, index) => {
           const isActive = index === activeIndex
           const firstRoute = routes.find(
