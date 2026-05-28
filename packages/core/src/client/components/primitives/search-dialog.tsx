@@ -19,10 +19,7 @@ export interface SearchDialogItemIconProps {
 /**
  * Pure, unstyled SearchDialog Overlay (maps to RAC.ModalOverlay)
  */
-export const SearchDialog = ({
-  className,
-  ...props
-}: RAC.ModalOverlayProps) => {
+export function SearchDialog({ className, ...props }: RAC.ModalOverlayProps) {
   return (
     <RAC.ModalOverlay
       className={cn('fixed inset-0 z-100', className)}
@@ -34,49 +31,60 @@ export const SearchDialog = ({
 /**
  * Pure, unstyled SearchDialog Content (maps to RAC.Modal)
  */
-const SearchDialogContent = ({
-  className,
-  ...props
-}: RAC.ModalOverlayProps) => <RAC.Modal className={cn(className)} {...props} />
+function SearchDialogContent({ className, ...props }: RAC.ModalOverlayProps) {
+  return <RAC.Modal className={cn(className)} {...props} />
+}
 
 /**
  * Pure, unstyled SearchDialog Dialog (maps to RAC.Dialog)
  */
-const SearchDialogDialog = ({ className, ...props }: RAC.DialogProps) => (
-  <RAC.Dialog
-    className={cn('flex flex-col focus:outline-none', className)}
-    {...props}
-  />
-)
+function SearchDialogDialog({ className, ...props }: RAC.DialogProps) {
+  return (
+    <RAC.Dialog
+      className={cn('flex flex-col focus:outline-none', className)}
+      {...props}
+    />
+  )
+}
 
 /**
  * Pure, unstyled SearchDialog Input Field (maps to RAC.SearchField)
  */
-const SearchDialogField = ({ className, ...props }: RAC.SearchFieldProps) => (
-  <RAC.SearchField className={cn('flex items-center', className)} {...props} />
-)
+function SearchDialogField({ className, ...props }: RAC.SearchFieldProps) {
+  return (
+    <RAC.SearchField
+      className={cn('flex items-center', className)}
+      {...props}
+    />
+  )
+}
 
 /**
  * Pure, unstyled SearchInput (maps to RAC.Input)
  */
-const SearchDialogSearchInput = ({ className, ...props }: RAC.InputProps) => (
-  <RAC.Input
-    className={cn('w-full bg-transparent outline-none border-none', className)}
-    {...props}
-  />
-)
+function SearchDialogSearchInput({ className, ...props }: RAC.InputProps) {
+  return (
+    <RAC.Input
+      className={cn(
+        'w-full bg-transparent outline-none border-none',
+        className,
+      )}
+      {...props}
+    />
+  )
+}
 
 /**
  * Pure, unstyled Clear Button (maps to RAC.Button with slot="clear")
  */
-const SearchDialogClearButton = ({ className, ...props }: RAC.ButtonProps) => (
-  <RAC.Button slot="clear" className={cn(className)} {...props} />
-)
+function SearchDialogClearButton({ className, ...props }: RAC.ButtonProps) {
+  return <RAC.Button slot="clear" className={cn(className)} {...props} />
+}
 
 /**
  * Pure, unstyled Autocomplete container (maps to RAC.Autocomplete)
  */
-const SearchDialogAutocomplete = <T extends object>({
+function SearchDialogAutocomplete<T extends object>({
   children,
   className,
   onSelectionChange,
@@ -84,7 +92,7 @@ const SearchDialogAutocomplete = <T extends object>({
 }: RAC.AutocompleteProps<T> & {
   className?: string
   onSelectionChange?: (key: RAC.Key) => void
-}) => {
+}) {
   const Autocomplete = RAC.Autocomplete as any
   return (
     <div className={cn('flex-1 min-h-0', className)}>
@@ -102,11 +110,11 @@ const SearchDialogAutocomplete = <T extends object>({
 /**
  * Pure, unstyled List Box (maps to RAC.ListBox)
  */
-const SearchDialogList = <T extends object>({
+function SearchDialogList<T extends object>({
   children,
   className,
   ...props
-}: RAC.ListBoxProps<T> & { className?: string }) => {
+}: RAC.ListBoxProps<T> & { className?: string }) {
   return (
     <RAC.ListBox
       {...props}
@@ -120,11 +128,11 @@ const SearchDialogList = <T extends object>({
 /**
  * Pure, unstyled List Box Item (maps to RAC.ListBoxItem)
  */
-const SearchDialogItemRoot = ({
+function SearchDialogItemRoot({
   children,
   className,
   ...props
-}: SearchDialogItemProps) => {
+}: SearchDialogItemProps) {
   return (
     <RAC.ListBoxItem
       {...props}
@@ -148,10 +156,10 @@ const SearchDialogItemRoot = ({
   )
 }
 
-const SearchDialogItemIcon = ({
+function SearchDialogItemIcon({
   isHeading,
   className,
-}: SearchDialogItemIconProps) => {
+}: SearchDialogItemIconProps) {
   return (
     <div className={cn('shrink-0', className)}>
       {isHeading ? <Hash size={18} /> : <FileText size={18} />}
@@ -159,13 +167,13 @@ const SearchDialogItemIcon = ({
   )
 }
 
-const SearchDialogItemTitle = ({ children, className }: ComponentBase) => {
+function SearchDialogItemTitle({ children, className }: ComponentBase) {
   return (
     <span className={cn('block truncate flex-1', className)}>{children}</span>
   )
 }
 
-const SearchDialogItemBio = ({ children, className }: ComponentBase) => {
+function SearchDialogItemBio({ children, className }: ComponentBase) {
   return (
     <span className={cn('ml-2 truncate hidden sm:inline', className)}>
       {children}

@@ -26,8 +26,8 @@ export function resolveRoutePath(
   let version: string | undefined
   let inferredTab: string | undefined
   let subRouteGroup: string | undefined
+  let collection: string | undefined
 
-  // 1. Resolve Version
   if (config?.versions && parts.length > 0) {
     const potentialVersion = parts[0]
     const prefix = config.versions.prefix || ''
@@ -41,7 +41,6 @@ export function resolveRoutePath(
     }
   }
 
-  // 2. Resolve Locale
   if (config?.i18n && parts.length > 0) {
     const potentialLocale = parts[0]
     const isLocale = Array.isArray(config.i18n.locales)
@@ -53,7 +52,6 @@ export function resolveRoutePath(
     }
   }
 
-  // 3. Resolve Tab
   if (parts.length > 0) {
     const tabMatch = parts[0].match(/^\((.+)\)$/)
     if (tabMatch) {
@@ -62,10 +60,16 @@ export function resolveRoutePath(
     }
   }
 
-  // Save the remaining parts before cleaning (cleaning removes leading underscores for subRouteGroup)
+  if (parts.length > 0) {
+    const collectionMatch = parts[0].match(/^\[(.+)\]$/)
+    if (collectionMatch) {
+      collection = collectionMatch[1].toLowerCase()
+      parts = parts.slice(1)
+    }
+  }
+
   const remainingParts = [...parts]
 
-  // 4. Clean Parts (Remove number prefixes if any)
   const cleanParts = parts.map((p) => {
     const noNum = stripNumberPrefix(p)
     return noNum
@@ -79,11 +83,12 @@ export function resolveRoutePath(
     : fileToRoutePath(cleanRelativePath || 'index.md')
 
   // Build Final Path
+  const base = collection ? `/${collection}` : basePath
   const segments = [
-    basePath,
+    base,
     version,
     locale,
-    !permalink ? inferredTab : undefined,
+    !permalink && !collection ? inferredTab : undefined,
     routePath,
   ].filter(Boolean)
 
@@ -98,5 +103,6 @@ export function resolveRoutePath(
     version,
     inferredTab,
     subRouteGroup,
+    collection,
   }
 }

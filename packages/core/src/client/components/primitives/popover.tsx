@@ -12,7 +12,7 @@ export interface PopoverProps extends Omit<RACPopoverProps, 'children'> {
 /**
  * A reusable Popover primitive with premium glassmorphism styling and smooth animations.
  */
-export const Popover = ({ children, className, ...props }: PopoverProps) => {
+export function Popover({ children, className, ...props }: PopoverProps) {
   return (
     <RACPopover
       offset={8}

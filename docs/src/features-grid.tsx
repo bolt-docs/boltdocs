@@ -1,5 +1,5 @@
 import { useRef } from 'react'
-import { Card, Cards } from 'boltdocs/client'
+import { Card, Cards } from 'boltdocs/mdx'
 import { Globe, Monitor, Search, Shield, Zap } from 'lucide-react'
 import { useGSAPScroll, useGSAPStaggerIn } from './hooks/useGSAPScroll'
 

@@ -126,8 +126,6 @@ export async function createViteConfig(
     },
     ssr: {
       external: [
-        'react',
-        'react-dom',
         'react-helmet-async',
         '@bdocs/ssg',
         'react-fast-compare',
@@ -136,12 +134,16 @@ export async function createViteConfig(
       ],
       optimizeDeps: {
         include: [
+          'react',
+          'react-dom',
           'react-fast-compare',
           'invariant',
           ...(config.vite?.ssr?.optimizeDeps?.include || []),
         ],
       },
       noExternal: [
+        'react',
+        'react-dom',
         'boltdocs',
         /@bdocs\/(?!ssg).*/,
         'react-aria-components',

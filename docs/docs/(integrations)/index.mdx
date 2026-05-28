@@ -4,7 +4,7 @@ sidebarPosition: 1
 description: Connect Boltdocs with external services — analytics, search, i18n, versioning, SEO, and more.
 ---
 
-import { BarChart, Tag, Globe, Search, GitBranch, Bot } from 'lucide-react'
+import { BarChart, Tag, Globe, Search, GitBranch, Bot, FolderOpen } from 'lucide-react'
 
 Boltdocs integrates with popular services and provides built-in features for search, localization, versioning, and SEO. This section covers all available integrations.
 
@@ -31,7 +31,11 @@ Boltdocs integrates with popular services and provides built-in features for sea
   <Card title="SEO & Robots" icon={<Bot />} href="/docs/integrations/robots-seo">
     Automatic sitemap, robots.txt, and meta tags.
   </Card>
+  <Card title="Collections" icon={<FolderOpen />} href="/docs/integrations/collections">
+    Group documents into blogs, updates, or tutorials with custom views.
+  </Card>
 </Cards>
+
 
 ---
 
@@ -69,7 +73,15 @@ Automatic meta tags, Open Graph images, sitemap.xml, and robots.txt generation. 
 - **Auto-generated:** `sitemap.xml`, `robots.txt`
 - **Per-page:** Override via frontmatter `seo` field
 
+### Collections
+
+Group files into dynamic directories using folder-based conventions. Boltdocs automatically maps bracketed folders (e.g. `[blog]`) to collection routes, enabling custom listing, post views, and isolated layouts.
+
+- **Conventions:** `layout.tsx`, `list.tsx`, `post.tsx`
+- **Data Loaders:** Type-safe collection loader data is available via `useLoaderData()`
+
 ---
+
 
 ## External Services
 

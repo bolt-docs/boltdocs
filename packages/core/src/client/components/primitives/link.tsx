@@ -13,7 +13,7 @@ export interface LinkProps
  * A primitive Link component that wraps a standard anchor tag
  * and adds framework-specific logic for path localization and preloading.
  */
-export const Link = (props: LinkProps) => {
+export function Link(props: LinkProps) {
   const { href, onMouseEnter, onFocus, onClick, ...rest } = props
 
   const navigate = useNavigate()
@@ -79,7 +79,7 @@ export interface NavLinkProps
 /**
  * A primitive NavLink component that provides active state detection.
  */
-export const NavLink = (props: NavLinkProps) => {
+export function NavLink(props: NavLinkProps) {
   const { href, end = false, className, children, ...rest } = props
   const location = useLocation()
 

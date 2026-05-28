@@ -25,7 +25,6 @@ export async function checkMetadata(
     try {
       const { raw, data } = await getFileData(file)
 
-      // 1. Malformed YAML Check
       if (raw.trim().startsWith('---')) {
         const parts = raw.split('---')
         if (parts.length >= 3 && Object.keys(data).length === 0) {
@@ -42,7 +41,6 @@ export async function checkMetadata(
         }
       }
 
-      // 2. Strict Schema Validation
       const validation = FrontmatterSchema.safeParse(data)
       if (!validation.success) {
         const level = getSeverity(ctx, 'invalidFrontmatter', 'high')
@@ -58,7 +56,6 @@ export async function checkMetadata(
         }
       }
 
-      // 3. Custom Required Fields
       const requiredFields = Array.from(
         new Set(['title', ...ctx.doctorConfig.checks.metadata.required]),
       )
@@ -76,7 +73,6 @@ export async function checkMetadata(
         }
       }
 
-      // 4. Date Validation
       if (ctx.doctorConfig.checks.metadata.validateDates) {
         const dateFields = [
           'date',
@@ -100,7 +96,6 @@ export async function checkMetadata(
         }
       }
 
-      // 5. Title Validation
       if (data.title) {
         const title = String(data.title)
         if (title.length < titleMin) {
@@ -130,7 +125,6 @@ export async function checkMetadata(
         titleIndex.set(title, existing)
       }
 
-      // 6. Description Validation
       if (data.description) {
         const desc = String(data.description)
         if (desc.length < descriptionMin) {
@@ -159,7 +153,6 @@ export async function checkMetadata(
     }
   }
 
-  // 7. Duplicate Title Detection
   for (const [title, files] of titleIndex.entries()) {
     if (files.length > 1) {
       const level = getSeverity(ctx, 'duplicateTitle', 'low')

@@ -22,12 +22,10 @@ export function processSeoData(
 ): Record<string, any> | undefined {
   const seo: Record<string, any> = {}
 
-  // 1. Nested SEO object
   if (data.seo && typeof data.seo === 'object') {
     Object.assign(seo, data.seo)
   }
 
-  // 2. Flat SEO keys
   for (const key of Object.keys(data)) {
     if (
       EXPLICIT_SEO_KEYS.includes(key) ||
@@ -37,7 +35,6 @@ export function processSeoData(
     }
   }
 
-  // 3. Hidden page sync
   if (data.hidden === true && seo.noindex === undefined) {
     seo.noindex = true
   }

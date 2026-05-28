@@ -10,8 +10,7 @@ export function DocPage({
   mdxComponents: propComponents,
 }: any) {
   const allComponents = useMergedComponents(propComponents)
-  const LastUpdated = allComponents.LastUpdated
-
+  const { LastUpdated } = allComponents
   if (!Content) return null
 
   return (

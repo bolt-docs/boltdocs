@@ -1,5 +1,5 @@
 import { isValidElement } from 'react'
-import useIsBrowser from '../hooks/useIsClient'
+import useIsBrowser from '../hooks/use-is-client'
 
 // Similar comp to the one described here:
 // https://www.joshwcomeau.com/react/the-perils-of-rehydration/#abstractions

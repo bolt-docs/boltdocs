@@ -23,15 +23,12 @@ export async function parseDocFile(
   basePath: string,
   config?: BoltdocsConfig,
 ): Promise<ParsedDocFile> {
-  // 0. Cache Check (Ultra-Fast Path)
-  // Check memory/disk cache BEFORE any heavy security validation or path resolution
   const cached = await ParserCache.get(file)
   if (cached) return cached
 
   const normalizedFile = file.replace(/\\/g, '/')
   const normalizedDocsDir = docsDir.replace(/\\/g, '/')
 
-  // 1. Security Validation (Now deferred after cache miss)
   const decodedFile = validateFilePath(normalizedFile)
   let absoluteFile = path.resolve(decodedFile)
   let absoluteDocsDir = path.resolve(normalizedDocsDir)
@@ -61,10 +58,8 @@ export async function parseDocFile(
     )
   }
 
-  // 2. Parse Frontmatter & Content (Async)
   const { data, content } = await parseFrontmatterAsync(file)
 
-  // 3. Resolve Path & Hierarchy
   const resolution = resolveRoutePath(
     absoluteFile,
     absoluteDocsDir,
@@ -73,14 +68,11 @@ export async function parseDocFile(
     data.permalink,
   )
 
-  // 4. Extract Content Data (Headings, SEO, PlainText)
   const contentData = extractContentData(content, data.description)
 
-  // 5. Process Metadata
   const sanitizedStrings = sanitizeFrontmatterStrings(data)
   const seo = processSeoData(data)
 
-  // 6. Determine Sidebar & Group Metadata
   const rawFileName = path.basename(resolution.relativePath)
   const cleanFileName = stripNumberPrefix(rawFileName)
 
@@ -125,10 +117,19 @@ export async function parseDocFile(
       sidebarHidden: data.sidebarHidden || data.hidden,
       seo,
       frontmatter: data,
+      collection: resolution.collection,
+      tags: data.tags,
+      author: data.author,
+      draft: data.draft,
+      excerpt: data.excerpt,
+      coverImage: data.coverImage,
     },
-    relativeDir: relativeDirString || undefined,
+    relativeDir: resolution.collection
+      ? undefined
+      : relativeDirString || undefined,
     isGroupIndex,
     inferredTab: resolution.inferredTab,
+    inferredCollection: resolution.collection,
     groupMeta: isGroupIndex
       ? {
           title:
@@ -158,7 +159,6 @@ export async function parseDocFile(
         : undefined,
   }
 
-  // 7. Save to Cache for next time (Async)
   await ParserCache.set(file, parsed)
 
   return parsed

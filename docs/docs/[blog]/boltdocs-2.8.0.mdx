@@ -1,0 +1,214 @@
+---
+title: "Boltdocs 2.8.0 — Rendimiento, Diagnóstico y Experiencia de Desarrollo"
+description: "Route-level code splitting, performance budgets en el doctor, tipado estricto de rutas, plugin Mermaid optimizado y más"
+date: 2026-05-27
+author:
+  name: Jesús Alcalá
+  avatar: /avatar.jpeg
+excerpt: "Boltdocs 2.8.0 trae mejoras significativas en velocidad de desarrollo, nuevas herramientas de diagnóstico y una base más sólida para proyectos de documentación a gran escala."
+---
+
+
+## Una versión pensada en escala
+
+La 2.8.0 es nuestra release más ambiciosa hasta ahora. No se trata sólo de nuevas funciones, sino de repensar cómo se comporta Boltdocs cuando tu documentación crece —de 10 páginas a 100, de un equipo a varios equipos, de un solo idioma a i18n completo.
+
+<Callout type="info">
+  **Resumen rápido**: Esta versión introduce code splitting real, un sistema de
+  presupuestos de rendimiento, tipado estricto de rutas, una reestructuración
+  profunda del directorio `.boltdocs/` y optimizaciones importantes en el plugin
+  Mermaid.
+</Callout>
+
+---
+
+## Route-Level Code Splitting
+
+Hasta ahora, cada página MDX se incluía en el bundle principal. En proyectos grandes esto significaba que cualquier cambio en una página provocaba que _todas_ las páginas se recompilaran.
+
+### Dev startup instantáneo
+
+Con 2.8.0, los módulos MDX se cargan bajo demanda mediante `React.lazy`. El resultado:
+
+- **Dev server**: arranque ~45% más rápido (de 3.4s a ~1.8s en 68 páginas)
+- **HMR**: sólo recompila la página que estás editando
+- **Build de producción**: cada página es un chunk independiente
+
+```tsx showLineNumbers
+// Antes: eager — todo en memoria
+const modules = import.meta.glob('/docs/**/*.mdx', { eager: true })
+
+// Ahora: lazy + prefetch inteligente
+const modules = import.meta.glob('/docs/**/*.mdx')
+```
+
+### Prefetch en segundo plano
+
+Después del primer renderizado, un `requestIdleCallback` precarga los módulos MDX en lotes de 6. Cuando el usuario navega, el chunk ya está en caché —la navegación es instantánea.
+
+---
+
+## `boltdocs doctor --budget`
+
+El comando `doctor` ahora acepta un flag `--budget` que valida tu build contra umbrales configurables:
+
+<Cards>
+  <Card title="JS Bundle" icon="file-js">
+    Controla el tamaño máximo del bundle JS de entrada, evitando que crezca sin control.
+  </Card>
+  <Card title="CSS Bundle" icon="file-css">
+    Similar para hojas de estilo —útil cuando agregas múltiples plugins visuales.
+  </Card>
+  <Card title="HTML por página" icon="file">
+    Detecta páginas que se salen del presupuesto de HTML generado, ideal para auditorías de SEO.
+  </Card>
+  <Card title="Imágenes" icon="image">
+    Límite de KB totales en assets de imagen.
+  </Card>
+  <Card title="Tiempo de build" icon="clock">
+    Falla si el build excede X segundos —perfecto para CI.
+  </Card>
+</Cards>
+
+### Configuración
+
+Crea un `doctor.json` en la raíz de tu proyecto:
+
+```json
+{
+  "checks": {
+    "performance": {
+      "maxJSBundleSize": 200,
+      "maxCSSBundleSize": 50,
+      "maxPageHTMLSize": 100,
+      "maxImagesKB": 500,
+      "maxBuildTime": 30,
+      "maxFontCount": 3
+    }
+  },
+  "failOnError": true,
+  "maxWarnings": 5
+}
+```
+
+Luego ejecuta:
+
+```bash
+pnpm build && pnpm boltdocs doctor --budget
+```
+
+Cada violación se emite como `DoctorIssue` con severidad configurable, y el flag `failOnError` permite usarlo como gate en CI.
+
+---
+
+## Reorganización de `.boltdocs/`
+
+El directorio de salida ahora tiene una estructura clara y predecible:
+
+```
+.boltdocs/
+├── build/        ← Cache de build SSG
+├── cache/        ← Cachés de procesamiento (routes, etc.)
+├── generated/    ← Definiciones de tipos generadas
+└── reports/      ← Reportes de diagnóstico (doctor, etc.)
+```
+
+Esto no es cosmetico: separar responsabilidades permite que herramientas externas (CI, scripts de despliegue, linting personalizado) accedan a cada subdirectorio sin depender de rutas internas.
+
+---
+
+## Tipado Estricto de Rutas
+
+Uno de los features más solicitados. Ahora los enlaces en navbar, sidebar y el componente `Link` tienen autocompletado completo:
+
+```tsx
+// Antes: cualquier string — propenso a errores
+<Link href="/docs/guides/getting-started/installation">Install</Link>
+
+// Ahora: autocompletado con validación en tiempo de compilación
+<Link href="/docs/guides/getting-started/installation">Install</Link>
+// ❌ Error si la ruta no existe
+```
+
+El tipo `BoltdocsRoutePaths` se genera automáticamente durante el build y se expone como augmentación global del namespace, lo que garantiza compatibilidad con cualquier configuración de TypeScript y VS Code.
+
+---
+
+## Plugin Mermaid Optimizado
+
+Mermaid ahora se carga _sólo_ cuando hay diagramas en la página:
+
+- **Dynamic import**: `await import('mermaid')` dentro de `useEffect` —~27KB de ahorro en páginas sin diagramas
+- **Tema funcional**: la configuración de tema (light/dark) ahora se serializa correctamente como atributo JSX, resolviendo un bug donde los temas nunca se aplicaban
+- **Loading state mejorado**: mientras la librería carga, se muestra el código fuente del diagrama como preview, en lugar de un contenedor vacío con `animate-pulse`
+
+```mdx
+// Sigue funcionando igual —pero ahora es mucho más eficiente
+<Mermaid chart={`
+graph TD
+  A[Instalar] --> B[Usar]
+`} />
+```
+
+---
+
+## Build Output Limpio
+
+El output del build SSG pasó de esto:
+
+```
+✓ built in 3.2s
+✓ built in 3.5s
+📄 /docs/...
+📄 /docs/guides/...
+📄 /blog/hello-world
+... (80+ líneas)
+```
+
+A esto:
+
+```
+✦ Client build complete
+✦ Server build complete
+✦ Rendering complete
+✦ Loader data generated
+══════════════════════════════════
+  ✓ 71 static pages generated
+```
+
+Cada fase tiene un separador visual y un mensaje de finalización. Las 80+ líneas de páginas individuales se resumen en un contador. El resultado es un feedback mucho más claro y accionable.
+
+---
+
+## Otras mejoras
+
+- **Unicode en DUI**: `@bdocs/dui` ahora usa `string-width` para medir correctamente caracteres Unicode, solucionando la alineación de tablas cuando los títulos contienen emojis como ✨, 📄 o ✔
+- **SSR con Vite 8**: `react-router-dom` movido a `ssr.noExternal` para resolver "module is not defined" en el SSR module runner de Vite 8
+- **Tabs responsive**: los tabs ahora tienen `overflow-x-auto` para scroll horizontal en móviles
+- **Mobile padding**: `px-4 sm:px-6` en docs-layout para mejor legibilidad en pantallas pequeñas
+
+---
+
+## Notas de actualización
+
+La migración desde 2.7.x es directa —no hay breaking changes en la API pública. Sin embargo, si tienes scripts que accedan directamente a `.boltdocs/`, actualiza las rutas según la nueva estructura:
+
+| Antes | Ahora |
+|---|---|
+| `.boltdocs/routes.json` | `.boltdocs/cache/routes.json` |
+| `.boltdocs/types.d.ts` | `.boltdocs/generated/types.d.ts` |
+| `.boltdocs/cache-*` | `.boltdocs/cache/*` |
+
+---
+
+## Próximos pasos
+
+La 2.8.0 sienta las bases para lo que viene: colecciones nativas (blog, changelog, API docs con sus propios layouts), integración más profunda con Vite 8 y un sistema de plugins más potente.
+
+Instala o actualiza:
+
+```bash
+pnpm add boltdocs@latest
+```
+
+Y revisa la [documentación completa](/) para explorar todas las novedades.

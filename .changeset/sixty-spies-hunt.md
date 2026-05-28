@@ -1,7 +1,7 @@
 ---
-"boltdocs": major
-"@bdocs/ssg": major
-"@bdocs/create-boltdocs": major
+"boltdocs": minor
+"@bdocs/ssg": minor
+"@bdocs/create-boltdocs": minor
 ---
 
 Reorganise `.boltdocs/` directory structure for clarity:

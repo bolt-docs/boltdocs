@@ -20,14 +20,10 @@ export function extractContentData(
   content: string,
   explicitDescription?: string,
 ): ContentData {
-  // Instantiate per-call instead of reusing a module-level singleton.
-  // The old pattern required slugger.reset() before every use, which is
-  // fragile and NOT safe when workers process files concurrently —
-  // two concurrent calls would share state and corrupt each other's slug IDs.
+  // Per-call instance: reusing a singleton is unsafe under concurrent workers
   const slugger = new GithubSlugger()
   const headings: { level: number; text: string; id: string }[] = []
 
-  // 1. Extract Headings (Single pass for headings)
   for (const match of content.matchAll(HEADINGS_REGEX)) {
     const level = match[1].length
     // Combine link and format removal
@@ -41,7 +37,6 @@ export function extractContentData(
     headings.push({ level, text: sanitizedText, id })
   }
 
-  // 2. Generate Plain Text (Optimized for search - combined regex)
   const finalPlainText = stripHtmlTags(
     content
       .replace(CLEAN_MARKDOWN_REGEX, '')
@@ -49,7 +44,6 @@ export function extractContentData(
       .replace(WHITESPACE_REGEX, ' '),
   ).trim()
 
-  // 3. Resolve Description/Excerpt
   let description = explicitDescription
     ? sanitizeHtml(explicitDescription).trim()
     : ''

@@ -20,11 +20,11 @@ export interface TooltipContentProps extends RAC.TooltipProps {}
  * Modern, accessible Tooltip component built with React Aria Components.
  * Featuring glassmorphism, animations, and smart positioning.
  */
-const TooltipContent = ({
+function TooltipContent({
   className,
   children,
   ...props
-}: TooltipContentProps) => {
+}: TooltipContentProps) {
   return (
     <RAC.Tooltip
       {...props}
@@ -62,13 +62,13 @@ const TooltipContent = ({
   )
 }
 
-export const Tooltip = ({
+export function Tooltip({
   content,
   children,
   delay = 500,
   closeDelay = 0,
   ...props
-}: TooltipProps) => {
+}: TooltipProps) {
   return (
     <RAC.TooltipTrigger delay={delay} closeDelay={closeDelay}>
       {children}

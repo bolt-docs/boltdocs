@@ -1,6 +1,6 @@
 import { z } from 'zod'
 import semver from 'semver'
-import path from 'path'
+import path from 'node:path'
 import { BoltdocsPluginSchema } from '../schema/config'
 import {
   PluginValidationError,

@@ -5,8 +5,8 @@ import { generateProjectTypes } from '../types-generator'
 import { normalizePath, isDocFile } from '../utils'
 import { SECURITY_HEADERS } from '../security/headers'
 import { getCSPHeader } from '../security/csp'
-import { getHtmlTemplate, injectHtmlMeta } from './html'
-import { invalidateDirectoryMetaCache } from './virtual-modules'
+import { getHtmlTemplate, injectHtmlMeta } from '../plugin/html'
+import { invalidateDirectoryMetaCache } from '../plugin/virtual-modules'
 import {
   computeFrontmatterHash,
   getFrontmatterHash,
@@ -237,6 +237,7 @@ export function createDevServerPlugin(
             invalidateVirtualModule(server, 'config')
             invalidateVirtualModule(server, 'routes')
             invalidateVirtualModule(server, 'search')
+            invalidateVirtualModule(server, 'collections')
 
             // Update Link Tree on structural change (non-blocking)
             generateLinkTree(docsDir, process.cwd(), currentConfig).catch(
@@ -283,6 +284,9 @@ export function createDevServerPlugin(
                 if (prevHash !== undefined && prevHash !== newHash) {
                   invalidateVirtualModule(server, 'routes')
                   invalidateVirtualModule(server, 'search')
+                  invalidateVirtualModule(server, 'collections')
+                  server.ws.send({ type: 'full-reload' })
+                  return
                 }
 
                 // Send MDX update event to client with relative path for matching.
@@ -294,10 +298,25 @@ export function createDevServerPlugin(
                 // Invalidate the module in Vite's graph so the next request
                 // for this file triggers a fresh transform (re-runs the MDX compiler).
                 const mods = server.moduleGraph.getModulesByFile(normalized)
-                if (mods) {
+                server.environments.client.logger.info(
+                  `[boltdocs:hmr] getModulesByFile(${normalized}) → ${mods ? mods.size + ' module(s)' : 'empty'}`,
+                  { timestamp: true },
+                )
+                if (mods && mods.size > 0) {
                   for (const mod of mods) {
                     server.moduleGraph.invalidateModule(mod)
                   }
+                  server.environments.client.logger.info(
+                    `[boltdocs:hmr] invalidated ${mods.size} module(s), sending boltdocs:mdx-update`,
+                    { timestamp: true },
+                  )
+                } else {
+                  server.environments.client.logger.info(
+                    `[boltdocs:hmr] no modules found — sending full-reload fallback`,
+                    { timestamp: true },
+                  )
+                  server.ws.send({ type: 'full-reload' })
+                  return
                 }
 
                 server.ws.send({
@@ -323,24 +342,22 @@ export function createDevServerPlugin(
     },
 
     /**
-     * Intercept Vite's HMR graph propagation for MDX/MD files.
+     * Intercept Vite 8's HMR propagation for MDX/MD files.
      *
-     * When a .md/.mdx file inside docsDir changes, Vite would normally walk
-     * the import graph upwards, reach the virtual entry module (which has no
-     * HMR boundary), and trigger a full page reload.
+     * Vite 8 replaces handleHotUpdate with hotUpdate. The hotUpdate hook
+     * is called per-environment (client/ssr) with already-normalized file paths.
      *
-     * By returning an EMPTY array here, we tell Vite: "I will handle this
-     * update myself — do not send any HMR or reload messages."
-     * The actual update is sent as a custom 'boltdocs:mdx-update' WS event
-     * from the watcher handler above, which the client handles gracefully.
+     * By returning an empty array, we prevent Vite from doing its own HMR or
+     * sending a full-reload for doc file changes. Our file watcher handler
+     * (server.watcher.on('change')) sends a custom 'boltdocs:mdx-update' WS
+     * event, which LazyMdxElement / EagerMdxElement handle by re-importing
+     * the updated module with a cache-busting query parameter.
      */
-    handleHotUpdate({ file, server: s }) {
-      const normalized = normalizePath(file)
-      const isInsideDocs = normalized
+    hotUpdate({ file }) {
+      const isInsideDocs = file
         .toLowerCase()
         .startsWith(normalizedDocsDir.toLowerCase())
-      if (isInsideDocs && isDocFile(normalized)) {
-        // Returning empty array: we own this update, Vite does nothing.
+      if (isInsideDocs && isDocFile(file)) {
         return []
       }
     },

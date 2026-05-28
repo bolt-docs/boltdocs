@@ -97,10 +97,27 @@ export function useRoutes() {
     })
   }, [allRoutes, config, currentLocale, currentVersion, currentRoute])
 
+  const collections = useMemo(() => {
+    return new Set(
+      (allRoutes || [])
+        .map((r) => r.collection)
+        .filter(Boolean) as string[],
+    )
+  }, [allRoutes])
+
+  const currentSegment = location.pathname
+    .split('/')
+    .filter(Boolean)[0]
+    ?.toLowerCase()
+  const isCollectionPage =
+    !!currentRoute?.collection ||
+    (currentSegment ? collections.has(currentSegment) : false)
+
   return {
     routes,
     allRoutes,
     currentRoute,
+    isCollectionPage,
     currentLocale: currentLocale as import('../../shared/types').BoltdocsLocale,
     currentVersion:
       currentVersion as import('../../shared/types').BoltdocsVersion,

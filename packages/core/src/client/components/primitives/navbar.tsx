@@ -45,7 +45,7 @@ export interface NavbarSocialsProps extends ComponentBase {
   link: string
 }
 
-export const Navbar = ({ children, className, ...props }: ComponentBase) => {
+export function Navbar({ children, className, ...props }: ComponentBase) {
   return (
     <header
       className={cn('boltdocs-navbar sticky top-0 z-50 w-full', className)}
@@ -56,7 +56,7 @@ export const Navbar = ({ children, className, ...props }: ComponentBase) => {
   )
 }
 
-const NavbarContent = ({ children, className }: ComponentBase) => {
+function NavbarContent({ children, className }: ComponentBase) {
   return (
     <div
       className={cn(
@@ -69,7 +69,7 @@ const NavbarContent = ({ children, className }: ComponentBase) => {
   )
 }
 
-const NavbarLeft = ({ children, className }: ComponentBase) => {
+function NavbarLeft({ children, className }: ComponentBase) {
   return (
     <div
       className={cn(
@@ -82,7 +82,7 @@ const NavbarLeft = ({ children, className }: ComponentBase) => {
   )
 }
 
-const NavbarRight = ({ children, className }: ComponentBase) => {
+function NavbarRight({ children, className }: ComponentBase) {
   return (
     <div
       className={cn(
@@ -95,7 +95,7 @@ const NavbarRight = ({ children, className }: ComponentBase) => {
   )
 }
 
-const NavbarCenter = ({ children, className }: ComponentBase) => {
+function NavbarCenter({ children, className }: ComponentBase) {
   return (
     <div
       className={cn(
@@ -108,14 +108,14 @@ const NavbarCenter = ({ children, className }: ComponentBase) => {
   )
 }
 
-const NavbarLogo = ({
+function NavbarLogo({
   src,
   alt,
   width = 24,
   height = 24,
   className,
   href = '/',
-}: NavbarLogoProps) => {
+}: NavbarLogoProps) {
   return (
     <Link
       href={href}
@@ -134,11 +134,11 @@ const NavbarLogo = ({
   )
 }
 
-const NavbarTitle = ({
+function NavbarTitle({
   children,
   className,
   href = '/',
-}: { href?: string } & ComponentBase) => {
+}: { href?: string } & ComponentBase) {
   return (
     <Link href={href}>
       <span
@@ -153,7 +153,7 @@ const NavbarTitle = ({
   )
 }
 
-const NavbarLinks = ({ children, className }: ComponentBase) => {
+function NavbarLinks({ children, className }: ComponentBase) {
   return (
     <nav
       className={cn(
@@ -166,7 +166,7 @@ const NavbarLinks = ({ children, className }: ComponentBase) => {
   )
 }
 
-const NavbarLink = ({ label, href, to, className }: NavbarLinkProps) => {
+function NavbarLink({ label, href, to, className }: NavbarLinkProps) {
   return (
     <Link
       href={href}
@@ -183,7 +183,7 @@ const NavbarLink = ({ label, href, to, className }: NavbarLinkProps) => {
   )
 }
 
-const NavbarDropdown = ({
+function NavbarDropdown({
   label,
   className,
   children,
@@ -191,7 +191,7 @@ const NavbarDropdown = ({
   label: React.ReactNode
   className?: string
   children: React.ReactNode
-}) => {
+}) {
   const [isOpen, setIsOpen] = useState(false)
 
   return (
@@ -235,7 +235,7 @@ const NavbarDropdown = ({
   )
 }
 
-const NavbarDropdownItem = ({
+function NavbarDropdownItem({
   href,
   label,
   className,
@@ -243,7 +243,7 @@ const NavbarDropdownItem = ({
   href: string
   label: string
   className?: string
-}) => {
+}) {
   return (
     <Link
       href={href}
@@ -254,11 +254,11 @@ const NavbarDropdownItem = ({
   )
 }
 
-const NavbarSearchTriggerDesktop = ({
+function NavbarSearchTriggerDesktop({
   className,
   onPress,
   children,
-}: NavbarSearchTriggerProps) => {
+}: NavbarSearchTriggerProps) {
   return (
     <ButtonRAC
       onPress={onPress}
@@ -272,11 +272,11 @@ const NavbarSearchTriggerDesktop = ({
   )
 }
 
-const NavbarSearchTriggerMobile = ({
+function NavbarSearchTriggerMobile({
   className,
   onPress,
   children,
-}: NavbarSearchTriggerProps) => {
+}: NavbarSearchTriggerProps) {
   return (
     <ButtonRAC
       onPress={onPress}
@@ -291,7 +291,7 @@ const NavbarSearchTriggerMobile = ({
   )
 }
 
-const NavbarSearchTriggerKbd = ({ className }: ComponentBase) => {
+function NavbarSearchTriggerKbd({ className }: ComponentBase) {
   const [mounted, setMounted] = useState(false)
   const isMac = mounted && /Mac|iPod|iPhone|iPad/.test(navigator.platform)
 
@@ -322,7 +322,7 @@ const NavbarSearchTrigger = {
   Kbd: NavbarSearchTriggerKbd,
 }
 
-const NavbarTheme = ({ className, theme, onThemeChange }: NavbarThemeProps) => {
+function NavbarTheme({ className, theme, onThemeChange }: NavbarThemeProps) {
   return (
     <ToggleButton
       isSelected={theme === 'dark'}
@@ -335,14 +335,14 @@ const NavbarTheme = ({ className, theme, onThemeChange }: NavbarThemeProps) => {
   )
 }
 
-const Icon = ({ name }: { name: BoltdocsSocialLink['icon'] }) => {
+function Icon({ name }: { name: BoltdocsSocialLink['icon'] }) {
   if (name === 'github') return <IconsSocials.Github />
   if (name === 'discord') return <IconsSocials.Discord />
   if (name === 'x') return <IconsSocials.XSocial />
   if (name === 'bluesky') return <IconsSocials.Bluesky />
 }
 
-const NavbarSocials = ({ icon, link, className }: NavbarSocialsProps) => {
+function NavbarSocials({ icon, link, className }: NavbarSocialsProps) {
   return (
     <Link
       href={link}
@@ -355,7 +355,7 @@ const NavbarSocials = ({ icon, link, className }: NavbarSocialsProps) => {
   )
 }
 
-const NavbarSplit = ({ className }: ComponentBase) => {
+function NavbarSplit({ className }: ComponentBase) {
   return (
     <Separator
       orientation="vertical"
@@ -368,7 +368,7 @@ export interface NavbarMoreProps extends ComponentBase {
   onPress?: () => void
 }
 
-const NavbarMore = ({ onPress, className }: NavbarMoreProps) => {
+function NavbarMore({ onPress, className }: NavbarMoreProps) {
   return (
     <ButtonRAC
       onPress={onPress}
@@ -388,12 +388,12 @@ export interface NavbarMobileMenuProps extends ComponentBase {
   onClose: () => void
 }
 
-const NavbarMobileMenu = ({
+function NavbarMobileMenu({
   isOpen,
   onClose,
   children,
   className,
-}: NavbarMobileMenuProps) => {
+}: NavbarMobileMenuProps) {
   return (
     <ModalOverlay
       isOpen={isOpen}
@@ -425,13 +425,13 @@ const NavbarMobileMenu = ({
   )
 }
 
-const NavbarMobileLink = ({
+function NavbarMobileLink({
   label,
   href,
   to,
   onPress,
   className,
-}: NavbarLinkProps & { onPress?: () => void }) => {
+}: NavbarLinkProps & { onPress?: () => void }) {
   return (
     <Link
       href={href}

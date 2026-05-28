@@ -61,7 +61,6 @@ export async function generateRoutes(
     // Clear path computation cache between generations
     localizedPathCache.clear()
 
-    // 1. FAST SCAN (Skip if incremental and we have a cache)
     let files: string[]
     if (!forceScan && cachedFileList) {
       files = cachedFileList
@@ -113,7 +112,6 @@ export async function generateRoutes(
     // Prune cache entries for deleted files
     docCache.pruneStale(new Set(files))
 
-    // 2. PROCESSING (Parallel Workers in Dev/Prod, Sequential in Tests)
     const isTest =
       process.env.NODE_ENV === 'test' || process.env.VITEST === 'true'
 
@@ -165,7 +163,22 @@ export async function generateRoutes(
     // Save cache after processing
     docCache.save()
 
-    // 3. OPTIMIZED METADATA COLLECTION
+    const docFiles: ParsedDocFile[] = []
+    const collectionFiles: Map<string, ParsedDocFile[]> = new Map()
+
+    for (const p of parsed) {
+      // Exclude drafts in production
+      if (process.env.NODE_ENV === 'production' && p.route.draft) continue
+
+      if (p.inferredCollection) {
+        const col = p.inferredCollection
+        if (!collectionFiles.has(col)) collectionFiles.set(col, [])
+        collectionFiles.get(col)!.push(p)
+      } else {
+        docFiles.push(p)
+      }
+    }
+
     const groupMeta = new Map<
       string,
       {
@@ -178,7 +191,7 @@ export async function generateRoutes(
 
     const defaultLocale = config?.i18n?.defaultLocale || ''
 
-    for (const p of parsed) {
+    for (const p of docFiles) {
       if (p.isGroupIndex && p.relativeDir) {
         groupIndexFiles.push(p)
       }
@@ -231,7 +244,6 @@ export async function generateRoutes(
           const groupKey = `${locale}:${groupName}`
           const entry = groupMeta.get(groupKey)
 
-          // Resolve title for this locale
           let resolvedTitle: string | undefined
           if (typeof groupConfig.title === 'string') {
             resolvedTitle = groupConfig.title
@@ -253,10 +265,9 @@ export async function generateRoutes(
       }
     }
 
-    // 4. BUILD BASE ROUTES
-    const routes: RouteMeta[] = new Array(parsed.length)
-    for (let i = 0; i < parsed.length; i++) {
-      const p = parsed[i]
+    const docRoutes: RouteMeta[] = new Array(docFiles.length)
+    for (let i = 0; i < docFiles.length; i++) {
+      const p = docFiles[i]
       const dir = p.relativeDir
       const locale = p.route.locale || defaultLocale
       const groupKey = dir ? `${locale}:${dir}` : undefined
@@ -271,7 +282,7 @@ export async function generateRoutes(
         }
       }
 
-      routes[i] = {
+      docRoutes[i] = {
         ...p.route,
         group: dir,
         groupTitle: groupTitle || (dir ? capitalize(dir) : undefined),
@@ -280,16 +291,31 @@ export async function generateRoutes(
       }
     }
 
-    // 5. OPTIMIZED I18N FALLBACKS
-    let finalRoutes = routes
+    const collectionRoutes: RouteMeta[] = []
+    for (const [, posts] of collectionFiles) {
+      for (const p of posts) {
+        collectionRoutes.push({
+          ...p.route,
+          collection: p.inferredCollection,
+        })
+      }
+    }
+    collectionRoutes.sort((a, b) => {
+      const dateA = a.date ? new Date(a.date).getTime() : 0
+      const dateB = b.date ? new Date(b.date).getTime() : 0
+      return dateB - dateA
+    })
+
+    let finalDocRoutes = docRoutes
     if (config?.i18n) {
-      const fallbacks = generateI18nFallbacks(routes, config, finalBasePath)
-      finalRoutes = [...routes, ...fallbacks]
+      const fallbacks = generateI18nFallbacks(docRoutes, config, finalBasePath)
+      finalDocRoutes = [...docRoutes, ...fallbacks]
     }
 
-    const sorted = sortRoutes(finalRoutes)
+    const sortedDocs = sortRoutes(finalDocRoutes)
+    const allRoutes = [...sortedDocs, ...collectionRoutes]
 
-    return sorted
+    return allRoutes
   })()
 
   activeGenerationPromise = currentTask

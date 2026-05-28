@@ -16,9 +16,10 @@ export function useSidebar(routes: ComponentRoute[]) {
     )
     const activeTabId = activeRoute?.tab?.toLowerCase()
 
+    const noCollection = routes.filter((r) => !r.collection)
     const filteredRoutes = activeTabId
-      ? routes.filter((r) => !r.tab || r.tab.toLowerCase() === activeTabId)
-      : routes
+      ? noCollection.filter((r) => !r.tab || r.tab.toLowerCase() === activeTabId)
+      : noCollection
 
     const directoryMeta: Record<string, any> = {}
     if (config.directoryMeta) {
@@ -32,11 +33,9 @@ export function useSidebar(routes: ComponentRoute[]) {
       }
     }
 
-    // 1. Helper to format labels
     const capitalize = (str: string) =>
       str.charAt(0).toUpperCase() + str.slice(1).replace(/-/g, ' ')
 
-    // 2. Define recursive tree builder
     const rootNodesMap = new Map<string, ComponentRoute>()
     const ungrouped: ComponentRoute[] = []
 
@@ -79,14 +78,12 @@ export function useSidebar(routes: ComponentRoute[]) {
       return lastNode
     }
 
-    // 3. Sort input routes initially by their internal position/ordering
     const sortedRoutes = [...filteredRoutes].sort((a, b) => {
       const posA = a.sidebarPosition ?? a.order ?? 999
       const posB = b.sidebarPosition ?? b.order ?? 999
       return posA - posB
     })
 
-    // 4. Distribute routes into tree
     for (const route of sortedRoutes) {
       if (route.sidebarHidden) continue
 
@@ -121,13 +118,11 @@ export function useSidebar(routes: ComponentRoute[]) {
       }
     }
 
-    // 5. Recursive sorting and cleanup helper
     const finalizeTree = (
       nodes: ComponentRoute[],
       currentPathPrefix: string = '',
     ): ComponentRoute[] => {
       nodes.forEach((node) => {
-        // 1. Pull child nodes from internal Map store into subRoutes
         if ((node as any)._subMap) {
           const childDirs = Array.from(
             ((node as any)._subMap as Map<string, ComponentRoute>).values(),
@@ -136,59 +131,41 @@ export function useSidebar(routes: ComponentRoute[]) {
           delete (node as any)._subMap
         }
 
-        // 2. Recursively process grandchildren
         if (node.subRoutes && node.subRoutes.length > 0) {
           node.subRoutes = finalizeTree(node.subRoutes)
         }
       })
 
-      // 3. Sort this specific depth layer
       return nodes.sort((a, b) => {
-        // Position ordering
         const posA = a.sidebarPosition ?? a.groupPosition ?? 999
         const posB = b.sidebarPosition ?? b.groupPosition ?? 999
-
         if (posA !== posB) return posA - posB
-
-        // Fallback alphabetical
         return a.title.localeCompare(b.title)
       })
     }
 
-    // Finalize top-level groups
     const rawGroups = Array.from(rootNodesMap.values())
     const finalizedTopNodes = finalizeTree(rawGroups)
 
-    // Map finalized top nodes to expected format [{ title, routes }]
     const groups = finalizedTopNodes.map((node) => {
-      // To match current primitives expectations, a 'group' is the top-level container.
-      // If the top node is already structured as a ComponentRoute, we wrap it.
       return {
         slug: node.title.toLowerCase().replace(/\s+/g, '-'),
         title: node.title,
         icon: node.icon,
-        routes: [node], // The primitives sidebar renderer iterates topGroup.routes and recurses inside.
+        routes: [node],
       }
     })
 
-    // Wait, actually the legacy Sidebar.tsx treats "groups" as visual wrappers with headers,
-    // and "routes" inside as the start of items. If we want top-level direct items, they map to 'ungrouped'.
-    // Let's return grouped items natively.
-
-    // RE-DESIGN LEGACY COMPATIBILITY:
-    // If user wants strict backwards layout, we unwrap the very top layer!
     const legacyCompatibleGroups = finalizedTopNodes
       .map((node) => {
-        // Check if it's a container with subitems. If it is, make IT the group header!
         if (node.subRoutes && node.subRoutes.length > 0) {
           return {
             slug: node.title.toLowerCase().replace(/\s+/g, '-'),
             title: node.title,
             icon: node.icon,
-            routes: node.subRoutes, // Unwrap children as top-level list underneath the visual group title!
+            routes: node.subRoutes,
           }
         }
-        // If it's standalone, send it to ungrouped
         ungrouped.push(node)
         return null
       })

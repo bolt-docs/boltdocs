@@ -103,5 +103,5 @@ export function ViteReactSSG(
   return createRoot
 }
 
-export { default as ClientOnly } from './components/ClientOnly'
-export { default as Head } from './components/Head'
+export { default as ClientOnly } from './components/client-only'
+export { default as Head } from './components/head'

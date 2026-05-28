@@ -51,6 +51,12 @@ export const Footer = () => {
               >
                 Issues
               </Link>
+              <Link
+                href="site:/blog"
+                className="hover:text-primary-500 transition-colors"
+              >
+                Blog
+              </Link>
             </div>
             <div className="flex flex-col gap-3">
               <Link

@@ -1,9 +1,9 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { parseDocFile } from '../../src/node/routes/parser'
 import { generateSearchData } from '../../src/node/search'
-import fs from 'fs'
-import path from 'path'
-import os from 'os'
+import fs from 'node:fs'
+import path from 'node:path'
+import os from 'node:os'
 
 describe('Frontmatter Tabs Integration', () => {
   let tempProjectDir: string

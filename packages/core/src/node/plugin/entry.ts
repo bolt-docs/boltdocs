@@ -1,8 +1,8 @@
 import { normalizePath } from '../utils'
 import type { BoltdocsConfig } from '../config'
 import type { BoltdocsPluginOptions } from './types'
-import path from 'path'
-import fs from 'fs'
+import path from 'node:path'
+import fs from 'node:fs'
 
 /**
  * Generates the raw source code for the virtual entry file (`\0virtual:boltdocs-entry`).
@@ -78,25 +78,60 @@ if (typeof window !== 'undefined') {
 }
 `
 
+  const layoutGlob = `/${docsDirName}/**/layout.tsx`
+  const listGlob = `/${docsDirName}/**/list.tsx`
+  const postGlob = `/${docsDirName}/**/post.tsx`
+
   return `
 import { ViteReactSSG, createRoutes } from 'boltdocs/client';
 import _routes from 'virtual:boltdocs-routes.ts';
+import _collections from 'virtual:boltdocs-collections.ts';
 import _config from 'virtual:boltdocs-config.ts';
 import _user_mdx_components from 'virtual:boltdocs-mdx-components.tsx';
-import _Layout from 'virtual:boltdocs-layout.tsx';
 ${cssImport}
 ${componentImports}
 ${externalModuleImport}
 
 const mdxModules = import.meta.glob('/${docsDirName}/**/*.{md,mdx}', ${globMode});
 
+const _collLayoutMods = import.meta.glob('${layoutGlob}', { eager: true });
+const _collListMods = import.meta.glob('${listGlob}', { eager: true });
+const _collPostMods = import.meta.glob('${postGlob}', { eager: true });
+
+const _collectionLayouts = {};
+for (const [p, mod] of Object.entries(_collLayoutMods)) {
+  const dir = p.split('/').slice(-2, -1)[0];
+  if (dir.startsWith('[') && dir.endsWith(']')) {
+    _collectionLayouts[dir.slice(1, -1)] = mod.default || mod;
+  }
+}
+
+const _collectionLists = {};
+for (const [p, mod] of Object.entries(_collListMods)) {
+  const dir = p.split('/').slice(-2, -1)[0];
+  if (dir.startsWith('[') && dir.endsWith(']')) {
+    _collectionLists[dir.slice(1, -1)] = mod.default || mod;
+  }
+}
+
+const _collectionPosts = {};
+for (const [p, mod] of Object.entries(_collPostMods)) {
+  const dir = p.split('/').slice(-2, -1)[0];
+  if (dir.startsWith('[') && dir.endsWith(']')) {
+    _collectionPosts[dir.slice(1, -1)] = mod.default || mod;
+  }
+}
+
 export const createRoot = ViteReactSSG(
   {
     routes: createRoutes({
       routesData: _routes,
+      collectionsData: _collections,
+      collectionLayouts: _collectionLayouts,
+      collectionLists: _collectionLists,
+      collectionPosts: _collectionPosts,
       config: _config,
       mdxModules,
-      Layout: _Layout,
       ${externalOption}
       components: { ${componentMap}${componentMap ? ', ' : ''} ...(_user_mdx_components || {}) },
     }),

@@ -10,7 +10,7 @@ export function LastUpdated({ date }: LastUpdatedProps) {
   if (!date) return null
 
   const d = new Date(date)
-  if (isNaN(d.getTime())) return null
+  if (Number.isNaN(d.getTime())) return null
 
   const formattedDate = d.toLocaleDateString(undefined, {
     year: 'numeric',

@@ -28,6 +28,21 @@ export const FrontmatterSchema = z.looseObject({
   groupTitle: z.string().max(100).optional(),
   groupPosition: z.number().optional(),
   seo: z.record(z.any()).optional(),
+  tags: z.array(z.string().max(50)).optional(),
+  author: z
+    .union([
+      z.string().max(100),
+      z.object({
+        name: z.string().max(100),
+        avatar: z.string().optional(),
+        url: z.string().optional(),
+        image: z.string().optional(),
+      }),
+    ])
+    .optional(),
+  draft: z.boolean().optional(),
+  excerpt: z.string().max(500).optional(),
+  coverImage: z.string().nullable().optional(),
 })
 
 export type FrontmatterData = z.infer<typeof FrontmatterSchema>

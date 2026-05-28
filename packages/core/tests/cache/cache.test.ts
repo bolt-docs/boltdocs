@@ -5,9 +5,9 @@ import {
   AssetCache,
   flushCache,
 } from '../../src/node/cache'
-import fs from 'fs'
-import path from 'path'
-import os from 'os'
+import fs from 'node:fs'
+import path from 'node:path'
+import os from 'node:os'
 
 describe('cache system', () => {
   let tempDir: string

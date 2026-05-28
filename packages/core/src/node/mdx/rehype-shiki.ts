@@ -1,3 +1,4 @@
+import { error as logError } from '@bdocs/dui'
 import { visit } from 'unist-util-visit'
 import type { BoltdocsConfig } from '../config'
 import { getShikiAdapter, parseMetaString, escapeHtml } from './shiki-adapter'
@@ -54,8 +55,8 @@ export function rehypeShiki(config?: BoltdocsConfig) {
 
         try {
           html = highlighter.codeToHtml(code, options)
-        } catch (error) {
-          console.error(`[rehypeShiki] Failed to highlight code block:`, error)
+        } catch (e) {
+          logError(`[rehypeShiki] Failed to highlight code block:`, e)
           // Graceful fallback to plain HTML escaping
           html = `<pre class="${SHIKI_CLASSES.FALLBACK}"><code>${escapeHtml(code)}</code></pre>`
         }

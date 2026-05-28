@@ -13,6 +13,11 @@ declare module 'virtual:boltdocs-layout' {
   export default Layout
 }
 
+declare module 'virtual:boltdocs-collections' {
+>  const collections: Record<string, any[]>
+  export default collections
+}
+
 declare module 'virtual:boltdocs-mdx-components' {
   const components: any
   export default components

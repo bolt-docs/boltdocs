@@ -5,9 +5,9 @@ import {
 } from '../../src/node/routes/index'
 import * as parser from '../../src/node/routes/parser'
 import { docCache } from '../../src/node/routes/cache'
-import fs from 'fs'
-import path from 'path'
-import os from 'os'
+import fs from 'node:fs'
+import path from 'node:path'
+import os from 'node:os'
 
 // We'll use a real temp directory to avoid fast-glob mocking issues
 const tempDocsDir = fs.mkdtempSync(path.join(os.tmpdir(), 'litedocs-tests-'))

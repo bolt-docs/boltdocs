@@ -273,15 +273,12 @@ export class TransformCache {
    * Retrieves a cached transformation. Fast lookup via index, lazy loading from disk.
    */
   get(key: string): string | null {
-    // 1. Check memory first (LRU)
     const mem = this.memoryCache.get(key)
     if (mem) return mem
 
-    // 2. Check index
     const hash = this.index.get(key)
     if (!hash) return null
 
-    // 3. Load from shard (synchronous read for Vite's transform hook compatibility)
     const shardPath = path.resolve(this.shardsDir, `${hash}.gz`)
     if (!fs.existsSync(shardPath)) return null
 
@@ -299,15 +296,12 @@ export class TransformCache {
    * Retrieves a cached transformation asynchronously. Fast lookup via index, lazy loading from disk.
    */
   async getAsync(key: string): Promise<string | null> {
-    // 1. Check memory first (LRU)
     const mem = this.memoryCache.get(key)
     if (mem) return mem
 
-    // 2. Check index
     const hash = this.index.get(key)
     if (!hash) return null
 
-    // 3. Load from shard asynchronously
     const shardPath = path.resolve(this.shardsDir, `${hash}.gz`)
     try {
       if (!fs.existsSync(shardPath)) return null

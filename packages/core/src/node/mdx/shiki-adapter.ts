@@ -1,3 +1,4 @@
+import { error as logError } from '@bdocs/dui'
 import { highlight } from './highlighter'
 import { showLineNumbers } from './transformers/show-line-numbers'
 import { showWordWrap } from './transformers/show-word-wrap'
@@ -124,8 +125,8 @@ export class ShikiAdapter {
       const highlighter = await this.getHighlighter()
       const options = this.getOptions(lang, meta)
       return highlighter.codeToHtml(code, options)
-    } catch (error) {
-      console.error(`[ShikiAdapter] Failed to render code:`, error)
+    } catch (e) {
+      logError(`[ShikiAdapter] Failed to render code:`, e)
       return `<pre class="${SHIKI_CLASSES.FALLBACK}"><code>${escapeHtml(code)}</code></pre>`
     }
   }

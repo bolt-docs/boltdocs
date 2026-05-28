@@ -8,13 +8,13 @@ export interface PageNavProps extends ComponentBase {
   direction: 'prev' | 'next'
 }
 
-export const PageNav = ({ children, className }: ComponentBase) => {
+export function PageNav({ children, className }: ComponentBase) {
   return (
     <nav className={cn('grid sm:grid-cols-2 gap-4', className)}>{children}</nav>
   )
 }
 
-const PageNavLink = ({ children, to, direction, className }: PageNavProps) => {
+function PageNavLink({ children, to, direction, className }: PageNavProps) {
   const isNext = direction === 'next'
   return (
     <Link
@@ -32,15 +32,15 @@ const PageNavLink = ({ children, to, direction, className }: PageNavProps) => {
   )
 }
 
-const PageNavTitle = ({ children, className }: ComponentBase) => {
+function PageNavTitle({ children, className }: ComponentBase) {
   return <span className={cn(className)}>{children}</span>
 }
 
-const PageNavDescription = ({ children, className }: ComponentBase) => {
+function PageNavDescription({ children, className }: ComponentBase) {
   return <span className={cn('truncate', className)}>{children}</span>
 }
 
-const PageNavIcon = ({ children }: ComponentBase) => {
+function PageNavIcon({ children }: ComponentBase) {
   return <>{children}</>
 }
 

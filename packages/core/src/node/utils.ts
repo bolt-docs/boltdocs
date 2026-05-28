@@ -1,4 +1,4 @@
-import fs from 'fs'
+import fs from 'node:fs'
 import DOMPurify from 'isomorphic-dompurify'
 import { MAX_PATH_LENGTH, ALLOWED_PATH_CHARS } from './security/constants'
 import { FrontmatterSchema, type FrontmatterData } from './schema/frontmatter'
@@ -171,7 +171,7 @@ export async function parseFrontmatterAsync(
     }
 
     const result = FrontmatterSchema.safeParse(data)
-    const validatedData = result.success ? result.data : {}
+    const validatedData = result.success ? result.data : data
 
     const sanitizedData: any = { ...validatedData }
 

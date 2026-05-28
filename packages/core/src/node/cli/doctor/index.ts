@@ -1,5 +1,5 @@
-import path from 'path'
-import fs from 'fs'
+import path from 'node:path'
+import fs from 'node:fs'
 import { fdir } from 'fdir'
 import picomatch from 'picomatch'
 import { colors, double, single, round, bullet, tasks, confirm, info, success, warn, error, dividerLog } from '@bdocs/dui'

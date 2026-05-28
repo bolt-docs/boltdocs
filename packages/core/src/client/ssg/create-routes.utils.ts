@@ -1,0 +1,42 @@
+function withBase(path: string, config: { base?: string }): string {
+  const base = config.base || '/'
+  if (path.startsWith(base)) return path
+  const b = base === '/' ? '' : base.replace(/\/$/, '')
+  const p = path.startsWith('/') ? path : `/${path}`
+  return `${b}${p}` || '/'
+}
+
+function buildModuleMap(mdxModules: Record<string, any>): Map<string, string> {
+  const moduleMap = new Map<string, string>()
+  const mdxModuleKeys = Object.keys(mdxModules)
+
+  if (mdxModuleKeys.length > 0) {
+    const firstKeyNormalized = mdxModuleKeys[0].replace(/\\/g, '/')
+    const parts = firstKeyNormalized.split('/').filter(Boolean)
+    const docsDirName = parts[0] || 'docs'
+    const primaryPrefix = `/${docsDirName}/`
+    const altPrefix = `./${docsDirName}/`
+
+    for (const rawKey of mdxModuleKeys) {
+      const k = rawKey.replace(/\\/g, '/')
+      let relativePath = ''
+      if (k.indexOf(primaryPrefix) !== -1) {
+        relativePath = k.substring(
+          k.indexOf(primaryPrefix) + primaryPrefix.length,
+        )
+      } else if (k.startsWith(altPrefix)) {
+        relativePath = k.substring(altPrefix.length)
+      }
+
+      if (relativePath) {
+        moduleMap.set(relativePath, rawKey)
+      } else {
+        moduleMap.set(k, rawKey)
+      }
+    }
+  }
+
+  return moduleMap
+}
+
+export { withBase, buildModuleMap }

@@ -160,7 +160,7 @@ export function AnchorProvider({
   return <ItemsContext.Provider value={items}>{children}</ItemsContext.Provider>
 }
 
-export const OnThisPage = ({ children, className }: ComponentBase) => {
+export function OnThisPage({ children, className }: ComponentBase) {
   return (
     <nav
       className={cn(
@@ -175,7 +175,7 @@ export const OnThisPage = ({ children, className }: ComponentBase) => {
   )
 }
 
-const OnThisPageHeader = ({ children, className, ...props }: ComponentBase) => {
+function OnThisPageHeader({ children, className, ...props }: ComponentBase) {
   return (
     <div
       className={cn('mb-4 text-xs font-bold text-body', className)}
@@ -186,12 +186,12 @@ const OnThisPageHeader = ({ children, className, ...props }: ComponentBase) => {
   )
 }
 
-const OnThisPageContent = ({
+function OnThisPageContent({
   children,
   className,
   ref,
   ...props
-}: OnThisPageContentProps) => {
+}: OnThisPageContentProps) {
   const internalRef = useRef<HTMLDivElement>(null)
 
   useImperativeHandle(ref, () => internalRef.current!)
@@ -218,7 +218,7 @@ const OnThisPageContent = ({
 
 OnThisPageContent.displayName = 'OnThisPageContent'
 
-const OnThisPageList = ({ children, className }: ComponentBase) => {
+function OnThisPageList({ children, className }: ComponentBase) {
   return (
     <ul
       className={cn(
@@ -231,21 +231,17 @@ const OnThisPageList = ({ children, className }: ComponentBase) => {
   )
 }
 
-const OnThisPageItem = ({
-  level,
-  children,
-  className,
-}: OnThisPageItemProps) => {
+function OnThisPageItem({ level, children, className }: OnThisPageItemProps) {
   return <li className={cn(level === 3 && 'pl-3', className)}>{children}</li>
 }
 
-const OnThisPageLink = ({
+function OnThisPageLink({
   children,
   href,
   active,
   onClick,
   className,
-}: OnThisPageLinkProps) => {
+}: OnThisPageLinkProps) {
   const items = use(ItemsContext)
   const containerRef = use(ScrollContext)
   const id = href ? getItemId(href) : null
@@ -301,10 +297,7 @@ const OnThisPageLink = ({
   )
 }
 
-const OnThisPageIndicator = ({
-  style,
-  className,
-}: OnThisPageIndicatorProps) => {
+function OnThisPageIndicator({ style, className }: OnThisPageIndicatorProps) {
   const containerRef = useRef<HTMLDivElement>(null)
   const [internalStyle, setInternalStyle] = useState<React.CSSProperties>({
     opacity: 0,

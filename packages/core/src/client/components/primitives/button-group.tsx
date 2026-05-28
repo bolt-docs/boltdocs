@@ -5,11 +5,11 @@ export interface ButtonGroupProps extends ComponentBase {
   vertical?: boolean
 }
 
-export const ButtonGroup = ({
+export function ButtonGroup({
   children,
   className,
   vertical = false,
-}: ButtonGroupProps) => {
+}: ButtonGroupProps) {
   return (
     <div
       className={cn(

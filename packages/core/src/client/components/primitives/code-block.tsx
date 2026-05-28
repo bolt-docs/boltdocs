@@ -23,12 +23,12 @@ export interface CodeBlockContentProps extends ComponentProps<'div'> {
  * Root component for code blocks.
  * Handles background, borders, and general layout.
  */
-const CodeBlock = ({
+function CodeBlock({
   children,
   className,
   plain = false,
   ...props
-}: CodeBlockRootProps) => {
+}: CodeBlockRootProps) {
   return (
     <div
       className={cn(
@@ -51,11 +51,11 @@ const CodeBlock = ({
  * Header section of the code block.
  * Usually contains the title, language label, and action buttons.
  */
-const CodeBlockHeader = ({
+function CodeBlockHeader({
   children,
   className,
   ...props
-}: CodeBlockHeaderProps) => {
+}: CodeBlockHeaderProps) {
   return (
     <div
       className={cn(
@@ -73,11 +73,11 @@ const CodeBlockHeader = ({
 /**
  * Horizontal group for organizing items within the header (e.g., logo + label).
  */
-const CodeBlockGroup = ({
+function CodeBlockGroup({
   children,
   className,
   ...props
-}: CodeBlockGroupProps) => {
+}: CodeBlockGroupProps) {
   return (
     <div className={cn('flex items-center space-x-2', className)} {...props}>
       {children}
@@ -89,12 +89,12 @@ const CodeBlockGroup = ({
  * Content area of the code block.
  * Wraps the `<pre>` or `<div>` containing the code.
  */
-const CodeBlockContent = ({
+function CodeBlockContent({
   className,
   children,
   shouldTruncate = false,
   ...props
-}: CodeBlockContentProps) => {
+}: CodeBlockContentProps) {
   return (
     <div
       className={cn(

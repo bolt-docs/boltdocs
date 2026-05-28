@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { parseDocFile } from '../../src/node/routes/parser'
 import * as utils from '../../src/node/utils'
-import path from 'path'
+import path from 'node:path'
 
 // Mock utils since we don't want to depend on their implementation here
 vi.mock('../../src/node/utils', async () => {

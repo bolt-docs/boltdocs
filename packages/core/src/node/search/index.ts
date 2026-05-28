@@ -13,7 +13,7 @@ export interface SearchDocument {
 // Defined once at module scope instead of being re-created on every
 // loop iteration (which was the previous behaviour — one new function
 // object per route, O(N) unnecessary allocations).
-function extractStrings(obj: any): string[] {
+function extractStrings(obj: unknown): string[] {
   if (typeof obj === 'string') return [obj]
   if (Array.isArray(obj)) return obj.flatMap(extractStrings)
   if (obj && typeof obj === 'object')

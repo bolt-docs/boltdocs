@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { X } from './icons'
+import { cn } from '../../utils/cn'
 
 export interface BannerProps extends React.HTMLAttributes<HTMLDivElement> {
   /**
@@ -45,7 +46,10 @@ export function Banner({
 
   return (
     <div
-      className={`relative flex items-center justify-center px-4 py-2.5 text-xs font-semibold tracking-wide bg-primary-500/10 dark:bg-primary-500/15 text-primary-700 dark:text-primary-300 border-b border-primary-500/20 select-none animate-in fade-in duration-300 ${className}`}
+      className={cn(
+        'relative flex items-center justify-center px-4 py-2.5 text-xs font-semibold tracking-wide bg-primary-500/10 dark:bg-primary-500/15 text-primary-700 dark:text-primary-300 border-b border-primary-500/20 select-none animate-in fade-in duration-300',
+        className,
+      )}
       {...props}
     >
       <div className="flex-1 text-center flex items-center justify-center gap-2">

@@ -1,8 +1,8 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { getHtmlTemplate, injectHtmlMeta } from '../../src/node/plugin/html'
-import path from 'path'
-import fs from 'fs'
-import os from 'os'
+import path from 'node:path'
+import fs from 'node:fs'
+import os from 'node:os'
 
 describe('plugin html', () => {
   let tempDir: string

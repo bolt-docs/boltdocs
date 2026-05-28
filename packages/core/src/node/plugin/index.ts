@@ -18,7 +18,7 @@ import {
   type SecureBoltdocsPlugin,
 } from '../plugins'
 import { createVirtualModulesPlugin } from './virtual-modules'
-import { createDevServerPlugin } from './dev-server'
+import { createDevServerPlugin } from '../hmr/index'
 
 // Internal import to avoid top-level side effects
 import * as _node_module from 'node:module'

@@ -2,9 +2,9 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { parseDocFile } from '../../src/node/routes/parser'
 import { adaptRoutesForSSG } from '../../src/node/routes/route-adapter'
 import { DocPage } from '../../src/client/app/doc-page'
-import fs from 'fs'
-import path from 'path'
-import os from 'os'
+import fs from 'node:fs'
+import path from 'node:path'
+import os from 'node:os'
 import * as React from 'react'
 
 const mdxComponents = {}

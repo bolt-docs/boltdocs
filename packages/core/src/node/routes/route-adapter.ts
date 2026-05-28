@@ -18,6 +18,12 @@ export interface SSGRouteData {
   locale?: string
   version?: string
   tab?: string
+  collection?: string
+  tags?: string[]
+  author?: string
+  draft?: boolean
+  excerpt?: string
+  coverImage?: string
   group?: string
   groupTitle?: string
   groupPosition?: number
@@ -55,6 +61,12 @@ export function adaptRoutesForSSG(routes: RouteMeta[]): SSGRouteData[] {
     locale: route.locale,
     version: route.version,
     tab: route.tab,
+    collection: route.collection,
+    tags: route.tags,
+    author: route.author,
+    draft: route.draft,
+    excerpt: route.excerpt,
+    coverImage: route.coverImage,
     group: route.group,
     groupTitle: route.groupTitle,
     groupPosition: route.groupPosition,

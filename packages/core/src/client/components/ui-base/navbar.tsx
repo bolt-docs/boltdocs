@@ -23,13 +23,18 @@ const SearchDialog = lazy(() =>
 
 export function Navbar() {
   const { links, title, logo, logoProps, github, social, config } = useNavbar()
-  const { routes, allRoutes, currentRoute, currentVersion, currentLocale } = useRoutes()
-  const { pathname } = useLocation()
+  const {
+    routes,
+    currentRoute,
+    isCollectionPage,
+    currentVersion,
+    currentLocale,
+  } = useRoutes()
   const { isSidebarOpen, toggleSidebar } = useUI()
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
 
   const themeConfig = config.theme || {}
-  const isDocs = !!currentRoute?.filePath
+  const isDocs = !!currentRoute?.filePath && !isCollectionPage
   const hasTabs = themeConfig?.tabs && themeConfig.tabs.length > 0
 
   return (
@@ -163,7 +168,7 @@ export function Navbar() {
 
       {isDocs && hasTabs && themeConfig?.tabs && (
         <div className="w-full border-b border-subtle bg-main">
-          <Tabs tabs={themeConfig.tabs} routes={allRoutes || routes || []} />
+          <Tabs tabs={themeConfig.tabs} routes={routes || []} />
         </div>
       )}
     </NavbarPrimitive.Root>
@@ -187,7 +192,7 @@ function NavbarLinkItem({ link }: { link: NavbarLinkType }) {
               active ? 'text-primary-500' : 'text-muted hover:text-body',
             )}
           >
-            {link.label as any}
+            {link.label as string}
           </span>
         }
       >
@@ -236,7 +241,7 @@ function NavbarMobileLinkItem({
             active ? 'text-body' : 'text-muted/80 hover:text-body',
           )}
         >
-          {link.label as any}
+          {link.label as string}
         </div>
         <div className="flex flex-col gap-1 pl-4">
           {link.items?.map((item) => (

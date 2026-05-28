@@ -13,11 +13,7 @@ import type { ComponentRoute } from '../types'
 import { UIProvider } from '../app/ui-context'
 
 import virtualCustomComponents from 'virtual:boltdocs-mdx-components'
-
-/** Normalize a path: strip trailing slash unless it is exactly '/'. */
-function normalizePath(p: string): string {
-  return p.endsWith('/') && p.length > 1 ? p.slice(0, -1) : p
-}
+import { normalizePath } from '../utils/path'
 
 /**
  * Updates the HTML lang and dir attributes based on the current locale configuration.
@@ -92,8 +88,6 @@ export function BoltdocsShell({
 
   const currentPath = useMemo(() => normalizePath(pathname || '/'), [pathname])
 
-  // Build a single O(1) lookup Map from the routes array.
-  // This replaces the 3 separate O(n) .find() calls that previously ran on every render.
   const routeMap = useMemo(() => {
     const map = new Map<string, ComponentRoute>()
     for (const r of routes) {
@@ -103,7 +97,6 @@ export function BoltdocsShell({
     return map
   }, [routes])
 
-  // Calculate frame-perfect initial values derived AUTHORITATIVELY from the static route match
   const initialData = useMemo(() => {
     const matched = routeMap.get(currentPath)
 

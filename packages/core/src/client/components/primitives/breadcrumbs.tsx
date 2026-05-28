@@ -8,11 +8,7 @@ import { ChevronRight } from '../ui-base/icons'
 import { cn } from '../../utils/cn'
 import type { ComponentBase } from './types'
 
-export const Breadcrumbs = ({
-  children,
-  className,
-  ...props
-}: ComponentBase) => {
+export function Breadcrumbs({ children, className, ...props }: ComponentBase) {
   return (
     <BreadcrumbsRAC
       className={cn('flex flex-wrap items-center', className)}
@@ -23,7 +19,7 @@ export const Breadcrumbs = ({
   )
 }
 
-const BreadcrumbsItem = ({ children, className, ...props }: ComponentBase) => {
+function BreadcrumbsItem({ children, className, ...props }: ComponentBase) {
   return (
     <Breadcrumb className={cn('flex items-center', className)} {...props}>
       {children as any}
@@ -31,12 +27,12 @@ const BreadcrumbsItem = ({ children, className, ...props }: ComponentBase) => {
   )
 }
 
-const BreadcrumbsLink = ({
+function BreadcrumbsLink({
   children,
   href,
   className,
   ...props
-}: LinkProps & { className?: string }) => {
+}: LinkProps & { className?: string }) {
   return (
     <Link href={href} className={cn('cursor-pointer', className)} {...props}>
       {children as any}
@@ -44,7 +40,7 @@ const BreadcrumbsLink = ({
   )
 }
 
-const BreadcrumbsSeparator = ({ className }: ComponentBase) => {
+function BreadcrumbsSeparator({ className }: ComponentBase) {
   return <ChevronRight size={14} className={cn('shrink-0', className)} />
 }
 

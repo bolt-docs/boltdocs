@@ -37,6 +37,8 @@ Boltdocs reads this file at startup and generates a complete Vite configuration 
 | **`integrations`** | [`IntegrationsConfig`](#integrationsconfig) | — | Enables third-party integrations such as Google Analytics 4 and Google Tag Manager. |
 | **`i18n`** | [`I18nConfig`](#i18nconfig) | — | Enables multi-language documentation with locale-based folder routing. |
 | **`versions`** | [`VersionsConfig`](#versionsconfig) | — | Enables side-by-side versioned documentation. |
+| **`collections`** | [`CollectionsConfig`](#collectionsconfig) | — | Configures the dynamic collections (blog) system for grouping related posts. |
+| **`directoryMeta`** | `Record<string, DirectoryMeta>` | — | Override sidebar titles, icons, and ordering for directories using `meta.json` files. |
 | **`security`** | [`SecurityConfig`](#securityconfig) | — | Configures HTTP security headers and CSP rules. |
 | **`vite`** | `ViteUserConfig` | — | Extends the internally generated Vite config with custom options. |
 
@@ -170,6 +172,88 @@ See the [Versioning guide](/docs/integrations/versioning) for full details.
 
 ---
 
+## `CollectionsConfig`
+
+Configures the dynamic collections system — perfect for blogs, release notes, changelogs, or any content that follows a repeating structure. Collections are defined by bracketed folder names (e.g., `[blog]`) inside your `docs/` directory.
+
+| Property | Type | Default | Description |
+| :--- | :--- | :--- | :--- |
+| **`postsPerPage`** | `number` | `10` | Number of posts displayed per page in collection listing indexes. |
+| **`defaultCollection`** | `string` | `'blog'` | The collection ID used by `BlogList` when no collection is explicitly specified. |
+| **`dateFormat`** | `string` | `'MMMM dd, yyyy'` | Date format string for rendering post dates in listing pages. |
+| **`sortBy`** | `'date' \| 'title' \| 'sidebarPosition'` | `'date'` | Field used to sort posts within a collection. |
+
+```ts
+export default defineConfig({
+  collections: {
+    postsPerPage: 12,
+    defaultCollection: 'blog',
+    dateFormat: 'MMM dd, yyyy',
+    sortBy: 'date',
+  },
+})
+```
+
+<Callout variant="tip" title="Quick Setup">
+Collections work out of the box with zero configuration. Simply create a bracketed folder like `[blog]` inside `docs/` and add your MDX files. Use `collections` only when you need to override the defaults.
+</Callout>
+
+See the [Collections guide](/docs/integrations/collections) for full details on folder conventions, custom views, and loader data.
+
+---
+
+## `directoryMeta`
+
+A powerful mechanism to customize how directories appear in the sidebar without writing any code. Boltdocs automatically scans for `meta.json` files inside your `docs/` directory and merges them into the sidebar configuration at build time.
+
+| Property | Type | Description |
+| :--- | :--- | :--- |
+| **`title`** | `string` | Custom display title for the directory in the sidebar. |
+| **`order`** | `number \| string[]` | Numeric position or explicit ordering of child items within the directory. |
+| **`icon`** | `string` | Icon name displayed next to the directory label (supports Lucide icons). |
+| **`collapsible`** | `boolean` | Whether the sidebar group is collapsible. |
+| **`collapsed`** | `boolean` | Whether the group starts in a collapsed state. |
+
+### Using `meta.json` Files (Recommended)
+
+Drop a `meta.json` (or `_meta.json`) into any directory to configure it automatically:
+
+```json
+{
+  "title": "Getting Started",
+  "order": 1,
+  "icon": "Rocket",
+  "collapsed": false
+}
+```
+
+### Using `directoryMeta` in Config
+
+You can also define metadata directly in `boltdocs.config.ts` for directories you don't own or when you prefer centralized configuration:
+
+```ts
+export default defineConfig({
+  directoryMeta: {
+    'guides/getting-started': {
+      title: 'Quick Start',
+      icon: 'Zap',
+      order: 0,
+    },
+    'api': {
+      title: 'API Reference',
+      icon: 'Code2',
+      collapsed: false,
+    },
+  },
+})
+```
+
+<Callout variant="info" title="Path Format">
+Directory keys use the relative path from your `docs/` directory (e.g., `'guides/getting-started'`). The root directory is represented as `'.'`.
+</Callout>
+
+---
+
 ## `SecurityConfig`
 
 Configure response headers, security settings, and Content Security Policy (CSP).
@@ -223,6 +307,18 @@ export default defineConfig({
   robots: {
     rules: [{ userAgent: '*', allow: '/' }],
     sitemaps: ['https://my-project.com/sitemap.xml'],
+  },
+  collections: {
+    postsPerPage: 12,
+    defaultCollection: 'blog',
+    sortBy: 'date',
+  },
+  directoryMeta: {
+    'guides/getting-started': {
+      title: 'Quick Start',
+      icon: 'Zap',
+      order: 0,
+    },
   },
   integrations: {
     ga4: {

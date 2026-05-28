@@ -33,7 +33,7 @@ function getIcon(iconName?: string): React.ElementType | undefined {
 /**
  * Internal Badge component for links
  */
-const Badge = ({ badge }: { badge: ComponentRoute['badge'] }) => {
+function Badge({ badge }: { badge: ComponentRoute['badge'] }) {
   const colors = {
     new: 'bg-primary-500/10 text-primary-500 border border-primary-500/20',
     updated: 'bg-emerald-500/10 text-emerald-500 border border-emerald-500/20',
@@ -158,12 +158,12 @@ export function SidebarContent({ children, className }: ComponentBase) {
 /**
  * Navigation Group
  */
-export const SidebarGroup = ({
+export function SidebarGroup({
   title,
   icon: Icon,
   children,
   className,
-}: { title?: string; icon?: React.ElementType } & ComponentBase) => {
+}: { title?: string; icon?: React.ElementType } & ComponentBase) {
   return (
     <div className={className}>
       {title && (
@@ -188,14 +188,14 @@ export interface SidebarLinkProps extends ComponentBase {
   badge?: ComponentRoute['badge']
 }
 
-export const SidebarLink = ({
+export function SidebarLink({
   label,
   href,
   active,
   icon: Icon,
   badge,
   className,
-}: SidebarLinkProps) => {
+}: SidebarLinkProps) {
   return (
     <Link
       href={href}
@@ -224,7 +224,7 @@ export const SidebarLink = ({
 /**
  * Nested SubGroup
  */
-export const SidebarSubGroup = ({
+export function SidebarSubGroup({
   label,
   href,
   active,
@@ -238,7 +238,7 @@ export const SidebarSubGroup = ({
   isOpen: boolean
   onToggle: () => void
   children: ReactNode
-}) => {
+}) {
   return (
     <div className="flex flex-col gap-0.5">
       <div className="group relative flex items-center">

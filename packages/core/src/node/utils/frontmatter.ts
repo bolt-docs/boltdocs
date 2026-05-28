@@ -88,7 +88,7 @@ function parseYaml(yaml: string): Record<string, unknown> {
 
         if (parsed.value !== undefined) {
           result[key] = parsed.value
-          i += parsed.linesConsumed
+          i += parsed.linesConsumed + 1
         } else {
           i++
         }
@@ -221,6 +221,12 @@ function parseValue(value: string): unknown {
     (v.startsWith("'") && v.endsWith("'"))
   ) {
     return v.slice(1, -1)
+  }
+
+  if (v.startsWith('[') && v.endsWith(']')) {
+    const inner = v.slice(1, -1).trim()
+    if (!inner) return []
+    return inner.split(/,\s*/).map((item) => parseValue(item.trim()))
   }
 
   if (v.startsWith('{') && v.endsWith('}')) {

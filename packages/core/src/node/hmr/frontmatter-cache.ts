@@ -1,5 +1,6 @@
 import crypto from 'node:crypto'
 import { parseFrontmatterAsync } from '../utils'
+import { docCache } from '../routes/cache'
 
 /**
  * In-memory cache for frontmatter hashes.
@@ -10,16 +11,16 @@ const frontmatterHashes = new Map<string, string>()
 
 /**
  * Computes a fast hash of only the frontmatter section of a file.
- * Non-blocking: uses async I/O to avoid stalling the Node.js event loop
- * during HMR file-change events.
- * Returns an empty string if the file has no frontmatter or can't be read.
+ * Excludes the dynamic `lastUpdated` property to avoid HMR hash mismatches.
  */
 export async function computeFrontmatterHash(
   filePath: string,
 ): Promise<string> {
   try {
     const { data } = await parseFrontmatterAsync(filePath)
-    const serialized = JSON.stringify(data)
+    const cleanFrontmatter = { ...data }
+    delete cleanFrontmatter.lastUpdated
+    const serialized = JSON.stringify(cleanFrontmatter)
     return crypto.createHash('md5').update(serialized).digest('hex')
   } catch {
     return ''
@@ -28,9 +29,21 @@ export async function computeFrontmatterHash(
 
 /**
  * Returns the cached frontmatter hash for a file, or undefined if not cached.
+ * Excludes the dynamic `lastUpdated` property to avoid HMR hash mismatches.
  */
 export function getFrontmatterHash(filePath: string): string | undefined {
-  return frontmatterHashes.get(filePath)
+  let hash = frontmatterHashes.get(filePath)
+  if (hash === undefined) {
+    const cachedDoc = docCache.get(filePath)
+    if (cachedDoc?.route?.frontmatter) {
+      const cleanFrontmatter = { ...cachedDoc.route.frontmatter }
+      delete cleanFrontmatter.lastUpdated
+      const serialized = JSON.stringify(cleanFrontmatter)
+      hash = crypto.createHash('md5').update(serialized).digest('hex')
+      frontmatterHashes.set(filePath, hash)
+    }
+  }
+  return hash
 }
 
 /**

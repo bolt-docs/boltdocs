@@ -13,7 +13,7 @@ export interface TabsIndicatorProps extends ComponentBase {
   style?: React.CSSProperties
 }
 
-export const Tabs = ({ children, className = '', ...props }: ComponentBase) => {
+export function Tabs({ children, className = '', ...props }: ComponentBase) {
   return (
     <div className={cn('w-full', className)} {...props}>
       {children}
@@ -21,24 +21,27 @@ export const Tabs = ({ children, className = '', ...props }: ComponentBase) => {
   )
 }
 
-const TabsList = ({ children, className = '' }: ComponentBase) => {
+function TabsList({ children, className = '' }: ComponentBase) {
   return (
     <div
       role="tablist"
-      className={cn('relative flex flex-row items-center overflow-x-auto', className)}
+      className={cn(
+        'relative flex flex-row items-center overflow-x-auto',
+        className,
+      )}
     >
       {children}
     </div>
   )
 }
 
-const TabsItem = ({
+function TabsItem({
   children,
   id,
   selected,
   className = '',
   ...props
-}: TabsItemProps) => {
+}: TabsItemProps) {
   return (
     <button
       role="tab"
@@ -55,11 +58,11 @@ const TabsItem = ({
   )
 }
 
-const TabsContent = ({ children, className = '' }: ComponentBase) => {
+function TabsContent({ children, className = '' }: ComponentBase) {
   return <div className={cn('outline-none', className)}>{children}</div>
 }
 
-const TabsIndicator = ({ className = '', style }: TabsIndicatorProps) => {
+function TabsIndicator({ className = '', style }: TabsIndicatorProps) {
   return <div className={cn('absolute bottom-0', className)} style={style} />
 }
 
