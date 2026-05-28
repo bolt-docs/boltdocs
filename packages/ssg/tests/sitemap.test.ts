@@ -55,4 +55,16 @@ describe('generateSitemap', () => {
     expect(sitemap).not.toContain('<loc>https://example.com/private</loc>')
     expect(sitemap).not.toContain('<loc>https://example.com/no-robots</loc>')
   })
+
+  it('should not allow malicious paths to break XML structure (escaping check)', () => {
+    const maliciousRoutes = [
+      { path: '/docs/normal' },
+      {
+        path: '/docs/test</loc><url><loc>https://hacker.com</loc></url><loc>',
+      },
+    ]
+    const sitemap = generateSitemap(maliciousRoutes, defaultConfig)
+
+    expect(sitemap).not.toContain('<loc>https://hacker.com</loc>')
+  })
 })

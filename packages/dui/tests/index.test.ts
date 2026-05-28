@@ -198,7 +198,7 @@ describe('pre-built boxes', () => {
     expect(result).toContain('Update available')
     expect(result).toContain('1.0.0')
     expect(result).toContain('2.0.0')
-    expect(result).toContain('npm install dui@latest')
+    expect(result).toContain('npm install boltdocs@latest')
   })
 })
 

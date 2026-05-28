@@ -27,7 +27,6 @@ describe('ssg robots.txt', () => {
         rules: [
           {
             userAgent: '*',
-            disallow: '/admin/',
             disallow: ['/admin/', '/private/'],
           },
         ],
