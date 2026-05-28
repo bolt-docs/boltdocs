@@ -25,30 +25,36 @@ function DocsLayoutComponent({ children }: DocsLayoutThemeProps) {
     <DocsLayoutPrimitive className="selection:bg-primary-500/10 selection:text-primary-500">
       <Navbar />
       <DocsLayoutPrimitive.Body className="bg-main">
-        <Sidebar routes={filteredRoutes || []} config={config} />
+        {!currentRoute?.collection && (
+          <Sidebar routes={filteredRoutes || []} config={config} />
+        )}
         <DocsLayoutPrimitive.Content className="animate-in fade-in duration-500 scroll-smooth">
           <DocsLayoutPrimitive.ContentMdx className="max-w-3xl sm:max-w-4xl lg:max-w-4xl px-4 sm:px-6 pt-8 pb-24">
-            <DocsLayoutPrimitive.Header>
-              <div className="mb-4 border-b border-subtle pb-4 flex flex-wrap items-center justify-between gap-3">
-                <Breadcrumbs />
-                <CopyMarkdown
-                  mdxRaw={currentRoute?._rawContent}
-                  route={currentRoute}
-                />
-              </div>
+            {(!currentRoute?.collection || currentRoute?.filePath) && (
+              <DocsLayoutPrimitive.Header>
+                {!currentRoute?.collection && (
+                  <div className="mb-4 border-b border-subtle pb-4 flex flex-wrap items-center justify-between gap-3">
+                    <Breadcrumbs />
+                    <CopyMarkdown
+                      mdxRaw={currentRoute?._rawContent}
+                      route={currentRoute}
+                    />
+                  </div>
+                )}
 
-              {/* Inject Main Page Heading automatically */}
-              {currentRoute?.title && (
-                <h1 className="text-4xl font-bold tracking-tight text-default mb-3">
-                  {currentRoute.title}
-                </h1>
-              )}
-              {currentRoute?.description && (
-                <p className="text-lg text-muted-foreground mb-6 leading-relaxed">
-                  {currentRoute.description}
-                </p>
-              )}
-            </DocsLayoutPrimitive.Header>
+                {/* Inject Main Page Heading automatically for non-collections */}
+                {!currentRoute?.collection && currentRoute?.title && (
+                  <h1 className="text-4xl font-bold tracking-tight text-default mb-3">
+                    {currentRoute.title}
+                  </h1>
+                )}
+                {!currentRoute?.collection && currentRoute?.description && (
+                  <p className="text-lg text-muted-foreground mb-6 leading-relaxed">
+                    {currentRoute.description}
+                  </p>
+                )}
+              </DocsLayoutPrimitive.Header>
+            )}
 
             <ErrorBoundary>
               <div className="prose prose-neutral dark:prose-invert max-w-none">
@@ -57,7 +63,7 @@ function DocsLayoutComponent({ children }: DocsLayoutThemeProps) {
             </ErrorBoundary>
 
             <DocsLayoutPrimitive.Footer>
-              <PageNav />
+              {!currentRoute?.collection && <PageNav />}
             </DocsLayoutPrimitive.Footer>
           </DocsLayoutPrimitive.ContentMdx>
         </DocsLayoutPrimitive.Content>

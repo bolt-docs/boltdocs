@@ -86,6 +86,17 @@ function buildCollectionRoutes(options: {
           route: routeWithCollection,
           headings: route.headings || [],
           collection: colName,
+          path: subPath,
+          frontmatter: {
+            title: route.title,
+            description: route.description || '',
+            ...(route.frontmatter || {}),
+          },
+          filePath: route.filePath,
+          locale: route.locale,
+          version: route.version,
+          date: route.date,
+          lastUpdated: route.lastUpdated,
         }),
         getStaticPaths: () => [subPath || '.'],
       })
@@ -104,6 +115,7 @@ function buildCollectionRoutes(options: {
       author: r.author,
       coverImage: r.coverImage,
       filePath: r.filePath,
+      frontmatter: r.frontmatter,
     }))
 
     colChildren.unshift({

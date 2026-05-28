@@ -119,6 +119,28 @@ export function createVirtualModulesPlugin(
         const ssgRoutes = adaptRoutesForSSG(routes)
         return `export default ${JSON.stringify(ssgRoutes, null, 2)};`
       }
+      if (name === 'collections') {
+        const routes = await generateRoutes(docsDir, config)
+        const ssgRoutes = adaptRoutesForSSG(routes)
+        const collections: Record<string, any[]> = {}
+        for (const r of ssgRoutes) {
+          if (r.collection) {
+            if (!collections[r.collection]) collections[r.collection] = []
+            collections[r.collection].push({
+              path: r.path,
+              title: r.title,
+              date: r.date,
+              excerpt: r.excerpt,
+              tags: r.tags,
+              author: r.author,
+              coverImage: r.coverImage,
+              filePath: r.filePath,
+              frontmatter: r.frontmatter,
+            })
+          }
+        }
+        return `export default ${JSON.stringify(collections, null, 2)};`
+      }
       if (name === 'config') {
         // Use cached directory meta to avoid a full fdir crawl on every request.
         // The cache is invalidated by the dev-server watcher on add/unlink events.
