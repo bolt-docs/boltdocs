@@ -60,7 +60,14 @@ export interface ComponentRoute {
   /** Tags for blog posts */
   tags?: string[]
   /** Author identifier for blog posts */
-  author?: string
+  author?:
+    | string
+    | {
+        name: string
+        avatar?: string
+        url?: string
+        image?: string
+      }
   /** Draft flag */
   draft?: boolean
   /** Short excerpt for list displays */
@@ -130,4 +137,45 @@ export interface NavbarLink {
   active: boolean
   to?: string
   items?: NavbarLink[]
+}
+
+// ---------------------------------------------------------------------------
+// Loader data types — shapes returned by React Router loaders
+// ---------------------------------------------------------------------------
+
+/**
+ * Shape of the data returned by a collection post route loader.
+ * Consumed by `BlogPost` via `useLoaderData<CollectionPostLoaderData>()`.
+ */
+export interface CollectionPostLoaderData {
+  /** Full route metadata for this post (title, date, author, tags, etc.) */
+  route: ComponentRoute
+  /** The name of the collection this post belongs to (e.g. 'blog') */
+  collection: string
+  /** Extracted page headings for the Table of Contents */
+  headings: { level: number; text: string; id: string }[]
+}
+
+/**
+ * Shape of the data returned by a collection listing route loader.
+ * Consumed by `BlogList` via `useLoaderData<CollectionListLoaderData>()`.
+ */
+export interface CollectionListLoaderData {
+  /** Paginated subset of posts to display on this page */
+  posts: Array<{
+    path: string
+    title: string
+    date?: string | Date
+    excerpt?: string
+    tags?: string[]
+    author?: string
+    coverImage?: string
+    filePath: string
+  }>
+  /** Total number of pages available */
+  totalPages: number
+  /** Current page index (1-based) */
+  currentPage: number
+  /** Collection name used to build pagination URLs (e.g. 'blog' → '/blog/page/2') */
+  collection: string
 }

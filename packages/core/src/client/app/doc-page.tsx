@@ -1,6 +1,4 @@
-import { useMdxComponents } from './mdx-components-context'
-import { useMemo } from 'react'
-import { LastUpdated as DefaultLastUpdated } from '../components/ui-base'
+import { useMergedComponents } from '../hooks/use-merged-components'
 
 /**
  * DocPage renders the MDX content and page-specific metadata.
@@ -11,21 +9,8 @@ export function DocPage({
   content: Content,
   mdxComponents: propComponents,
 }: any) {
-  // Access global MDX components (defaults + plugins + virtuals) from context
-  const contextComponents = useMdxComponents()
-
-  // Merge components: Prop components (from loader) take priority,
-  // then context components (globals).
-  const allComponents = useMemo(
-    () => ({
-      LastUpdated: DefaultLastUpdated,
-      ...contextComponents,
-      ...propComponents,
-    }),
-    [contextComponents, propComponents],
-  )
-
-  const LastUpdated = allComponents.LastUpdated || DefaultLastUpdated
+  const allComponents = useMergedComponents(propComponents)
+  const LastUpdated = allComponents.LastUpdated
 
   if (!Content) return null
 

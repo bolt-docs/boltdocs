@@ -4,14 +4,32 @@ import type { BoltdocsMdxComponents } from '../../shared/types'
 export type MdxComponentsType = {
   [key: string]: React.ComponentType<any>
 } & {
-  Frontmatter?: Record<string, React.ComponentType<any>>
+  /**
+   * A namespace for custom frontmatter field renderers.
+   *
+   * Register a component as `Frontmatter_<FieldName>` in your `mdx-components.tsx`
+   * to override how that frontmatter field is displayed in the blog post sidebar.
+   * It receives a single `{ value: unknown }` prop.
+   *
+   * @example
+   * ```tsx
+   * // mdx-components.tsx
+   * export const Frontmatter_Author = ({ value }) => <MyAuthorCard author={value} />
+   * export const Frontmatter_Tags   = ({ value }) => <MyTagList tags={value} />
+   * ```
+   */
+  Frontmatter?: Record<string, React.ComponentType<{ value: unknown }>>
 }
 
+/**
+ * A globally-deduplicated React Context for MDX components.
+ *
+ * Uses `Symbol.for` so the same Context object is shared even if the
+ * `boltdocs` package is accidentally bundled twice (dual-package hazard).
+ * This avoids the need to store the value on `globalThis`.
+ */
 const MDX_COMPONENTS_CONTEXT_SYMBOL = Symbol.for(
   '__BDOCS_MDX_COMPONENTS_CONTEXT__',
-)
-const MDX_COMPONENTS_INSTANCE_SYMBOL = Symbol.for(
-  '__BDOCS_MDX_COMPONENTS_INSTANCE__',
 )
 
 const MdxComponentsContext =
@@ -19,22 +37,30 @@ const MdxComponentsContext =
   ((globalThis as any)[MDX_COMPONENTS_CONTEXT_SYMBOL] =
     createContext<MdxComponentsType>({}))
 
+/**
+ * Returns the merged MDX component map registered for this subtree.
+ *
+ * Use this inside custom layout components or MDX renderers to access
+ * both built-in Boltdocs components and any user-registered overrides.
+ */
 export function useMdxComponents(): BoltdocsMdxComponents {
   const context = use(MdxComponentsContext)
-
-  // Fallback to global registry for dual-package hazards
-  if (
-    (!context || Object.keys(context).length === 0) &&
-    (globalThis as any)[MDX_COMPONENTS_INSTANCE_SYMBOL]
-  ) {
-    return (globalThis as any)[
-      MDX_COMPONENTS_INSTANCE_SYMBOL
-    ] as BoltdocsMdxComponents
-  }
-
-  return context as any as BoltdocsMdxComponents
+  return context as unknown as BoltdocsMdxComponents
 }
 
+/**
+ * Provides the MDX component map to all descendant consumers.
+ *
+ * Processes `Frontmatter_*` entries in the components map into the
+ * nested `Frontmatter` namespace before storing them in context.
+ *
+ * @example
+ * ```tsx
+ * <MdxComponentsProvider components={allComponents}>
+ *   <App />
+ * </MdxComponentsProvider>
+ * ```
+ */
 export function MdxComponentsProvider({
   components,
   children,
@@ -44,10 +70,11 @@ export function MdxComponentsProvider({
 }) {
   const processedComponents = useMemo(() => {
     const processed: Record<string, any> = {}
-    const frontmatter: Record<string, React.ComponentType<any>> = {}
+    const frontmatter: Record<string, React.ComponentType<{ value: unknown }>> = {}
 
     Object.entries(components).forEach(([key, value]) => {
       if (key.startsWith('Frontmatter_')) {
+        // e.g. "Frontmatter_Author" → stored under Frontmatter.Author
         const cleanKey = key.slice('Frontmatter_'.length)
         frontmatter[cleanKey] = value
       } else {
@@ -58,11 +85,6 @@ export function MdxComponentsProvider({
     processed.Frontmatter = frontmatter
     return processed as MdxComponentsType
   }, [components])
-
-  // Sync with global registry
-  if (typeof globalThis !== 'undefined') {
-    ;(globalThis as any)[MDX_COMPONENTS_INSTANCE_SYMBOL] = processedComponents
-  }
 
   return (
     <MdxComponentsContext.Provider value={processedComponents}>

@@ -2,24 +2,11 @@ import { useLoaderData, Link } from 'react-router-dom'
 import { Pagination } from './pagination'
 import { Tags } from './tags'
 import { formatDate } from './utils'
-
-type BlogLoaderData = {
-  posts: Array<{
-    path: string
-    title: string
-    date?: string | Date
-    excerpt?: string
-    tags?: string[]
-    author?: string
-    coverImage?: string
-    filePath: string
-  }>
-  totalPages: number
-  currentPage: number
-}
+import type { CollectionListLoaderData } from '../types'
 
 export function BlogList() {
-  const data = useLoaderData() as BlogLoaderData
+  const data = useLoaderData() as CollectionListLoaderData
+
   if (!data?.posts?.length) {
     return (
       <div className="text-center py-20 text-muted">
@@ -56,7 +43,7 @@ export function BlogList() {
                 )}
                 {post.author && (
                   <span className="block text-[11px] text-muted/50 mt-0.5">
-                    {post.author}
+                    {typeof post.author === 'string' ? post.author : ''}
                   </span>
                 )}
               </div>
@@ -86,6 +73,7 @@ export function BlogList() {
         <Pagination
           currentPage={data.currentPage}
           totalPages={data.totalPages}
+          collection={data.collection}
         />
       )}
     </div>
