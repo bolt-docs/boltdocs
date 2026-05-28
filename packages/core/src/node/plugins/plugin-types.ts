@@ -1,20 +1,9 @@
 import type { Plugin as VitePlugin } from 'vite'
 import type { BoltdocsConfig } from '../config'
+import type { PluginPermission } from '../../shared/types'
 
-/**
- * Permissions that a plugin can request to access specific Boltdocs capabilities.
- */
-export type PluginPermission =
-  | 'fs:read' // Read filesystem
-  | 'fs:write' // Write filesystem
-  | 'vite:config' // Modify Vite config
-  | 'mdx:remark' // Add remark plugins
-  | 'mdx:rehype' // Add rehype plugins
-  | 'components' // Register MDX components
-  | 'hooks:build' // Access build lifecycle hooks
-  | 'hooks:dev' // Access dev lifecycle hooks
-  | 'analytics:track' // Track analytics events client-side
-  | 'analytics:config' // Access analytics configuration
+// Re-export for consumers that import from the node plugins API
+export type { PluginPermission }
 
 /**
  * Shared context injected into every plugin lifecycle hook.

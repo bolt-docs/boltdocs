@@ -84,7 +84,7 @@ export function parseFrontmatter(
   filePath: string,
   validate = true,
 ): {
-  data: any
+  data: FrontmatterData
   content: string
   raw: string
 } {
@@ -143,7 +143,7 @@ export async function parseFrontmatterAsync(
   filePath: string,
   validate = true,
 ): Promise<{
-  data: any
+  data: FrontmatterData
   content: string
   raw: string
 }> {

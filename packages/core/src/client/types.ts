@@ -1,4 +1,5 @@
 import type * as React from 'react'
+import type { BadgeValue } from '../shared/types'
 export type {
   BoltdocsConfig,
   BoltdocsRoutePath,
@@ -39,7 +40,7 @@ export interface ComponentRoute {
   /** The tab this route belongs to, if tabs are configured */
   tab?: string
   /** Optional badge to display next to the sidebar item */
-  badge?: string | { text: 'updated' | 'new' | 'deprecated'; expires?: string }
+  badge?: BadgeValue
   /** Optional icon for the route's group */
   groupIcon?: string
   /** The sub-route group this route belongs to (from folders starting with _) */
@@ -54,6 +55,18 @@ export interface ComponentRoute {
   date?: string | Date
   /** The last updated timestamp or date */
   lastUpdated?: string | number | Date
+  /** The collection this route belongs to (from [name] directories) */
+  collection?: string
+  /** Tags for blog posts */
+  tags?: string[]
+  /** Author identifier for blog posts */
+  author?: string
+  /** Draft flag */
+  draft?: boolean
+  /** Short excerpt for list displays */
+  excerpt?: string
+  /** Cover image for blog posts */
+  coverImage?: string
   /** Raw extensible frontmatter data for custom components and formatters */
   frontmatter?: Record<string, any>
   /** Clean URL segments stripped of locale/version prefixes */

@@ -125,24 +125,62 @@ export interface BoltdocsVersionsConfig {
 }
 
 /**
+ * Permissions that a plugin can request to access specific Boltdocs capabilities.
+ */
+export type PluginPermission =
+  | 'fs:read'
+  | 'fs:write'
+  | 'vite:config'
+  | 'mdx:remark'
+  | 'mdx:rehype'
+  | 'components'
+  | 'hooks:build'
+  | 'hooks:dev'
+  | 'analytics:track'
+  | 'analytics:config'
+
+/**
+ * Shared badge value type used in frontmatter, RouteMeta, and ComponentRoute.
+ */
+export type BadgeValue =
+  | string
+  | { text: string; expires?: string }
+
+/**
  * Defines a Boltdocs plugin.
+ *
+ * Use the `createPlugin()` helper from the node API for full type safety and
+ * access to lifecycle hooks.
  */
 export interface BoltdocsPlugin {
   name: string
   enforce?: 'pre' | 'post'
   version?: string
   boltdocsVersion?: string
-  permissions?: string[] // simplified for shared types
+  /** Permissions this plugin requires to operate. */
+  permissions?: PluginPermission[]
   remarkPlugins?: unknown[]
   rehypePlugins?: unknown[]
   vitePlugins?: VitePlugin[]
   components?: Record<string, string>
-  hooks?: Record<string, any>
+  /** Lifecycle hooks — use the `PluginLifecycleHooks` type from the node API. */
+  hooks?: Record<string, (ctx: unknown) => Promise<void> | void>
 }
 
 /**
- * Configuration for security-related settings.
+ * Configuration for the collections (blog) feature.
  */
+export interface BoltdocsCollectionsConfig {
+  /** Number of posts per page in collection listing pages. Defaults to 10. */
+  postsPerPage?: number
+  /** The name of the default collection used by BlogList when none is specified. */
+  defaultCollection?: string
+  /** Date format string for rendering post dates (e.g., 'MMMM dd, yyyy'). */
+  dateFormat?: string
+  /** Field to sort posts by. Defaults to 'date'. */
+  sortBy?: 'date' | 'title' | 'sidebarPosition'
+}
+
 export interface BoltdocsSecurityConfig {
   headers?: Record<string, string>
   enableCSP?: boolean
@@ -202,6 +240,7 @@ export interface BoltdocsConfig {
   i18n?: BoltdocsI18nConfig
   versions?: BoltdocsVersionsConfig
   plugins?: BoltdocsPlugin[]
+  collections?: BoltdocsCollectionsConfig
   robots?: BoltdocsRobotsConfig
   security?: BoltdocsSecurityConfig
   seo?: BoltdocsSeoConfig

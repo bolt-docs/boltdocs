@@ -27,6 +27,8 @@ export const PluginPermissionSchema = z.enum([
   'components',
   'hooks:build',
   'hooks:dev',
+  'analytics:track',
+  'analytics:config',
 ])
 
 /**

@@ -1,3 +1,5 @@
+import type { BadgeValue } from '../../shared/types'
+
 /**
  * Metadata representing a single documentation route.
  * This information is used to build the client-side router and the sidebar navigation.
@@ -32,11 +34,23 @@ export interface RouteMeta {
   /** The version this route belongs to, if versioning is configured */
   version?: string
   /** Optional badge to display next to the sidebar item (e.g., 'New', 'Experimental') */
-  badge?: string | { text: string; expires?: string }
+  badge?: BadgeValue
   /** Optional icon to display (Lucide icon name or raw SVG) */
   icon?: string
   /** The tab this route belongs to, if tabs are configured */
   tab?: string
+  /** The collection this route belongs to (from [name] directories like [blog]) */
+  collection?: string
+  /** Tags for blog posts or other taxonomy */
+  tags?: string[]
+  /** Author identifier for blog posts */
+  author?: string
+  /** Draft flag — excluded from production builds */
+  draft?: boolean
+  /** Short excerpt/summary for list displays */
+  excerpt?: string
+  /** Cover image for blog posts */
+  coverImage?: string
   /** The extracted plain-text content of the page for search indexing */
   _content?: string
   /** The raw markdown content of the page */
@@ -80,4 +94,6 @@ export interface ParsedDocFile {
   inferredGroupPosition?: number
   /** Extracted tab name from the directory name if it follows the (tab-name) syntax */
   inferredTab?: string
+  /** Extracted collection name from the [name] directory syntax */
+  inferredCollection?: string
 }
