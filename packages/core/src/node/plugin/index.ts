@@ -14,16 +14,34 @@ import { injectHtmlMeta } from './html'
 import {
   PluginLifecycleManager,
   validatePlugins,
-  PluginSandbox,
   type SecureBoltdocsPlugin,
 } from '../plugins'
 import { createVirtualModulesPlugin } from './virtual-modules'
-import { createDevServerPlugin } from '../hmr/index'
+import { createDevServerPlugin } from '../dev-server/index'
 
 // Internal import to avoid top-level side effects
 import * as _node_module from 'node:module'
 
 const req = _node_module.createRequire(import.meta.url)
+
+function getBaseRequire(defaultReq: any) {
+  try {
+    const pkgJsonPath = path.join(
+      process.cwd(),
+      'node_modules/boltdocs/package.json',
+    )
+    if (fs.existsSync(pkgJsonPath)) {
+      const realPkgPath = fs.realpathSync(pkgJsonPath)
+      return _node_module.createRequire(realPkgPath)
+    } else {
+      return _node_module.createRequire(
+        path.join(process.cwd(), 'package.json'),
+      )
+    }
+  } catch (e) {
+    return defaultReq
+  }
+}
 
 function findPkgJson(resolvedPath: string): string | null {
   let dir = path.dirname(resolvedPath)
@@ -87,12 +105,10 @@ function resolveEsm(packageName: string, customReq = req): string {
       relativePath = pkg.module || pkg.main || 'index.js'
     }
 
-    if (typeof relativePath === 'object') {
+    if (typeof relativePath === 'object' && relativePath !== null) {
+      const exportsObj = relativePath as Record<string, string>
       relativePath =
-        (relativePath as any).import ||
-        (relativePath as any).default ||
-        (relativePath as any).require ||
-        ''
+        exportsObj.import || exportsObj.default || exportsObj.require || ''
     }
 
     if (relativePath) {
@@ -120,21 +136,7 @@ export function getExternalAbsolutePaths(): string[] {
   const paths: string[] = []
 
   // 1. Resolve relative to boltdocs package in consumer app, or process.cwd()
-  let baseReq = req
-  try {
-    const pkgJsonPath = path.join(
-      process.cwd(),
-      'node_modules/boltdocs/package.json',
-    )
-    if (fs.existsSync(pkgJsonPath)) {
-      const realPkgPath = fs.realpathSync(pkgJsonPath)
-      baseReq = _node_module.createRequire(realPkgPath)
-    } else {
-      baseReq = _node_module.createRequire(
-        path.join(process.cwd(), 'package.json'),
-      )
-    }
-  } catch (e) {}
+  let baseReq = getBaseRequire(req)
 
   // Resolve direct externals
   for (const ext of externals) {
@@ -152,7 +154,9 @@ export function getExternalAbsolutePaths(): string[] {
       if (resolved) {
         paths.push(fs.realpathSync(resolved))
       }
-    } catch (e) {}
+    } catch (e) {
+      // Ignore module resolution errors for optional dependencies
+    }
   }
 
   // Fallback to local resolve if baseReq is different from local req
@@ -172,7 +176,9 @@ export function getExternalAbsolutePaths(): string[] {
         if (resolved) {
           paths.push(fs.realpathSync(resolved))
         }
-      } catch (e) {}
+      } catch (e) {
+        // Ignore module resolution errors for optional dependencies
+      }
     }
   }
 
@@ -185,11 +191,15 @@ export function getExternalAbsolutePaths(): string[] {
   for (const sub of subpaths) {
     try {
       paths.push(fs.realpathSync(baseReq.resolve(sub)))
-    } catch (e) {}
+    } catch (e) {
+      // Ignore subpath resolution errors
+    }
     if (baseReq !== req) {
       try {
         paths.push(fs.realpathSync(req.resolve(sub)))
-      } catch (e) {}
+      } catch (e) {
+        // Ignore fallback subpath resolution errors
+      }
     }
   }
 
@@ -231,18 +241,14 @@ export function boltdocsPlugin(
   const getLifecycle = () => lifecycle
 
   return [
-    // === 1. Core plugin: config resolution, SSG options, HTML injection, build hooks ===
+    // 1. Core plugin: config resolution, SSG options, HTML injection, build hooks
     {
       name: 'vite-plugin-boltdocs',
       enforce: 'pre',
 
       async config(userConfig, env) {
         isBuild = env.command === 'build'
-        const isSsr = !!(
-          env.ssrBuild ||
-          (env as any).ssr ||
-          userConfig.build?.ssr
-        )
+        const isSsr = !!(env.isSsrBuild || userConfig.build?.ssr)
 
         // Load env variables
         const envDir = userConfig.envDir || process.cwd()
@@ -274,8 +280,7 @@ export function boltdocsPlugin(
         lifecycle = new PluginLifecycleManager(validatedPlugins, config)
 
         resolvedExtraVitePlugins = validatedPlugins.flatMap((p) => {
-          const caps = PluginSandbox.getSanitizedCapabilities(p)
-          return (caps.vitePlugins || []) as Plugin[]
+          return (p.vitePlugins || []) as Plugin[]
         })
 
         if (isBuild) {
@@ -367,7 +372,7 @@ export function boltdocsPlugin(
         lifecycle?.runHook('configResolved', config)
       },
 
-      resolveId(id, importer, options) {
+      resolveId(id, _importer, options) {
         const externals = [
           'react',
           'react-dom',
@@ -388,21 +393,7 @@ export function boltdocsPlugin(
             let resolvedId = id
             if (!path.isAbsolute(id)) {
               // Construct baseReq dynamically
-              let baseReq = req
-              try {
-                const pkgJsonPath = path.join(
-                  process.cwd(),
-                  'node_modules/boltdocs/package.json',
-                )
-                if (fs.existsSync(pkgJsonPath)) {
-                  const realPkgPath = fs.realpathSync(pkgJsonPath)
-                  baseReq = _node_module.createRequire(realPkgPath)
-                } else {
-                  baseReq = _node_module.createRequire(
-                    path.join(process.cwd(), 'package.json'),
-                  )
-                }
-              } catch (e) {}
+              const baseReq = getBaseRequire(req)
 
               try {
                 if (
@@ -425,13 +416,17 @@ export function boltdocsPlugin(
                   } else {
                     resolvedId = req.resolve(id)
                   }
-                } catch (e2) {}
+                } catch (e2) {
+                  // Ignore fallback resolution failure
+                }
               }
             }
 
             try {
               resolvedId = fs.realpathSync(resolvedId)
-            } catch (e) {}
+            } catch (e) {
+              // Ignore realpath resolution error and use original resolvedId
+            }
 
             return {
               id: resolvedId,
@@ -450,7 +445,6 @@ export function boltdocsPlugin(
       },
 
       async buildEnd() {
-        // Terminate worker pool threads to prevent resource leaks
         const { pool } = await import('../routes/worker-pool')
         await pool.terminate()
       },
@@ -462,20 +456,7 @@ export function boltdocsPlugin(
         await lifecycle?.runHook('buildEnd')
       },
 
-      /**
-       * Rewrite requests so that Vite's preview server serves nested SSG
-       * HTML files correctly (e.g. /about → /about/index.html), mirroring
-       * the behaviour of Vercel's `cleanUrls: true`.
-       *
-       * Without this, Vite falls back to the root index.html for every
-       * path that does not have a matching file, causing the homepage SSR
-       * content to hydrate on subpage URLs and producing visible duplication.
-       */
       configurePreviewServer(server) {
-        // Middleware added DIRECTLY (without returning a function) runs BEFORE
-        // Vite's internal static-file middleware, so the URL rewrite takes effect
-        // before the file is looked up.  If wrapped in a returned function it
-        // would run AFTER – too late to change which file is served.
         const outDir = viteConfig?.build?.outDir
           ? path.resolve(
               viteConfig.root || process.cwd(),
@@ -502,10 +483,8 @@ export function boltdocsPlugin(
       },
     },
 
-    // === 2. Virtual modules plugin: resolveId + load ===
     createVirtualModulesPlugin(options, getConfig, getViteConfig, docsDir),
 
-    // === 3. Dev server plugin: middleware, watchers, HMR ===
     createDevServerPlugin(
       docsDir,
       normalizedDocsDir,
@@ -513,8 +492,6 @@ export function boltdocsPlugin(
       setConfig,
       getLifecycle,
     ),
-
-    // === 4. Image optimizer ===
     {
       ...ViteImageOptimizer({
         includePublic: true,
@@ -535,7 +512,6 @@ export function boltdocsPlugin(
       apply: 'build',
     } as Plugin,
 
-    // === 5. Extra plugins from Boltdocs plugins ===
     ...(() => resolvedExtraVitePlugins)(),
   ]
 }
