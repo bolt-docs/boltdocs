@@ -1,6 +1,6 @@
 {
   "name": "boltdocs",
-  "version": "2.7.11",
+  "version": "2.8.0",
   "description": "A lightweight documentation generator for React projects.",
   "main": "dist/node/index.mjs",
   "module": "dist/node/index.mjs",

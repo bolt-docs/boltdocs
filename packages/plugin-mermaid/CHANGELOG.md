@@ -1,5 +1,17 @@
 # @bdocs/plugin-mermaid
 
+## 0.3.0
+
+### Minor Changes
+
+- [`c4a48b1`](https://github.com/bolt-docs/boltdocs/commit/c4a48b13836f1b33746ab35a2a3bbc4d8536cb32) Thanks [@jesusalcaladev](https://github.com/jesusalcaladev)! - - **Dynamic lazy loading**: Refactored the core library import to load Mermaid dynamically only when a page contains diagrams, optimizing the client bundle size.
+  - **Configuration serialization fix**: Fixed theme configurations not being correctly parsed and rendered on client components, and improved the initial loading placeholder.
+
+### Patch Changes
+
+- Updated dependencies [[`c4a48b1`](https://github.com/bolt-docs/boltdocs/commit/c4a48b13836f1b33746ab35a2a3bbc4d8536cb32)]:
+  - @bdocs/dui@0.1.2
+
 ## 0.2.2
 
 ### Patch Changes

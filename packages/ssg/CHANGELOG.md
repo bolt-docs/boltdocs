@@ -1,5 +1,20 @@
 # @bdocs/ssg
 
+## 0.1.0
+
+### Minor Changes
+
+- [`c4a48b1`](https://github.com/bolt-docs/boltdocs/commit/c4a48b13836f1b33746ab35a2a3bbc4d8536cb32) Thanks [@jesusalcaladev](https://github.com/jesusalcaladev)! - - **Route-level code splitting support**: Enabled eager compilation of MDX files on SSR builds for static rendering while supporting client-side lazy chunks.
+  - **Build performance metrics compilation**: Added automatic tracking of size budgets and timings at the end of the SSG build process, generating metrics for diagnostic auditing.
+  - **Console build output sanitization**: Restructured build reports to suppress verbose Vite asset lists, replaced individual page compiler outputs with a clean running counter, and polished phase separators.
+  - **Directory cache path updates**: Realigned SSG compiler logic with the new `.boltdocs/build/` and `.boltdocs/cache/` structure.
+  - **Performance optimizations**: Refactored recursive file traversal and file hash caching to execute non-blockingly.
+
+### Patch Changes
+
+- Updated dependencies [[`c4a48b1`](https://github.com/bolt-docs/boltdocs/commit/c4a48b13836f1b33746ab35a2a3bbc4d8536cb32)]:
+  - @bdocs/dui@0.1.2
+
 ## 0.0.7
 
 ### Patch Changes
