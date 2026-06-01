@@ -1,7 +1,6 @@
 import { Button } from 'react-aria-components'
 import { Copy, Check, File } from '../ui-base/icons'
 import { cn } from '../../utils/cn'
-import { reactToText } from '../../utils/react-to-text'
 import { useCodeBlock } from './use-code-block'
 import * as CodePrimitive from '../primitives/code-block'
 import {
@@ -49,8 +48,13 @@ export interface CodeBlockProps {
   highlightedHtml?: string
   'data-lang'?: string
   'data-title'?: string
+  'data-highlighted'?: string
   plain?: boolean
-  [key: string]: any
+  lineNumbers?: boolean | string
+  showLineNumbers?: boolean | string
+  wordWrap?: boolean | string
+  'word-wrap'?: boolean | string
+  metastring?: string
 }
 
 const CopyButton = ({
@@ -62,7 +66,6 @@ const CopyButton = ({
 }) => {
   return (
     <Tooltip content={copied ? 'Copied!' : 'Copy code'}>
-      {/* @ts-ignore */}
       <Button
         onPress={handleCopy}
         className={cn(
@@ -71,7 +74,6 @@ const CopyButton = ({
         )}
         aria-label="Copy code"
       >
-        {/* @ts-ignore */}
         {copied ? <Check size={20} /> : <Copy size={20} />}
       </Button>
     </Tooltip>
@@ -88,8 +90,19 @@ export function CodeBlock(props: CodeBlockProps) {
     'data-title': dataTitle,
     'data-lang': dataLang,
     plain = false,
+    // Extract non-standard DOM properties passed by the MDX compiler/plugins
+    lineNumbers,
+    showLineNumbers,
+    wordWrap,
+    'word-wrap': wordWrapHyphen,
+    metastring,
     ...rest
   } = props
+
+  const { style, className: shikiClassName, ...cleanRest } = rest
+  const isHighlighted =
+    props['data-highlighted'] === 'true' ||
+    (typeof shikiClassName === 'string' && shikiClassName.includes('shiki'))
 
   const rawHighlightedHtml = highlightedHtml || dataHighlightedHtml
   const effectiveHighlightedHtml =
@@ -145,7 +158,6 @@ export function CodeBlock(props: CodeBlockProps) {
       <CodePrimitive.CodeBlockContent shouldTruncate={shouldTruncate}>
         {effectiveHighlightedHtml ? (
           <div
-            // @ts-expect-error
             ref={preRef}
             className="shiki-wrapper overflow-x-auto [&>pre]:m-0! [&>pre]:rounded-none! [&>pre]:border-none! [&>pre]:bg-inherit! [&>pre>code]:grid! [&>pre>code]:p-5! [&>pre>code]:text-[0.875rem]! [&>pre>code]:leading-[1.6]! [&>.shiki.shiki-themes]:bg-transparent!"
             dangerouslySetInnerHTML={{ __html: effectiveHighlightedHtml }}
@@ -153,10 +165,19 @@ export function CodeBlock(props: CodeBlockProps) {
         ) : (
           <pre
             ref={preRef}
-            className="m-0! p-5! rounded-none! border-none! bg-inherit! font-mono text-[0.875rem] leading-[1.6] overflow-x-auto"
-            {...rest}
+            className={cn(
+              'm-0! rounded-none! border-none! bg-transparent!',
+              'text-[0.875rem] leading-[1.6] overflow-x-auto',
+              shikiClassName,
+              {
+                'p-0! [&>code]:grid! [&>code]:p-5! [&>code]:bg-transparent!':
+                  isHighlighted,
+                'p-5!': !isHighlighted,
+              },
+            )}
+            {...cleanRest}
           >
-            {reactToText(children).trimEnd()}
+            {children}
           </pre>
         )}
 
@@ -169,7 +190,6 @@ export function CodeBlock(props: CodeBlockProps) {
                 : 'relative flex justify-center pb-4 pt-1 -mt-4',
             )}
           >
-            {/* @ts-ignore */}
             <Button
               onPress={() => setIsExpanded(!isExpanded)}
               className="rounded-full bg-surface border border-subtle px-5 py-2 text-[0.8125rem] font-medium text-body outline-none cursor-pointer transition-all hover:bg-soft hover:-translate-y-px backdrop-blur-md"

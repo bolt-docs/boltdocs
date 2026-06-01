@@ -2,6 +2,11 @@ import { createServer } from '@bdocs/ssg/node'
 import { createViteConfig } from '../index'
 import { error, devServer } from '@bdocs/dui'
 import { notifyUpdateAvailable } from '../update-check'
+import { resolveConfig } from '../config'
+import { inspectPluginsSecurity } from '../security/inspect'
+import path from 'node:path'
+
+let devServerStarted = false
 
 /**
  * Logic for the `boltdocs dev` command.
@@ -10,7 +15,17 @@ import { notifyUpdateAvailable } from '../update-check'
  * @param root - The project root directory
  */
 export async function devAction(root: string = process.cwd()) {
+  if (devServerStarted) return
+  devServerStarted = true
+
   notifyUpdateAvailable()
+  try {
+    const config = await resolveConfig(path.resolve(root, 'docs'), root)
+    inspectPluginsSecurity(config, root)
+  } catch (e) {
+    // Ignore config parsing errors; they will be handled by createViteConfig
+  }
+
   try {
     const viteConfig = await createViteConfig(root, 'development')
     viteConfig.logLevel = 'warn'

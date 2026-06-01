@@ -6,13 +6,28 @@ export function useCodeBlock(props: CodeBlockProps) {
   const [copied, setCopied] = useState(false)
   const [isExpanded, setIsExpanded] = useState(false)
   const [isExpandable, setIsExpandable] = useState(false)
-  const preRef = useRef<HTMLPreElement>(null)
+  const preRef = useRef<HTMLPreElement | HTMLDivElement>(null)
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  useEffect(() => {
+    return () => {
+      if (timerRef.current) {
+        clearTimeout(timerRef.current)
+      }
+    }
+  }, [])
 
   const handleCopy = useCallback(async () => {
     const code = preRef.current?.textContent ?? ''
     copyToClipboard(code)
     setCopied(true)
-    setTimeout(() => setCopied(false), 2000)
+    if (timerRef.current) {
+      clearTimeout(timerRef.current)
+    }
+    timerRef.current = setTimeout(() => {
+      setCopied(false)
+      timerRef.current = null
+    }, 2000)
   }, [])
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: updates when content changes

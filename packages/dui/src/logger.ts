@@ -5,7 +5,12 @@ function prefix(): string {
   return colors.bold(`[${getConfig().prefix}]`)
 }
 
-function log(stream: 'stdout' | 'stderr', color: ((s: string) => string) | null, msg: string, extra?: unknown): void {
+function log(
+  stream: 'stdout' | 'stderr',
+  color: ((s: string) => string) | null,
+  msg: string,
+  extra?: unknown,
+): void {
   const p = color ? color(prefix()) : prefix()
   const out = stream === 'stderr' ? console.error : console.log
   out(`${p} ${msg}`)

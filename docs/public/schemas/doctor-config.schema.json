@@ -105,9 +105,7 @@
             }
           },
           "additionalProperties": false,
-          "required": [
-            "enabled"
-          ]
+          "required": ["enabled"]
         },
         "performance": {
           "description": "Performance budget checks (build metrics against thresholds).",
@@ -150,18 +148,11 @@
             }
           },
           "additionalProperties": false,
-          "required": [
-            "budgets",
-            "enabled"
-          ]
+          "required": ["budgets", "enabled"]
         }
       },
       "additionalProperties": false,
-      "required": [
-        "i18n",
-        "links",
-        "metadata"
-      ]
+      "required": ["i18n", "links", "metadata"]
     },
     "fix": {
       "description": "Automated fix behavior and safety settings.",
@@ -181,11 +172,7 @@
         }
       },
       "additionalProperties": false,
-      "required": [
-        "backupFiles",
-        "backupPath",
-        "confirmChanges"
-      ]
+      "required": ["backupFiles", "backupPath", "confirmChanges"]
     },
     "reporting": {
       "description": "Configuration for diagnostic reports and CI/CD exit behavior.",
@@ -193,11 +180,7 @@
       "properties": {
         "format": {
           "description": "Output format of the report.",
-          "enum": [
-            "json",
-            "pretty",
-            "silent"
-          ],
+          "enum": ["json", "pretty", "silent"],
           "type": "string"
         },
         "outputFile": {
@@ -214,22 +197,13 @@
         }
       },
       "additionalProperties": false,
-      "required": [
-        "failOnError",
-        "format",
-        "maxWarnings"
-      ]
+      "required": ["failOnError", "format", "maxWarnings"]
     },
     "severity": {
       "description": "Severity overrides for different types of issues.\nCan be 'high', 'warning', 'low', or 'off'.",
       "type": "object",
       "additionalProperties": {
-        "enum": [
-          "high",
-          "low",
-          "off",
-          "warning"
-        ],
+        "enum": ["high", "low", "off", "warning"],
         "type": "string"
       }
     },
@@ -242,12 +216,6 @@
     }
   },
   "additionalProperties": false,
-  "required": [
-    "checks",
-    "exclude",
-    "fix",
-    "reporting",
-    "severity"
-  ],
+  "required": ["checks", "exclude", "fix", "reporting", "severity"],
   "$schema": "http://json-schema.org/draft-07/schema#"
 }

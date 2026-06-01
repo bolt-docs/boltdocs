@@ -30,13 +30,11 @@ export function useVersion(): UseVersionReturn {
   const versions = config.versions
   const { setVersion } = useBoltdocsContext()
 
-  const handleVersionChange = (version: string) => {
+  const handleVersionChange = (version: BoltdocsVersion) => {
     if (!versions || version === currentVersion) return
 
-    // Update store
     setVersion(version)
 
-    // 3. Attempt derivation or deployment of navigation target
     const base = config.base || '/docs'
     const safeBase = base.replace(/\/$/, '')
     let targetPath = `${safeBase}/${version}${currentLocale ? `/${currentLocale}` : ''}`
@@ -71,7 +69,6 @@ export function useVersion(): UseVersionReturn {
         }
       }
     } else {
-      // Recovery mode: if currently on a 404, attempt to find ANY document in the target version
       const fallbackRoute = allRoutes.find(
         (r) =>
           (r.version || versions.defaultVersion) === version &&
@@ -92,7 +89,7 @@ export function useVersion(): UseVersionReturn {
   const currentVersionLabel = currentVersionConfig?.label || currentVersion
 
   const availableVersions = useMemo(() => {
-    return versions
+    return versions?.versions
       ? versions.versions.map((v) => ({
           key: v.path as BoltdocsVersion,
           label: v.label,

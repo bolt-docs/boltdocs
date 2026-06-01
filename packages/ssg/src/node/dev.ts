@@ -133,7 +133,9 @@ export function printServerInfo(server: ViteDevServer, onlyUrl = false): void {
   info(`\n ${colors.cyan(` VITE-REACT-SSG v${version} `)}`, {
     clear: !server.config.logger.hasWarned,
   })
-  info(`${colors.cyan(`\n  VITE v${viteVersion}`) + colors.dim(ssrReadyMessage)}\n`)
+  info(
+    `${colors.cyan(`\n  VITE v${viteVersion}`) + colors.dim(ssrReadyMessage)}\n`,
+  )
   info(colors.green('  dev server running at:'))
 
   server.printUrls()

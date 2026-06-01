@@ -26,10 +26,6 @@ export function generateProjectTypes(
     locales.length > 0 ? locales.map((l) => `'${l}'`).join(' | ') : 'string'
   const versionType =
     versions.length > 0 ? versions.map((v) => `'${v}'`).join(' | ') : 'string'
-  const routePathType =
-    routePaths && routePaths.length > 0
-      ? routePaths.map((p) => `'${p}'`).join(' | ')
-      : 'string'
 
   // Scan for custom mdx-components within the user's docs directory
   const extensions = ['tsx', 'ts', 'jsx', 'js']

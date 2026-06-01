@@ -117,9 +117,13 @@ async function run() {
       name: response.projectName,
       title: response.projectName,
     })
-    success(`Created project structure and applied "${response.template}" preset`)
+    success(
+      `Created project structure and applied "${response.template}" preset`,
+    )
   } catch (e) {
-    error(`Error copying template: ${e instanceof Error ? e.message : String(e)}`)
+    error(
+      `Error copying template: ${e instanceof Error ? e.message : String(e)}`,
+    )
     process.exit(1)
   }
 
@@ -130,7 +134,9 @@ async function run() {
       execSync(`${pkgManager} install`, { cwd: projectDir, stdio: 'inherit' })
       success('Dependencies installed successfully')
     } catch (e) {
-      warn(`Could not install dependencies automatically. Please run "${pkgManager} install".`)
+      warn(
+        `Could not install dependencies automatically. Please run "${pkgManager} install".`,
+      )
     }
   }
 

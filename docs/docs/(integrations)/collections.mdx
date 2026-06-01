@@ -181,6 +181,16 @@ The type mapping metadata extracted from the frontmatter of your files.
 ### Pagination
 If you do not define a custom `list.tsx`, Boltdocs provides a fallback listing page. However, you can easily implement pagination inside your custom `list.tsx` by using the page numbers provided in `CollectionListLoaderData`. The listings route maps to page numbers as query strings or path suffixes automatically.
 
+By default, each page displays 10 posts, but you can configure this globally via `collections.postsPerPage` inside your `boltdocs.config.ts`:
+
+```ts
+export default defineConfig({
+  collections: {
+    postsPerPage: 12, // Customize items per page
+  },
+})
+```
+
 <Callout variant="info" title="Metadata Access">
 All parameters written in your post frontmatter are preserved in the `frontmatter` record property inside `route`. This means you can add custom flags (like `featured: true` or `readingTime: '5 min'`) and consume them safely in your custom components.
 </Callout>

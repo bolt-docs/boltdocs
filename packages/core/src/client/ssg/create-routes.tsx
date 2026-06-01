@@ -16,14 +16,8 @@ interface CreateRoutesOptions {
     string,
     React.ComponentType<{ children: React.ReactNode }>
   >
-  collectionLists?: Record<
-    string,
-    React.ComponentType
-  >
-  collectionPosts?: Record<
-    string,
-    React.ComponentType<any>
-  >
+  collectionLists?: Record<string, React.ComponentType>
+  collectionPosts?: Record<string, React.ComponentType<any>>
   config: BoltdocsConfig
   mdxModules: Record<string, any>
 

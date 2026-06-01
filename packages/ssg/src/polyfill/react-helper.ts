@@ -1,7 +1,10 @@
 import type { ReactElement } from 'react'
 import * as ReactDOM from 'react-dom'
 import * as React from 'react'
-import { createRoot as reactCreateRoot, hydrateRoot as reactHydrateRoot } from 'react-dom/client'
+import {
+  createRoot as reactCreateRoot,
+  hydrateRoot as reactHydrateRoot,
+} from 'react-dom/client'
 
 export interface RootType {
   render: (container: ReactElement) => void
@@ -67,4 +70,3 @@ export function hydrate(
     reactHydrateRoot(container, app)
   }
 }
-

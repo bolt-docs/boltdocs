@@ -13,10 +13,6 @@ interface DocsLayoutThemeProps {
   children?: React.ReactNode
 }
 
-/**
- * Pre-assembled high-fidelity documentation layout component.
- * Fully styled and optimized to adapt seamlessly to our custom Parchment/Slate theme.
- */
 function DocsLayoutComponent({ children }: DocsLayoutThemeProps) {
   const { routes: filteredRoutes, currentRoute, isCollectionPage } = useRoutes()
   const config = useConfig()

@@ -1,5 +1,5 @@
-import { visit, SKIP } from 'unist-util-visit'
 import type { BoltdocsPlugin } from 'boltdocs'
+import { visitNodes, createMdxAttribute, SKIP, MDX_NODES } from 'boltdocs'
 import { warn } from '@bdocs/dui'
 
 export interface MermaidThemeVariables {
@@ -55,33 +55,15 @@ const defaultDarkTheme: MermaidThemeVariables = {
   clusterBorder: '#334155',
 }
 
-interface CodeNode {
-  type: 'code'
-  lang?: string
-  value: string
-}
-
-interface MdxJsxAttribute {
-  type: 'mdxJsxAttribute'
-  name: string
-  value: string
-}
-
 interface MdxJsxFlowElement {
   type: 'mdxJsxFlowElement'
   name: string
-  attributes: MdxJsxAttribute[]
-  children: any[]
-}
-
-interface ParentNode {
-  children: any[]
+  attributes: any[]
+  children: unknown[]
 }
 
 const MERMAID_LANG = 'mermaid'
-const CODE_NODE_TYPE = 'code'
 const MDX_JSX_FLOW_TYPE = 'mdxJsxFlowElement'
-const MDX_JSX_ATTR_TYPE = 'mdxJsxAttribute'
 const MDX_JSX_ATTR_EXPR_TYPE = 'mdxJsxAttributeValueExpression'
 const COMPONENT_NAME = 'Mermaid'
 const CHART_ATTR_NAME = 'chart'
@@ -108,46 +90,36 @@ function toJSExpr(value: unknown): string {
   return String(value)
 }
 
-function remarkMermaid(config: { themes: { light: MermaidThemeVariables; dark: MermaidThemeVariables } }) {
-  return (tree: any) => {
+function remarkMermaid(config: {
+  themes: { light: MermaidThemeVariables; dark: MermaidThemeVariables }
+}) {
+  return (tree: unknown) => {
     if (!tree) return
     try {
-      visit(
-        tree,
-        CODE_NODE_TYPE,
-        (node: CodeNode, index: number | undefined, parent: any) => {
-          if (!node || node.lang !== MERMAID_LANG) return
-          if (!parent || !parent.children || typeof index !== 'number') return
+      visitNodes<any>(tree, MDX_NODES.CODE, (node, index, parent) => {
+        if (node.lang !== MERMAID_LANG) return
+        if (!parent) return
 
-          const rawCode = node.value || ''
+        const rawCode = node.value || ''
 
-          const newNode: MdxJsxFlowElement = {
-            type: MDX_JSX_FLOW_TYPE,
-            name: COMPONENT_NAME,
-            attributes: [
-              {
-                type: MDX_JSX_ATTR_TYPE,
-                name: CHART_ATTR_NAME,
-                value: rawCode,
-              },
-              {
-                type: MDX_JSX_ATTR_TYPE,
-                name: CONFIG_ATTR_NAME,
-                value: {
-                  type: MDX_JSX_ATTR_EXPR_TYPE,
-                  value: toJSExpr(config),
-                },
-              },
-            ],
-            children: [],
-          }
+        const newNode: MdxJsxFlowElement = {
+          type: MDX_JSX_FLOW_TYPE,
+          name: COMPONENT_NAME,
+          attributes: [
+            createMdxAttribute(CHART_ATTR_NAME, rawCode),
+            createMdxAttribute(CONFIG_ATTR_NAME, {
+              type: MDX_JSX_ATTR_EXPR_TYPE,
+              value: toJSExpr(config),
+            }),
+          ],
+          children: [],
+        }
 
-          parent.children[index] = newNode
-          return SKIP
-        },
-      )
+        parent.children[index] = newNode
+        return SKIP
+      })
     } catch (e) {
-      warn('Failed to transform Mermaid code blocks:', e)
+      warn(`Failed to transform Mermaid code blocks: ${e}`)
     }
   }
 }
@@ -164,7 +136,6 @@ export default function mermaidPlugin(
   return {
     name: 'boltdocs-plugin-mermaid',
     version: '0.0.2',
-    permissions: ['mdx:remark', 'components'],
     remarkPlugins: [remarkMermaid(mergedConfig)],
     components: {
       [COMPONENT_NAME]: '@bdocs/plugin-mermaid/client',

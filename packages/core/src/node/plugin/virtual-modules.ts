@@ -9,12 +9,10 @@ import { generateEntryCode } from './entry'
 import path from 'node:path'
 import fs from 'node:fs'
 
-// ---------------------------------------------------------------------------
 // Directory Meta Cache (Fix #5)
 // loadDirectoryMeta runs an fdir crawl on every request, which is expensive.
 // Cache the result in memory; it is invalidated on add/unlink of docs files
 // so stale data is never returned after a structural change.
-// ---------------------------------------------------------------------------
 let _directoryMetaCache: Record<string, any> | null = null
 let _searchDataCache: string | null = null
 

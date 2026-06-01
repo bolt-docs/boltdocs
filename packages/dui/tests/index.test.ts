@@ -26,16 +26,26 @@ import {
   debug,
   formatLog,
   confirm,
+  table,
+  createSpinner,
+  steps,
 } from '../src/index'
 
 // Mock node:readline so confirm() never touches real stdin
-vi.mock('node:readline', () => ({
-  default: { createInterface: vi.fn() },
-}))
+vi.mock('node:readline', async (importActual) => {
+  const actual = await importActual<typeof import('node:readline')>()
+  return {
+    ...actual,
+    default: {
+      ...actual.default,
+      createInterface: vi.fn(),
+      clearLine: vi.fn(),
+      cursorTo: vi.fn(),
+    },
+  }
+})
 
-// ---------------------------------------------------------------------------
 // utils
-// ---------------------------------------------------------------------------
 
 describe('utils', () => {
   it('padCenter — plain string', () => {
@@ -76,7 +86,7 @@ describe('utils', () => {
 
   it('stripAnsi — cursor movement (CSI non-color)', () => {
     expect(stripAnsi('\x1b[2Jhello')).toBe('hello') // erase screen
-    expect(stripAnsi('\x1b[1Aup')).toBe('up')        // cursor up
+    expect(stripAnsi('\x1b[1Aup')).toBe('up') // cursor up
   })
 
   it('visibleLength', () => {
@@ -86,9 +96,7 @@ describe('utils', () => {
   })
 })
 
-// ---------------------------------------------------------------------------
 // divider
-// ---------------------------------------------------------------------------
 
 describe('divider', () => {
   it('returns a gray line of specified length', () => {
@@ -97,9 +105,7 @@ describe('divider', () => {
   })
 })
 
-// ---------------------------------------------------------------------------
 // list
-// ---------------------------------------------------------------------------
 
 describe('list', () => {
   it('bullet produces bullet list', () => {
@@ -127,9 +133,7 @@ describe('list', () => {
   })
 })
 
-// ---------------------------------------------------------------------------
 // box
-// ---------------------------------------------------------------------------
 
 describe('box', () => {
   it('generic box renders with content', () => {
@@ -170,9 +174,7 @@ describe('box', () => {
   })
 })
 
-// ---------------------------------------------------------------------------
 // pre-built boxes
-// ---------------------------------------------------------------------------
 
 describe('pre-built boxes', () => {
   it('devServer', () => {
@@ -202,9 +204,7 @@ describe('pre-built boxes', () => {
   })
 })
 
-// ---------------------------------------------------------------------------
 // logger
-// ---------------------------------------------------------------------------
 
 describe('logger', () => {
   beforeEach(() => {
@@ -217,21 +217,24 @@ describe('logger', () => {
   it('info writes to stdout with [dui] prefix', () => {
     info('hello world')
     expect(console.log).toHaveBeenCalledOnce()
-    const msg = (console.log as ReturnType<typeof vi.spyOn>).mock.calls[0][0] as string
+    const msg = (console.log as ReturnType<typeof vi.spyOn>).mock
+      .calls[0][0] as string
     expect(stripAnsi(msg)).toBe('[dui] hello world')
   })
 
   it('warn writes to stdout with yellow prefix', () => {
     warn('something off')
     expect(console.log).toHaveBeenCalledOnce()
-    const msg = (console.log as ReturnType<typeof vi.spyOn>).mock.calls[0][0] as string
+    const msg = (console.log as ReturnType<typeof vi.spyOn>).mock
+      .calls[0][0] as string
     expect(stripAnsi(msg)).toContain('[dui] something off')
   })
 
   it('error writes to stderr with red prefix', () => {
     error('boom')
     expect(console.error).toHaveBeenCalledOnce()
-    const msg = (console.error as ReturnType<typeof vi.spyOn>).mock.calls[0][0] as string
+    const msg = (console.error as ReturnType<typeof vi.spyOn>).mock
+      .calls[0][0] as string
     expect(stripAnsi(msg)).toContain('[dui] boom')
   })
 
@@ -239,13 +242,16 @@ describe('logger', () => {
     const err = new Error('oops')
     error('caught', err)
     expect(console.error).toHaveBeenCalledTimes(2)
-    expect((console.error as ReturnType<typeof vi.spyOn>).mock.calls[1][0]).toBe(err)
+    expect(
+      (console.error as ReturnType<typeof vi.spyOn>).mock.calls[1][0],
+    ).toBe(err)
   })
 
   it('success writes to stdout with green prefix', () => {
     success('done!')
     expect(console.log).toHaveBeenCalledOnce()
-    const msg = (console.log as ReturnType<typeof vi.spyOn>).mock.calls[0][0] as string
+    const msg = (console.log as ReturnType<typeof vi.spyOn>).mock
+      .calls[0][0] as string
     expect(stripAnsi(msg)).toContain('[dui] done!')
   })
 
@@ -264,9 +270,7 @@ describe('logger', () => {
   })
 })
 
-// ---------------------------------------------------------------------------
 // formatLog
-// ---------------------------------------------------------------------------
 
 describe('formatLog', () => {
   it('returns prefix + message without style', () => {
@@ -282,9 +286,7 @@ describe('formatLog', () => {
   })
 })
 
-// ---------------------------------------------------------------------------
 // confirm
-// ---------------------------------------------------------------------------
 
 describe('confirm', () => {
   afterEach(() => vi.clearAllMocks())
@@ -317,11 +319,36 @@ describe('confirm', () => {
     await confirm('continue?')
     expect(rl.close).toHaveBeenCalledOnce()
   })
+
+  it('resolves false on SIGINT', async () => {
+    let sigIntCallback: (() => void) | undefined
+    const mockRl = {
+      question: vi.fn(),
+      close: vi.fn(),
+      once: vi.fn((event, cb) => {
+        if (event === 'SIGINT') {
+          sigIntCallback = cb
+        }
+      }),
+      off: vi.fn(),
+    }
+    vi.mocked(readline.createInterface).mockReturnValue(mockRl as any)
+    const spyStdout = vi
+      .spyOn(process.stdout, 'write')
+      .mockImplementation(() => true)
+
+    const promise = confirm('continue?')
+
+    expect(sigIntCallback).toBeDefined()
+    sigIntCallback!()
+
+    await expect(promise).resolves.toBe(false)
+    expect(mockRl.close).toHaveBeenCalledOnce()
+    spyStdout.mockRestore()
+  })
 })
 
-// ---------------------------------------------------------------------------
 // configure()
-// ---------------------------------------------------------------------------
 
 describe('configure', () => {
   // Snapshot defaults before each test and restore after
@@ -336,7 +363,12 @@ describe('configure', () => {
   })
 
   it('getConfig returns defaults when nothing has been configured', () => {
-    configure({ prefix: 'dui', devServerTitle: 'dev server', previewServerTitle: 'preview server', updateCommand: 'npm install dui@latest' })
+    configure({
+      prefix: 'dui',
+      devServerTitle: 'dev server',
+      previewServerTitle: 'preview server',
+      updateCommand: 'npm install dui@latest',
+    })
     const cfg = getConfig()
     expect(cfg.prefix).toBe('dui')
     expect(cfg.devServerTitle).toBe('dev server')
@@ -354,12 +386,16 @@ describe('configure', () => {
 
   it('changes devServerTitle', () => {
     configure({ devServerTitle: 'myapp dev server' })
-    expect(devServer('http://localhost:3000', null)).toContain('myapp dev server')
+    expect(devServer('http://localhost:3000', null)).toContain(
+      'myapp dev server',
+    )
   })
 
   it('changes previewServerTitle', () => {
     configure({ previewServerTitle: 'myapp preview' })
-    expect(previewServer('http://localhost:4000', null)).toContain('myapp preview')
+    expect(previewServer('http://localhost:4000', null)).toContain(
+      'myapp preview',
+    )
   })
 
   it('changes updateCommand', () => {
@@ -372,5 +408,114 @@ describe('configure', () => {
     configure({ prefix: 'partial-only' })
     expect(getConfig().prefix).toBe('partial-only')
     expect(getConfig().devServerTitle).toBe(before)
+  })
+})
+
+describe('table', () => {
+  it('renders table with default single style', () => {
+    const result = table(
+      ['Col A', 'Col B'],
+      [
+        ['1', '2'],
+        ['3', '4'],
+      ],
+    )
+    expect(result).toContain('Col A')
+    expect(result).toContain('Col B')
+    expect(result).toContain('┏')
+    expect(result).toContain('━')
+    expect(result).toContain('┳')
+    expect(result).toContain('┫')
+  })
+
+  it('renders table with double style', () => {
+    const result = table(['Col A'], [['val']], { style: 'double' })
+    expect(result).toContain('╚')
+    expect(result).toContain('═')
+  })
+
+  it('renders table with none style', () => {
+    const result = table(['A', 'B'], [['1', '2']], { style: 'none' })
+    expect(result).not.toContain('┏')
+    expect(result).toContain('1')
+  })
+
+  it('respects alignments', () => {
+    const resultLeft = table(['A'], [['1']], { columns: [{ align: 'left' }] })
+    const resultRight = table(['A'], [['1']], {
+      columns: [{ align: 'right' }],
+    })
+    expect(resultLeft).toBeDefined()
+    expect(resultRight).toBeDefined()
+  })
+})
+
+describe('steps', () => {
+  it('renders timeline with multiple status steps', () => {
+    const result = steps([
+      { label: 'Step 1', status: 'success', details: 'Done first' },
+      { label: 'Step 2', status: 'running', details: 'Working now' },
+      { label: 'Step 3', status: 'pending' },
+    ])
+    expect(result).toContain('✔')
+    expect(result).toContain('●')
+    expect(result).toContain('○')
+    expect(result).toContain('│')
+    expect(result).toContain('Done first')
+  })
+})
+
+describe('spinner', () => {
+  let writeSpy: any
+  beforeEach(() => {
+    writeSpy = vi.spyOn(process.stdout, 'write').mockImplementation(() => true)
+  })
+  afterEach(() => {
+    writeSpy.mockRestore()
+  })
+
+  it('non-TTY logs cleanly', () => {
+    const origTTY = process.stdout.isTTY
+    process.stdout.isTTY = false
+    try {
+      const spinner = createSpinner('Loading...')
+      spinner.start()
+      expect(writeSpy).toHaveBeenCalledWith(
+        expect.stringContaining('... Loading...'),
+      )
+
+      spinner.update('Still Loading...')
+      expect(writeSpy).toHaveBeenCalledWith(
+        expect.stringContaining('... Still Loading...'),
+      )
+
+      spinner.stop('success', 'Done!')
+      expect(writeSpy).toHaveBeenCalledWith(expect.stringContaining('✔ Done!'))
+    } finally {
+      process.stdout.isTTY = origTTY
+    }
+  })
+
+  it('TTY starts animation and stops', () => {
+    const origTTY = process.stdout.isTTY
+    process.stdout.isTTY = true
+    vi.useFakeTimers()
+    try {
+      const spinner = createSpinner('Installing...')
+      spinner.start()
+
+      expect(writeSpy).toHaveBeenCalledWith('\u001b[?25l')
+
+      vi.advanceTimersByTime(200)
+
+      spinner.stop('fail', 'Failed!')
+      expect(writeSpy).toHaveBeenCalledWith(
+        expect.stringContaining('✖ Failed!'),
+      )
+      expect(writeSpy).toHaveBeenCalledWith('\u001b[?25h')
+    } finally {
+      process.stdout.isTTY = origTTY
+      vi.useRealTimers()
+    }
   })
 })

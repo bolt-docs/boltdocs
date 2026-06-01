@@ -58,7 +58,9 @@ const ${name} = _comp_${name}.default || _comp_${name}['${name}'] || _comp_${nam
 
   // Background prefetch: after first paint, load all MDX modules in batches
   // so navigation is instant (modules already in Vite/browser cache).
-  const prefetchCode = isSSR ? '' : `
+  const prefetchCode = isSSR
+    ? ''
+    : `
 if (typeof window !== 'undefined') {
   const prefetchAll = () => {
     const getters = Object.values(mdxModules)
@@ -83,11 +85,11 @@ if (typeof window !== 'undefined') {
   const postGlob = `/${docsDirName}/**/post.tsx`
 
   return `
-import { ViteReactSSG, createRoutes } from 'boltdocs/client';
-import _routes from 'virtual:boltdocs-routes.ts';
-import _collections from 'virtual:boltdocs-collections.ts';
-import _config from 'virtual:boltdocs-config.ts';
-import _user_mdx_components from 'virtual:boltdocs-mdx-components.tsx';
+import { ViteReactSSG, createRoutes } from 'boltdocs/client'
+import _routes from 'virtual:boltdocs-routes.ts'
+import _collections from 'virtual:boltdocs-collections.ts'
+import _config from 'virtual:boltdocs-config.ts'
+import _user_mdx_components from 'virtual:boltdocs-mdx-components.tsx'
 ${cssImport}
 ${componentImports}
 ${externalModuleImport}

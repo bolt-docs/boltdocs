@@ -12,7 +12,7 @@ import {
   fromNodeRequest,
   stripDataParam,
   toNodeRequest,
-} from '~/pollfill/node-adapter'
+} from '~/polyfill/node-adapter'
 import { withLeadingSlash } from '~/utils/path'
 import { convertRoutesToDataRoutes } from '~/utils/remix-router'
 import { renderStaticApp } from '../serverRenderer'
@@ -46,12 +46,30 @@ export class RemixAdapter implements IRouterAdapter<ViteReactSSGContext> {
     let _context = await query(request)
 
     // Follow redirects (e.g., /docs -> /docs/guides) during SSR
-    if (_context instanceof Response) {
+    let redirectCount = 0
+    const maxRedirects = 10
+    while (_context instanceof Response && redirectCount < maxRedirects) {
       const location = _context.headers.get('Location')
-      if (location) {
-        const redirectUrl = `http://localhost${withLeadingSlash(location)}`
-        _context = await query(new Request(redirectUrl))
+      if (!location) break
+
+      let nextUrl: string
+      if (/^https?:\/\//i.test(location)) {
+        try {
+          const parsedLoc = new URL(location)
+          if (parsedLoc.hostname === 'localhost' || parsedLoc.hostname === '') {
+            nextUrl = `http://localhost${withLeadingSlash(parsedLoc.pathname + parsedLoc.search + parsedLoc.hash)}`
+          } else {
+            break
+          }
+        } catch {
+          break
+        }
+      } else {
+        nextUrl = `http://localhost${withLeadingSlash(location)}`
       }
+
+      _context = await query(new Request(nextUrl))
+      redirectCount++
     }
 
     if (_context instanceof Response) throw _context

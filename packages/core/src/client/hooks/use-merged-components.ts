@@ -1,25 +1,38 @@
 import { useMemo } from 'react'
 import type { ComponentType } from 'react'
 import { useMdxComponents } from '../app/mdx-components-context'
+import type { MdxComponentsType } from '../app/mdx-components-context' // Asegúrate de importar el tipo
 
-/**
- * Returns a merged components map for use with MDX content renderers.
- *
- * Priority order (highest wins):
- * 1. `propComponents` — passed directly to the page (e.g. from the route loader)
- * 2. Context components — globally registered via `MdxComponentsProvider`
- *
- * @param propComponents - Optional page-level component overrides
- */
 export function useMergedComponents(
   propComponents?: Record<string, ComponentType<any>>,
-): Record<string, ComponentType<any>> {
-  const contextComponents = useMdxComponents()
-  return useMemo(
-    () => ({
-      ...(contextComponents as Record<string, ComponentType<any>>),
-      ...(propComponents || {}),
-    }),
-    [contextComponents, propComponents],
-  )
+): MdxComponentsType {
+  const contextComponents = useMdxComponents() as unknown as MdxComponentsType
+
+  return useMemo(() => {
+    if (!propComponents) return contextComponents
+
+    const merged: Record<string, any> = { ...contextComponents }
+
+    const mergedFrontmatter = { ...(contextComponents.Frontmatter || {}) }
+    let hasPropFrontmatter = false
+
+    Object.entries(propComponents).forEach(([key, value]) => {
+      if (key.startsWith('Frontmatter_')) {
+        const cleanKey = key.slice('Frontmatter_'.length)
+        mergedFrontmatter[cleanKey] = value
+        hasPropFrontmatter = true
+      } else if (key === 'Frontmatter' && value && typeof value === 'object') {
+        Object.assign(mergedFrontmatter, value)
+        hasPropFrontmatter = true
+      } else {
+        merged[key] = value
+      }
+    })
+
+    if (hasPropFrontmatter || contextComponents.Frontmatter) {
+      merged.Frontmatter = mergedFrontmatter
+    }
+
+    return merged as MdxComponentsType
+  }, [contextComponents, propComponents])
 }

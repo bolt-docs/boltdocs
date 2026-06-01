@@ -4,7 +4,7 @@ import type React from 'react'
 import { useLoaderData, Link } from 'react-router-dom'
 import type { CollectionsData } from '../collections/collections-context'
 import { buildModuleMap } from './create-routes.utils'
-import { LazyMdxElement, EagerMdxElement } from './mdx-elements'
+import { EagerMdxElement, resolveModuleLoader } from './mdx-elements'
 import { DocsLayout } from '../app/docs-layout'
 
 function DefaultCollectionList() {
@@ -32,7 +32,9 @@ function DefaultCollectionList() {
                 {new Date(post.date).toLocaleDateString()}
               </time>
             )}
-            {post.excerpt && <p className="text-sm text-body">{post.excerpt}</p>}
+            {post.excerpt && (
+              <p className="text-sm text-body">{post.excerpt}</p>
+            )}
           </article>
         ))}
       </div>
@@ -40,7 +42,11 @@ function DefaultCollectionList() {
         <div className="mt-8 flex gap-4 text-sm">
           {data.currentPage > 1 && (
             <Link
-              to={data.currentPage === 2 ? `/${data.collection}` : `/${data.collection}/page/${data.currentPage - 1}`}
+              to={
+                data.currentPage === 2
+                  ? `/${data.collection}`
+                  : `/${data.collection}/page/${data.currentPage - 1}`
+              }
               className="text-primary-600 hover:underline"
             >
               Previous
@@ -50,7 +56,10 @@ function DefaultCollectionList() {
             Page {data.currentPage} of {data.totalPages}
           </span>
           {data.currentPage < data.totalPages && (
-            <Link to={`/${data.collection}/page/${data.currentPage + 1}`} className="text-primary-600 hover:underline">
+            <Link
+              to={`/${data.collection}/page/${data.currentPage + 1}`}
+              className="text-primary-600 hover:underline"
+            >
               Next
             </Link>
           )}
@@ -67,14 +76,8 @@ function buildCollectionRoutes(options: {
     string,
     React.ComponentType<{ children: React.ReactNode }>
   >
-  collectionLists?: Record<
-    string,
-    React.ComponentType
-  >
-  collectionPosts?: Record<
-    string,
-    React.ComponentType<any>
-  >
+  collectionLists?: Record<string, React.ComponentType>
+  collectionPosts?: Record<string, React.ComponentType<any>>
   config: BoltdocsConfig
   mdxModules: Record<string, any>
   components?: Record<string, React.ComponentType>
@@ -90,7 +93,8 @@ function buildCollectionRoutes(options: {
     mdxModules,
     components,
   } = options
-  const postsPerPage = options.postsPerPage ?? config.collections?.postsPerPage ?? 10
+  const postsPerPage =
+    options.postsPerPage ?? config.collections?.postsPerPage ?? 10
 
   const children: RouteRecord[] = []
   const metadata: ComponentRoute[] = []
@@ -127,33 +131,17 @@ function buildCollectionRoutes(options: {
       const moduleKey = moduleMap.get(normalizedFilePath)
       const moduleLoader = moduleKey ? mdxModules[moduleKey] : null
       const subPath = route.path.startsWith(colBase + '/')
-          ? route.path.slice(colBase.length + 1)
-          : route.path.replace(colBase, '') || ''
+        ? route.path.slice(colBase.length + 1)
+        : route.path.replace(colBase, '') || ''
 
-      const routeWithCollection: ComponentRoute = { ...route, collection: colName }
+      const routeWithCollection: ComponentRoute = {
+        ...route,
+        collection: colName,
+      }
       const postComponent = collectionPosts?.[colName]
 
-      colChildren.push({
+      const routeRecord: RouteRecord = {
         path: subPath,
-        element: isLazy ? (
-          <LazyMdxElement
-            key={moduleKey || subPath}
-            getModule={moduleLoader}
-            moduleKey={moduleKey}
-            route={route}
-            components={components}
-            collectionPostComponent={postComponent}
-          />
-        ) : (
-          <EagerMdxElement
-            key={moduleKey || subPath}
-            moduleKey={moduleKey}
-            moduleLoader={moduleLoader}
-            route={route}
-            components={components}
-            collectionPostComponent={postComponent}
-          />
-        ),
         loader: async () => ({
           route: routeWithCollection,
           headings: route.headings || [],
@@ -171,7 +159,40 @@ function buildCollectionRoutes(options: {
           lastUpdated: route.lastUpdated,
         }),
         getStaticPaths: () => [subPath || '.'],
-      })
+      }
+
+      if (isLazy && moduleLoader) {
+        routeRecord.lazy = async () => {
+          const mod = await resolveModuleLoader(moduleLoader)
+          return {
+            Component: function LoadedCollectionMdxRoute() {
+              return (
+                <EagerMdxElement
+                  key={moduleKey || subPath}
+                  moduleKey={moduleKey}
+                  moduleLoader={mod}
+                  route={route}
+                  components={components}
+                  collectionPostComponent={postComponent}
+                />
+              )
+            }
+          }
+        }
+      } else {
+        routeRecord.element = (
+          <EagerMdxElement
+            key={moduleKey || subPath}
+            moduleKey={moduleKey}
+            moduleLoader={moduleLoader as any}
+            route={route}
+            components={components}
+            collectionPostComponent={postComponent}
+          />
+        )
+      }
+
+      colChildren.push(routeRecord)
 
       metadata.push(route)
     }
@@ -209,10 +230,7 @@ function buildCollectionRoutes(options: {
         path: `page/${p}`,
         element: <ListElement />,
         loader: async () => ({
-          posts: paginatedPosts.slice(
-            (p - 1) * postsPerPage,
-            p * postsPerPage,
-          ),
+          posts: paginatedPosts.slice((p - 1) * postsPerPage, p * postsPerPage),
           totalPages,
           currentPage: p,
           collection: colName,

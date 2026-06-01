@@ -42,6 +42,17 @@ export function Head({ siteTitle, siteDescription, routes }: HeadProps) {
 
   const seo = currentRoute?.seo || {}
 
+  const canonicalUrl =
+    seo.canonical ||
+    (config?.siteUrl && currentRoute?.path
+      ? `${config.siteUrl.replace(/\/$/, '')}${currentRoute.path}`
+      : undefined)
+
+  const ogUrl =
+    seo['og:url'] ||
+    canonicalUrl ||
+    (typeof window !== 'undefined' ? window.location.href : undefined)
+
   // Merge custom global metatags
   const globalMetatags = config?.seo?.metatags || {}
 
@@ -59,15 +70,8 @@ export function Head({ siteTitle, siteDescription, routes }: HeadProps) {
       <meta property="og:description" content={pageDescription} />
       <meta property="og:type" content="article" />
       {/* Canonical URL for both <link> and og:url */}
-      {typeof window !== 'undefined' && (
-        <meta property="og:url" content={window.location.href} />
-      )}
-      {typeof window !== 'undefined' && (
-        <link
-          rel="canonical"
-          href={window.location.origin + location.pathname}
-        />
-      )}
+      {canonicalUrl && <link rel="canonical" href={canonicalUrl} />}
+      {ogUrl && <meta property="og:url" content={ogUrl} />}
 
       {/* Default Twitter Card */}
       <meta name="twitter:card" content="summary" />
@@ -101,8 +105,8 @@ export function Head({ siteTitle, siteDescription, routes }: HeadProps) {
           return <meta key="noindex" name="robots" content="noindex" />
         if (key === 'robots')
           return <meta key="robots" name="robots" content={value as string} />
-        if (key === 'canonical')
-          return <link key="canonical" rel="canonical" href={value as string} />
+        if (key === 'canonical' || key === 'og:url')
+          return null // Handled explicitly above
 
         const isProperty =
           key.startsWith('og:') ||

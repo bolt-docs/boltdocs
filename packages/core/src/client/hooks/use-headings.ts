@@ -12,6 +12,8 @@ export function useHeadings(): { level: number; text: string; id: string }[] {
   return useMemo(() => {
     const last = matches[matches.length - 1]
     const data = last?.data as Record<string, unknown>
-    return (data?.headings as { level: number; text: string; id: string }[]) || []
+    return (
+      (data?.headings as { level: number; text: string; id: string }[]) || []
+    )
   }, [matches])
 }

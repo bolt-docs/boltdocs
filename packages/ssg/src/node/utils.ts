@@ -4,7 +4,7 @@ import { join } from 'node:path'
 import { colors, info } from '@bdocs/dui'
 import { version } from '../../package.json'
 
-export function buildLog(text: string, count?: number) {
+export function buildLog(text: string, count?: number): void {
   info(`${text}${count ? colors.blue(` (${count})`) : ''}`)
 }
 
@@ -43,7 +43,7 @@ export async function routesToPaths(routes?: Readonly<RouteRecord[]>) {
       }
 
       if (route.index && !path) {
-        paths.add('/')
+        paths.add(prefix || '/')
       }
 
       if (Array.isArray(route.children)) await getPaths(route.children, path)

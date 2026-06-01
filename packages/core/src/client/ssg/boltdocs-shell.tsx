@@ -11,6 +11,7 @@ import { RoutesProvider } from '../app/routes-context'
 import type { BoltdocsConfig } from '../../shared/types'
 import type { ComponentRoute } from '../types'
 import { UIProvider } from '../app/ui-context'
+import { InternalErrorBoundary as ErrorBoundary } from '../components/internal/error-boundary'
 
 import virtualCustomComponents from 'virtual:boltdocs-mdx-components'
 import { normalizePath } from '../utils/path'
@@ -32,10 +33,7 @@ function I18nUpdater({ config }: { config: BoltdocsConfig }) {
   return null
 }
 
-/**
- * Synchronizes the Zustand store with the current URL pathname.
- * Receives a pre-built Map for O(1) route lookups instead of O(n) .find().
- */
+// synchronizes store with current URL pathname
 function StoreSync({
   config,
   routeMap,
@@ -100,8 +98,8 @@ export function BoltdocsShell({
   const initialData = useMemo(() => {
     const matched = routeMap.get(currentPath)
 
-    let initLocale = undefined
-    let initVersion = undefined
+    let initLocale: string | undefined
+    let initVersion: string | undefined
 
     if (matched) {
       if (config.i18n) {
@@ -129,7 +127,9 @@ export function BoltdocsShell({
                 >
                   <StoreSync config={config} routeMap={routeMap} />
                   <I18nUpdater config={config} />
-                  <Outlet />
+                  <ErrorBoundary>
+                    <Outlet />
+                  </ErrorBoundary>
                 </BoltdocsProvider>
               </ConfigContext.Provider>
             </MdxComponentsProvider>

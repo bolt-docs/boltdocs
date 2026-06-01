@@ -99,9 +99,7 @@ export function useRoutes() {
 
   const collections = useMemo(() => {
     return new Set(
-      (allRoutes || [])
-        .map((r) => r.collection)
-        .filter(Boolean) as string[],
+      (allRoutes || []).map((r) => r.collection).filter(Boolean) as string[],
     )
   }, [allRoutes])
 

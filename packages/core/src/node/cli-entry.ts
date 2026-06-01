@@ -1,7 +1,12 @@
 #!/usr/bin/env node
+process.noDeprecation = true
+
+import { applyFsPatch } from './security/fs-patch'
+applyFsPatch()
+
 import { configure } from '@bdocs/dui'
 import cac from 'cac'
-import { devAction, buildAction, previewAction } from './cli/index'
+import { devAction, buildAction, previewAction, auditAction } from './cli/index'
 
 // Configure @bdocs/dui with boltdocs-specific values once, at process start.
 // All packages that share this process (ssg, plugins, etc.) inherit this config.
@@ -14,11 +19,16 @@ configure({
 
 const cli = cac('boltdocs')
 
-cli.command('[root]', 'Start development server').alias('dev').action(devAction)
+cli.command('dev [root]', 'Start development server').action(devAction)
+cli.command('[root]', 'Start development server').action(devAction)
 
 cli.command('build [root]', 'Build for production').action(buildAction)
 
 cli.command('preview [root]', 'Preview production build').action(previewAction)
+
+cli
+  .command('audit [root]', 'Audit configured plugins for security warnings')
+  .action(auditAction)
 
 cli
   .command('doctor [root]', 'Check the health of your documentation')
@@ -32,7 +42,12 @@ cli
   .action(
     async (
       root: string,
-      options: { fix?: boolean; checkExternal?: boolean; init?: boolean; budget?: boolean },
+      options: {
+        fix?: boolean
+        checkExternal?: boolean
+        init?: boolean
+        budget?: boolean
+      },
     ) => {
       const { doctorAction } = await import('./cli/doctor')
       await doctorAction(root, options)

@@ -15,6 +15,10 @@ export default defineConfig({
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),
+      'virtual:boltdocs-search': path.resolve(
+        __dirname,
+        './tests/mocks/virtual-search.ts',
+      ),
     },
   },
 })

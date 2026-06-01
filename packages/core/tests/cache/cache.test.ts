@@ -50,10 +50,10 @@ describe('cache system', () => {
       const cache = new TransformCache('lru-test', tempDir)
 
       cache.set('key', 'value')
-      const result1 = cache.get('key')
+      const result1 = await cache.getAsync('key')
       expect(result1).toBe('value')
 
-      const result2 = cache.get('key')
+      const result2 = await cache.getAsync('key')
       expect(result2).toBe('value')
     })
 
@@ -80,7 +80,12 @@ describe('cache system', () => {
       cache.save()
 
       // Before flush, file might not exist yet
-      const cacheFile = path.join(tempDir, '.boltdocs', 'cache', 'queue-test.json.gz')
+      const cacheFile = path.join(
+        tempDir,
+        '.boltdocs',
+        'cache',
+        'queue-test.json.gz',
+      )
 
       // After flush, file should exist
       await cache.flush()
@@ -206,7 +211,12 @@ describe('cache system', () => {
       cache.save()
       await cache.flush()
 
-      const cacheFile = path.join(tempDir, '.boltdocs', 'cache', 'uncompressed.json')
+      const cacheFile = path.join(
+        tempDir,
+        '.boltdocs',
+        'cache',
+        'uncompressed.json',
+      )
       expect(fs.existsSync(cacheFile)).toBe(true)
     })
 
@@ -229,7 +239,7 @@ describe('cache system', () => {
       // Force disk load by clearing memory
       ;(cache as any).memoryCache.clear()
 
-      expect(cache.get('k1')).toBe('v1')
+      expect(await cache.getAsync('k1')).toBe('v1')
       expect(cache.size).toBe(1)
     })
 
@@ -255,7 +265,8 @@ describe('cache system', () => {
       const hash = (cache as any).index.get('k1')
       const shardPath = path.join(
         tempDir,
-        '.boltdocs', 'cache',
+        '.boltdocs',
+        'cache',
         'transform-corrupt',
         'shards',
         `${hash}.gz`,
@@ -263,12 +274,12 @@ describe('cache system', () => {
       fs.writeFileSync(shardPath, 'not a gzip')
 
       ;(cache as any).memoryCache.clear()
-      expect(cache.get('k1')).toBeNull()
+      expect(await cache.getAsync('k1')).toBeNull()
     })
 
-    it('should return null for non-existent keys', () => {
+    it('should return null for non-existent keys', async () => {
       const cache = new TransformCache('test', tempDir)
-      expect(cache.get('nonexistent')).toBeNull()
+      expect(await cache.getAsync('nonexistent')).toBeNull()
     })
 
     it('should handle sharding correctly', async () => {
@@ -281,9 +292,9 @@ describe('cache system', () => {
       await cache.flush()
 
       // All should be in memory
-      expect(cache.get('key1')).toBe('value1')
-      expect(cache.get('key2')).toBe('value2')
-      expect(cache.get('key3')).toBe('value3')
+      expect(await cache.getAsync('key1')).toBe('value1')
+      expect(await cache.getAsync('key2')).toBe('value2')
+      expect(await cache.getAsync('key3')).toBe('value3')
 
       // Size should be 3
       expect(cache.size).toBe(3)
@@ -296,8 +307,12 @@ describe('cache system', () => {
       await cache1.flush()
 
       // Verify index.json was created
-      const baseDir = path.join(tempDir, '.boltdocs', 'cache', 'transform-persist')
-      const indexPath = path.join(baseDir, 'index.json')
+      const baseDir = path.join(
+        tempDir,
+        '.boltdocs',
+        'cache',
+        'transform-persist',
+      )
 
       // Check that the directory was created
       expect(fs.existsSync(baseDir)).toBe(true)
@@ -329,11 +344,11 @@ describe('cache system', () => {
       cache.set('key', 'value')
 
       // First get populates memory
-      const result1 = cache.get('key')
+      const result1 = await cache.getAsync('key')
       expect(result1).toBe('value')
 
-      // Should be in memory now (can't directly test this, but should be fast)
-      const result2 = cache.get('key')
+      // Should be in memory now
+      const result2 = await cache.getAsync('key')
       expect(result2).toBe('value')
     })
   })
@@ -344,16 +359,17 @@ describe('cache system', () => {
       const source = path.join(tempDir, 'source.txt')
       fs.writeFileSync(source, 'hello')
 
-      cache.set(source, 'v1', 'content')
+      const hash = await cache.getFileHash(source)
+      cache.set(source, 'v1', 'content', hash)
       await cache.flush()
 
-      const hit = cache.get(source, 'v1')
+      const hit = await cache.get(source, 'v1')
       expect(hit).not.toBeNull()
     })
 
-    it('should return null for non-existent sources', () => {
+    it('should return null for non-existent sources', async () => {
       const cache = new AssetCache(tempDir)
-      expect(cache.get('/nonexistent/file.txt', 'v1')).toBeNull()
+      expect(await cache.get('/nonexistent/file.txt', 'v1')).toBeNull()
     })
 
     it('should handle different cache keys for same source', async () => {
@@ -361,29 +377,31 @@ describe('cache system', () => {
       const source = path.join(tempDir, 'image.png')
       fs.writeFileSync(source, 'image data')
 
-      cache.set(source, 'v1', 'optimized1')
-      cache.set(source, 'v2', 'optimized2')
+      const hash = await cache.getFileHash(source)
+      cache.set(source, 'v1', 'optimized1', hash)
+      cache.set(source, 'v2', 'optimized2', hash)
       await cache.flush()
 
-      const hit1 = cache.get(source, 'v1')
-      const hit2 = cache.get(source, 'v2')
+      const hit1 = await cache.get(source, 'v1')
+      const hit2 = await cache.get(source, 'v2')
 
       expect(hit1).not.toBeNull()
       expect(hit2).not.toBeNull()
       expect(hit1).not.toBe(hit2)
     })
 
-    it('should clear all cached assets', () => {
+    it('should clear all cached assets', async () => {
       const cache = new AssetCache(tempDir)
       const source = path.join(tempDir, 'source.txt')
       fs.writeFileSync(source, 'data')
 
-      cache.set(source, 'v1', 'content')
+      const hash = await cache.getFileHash(source)
+      cache.set(source, 'v1', 'content', hash)
       cache.clear()
 
-      expect(fs.existsSync(path.join(tempDir, '.boltdocs', 'cache', 'assets'))).toBe(
-        false,
-      )
+      expect(
+        fs.existsSync(path.join(tempDir, '.boltdocs', 'cache', 'assets')),
+      ).toBe(false)
     })
   })
 
@@ -396,7 +414,12 @@ describe('cache system', () => {
       await flushCache()
 
       // After flush, file should be written
-      const cacheFile = path.join(tempDir, '.boltdocs', 'cache', 'flush-test.json.gz')
+      const cacheFile = path.join(
+        tempDir,
+        '.boltdocs',
+        'cache',
+        'flush-test.json.gz',
+      )
       expect(fs.existsSync(cacheFile)).toBe(true)
     })
   })

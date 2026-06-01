@@ -2,7 +2,7 @@ import type { ReactNode } from 'react'
 import type { ViteReactSSGClientOptions, ViteReactSSGContext } from '../types'
 import * as _helmet from 'react-helmet-async'
 const { HelmetProvider } = _helmet
-import { hydrate, render } from '../pollfill/react-helper'
+import { hydrate, render } from '../polyfill/react-helper'
 import { documentReady } from '../utils/document-ready'
 import { deserializeState } from '../utils/state'
 
@@ -59,11 +59,6 @@ export function ViteReactSSG(
     }
 
     await fn?.(context)
-
-    if (!client) {
-      // const route = context.routePath ?? '/'
-      // context.initialState = {} // TODO:
-    }
 
     const initialState = context.initialState
 

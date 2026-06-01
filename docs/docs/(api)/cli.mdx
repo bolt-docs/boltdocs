@@ -24,6 +24,9 @@ npx boltdocs build
 # Run project integrity and health diagnostics
 npx boltdocs doctor
 
+# Audit plugin dependencies for security warnings
+npx boltdocs audit
+
 # Generate MDX changelog logs from CHANGELOG.md
 npx boltdocs generate-changelog CHANGELOG.md
 ```
@@ -47,6 +50,11 @@ Compiles documentation pages into highly optimized, fully static HTML and JavaSc
 Serves the generated static production bundle from the local `dist/` directory, allowing you to test performance, redirects, SEO tags, and page rendering before deploying.
 
 * **Usage:** `boltdocs preview [root]`
+
+### `audit`
+Performs a fast static analysis of the source code of all active plugins. It scans for potentially sensitive behaviors like network calls or environment variable access, giving you total visibility before compiling final assets.
+
+* **Usage:** `boltdocs audit [root]`
 
 ---
 

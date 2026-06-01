@@ -6,62 +6,20 @@ import { useMdxComponents } from '../app/mdx-components-context'
 
 const Loading = () => <div className="text-muted text-sm py-4">Loading...</div>
 
-function resolveModuleLoader(loader: any): Promise<any> {
+export interface MdxModule {
+  default: React.ComponentType<any>
+  [key: string]: any
+}
+
+export type MdxModuleLoader =
+  | (() => Promise<MdxModule>)
+  | Promise<MdxModule>
+  | MdxModule
+
+function resolveModuleLoader(loader: MdxModuleLoader): Promise<MdxModule> {
   return typeof loader === 'function' ? loader() : Promise.resolve(loader)
 }
 
-const LazyMdxElement = ({
-  getModule,
-  moduleKey,
-  route,
-  components,
-  collectionPostComponent,
-}: {
-  getModule: (() => Promise<any>) | null
-  moduleKey: string | undefined
-  route: ComponentRoute
-  components: any
-  collectionPostComponent?: React.ComponentType<any>
-}) => {
-  const [mod, setMod] = useState<any>(null)
-
-  useEffect(() => {
-    let cancelled = false
-    if (getModule) {
-      resolveModuleLoader(getModule).then((m: any) => {
-        if (!cancelled) setMod(m)
-      })
-    }
-    return () => {
-      cancelled = true
-    }
-  }, [getModule])
-
-  useEffect(() => {
-    if (!import.meta.hot || !moduleKey) return
-    const handler = (data: { relPath: string }) => {
-      const incoming = data.relPath.replace(/\\/g, '/').replace(/^\//, '')
-      const routeFile = route.filePath.replace(/\\/g, '/').replace(/^\//, '')
-      if (incoming !== routeFile) return
-      const cacheBustUrl = moduleKey + '?t=' + Date.now()
-      import(/* @vite-ignore */ cacheBustUrl).then((m: any) => {
-        setMod(m)
-      })
-    }
-    import.meta.hot.on('boltdocs:mdx-update', handler)
-    return () => import.meta.hot?.off('boltdocs:mdx-update', handler)
-  }, [moduleKey, route.filePath])
-
-  if (!mod) return <Loading />
-  const MDXComponent = mod.default ?? mod
-  return (
-    <MdxPage
-      MDXComponent={MDXComponent}
-      mdxComponents={components}
-      collectionPostComponent={collectionPostComponent}
-    />
-  )
-}
 
 const EagerMdxElement = ({
   moduleLoader,
@@ -70,13 +28,13 @@ const EagerMdxElement = ({
   components,
   collectionPostComponent,
 }: {
-  moduleLoader: any
+  moduleLoader: MdxModule
   moduleKey: string | undefined
   route: ComponentRoute
-  components: any
+  components: Record<string, React.ComponentType<any>>
   collectionPostComponent?: React.ComponentType<any>
 }) => {
-  const [mod, setMod] = useState<any>(moduleLoader)
+  const [mod, setMod] = useState<MdxModule>(moduleLoader)
 
   useEffect(() => {
     setMod(moduleLoader)
@@ -89,8 +47,8 @@ const EagerMdxElement = ({
       const routeFile = route.filePath.replace(/\\/g, '/').replace(/^\//, '')
       if (incoming !== routeFile) return
       const cacheBustUrl = moduleKey + '?t=' + Date.now()
-      import(/* @vite-ignore */ cacheBustUrl).then((m: any) => {
-        setMod(m)
+      import(/* @vite-ignore */ cacheBustUrl).then((m) => {
+        setMod(m as unknown as MdxModule)
       })
     }
     import.meta.hot.on('boltdocs:mdx-update', handler)
@@ -114,4 +72,4 @@ const NotFoundWrapper = () => {
   return <ActiveNotFound />
 }
 
-export { LazyMdxElement, EagerMdxElement, NotFoundWrapper, resolveModuleLoader }
+export { EagerMdxElement, NotFoundWrapper, resolveModuleLoader }

@@ -23,16 +23,21 @@ import {
 } from '../utils/path'
 import { serializeState } from '../utils/state'
 import { collectAssets } from './assets'
-import { getBeasties } from './critial'
+import { getBeasties } from './critical'
 import crypto from 'node:crypto'
 import { detectEntry, renderHTML, SCRIPT_COMMENT_PLACEHOLDER } from './html'
 import { renderPreloadLinks } from './preload-links'
 import { getAdapter } from './router-adapter'
 import { buildLog, getSize, resolveAlias, routesToPaths } from './utils'
-import { collectPerformanceMetrics, writePerformanceMetrics } from './performance'
+import {
+  collectPerformanceMetrics,
+  writePerformanceMetrics,
+} from './performance'
 
 const dotVitedir = Number.parseInt(viteVersion) >= 5 ? ['.vite'] : []
-function buildBundlerOptions<T extends Record<string, unknown>>(options: T) {
+function buildBundlerOptions<T extends Record<string, unknown>>(
+  options: T,
+): { rolldownOptions: T } | { rollupOptions: T } {
   return Number.parseInt(viteVersion) >= 8
     ? { rolldownOptions: options }
     : { rollupOptions: options }
@@ -46,34 +51,45 @@ function getFilesRecursively(
 ): string[] {
   const files: string[] = []
   if (!fs.existsSync(dir)) return files
-  const list = fs.readdirSync(dir)
-  for (const file of list) {
+  const list = fs.readdirSync(dir, { withFileTypes: true })
+  const isRoot = dir === baseDir
+
+  for (const dirent of list) {
+    const file = dirent.name
+
+    // Ignore directories like node_modules, .git, etc., at any depth
+    if (
+      file === 'node_modules' ||
+      file === '.git' ||
+      file === '.boltdocs' ||
+      file === '.turbo' ||
+      file === 'dist' ||
+      file === 'coverage'
+    ) {
+      continue
+    }
+
+    // ignore docs/dist only at the root level.
+    if (
+      isRoot &&
+      ((docsDirName && file === docsDirName) ||
+        (outDirName && file === outDirName))
+    ) {
+      continue
+    }
+
     const filePath = join(dir, file)
-    const relPath = relative(baseDir, filePath).replace(/\\/g, '/')
-    const stat = fs.statSync(filePath)
 
-    // Ignore directories like node_modules, .git, etc., at any depth,
-    // and ignore docs/dist only at the root level.
-    const parts = relPath.split('/')
-    if (
-      parts.includes('node_modules') ||
-      parts.includes('.git') ||
-      parts.includes('.boltdocs') ||
-      parts.includes('.turbo') ||
-      parts.includes('dist') ||
-      parts.includes('coverage')
-    ) {
-      continue
+    let isDir = dirent.isDirectory()
+    if (dirent.isSymbolicLink()) {
+      try {
+        isDir = fs.statSync(filePath).isDirectory()
+      } catch (e) {
+        continue
+      }
     }
 
-    if (
-      (docsDirName && parts[0] === docsDirName) ||
-      (outDirName && parts[0] === outDirName)
-    ) {
-      continue
-    }
-
-    if (stat.isDirectory()) {
+    if (isDir) {
       files.push(
         ...getFilesRecursively(filePath, baseDir, docsDirName, outDirName),
       )
@@ -259,9 +275,7 @@ export async function build(
   const clientLogger = createLogger()
   const loggerWarn = clientLogger.warn
   clientLogger.warn = (msg: string, options) => {
-    if (
-      msg.includes('externalized for browser compatibility')
-    ) {
+    if (msg.includes('externalized for browser compatibility')) {
       return
     }
     loggerWarn(msg, options)
@@ -498,7 +512,7 @@ export async function build(
 
     let isCached = false
     let sourceMtime = 0
-    if (sourceFile && fs.existsSync(sourceFile)) {
+    if (canBypassClientBuild && sourceFile && fs.existsSync(sourceFile)) {
       try {
         sourceMtime = Math.round(fs.statSync(sourceFile).mtimeMs)
         if (fs.existsSync(cachedHtmlFile)) {
@@ -507,7 +521,9 @@ export async function build(
             isCached = true
           }
         }
-      } catch (e) {}
+      } catch (e) {
+        // Safe fallback: ignore cache and force rebuild if fs check fails
+      }
     }
 
     if (isCached) {
@@ -546,9 +562,7 @@ export async function build(
 
           cachedCount++
         } catch (err: any) {
-          throw new Error(
-            `Error on cached page: ${path}\n${err.stack}`,
-          )
+          throw new Error(`Error on cached page: ${path}\n${err.stack}`)
         }
       })
       continue
@@ -610,7 +624,8 @@ export async function build(
             join(out, loaderDataFilePath),
             JSON.stringify(loaderData),
           )
-          staticLoaderDataManifest[getNormalizedPathKey(path, configBase)] = loaderDataFilePath
+          staticLoaderDataManifest[getNormalizedPathKey(path, configBase)] =
+            loaderDataFilePath
           loaderDataFileCount++
         }
 
@@ -636,7 +651,9 @@ export async function build(
         // hydrateRoot) and instead inject our own in <head>.
         const doc = jsdom.window.document
         for (const script of doc.querySelectorAll('script')) {
-          if (script.textContent?.includes('window.__staticRouterHydrationData')) {
+          if (
+            script.textContent?.includes('window.__staticRouterHydrationData')
+          ) {
             script.remove()
           }
         }
@@ -646,7 +663,10 @@ export async function build(
         let transformed = (await onPageRendered?.(path, html, appCtx)) || html
         let loaderDataScript = ''
         if (loaderData && Object.keys(loaderData).length > 0) {
-          const safeLoaderDataJSON = JSON.stringify(loaderData).replace(/</g, '\\u003c')
+          const safeLoaderDataJSON = JSON.stringify(loaderData).replace(
+            /</g,
+            '\\u003c',
+          )
           loaderDataScript = `window.__VITE_REACT_SSG_STATIC_LOADER_DATA__ = { '${getNormalizedPathKey(path, configBase)}': ${safeLoaderDataJSON} };`
         }
 
@@ -724,9 +744,7 @@ export async function build(
         renderedCount++
         renderedSize += formatted.length
       } catch (err: any) {
-        throw new Error(
-          `Error on page: ${path}\n${err.stack}`,
-        )
+        throw new Error(`Error on page: ${path}\n${err.stack}`)
       }
     })
   }
@@ -735,7 +753,9 @@ export async function build(
 
   const totalPages = renderedCount + cachedCount
   const totalSizeMB = (renderedSize / 1024 / 1024).toFixed(2)
-  info(`${colors.cyan(String(totalPages).padStart(3, ' '))} pages rendered  ${colors.dim(`(${renderedCount} new, ${cachedCount} cached, ${totalSizeMB} MB)`)}`)
+  info(
+    `${colors.cyan(String(totalPages).padStart(3, ' '))} pages rendered  ${colors.dim(`(${renderedCount} new, ${cachedCount} cached, ${totalSizeMB} MB)`)}`,
+  )
 
   // Save the updated cache index
   try {
@@ -796,7 +816,9 @@ export async function build(
   const buildTime = Math.round(performance.now() - buildStartTime)
   const metrics = await collectPerformanceMetrics(out, buildTime)
   writePerformanceMetrics(root, metrics)
-  buildLog(`Build took ${(buildTime / 1000).toFixed(1)}s — JS: ${(metrics.totalJSBundleSize / 1024).toFixed(0)}kb, CSS: ${(metrics.totalCSSBundleSize / 1024).toFixed(0)}kb, Pages: ${metrics.pages.length}`)
+  buildLog(
+    `Build took ${(buildTime / 1000).toFixed(1)}s — JS: ${(metrics.totalJSBundleSize / 1024).toFixed(0)}kb, CSS: ${(metrics.totalCSSBundleSize / 1024).toFixed(0)}kb, Pages: ${metrics.pages.length}`,
+  )
 
   dividerLog()
   success('Build finished.')

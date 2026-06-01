@@ -61,6 +61,8 @@ export function injectHtmlMeta(html: string, config: BoltdocsConfig): string {
     `<meta property="og:title" content="${title}">`,
     `<meta property="og:description" content="${description}">`,
     `<meta property="og:type" content="website">`,
+    config.siteUrl ? `<meta property="og:url" content="${config.siteUrl}">` : '',
+    config.siteUrl ? `<link rel="canonical" href="${config.siteUrl}">` : '',
     `<meta name="twitter:card" content="summary_large_image">`,
     `<meta name="twitter:title" content="${title}">`,
     `<meta name="twitter:description" content="${description}">`,
@@ -79,7 +81,9 @@ export function injectHtmlMeta(html: string, config: BoltdocsConfig): string {
             (stored !== "light" && window.matchMedia("(prefers-color-scheme: dark)").matches);
           document.documentElement.classList.toggle("dark", isDark);
           document.documentElement.dataset.theme = isDark ? "dark" : "light";
-        } catch (e) {}
+        } catch (e) {
+          // Ignore localStorage errors (e.g. if cookies/storage are disabled)
+        }
       })();
     </script>
   `

@@ -71,7 +71,9 @@ yargs(hideBin(process.argv))
   )
   .fail((msg, err, yargs) => {
     error('An internal error occurred.')
-    error(`Please report an issue, if none already exists: https://github.com/daydreamer-riri/vite-react-ssg/issues`)
+    error(
+      `Please report an issue, if none already exists: https://github.com/daydreamer-riri/vite-react-ssg/issues`,
+    )
     yargs.exit(1, err)
   })
   .showHelpOnFail(false)

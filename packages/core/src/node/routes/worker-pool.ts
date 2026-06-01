@@ -7,11 +7,17 @@ import type { ParsedDocFile } from './types'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
+interface WorkerTask {
+  resolve: (val: any) => void
+  reject: (err: any) => void
+}
+
 /**
  * A lightweight worker pool for parallel MDX metadata extraction.
  */
 export class WorkerPool {
   private workers: Worker[] = []
+  private workerTasks = new WeakMap<Worker, WorkerTask>()
   private queue: {
     task: any
     resolve: (val: any) => void
@@ -82,9 +88,9 @@ export class WorkerPool {
         const allIndex = this.workers.indexOf(w)
         if (allIndex === -1) return // Already cleaned up
 
-        const task = (w as any).currentTask
+        const task = this.workerTasks.get(w)
         if (task) {
-          ;(w as any).currentTask = null
+          this.workerTasks.delete(w)
           task.reject(err || new Error('Worker terminated unexpectedly'))
         }
 
@@ -97,9 +103,9 @@ export class WorkerPool {
       }
 
       newWorker.on('message', (response: any) => {
-        const task = (newWorker as any).currentTask
+        const task = this.workerTasks.get(newWorker)
         if (task) {
-          ;(newWorker as any).currentTask = null
+          this.workerTasks.delete(newWorker)
           if (response.type === 'SUCCESS') {
             task.resolve(response.result)
           } else {
@@ -122,7 +128,7 @@ export class WorkerPool {
     }
 
     const { task, resolve, reject } = this.queue.shift()!
-    ;(worker as any).currentTask = { resolve, reject }
+    this.workerTasks.set(worker, { resolve, reject })
     worker.postMessage(task)
   }
 

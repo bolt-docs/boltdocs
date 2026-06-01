@@ -51,5 +51,3 @@ export function useRecentPosts(
   const posts = usePosts(collection)
   return useMemo(() => posts.slice(0, count), [posts, count])
 }
-
-

@@ -3,12 +3,16 @@ import fs from 'node:fs'
 import { colors, info } from '@bdocs/dui'
 import { normalizePath, FrontmatterSchema } from '../../utils'
 import type { DoctorContext, DoctorIssue } from './types'
-import { getSeverity, getFileData, cachedExists, fileCache, parseBudget } from './utils'
+import {
+  getSeverity,
+  getFileData,
+  cachedExists,
+  fileCache,
+  parseBudget,
+} from './utils'
 import { getCachedSimilarity } from './similarity'
 
-/**
- * Check for frontmatter and SEO metadata issues.
- */
+// Check for frontmatter and SEO metadata issues
 export async function checkMetadata(
   ctx: DoctorContext,
 ): Promise<DoctorIssue[]> {
@@ -77,12 +81,12 @@ export async function checkMetadata(
         const dateFields = [
           'date',
           'lastUpdated',
-          ...ctx.doctorConfig.checks.metadata.optional.filter((f) =>
+          ...ctx.doctorConfig.checks.metadata.optional.filter((f: string) =>
             f.toLowerCase().includes('date'),
           ),
         ]
         for (const field of dateFields) {
-          if (data[field] && isNaN(Date.parse(String(data[field])))) {
+          if (data[field] && Number.isNaN(Date.parse(String(data[field])))) {
             const level = getSeverity(ctx, 'invalidFrontmatter', 'high')
             if (level !== 'off') {
               issues.push({
@@ -139,16 +143,18 @@ export async function checkMetadata(
           }
         }
       }
-    } catch (e: any) {
-      const level = getSeverity(ctx, 'malformedFrontmatter', 'high')
-      if (level !== 'off') {
-        issues.push({
-          file: relPath,
-          level,
-          message: `Malformed frontmatter (YAML error): ${e.message}`,
-          suggestion:
-            'Check your YAML syntax for indentation or unquoted special characters.',
-        })
+    } catch (e: unknown) {
+      if (e instanceof Error) {
+        const level = getSeverity(ctx, 'malformedFrontmatter', 'high')
+        if (level !== 'off') {
+          issues.push({
+            file: relPath,
+            level,
+            message: `Malformed frontmatter (YAML error): ${e.message}`,
+            suggestion:
+              'Check your YAML syntax for indentation or unquoted special characters.',
+          })
+        }
       }
     }
   }
@@ -172,9 +178,7 @@ export async function checkMetadata(
   return issues
 }
 
-/**
- * Check for broken internal and optionally external links.
- */
+// Check for broken internal and optionally external links
 export async function checkLinks(ctx: DoctorContext): Promise<DoctorIssue[]> {
   const issues: DoctorIssue[] = []
   const {
@@ -404,9 +408,7 @@ export async function checkLinks(ctx: DoctorContext): Promise<DoctorIssue[]> {
   return issues
 }
 
-/**
- * Check for i18n issues (missing and orphaned translations).
- */
+// Check i18n issues
 export async function checkI18n(ctx: DoctorContext): Promise<DoctorIssue[]> {
   const issues: DoctorIssue[] = []
   if (!ctx.doctorConfig.checks.i18n.enabled || !ctx.config.i18n) return issues
@@ -464,9 +466,7 @@ export async function checkI18n(ctx: DoctorContext): Promise<DoctorIssue[]> {
   return issues
 }
 
-/**
- * Check the sidebar configuration for broken links and orphaned pages.
- */
+// Check sidebar configuration for broken links and orphaned pages
 export async function checkSidebar(ctx: DoctorContext): Promise<DoctorIssue[]> {
   const issues: DoctorIssue[] = []
   if (!ctx.config.theme.sidebar) return issues
@@ -475,7 +475,7 @@ export async function checkSidebar(ctx: DoctorContext): Promise<DoctorIssue[]> {
   const sidebar = ctx.config.theme.sidebar
 
   for (const [group, items] of Object.entries(sidebar)) {
-    for (const item of items as any[]) {
+    for (const item of items as { text: string; link: string }[]) {
       if (!item.text) {
         const level = getSeverity(ctx, 'invalidFrontmatter', 'warning')
         if (level !== 'off') {
@@ -550,7 +550,12 @@ export async function checkPerformance(
   const perfConfig = ctx.doctorConfig.checks.performance
   if (!perfConfig?.enabled) return issues
 
-  const metricsPath = path.resolve(ctx.root, '.boltdocs', 'reports', 'performance.json')
+  const metricsPath = path.resolve(
+    ctx.root,
+    '.boltdocs',
+    'reports',
+    'performance.json',
+  )
   if (!fs.existsSync(metricsPath)) {
     issues.push({
       file: '(build)',
@@ -589,7 +594,8 @@ export async function checkPerformance(
       file: '(build)',
       level,
       message: `JS bundle size exceeds budget: ${actual}kb > ${expected}kb`,
-      suggestion: 'Code-split large dependencies or lazy-load route components.',
+      suggestion:
+        'Code-split large dependencies or lazy-load route components.',
     })
   }
 
@@ -613,20 +619,25 @@ export async function checkPerformance(
           file: page.route,
           level,
           message: `Page HTML size exceeds budget: ${actual}kb > ${expected}kb`,
-          suggestion: 'Reduce the amount of inline content or split into sub-pages.',
+          suggestion:
+            'Reduce the amount of inline content or split into sub-pages.',
         })
       }
     }
   }
 
   const imageBytesLimitKB = imageLimitKB * 1024
-  if (imageLimitKB !== Infinity && metrics.totalImagesSize > imageBytesLimitKB) {
+  if (
+    imageLimitKB !== Infinity &&
+    metrics.totalImagesSize > imageBytesLimitKB
+  ) {
     const actual = (metrics.totalImagesSize / 1024).toFixed(0)
     issues.push({
       file: '(build)',
       level,
       message: `Image assets exceed budget: ${actual}kb > ${imageLimitKB}kb`,
-      suggestion: 'Optimize images with lossy compression or use next-gen formats (webp/avif).',
+      suggestion:
+        'Optimize images with lossy compression or use next-gen formats (webp/avif).',
     })
   }
 
@@ -637,7 +648,8 @@ export async function checkPerformance(
       file: '(build)',
       level,
       message: `Build time exceeds budget: ${actual}s > ${expected}s`,
-      suggestion: 'Check for large unoptimized assets or increase `concurrency` in SSG options.',
+      suggestion:
+        'Check for large unoptimized assets or increase `concurrency` in SSG options.',
     })
   }
 

@@ -1,11 +1,7 @@
 import { preview } from 'vite'
-import { build as ssgBuild } from '@bdocs/ssg/node'
-import { createViteConfig } from '../index'
-import { success, error, previewServer } from '@bdocs/dui'
-import path from 'node:path'
-import { generateRoutes } from '../routes/index'
-import { resolveConfig } from '../config'
+import { success, error } from '@bdocs/dui'
 import { notifyUpdateAvailable } from '../update-check'
+import { createBuildPipeline } from '../pipeline/index'
 
 /**
  * Logic for the `boltdocs build` command.
@@ -16,38 +12,15 @@ import { notifyUpdateAvailable } from '../update-check'
 export async function buildAction(root: string = process.cwd()) {
   notifyUpdateAvailable()
   try {
-    const viteConfig = await createViteConfig(root, 'production')
+    const pipeline = createBuildPipeline()
+    const result = await pipeline.run({ root, timing: {} })
 
-    // Parse the Boltdocs config to get sidebar groups, routing rules, etc.
-    const config = await resolveConfig('docs', root)
-
-    // Generate routes to map paths to source files
-    const routes = await generateRoutes(
-      path.resolve(root, 'docs'),
-      config,
-      viteConfig.base,
-    )
-    const routeToSourceFileMap: Record<string, string> = {}
-    for (const route of routes) {
-      if (route.path && route.componentPath) {
-        routeToSourceFileMap[route.path] = route.componentPath
-        // Also map without trailing slash to be extremely robust
-        const normalized = route.path.replace(/\/$/, '')
-        routeToSourceFileMap[normalized] = route.componentPath
-      }
+    if (!result.success) {
+      error(`Build failed at step "${result.failedStep}":`, result.error)
+      process.exit(1)
     }
 
-    // We use virtual modules and internalized HTML injection,
-    // so no physical files need to be written to the project root.
-    await ssgBuild(
-      {
-        entry: 'boltdocs/entry',
-        routeToSourceFileMap,
-        cacheDir: path.resolve(root, '.boltdocs/build'),
-      },
-      viteConfig,
-    )
-    success('SSG build completed successfully!')
+    success(`SSG build completed successfully in ${Math.round(result.timing.total)}ms!`)
     process.exit(0)
   } catch (e) {
     error('Build failed:', e)

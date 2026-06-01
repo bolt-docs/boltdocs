@@ -90,7 +90,9 @@ export function jsdomGlobal(html = defaultHtml, options = {}) {
     KEYS.forEach((key) => delete global[key])
     try {
       window.close()
-    } catch (e) {}
+    } catch (e) {
+      // Ignore if window is already closed or destroyed
+    }
   }
 
   document.destroy = cleanup

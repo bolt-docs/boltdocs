@@ -4,6 +4,7 @@ export * from './plugin-store'
 export * from './plugin-validator'
 export * from './plugin-lifecycle'
 export * from './plugin-utils'
+export { MDX_NODES } from '../mdx/constants'
 
 import type { SecureBoltdocsPlugin } from './plugin-types'
 

@@ -9,7 +9,7 @@ import type { BoltdocsConfig } from '../config'
 import { mdxCache, MDX_PLUGIN_VERSION } from './cache'
 import { rehypeShiki } from './rehype-shiki'
 import { remarkMetaPlugin } from './remark-meta-plugin'
-import { type SecureBoltdocsPlugin, type PluginLifecycleManager } from '../plugins'
+import type { PluginLifecycleManager } from '../plugins'
 
 let mdxCacheLoaded = false
 

@@ -4,181 +4,183 @@ sidebarPosition: 1
 description: Extend Boltdocs by writing plugins that hook into the MDX pipeline, Vite config, build lifecycle, and custom component registry.
 ---
 
-Boltdocs' plugin system lets you extend the framework at every layer — from the MDX transformation pipeline to the Vite build config, from custom React components to build lifecycle hooks. Plugins are plain TypeScript objects with a declarative permission model.
+# Plugin System
+
+*Extend the core capabilities of Boltdocs by creating custom plugins. Write lifecycle hooks, inject Vite/MDX configurations, register global React components, and build static integrations with ease.*
 
 ---
 
-## A Minimal Plugin
+## Quick Start
 
-```ts
-import type { SecureBoltdocsPlugin } from 'boltdocs'
+A Boltdocs plugin is a plain JavaScript object. You can write a plugin directly in your config file or distribute it as an npm package.
 
-export function myPlugin(): SecureBoltdocsPlugin {
+Here is a minimal plugin that logs a message when the documentation build starts:
+
+```ts title="boltdocs.config.ts"
+import { defineConfig, type BoltdocsPlugin } from 'boltdocs'
+
+export function myCustomPlugin(): BoltdocsPlugin {
   return {
-    name: 'my-plugin',
+    name: 'boltdocs-plugin-hello',
+    hooks: {
+      beforeBuild(ctx) {
+        ctx.logger.info(`Hello! Docs are configured at URL: ${ctx.config.siteUrl}`)
+      },
+    },
   }
 }
-```
-
-Register it in `boltdocs.config.ts`:
-
-```ts
-import { myPlugin } from './plugins/my-plugin'
 
 export default defineConfig({
-  plugins: [myPlugin()],
+  plugins: [myCustomPlugin()],
 })
 ```
 
 ---
 
-## Plugin Reference
+## Concepts & Architecture
 
-### `SecureBoltdocsPlugin`
+Boltdocs balances complete extensibility with maximum safety. To ensure the dev environment stays lightning fast, we bypassed complex container sandboxes and dynamic permissions. Plugins run natively, but their actions are guarded by our static security layer.
 
-| Property | Type | Required | Description |
+### 🛡️ The Surgical FS Patch
+
+Boltdocs automatically monkey-patches Node's native `fs` and `fs/promises` modules during execution. This safety guard shields your workstation against accidental bugs or rogue scripts by enforcing strict write/delete constraints:
+
+* **Workspace Bounds:** Plugins can only write or delete files within the project root directory.
+* **Sensitive Access:** Operations on `.env` files are blocked immediately.
+* **Registry Integrity:** Writing to `node_modules` is disabled, except for designated local build caches like `node_modules/.vite`.
+
+If a plugin performs a write or deletion that violates these boundaries, a security exception is thrown and the build/dev process halts instantly.
+
+### ⚠️ Install Script Warnings
+
+Whenever you boot the framework via `boltdocs dev` or `boltdocs build`, Boltdocs inspects the `package.json` configurations of all installed plugins. If any package declares `install`, `preinstall`, or `postinstall` lifecycle scripts, the console outputs a warning. This helps you notice hidden script triggers before they run on your machine.
+
+### 🔍 Static Code Auditing
+
+Before deploying changes or compiling final static assets, you can audit your plugin dependencies directly:
+
+```bash
+boltdocs audit
+```
+
+This scanner performs a fast static analysis of the source code of all active plugins. It checks for:
+* **Network Operations:** Calls to `fetch(`, `axios`, `http.request`, or `https.request`.
+* **Environment Extraction:** Accesses to `process.env` keys.
+
+The command outputs a tabular report highlighting whether plugins are completely clean or require warning audits.
+
+---
+
+## API Reference
+
+### BoltdocsPlugin
+
+Defines the structure and integration fields for a Boltdocs extension.
+
+| Property | Type | Default | Description |
 | :--- | :--- | :--- | :--- |
-| **`name`** | `string` | ✓ | A unique identifier for this plugin (e.g., `'boltdocs-plugin-mermaid'`). |
-| **`enforce`** | `'pre' \| 'post'` | — | Run this plugin before (`'pre'`) or after (`'post'`) the default set. |
-| **`version`** | `string` | — | Semver version of the plugin. Recommended for published plugins. |
-| **`boltdocsVersion`** | `string` | — | Minimum Boltdocs version this plugin requires (semver range). |
-| **`permissions`** | `PluginPermission[]` | — | List of capabilities this plugin needs. Undeclared capabilities are blocked. |
-| **`remarkPlugins`** | `unknown[]` | — | Remark plugins to inject into the MDX pipeline. Requires `'mdx:remark'` permission. |
-| **`rehypePlugins`** | `unknown[]` | — | Rehype plugins to inject into the MDX pipeline. Requires `'mdx:rehype'` permission. |
-| **`vitePlugins`** | `VitePlugin[]` | — | Vite plugins to add to the internal Vite config. Requires `'vite:config'` permission. |
-| **`components`** | `Record<string, string>` | — | Custom MDX components to register globally. Map of `Name → module path`. Requires `'components'` permission. |
-| **`hooks`** | `PluginLifecycleHooks` | — | Lifecycle hook implementations. Requires `'hooks:build'` or `'hooks:dev'`. |
+| **`name`** | `string` | `(Required)` | A unique identifier for the plugin (e.g., `'boltdocs-plugin-mermaid'`). |
+| **`enforce`** | `'pre' \| 'post'` | `'post'` | Controls execution order relative to core system plugins. |
+| **`version`** | `string` | `undefined` | The semantic version string of the plugin. |
+| **`boltdocsVersion`** | `string` | `undefined` | A semver range indicating compatible Boltdocs framework versions. |
+| **`remarkPlugins`** | `unknown[]` | `[]` | Remark plugins injected into the MDX compilation pipeline. |
+| **`rehypePlugins`** | `unknown[]` | `[]` | Rehype plugins injected into the MDX compilation pipeline. |
+| **`vitePlugins`** | `VitePlugin[]` | `[]` | Custom Vite plugins added to the internal compiler instance. |
+| **`components`** | `Record<string, string>` | `{}` | Registers global JSX component names linked to client modules. |
+| **`hooks`** | [`PluginLifecycleHooks`](#pluginlifecyclehooks) | `undefined` | Callback hooks executed at specific framework lifecycle points. |
+
+### PluginLifecycleHooks
+
+Callback signatures to hook into compilation and server lifecycles.
+
+| Property | Type | Default | Description |
+| :--- | :--- | :--- | :--- |
+| **`beforeBuild`** | `(ctx: PluginContext) => void \| Promise<void>` | `undefined` | Runs right before static site generation builds start. |
+| **`afterBuild`** | `(ctx: PluginContext) => void \| Promise<void>` | `undefined` | Runs immediately after a production build succeeds. |
+| **`beforeDev`** | `(ctx: PluginContext) => void \| Promise<void>` | `undefined` | Runs before the local development server starts listening. |
+| **`afterDev`** | `(ctx: PluginContext) => void \| Promise<void>` | `undefined` | Runs when the development server is fully initialized and active. |
+| **`buildEnd`** | `(ctx: PluginContext) => void \| Promise<void>` | `undefined` | Runs at completion of the process, on success or error. |
+| **`transformMdx`** | `(ctx: PluginContext, params: { code: string; filePath: string }) => Promise<{ code: string }> \| { code: string }` | `undefined` | Runs during MDX compilation to transform raw MDX source code. Uses a chain pattern. |
+| **`transformHtml`** | `(ctx: PluginContext, params: { html: string; path: string }) => Promise<{ html: string }> \| { html: string }` | `undefined` | Runs during SSG generation to transform compiled HTML pages. Uses a chain pattern. |
+
+### PluginContext
+
+Namespaced environment context provided to all lifecycle hooks.
+
+| Property | Type | Default | Description |
+| :--- | :--- | :--- | :--- |
+| **`config`** | `Readonly<BoltdocsConfig>` | `System-defined` | Read-only access to the resolved site config structure. |
+| **`logger`** | `PluginLogger` | `System-defined` | Log wrapper supporting `info`, `warn`, `error`, and `debug` outputs. |
+| **`store`** | `PluginStore` | `System-defined` | Namespaced state store for exchanging values with other plugins. |
+| **`meta`** | `PluginMeta` | `System-defined` | Resolved identity metadata of the executing plugin. |
 
 ---
 
-## Plugin Permissions
+## Practical Examples
 
-Every capability must be declared upfront. Boltdocs enforces this at plugin initialization and blocks any undeclared access.
+### Custom MDX Transformations
 
-| Permission | Description |
-| :--- | :--- |
-| `'fs:read'` | Read from the filesystem during build. |
-| `'fs:write'` | Write files to the filesystem. |
-| `'vite:config'` | Inject plugins or modify the internal Vite configuration. |
-| `'mdx:remark'` | Add remark plugins to the MDX transformation pipeline. |
-| `'mdx:rehype'` | Add rehype plugins to the MDX transformation pipeline. |
-| `'components'` | Register custom React components available globally in MDX. |
-| `'hooks:build'` | Access build lifecycle hooks (`beforeBuild`, `afterBuild`, `buildEnd`). |
-| `'hooks:dev'` | Access dev-server lifecycle hooks (`beforeDev`, `afterDev`). |
-| `'analytics:track'` | Track analytics events on the client side. |
-| `'analytics:config'` | Access the analytics integration configuration. |
-
----
-
-## Lifecycle Hooks
-
-### `PluginLifecycleHooks`
-
-| Hook | Signature | When It Runs |
-| :--- | :--- | :--- |
-| **`beforeBuild`** | `(ctx) => void \| Promise<void>` | Before the production build starts. |
-| **`afterBuild`** | `(ctx) => void \| Promise<void>` | After the build completes successfully. |
-| **`beforeDev`** | `(ctx) => void \| Promise<void>` | Before the dev server starts. |
-| **`afterDev`** | `(ctx) => void \| Promise<void>` | After the dev server is ready. |
-| **`configResolved`** | `(ctx, config) => void` | Immediately after Boltdocs finishes resolving the full config. |
-| **`buildEnd`** | `(ctx) => void \| Promise<void>` | When the build is closing (success or failure). |
-
-### `PluginContext`
-
-Every lifecycle hook receives a `ctx` object:
-
-| Property | Type | Description |
-| :--- | :--- | :--- |
-| **`config`** | `Readonly<BoltdocsConfig>` | The fully resolved Boltdocs configuration. Read-only. |
-| **`logger`** | `PluginLogger` | Plugin-scoped logger: `info`, `warn`, `error`, `debug`. |
-| **`store`** | `PluginStore` | A shared key-value store for inter-plugin communication. |
-| **`meta`** | `PluginMeta` | Metadata about the current plugin: `name`, `version`, `boltdocsVersion`. |
-
----
-
-## Plugin with MDX Extension
+Hook Remark plugins to extend Markdown processing (for example, parsing Github Flavored Markdown):
 
 ```ts
 import remarkGfm from 'remark-gfm'
+import type { BoltdocsPlugin } from 'boltdocs'
 
-export function gfmPlugin(): SecureBoltdocsPlugin {
+export function gfmPlugin(): BoltdocsPlugin {
   return {
     name: 'boltdocs-plugin-gfm',
-    permissions: ['mdx:remark'],
     remarkPlugins: [remarkGfm],
   }
 }
 ```
 
-## Plugin with Custom Components
+### Registering Global Components
+
+Expose React components globally so they can be written inside any `.md` or `.mdx` file without imports:
 
 ```ts
-export function chartsPlugin(): SecureBoltdocsPlugin {
+import type { BoltdocsPlugin } from 'boltdocs'
+
+export function chartsPlugin(): BoltdocsPlugin {
   return {
     name: 'boltdocs-plugin-charts',
-    permissions: ['components'],
     components: {
-      BarChart:  './src/components/charts/BarChart',
-      LineChart: './src/components/charts/LineChart',
-      PieChart:  './src/components/charts/PieChart',
+      BarChart: '@bdocs/plugin-charts/client',
+      LineChart: '@bdocs/plugin-charts/client',
     },
   }
 }
 ```
 
-Once registered, `<BarChart>`, `<LineChart>`, and `<PieChart>` are available in any `.mdx` file without imports.
+### Inter-Plugin Communication
 
-## Plugin with Lifecycle Hooks
+Use the shared `store` interface to coordinate settings across independent plugins:
 
 ```ts
-export function analyticsPlugin(): SecureBoltdocsPlugin {
-  return {
-    name: 'boltdocs-plugin-analytics',
-    permissions: ['hooks:build', 'hooks:dev'],
-    hooks: {
-      configResolved(ctx, config) {
-        ctx.logger.info(`Site URL: ${config.siteUrl}`)
-      },
-      async afterBuild(ctx) {
-        ctx.logger.info('Build complete — submitting sitemap to search engines...')
-        // ... submit sitemap
-      },
+import type { BoltdocsPlugin } from 'boltdocs'
+
+// Plugin A sets state variables
+export const pluginA = (): BoltdocsPlugin => ({
+  name: 'plugin-a',
+  hooks: {
+    beforeBuild(ctx) {
+      ctx.store.set('plugin-a', 'custom-key', { resolved: true })
     },
-  }
-}
+  },
+})
+
+// Plugin B reads the set state
+export const pluginB = (): BoltdocsPlugin => ({
+  name: 'plugin-b',
+  hooks: {
+    beforeBuild(ctx) {
+      const data = ctx.store.get('plugin-a', 'custom-key')
+      ctx.logger.info(`Retrieved data from Plugin A: ${JSON.stringify(data)}`)
+    },
+  },
+})
 ```
 
----
-
-## Inter-Plugin Communication via `PluginStore`
-
-The `PluginStore` is a namespaced key-value store shared between all plugins. Use it to pass data from one plugin to another:
-
-```ts
-// Plugin A: writes data
-hooks: {
-  configResolved(ctx) {
-    ctx.store.set('plugin-a', 'processed-routes', myRoutes)
-  }
-}
-
-// Plugin B: reads data from Plugin A
-hooks: {
-  beforeBuild(ctx) {
-    const routes = ctx.store.get('plugin-a', 'processed-routes')
-  }
-}
-```
-
-<Callout variant="warning" title="Declare all permissions">
-  If your plugin accesses a capability without declaring the corresponding permission, Boltdocs will log a security warning and block the access. Always declare permissions explicitly.
+<Callout variant="tip" title="Keep it Clean">
+  Plugins are encouraged to write temp outputs or compile caches inside the workspace's designated `.boltdocs/` directory, which is fully accessible and ignored by version control.
 </Callout>
-
----
-
-## Available Plugins
-
-| Plugin | Description |
-| :--- | :--- |
-| **`@bdocs/plugin-mermaid`** | Render Mermaid diagrams in MDX using `mermaid` code blocks |
-| Custom plugins | Build your own using the plugin system above |

@@ -6,5 +6,26 @@
 export * from './dev'
 export * from './build'
 export * from './doctor'
-export { colors, confirm, formatLog, info, warn, error, success, divider, dividerLog, box, single, double, round, devServer, previewServer, bullet, ordered, tasks } from '@bdocs/dui'
+export * from './audit'
+export {
+  colors,
+  confirm,
+  formatLog,
+  info,
+  warn,
+  error,
+  success,
+  divider,
+  dividerLog,
+  box,
+  single,
+  double,
+  round,
+  devServer,
+  previewServer,
+  bullet,
+  ordered,
+  tasks,
+  table,
+} from '@bdocs/dui'
 export type { BoxOptions, BoxBorderStyle } from '@bdocs/dui'

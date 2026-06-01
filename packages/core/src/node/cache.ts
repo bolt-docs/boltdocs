@@ -1,4 +1,5 @@
 import fs from 'node:fs'
+import fsPromises from 'node:fs/promises'
 import path from 'node:path'
 import crypto from 'node:crypto'
 import zlib from 'node:zlib'
@@ -6,11 +7,12 @@ import { promisify } from 'node:util'
 import { LRUCache } from 'lru-cache'
 import { getFileMtime, getCacheConfig } from './utils'
 
-const writeFile = promisify(fs.writeFile)
-const readFile = promisify(fs.readFile)
-const mkdir = promisify(fs.mkdir)
-const rename = promisify(fs.rename)
+const writeFile = fsPromises.writeFile
+const readFile = fsPromises.readFile
+const mkdir = fsPromises.mkdir
+const rename = fsPromises.rename
 const gzipPromise = promisify(zlib.gzip)
+const gunzipPromise = promisify(zlib.gunzip)
 
 /**
  * Assets and Shards directory names.
@@ -75,15 +77,14 @@ export class FileCache<T> {
     if (!this.cachePath) return
 
     try {
-      if (!fs.existsSync(this.cachePath)) return
-
       let raw = await readFile(this.cachePath)
       if (this.cachePath.endsWith('.gz')) {
-        raw = await promisify(zlib.gunzip)(raw)
+        raw = await gunzipPromise(raw)
       }
       const data = JSON.parse(raw.toString('utf-8'))
       this.entries = new Map(Object.entries(data))
-    } catch (e) {
+    } catch (e: any) {
+      if (e.code === 'ENOENT') return
       // Fallback: ignore cache errors
     }
   }
@@ -106,12 +107,7 @@ export class FileCache<T> {
         await mkdir(path.dirname(target), { recursive: true })
         let buffer = Buffer.from(content)
         if (useCompress) {
-          buffer = await new Promise<Buffer>((resolve, reject) => {
-            zlib.gzip(buffer, (err, res) => {
-              if (err) reject(err)
-              else resolve(res)
-            })
-          })
+          buffer = await gzipPromise(buffer)
         }
         const tempPath = `${target}.${crypto.randomBytes(4).toString('hex')}.tmp`
         await writeFile(tempPath, buffer)
@@ -198,10 +194,10 @@ export class TransformCache {
     if (config.noCache) return
 
     try {
-      if (!fs.existsSync(this.indexPath)) return
       const data = await readFile(this.indexPath, 'utf-8')
       this.index = new Map(Object.entries(JSON.parse(data)))
-    } catch (e) {
+    } catch (e: any) {
+      if (e.code === 'ENOENT') return
       // Index might be corrupt, ignore
     }
   }
@@ -245,14 +241,8 @@ export class TransformCache {
           const shardPath = path.resolve(this.shardsDir, `${hash}.gz`)
           try {
             const compressed = await readFile(shardPath)
-            const decompressed = await new Promise<string>(
-              (resolve, reject) => {
-                zlib.gunzip(compressed, (err, res) => {
-                  if (err) reject(err)
-                  else resolve(res.toString('utf-8'))
-                })
-              },
-            )
+            const decompressedBuffer = await gunzipPromise(compressed)
+            const decompressed = decompressedBuffer.toString('utf-8')
             this.memoryCache.set(key, decompressed)
             return { key, val: decompressed }
           } catch (e) {
@@ -270,29 +260,6 @@ export class TransformCache {
   }
 
   /**
-   * Retrieves a cached transformation. Fast lookup via index, lazy loading from disk.
-   */
-  get(key: string): string | null {
-    const mem = this.memoryCache.get(key)
-    if (mem) return mem
-
-    const hash = this.index.get(key)
-    if (!hash) return null
-
-    const shardPath = path.resolve(this.shardsDir, `${hash}.gz`)
-    if (!fs.existsSync(shardPath)) return null
-
-    try {
-      const compressed = fs.readFileSync(shardPath)
-      const decompressed = zlib.gunzipSync(compressed).toString('utf-8')
-      this.memoryCache.set(key, decompressed)
-      return decompressed
-    } catch (e) {
-      return null
-    }
-  }
-
-  /**
    * Retrieves a cached transformation asynchronously. Fast lookup via index, lazy loading from disk.
    */
   async getAsync(key: string): Promise<string | null> {
@@ -304,17 +271,13 @@ export class TransformCache {
 
     const shardPath = path.resolve(this.shardsDir, `${hash}.gz`)
     try {
-      if (!fs.existsSync(shardPath)) return null
       const compressed = await readFile(shardPath)
-      const decompressed = await new Promise<string>((resolve, reject) => {
-        zlib.gunzip(compressed, (err, res) => {
-          if (err) reject(err)
-          else resolve(res.toString('utf-8'))
-        })
-      })
+      const decompressedBuffer = await gunzipPromise(compressed)
+      const decompressed = decompressedBuffer.toString('utf-8')
       this.memoryCache.set(key, decompressed)
       return decompressed
-    } catch (e) {
+    } catch (e: any) {
+      if (e.code === 'ENOENT') return null
       return null
     }
   }
@@ -332,7 +295,12 @@ export class TransformCache {
     // Background write shard
     globalBackgroundQueue.add(async () => {
       try {
-        if (fs.existsSync(shardPath)) return // Already exists
+        try {
+          await fsPromises.access(shardPath)
+          return // Already exists
+        } catch {
+          // File does not exist, proceed to create
+        }
         await mkdir(this.shardsDir, { recursive: true })
 
         const compressed = await gzipPromise(Buffer.from(result))
@@ -366,32 +334,36 @@ export class AssetCache {
     this.assetsDir = path.resolve(root, config.dir, ASSETS_DIR)
   }
 
-  private getFileHash(filePath: string): string {
-    const mtime = getFileMtime(filePath)
+  async getFileHash(filePath: string): Promise<string> {
+    const stat = await fsPromises.stat(filePath)
+    const mtime = stat.mtimeMs
     const cached = this.hashMap.get(filePath)
     if (cached && cached.mtime === mtime) {
       return cached.hash
     }
     const hash = crypto
       .createHash('md5')
-      .update(fs.readFileSync(filePath))
+      .update(`${stat.size}-${mtime}`)
       .digest('hex')
     this.hashMap.set(filePath, { hash, mtime })
     return hash
   }
 
-  get(sourcePath: string, cacheKey: string): string | null {
-    if (!fs.existsSync(sourcePath)) return null
-    const sourceHash = this.getFileHash(sourcePath)
-    const cachedPath = this.getCachedPath(
-      sourcePath,
-      `${cacheKey}-${sourceHash}`,
-    )
-    return fs.existsSync(cachedPath) ? cachedPath : null
+  async get(sourcePath: string, cacheKey: string): Promise<string | null> {
+    try {
+      const sourceHash = await this.getFileHash(sourcePath)
+      const cachedPath = this.getCachedPath(
+        sourcePath,
+        `${cacheKey}-${sourceHash}`,
+      )
+      await fsPromises.access(cachedPath)
+      return cachedPath
+    } catch (e) {
+      return null
+    }
   }
 
-  set(sourcePath: string, cacheKey: string, content: Buffer | string): void {
-    const sourceHash = this.getFileHash(sourcePath)
+  set(sourcePath: string, cacheKey: string, content: Buffer | string, sourceHash: string): void {
     const cachedPath = this.getCachedPath(
       sourcePath,
       `${cacheKey}-${sourceHash}`,

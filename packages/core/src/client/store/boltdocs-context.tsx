@@ -78,7 +78,9 @@ export function BoltdocsProvider({
             PREFERENCES_KEY,
             JSON.stringify({ ...prefs, locale: newL }),
           )
-        } catch (e) {}
+        } catch (e) {
+          // Safe fallback: ignore localStorage write failures (e.g., if storage is blocked/disabled)
+        }
       }
     }
 
@@ -92,7 +94,9 @@ export function BoltdocsProvider({
             PREFERENCES_KEY,
             JSON.stringify({ ...prefs, version: newV }),
           )
-        } catch (e) {}
+        } catch (e) {
+          // Safe fallback: ignore localStorage write failures (e.g., if storage is blocked/disabled)
+        }
       }
     }
 

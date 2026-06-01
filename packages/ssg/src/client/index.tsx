@@ -11,7 +11,7 @@ import {
   matchRoutes,
   RouterProvider,
 } from 'react-router-dom'
-import { hydrate, render } from '../pollfill/react-helper'
+import { hydrate, render } from '../polyfill/react-helper'
 import { documentReady } from '../utils/document-ready'
 import { joinUrlSegments, withLeadingSlash } from '../utils/path'
 import { convertRoutesToDataRoutes } from '../utils/remix-router'
@@ -29,11 +29,19 @@ const sessionTimestamp = Date.now()
  * An undefined hydrationData is safer than a malformed one — the router will
  * still run its loaders, but at least it won't crash or misbehave silently.
  */
-function sanitizeHydrationData(
-  data: unknown,
-): { loaderData?: Record<string, unknown>; actionData?: unknown; errors?: unknown } | undefined {
+function sanitizeHydrationData(data: unknown):
+  | {
+      loaderData?: Record<string, unknown>
+      actionData?: unknown
+      errors?: unknown
+    }
+  | undefined {
   if (!data || typeof data !== 'object' || Array.isArray(data)) return undefined
-  return data as { loaderData?: Record<string, unknown>; actionData?: unknown; errors?: unknown }
+  return data as {
+    loaderData?: Record<string, unknown>
+    actionData?: unknown
+    errors?: unknown
+  }
 }
 
 export function ViteReactSSG(
@@ -115,11 +123,6 @@ export function ViteReactSSG(
 
     await fn?.(context)
 
-    if (!client) {
-      // const route = context.routePath ?? '/'
-      // context.initialState = {} // TODO:
-    }
-
     const initialState = context.initialState
 
     return {
@@ -142,16 +145,16 @@ export function ViteReactSSG(
         return
       }
 
-      const lazeMatches = matchRoutes(
+      const lazyMatches = matchRoutes(
         routerOptions.routes,
         window.location,
       )?.filter((m) => m.route.lazy)
 
       // Load the lazy matches and update the routes before creating your router
       // so we can hydrate the SSR-rendered content synchronously
-      if (lazeMatches && lazeMatches?.length > 0) {
+      if (lazyMatches && lazyMatches?.length > 0) {
         await Promise.all(
-          lazeMatches.map(async (m) => {
+          lazyMatches.map(async (m) => {
             const routeModule = await m.route.lazy!()
             Object.assign(m.route, { ...routeModule, lazy: undefined })
           }),
@@ -242,7 +245,8 @@ export function ViteReactSSG(
               `${withLeadingSlash(manifestUrl)}?t=${sessionTimestamp}`,
             )
             if (response.ok) {
-              window.__VITE_REACT_SSG_STATIC_LOADER_MANIFEST__ = await response.json()
+              window.__VITE_REACT_SSG_STATIC_LOADER_MANIFEST__ =
+                await response.json()
             } else {
               console.error(
                 `[vite-react-ssg] Failed to fetch static loader manifest: ${response.status} ${response.statusText}`,
@@ -272,7 +276,8 @@ export function ViteReactSSG(
               `${withLeadingSlash(dataUrl)}?t=${sessionTimestamp}`,
             )
             if (response.ok) {
-              window.__VITE_REACT_SSG_STATIC_LOADER_DATA__[pathname] = await response.json()
+              window.__VITE_REACT_SSG_STATIC_LOADER_DATA__[pathname] =
+                await response.json()
             } else {
               console.error(
                 `[vite-react-ssg] Failed to fetch loader data for ${pathname}: ${response.status} ${response.statusText}`,

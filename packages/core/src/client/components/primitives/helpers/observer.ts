@@ -9,6 +9,7 @@ export class Observer {
   items: TOCItemInfo[] = []
   single = false
   private observer: IntersectionObserver | null = null
+  private timers: ReturnType<typeof setTimeout>[] = []
   onChange?: () => void
 
   private callback(_entries: IntersectionObserverEntry[]) {
@@ -111,9 +112,9 @@ export class Observer {
     // In an SPA, the TOC might update before the MDX content is in the DOM.
     // We perform a few delayed scans to ensure we catch those elements.
     if (typeof window !== 'undefined') {
-      setTimeout(() => this.watchItems(), 100)
-      setTimeout(() => this.watchItems(), 500)
-      setTimeout(() => this.watchItems(), 1000)
+      this.timers.push(setTimeout(() => this.watchItems(), 100))
+      this.timers.push(setTimeout(() => this.watchItems(), 500))
+      this.timers.push(setTimeout(() => this.watchItems(), 1000))
     }
 
     this.onChange?.()
@@ -135,6 +136,10 @@ export class Observer {
   }
 
   unwatch() {
+    for (const timer of this.timers) {
+      clearTimeout(timer)
+    }
+    this.timers = []
     this.observer?.disconnect()
     this.observer = null
   }

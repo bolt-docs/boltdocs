@@ -35,7 +35,9 @@ describe('update-check', () => {
       expect(output).toContain('Update available')
       expect(output).toContain('1.0.0')
       expect(output).toContain('2.0.0')
-      expect(output).toMatch(/(npm install|pnpm add|yarn add|bun add) boltdocs@latest/)
+      expect(output).toMatch(
+        /(npm install|pnpm add|yarn add|bun add) boltdocs@latest/,
+      )
       expect(output).toContain('╔')
       expect(output).toContain('╚')
     })

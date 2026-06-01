@@ -27,7 +27,7 @@ export const FrontmatterSchema = z.looseObject({
   lastUpdated: z.union([z.string(), z.date()]).optional(),
   groupTitle: z.string().max(100).optional(),
   groupPosition: z.number().optional(),
-  seo: z.record(z.any()).optional(),
+  seo: z.record(z.string(), z.any()).optional(),
   tags: z.array(z.string().max(50)).optional(),
   author: z
     .union([

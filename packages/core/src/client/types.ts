@@ -47,6 +47,8 @@ export interface ComponentRoute {
   subRouteGroup?: string
   /** The nested sub-routes if this route acts as the parent of a subRouteGroup */
   subRoutes?: ComponentRoute[]
+  /** Internal helper map for nesting routes during sidebar construction */
+  _subMap?: Map<string, ComponentRoute>
   /** The extracted plain-text content of the page for search indexing */
   _content?: string
   /** The raw markdown content of the page */
@@ -78,6 +80,8 @@ export interface ComponentRoute {
   frontmatter?: Record<string, any>
   /** Clean URL segments stripped of locale/version prefixes */
   slugParts?: string[]
+  /** SEO metadata for page headers */
+  seo?: Record<string, any>
 }
 
 /**

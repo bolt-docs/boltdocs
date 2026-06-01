@@ -14,7 +14,7 @@ function escapeUnsafeChars(unsafeChar: string) {
 
 import { error } from '@bdocs/dui'
 
-export function serializeState(state: any) {
+export function serializeState(state: any): string | null {
   if (state == null || Object.keys(state).length === 0) return null
   try {
     return JSON.stringify(JSON.stringify(state || {})).replace(
@@ -22,7 +22,9 @@ export function serializeState(state: any) {
       escapeUnsafeChars,
     )
   } catch (err) {
-    error(`[SSG] On state serialization - ${err instanceof Error ? err.message : String(err)}`)
+    error(
+      `[SSG] On state serialization - ${err instanceof Error ? err.message : String(err)}`,
+    )
     return null
   }
 }
@@ -31,7 +33,9 @@ export function deserializeState(state: string) {
   try {
     return JSON.parse(state || '{}')
   } catch (err) {
-    error(`[SSG] On state deserialization - ${err instanceof Error ? err.message : String(err)}`)
+    error(
+      `[SSG] On state deserialization - ${err instanceof Error ? err.message : String(err)}`,
+    )
     return {}
   }
 }

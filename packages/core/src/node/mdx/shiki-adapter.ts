@@ -1,4 +1,5 @@
 import { error as logError } from '@bdocs/dui'
+import { escapeHtml } from '../utils'
 import { highlight } from './highlighter'
 import { showLineNumbers } from './transformers/show-line-numbers'
 import { showWordWrap } from './transformers/show-word-wrap'
@@ -7,6 +8,7 @@ import {
   addLanguageProperty,
 } from './transformers/add-to-pre-element'
 import type { BoltdocsConfig } from '../config'
+import type { ShikiTheme } from '../../shared/types'
 import type { CodeToHastOptions } from 'shiki'
 import { DEFAULT_THEMES, DEFAULTS, SHIKI_CLASSES } from './constants'
 
@@ -53,7 +55,7 @@ export class ShikiAdapter {
   /**
    * Resolves the code theme from Boltdocs configuration.
    */
-  getTheme() {
+  getTheme(): ShikiTheme | { light: ShikiTheme; dark: ShikiTheme } {
     return (
       this.config?.theme?.codeTheme || {
         light: DEFAULT_THEMES.LIGHT,
@@ -130,18 +132,6 @@ export class ShikiAdapter {
       return `<pre class="${SHIKI_CLASSES.FALLBACK}"><code>${escapeHtml(code)}</code></pre>`
     }
   }
-}
-
-/**
- * Safe helper to escape HTML entities in fallback string output.
- */
-export function escapeHtml(str: string): string {
-  return str
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#039;')
 }
 
 // Module-level singleton adapter caching logic

@@ -73,6 +73,44 @@ export function getFileMtime(filePath: string): number {
   }
 }
 
+function processFrontmatterData(
+  filePath: string,
+  raw: string,
+  validate: boolean,
+) {
+  const { data, content, rawMatter } = parseFrontmatterFast(raw)
+
+  if (rawMatter && rawMatter.length > MAX_FRONTMATTER_SIZE) {
+    logSecurityEvent(
+      'FRONTMATTER_TOO_LARGE',
+      'Frontmatter block exceeds size limit',
+      {
+        size: rawMatter.length,
+        file: filePath,
+      },
+    )
+    throw new ValidationError(
+      `Security breach: Frontmatter size exceeds limit of ${MAX_FRONTMATTER_SIZE} bytes`,
+    )
+  }
+
+  if (!validate) {
+    return { data, content }
+  }
+
+  const result = FrontmatterSchema.safeParse(data)
+  const validatedData = result.success ? result.data : {}
+
+  const sanitizedData: any = { ...validatedData }
+
+  if (sanitizedData.title)
+    sanitizedData.title = stripHtmlTags(sanitizedData.title).trim()
+  if (sanitizedData.description)
+    sanitizedData.description = stripHtmlTags(sanitizedData.description).trim()
+
+  return { data: sanitizedData, content }
+}
+
 /**
  * Parses frontmatter and markdown content from a file synchronously.
  * Uses custom parser of frontmatter. Returns the parsed data and the remaining markdown content.
@@ -90,42 +128,13 @@ export function parseFrontmatter(
 } {
   const raw = fs.readFileSync(filePath, 'utf-8')
   try {
-    const { data, content, rawMatter } = parseFrontmatterFast(raw)
+    const { data, content } = processFrontmatterData(filePath, raw, validate)
 
-    if (rawMatter && rawMatter.length > MAX_FRONTMATTER_SIZE) {
-      logSecurityEvent(
-        'FRONTMATTER_TOO_LARGE',
-        'Frontmatter block exceeds size limit',
-        {
-          size: rawMatter.length,
-          file: filePath,
-        },
-      )
-      throw new ValidationError(
-        `Security breach: Frontmatter size exceeds limit of ${MAX_FRONTMATTER_SIZE} bytes`,
-      )
+    if (validate && !data.lastUpdated) {
+      data.lastUpdated = getFileMtime(filePath)
     }
 
-    if (!validate) {
-      return { data, content, raw }
-    }
-
-    const result = FrontmatterSchema.safeParse(data)
-    const validatedData = result.success ? result.data : {}
-
-    const sanitizedData: any = { ...validatedData }
-
-    if (!sanitizedData.lastUpdated) {
-      sanitizedData.lastUpdated = getFileMtime(filePath)
-    }
-    if (sanitizedData.title)
-      sanitizedData.title = stripHtmlTags(sanitizedData.title).trim()
-    if (sanitizedData.description)
-      sanitizedData.description = stripHtmlTags(
-        sanitizedData.description,
-      ).trim()
-
-    return { data: sanitizedData, content, raw }
+    return { data, content, raw }
   } catch (e) {
     if (e instanceof ValidationError) throw e
     return { data: {}, content: raw, raw }
@@ -150,43 +159,18 @@ export async function parseFrontmatterAsync(
   let raw = ''
   try {
     raw = await fs.promises.readFile(filePath, 'utf-8')
-    const { data, content, rawMatter } = parseFrontmatterFast(raw)
+    const { data, content } = processFrontmatterData(filePath, raw, validate)
 
-    if (rawMatter && rawMatter.length > MAX_FRONTMATTER_SIZE) {
-      logSecurityEvent(
-        'FRONTMATTER_TOO_LARGE',
-        'Frontmatter block exceeds size limit',
-        {
-          size: rawMatter.length,
-          file: filePath,
-        },
-      )
-      throw new ValidationError(
-        `Security breach: Frontmatter size exceeds limit of ${MAX_FRONTMATTER_SIZE} bytes`,
-      )
+    if (validate && !data.lastUpdated) {
+      try {
+        const stats = await fs.promises.stat(filePath)
+        data.lastUpdated = stats.mtimeMs
+      } catch {
+        data.lastUpdated = 0
+      }
     }
 
-    if (!validate) {
-      return { data, content, raw }
-    }
-
-    const result = FrontmatterSchema.safeParse(data)
-    const validatedData = result.success ? result.data : data
-
-    const sanitizedData: any = { ...validatedData }
-
-    if (!sanitizedData.lastUpdated) {
-      const stats = await fs.promises.stat(filePath)
-      sanitizedData.lastUpdated = stats.mtimeMs
-    }
-    if (sanitizedData.title)
-      sanitizedData.title = stripHtmlTags(sanitizedData.title).trim()
-    if (sanitizedData.description)
-      sanitizedData.description = stripHtmlTags(
-        sanitizedData.description,
-      ).trim()
-
-    return { data: sanitizedData, content, raw }
+    return { data, content, raw }
   } catch (e) {
     if (e instanceof ValidationError) throw e
     return { data: {}, content: raw, raw }

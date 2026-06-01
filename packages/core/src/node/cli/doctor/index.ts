@@ -2,7 +2,20 @@ import path from 'node:path'
 import fs from 'node:fs'
 import { fdir } from 'fdir'
 import picomatch from 'picomatch'
-import { colors, double, single, round, bullet, tasks, confirm, info, success, warn, error, dividerLog } from '@bdocs/dui'
+import {
+  colors,
+  double,
+  single,
+  round,
+  bullet,
+  tasks,
+  confirm,
+  info,
+  success,
+  warn,
+  error,
+  dividerLog,
+} from '@bdocs/dui'
 import { resolveConfig } from '../../config'
 import { notifyUpdateAvailable } from '../../update-check'
 import {
@@ -13,11 +26,16 @@ import {
 import {
   generateLinkTree,
   loadDoctorConfig,
-  getFileData,
   backupFile,
   fileExistsCache,
 } from './utils'
-import { checkMetadata, checkLinks, checkI18n, checkSidebar, checkPerformance } from './checkers'
+import {
+  checkMetadata,
+  checkLinks,
+  checkI18n,
+  checkSidebar,
+  checkPerformance,
+} from './checkers'
 
 export * from './types'
 export { generateLinkTree, loadDoctorConfig }
@@ -62,16 +80,17 @@ export async function doctorAction(
     const config = await resolveConfig('docs', root)
     const docsDir = path.resolve(root, 'docs')
     if (!fs.existsSync(docsDir)) {
-      if (reportFormat === 'pretty')
-        error(`Docs dir not found at ${docsDir}`)
+      if (reportFormat === 'pretty') error(`Docs dir not found at ${docsDir}`)
       process.exit(1)
     }
 
     if (reportFormat === 'pretty') {
-      console.log(double('✦ DOCTOR — Documentation Health Check', [
-        `  ${colors.dim('Docs dir:')} ${docsDir}`,
-        `  ${colors.dim('Reports:')} ${root}/.boltdocs/reports/`,
-      ]))
+      console.log(
+        double('✦ DOCTOR — Documentation Health Check', [
+          `  ${colors.dim('Docs dir:')} ${docsDir}`,
+          `  ${colors.dim('Reports:')} ${root}/.boltdocs/reports/`,
+        ]),
+      )
     }
 
     if (reportFormat === 'pretty') {
@@ -156,10 +175,22 @@ export async function doctorAction(
 
     if (reportFormat === 'pretty') {
       const taskItems = [
-        { label: `Metadata checks ${metadataIssues.length > 0 ? `— ${metadataIssues.length} issue${metadataIssues.length !== 1 ? 's' : ''}` : '— OK'}`, done: metadataIssues.length === 0 },
-        { label: `Link checks ${linkIssues.length > 0 ? `— ${linkIssues.length} issue${linkIssues.length !== 1 ? 's' : ''}` : '— OK'}`, done: linkIssues.length === 0 },
-        { label: `i18n checks ${i18nIssues.length > 0 ? `— ${i18nIssues.length} issue${i18nIssues.length !== 1 ? 's' : ''}` : '— OK'}`, done: i18nIssues.length === 0 },
-        { label: `Sidebar checks ${sidebarIssues.length > 0 ? `— ${sidebarIssues.length} issue${sidebarIssues.length !== 1 ? 's' : ''}` : '— OK'}`, done: sidebarIssues.length === 0 },
+        {
+          label: `Metadata checks ${metadataIssues.length > 0 ? `— ${metadataIssues.length} issue${metadataIssues.length !== 1 ? 's' : ''}` : '— OK'}`,
+          done: metadataIssues.length === 0,
+        },
+        {
+          label: `Link checks ${linkIssues.length > 0 ? `— ${linkIssues.length} issue${linkIssues.length !== 1 ? 's' : ''}` : '— OK'}`,
+          done: linkIssues.length === 0,
+        },
+        {
+          label: `i18n checks ${i18nIssues.length > 0 ? `— ${i18nIssues.length} issue${i18nIssues.length !== 1 ? 's' : ''}` : '— OK'}`,
+          done: i18nIssues.length === 0,
+        },
+        {
+          label: `Sidebar checks ${sidebarIssues.length > 0 ? `— ${sidebarIssues.length} issue${sidebarIssues.length !== 1 ? 's' : ''}` : '— OK'}`,
+          done: sidebarIssues.length === 0,
+        },
       ]
       if (options.budget) {
         taskItems.push({
@@ -255,14 +286,10 @@ export async function doctorAction(
               `${icon} ${color(issue.level.toUpperCase())}: ${issue.message}`,
             )
             if (issue.suggestion) {
-              issueLines.push(
-                `   ${colors.dim(`💡 ${issue.suggestion}`)}`,
-              )
+              issueLines.push(`   ${colors.dim(`💡 ${issue.suggestion}`)}`)
             }
             if (options.fix && issue.fix) {
-              issueLines.push(
-                `   ${colors.green('✅ Fixed automatically')}`,
-              )
+              issueLines.push(`   ${colors.green('✅ Fixed automatically')}`)
             }
           }
           console.log(`\n${single(`📄 ${file}`, issueLines)}`)
@@ -271,22 +298,37 @@ export async function doctorAction(
       }
 
       if (issues.length === 0) {
-        console.log(round('✨ Documentation Health Check', [
-          '  Everything looks perfect!',
-          '  Your documentation is in great shape.',
-          '',
-          `  ${colors.dim(`Scanned ${files.length} file${files.length !== 1 ? 's' : ''} in ${duration}s`)}`,
-        ]))
+        console.log(
+          round('✨ Documentation Health Check', [
+            '  Everything looks perfect!',
+            '  Your documentation is in great shape.',
+            '',
+            `  ${colors.dim(`Scanned ${files.length} file${files.length !== 1 ? 's' : ''} in ${duration}s`)}`,
+          ]),
+        )
       } else {
         const summaryBullets: string[] = []
-        if (high > 0) summaryBullets.push(colors.red(`${high} Critical Error${high !== 1 ? 's' : ''}`))
-        if (warning > 0) summaryBullets.push(colors.yellow(`${warning} Warning${warning !== 1 ? 's' : ''}`))
-        if (low > 0) summaryBullets.push(colors.blue(`${low} Improvement${low !== 1 ? 's' : ''}`))
+        if (high > 0)
+          summaryBullets.push(
+            colors.red(`${high} Critical Error${high !== 1 ? 's' : ''}`),
+          )
+        if (warning > 0)
+          summaryBullets.push(
+            colors.yellow(`${warning} Warning${warning !== 1 ? 's' : ''}`),
+          )
+        if (low > 0)
+          summaryBullets.push(
+            colors.blue(`${low} Improvement${low !== 1 ? 's' : ''}`),
+          )
 
         const summaryLines: string[] = [
-          ...bullet(summaryBullets).split('\n').map(l => l.trimStart()),
+          ...bullet(summaryBullets)
+            .split('\n')
+            .map((l) => l.trimStart()),
           '',
-          colors.dim(`Scanned ${files.length} file${files.length !== 1 ? 's' : ''} in ${duration}s`),
+          colors.dim(
+            `Scanned ${files.length} file${files.length !== 1 ? 's' : ''} in ${duration}s`,
+          ),
         ]
 
         console.log(`\n${double('Diagnosis Results', summaryLines)}\n`)
@@ -296,7 +338,9 @@ export async function doctorAction(
         }
 
         if (high > 0) {
-          error('Please fix the critical errors before building for production.')
+          error(
+            'Please fix the critical errors before building for production.',
+          )
         } else {
           success('No critical issues found. You are ready to go!')
         }

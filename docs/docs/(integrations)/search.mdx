@@ -97,6 +97,46 @@ export function MySearchBar() {
 
 ---
 
+## Algolia DocSearch
+
+By default, Boltdocs performs full-text search entirely on the client side using a pre-built index compiled during the build phase. However, for larger documentation sites or projects that want to leverage Algolia's powerful search analytics, synonym matching, and cloud-hosted speed, Boltdocs provides first-class support for **Algolia DocSearch**.
+
+Algolia DocSearch is completely free for open-source documentation projects. You can apply for a free account at [docsearch.algolia.com](https://docsearch.algolia.com/).
+
+### Configuring Algolia
+
+To enable Algolia DocSearch, add the `algolia` configuration to the `integrations` object in your `boltdocs.config.ts`:
+
+```ts
+import { defineConfig } from 'boltdocs'
+
+export default defineConfig({
+  integrations: {
+    algolia: {
+      appId: 'YOUR_APP_ID',
+      apiKey: 'YOUR_SEARCH_ONLY_API_KEY', // Public search-only API key
+      indexName: 'YOUR_INDEX_NAME',
+    },
+  },
+})
+```
+
+When this integration is configured, Boltdocs automatically bypasses the default FlexSearch loader and queries your Algolia search index directly on the client side.
+
+### Configuration Options
+
+| Property | Type | Default | Description |
+| :--- | :--- | :--- | :--- |
+| **`appId`** | `string` | `undefined` | Your Algolia Application ID (e.g. `'MX2L9K40B1'`). |
+| **`apiKey`** | `string` | `undefined` | Your Algolia Search-Only API Key. **Do not use your Admin API Key here**, as this key is exposed to client-side bundles. |
+| **`indexName`** | `string` | `undefined` | The name of the index where your documentation is hosted (e.g. `'boltdocs'`). |
+
+<Callout variant="warning">
+  Algolia DocSearch operates by crawling your public production site. It will not return results for localhost or private staging websites unless you have configured a custom indexer or uploaded documents manually. If you are developing locally, you can comment out the Algolia configuration to fallback to the default FlexSearch offline index.
+</Callout>
+
+---
+
 ## Excluding Pages from Search
 
 Pages with `sidebarHidden: true` are still indexed by default. To exclude a page from the search index entirely, set `hidden: true` in its frontmatter:

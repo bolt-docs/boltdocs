@@ -1,4 +1,4 @@
-import { createContext, useContext } from 'react'
+import { createContext, use } from 'react'
 
 export interface CollectionPost {
   path: string
@@ -17,5 +17,5 @@ export type CollectionsData = Record<string, CollectionPost[]>
 export const CollectionsContext = createContext<CollectionsData>({})
 
 export function useCollectionsData(): CollectionsData {
-  return useContext(CollectionsContext)
+  return use(CollectionsContext)
 }

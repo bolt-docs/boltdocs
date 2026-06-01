@@ -1,11 +1,7 @@
 import path from 'node:path'
 import fs from 'node:fs'
 import { fdir } from 'fdir'
-import {
-  parseFrontmatter,
-  parseFrontmatterAsync,
-  fileToRoutePath,
-} from '../../utils'
+import { parseFrontmatterAsync, fileToRoutePath } from '../../utils'
 import type { BoltdocsConfig } from '../../config'
 import {
   type DoctorConfig,
@@ -14,14 +10,22 @@ import {
 } from './types'
 import { warn } from '@bdocs/dui'
 
-export function parseBudget(value: string | number | undefined, defaultVal: number): number {
+export function parseBudget(
+  value: string | number | undefined,
+  defaultVal: number,
+): number {
   if (value === undefined || value === null) return defaultVal
   if (typeof value === 'number') return value
   const match = value.toLowerCase().match(/^(\d+(?:\.\d+)?)\s*(b|kb|mb|gb)?$/)
   if (!match) return defaultVal
   const num = Number.parseFloat(match[1])
   const unit = match[2] || 'b'
-  const multipliers: Record<string, number> = { b: 1, kb: 1024, mb: 1024 * 1024, gb: 1024 * 1024 * 1024 }
+  const multipliers: Record<string, number> = {
+    b: 1,
+    kb: 1024,
+    mb: 1024 * 1024,
+    gb: 1024 * 1024 * 1024,
+  }
   return Math.round(num * (multipliers[unit] || 1))
 }
 
@@ -43,12 +47,12 @@ export async function backupFile(filePath: string, backupDir: string) {
 
 export const fileCache = new Map<
   string,
-  Promise<{ raw: string; data: Record<string, any>; content: string }>
+  Promise<{ raw: string; data: Record<string, unknown>; content: string }>
 >()
 
 export function getFileData(
   filePath: string,
-): Promise<{ raw: string; data: Record<string, any>; content: string }> {
+): Promise<{ raw: string; data: Record<string, unknown>; content: string }> {
   const cached = fileCache.get(filePath)
   if (cached) return cached
 

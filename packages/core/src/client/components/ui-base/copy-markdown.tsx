@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { Copy, Check, ExternalLink, ChevronDown } from './icons'
 import { Button } from '../primitives/button'
 import { ButtonGroup } from '../primitives/button-group'
@@ -14,11 +14,26 @@ export interface CopyMarkdownProps {
 
 const useCopyMarkdown = (content: string) => {
   const [copied, setCopied] = useState(false)
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  useEffect(() => {
+    return () => {
+      if (timerRef.current) {
+        clearTimeout(timerRef.current)
+      }
+    }
+  }, [])
 
   const handleCopy = () => {
     navigator.clipboard.writeText(content)
     setCopied(true)
-    setTimeout(() => setCopied(false), 2000)
+    if (timerRef.current) {
+      clearTimeout(timerRef.current)
+    }
+    timerRef.current = setTimeout(() => {
+      setCopied(false)
+      timerRef.current = null
+    }, 2000)
   }
 
   const handleOpenRaw = () => {

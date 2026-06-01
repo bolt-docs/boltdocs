@@ -1,6 +1,6 @@
 import type { RouteRecord } from '@bdocs/ssg'
 import type { ComponentRoute, BoltdocsConfig } from '../types'
-import { LazyMdxElement, EagerMdxElement } from './mdx-elements'
+import { EagerMdxElement, resolveModuleLoader } from './mdx-elements'
 import { buildModuleMap, withBase } from './create-routes.utils'
 
 function buildDocRoutes(options: {
@@ -65,25 +65,8 @@ function buildDocRoutes(options: {
           ? fullPath.slice(baseDocsPath.length + 1)
           : fullPath
 
-    return {
+    const routeRecord: RouteRecord = {
       path,
-      element: isLazy ? (
-        <LazyMdxElement
-          key={moduleKey || path}
-          getModule={moduleLoader}
-          moduleKey={moduleKey}
-          route={route}
-          components={components}
-        />
-      ) : (
-        <EagerMdxElement
-          key={moduleKey || path}
-          moduleKey={moduleKey}
-          moduleLoader={moduleLoader}
-          route={route}
-          components={components}
-        />
-      ),
       loader: async () => ({
         path,
         frontmatter: {
@@ -91,6 +74,7 @@ function buildDocRoutes(options: {
           description: route.description || '',
           ...(route.frontmatter || {}),
         },
+        seo: route.seo,
         headings: route.headings || [],
         filePath: route.filePath,
         locale: route.locale,
@@ -102,6 +86,37 @@ function buildDocRoutes(options: {
       }),
       getStaticPaths: () => [path],
     }
+
+    if (isLazy && moduleLoader) {
+      routeRecord.lazy = async () => {
+        const mod = await resolveModuleLoader(moduleLoader)
+        return {
+          Component: function LoadedMdxRoute() {
+            return (
+              <EagerMdxElement
+                key={moduleKey || path}
+                moduleKey={moduleKey}
+                moduleLoader={mod}
+                route={route}
+                components={components}
+              />
+            )
+          }
+        }
+      }
+    } else {
+      routeRecord.element = (
+        <EagerMdxElement
+          key={moduleKey || path}
+          moduleKey={moduleKey}
+          moduleLoader={moduleLoader as any}
+          route={route}
+          components={components}
+        />
+      )
+    }
+
+    return routeRecord
   })
 
   const locales = config.i18n?.locales

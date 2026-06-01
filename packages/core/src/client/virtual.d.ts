@@ -1,25 +1,31 @@
+import type { ComponentRoute } from './types'
+import type { BoltdocsConfig } from '../shared/types'
+
 declare module 'virtual:boltdocs-routes' {
-  const routes: any[]
+  const routes: ComponentRoute[]
   export default routes
 }
 
 declare module 'virtual:boltdocs-config' {
-  const config: any
+  const config: BoltdocsConfig
   export default config
 }
 
 declare module 'virtual:boltdocs-layout' {
-  const Layout: React.ComponentType<{ children: React.ReactNode; route?: any }>
+  const Layout: React.ComponentType<{
+    children: React.ReactNode
+    route?: ComponentRoute
+  }>
   export default Layout
 }
 
 declare module 'virtual:boltdocs-collections' {
->  const collections: Record<string, any[]>
+  const collections: Record<string, ComponentRoute[]>
   export default collections
 }
 
 declare module 'virtual:boltdocs-mdx-components' {
-  const components: any
+  const components: Record<string, React.ComponentType<HTMLElement>>
   export default components
 }
 

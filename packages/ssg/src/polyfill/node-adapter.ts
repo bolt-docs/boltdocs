@@ -42,11 +42,6 @@ export function fromNodeRequest(
     headers: fromNodeHeaders(nodeReq.headers),
   }
 
-  // if (nodeReq.method !== 'GET' && nodeReq.method !== 'HEAD') {
-  //   init.body = createReadableStreamFromReadable(nodeReq);
-  //   (init as { duplex: 'half' }).duplex = 'half'
-  // }
-
   return new Request(url.href, init)
 }
 // Adapted from solid-start's `handleNodeResponse`:
@@ -55,20 +50,9 @@ export async function toNodeRequest(res: Response, nodeRes: ServerResponse) {
   nodeRes.statusCode = res.status
   nodeRes.statusMessage = res.statusText
 
-  // const cookiesStrings = []
-
   for (const [name, value] of res.headers) {
-    // if (name === 'set-cookie') {
-    //   cookiesStrings.push(...splitCookiesString(value))
-    // }
-    // else {
     nodeRes.setHeader(name, value)
-    // }
   }
-
-  // if (cookiesStrings.length) {
-  //   nodeRes.setHeader('set-cookie', cookiesStrings)
-  // }
 
   if (res.body) {
     // https://github.com/microsoft/TypeScript/issues/29867

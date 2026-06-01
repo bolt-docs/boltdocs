@@ -18,7 +18,9 @@ export function useSidebar(routes: ComponentRoute[]) {
 
     const noCollection = routes.filter((r) => !r.collection)
     const filteredRoutes = activeTabId
-      ? noCollection.filter((r) => !r.tab || r.tab.toLowerCase() === activeTabId)
+      ? noCollection.filter(
+          (r) => !r.tab || r.tab.toLowerCase() === activeTabId,
+        )
       : noCollection
 
     const directoryMeta: Record<string, any> = {}
@@ -69,10 +71,10 @@ export function useSidebar(routes: ComponentRoute[]) {
         lastNode = currentMap.get(segment)!
 
         // Create inner subRoutes mapping helper
-        if (!(lastNode as any)._subMap) {
-          ;(lastNode as any)._subMap = new Map<string, ComponentRoute>()
+        if (!lastNode._subMap) {
+          lastNode._subMap = new Map<string, ComponentRoute>()
         }
-        currentMap = (lastNode as any)._subMap as Map<string, ComponentRoute>
+        currentMap = lastNode._subMap
         parentPath = currentRelPath
       }
       return lastNode
@@ -123,12 +125,10 @@ export function useSidebar(routes: ComponentRoute[]) {
       currentPathPrefix: string = '',
     ): ComponentRoute[] => {
       nodes.forEach((node) => {
-        if ((node as any)._subMap) {
-          const childDirs = Array.from(
-            ((node as any)._subMap as Map<string, ComponentRoute>).values(),
-          )
+        if (node._subMap) {
+          const childDirs = Array.from(node._subMap.values())
           node.subRoutes = [...(node.subRoutes || []), ...childDirs]
-          delete (node as any)._subMap
+          delete node._subMap
         }
 
         if (node.subRoutes && node.subRoutes.length > 0) {

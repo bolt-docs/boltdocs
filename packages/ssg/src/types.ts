@@ -228,8 +228,6 @@ export interface StyleCollector {
 }
 
 // extend vite.config.ts
-// eslint-disable-next-line ts/ban-ts-comment
-// @ts-ignore
 declare module 'vite' {
   interface UserConfig {
     ssgOptions?: ViteReactSSGOptions

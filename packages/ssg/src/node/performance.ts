@@ -19,7 +19,16 @@ export interface PerformanceMetrics {
   pages: PageMetric[]
 }
 
-const IMAGE_EXTS = new Set(['.png', '.jpg', '.jpeg', '.gif', '.svg', '.webp', '.avif', '.ico'])
+const IMAGE_EXTS = new Set([
+  '.png',
+  '.jpg',
+  '.jpeg',
+  '.gif',
+  '.svg',
+  '.webp',
+  '.avif',
+  '.ico',
+])
 const FONT_EXTS = new Set(['.woff', '.woff2', '.ttf', '.otf', '.eot'])
 
 function getFileSize(filePath: string): number {
@@ -89,7 +98,12 @@ export async function collectPerformanceMetrics(
       const fullPath = join(outDir, file)
       const size = getFileSize(fullPath)
       if (size > 0) {
-        const route = '/' + file.replace(/\\/g, '/').replace(/\/index\.html$/, '').replace(/\.html$/, '')
+        const route =
+          '/' +
+          file
+            .replace(/\\/g, '/')
+            .replace(/\/index\.html$/, '')
+            .replace(/\.html$/, '')
         totalHTMLSize += size
         pages.push({ route, htmlSize: size, htmlFile: file })
       }

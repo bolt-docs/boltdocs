@@ -31,25 +31,41 @@ const rows = (data: BenchmarkData) => [
     metric: `Cold Build Time (${data.pageCount} pages)`,
     boltdocs: `${data.buildTimeCold.boltdocs}s`,
     docusaurus: `${data.buildTimeCold.docusaurus}s`,
-    diff: formatDiff(data.buildTimeCold.boltdocs, data.buildTimeCold.docusaurus, 'time'),
+    diff: formatDiff(
+      data.buildTimeCold.boltdocs,
+      data.buildTimeCold.docusaurus,
+      'time',
+    ),
   },
   {
     metric: 'Warm Build / Rebuild (1 page edit)',
     boltdocs: `${data.buildTimeWarm.boltdocs}s`,
     docusaurus: `${data.buildTimeWarm.docusaurus}s`,
-    diff: formatDiff(data.buildTimeWarm.boltdocs, data.buildTimeWarm.docusaurus, 'time'),
+    diff: formatDiff(
+      data.buildTimeWarm.boltdocs,
+      data.buildTimeWarm.docusaurus,
+      'time',
+    ),
   },
   {
     metric: 'Dev Server Startup',
     boltdocs: `${data.devServerStart.boltdocs}ms`,
     docusaurus: `${data.devServerStart.docusaurus}ms`,
-    diff: formatDiff(data.devServerStart.boltdocs, data.devServerStart.docusaurus, 'time'),
+    diff: formatDiff(
+      data.devServerStart.boltdocs,
+      data.devServerStart.docusaurus,
+      'time',
+    ),
   },
   {
     metric: 'Production Output Size',
     boltdocs: `${data.bundleSize.boltdocs} KB`,
     docusaurus: `${data.bundleSize.docusaurus} KB`,
-    diff: formatDiff(data.bundleSize.boltdocs, data.bundleSize.docusaurus, 'size'),
+    diff: formatDiff(
+      data.bundleSize.boltdocs,
+      data.bundleSize.docusaurus,
+      'size',
+    ),
   },
 ]
 
@@ -76,8 +92,13 @@ export const PerformanceTable = ({ data }: PerformanceTableProps) => {
           </thead>
           <tbody className="divide-y divide-subtle text-sm text-body/80">
             {tableRows.map((row, i) => (
-              <tr key={i} className="hover:bg-surface/50 transition-colors duration-200">
-                <td className="py-4 px-4 font-medium text-body">{row.metric}</td>
+              <tr
+                key={i}
+                className="hover:bg-surface/50 transition-colors duration-200"
+              >
+                <td className="py-4 px-4 font-medium text-body">
+                  {row.metric}
+                </td>
                 <td className="py-4 px-4 text-primary-600 dark:text-primary-500 font-bold">
                   {row.boltdocs}
                 </td>

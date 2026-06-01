@@ -5,7 +5,7 @@ import os from 'node:os'
 
 // eslint-disable-next-line import/order
 vi.mock('@bdocs/dui', async (importOriginal) => {
-  const actual = await importOriginal() as typeof import('@bdocs/dui')
+  const actual = (await importOriginal()) as typeof import('@bdocs/dui')
   return {
     ...actual,
     confirm: vi.fn().mockResolvedValue(true),
@@ -91,7 +91,12 @@ describe('doctor unified tests', () => {
 
   it('generateLinkTree should create link-tree.json', async () => {
     await generateLinkTree(docsDir, tempDir, mockConfig as any)
-    const treePath = path.join(tempDir, '.boltdocs', 'generated', 'link-tree.json')
+    const treePath = path.join(
+      tempDir,
+      '.boltdocs',
+      'generated',
+      'link-tree.json',
+    )
 
     expect(fs.existsSync(treePath)).toBe(true)
     const tree = JSON.parse(fs.readFileSync(treePath, 'utf-8'))
