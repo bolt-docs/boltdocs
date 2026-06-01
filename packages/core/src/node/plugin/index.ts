@@ -18,6 +18,7 @@ import {
 } from '../plugins'
 import { createVirtualModulesPlugin } from './virtual-modules'
 import { createDevServerPlugin } from '../dev-server/index'
+import { boltdocsMdxPlugin } from '../mdx/index'
 
 // Internal import to avoid top-level side effects
 import * as _node_module from 'node:module'
@@ -298,18 +299,6 @@ export function boltdocsPlugin(
             beastiesOptions: {
               preload: 'media',
             },
-            onFinished: async (outDir: string) => {
-              const routes = await generateRoutes(docsDir, config)
-              const ssgRoutes = adaptRoutesForSSG(routes)
-
-              const sitemap = generateSitemap(ssgRoutes, config)
-              if (sitemap) {
-                fs.writeFileSync(path.join(outDir, 'sitemap.xml'), sitemap)
-              }
-
-              const robots = generateRobotsTxt(config)
-              fs.writeFileSync(path.join(outDir, 'robots.txt'), robots)
-            },
           },
           build: {
             ssrManifest: isBuild,
@@ -369,7 +358,6 @@ export function boltdocsPlugin(
 
       configResolved(resolved) {
         viteConfig = resolved
-        lifecycle?.runHook('configResolved', config)
       },
 
       resolveId(id, _importer, options) {
@@ -492,6 +480,7 @@ export function boltdocsPlugin(
       setConfig,
       getLifecycle,
     ),
+    boltdocsMdxPlugin(config, getLifecycle),
     {
       ...ViteImageOptimizer({
         includePublic: true,

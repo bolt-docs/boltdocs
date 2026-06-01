@@ -7,59 +7,63 @@ import type {
   PluginLogger,
 } from './plugin-types'
 import { BoltdocsPluginStore } from './plugin-store'
-import { PluginSandbox } from './plugin-sandbox'
+import { Pipeline, type PipelineStep } from '../pipeline'
 import * as dui from '@bdocs/dui'
 
-/**
- * Manages the lifecycle of all loaded plugins, ensuring hooks are executed
- * in the correct order with proper error isolation and context.
- */
 export class PluginLifecycleManager {
   private plugins: SecureBoltdocsPlugin[]
   private config: BoltdocsConfig
   private store: BoltdocsPluginStore
+  private docsDir: string
+  private rootDir: string
 
-  constructor(plugins: SecureBoltdocsPlugin[], config: BoltdocsConfig) {
+  constructor(
+    plugins: SecureBoltdocsPlugin[],
+    config: BoltdocsConfig,
+    docsDir?: string,
+    rootDir?: string,
+  ) {
     this.plugins = plugins
     this.config = config
     this.store = new BoltdocsPluginStore()
+    this.docsDir = docsDir || process.cwd()
+    this.rootDir = rootDir || process.cwd()
   }
 
-  /**
-   * Runs a specific hook for all plugins that implement it.
-   */
   public async runHook(
     hookName: keyof PluginLifecycleHooks,
-    ...args: any[]
+    ...args: unknown[]
   ): Promise<void> {
     const sortedPlugins = this.getSortedPlugins()
+    const pipeline = new Pipeline<Record<string, unknown>>()
+
+    for (const plugin of sortedPlugins) {
+      if (!plugin.hooks?.[hookName]) continue
+
+      pipeline.addStep(this.createStep(plugin, hookName, args))
+    }
+
+    await pipeline.run({})
+  }
+
+  public async runChain<TParams>(
+    hookName: keyof PluginLifecycleHooks,
+    initialParams: TParams,
+  ): Promise<TParams> {
+    const sortedPlugins = this.getSortedPlugins()
+    let params = initialParams
 
     for (const plugin of sortedPlugins) {
       if (!plugin.hooks?.[hookName]) continue
 
       const context = this.createContext(plugin)
-      const isBuildHook = hookName.toLowerCase().includes('build')
-      const isDevHook = hookName.toLowerCase().includes('dev')
-      const permission = isBuildHook
-        ? 'hooks:build'
-        : isDevHook
-          ? 'hooks:dev'
-          : undefined
-
       try {
-        if (permission) {
-          await PluginSandbox.executeWithIsolation(
-            plugin,
-            permission,
-            hookName,
-            () => (plugin.hooks![hookName] as any)(context, ...args),
-          )
-        } else {
-          // Hooks like configResolved might not require specific permissions or are always allowed
-          await (plugin.hooks![hookName] as any)(context, ...args)
+        const hookFn = plugin.hooks[hookName] as Function
+        const result = await hookFn(context, params)
+        if (result !== undefined) {
+          params = result as TParams
         }
       } catch (error) {
-        // Isolate error: logging it but allowing other plugins to continue
         const hookError = new PluginHookError(
           plugin.name,
           hookName,
@@ -68,11 +72,10 @@ export class PluginLifecycleManager {
         context.logger.error(hookError)
       }
     }
+
+    return params
   }
 
-  /**
-   * Sorts plugins based on their 'enforce' property (pre -> normal -> post).
-   */
   private getSortedPlugins(): SecureBoltdocsPlugin[] {
     const pre = this.plugins.filter((p) => p.enforce === 'pre')
     const normal = this.plugins.filter((p) => !p.enforce)
@@ -80,12 +83,46 @@ export class PluginLifecycleManager {
     return [...pre, ...normal, ...post]
   }
 
-  /**
-   * Creates a specialized context for a plugin.
-   */
+  private createStep(
+    plugin: SecureBoltdocsPlugin,
+    hookName: keyof PluginLifecycleHooks,
+    args: unknown[],
+  ): PipelineStep {
+    return {
+      name: `${plugin.name}:${String(hookName)}`,
+      execute: async () => {
+        const context = this.createContext(plugin)
+        try {
+          const hookFn = plugin.hooks![hookName] as Function
+          await hookFn(context, ...args)
+        } catch (error) {
+          const hookError = new PluginHookError(
+            plugin.name,
+            hookName,
+            error instanceof Error ? error : new Error(String(error)),
+          )
+          context.logger.error(hookError)
+        }
+      },
+      rollback: async () => {
+        const rollbackHook = plugin.hooks?.buildEnd
+        if (rollbackHook) {
+          const context = this.createContext(plugin)
+          try {
+            await rollbackHook(context)
+          } catch {
+            // Silently ignore rollback errors
+          }
+        }
+      },
+    }
+  }
+
   private createContext(plugin: SecureBoltdocsPlugin): PluginContext {
     return {
       config: Object.freeze({ ...this.config }),
+      docsDir: this.docsDir,
+      rootDir: this.rootDir,
       meta: {
         name: plugin.name,
         version: plugin.version,
@@ -100,9 +137,6 @@ export class PluginLifecycleManager {
     }
   }
 
-  /**
-   * Creates a namespaced logger for a plugin.
-   */
   private createLogger(pluginName: string): PluginLogger {
     const prefix = `[plugin:${pluginName}]`
     return {

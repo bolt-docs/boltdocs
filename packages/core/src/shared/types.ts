@@ -125,26 +125,9 @@ export interface BoltdocsVersionsConfig {
 }
 
 /**
- * Permissions that a plugin can request to access specific Boltdocs capabilities.
- */
-export type PluginPermission =
-  | 'fs:read'
-  | 'fs:write'
-  | 'vite:config'
-  | 'mdx:remark'
-  | 'mdx:rehype'
-  | 'components'
-  | 'hooks:build'
-  | 'hooks:dev'
-  | 'analytics:track'
-  | 'analytics:config'
-
-/**
  * Shared badge value type used in frontmatter, RouteMeta, and ComponentRoute.
  */
-export type BadgeValue =
-  | string
-  | { text: string; expires?: string }
+export type BadgeValue = string | { text: string; expires?: string }
 
 /**
  * Defines a Boltdocs plugin.
@@ -157,8 +140,6 @@ export interface BoltdocsPlugin {
   enforce?: 'pre' | 'post'
   version?: string
   boltdocsVersion?: string
-  /** Permissions this plugin requires to operate. */
-  permissions?: PluginPermission[]
   remarkPlugins?: unknown[]
   rehypePlugins?: unknown[]
   vitePlugins?: VitePlugin[]
@@ -224,9 +205,19 @@ export interface BoltdocsGTMConfig {
   preview?: string
 }
 
+/**
+ * Configuration for Algolia DocSearch.
+ */
+export interface BoltdocsAlgoliaConfig {
+  appId: string
+  apiKey: string
+  indexName: string
+}
+
 export interface BoltdocsIntegrationsConfig {
   ga4?: BoltdocsGA4Config
   gtm?: BoltdocsGTMConfig
+  algolia?: BoltdocsAlgoliaConfig
 }
 
 /**

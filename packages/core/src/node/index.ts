@@ -2,7 +2,6 @@ import type { Plugin, InlineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
 import { boltdocsPlugin, getExternalAbsolutePaths } from './plugin/index'
-import { boltdocsMdxPlugin } from './mdx/index'
 import { SECURITY_HEADERS } from './security/headers'
 import { getCSPHeader } from './security/csp'
 import { resolveConfig, type BoltdocsConfig } from './config'
@@ -35,7 +34,7 @@ export default async function boltdocs(
     ...options,
   }
 
-  return [...boltdocsPlugin(mergedOptions, config), boltdocsMdxPlugin(config)]
+  return boltdocsPlugin(mergedOptions, config)
 }
 
 /**
@@ -97,7 +96,6 @@ export async function createViteConfig(
         { docsDir: 'docs', root } as BoltdocsPluginOptions,
         config,
       ),
-      boltdocsMdxPlugin(config),
     ],
     resolve: {
       alias: [
@@ -126,6 +124,8 @@ export async function createViteConfig(
     },
     ssr: {
       external: [
+        'react',
+        'react-dom',
         'react-helmet-async',
         '@bdocs/ssg',
         'react-fast-compare',
@@ -142,8 +142,6 @@ export async function createViteConfig(
         ],
       },
       noExternal: [
-        'react',
-        'react-dom',
         'boltdocs',
         /@bdocs\/(?!ssg).*/,
         'react-aria-components',

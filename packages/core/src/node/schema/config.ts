@@ -16,22 +16,6 @@ export const FooterConfigSchema = z.object({
 })
 
 /**
- * Zod schema for plugin permissions.
- */
-export const PluginPermissionSchema = z.enum([
-  'fs:read',
-  'fs:write',
-  'vite:config',
-  'mdx:remark',
-  'mdx:rehype',
-  'components',
-  'hooks:build',
-  'hooks:dev',
-  'analytics:track',
-  'analytics:config',
-])
-
-/**
  * Zod schema for a Boltdocs plugin.
  */
 export const BoltdocsPluginSchema = z.object({
@@ -39,12 +23,11 @@ export const BoltdocsPluginSchema = z.object({
   enforce: z.enum(['pre', 'post']).optional(),
   version: z.string().optional(),
   boltdocsVersion: z.string().optional(),
-  permissions: z.array(PluginPermissionSchema).optional(),
-  remarkPlugins: z.array(z.any()).optional(),
-  rehypePlugins: z.array(z.any()).optional(),
-  vitePlugins: z.array(z.any()).optional(),
+  remarkPlugins: z.array(z.unknown()).optional(),
+  rehypePlugins: z.array(z.unknown()).optional(),
+  vitePlugins: z.array(z.unknown()).optional(),
   components: z.record(z.string(), z.string()).optional(),
-  hooks: z.record(z.string(), z.any()).optional(),
+  hooks: z.record(z.string(), z.unknown()).optional(),
 })
 
 /**
@@ -239,9 +222,19 @@ export const GTMConfigSchema = z.object({
   preview: z.string().optional(),
 })
 
+/**
+ * Zod schema for Algolia DocSearch configuration.
+ */
+export const AlgoliaConfigSchema = z.object({
+  appId: z.string().min(1, 'Algolia App ID is required'),
+  apiKey: z.string().min(1, 'Algolia API Key is required'),
+  indexName: z.string().min(1, 'Algolia Index Name is required'),
+})
+
 export const IntegrationsConfigSchema = z.object({
   ga4: GA4ConfigSchema.optional(),
   gtm: GTMConfigSchema.optional(),
+  algolia: AlgoliaConfigSchema.optional(),
 })
 
 export type BoltdocsAnalyticsConfig = z.infer<typeof IntegrationsConfigSchema>

@@ -1,13 +1,23 @@
 export const MDX_NODES = {
-  JSX_FLOW_ELEMENT: 'mdxJsxFlowElement' as const,
-  JSX_TEXT_ELEMENT: 'mdxJsxTextElement' as const,
-  JSX_ATTRIBUTE: 'mdxJsxAttribute' as const,
-  ELEMENT: 'element' as const,
-  TEXT: 'text' as const,
-  CODE: 'code' as const,
-}
-
-export const COMPONENT_PREVIEW = 'ComponentPreview'
+  ROOT: 'root',
+  ELEMENT: 'element',
+  TEXT: 'text',
+  COMMENT: 'comment',
+  CODE: 'code',
+  INLINE_CODE: 'inlineCode',
+  HEADING: 'heading',
+  PARAGRAPH: 'paragraph',
+  LINK: 'link',
+  IMAGE: 'image',
+  LIST: 'list',
+  LIST_ITEM: 'listItem',
+  JSX_FLOW_ELEMENT: 'mdxJsxFlowElement',
+  JSX_TEXT_ELEMENT: 'mdxJsxTextElement',
+  JSX_ATTRIBUTE: 'mdxJsxAttribute',
+  FLOW_EXPRESSION: 'mdxFlowExpression',
+  TEXT_EXPRESSION: 'mdxTextExpression',
+  ESM: 'mdxjsEsm',
+} as const
 
 export const ATTRIBUTES = {
   CODE: 'code',

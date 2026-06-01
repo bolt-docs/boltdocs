@@ -2,14 +2,11 @@ export * from './plugin-types'
 export * from './plugin-errors'
 export * from './plugin-store'
 export * from './plugin-validator'
-export * from './plugin-sandbox'
 export * from './plugin-lifecycle'
+export * from './plugin-utils'
 
 import type { SecureBoltdocsPlugin } from './plugin-types'
 
-/**
- * Utility to create a Boltdocs plugin with full type safety.
- */
 export function createPlugin(
   plugin: SecureBoltdocsPlugin,
 ): SecureBoltdocsPlugin {

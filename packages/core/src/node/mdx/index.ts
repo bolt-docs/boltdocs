@@ -9,35 +9,19 @@ import type { BoltdocsConfig } from '../config'
 import { mdxCache, MDX_PLUGIN_VERSION } from './cache'
 import { rehypeShiki } from './rehype-shiki'
 import { remarkMetaPlugin } from './remark-meta-plugin'
-import { PluginSandbox } from '../plugins'
+import { type SecureBoltdocsPlugin, type PluginLifecycleManager } from '../plugins'
 
 let mdxCacheLoaded = false
 
-/**
- * Configures the MDX compiler for Vite using `@mdx-js/rollup`.
- * Includes standard remark and rehype plugins for GitHub Flavored Markdown (GFM),
- * frontmatter extraction, and auto-linking headers.
- *
- * Also wraps the plugin with a persistent cache to avoid re-compiling unchanged MDX files.
- *
- * @param config - The Boltdocs configuration containing custom plugins
- * @param compiler - The MDX compiler plugin (for testing)
- * @returns A Vite plugin configured for MDX parsing with caching
- */
 export function boltdocsMdxPlugin(
   config?: BoltdocsConfig,
+  getLifecycle?: () => PluginLifecycleManager | undefined,
   compiler = mdxPlugin,
 ): Plugin {
   const extraRemarkPlugins =
-    config?.plugins?.flatMap((p) => {
-      const caps = PluginSandbox.getSanitizedCapabilities(p as any)
-      return caps.remarkPlugins || []
-    }) || []
+    config?.plugins?.flatMap((p) => p.remarkPlugins || []) || []
   const extraRehypePlugins =
-    config?.plugins?.flatMap((p) => {
-      const caps = PluginSandbox.getSanitizedCapabilities(p as any)
-      return caps.rehypePlugins || []
-    }) || []
+    config?.plugins?.flatMap((p) => p.rehypePlugins || []) || []
 
   const baseMdxPlugin = compiler({
     remarkPlugins: [
@@ -76,7 +60,6 @@ export function boltdocsMdxPlugin(
         return baseMdxPlugin.transform?.call(this, code, id, options)
       }
 
-      // Create a cache key based on path, content, environment mode, and plugin version
       const contentHash = crypto.createHash('md5').update(code).digest('hex')
       const isProd = process.env.NODE_ENV === 'production' ? 'prod' : 'dev'
       const cacheKey = `${cleanId}:${contentHash}:${isProd}:${MDX_PLUGIN_VERSION}`
@@ -95,7 +78,19 @@ export function boltdocsMdxPlugin(
       )
 
       if (result && typeof result === 'object' && result.code) {
-        mdxCache.set(cacheKey, result.code)
+        let finalCode = result.code
+
+        const lifecycle = getLifecycle?.()
+        if (lifecycle) {
+          const transformed = await lifecycle.runChain('transformMdx', {
+            code: finalCode,
+            filePath: cleanId,
+          })
+          finalCode = transformed.code
+        }
+
+        mdxCache.set(cacheKey, finalCode)
+        return { code: finalCode, map: null }
       }
 
       return result
