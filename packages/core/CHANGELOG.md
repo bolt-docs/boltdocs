@@ -1,5 +1,11 @@
 # boltdocs
 
+## 2.8.1
+
+### Patch Changes
+
+- [`bbba61c`](https://github.com/bolt-docs/boltdocs/commit/bbba61c7351e56d138bd5957f236f0036e3bbe28) Thanks [@jesusalcaladev](https://github.com/jesusalcaladev)! - fix: repared style of block-code
+
 ## 2.8.0
 
 ### Minor Changes
