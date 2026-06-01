@@ -102,13 +102,15 @@ The output lands in `dist/`. Every page is pre-rendered as static HTML, with a c
 
 ---
 
+import { Route, Settings } from 'lucide-react'
+
 ## What's Next?
 
 <Cards cols={2}>
-  <Card title="Configuration" href="/docs/guides/getting-started/configuration" icon="settings">
+  <Card title="Configuration" href="/docs/guides/getting-started/configuration" icon={<Settings />}>
     Learn how to customize the title, logo, navigation, and every other option in your config file.
   </Card>
-  <Card title="File-System Routing" href="/docs/guides/getting-started/file-routing" icon="route">
+  <Card title="File-System Routing" href="/docs/guides/getting-started/file-routing" icon={<Route />}>
     Learn how Boltdocs turns your `docs/` folder into a full navigation structure.
   </Card>
 </Cards>

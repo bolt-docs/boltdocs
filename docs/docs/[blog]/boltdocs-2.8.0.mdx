@@ -8,12 +8,14 @@ author:
 excerpt: "Boltdocs 2.8.0 ships real code splitting, a doctor with performance budgets, strict route typing, a reorganized .boltdocs/ directory, and Mermaid that doesn't drag your whole site down."
 ---
 
+import { File, Image, Clock } from 'lucide-react'
+
 ## This one's about scale
 
 2.8.0 is our biggest release yet. Not because we added a ton of flashy features — but because we finally fixed the stuff that starts hurting when your docs grow past 50 pages.
 
 <Callout type="info">
-  **tl;dr**: Code splitting at the route level, a `--budget` flag for `doctor`,
+  Code splitting at the route level, a `--budget` flag for `doctor`,
   auto-generated strict route types, cleaned up `.boltdocs/` structure, and a
   Mermaid plugin that only loads when there's actually a diagram on the page.
 </Callout>
@@ -51,19 +53,19 @@ After the first render, `requestIdleCallback` preloads MDX chunks in batches of 
 The `doctor` command now has a `--budget` flag. It checks your build against configurable thresholds and yells at you if something is off:
 
 <Cards>
-  <Card title="JS Bundle" icon="file-js">
+  <Card title="JS Bundle" icon={<File />}>
     Max JS bundle size. Helps you catch bloat before it ships.
   </Card>
-  <Card title="CSS Bundle" icon="file-css">
+  <Card title="CSS Bundle" icon={<File />}>
     Same for stylesheets — handy when you start stacking visual plugins.
   </Card>
-  <Card title="HTML per page" icon="file">
+  <Card title="HTML per page" icon={<File />}>
     Flags pages that generate too much HTML. Great for SEO audits.
   </Card>
-  <Card title="Images" icon="image">
+  <Card title="Images" icon={<Image />}>
     Total KB limit for image assets.
   </Card>
-  <Card title="Build time" icon="clock">
+  <Card title="Build time" icon={<Clock />}>
     Fails the build if it takes longer than X seconds. Perfect for CI.
   </Card>
 </Cards>
