@@ -1,5 +1,11 @@
 # create-boltdocs
 
+## 0.3.1
+
+### Patch Changes
+
+- [`ad137a6`](https://github.com/bolt-docs/boltdocs/commit/ad137a62d377e2c8ed403f56965315e1b7e0d1dc) Thanks [@jesusalcaladev](https://github.com/jesusalcaladev)! - fix: ReferenceError - magenta is not defined in create-boltdocs template prompt
+
 ## 0.3.0
 
 ### Minor Changes
