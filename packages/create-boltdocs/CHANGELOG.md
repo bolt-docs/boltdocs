@@ -1,5 +1,16 @@
 # create-boltdocs
 
+## 0.3.0
+
+### Minor Changes
+
+- [`c4a48b1`](https://github.com/bolt-docs/boltdocs/commit/c4a48b13836f1b33746ab35a2a3bbc4d8536cb32) Thanks [@jesusalcaladev](https://github.com/jesusalcaladev)! - - **Directory structure update**: Updated templates and default structures to align with the new `.boltdocs/` subdirectory layout.
+
+### Patch Changes
+
+- Updated dependencies [[`c4a48b1`](https://github.com/bolt-docs/boltdocs/commit/c4a48b13836f1b33746ab35a2a3bbc4d8536cb32)]:
+  - @bdocs/dui@0.1.2
+
 ## 0.2.5
 
 ### Patch Changes

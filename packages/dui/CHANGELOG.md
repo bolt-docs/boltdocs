@@ -1,5 +1,11 @@
 # @bdocs/dui
 
+## 0.1.2
+
+### Patch Changes
+
+- [`c4a48b1`](https://github.com/bolt-docs/boltdocs/commit/c4a48b13836f1b33746ab35a2a3bbc4d8536cb32) Thanks [@jesusalcaladev](https://github.com/jesusalcaladev)! - - **Accurate Unicode width rendering**: Replaced naive length checks with `string-width` calculations to prevent box layout misalignment in CLI reporting when emoji or multi-byte characters are displayed.
+
 ## 0.1.1
 
 ### Patch Changes
