@@ -99,7 +99,7 @@ export function CodeBlock(props: CodeBlockProps) {
     ...rest
   } = props
 
-  const { style, className: shikiClassName, ...cleanRest } = rest
+  const { className: shikiClassName, ...cleanRest } = rest
   const isHighlighted =
     props['data-highlighted'] === 'true' ||
     (typeof shikiClassName === 'string' && shikiClassName.includes('shiki'))
@@ -181,14 +181,21 @@ export function CodeBlock(props: CodeBlockProps) {
           </pre>
         )}
 
-        {/* Expand/Collapse Trigger */}
         {isExpandable && (
           <div
-            className={cn(
+            className={cn({
+              'absolute bottom-0 inset-x-0 h-32 flex items-end justify-center pb-4 z-10':
+                shouldTruncate,
+              'relative flex justify-center pb-4 pt-1 -mt-4': !shouldTruncate,
+            })}
+            style={
               shouldTruncate
-                ? 'absolute bottom-0 inset-x-0 h-24 bg-linear-to-t from-(--color-code-bg) to-transparent flex items-end justify-center pb-4 z-10'
-                : 'relative flex justify-center pb-4 pt-1 -mt-4',
-            )}
+                ? {
+                    backgroundImage:
+                      'linear-gradient(to top, var(--color-code-bg) 10%, transparent)',
+                  }
+                : undefined
+            }
           >
             <Button
               onPress={() => setIsExpanded(!isExpanded)}

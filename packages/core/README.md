@@ -1,7 +1,3 @@
-<p align="center">
-  <img src="assets/light.svg" width="20%" alt="Boltdocs" />
-</p>
-
 <h1 align="center">Boltdocs</h1>
 
 <p align="center">
@@ -180,25 +176,6 @@ export default defineConfig({
 
 ---
 
-## Tech Stack
-
-| Layer | Technology |
-|-------|------------|
-| **Runtime** | Node.js 18+ |
-| **Language** | TypeScript 5.9 |
-| **UI Library** | React 19 |
-| **Bundler** | Vite 7 / 8 |
-| **Styling** | Tailwind CSS v4 |
-| **SSG** | `@bdocs/ssg` (built on React Router 7) |
-| **MDX** | `@mdx-js/rollup` 3.1 |
-| **Syntax Highlighting** | Shiki 3.23 |
-| **Search** | FlexSearch 0.8 |
-| **CLI** | cac 7 (command-line parser) |
-| **Testing** | Vitest |
-| **Build System** | Turborepo + pnpm workspaces |
-
----
-
 ## CLI Commands
 
 | Command | Description |
@@ -208,36 +185,7 @@ export default defineConfig({
 | `boltdocs preview` | Preview the production build locally |
 | `boltdocs doctor` | Run health checks on your documentation |
 | `boltdocs changelog <file>` | Generate versioned changelog pages from CHANGELOG.md |
-
----
-
-## Ecosystem
-
-| Package | npm | Description |
-|---------|-----|-------------|
-| **boltdocs** | [npm](https://www.npmjs.com/package/boltdocs) | Core framework (this package) |
-| **@bdocs/ssg** | [npm](https://www.npmjs.com/package/@bdocs/ssg) | Standalone SSG engine for React Router |
-| **@bdocs/plugin-mermaid** | [npm](https://www.npmjs.com/package/@bdocs/plugin-mermaid) | Mermaid diagram plugin |
-| **create-boltdocs** | [npm](https://www.npmjs.com/package/create-boltdocs) | Project scaffolding tool |
-
----
-
-## Roadmap
-
-- [x] Incremental builds
-- [ ] RSS / Atom feed
-- [ ] Blog (posts, tags, authors, pagination)
-- [ ] Drafts / preview mode
-- [ ] AI search (semantic RAG)
-- [ ] Partial hydration / islands architecture
-- [ ] Streaming SSR in dev
-- [ ] OpenAPI / Swagger with interactive playground
-- [ ] Multi-instance docs
-- [x] Performance budgets in Doctor
-- [ ] Preconnect / DNS-prefetch automation
-- [ ] Distributed build farm
-
-See [ROADMAP.md](ROADMAP.md) for details.
+| `boltdocs audit` | Audit plugin dependencies for security warnings |
 
 ---
 
