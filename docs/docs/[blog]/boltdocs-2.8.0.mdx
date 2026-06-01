@@ -1,11 +1,11 @@
 ---
 title: "Boltdocs 2.8.0 — Faster, Smarter, and Actually Fun to Use"
-description: "Route-level code splitting, performance budgets in doctor, strict route types, optimized Mermaid plugin, and a cleaner build output"
+description: "Route-level code splitting, performance budgets in doctor, strict route types, Algolia DocSearch, plugin API, optimized Mermaid plugin, and a cleaner build output"
 date: 2026-05-27
 author:
   name: Jesús Alcalá
   avatar: /avatar.jpeg
-excerpt: "Boltdocs 2.8.0 ships real code splitting, a doctor with performance budgets, strict route typing, a reorganized .boltdocs/ directory, and Mermaid that doesn't drag your whole site down."
+excerpt: "Boltdocs 2.8.0 ships real code splitting, a doctor with performance budgets, strict route typing, Algolia DocSearch, a powerful plugin API, a reorganized .boltdocs/ directory, and Mermaid that doesn't drag your whole site down."
 ---
 
 import { File, Image, Clock } from 'lucide-react'
@@ -16,8 +16,9 @@ import { File, Image, Clock } from 'lucide-react'
 
 <Callout type="info">
   Code splitting at the route level, a `--budget` flag for `doctor`,
-  auto-generated strict route types, cleaned up `.boltdocs/` structure, and a
-  Mermaid plugin that only loads when there's actually a diagram on the page.
+  auto-generated strict route types, Algolia DocSearch integration, a proper
+  plugin API, cleaned up `.boltdocs/` structure, and a Mermaid plugin that
+  only loads when there's actually a diagram on the page.
 </Callout>
 
 ---
@@ -180,8 +181,109 @@ Each phase gets a visual separator and a clear completion message. The 80+ lines
 
 ---
 
+## Algolia DocSearch
+
+Search just got a whole lot more powerful. While Boltdocs has always shipped with zero-config FlexSearch, 2.8.0 adds **first-class Algolia DocSearch** support for sites that need cloud-hosted search with analytics, synonym matching, and typo tolerance at scale.
+
+### How it works
+
+Add three lines to your `boltdocs.config.ts`:
+
+```ts
+import { defineConfig } from 'boltdocs'
+
+export default defineConfig({
+  integrations: {
+    algolia: {
+      appId: 'YOUR_APP_ID',
+      apiKey: 'YOUR_SEARCH_ONLY_API_KEY',
+      indexName: 'YOUR_INDEX_NAME',
+    },
+  },
+})
+```
+
+When Algolia is configured, the client automatically bypasses FlexSearch and queries your Algolia index directly via the REST API — no npm SDK required.
+
+### Smarter fallback
+
+The integration debounces queries at 250ms, supports facet filtering by locale and version out of the box, and maps Algolia's hierarchy results to the same `SearchResult` shape used internally. Comment out the config during local dev and FlexSearch takes over seamlessly.
+
+### Zero bundle cost
+
+Since we use the REST API directly instead of the official `@docsearch/react` package, Algolia support adds **zero bytes** to your client bundle until you configure it.
+
+---
+
+## Plugin System API
+
+2.8.0 introduces a **proper plugin API** that lets you extend every layer of Boltdocs — from MDX compilation to the Vite build pipeline.
+
+### Lifecycle hooks
+
+Plugins can hook into the build and dev lifecycle:
+
+| Hook | When it runs |
+|------|-------------|
+| `beforeBuild` / `afterBuild` | Before and after production build |
+| `beforeDev` / `afterDev` | Dev server starts and finishes |
+| `buildEnd` | Build completes (even on error) |
+| `transformMdx` | Transform MDX source before compilation |
+| `transformHtml` | Transform final HTML output |
+
+### What a plugin looks like
+
+```ts
+import { defineConfig, type BoltdocsPlugin } from 'boltdocs'
+
+const myPlugin: BoltdocsPlugin = {
+  name: 'my-plugin',
+  enforce: 'pre',
+  remarkPlugins: [myRemarkPlugin],
+  vitePlugins: [myVitePlugin],
+  components: { MyComponent: './components/my-component' },
+  hooks: {
+    beforeBuild: async (ctx) => {
+      ctx.logger.info('Building...')
+      ctx.store.set('my-plugin', 'start', Date.now())
+    },
+    afterBuild: async (ctx) => {
+      const start = ctx.store.get('my-plugin', 'start')
+      ctx.logger.success(`Done in ${Date.now() - start}ms`)
+    },
+  },
+}
+
+export default defineConfig({
+  plugins: [myPlugin],
+})
+```
+
+### Plugin store
+
+Each plugin gets a namespaced key-value store for sharing data across hooks without collisions. Values are deep-cloned for immutability.
+
+### AST utilities
+
+The plugin API ships with a full toolkit for traversing and manipulating MDX and rehype ASTs:
+
+- `visitNodes`, `visitRehypeElements`, `visitMdxElements`
+- `visitRemarkHeadings`, `visitRemarkLinks`
+- `createMdxElement`, `createRehypeElement`, `createMdxAttribute`
+- `addNodeClass`, `removeNodeClass`, `hasNodeClass`
+- `setNodeProperty`, `getNodeProperty`
+
+### Security validation
+
+Every plugin is validated at startup — duplicate names, semver mismatches, and path traversal attempts are caught before they cause damage. The `boltdocs audit` command scans installed plugins for network calls and env variable access.
+
+---
+
 ## Other bits
 
+- **`boltdocs audit`**: new CLI command that scans plugins for network calls, env access, and path traversal — run `boltdocs audit` before adding third-party plugins
+- **Smart build caching**: SSG now computes a SHA-256 hash of client source mtimes. Unchanged sources skip the client rebuild entirely. Individual pages are cached by MD5 hash with automatic garbage collection
+- **Pipeline architecture**: the build is now a 6-stage pipeline — ConfigResolve → RouteGenerate → SEOValidate → TypeGenerate → SSGBuild → SEOWrite — each with rollback support
 - **Unicode in DUI**: `@bdocs/dui` now uses `string-width` to properly measure Unicode characters. Table alignment finally works when titles contain ✨, 📄, or ✔
 - **SSR with Vite 8**: moved `react-router-dom` to `ssr.noExternal` to fix "module is not defined" errors in Vite 8's SSR module runner
 - **Responsive tabs**: added `overflow-x-auto` so tabs scroll horizontally on mobile instead of breaking the layout
@@ -203,7 +305,7 @@ Migration from 2.7.x is straightforward — no breaking changes to the public AP
 
 ## What's next
 
-2.8.0 sets the foundation for native collections (blog, changelog, API docs with their own layouts), deeper Vite 8 integration, and a more powerful plugin system.
+2.8.0 sets the foundation for native collections (blog, changelog, API docs with their own layouts), deeper Vite 8 integration, and continued plugin API expansion. Collections already landed with pagination support, and we're looking at more collection types, richer plugin hooks, and deeper SSG customization.
 
 Install or update:
 
