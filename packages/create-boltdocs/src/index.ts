@@ -68,12 +68,12 @@ async function run() {
       message: 'Select a project preset:',
       choices: [
         {
-          title: magenta('Base'),
+          title: colors.magenta('Base'),
           description: 'Hero and custom components.',
           value: 'base',
         },
         {
-          title: yellow('i18n'),
+          title: colors.yellow('i18n'),
           description: 'Multi-language support (EN/ES).',
           value: 'i18n',
         },
