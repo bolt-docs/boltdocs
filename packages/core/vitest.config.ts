@@ -19,6 +19,18 @@ export default defineConfig({
         __dirname,
         './tests/mocks/virtual-search.ts',
       ),
+      'virtual:boltdocs-mdx-components': path.resolve(
+        __dirname,
+        './tests/mocks/virtual-mdx-components.ts',
+      ),
+      'virtual:boltdocs-icons': path.resolve(
+        __dirname,
+        './tests/mocks/virtual-icons.ts',
+      ),
+      'virtual:boltdocs-layout': path.resolve(
+        __dirname,
+        './tests/mocks/virtual-layout.ts',
+      ),
     },
   },
 })

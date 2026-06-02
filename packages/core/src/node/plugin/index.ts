@@ -286,6 +286,7 @@ export function boltdocsPlugin(
         }
 
         return {
+          base: config.base || '/docs',
           ssgOptions: {
             entry: 'boltdocs/entry',
             htmlEntry: 'index.html',

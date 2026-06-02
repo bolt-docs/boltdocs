@@ -129,7 +129,7 @@ function buildDocRoutes(options: {
 
   const targetBasePaths: Array<{
     path: string
-    filter: (p: string) => boolean
+    filter: (p?: string) => boolean
   }> = []
 
   targetBasePaths.push({
@@ -156,7 +156,7 @@ function buildDocRoutes(options: {
     const fullP = baseDocsPath === '/' ? sp : `${baseDocsPath}${sp}`
     targetBasePaths.push({
       path: fullP,
-      filter: (rp) => rp.startsWith(fullP.replace(/\/$/, '') + '/'),
+      filter: (rp) => !!rp && rp.startsWith(fullP.replace(/\/$/, '') + '/'),
     })
   })
 
@@ -196,9 +196,10 @@ function buildDocRoutes(options: {
         defaultTabPath && docPathRegistry.has(defaultTabPath.replace(/\/$/, ''))
           ? docRoutes.find(
               (r) =>
+                r.path &&
                 r.path.replace(/\/$/, '') === defaultTabPath.replace(/\/$/, ''),
             )
-          : docRoutes.find((r) => filter(r.path) && r.path !== normalizedPath)
+          : docRoutes.find((r) => r.path && filter(r.path) && r.path !== normalizedPath)
 
       if (!matchedRouteObj && docRoutes.length > 0) {
         matchedRouteObj = docRoutes[0]

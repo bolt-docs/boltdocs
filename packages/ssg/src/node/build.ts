@@ -815,7 +815,7 @@ export async function build(
 
   const buildTime = Math.round(performance.now() - buildStartTime)
   const metrics = await collectPerformanceMetrics(out, buildTime)
-  writePerformanceMetrics(root, metrics)
+  writePerformanceMetrics(out, metrics)
   buildLog(
     `Build took ${(buildTime / 1000).toFixed(1)}s — JS: ${(metrics.totalJSBundleSize / 1024).toFixed(0)}kb, CSS: ${(metrics.totalCSSBundleSize / 1024).toFixed(0)}kb, Pages: ${metrics.pages.length}`,
   )
