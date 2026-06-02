@@ -1,5 +1,11 @@
 # @bdocs/ssg
 
+## 0.1.1
+
+### Patch Changes
+
+- [`d55094d`](https://github.com/bolt-docs/boltdocs/commit/d55094db2b7afe4d7e00e2477d08483647ec1d8d) Thanks [@jesusalcaladev](https://github.com/jesusalcaladev)! - Fix SSR rendering error with i18n configurations by safely guarding route path accesses on index/fallback routes. Correctly write performance metrics to build output directory.
+
 ## 0.1.0
 
 ### Minor Changes
