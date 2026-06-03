@@ -130,35 +130,53 @@ function buildDocRoutes(options: {
   const targetBasePaths: Array<{
     path: string
     filter: (p?: string) => boolean
+    locale?: string
+    version?: string
   }> = []
 
   targetBasePaths.push({
     path: baseDocsPath,
     filter: () => true,
+    locale: config.i18n?.defaultLocale,
+    version: config.versions?.defaultVersion,
   })
 
-  const subPaths: string[] = []
   if (allVersions.length > 0) {
-    allVersions.forEach((v) => subPaths.push(`/${v}`))
+    allVersions.forEach((v) => {
+      const fullP = baseDocsPath === '/' ? `/${v}` : `${baseDocsPath}/${v}`
+      targetBasePaths.push({
+        path: fullP,
+        filter: (rp) => !!rp && rp.startsWith(fullP.replace(/\/$/, '') + '/'),
+        locale: config.i18n?.defaultLocale,
+        version: v,
+      })
+    })
   }
   if (locales.length > 0) {
-    locales.forEach((l) => subPaths.push(`/${l}`))
+    locales.forEach((l) => {
+      const fullP = baseDocsPath === '/' ? `/${l}` : `${baseDocsPath}/${l}`
+      targetBasePaths.push({
+        path: fullP,
+        filter: (rp) => !!rp && rp.startsWith(fullP.replace(/\/$/, '') + '/'),
+        locale: l,
+        version: config.versions?.defaultVersion,
+      })
+    })
   }
   if (allVersions.length > 0 && locales.length > 0) {
     allVersions.forEach((v) => {
       locales.forEach((l) => {
-        subPaths.push(`/${v}/${l}`)
+        const fullP =
+          baseDocsPath === '/' ? `/${v}/${l}` : `${baseDocsPath}/${v}/${l}`
+        targetBasePaths.push({
+          path: fullP,
+          filter: (rp) => !!rp && rp.startsWith(fullP.replace(/\/$/, '') + '/'),
+          locale: l,
+          version: v,
+        })
       })
     })
   }
-
-  subPaths.forEach((sp) => {
-    const fullP = baseDocsPath === '/' ? sp : `${baseDocsPath}${sp}`
-    targetBasePaths.push({
-      path: fullP,
-      filter: (rp) => !!rp && rp.startsWith(fullP.replace(/\/$/, '') + '/'),
-    })
-  })
 
   const docPathRegistry = new Set(
     docRoutes.map((r) => (r.path || '').replace(/\/$/, '')),
@@ -179,7 +197,7 @@ function buildDocRoutes(options: {
     })
   }
 
-  targetBasePaths.forEach(({ path: bPath, filter }) => {
+  targetBasePaths.forEach(({ path: bPath, filter, locale: bLocale, version: bVersion }) => {
     if (bPath === '/') return
 
     const normalizedPath = bPath.replace(/\/$/, '')
@@ -219,6 +237,7 @@ function buildDocRoutes(options: {
             ? { index: true as const }
             : { path: redirectPath }),
           element: matchedRouteObj.element,
+          lazy: matchedRouteObj.lazy,
           loader: matchedRouteObj.loader,
           getStaticPaths: () => [],
         })
@@ -243,8 +262,11 @@ function buildDocRoutes(options: {
           docMetadata.push({
             ...matchedMetaObj,
             path: bPath,
-            filePath: '',
+            filePath: matchedMetaObj.filePath,
+            locale: bLocale,
+            version: bVersion,
             slugParts: [],
+            fallback: true,
             seo: {
               ...matchedMetaObj.seo,
               canonical: canonicalUrl,

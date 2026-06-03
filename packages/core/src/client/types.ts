@@ -82,6 +82,8 @@ export interface ComponentRoute {
   slugParts?: string[]
   /** SEO metadata for page headers */
   seo?: Record<string, any>
+  /** Flag to indicate if this is a fallback redirect route */
+  fallback?: boolean
 }
 
 /**

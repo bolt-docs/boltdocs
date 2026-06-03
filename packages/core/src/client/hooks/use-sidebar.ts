@@ -4,179 +4,164 @@ import { useConfig } from '../app/config-context'
 import type { ComponentRoute } from '../types'
 import { normalizePath } from '../utils/path'
 
+const capitalize = (str: string): string =>
+  str.charAt(0).toUpperCase() + str.slice(1).replace(/-/g, ' ')
+
+const getCleanDirectoryMeta = (directoryMeta?: Record<string, any>) => {
+  const meta: Record<string, any> = {}
+  if (!directoryMeta) return meta
+
+  for (const [key, value] of Object.entries(directoryMeta)) {
+    const cleanKey = key
+      .split('/')
+      .filter((part) => !part.startsWith('(') || !part.endsWith(')'))
+      .map((part) => part.replace(/^\d+-/, ''))
+      .join('/')
+    meta[cleanKey === '' ? '.' : cleanKey] = value
+  }
+  return meta
+}
+
+interface TreeNode extends ComponentRoute {
+  childrenMap?: Map<string, TreeNode>
+}
+
+const getOrCreateNode = (
+  parts: string[],
+  rootMap: Map<string, TreeNode>,
+  directoryMeta: Record<string, any>,
+): TreeNode => {
+  let currentMap = rootMap
+  let parentPath = ''
+  let lastNode!: TreeNode
+
+  for (const segment of parts) {
+    const currentRelPath = parentPath ? `${parentPath}/${segment}` : segment
+
+    if (!currentMap.has(segment)) {
+      const meta = directoryMeta[currentRelPath] || {}
+      const newNode: TreeNode = {
+        path: '#',
+        title: meta.title || capitalize(segment),
+        componentPath: '',
+        filePath: '',
+        icon: meta.icon,
+        groupPosition: typeof meta.order === 'number' ? meta.order : 999,
+        subRoutes: [],
+        childrenMap: new Map(),
+      }
+      currentMap.set(segment, newNode)
+    }
+
+    lastNode = currentMap.get(segment)!
+    currentMap = lastNode.childrenMap!
+    parentPath = currentRelPath
+  }
+
+  return lastNode
+}
+
+const getRoutePosition = (r: ComponentRoute) =>
+  r.sidebarPosition ?? r.order ?? 999
+const getNodePosition = (n: any) => n.sidebarPosition ?? n.groupPosition ?? 999
+
+const finalizeTree = (nodes: TreeNode[]): ComponentRoute[] => {
+  return nodes
+    .map((node) => {
+      if (node.childrenMap && node.childrenMap.size > 0) {
+        const childDirs = Array.from(node.childrenMap.values())
+        node.subRoutes = [...(node.subRoutes || []), ...childDirs]
+      }
+
+      const { childrenMap, ...restNode } = node
+
+      if (restNode.subRoutes && restNode.subRoutes.length > 0) {
+        restNode.subRoutes = finalizeTree(restNode.subRoutes as TreeNode[])
+      }
+
+      return restNode as ComponentRoute
+    })
+    .sort((a, b) => {
+      const posA = getNodePosition(a)
+      const posB = getNodePosition(b)
+      return posA !== posB ? posA - posB : a.title.localeCompare(b.title)
+    })
+}
+
 export function useSidebar(routes: ComponentRoute[]) {
   const config = useConfig()
-  const location = useLocation()
-
-  const currentPath = normalizePath(location.pathname)
+  const { pathname } = useLocation()
 
   return useMemo(() => {
+    const currentPath = normalizePath(pathname)
+
     const activeRoute = routes.find(
       (r) => normalizePath(r.path) === currentPath,
     )
     const activeTabId = activeRoute?.tab?.toLowerCase()
 
-    const noCollection = routes.filter((r) => !r.collection)
-    const filteredRoutes = activeTabId
-      ? noCollection.filter(
-          (r) => !r.tab || r.tab.toLowerCase() === activeTabId,
-        )
-      : noCollection
+    const filteredRoutes = routes
+      .filter((r) => !r.collection && !r.sidebarHidden && !r.fallback)
+      .filter((r) => !activeTabId || r.tab?.toLowerCase() === activeTabId)
+      .sort((a, b) => getRoutePosition(a) - getRoutePosition(b))
 
-    const directoryMeta: Record<string, any> = {}
-    if (config.directoryMeta) {
-      for (const [key, value] of Object.entries(config.directoryMeta)) {
-        const cleanKey = key
-          .split('/')
-          .filter((part) => !part.startsWith('(') || !part.endsWith(')'))
-          .map((part) => part.replace(/^\d+-/, ''))
-          .join('/')
-        directoryMeta[cleanKey === '' ? '.' : cleanKey] = value
-      }
-    }
+    const directoryMeta = getCleanDirectoryMeta(config.directoryMeta)
 
-    const capitalize = (str: string) =>
-      str.charAt(0).toUpperCase() + str.slice(1).replace(/-/g, ' ')
-
-    const rootNodesMap = new Map<string, ComponentRoute>()
+    const rootNodesMap = new Map<string, TreeNode>()
     const ungrouped: ComponentRoute[] = []
 
-    // Helper to find or create nested folders recursively
-    const getOrCreateNode = (
-      parts: string[],
-      rootStore: Map<string, ComponentRoute>,
-    ) => {
-      let currentMap = rootStore
-      let parentPath = ''
-      let lastNode: ComponentRoute | null = null
-
-      for (let i = 0; i < parts.length; i++) {
-        const segment = parts[i]
-        const currentRelPath = parentPath ? `${parentPath}/${segment}` : segment
-
-        if (!currentMap.has(segment)) {
-          const meta = directoryMeta[currentRelPath] || {}
-          const newNode: ComponentRoute = {
-            path: '#', // Placeholder
-            title: meta.title || capitalize(segment),
-            componentPath: '',
-            filePath: '',
-            icon: meta.icon,
-            groupPosition: typeof meta.order === 'number' ? meta.order : 999,
-            subRoutes: [],
-          }
-          currentMap.set(segment, newNode)
-        }
-
-        lastNode = currentMap.get(segment)!
-
-        // Create inner subRoutes mapping helper
-        if (!lastNode._subMap) {
-          lastNode._subMap = new Map<string, ComponentRoute>()
-        }
-        currentMap = lastNode._subMap
-        parentPath = currentRelPath
-      }
-      return lastNode
-    }
-
-    const sortedRoutes = [...filteredRoutes].sort((a, b) => {
-      const posA = a.sidebarPosition ?? a.order ?? 999
-      const posB = b.sidebarPosition ?? b.order ?? 999
-      return posA - posB
-    })
-
-    for (const route of sortedRoutes) {
-      if (route.sidebarHidden) continue
-
+    for (const route of filteredRoutes) {
       const parts = route.slugParts || []
-      const fileName = route.filePath.split('/').pop() || ''
-      const isIndex = /^index\.mdx?$/.test(fileName)
+      const isIndex = /^index\.mdx?$/.test(
+        route.filePath.split('/').pop() || '',
+      )
 
       if (parts.length === 0) {
-        // Top level route (not in subfolder)
         if (route.filePath) ungrouped.push(route)
         continue
       }
 
+      const containerNode = getOrCreateNode(parts, rootNodesMap, directoryMeta)
+
       if (isIndex) {
-        // Index files populate the CONTAINER object itself
-        const containerNode = getOrCreateNode(parts, rootNodesMap)
-        if (containerNode) {
-          // Merge properties onto the container so it becomes clickable
-          containerNode.path = route.path
-          containerNode.title = route.title || containerNode.title
-          containerNode.icon = route.icon || containerNode.icon
-          containerNode.badge = route.badge
-          containerNode.sidebarPosition = route.sidebarPosition
-          containerNode.frontmatter = route.frontmatter
-        }
+        Object.assign(containerNode, {
+          path: route.path,
+          title: route.title || containerNode.title,
+          icon: route.icon || containerNode.icon,
+          badge: route.badge,
+          sidebarPosition: route.sidebarPosition,
+          frontmatter: route.frontmatter,
+          filePath: route.filePath,
+        })
       } else {
-        // Normal leaf file nested under path
-        const parentNode = getOrCreateNode(parts, rootNodesMap)
-        if (parentNode) {
-          parentNode.subRoutes!.push(route)
-        }
+        containerNode.subRoutes!.push(route)
       }
     }
 
-    const finalizeTree = (
-      nodes: ComponentRoute[],
-      currentPathPrefix: string = '',
-    ): ComponentRoute[] => {
-      nodes.forEach((node) => {
-        if (node._subMap) {
-          const childDirs = Array.from(node._subMap.values())
-          node.subRoutes = [...(node.subRoutes || []), ...childDirs]
-          delete node._subMap
-        }
+    const finalizedTopNodes = finalizeTree(Array.from(rootNodesMap.values()))
+    const groups: any[] = []
 
-        if (node.subRoutes && node.subRoutes.length > 0) {
-          node.subRoutes = finalizeTree(node.subRoutes)
-        }
-      })
-
-      return nodes.sort((a, b) => {
-        const posA = a.sidebarPosition ?? a.groupPosition ?? 999
-        const posB = b.sidebarPosition ?? b.groupPosition ?? 999
-        if (posA !== posB) return posA - posB
-        return a.title.localeCompare(b.title)
-      })
-    }
-
-    const rawGroups = Array.from(rootNodesMap.values())
-    const finalizedTopNodes = finalizeTree(rawGroups)
-
-    const groups = finalizedTopNodes.map((node) => {
-      return {
-        slug: node.title.toLowerCase().replace(/\s+/g, '-'),
-        title: node.title,
-        icon: node.icon,
-        routes: [node],
-      }
-    })
-
-    const legacyCompatibleGroups = finalizedTopNodes
-      .map((node) => {
-        if (node.subRoutes && node.subRoutes.length > 0) {
-          return {
-            slug: node.title.toLowerCase().replace(/\s+/g, '-'),
-            title: node.title,
-            icon: node.icon,
-            routes: node.subRoutes,
-          }
-        }
+    for (const node of finalizedTopNodes) {
+      if (node.subRoutes && node.subRoutes.length > 0) {
+        groups.push({
+          slug: node.title.toLowerCase().replace(/\s+/g, '-'),
+          title: node.title,
+          icon: node.icon,
+          path: node.path,
+          filePath: node.filePath,
+          routes: node.subRoutes,
+        })
+      } else {
         ungrouped.push(node)
-        return null
-      })
-      .filter(Boolean) as any[]
+      }
+    }
 
     return {
-      groups: legacyCompatibleGroups,
-      ungrouped: finalizeTree(ungrouped),
+      groups,
+      ungrouped: finalizeTree(ungrouped as TreeNode[]),
       activeRoute,
       activePath: currentPath,
       config,
     }
-  }, [routes, config, currentPath])
+  }, [routes, config, pathname])
 }
