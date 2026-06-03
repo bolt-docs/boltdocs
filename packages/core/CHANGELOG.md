@@ -1,5 +1,11 @@
 # boltdocs
 
+## 2.8.3
+
+### Patch Changes
+
+- [`af3a19c`](https://github.com/bolt-docs/boltdocs/commit/af3a19c8836b0712ac186ba99d4987d828945612) Thanks [@jesusalcaladev](https://github.com/jesusalcaladev)! - Revert base path configuration override in Vite plugin to restore correct asset routing and fix 404 errors in production.
+
 ## 2.8.2
 
 ### Patch Changes
