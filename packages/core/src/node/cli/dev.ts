@@ -14,7 +14,10 @@ let devServerStarted = false
  *
  * @param root - The project root directory
  */
-export async function devAction(root: string = process.cwd()) {
+export async function devAction(
+  root: string = process.cwd(),
+  options: { port?: number; host?: string | boolean } = {},
+) {
   if (devServerStarted) return
   devServerStarted = true
 
@@ -30,12 +33,22 @@ export async function devAction(root: string = process.cwd()) {
     const viteConfig = await createViteConfig(root, 'development')
     viteConfig.logLevel = 'warn'
     viteConfig.clearScreen = false
+
+    if (options.port !== undefined) {
+      viteConfig.server = viteConfig.server || {}
+      viteConfig.server.port = Number(options.port)
+    }
+    if (options.host !== undefined) {
+      viteConfig.server = viteConfig.server || {}
+      viteConfig.server.host = options.host
+    }
+
     const server = await createServer(viteConfig)
     await server.listen()
     const urls = server.resolvedUrls
     console.log(
       devServer(
-        urls?.local?.[0] ?? 'http://localhost:5173',
+        urls?.local?.[0] ?? `http://localhost:${options.port ?? 5173}`,
         urls?.network?.[0] ?? null,
       ),
     )

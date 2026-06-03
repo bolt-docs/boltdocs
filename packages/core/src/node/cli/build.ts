@@ -1,7 +1,8 @@
 import { preview } from 'vite'
-import { success, error } from '@bdocs/dui'
+import { success, error, previewServer } from '@bdocs/dui'
 import { notifyUpdateAvailable } from '../update-check'
 import { createBuildPipeline } from '../pipeline/index'
+import { createViteConfig } from '../index'
 
 /**
  * Logic for the `boltdocs build` command.
@@ -34,16 +35,29 @@ export async function buildAction(root: string = process.cwd()) {
  *
  * @param root - The project root directory
  */
-export async function previewAction(root: string = process.cwd()) {
+export async function previewAction(
+  root: string = process.cwd(),
+  options: { port?: number; host?: string | boolean } = {},
+) {
   try {
     const viteConfig = await createViteConfig(root, 'production')
     viteConfig.logLevel = 'warn'
     viteConfig.clearScreen = false
-    const previewServer = await preview(viteConfig)
-    const urls = previewServer.resolvedUrls
+
+    if (options.port !== undefined) {
+      viteConfig.preview = viteConfig.preview || {}
+      viteConfig.preview.port = Number(options.port)
+    }
+    if (options.host !== undefined) {
+      viteConfig.preview = viteConfig.preview || {}
+      viteConfig.preview.host = options.host
+    }
+
+    const server = await preview(viteConfig)
+    const urls = server.resolvedUrls
     console.log(
       previewServer(
-        urls?.local?.[0] ?? 'http://localhost:4173',
+        urls?.local?.[0] ?? `http://localhost:${options.port ?? 4173}`,
         urls?.network?.[0] ?? null,
       ),
     )

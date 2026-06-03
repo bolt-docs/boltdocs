@@ -70,8 +70,9 @@ export function useRoutes() {
       // Resolve duplicate paths (aliases) like /docs vs /docs/en
       // 3. Resolve duplicate route aliases (e.g., /docs/page vs /docs/latest/page or /docs/es/page)
       // If duplicates exist, we only show the style (prefixed or unprefixed) that matches the user's current page style.
-      const isCurrentLocalePrefixed = !!currentRoute?.locale
-      const isCurrentVersionPrefixed = !!currentRoute?.version
+      const pathParts = location.pathname.split('/').filter(Boolean)
+      const isCurrentLocalePrefixed = !!(config.i18n && pathParts.includes(currentLocaleStore || config.i18n.defaultLocale))
+      const isCurrentVersionPrefixed = !!(config.versions && pathParts.includes(currentVersionStore || config.versions.defaultVersion))
 
       const isRouteLocalePrefixed = !!r.locale
       const isRouteVersionPrefixed = !!r.version
@@ -95,7 +96,7 @@ export function useRoutes() {
 
       return true
     })
-  }, [allRoutes, config, currentLocale, currentVersion, currentRoute])
+  }, [allRoutes, config, currentLocale, currentVersion, location.pathname, currentLocaleStore, currentVersionStore])
 
   const collections = useMemo(() => {
     return new Set(

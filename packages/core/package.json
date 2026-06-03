@@ -16,6 +16,7 @@
     "**/*.css"
   ],
   "exports": {
+    "./package.json": "./package.json",
     ".": {
       "types": "./dist/node/index.d.ts",
       "import": "./dist/node/index.mjs",

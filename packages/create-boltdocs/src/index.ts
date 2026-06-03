@@ -55,15 +55,41 @@ async function run() {
   )
   console.log(colors.dim(`\n  v0.0.4 - The modern documentation framework\n`))
 
+  let argProjectName = ''
+  let argTemplate = ''
+  let argInstall: boolean | undefined = undefined
+
+  const args = process.argv.slice(2)
+  for (let i = 0; i < args.length; i++) {
+    const arg = args[i]
+    if (arg === '--template' || arg === '-t') {
+      argTemplate = args[++i]
+    } else if (arg === '--install' || arg === '-i') {
+      argInstall = true
+    } else if (arg === '--no-install') {
+      argInstall = false
+    } else if (!arg.startsWith('-')) {
+      if (!argProjectName) {
+        argProjectName = arg
+      }
+    }
+  }
+
+  // Validate template if passed
+  if (argTemplate && argTemplate !== 'base' && argTemplate !== 'i18n') {
+    warn(`Template "${argTemplate}" is invalid. Falling back to prompt.`)
+    argTemplate = ''
+  }
+
   const response = await prompts([
-    {
-      type: 'text',
+    ...(argProjectName ? [] : [{
+      type: 'text' as const,
       name: 'projectName',
       message: 'Project name:',
       initial: 'my-boltdocs-app',
-    },
-    {
-      type: 'select',
+    }]),
+    ...(argTemplate ? [] : [{
+      type: 'select' as const,
       name: 'template',
       message: 'Select a project preset:',
       choices: [
@@ -79,24 +105,28 @@ async function run() {
         },
       ],
       initial: 0,
-    },
-    {
-      type: 'confirm',
+    }]),
+    ...(argInstall !== undefined ? [] : [{
+      type: 'confirm' as const,
       name: 'install',
       message: `Install dependencies with ${colors.bold(pkgManager)}?`,
       initial: true,
-    },
+    }]),
   ])
 
-  if (!response.projectName || !response.template) {
+  const projectName = argProjectName || response.projectName
+  const template = argTemplate || response.template
+  const install = argInstall !== undefined ? argInstall : response.install
+
+  if (!projectName || !template) {
     warn('Operation canceled.')
     return
   }
 
-  const projectDir = path.join(process.cwd(), response.projectName)
+  const projectDir = path.join(process.cwd(), projectName)
 
   if (fs.existsSync(projectDir)) {
-    error(`Directory "${response.projectName}" already exists.`)
+    error(`Directory "${projectName}" already exists.`)
     process.exit(1)
   }
 
@@ -104,21 +134,21 @@ async function run() {
 
   // 1. Resolve template directory
   const __dirname = path.dirname(fileURLToPath(import.meta.url))
-  const templateDir = path.resolve(__dirname, 'templates', response.template)
+  const templateDir = path.resolve(__dirname, 'templates', template)
 
   if (!fs.existsSync(templateDir)) {
-    error(`Template "${response.template}" not found at ${templateDir}`)
+    error(`Template "${template}" not found at ${templateDir}`)
     process.exit(1)
   }
 
   // 2. Copy template and replace placeholders
   try {
     copy(templateDir, projectDir, {
-      name: response.projectName,
-      title: response.projectName,
+      name: projectName,
+      title: projectName,
     })
     success(
-      `Created project structure and applied "${response.template}" preset`,
+      `Created project structure and applied "${template}" preset`,
     )
   } catch (e) {
     error(
@@ -128,7 +158,7 @@ async function run() {
   }
 
   // 3. Install dependencies if requested
-  if (response.install) {
+  if (install) {
     info(`Installing dependencies with ${pkgManager}...`)
     try {
       execSync(`${pkgManager} install`, { cwd: projectDir, stdio: 'inherit' })
@@ -142,8 +172,8 @@ async function run() {
 
   success('✨ All set! Your documentation is ready. ✨')
   console.log(`To start developing:`)
-  console.log(`  cd ${response.projectName}`)
-  if (!response.install) console.log(`  ${pkgManager} install`)
+  console.log(`  cd ${projectName}`)
+  if (!install) console.log(`  ${pkgManager} install`)
   console.log(`  ${pkgManager} run dev\n`)
 }
 

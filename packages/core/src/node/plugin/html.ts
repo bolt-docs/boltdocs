@@ -148,9 +148,11 @@ export function injectHtmlMeta(html: string, config: BoltdocsConfig): string {
     }
   }
 
+  html = html.replace('<head>', `<head>\n${themeScript}`)
+
   html = html.replace(
     '</head>',
-    `    ${seoTags}\n${themeScript}\n${ga4Script}${gtmScript}  </head>`,
+    `    ${seoTags}\n${ga4Script}${gtmScript}  </head>`,
   )
 
   if (gtmNoScript) {

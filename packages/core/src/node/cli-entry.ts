@@ -19,12 +19,24 @@ configure({
 
 const cli = cac('boltdocs')
 
-cli.command('dev [root]', 'Start development server').action(devAction)
-cli.command('[root]', 'Start development server').action(devAction)
+cli
+  .command('dev [root]', 'Start development server')
+  .option('--port <port>', 'Port to listen on')
+  .option('--host [host]', 'Host to bind to')
+  .action(devAction)
+cli
+  .command('[root]', 'Start development server')
+  .option('--port <port>', 'Port to listen on')
+  .option('--host [host]', 'Host to bind to')
+  .action(devAction)
 
 cli.command('build [root]', 'Build for production').action(buildAction)
 
-cli.command('preview [root]', 'Preview production build').action(previewAction)
+cli
+  .command('preview [root]', 'Preview production build')
+  .option('--port <port>', 'Port to listen on')
+  .option('--host [host]', 'Host to bind to')
+  .action(previewAction)
 
 cli
   .command('audit [root]', 'Audit configured plugins for security warnings')

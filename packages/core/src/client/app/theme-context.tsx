@@ -20,8 +20,20 @@ const ThemeContext =
   >(undefined))
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
-  const [theme, setThemeState] = useState<Theme>('system')
-  const [resolvedTheme, setResolvedTheme] = useState<ResolvedTheme>('dark')
+  const [theme, setThemeState] = useState<Theme>(() => {
+    if (typeof window !== 'undefined' && typeof localStorage !== 'undefined') {
+      return (localStorage.getItem('boltdocs-theme') as Theme) || 'system'
+    }
+    return 'system'
+  })
+  const [resolvedTheme, setResolvedTheme] = useState<ResolvedTheme>(() => {
+    if (typeof window !== 'undefined' && typeof document !== 'undefined' && document.documentElement) {
+      return document.documentElement.classList.contains('dark')
+        ? 'dark'
+        : 'light'
+    }
+    return 'light'
+  })
 
   const applyTheme = (targetTheme: Theme) => {
     const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)')
