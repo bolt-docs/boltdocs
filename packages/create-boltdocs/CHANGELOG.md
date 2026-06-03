@@ -1,5 +1,16 @@
 # create-boltdocs
 
+## 0.3.2
+
+### Patch Changes
+
+- [`5fb0685`](https://github.com/bolt-docs/boltdocs/commit/5fb06852bfbd94e84cd502f5e874acd1e5f6d947) Thanks [@jesusalcaladev](https://github.com/jesusalcaladev)! - fix: solve various bugs including theme flashing, i18n sidebar disappearing/duplication, upgrade check reliability, CLI port/host support, and create-boltdocs project name argument support.
+
+  Specifically for i18n, sidebar, and fallback route routing:
+  - Refactored `useSidebar` to perform hierarchical tree calculations cleanly without mutations.
+  - Filtered out fallback redirect routes in `useSidebar` via the `fallback` route property to eliminate duplicate entries in the sidebar.
+  - Preserved `filePath` properties on index/container route nodes so that client-side language switching and active link highlighting operate correctly.
+
 ## 0.3.1
 
 ### Patch Changes
