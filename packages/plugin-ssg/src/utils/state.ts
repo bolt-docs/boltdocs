@@ -12,8 +12,6 @@ function escapeUnsafeChars(unsafeChar: string) {
   return ESCAPED_CHARS[unsafeChar as keyof typeof ESCAPED_CHARS]
 }
 
-import { error } from '@bdocs/dui'
-
 export function serializeState(state: any): string | null {
   if (state == null || Object.keys(state).length === 0) return null
   try {
@@ -22,7 +20,7 @@ export function serializeState(state: any): string | null {
       escapeUnsafeChars,
     )
   } catch (err) {
-    error(
+    console.error(
       `[SSG] On state serialization - ${err instanceof Error ? err.message : String(err)}`,
     )
     return null
@@ -33,8 +31,8 @@ export function deserializeState(state: string) {
   try {
     return JSON.parse(state || '{}')
   } catch (err) {
-    error(
-      `[SSG] On state deserialization - ${err instanceof Error ? err.message : String(err)}`,
+    console.error(
+      `On state deserialization - ${err instanceof Error ? err.message : String(err)}`,
     )
     return {}
   }

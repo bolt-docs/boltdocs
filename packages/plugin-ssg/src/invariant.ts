@@ -5,11 +5,9 @@ function invariant<T>(
   message?: string,
 ): asserts value is T
 
-import { error } from '@bdocs/dui'
-
 export default function invariant(value: any, message?: string) {
   if (value === false || value === null || typeof value === 'undefined') {
-    error(
+    console.error(
       'The following error is a bug in Boltdocs SSG; please open an issue! https://github.com/bolt-docs/boltdocs/issues/new',
     )
     throw new Error(message)

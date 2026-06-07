@@ -1,4 +1,13 @@
-import { colors, info, warn, success, error, dividerLog } from '@bdocs/dui'
+import {
+  colors,
+  info,
+  warn,
+  success,
+  error,
+  dividerLog,
+  table,
+  createSpinner,
+} from '@bdocs/dui'
 import type { InlineConfig, PluginOption } from 'vite'
 import type {
   RouteRecord,
@@ -272,26 +281,30 @@ export async function build(
     // Ignore and run full client build
   }
 
+  function shouldSuppressLog(msg: string): boolean {
+    return (
+      msg.startsWith('dist/') ||
+      msg.startsWith('.vite-react-ssg-temp/') ||
+      msg.startsWith('rendering chunks') ||
+      msg === 'computing gzip size...' ||
+      (msg.includes('built in') && msg.includes('s'))
+    )
+  }
+
   const clientLogger = createLogger()
   const loggerWarn = clientLogger.warn
   clientLogger.warn = (msg: string, options) => {
-    if (msg.includes('externalized for browser compatibility')) {
+    if (
+      msg.includes('externalized for browser compatibility') ||
+      shouldSuppressLog(msg)
+    ) {
       return
     }
     loggerWarn(msg, options)
   }
   const loggerInfo = clientLogger.info
   clientLogger.info = (msg: string, options) => {
-    // Suppress verbose asset chunk listing and gzip computation
-    if (
-      msg.startsWith('dist/') ||
-      msg.startsWith('.vite-react-ssg-temp/') ||
-      msg.startsWith('rendering chunks') ||
-      msg === 'computing gzip size...' ||
-      (msg.includes('built in') && msg.includes('s'))
-    ) {
-      return
-    }
+    if (shouldSuppressLog(msg)) return
     loggerInfo(msg, options)
   }
 
@@ -305,16 +318,22 @@ export async function build(
     buildLog('Build for client...')
     await viteBuild(
       mergeConfig(viteConfig, {
+        logLevel: 'warn',
         build: {
           manifest: true,
           ssrManifest: true,
+          chunkSizeWarningLimit: 2000,
           ...buildBundlerOptions({
             input: {
               app: join(root, htmlEntry || './index.html'),
             },
             // @ts-expect-error rollup type
             onLog(level, log, handler) {
-              if (log.message.includes('react-helmet-async')) return
+              if (
+                log.message.includes('react-helmet-async') ||
+                shouldSuppressLog(log.message)
+              )
+                return
               handler(level, log)
             },
           }),
@@ -355,6 +374,7 @@ export async function build(
   const ssrEntry = await resolveAlias(config, entry)
   await viteBuild(
     mergeConfig(viteConfig, {
+      logLevel: 'warn',
       build: {
         ssr: ssrEntry,
         manifest: true,
@@ -374,7 +394,11 @@ export async function build(
                 },
           // @ts-expect-error rollup type
           onLog(level, log, handler) {
-            if (log.message.includes('react-helmet-async')) return
+            if (
+              log.message.includes('react-helmet-async') ||
+              shouldSuppressLog(log.message)
+            )
+              return
             handler(level, log)
           },
         }),
@@ -451,6 +475,9 @@ export async function build(
   if (beasties) {
     info('Critical CSS generation enabled via `beasties`')
   }
+
+  const renderSpinner = createSpinner('Rendering pages...')
+  renderSpinner.start()
 
   const ssrManifest: SSRManifest = JSON.parse(
     await fs.readFile(join(out, ...dotVitedir, 'ssr-manifest.json'), 'utf-8'),
@@ -751,6 +778,8 @@ export async function build(
 
   await queue.start().onIdle()
 
+  renderSpinner.stop('success', 'Rendering complete')
+
   const totalPages = renderedCount + cachedCount
   const totalSizeMB = (renderedSize / 1024 / 1024).toFixed(2)
   info(
@@ -816,11 +845,31 @@ export async function build(
   const buildTime = Math.round(performance.now() - buildStartTime)
   const metrics = await collectPerformanceMetrics(out, buildTime)
   writePerformanceMetrics(out, metrics)
-  buildLog(
-    `Build took ${(buildTime / 1000).toFixed(1)}s — JS: ${(metrics.totalJSBundleSize / 1024).toFixed(0)}kb, CSS: ${(metrics.totalCSSBundleSize / 1024).toFixed(0)}kb, Pages: ${metrics.pages.length}`,
+
+  const toKB = (b: number) => (b / 1024).toFixed(0)
+  const toMB = (b: number) => (b / 1024 / 1024).toFixed(1)
+  const jsSize =
+    metrics.totalJSBundleSize > 1024 * 1024
+      ? toMB(metrics.totalJSBundleSize) + ' MB'
+      : toKB(metrics.totalJSBundleSize) + ' kB'
+  const cssSize =
+    metrics.totalCSSBundleSize > 1024 * 1024
+      ? toMB(metrics.totalCSSBundleSize) + ' MB'
+      : toKB(metrics.totalCSSBundleSize) + ' kB'
+
+  console.log(
+    table(
+      ['Metric', 'Result'],
+      [
+        ['Build Time', `${(buildTime / 1000).toFixed(1)}s`],
+        ['Pages', String(metrics.pages.length)],
+        ['JavaScript', jsSize],
+        ['CSS', cssSize],
+      ],
+      { style: 'round', headerSeparator: true },
+    ),
   )
 
-  dividerLog()
   success('Build finished.')
 
   await onFinished?.(outDir)
