@@ -1,6 +1,6 @@
 {
   "name": "@bdocs/plugin-math",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "KaTeX math plugin for Boltdocs",
   "main": "dist/node/index.js",
   "module": "dist/node/index.mjs",
