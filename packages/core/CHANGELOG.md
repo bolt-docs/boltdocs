@@ -1,5 +1,11 @@
 # boltdocs
 
+## 2.9.2
+
+### Patch Changes
+
+- [`8dec178`](https://github.com/bolt-docs/boltdocs/commit/8dec1783eb1c17f60e4cd3a2a69992b1745d2b6b) Thanks [@jesusalcaladev](https://github.com/jesusalcaladev)! - Fix React hydration mismatch by initializing resolvedTheme to 'light' on client initial mount, and add a dedicated isolated 'boltdocs/server' entrypoint to completely prevent serverless execution crashes due to heavy build dependencies.
+
 ## 2.9.1
 
 ### Patch Changes
