@@ -4,16 +4,13 @@ import tailwindcss from '@tailwindcss/vite'
 import { boltdocsPlugin, getExternalAbsolutePaths } from './plugin/index'
 import { SECURITY_HEADERS } from './security/headers'
 import { getCSPHeader } from './security/csp'
-import { resolveConfig, type BoltdocsConfig } from './config'
+import { resolveConfig } from './config'
 import { generateRoutes } from './routes'
 import { generateProjectTypes, writeLinkTree } from './types-generator'
 import path from 'node:path'
 import { normalizePath } from 'vite'
 export { generateEntryCode } from './plugin/entry'
 import type { BoltdocsPluginOptions } from './plugin/index'
-import { createRequire } from 'node:module'
-
-const req = createRequire(import.meta.url)
 
 export default async function boltdocs(
   options?: BoltdocsPluginOptions,
@@ -29,7 +26,6 @@ export default async function boltdocs(
   generateProjectTypes(config, docsDir, undefined, routePaths)
   writeLinkTree(routePaths)
 
-  // Merge options with config
   const mergedOptions: BoltdocsPluginOptions = {
     ...options,
   }
@@ -44,8 +40,9 @@ export default async function boltdocs(
 export async function createViteConfig(
   root: string,
   mode: 'development' | 'production' = 'development',
+  preResolvedConfig?: BoltdocsConfig,
 ): Promise<InlineConfig> {
-  const config = await resolveConfig('docs', root)
+  const config = preResolvedConfig || await resolveConfig('docs', root)
   const routes = await generateRoutes('docs', config)
   const routePaths = routes.map((r) => r.path)
   const basePath = (config.base || '/docs').replace(/\/$/, '')
@@ -90,8 +87,6 @@ export async function createViteConfig(
     plugins: [
       react(),
       tailwindcss(),
-      // Pass the already-resolved config directly to avoid a second call to
-      // resolveConfigAndGenerateTypes that the boltdocs() default export would trigger.
       ...boltdocsPlugin(
         { docsDir: 'docs', root } as BoltdocsPluginOptions,
         config,
@@ -118,6 +113,12 @@ export async function createViteConfig(
         {
           find: 'use-sync-external-store',
           replacement: 'react',
+        },
+        {
+          find: '@',
+          replacement: normalizePath(
+            path.resolve(root, '../packages/core/src'),
+          ),
         },
       ],
       dedupe: ['react', 'react-dom'],
@@ -176,8 +177,11 @@ export type {
   BoltdocsThemeConfig,
   BoltdocsPlugin,
 } from './config'
-export { resolveConfig } from './config'
 export { defineConfig } from '../shared/config-utils'
-export { normalizePath, sanitizeFilename } from './utils'
-export type { BoltdocsPluginOptions }
 export * from './plugins'
+export * from './feedback/adapters'
+export type { BoltdocsPluginOptions }
+export { handleFeedback } from './feedback/handler'
+export { normalizePath, sanitizeFilename } from './utils'
+export { resolveConfig } from './config'
+export { AssetCache, flushCache } from './cache'

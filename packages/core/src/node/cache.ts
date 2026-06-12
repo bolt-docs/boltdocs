@@ -125,6 +125,11 @@ export class FileCache<T> {
     return entry.data
   }
 
+  getStale(filePath: string): T | null {
+    const entry = this.entries.get(filePath)
+    return entry ? entry.data : null
+  }
+
   set(filePath: string, data: T): void {
     this.entries.set(filePath, {
       data,
@@ -173,6 +178,7 @@ export class TransformCache {
   private readonly baseDir: string
   private readonly shardsDir: string
   private readonly indexPath: string
+  private saveTimeout: NodeJS.Timeout | null = null
 
   constructor(name: string, root: string = process.cwd()) {
     const config = getCacheConfig()
@@ -311,6 +317,16 @@ export class TransformCache {
         // Ignore shard write errors
       }
     })
+
+    if (this.saveTimeout) {
+      clearTimeout(this.saveTimeout)
+    }
+    this.saveTimeout = setTimeout(() => {
+      this.save()
+    }, 500)
+    if (typeof this.saveTimeout.unref === 'function') {
+      this.saveTimeout.unref()
+    }
   }
 
   get size() {
@@ -363,7 +379,12 @@ export class AssetCache {
     }
   }
 
-  set(sourcePath: string, cacheKey: string, content: Buffer | string, sourceHash: string): void {
+  set(
+    sourcePath: string,
+    cacheKey: string,
+    content: Buffer | string,
+    sourceHash: string,
+  ): void {
     const cachedPath = this.getCachedPath(
       sourcePath,
       `${cacheKey}-${sourceHash}`,

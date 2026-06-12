@@ -1,6 +1,7 @@
 import { createServer } from '@bdocs/ssg/node'
 import { createViteConfig } from '../index'
-import { error, devServer } from '@bdocs/dui'
+import { error } from '@bdocs/dui'
+import { devServer } from '../ui-utils'
 import { notifyUpdateAvailable } from '../update-check'
 import { resolveConfig } from '../config'
 import { inspectPluginsSecurity } from '../security/inspect'
@@ -16,21 +17,22 @@ let devServerStarted = false
  */
 export async function devAction(
   root: string = process.cwd(),
-  options: { port?: number; host?: string | boolean } = {},
+  options: { port?: number; host?: string | boolean; force?: boolean } = {},
 ) {
   if (devServerStarted) return
   devServerStarted = true
 
   notifyUpdateAvailable()
+  let config: any = undefined
   try {
-    const config = await resolveConfig(path.resolve(root, 'docs'), root)
+    config = await resolveConfig(path.resolve(root, 'docs'), root)
     inspectPluginsSecurity(config, root)
   } catch (e) {
     // Ignore config parsing errors; they will be handled by createViteConfig
   }
 
   try {
-    const viteConfig = await createViteConfig(root, 'development')
+    const viteConfig = await createViteConfig(root, 'development', config)
     viteConfig.logLevel = 'warn'
     viteConfig.clearScreen = false
 
@@ -41,6 +43,10 @@ export async function devAction(
     if (options.host !== undefined) {
       viteConfig.server = viteConfig.server || {}
       viteConfig.server.host = options.host
+    }
+    if (options.force) {
+      viteConfig.optimizeDeps = viteConfig.optimizeDeps || {}
+      viteConfig.optimizeDeps.force = true
     }
 
     const server = await createServer(viteConfig)

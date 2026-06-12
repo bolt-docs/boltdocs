@@ -1,15 +1,11 @@
 import { preview } from 'vite'
-import { success, error, previewServer } from '@bdocs/dui'
+import { colors, error, double } from '@bdocs/dui'
+import { previewServer } from '../ui-utils'
 import { notifyUpdateAvailable } from '../update-check'
 import { createBuildPipeline } from '../pipeline/index'
 import { createViteConfig } from '../index'
+import { flushCache } from '../cache'
 
-/**
- * Logic for the `boltdocs build` command.
- * Performs a production build with hydration support via @bdocs/ssg.
- *
- * @param root - The project root directory
- */
 export async function buildAction(root: string = process.cwd()) {
   notifyUpdateAvailable()
   try {
@@ -18,23 +14,26 @@ export async function buildAction(root: string = process.cwd()) {
 
     if (!result.success) {
       error(`Build failed at step "${result.failedStep}":`, result.error)
+      await flushCache()
       process.exit(1)
     }
 
-    success(`SSG build completed successfully in ${Math.round(result.timing.total)}ms!`)
+    console.log(
+      double([
+        `SSG build completed in ${(Math.round(result.timing.total) / 1000).toFixed(1)}s`,
+        '',
+        `${colors.cyan('boltdocs')} documentation is ready at ${colors.green('dist/')}`,
+      ]),
+    )
+    await flushCache()
     process.exit(0)
   } catch (e) {
     error('Build failed:', e)
+    await flushCache()
     process.exit(1)
   }
 }
 
-/**
- * Logic for the `boltdocs preview` command.
- * Serves the production build from the disk.
- *
- * @param root - The project root directory
- */
 export async function previewAction(
   root: string = process.cwd(),
   options: { port?: number; host?: string | boolean } = {},

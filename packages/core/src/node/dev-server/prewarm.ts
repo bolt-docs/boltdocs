@@ -2,8 +2,8 @@ import type { ViteDevServer } from 'vite'
 import type { BoltdocsConfig } from '../config'
 import path from 'node:path'
 
-const BATCH_SIZE = 8
-const PREWARM_DELAY = 1_000
+const BATCH_SIZE = 32
+const PREWARM_DELAY = 0
 
 export function setupPrewarming(
   server: ViteDevServer,
