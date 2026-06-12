@@ -12,11 +12,21 @@
       "skillPath": "skills/animejs/SKILL.md",
       "computedHash": "87b7202252c808da0e63a82c85c2d1933c7fd2c11877be4e7851cd5ee58589e3"
     },
+    "composition-patterns": {
+      "source": "vercel-labs/agent-skills",
+      "sourceType": "autoskills-registry",
+      "computedHash": "c124390cc3441844903ada94cb5820b23d922f2d0ad34e01e029e410197c8a32"
+    },
     "css-animations": {
       "source": "heygen-com/hyperframes",
       "sourceType": "github",
       "skillPath": "skills/css-animations/SKILL.md",
       "computedHash": "91be631006d3670ac18c6d35cf4709bb33118d8ef8524ee31baa3217f67acaca"
+    },
+    "deploy-to-vercel": {
+      "source": "vercel-labs/agent-skills",
+      "sourceType": "autoskills-registry",
+      "computedHash": "698dfb0ec0cf3e8d97c3f181e13b37b3b8fbc872a4b031d812adb4193f66035e"
     },
     "frontend-design": {
       "source": "anthropics/skills",
@@ -28,6 +38,46 @@
       "sourceType": "github",
       "skillPath": "skills/gsap/SKILL.md",
       "computedHash": "8b212228e747c03450551fed20aafd07306ea20feb391098b14397e1f3019bcc"
+    },
+    "gsap-core": {
+      "source": "greensock/gsap-skills",
+      "sourceType": "autoskills-registry",
+      "computedHash": "e48283d0386774f816bc3445165c4f4f440507eb42d45aa34781a8373d2ff1c4"
+    },
+    "gsap-frameworks": {
+      "source": "greensock/gsap-skills",
+      "sourceType": "autoskills-registry",
+      "computedHash": "97f2615815e642f630d472a5ff553b9a17b2c270d0b7962419a620d13a7e4b45"
+    },
+    "gsap-performance": {
+      "source": "greensock/gsap-skills",
+      "sourceType": "autoskills-registry",
+      "computedHash": "5b07e939fd6eb24d998e13d1aad24b3d6ecde4a131a9393e45eff056917fd319"
+    },
+    "gsap-plugins": {
+      "source": "greensock/gsap-skills",
+      "sourceType": "autoskills-registry",
+      "computedHash": "0005934f847f9a6b0f510bfd8a74f93d96002ea0f1dbafc3f6e19e6a06e9eb74"
+    },
+    "gsap-react": {
+      "source": "greensock/gsap-skills",
+      "sourceType": "autoskills-registry",
+      "computedHash": "980d520d22a964fa0ceea60f14f4f92bca47f263d80504049808ced8a7a10849"
+    },
+    "gsap-scrolltrigger": {
+      "source": "greensock/gsap-skills",
+      "sourceType": "autoskills-registry",
+      "computedHash": "8b45aba1304ca0197a4f440a3421b059ac03b926c0829d51c14caaf46f2f47c3"
+    },
+    "gsap-timeline": {
+      "source": "greensock/gsap-skills",
+      "sourceType": "autoskills-registry",
+      "computedHash": "f358230f289a063766bdca35290866790065f067e31cc477733e4cb3ee06a6c2"
+    },
+    "gsap-utils": {
+      "source": "greensock/gsap-skills",
+      "sourceType": "autoskills-registry",
+      "computedHash": "4bc9e220b816f74547d770f73a2878e86df035f42e445c1e98875dd9793fe927"
     },
     "hyperframes": {
       "source": "heygen-com/hyperframes",
@@ -62,6 +112,16 @@
       "source": "sickn33/antigravity-awesome-skills",
       "sourceType": "github",
       "computedHash": "9f8d3f268624c4757f4039617942d3e8ddcf420b9295cb943bea3bf9feb37e9d"
+    },
+    "playwright-best-practices": {
+      "source": "currents-dev/playwright-best-practices-skill",
+      "sourceType": "autoskills-registry",
+      "computedHash": "dcc414410b81cfcc5c56490a7e450e664b11d170f3c336fe475c6e0a47def574"
+    },
+    "react-best-practices": {
+      "source": "vercel-labs/agent-skills",
+      "sourceType": "autoskills-registry",
+      "computedHash": "502eb06700e2c3cb1bd7f710860528f72281320bd5171a2087b05a090b573dc1"
     },
     "refactor": {
       "source": "github/awesome-copilot",
@@ -137,6 +197,11 @@
       "sourceType": "github",
       "skillPath": "skills/website-to-hyperframes/SKILL.md",
       "computedHash": "19cac4db1463f0b670ca903c13e61ef62974d1578cf3432a44835d353540dce6"
+    },
+    "zod": {
+      "source": "pproenca/dot-skills",
+      "sourceType": "autoskills-registry",
+      "computedHash": "aa8a97195b07763d37494b511f48be90979fd6826c031956c831cfc58f6a24b8"
     }
   }
 }
