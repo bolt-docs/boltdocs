@@ -19,33 +19,44 @@ interface HeadProps {
 export function Head({ siteTitle, siteDescription, routes }: HeadProps) {
   const location = useLocation()
   const config = useConfig()
-  const { currentLocale } = useRoutes()
+  const { currentLocale, currentRoute } = useRoutes()
 
   // Find the current route's metadata — memoized so the O(n) search only
   // re-runs when the routes array or the current URL changes, not on every render.
-  const currentRoute = useMemo(
-    () => routes?.find?.((r) => r.path === location.pathname),
-    [routes, location.pathname],
-  )
-  const pageTitle = currentRoute?.title
+  // We use currentRoute from useRoutes hook which handles path normalization and locales,
+  // falling back to pathname search if not found.
+  const route = useMemo(() => {
+    if (currentRoute) return currentRoute
+    const normalizedPath =
+      location.pathname.endsWith('/') && location.pathname.length > 1
+        ? location.pathname.slice(0, -1)
+        : location.pathname
+    return routes?.find?.((r) => {
+      const routePath =
+        r.path.endsWith('/') && r.path.length > 1 ? r.path.slice(0, -1) : r.path
+      return routePath === normalizedPath
+    })
+  }, [routes, location.pathname, currentRoute])
+
+  const pageTitle = route?.title
   const translatedSiteDescription = getTranslated(
     siteDescription,
     currentLocale,
   )
   const pageDescription =
-    currentRoute?.description || translatedSiteDescription || ''
+    route?.description || translatedSiteDescription || ''
 
   const translatedSiteTitle = getTranslated(siteTitle, currentLocale)
   const finalTitle = pageTitle
     ? `${pageTitle} | ${translatedSiteTitle}`
     : translatedSiteTitle
 
-  const seo = currentRoute?.seo || {}
+  const seo = route?.seo || {}
 
   const canonicalUrl =
     seo.canonical ||
-    (config?.siteUrl && currentRoute?.path
-      ? `${config.siteUrl.replace(/\/$/, '')}${currentRoute.path}`
+    (config?.siteUrl && route?.path
+      ? `${config.siteUrl.replace(/\/$/, '')}${route.path}`
       : undefined)
 
   const ogUrl =
@@ -58,7 +69,14 @@ export function Head({ siteTitle, siteDescription, routes }: HeadProps) {
 
   // Calculate specific ones
   const defaultOgImage = config?.seo?.thumbnails?.background
-  const ogImage = (seo['og:image'] || defaultOgImage) as string | undefined
+  const rawOgImage = (seo['og:image'] || route?.coverImage || defaultOgImage) as string | undefined
+
+  let ogImage = rawOgImage
+  if (ogImage && config?.siteUrl && !/^https?:\/\/|^\/\//.test(ogImage)) {
+    const base = config.siteUrl.endsWith('/') ? config.siteUrl.slice(0, -1) : config.siteUrl
+    const path = ogImage.startsWith('/') ? ogImage : `/${ogImage}`
+    ogImage = `${base}${path}`
+  }
 
   return (
     <Helmet>
@@ -74,7 +92,7 @@ export function Head({ siteTitle, siteDescription, routes }: HeadProps) {
       {ogUrl && <meta property="og:url" content={ogUrl} />}
 
       {/* Default Twitter Card */}
-      <meta name="twitter:card" content="summary" />
+      <meta name="twitter:card" content={ogImage ? 'summary_large_image' : 'summary'} />
       <meta name="twitter:title" content={finalTitle} />
       <meta name="twitter:description" content={pageDescription} />
       {ogImage && <meta name="twitter:image" content={ogImage} />}
@@ -105,7 +123,13 @@ export function Head({ siteTitle, siteDescription, routes }: HeadProps) {
           return <meta key="noindex" name="robots" content="noindex" />
         if (key === 'robots')
           return <meta key="robots" name="robots" content={value as string} />
-        if (key === 'canonical' || key === 'og:url') return null // Handled explicitly above
+        if (
+          key === 'canonical' ||
+          key === 'og:url' ||
+          key === 'og:image' ||
+          key === 'twitter:image'
+        )
+          return null // Handled explicitly above
 
         const isProperty =
           key.startsWith('og:') ||

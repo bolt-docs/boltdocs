@@ -55,6 +55,42 @@ export function injectHtmlMeta(html: string, config: BoltdocsConfig): string {
     }
   }
 
+  // Resolve OG image from config.seo.thumbnails
+  let ogImage: string | undefined
+  const rawOgImage = config.seo?.thumbnails?.background
+  if (rawOgImage && config.siteUrl && !/^https?:\/\/|^\/\//.test(rawOgImage)) {
+    const base = config.siteUrl.endsWith('/')
+      ? config.siteUrl.slice(0, -1)
+      : config.siteUrl
+    const path = rawOgImage.startsWith('/') ? rawOgImage : `/${rawOgImage}`
+    ogImage = `${base}${path}`
+  } else if (rawOgImage) {
+    ogImage = rawOgImage
+  }
+
+  // Build custom metatags from config.seo.metatags
+  const globalMetatags = config.seo?.metatags || {}
+  const customMetaTags = Object.entries(globalMetatags).map(([key, value]) => {
+    const isProperty =
+      key.startsWith('og:') ||
+      key.startsWith('music:') ||
+      key.startsWith('video:') ||
+      key.startsWith('article:') ||
+      key.startsWith('book:') ||
+      key.startsWith('profile:')
+    return isProperty
+      ? `<meta property="${key}" content="${value}">`
+      : `<meta name="${key}" content="${value}">`
+  })
+
+  // robots from config.seo.indexing
+  const robotsContent =
+    config.seo?.indexing === 'none'
+      ? 'noindex, nofollow'
+      : config.seo?.indexing === 'all'
+        ? undefined
+        : config.seo?.indexing
+
   const seoTags = [
     favicon ? `<link rel="icon" href="${favicon}">` : '',
     `<meta name="description" content="${description}">`,
@@ -68,7 +104,11 @@ export function injectHtmlMeta(html: string, config: BoltdocsConfig): string {
     `<meta name="twitter:card" content="summary_large_image">`,
     `<meta name="twitter:title" content="${title}">`,
     `<meta name="twitter:description" content="${description}">`,
+    ogImage ? `<meta property="og:image" content="${ogImage}">` : '',
+    ogImage ? `<meta name="twitter:image" content="${ogImage}">` : '',
+    robotsContent ? `<meta name="robots" content="${robotsContent}">` : '',
     `<meta name="generator" content="Boltdocs">`,
+    ...customMetaTags,
   ]
     .filter(Boolean)
     .join('\n    ')

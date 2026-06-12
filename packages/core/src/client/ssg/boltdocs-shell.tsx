@@ -11,6 +11,7 @@ import { RoutesProvider } from '../app/routes-context'
 import type { BoltdocsConfig } from '../../shared/types'
 import type { ComponentRoute } from '../types'
 import { UIProvider } from '../app/ui-context'
+import { Head } from '../app/head'
 import { InternalErrorBoundary as ErrorBoundary } from '../components/internal/error-boundary'
 import { CollectionsContext } from '../collections/collections-context'
 import type { CollectionsData } from '../collections/collections-context'
@@ -132,6 +133,11 @@ export function BoltdocsShell({
                   >
                     <StoreSync config={config} routeMap={routeMap} />
                     <I18nUpdater config={config} />
+                    <Head
+                      siteTitle={config.theme?.title}
+                      siteDescription={config.theme?.description}
+                      routes={routes}
+                    />
                     <ErrorBoundary>
                       <Outlet />
                     </ErrorBoundary>
