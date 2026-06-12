@@ -3,126 +3,82 @@
 import fs from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { execSync } from 'node:child_process'
-import prompts from 'prompts'
-import { colors, info, warn, error, success } from '@bdocs/dui'
+import { spawn } from 'node:child_process'
+import {
+  colors,
+  warn,
+  error,
+  steps,
+  renderStatic,
+} from '@bdocs/dui'
+import type { StepItem } from '@bdocs/dui'
 
-function getPackageManager() {
-  const userAgent = process.env.npm_config_user_agent
-  if (userAgent?.includes('pnpm')) return 'pnpm'
-  if (userAgent?.includes('yarn')) return 'yarn'
-  if (userAgent?.includes('bun')) return 'bun'
-  return 'npm'
-}
+import { parseCliAndPrompt } from './cli'
+import { getPackageManager } from './utils/package-manager'
+import { copy } from './utils/file-system'
+import { adaptersDeploy } from './deploy/adapters'
 
-/**
- * Recursively copies a directory and replaces placeholders in text files.
- */
-function copy(src: string, dest: string, replacements: Record<string, string>) {
-  const stat = fs.statSync(src)
-  if (stat.isDirectory()) {
-    fs.mkdirSync(dest, { recursive: true })
-    for (const file of fs.readdirSync(src)) {
-      copy(path.resolve(src, file), path.resolve(dest, file), replacements)
-    }
-  } else {
-    // Only replace placeholders in text files
-    const isTextFile = !/\.(png|jpg|jpeg|gif|webp|ico|pdf|zip|gz)$/i.test(src)
-    if (isTextFile) {
-      let content = fs.readFileSync(src, 'utf-8')
-      for (const [key, value] of Object.entries(replacements)) {
-        content = content.replace(new RegExp(`{{${key}}}`, 'g'), value)
+function installDependencies(
+  pkgManager: string,
+  projectDir: string,
+): Promise<void> {
+  return new Promise((resolve, reject) => {
+    const child = spawn(
+      pkgManager,
+      [pkgManager === 'yarn' ? '' : 'install'].filter(Boolean),
+      {
+        cwd: projectDir,
+        stdio: 'ignore',
+        shell: true,
+      },
+    )
+
+    child.on('close', (code) => {
+      if (code === 0) {
+        resolve()
+      } else {
+        reject(new Error(`Package manager exited with code ${code}`))
       }
-      fs.writeFileSync(dest, content)
-    } else {
-      fs.copyFileSync(src, dest)
-    }
-  }
+    })
+
+    child.on('error', (err) => {
+      reject(err)
+    })
+  })
 }
 
-async function run() {
+const BANNER = colors.cyan.bold(`
+   ██████╗  ██████╗ ██╗  ████████╗██████╗  ██████╗  ██████╗███████╗
+   ██╔══██╗██╔═══██╗██║  ╚══██╔══╝██╔══██╗██╔═══██╗██╔════╝██╔════╝
+   ██████╔╝██║   ██║██║     ██║   ██║  ██║██║   ██║██║     ███████╗
+   ██╔══██╗██║   ██║██║     ██║   ██║  ██║██║   ██║██║     ╚════██║
+   ██████╔╝╚██████╔╝███████╗██║   ██████╔╝╚██████╔╝╚██████╗███████║
+   ╚══════╝  ╚═════╝ ╚══════╝╚═╝   ╚═════╝  ╚═════╝  ╚═════╝╚══════╝`)
+
+const TAGLINE = colors.dim('\n  ⚡ Boltdocs - the modern documentation framework\n')
+
+function renderAll(stepsList: StepItem[]) {
+  if (process.stdout.isTTY) {
+    console.clear()
+  }
+  console.log(BANNER)
+  console.log(TAGLINE)
+  console.log(steps(stepsList))
+}
+
+export async function run() {
   const pkgManager = getPackageManager()
 
-  console.log(
-    colors.blue(
-      colors.bold(`
-  ____   ___  _     _____ ____   ___   ____ ____ 
-  | __ ) / _ \\| |   |_   _|  _ \\ / _ \\ / ___/ ___|
-  |  _ \\| | | | |     | | | | | | | | | |   \\___ \\
-  | |_) | |_| | |___  | | | |_| | |_| | |___ ___) |
-  |____/ \\___/|_____| |_| |____/ \\___/ \\____|____/`),
-    ),
-  )
-  console.log(colors.dim(`\n  v0.0.4 - The modern documentation framework\n`))
+  console.log(BANNER)
+  console.log(TAGLINE)
 
-  let argProjectName = ''
-  let argTemplate = ''
-  let argInstall: boolean | undefined = undefined
-
-  const args = process.argv.slice(2)
-  for (let i = 0; i < args.length; i++) {
-    const arg = args[i]
-    if (arg === '--template' || arg === '-t') {
-      argTemplate = args[++i]
-    } else if (arg === '--install' || arg === '-i') {
-      argInstall = true
-    } else if (arg === '--no-install') {
-      argInstall = false
-    } else if (!arg.startsWith('-')) {
-      if (!argProjectName) {
-        argProjectName = arg
-      }
-    }
-  }
-
-  // Validate template if passed
-  if (argTemplate && argTemplate !== 'base' && argTemplate !== 'i18n') {
-    warn(`Template "${argTemplate}" is invalid. Falling back to prompt.`)
-    argTemplate = ''
-  }
-
-  const response = await prompts([
-    ...(argProjectName ? [] : [{
-      type: 'text' as const,
-      name: 'projectName',
-      message: 'Project name:',
-      initial: 'my-boltdocs-app',
-    }]),
-    ...(argTemplate ? [] : [{
-      type: 'select' as const,
-      name: 'template',
-      message: 'Select a project preset:',
-      choices: [
-        {
-          title: colors.magenta('Base'),
-          description: 'Hero and custom components.',
-          value: 'base',
-        },
-        {
-          title: colors.yellow('i18n'),
-          description: 'Multi-language support (EN/ES).',
-          value: 'i18n',
-        },
-      ],
-      initial: 0,
-    }]),
-    ...(argInstall !== undefined ? [] : [{
-      type: 'confirm' as const,
-      name: 'install',
-      message: `Install dependencies with ${colors.bold(pkgManager)}?`,
-      initial: true,
-    }]),
-  ])
-
-  const projectName = argProjectName || response.projectName
-  const template = argTemplate || response.template
-  const install = argInstall !== undefined ? argInstall : response.install
-
-  if (!projectName || !template) {
+  const options = await parseCliAndPrompt()
+  if (!options) {
     warn('Operation canceled.')
     return
   }
 
+  const { projectName, template, deployTarget, install } = options
   const projectDir = path.join(process.cwd(), projectName)
 
   if (fs.existsSync(projectDir)) {
@@ -130,51 +86,97 @@ async function run() {
     process.exit(1)
   }
 
-  info('Building your documentation site...')
+  const stepsList: StepItem[] = [
+    { label: 'Creating project structure', status: 'running' },
+    { label: 'Configuring deployment', status: 'pending' },
+  ]
 
-  // 1. Resolve template directory
+  if (install) {
+    stepsList.push({ label: 'Installing dependencies', status: 'pending' })
+  }
+
+  stepsList.push({ label: 'Finalizing setup', status: 'pending' })
+
+  renderAll(stepsList)
+
   const __dirname = path.dirname(fileURLToPath(import.meta.url))
-  const templateDir = path.resolve(__dirname, 'templates', template)
+  const templateDir = path.resolve(__dirname, '..', 'templates', template)
 
   if (!fs.existsSync(templateDir)) {
     error(`Template "${template}" not found at ${templateDir}`)
     process.exit(1)
   }
 
-  // 2. Copy template and replace placeholders
   try {
     copy(templateDir, projectDir, {
       name: projectName,
       title: projectName,
     })
-    success(
-      `Created project structure and applied "${template}" preset`,
+
+    stepsList[0].status = 'success'
+    stepsList[1].status = 'running'
+    renderAll(stepsList)
+
+    adaptersDeploy(projectDir, deployTarget)
+
+    stepsList[1].status = 'success'
+
+    let installIndex = stepsList.findIndex(
+      (s) => s.label === 'Installing dependencies',
     )
+    if (installIndex !== -1) {
+      stepsList[installIndex].status = 'running'
+    } else {
+      const finalIdx = stepsList.findIndex((s) => s.label === 'Finalizing setup')
+      stepsList[finalIdx].status = 'running'
+    }
+    renderAll(stepsList)
   } catch (e) {
-    error(
-      `Error copying template: ${e instanceof Error ? e.message : String(e)}`,
-    )
+    stepsList[0].status = 'error'
+    stepsList[0].details = e instanceof Error ? e.message : String(e)
+    renderAll(stepsList)
     process.exit(1)
   }
 
-  // 3. Install dependencies if requested
+  let installFailed = false
   if (install) {
-    info(`Installing dependencies with ${pkgManager}...`)
     try {
-      execSync(`${pkgManager} install`, { cwd: projectDir, stdio: 'inherit' })
-      success('Dependencies installed successfully')
-    } catch (e) {
-      warn(
-        `Could not install dependencies automatically. Please run "${pkgManager} install".`,
-      )
+      await installDependencies(pkgManager, projectDir)
+      const step = stepsList.find((s) => s.label === 'Installing dependencies')
+      if (step) step.status = 'success'
+    } catch (_e) {
+      const step = stepsList.find((s) => s.label === 'Installing dependencies')
+      if (step) {
+        step.status = 'error'
+        step.details = 'Failed to install dependencies'
+      }
+      installFailed = true
     }
+
+    const finalStep = stepsList.find((s) => s.label === 'Finalizing setup')
+    if (finalStep) finalStep.status = 'running'
+    renderAll(stepsList)
   }
 
-  success('✨ All set! Your documentation is ready. ✨')
-  console.log(`To start developing:`)
-  console.log(`  cd ${projectName}`)
-  if (!install) console.log(`  ${pkgManager} install`)
-  console.log(`  ${pkgManager} run dev\n`)
+  const finalStep = stepsList.find((s) => s.label === 'Finalizing setup')
+  if (finalStep) finalStep.status = 'success'
+  renderAll(stepsList)
+
+  if (installFailed) {
+    warn(
+      `Could not install dependencies automatically. Please run "${pkgManager} install" manually inside the project directory.`,
+    )
+  }
+
+  renderStatic(
+    colors.bold('  ✨ All set! Your documentation is ready. ✨'),
+  )
+  console.log('')
+  console.log('  To start developing:')
+  console.log(`    cd ${projectName}`)
+  if (!install) console.log(`    ${pkgManager} install`)
+  console.log(`    ${pkgManager} run dev`)
+  console.log('')
 }
 
 run().catch((e) => error('Unhandled error', e))
