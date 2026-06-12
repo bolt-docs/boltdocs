@@ -1,6 +1,6 @@
 ---
 title: Internationalization (i18n)
-sidebarPosition: 2
+sidebarPosition: 1
 description: Set up multi-language documentation with folder-based locale routing, automatic fallbacks for untranslated pages, and RTL support.
 ---
 
@@ -94,7 +94,7 @@ If a translated page doesn't exist for a locale, Boltdocs automatically **genera
 
 ## Full Config Example
 
-```ts
+```ts title="boltdocs.config.ts"
 export default defineConfig({
   i18n: {
     defaultLocale: 'en',
@@ -136,7 +136,7 @@ Setting `direction: 'rtl'` on a locale config tells Boltdocs to flip the layout 
 
 Properties like `theme.title`, `theme.description`, and navbar labels support locale key maps, letting you translate the UI shell along with the content:
 
-```ts
+```ts title="boltdocs.config.ts"
 export default defineConfig({
   theme: {
     title: {
@@ -152,3 +152,4 @@ export default defineConfig({
     ],
   },
 })
+```

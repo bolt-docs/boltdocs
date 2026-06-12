@@ -6,7 +6,7 @@ Boltdocs is a monorepo documentation framework using Turborepo, pnpm workspaces,
 
 ## Key Architecture
 
-- **Monorepo structure**: `packages/core` (main package), `packages/create-boltdocs`, `packages/plugin-mermaid`, `packages/ssg`
+- **Monorepo structure**: `packages/core` (main package), `packages/create-boltdocs`, `packages/plugin-mermaid`, `packages/plugin-ssg`, `packages/plugin-image-optimizer`, `packages/plugin-math`
 - **Package entrypoint**: `packages/core` - the main `boltdocs` package with CLI and core functionality
 - **CLI command**: `boltdocs` (bin: `bin/boltdocs.js`)
 
@@ -51,7 +51,7 @@ Boltdocs is a monorepo documentation framework using Turborepo, pnpm workspaces,
 ## SSG / Routing Architecture
 
 - **Route generation**: `packages/core/src/client/ssg/create-routes.tsx` — builds route tree from doc metadata, creates relative child routes under parent `/docs`, and injects fallback redirect routes for base paths like `/docs`
-- **SSG path collection**: `packages/ssg/src/node/utils.ts` (`routesToPaths`) — iterates routes and collects paths for SSG rendering. `path="."` (React Router's "same path as parent") is handled specially to produce the parent's path (e.g., `/docs`) instead of `prefix + "/."` (e.g., `/docs/.`)
-- **SSG render adapter**: `packages/ssg/src/node/router-adapter/remix.tsx` (`RemixAdapter.render`) — uses `createStaticHandler` from react-router-dom for SSR
+- **SSG path collection**: `packages/plugin-ssg/src/node/utils.ts` (`routesToPaths`) — iterates routes and collects paths for SSG rendering. `path="."` (React Router's "same path as parent") is handled specially to produce the parent's path (e.g., `/docs`) instead of `prefix + "/."` (e.g., `/docs/.`)
+- **SSG render adapter**: `packages/plugin-ssg/src/node/router-adapters/remix.tsx` (`RemixAdapter.render`) — uses `createStaticHandler` from react-router-dom for SSR
 - **Redirect routes**: Fallback routes for `/docs` (and version/locale variants) reuse the first matched route's `element` and `loader` instead of using `<Navigate>` or `redirect()`. This avoids hydration mismatches and loader data key conflicts client-side
 - **Key path rule**: `.` in React Router means "match the parent's URL path" — NOT a literal URL segment. SSG must account for this when mapping routes to static paths

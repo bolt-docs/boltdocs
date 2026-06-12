@@ -36,20 +36,42 @@ npx boltdocs generate-changelog CHANGELOG.md
 ## Core Workflow Commands
 
 ### `dev`
+
 Starts a high-performance local development server powered by Vite. Features instant Hot Module Replacement (HMR) for MDX files, stylesheet edits, and configuration hot-reloads.
 
-* **Usage:** `boltdocs dev [root]` (or simply `boltdocs [root]`)
+* **Usage:** `boltdocs dev [root] [options]` (or simply `boltdocs [root] [options]`)
 * **Default Directory:** `process.cwd()`
 
+#### Options
+
+| Option | Description |
+| :--- | :--- |
+| **`--port <number>`** | The port number the development server should listen on (defaults to `5173`). |
+| **`--host [address]`** | The host IP address the server should bind to (e.g. `0.0.0.0` or `true` to expose to the local network). |
+| **`--force`** | Force Vite to optimize and pre-bundle dependencies again, ignoring cache (maps to `optimizeDeps.force: true`). |
+
+---
+
 ### `build`
+
 Compiles documentation pages into highly optimized, fully static HTML and JavaScript assets via the React Static Site Generation (SSG) engine.
 
 * **Usage:** `boltdocs build [root]`
 
+---
+
 ### `preview`
+
 Serves the generated static production bundle from the local `dist/` directory, allowing you to test performance, redirects, SEO tags, and page rendering before deploying.
 
-* **Usage:** `boltdocs preview [root]`
+* **Usage:** `boltdocs preview [root] [options]`
+
+#### Options
+
+| Option | Description |
+| :--- | :--- |
+| **`--port <number>`** | The port number the preview server should listen on (defaults to `4173`). |
+| **`--host [address]`** | The host IP address the preview server should bind to. |
 
 ### `audit`
 Performs a fast static analysis of the source code of all active plugins. It scans for potentially sensitive behaviors like network calls or environment variable access, giving you total visibility before compiling final assets.

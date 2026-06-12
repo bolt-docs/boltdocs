@@ -11,7 +11,7 @@ The `<Callout>` component is used to draw a reader's attention to critical side-
 ## Usage
 
 ```mdx
-<Callout variant="note" title="Useful Tip">
+<Callout variant="note" title="Important Note">
   Here is a standard notice to provide context to the user.
 </Callout>
 ```
@@ -75,3 +75,4 @@ Used for breaking changes, security warnings, or critical risks.
 | :--- | :--- | :--- | :--- |
 | **`variant`** | `'note' \| 'info' \| 'tip' \| 'warning' \| 'danger'` | `'note'` | The visual style, icon, and colors applied to the callout container. |
 | **`title`** | `string` | *(Variant name)* | Bold label shown at the top of the callout box. |
+| **`children`** | `ReactNode` | — | The main content or body text rendered inside the callout block. |

@@ -12,7 +12,7 @@ Boltdocs wraps every MDX page in a layout. By default, it uses `DocsLayout` whic
 
 Create `docs/layout.tsx` in your docs folder:
 
-```tsx
+```tsx title="docs/layout.tsx"
 import { DocsLayout } from 'boltdocs/client'
 
 export default function Layout({ children }: { children: React.ReactNode }) {
@@ -28,7 +28,7 @@ This replaces the default layout for **all** pages in your docs.
 
 For complete control, build your own layout from primitives:
 
-```tsx
+```tsx title="docs/layout.tsx"
 import { Navbar, Sidebar, OnThisPage, Breadcrumbs, PageNav } from 'boltdocs/client'
 
 export default function CustomLayout({
@@ -110,7 +110,7 @@ export default function LandingLayout({
   children: React.ReactNode
 }) {
   return (
-    <div className="min-h-screen bg-gradient-to-b from-white to-zinc-50 dark:from-zinc-900 dark:to-zinc-950">
+    <div className="min-h-screen bg-linear-to-b from-white to-zinc-50 dark:from-zinc-900 dark:to-zinc-950">
       <Navbar />
       <SearchDialog />
       <main className="max-w-5xl mx-auto px-6 py-20">

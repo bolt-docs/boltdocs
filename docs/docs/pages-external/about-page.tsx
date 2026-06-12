@@ -3,15 +3,17 @@ import { Link } from 'boltdocs/primitives'
 import { useRef } from 'react'
 import { useGSAPStaggerIn } from '../../src/hooks/useGSAPScroll'
 import { Github } from '../../src/icons'
+import { NoiseOverlay } from '../../src/noise-overlay'
 
 export default function AboutPage() {
   const contentRef = useRef<HTMLDivElement>(null)
 
   // Apply a clean, minimalist vertical fade-up stagger on all child paragraphs/headers
-  useGSAPStaggerIn(contentRef, { stagger: 0.08, duration: 0.6, y: 15 })
+  useGSAPStaggerIn(contentRef, { stagger: 0.04, duration: 0.3, y: 8 })
 
   return (
-    <div className="font-sans antialiased min-h-screen bg-main text-body flex flex-col justify-start">
+    <div className="font-sans antialiased min-h-screen bg-main text-body flex flex-col justify-start relative">
+      <NoiseOverlay />
       <div className="max-w-2xl mx-auto px-6 py-28 md:py-36 w-full flex-grow">
         <div ref={contentRef} className="flex flex-col gap-10">
           {/* Header Metadata */}

@@ -1,6 +1,7 @@
 import { useRef } from 'react'
 import { Link } from 'boltdocs/primitives'
 import { useGSAPScroll } from './hooks/useGSAPScroll'
+import { NoiseOverlay } from './noise-overlay'
 
 export const Footer = () => {
   const topRef = useRef<HTMLDivElement>(null)
@@ -13,24 +14,22 @@ export const Footer = () => {
     intensity: 20,
   })
   useGSAPScroll(titleRef, {
-    animation: 'scale-up',
-    delay: 0.2,
-    duration: 1,
-    intensity: 5,
+    animation: 'fade-up',
+    delay: 0.05,
+    duration: 0.3,
+    intensity: 200,
   })
 
   return (
-    <footer className="w-full bg-surface text-body px-6 md:px-12 pt-20 pb-10 border-t border-white/5 relative overflow-hidden">
+    <footer className="w-full bg-main/95 backdrop-blur-2xl text-body px-6 md:px-12 pt-20 pb-10 border-t border-subtle relative overflow-hidden">
+      <NoiseOverlay />
       <div className="max-w-[1400px] mx-auto w-full">
         {/* Top Section */}
         <div
           ref={topRef}
           className="flex flex-col md:flex-row justify-between items-start gap-12 mb-20 opacity-0"
         >
-          <h2 className="text-xl md:text-2xl font-medium tracking-tight">
-            Experience documentation
-          </h2>
-
+          <span />
           <div className="grid grid-cols-2 gap-x-20 gap-y-3 text-sm font-medium">
             <div className="flex flex-col gap-3">
               <Link

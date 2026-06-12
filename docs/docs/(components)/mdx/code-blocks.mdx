@@ -107,3 +107,104 @@ The following syntax highlighting themes are supported out-of-the-box:
 
 - **Copy Code Button**: A floating copy button is automatically added to the top-right corner of every code block.
 - **Word Wrapping**: Long code lines overflow cleanly with a scrollbar or wrap when the `wordWrap` or `word-wrap` parameter is set.
+
+---
+
+## Customizing Code Blocks
+
+If the default code block layout, styling, or interactions do not fit your design system, you can easily build a fully custom code block component. 
+
+Boltdocs exposes the core state and logic of code blocks via the `useCodeBlock` hook, allowing you to focus purely on your custom visual rendering without having to rewrite complex highlighted HTML parsing, clipboard copy timers, expansion and truncation logic, or feedback form integrations.
+
+### 1. Registering a Custom Code Block
+
+To override the default code block component, register your custom component as the `pre` tag renderer in your `docs/mdx-components.tsx` file:
+
+```tsx title="docs/mdx-components.tsx"
+import { CustomCodeBlock } from '../src/components/CustomCodeBlock'
+
+export default {
+  pre: CustomCodeBlock,
+}
+```
+
+### 2. Building a Custom Code Block Component
+
+Use the `useCodeBlock` hook from `'boltdocs/client'` to access the resolved code block state and wrap the output in the layout primitives imported from `'boltdocs/primitives'`:
+
+```tsx title="src/components/CustomCodeBlock.tsx"
+import { useCodeBlock } from 'boltdocs/client'
+import { CodeBlock } from 'boltdocs/primitives'
+
+export function CustomCodeBlock(props) {
+  const {
+    preRef,
+    copied,
+    handleCopy,
+    effectiveTitle,
+    effectiveHighlightedHtml,
+    LangIcon,
+    isExpandable,
+    isExpanded,
+    setIsExpanded,
+    shouldTruncate,
+  } = useCodeBlock(props)
+
+  return (
+    <CodeBlock plain={props.plain}>
+      {effectiveTitle && (
+        <CodeBlock.Header>
+          <CodeBlock.Group>
+            {LangIcon && <LangIcon size={14} />}
+            <span>{effectiveTitle}</span>
+          </CodeBlock.Group>
+          
+          <button onClick={handleCopy}>
+            {copied ? 'Copied!' : 'Copy'}
+          </button>
+        </CodeBlock.Header>
+      )}
+
+      <CodeBlock.Content shouldTruncate={shouldTruncate}>
+        {effectiveHighlightedHtml ? (
+          <div
+            ref={preRef}
+            dangerouslySetInnerHTML={{ __html: effectiveHighlightedHtml }}
+          />
+        ) : (
+          <pre ref={preRef}>{props.children}</pre>
+        )}
+
+        {isExpandable && (
+          <button onClick={() => setIsExpanded(!isExpanded)}>
+            {isExpanded ? 'Show less' : 'Expand'}
+          </button>
+        )}
+      </CodeBlock.Content>
+    </CodeBlock>
+  )
+}
+```
+
+### 3. Hook API Reference (`useCodeBlock`)
+
+The `useCodeBlock` hook accepts the standard code block properties (passed from the MDX compiler) and returns the following state and resolved properties:
+
+| Property | Type | Description |
+| :--- | :--- | :--- |
+| **`copied`** | `boolean` | `true` if the code was recently copied to the clipboard (resets after 2 seconds). |
+| **`handleCopy`** | `() => void` | Copies the current plain text content of the code block to the clipboard. |
+| **`isExpanded`** | `boolean` | `true` if an expandable code block is currently expanded. |
+| **`setIsExpanded`** | `(val: boolean) => void` | Updates the expansion state of the code block. |
+| **`isExpandable`** | `boolean` | `true` if the code block exceeds 6 lines and supports expansion/truncation. |
+| **`shouldTruncate`** | `boolean` | Helper flag that is `true` when the block is expandable and not yet expanded. |
+| **`preRef`** | `RefObject<HTMLElement>` | A React Ref that MUST be attached to the container element rendering the code text or Shiki HTML. Used to read the copy text and compute line counts. |
+| **`isHighlighted`** | `boolean` | `true` if the code block is syntax-highlighted (e.g. via Shiki). |
+| **`effectiveHighlightedHtml`** | `string \| undefined` | The pre-processed and cleaned syntax-highlighted HTML string. Render using `dangerouslySetInnerHTML` if present. |
+| **`effectiveTitle`** | `string \| undefined` | The resolved title from the code block meta parameters. |
+| **`lang`** | `string` | The parsed language identifier of the code block (e.g., `'ts'`, `'json'`). |
+| **`showCodeBlockFeedback`** | `boolean` | `true` if code block feedback forms are enabled in `boltdocs.config.ts` and the block is not in plain mode. |
+| **`rated`** | `'up' \| 'down' \| null` | The current feedback rating submitted by the user. |
+| **`handleRate`** | `(type: 'up' \| 'down') => Promise<void>` | Callback function to submit feedback rating to the serverless endpoint. |
+| **`LangIcon`** | `ComponentType<{ size?: number }>` | The resolved React icon component matching the parsed code block language. |
+

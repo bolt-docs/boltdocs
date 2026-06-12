@@ -2,6 +2,7 @@ import { Banner, Navbar } from 'boltdocs/client'
 import { Footer } from '../../src/footer'
 import HomePage from './home-page'
 import AboutPage from './about-page'
+import ShowcasePage from './showcase-page'
 import { useLocation } from 'react-router-dom'
 import { ArrowRight } from 'lucide-react'
 
@@ -12,6 +13,7 @@ import { ArrowRight } from 'lucide-react'
 export const pages = {
   '/': HomePage,
   '/about': AboutPage,
+  '/showcase': ShowcasePage,
 }
 
 export const layout = ({ children }: { children: React.ReactNode }) => {
@@ -23,8 +25,8 @@ export const layout = ({ children }: { children: React.ReactNode }) => {
         dismissible
         className="group dark:bg-white dark:text-black h-[40px] bg-neutral-800 text-white transition-colors duration-200"
       >
-        New version 2.8.0 is out!{' '}
-        <a href="/blog/boltdocs-2.8.0" className="underline underline-offset-4">
+        New version 2.9.0 is out!{' '}
+        <a href="/blog/boltdocs-2.9.0" className="underline underline-offset-4">
           Read post
         </a>
         <span className="group-hover:translate-x-1 transition-transform duration-300">

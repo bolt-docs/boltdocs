@@ -4,7 +4,7 @@ sidebarPosition: 1
 description: Connect Boltdocs with external services — analytics, search, i18n, versioning, SEO, and more.
 ---
 
-import { BarChart, Tag, Globe, Search, GitBranch, Bot, FolderOpen } from 'lucide-react'
+import { BarChart, Tag, Globe, Search, GitBranch, Bot, FolderOpen, MessageSquare } from 'lucide-react'
 
 Boltdocs integrates with popular services and provides built-in features for search, localization, versioning, and SEO. This section covers all available integrations.
 
@@ -12,27 +12,49 @@ Boltdocs integrates with popular services and provides built-in features for sea
 
 ## Available Integrations
 
+### SEO & Analytics
 <Cards cols={3}>
-  <Card title="Google Analytics 4" icon={<BarChart />} href="/docs/integrations/ga4">
-    Track page views and custom events with GA4.
-  </Card>
-  <Card title="Google Tag Manager" icon={<Tag />} href="/docs/integrations/gtm">
-    Deploy and manage tags, analytics, and custom scripts with GTM.
-  </Card>
-  <Card title="Internationalization" icon={<Globe />} href="/docs/integrations/i18n">
-    Multi-language docs with folder-based routing.
-  </Card>
-  <Card title="Search" icon={<Search />} href="/docs/integrations/search">
-    Built-in full-text search — no external service needed.
-  </Card>
-  <Card title="Versioning" icon={<GitBranch />} href="/docs/integrations/versioning">
-    Multiple documentation versions side by side.
-  </Card>
-  <Card title="SEO & Robots" icon={<Bot />} href="/docs/integrations/robots-seo">
+  <Card title="SEO & Robots" icon={<Bot />} href="/docs/integrations/seo">
     Automatic sitemap, robots.txt, and meta tags.
   </Card>
-  <Card title="Collections" icon={<FolderOpen />} href="/docs/integrations/collections">
-    Group documents into blogs, updates, or tutorials with custom views.
+  <Card title="Google Analytics 4" icon={<BarChart />} href="/docs/integrations/seo/ga4">
+    Track page views and custom events with GA4.
+  </Card>
+  <Card title="Google Tag Manager" icon={<Tag />} href="/docs/integrations/seo/gtm">
+    Deploy and manage tags, analytics, and custom scripts with GTM.
+  </Card>
+</Cards>
+
+### Search
+<Cards cols={3}>
+  <Card title="Search Overview" icon={<Search />} href="/docs/integrations/search">
+    Built-in search architecture and customization options.
+  </Card>
+  <Card title="FlexSearch Custom UI" icon={<Search />} href="/docs/integrations/search/flexsearch">
+    Query offline indices programmatically and build custom search UIs.
+  </Card>
+  <Card title="Algolia DocSearch" icon={<Search />} href="/docs/integrations/search/algolia">
+    Integrate Algolia cloud search for advanced synonyms and analytics.
+  </Card>
+</Cards>
+
+### Globalization
+<Cards cols={2}>
+  <Card title="Internationalization" icon={<Globe />} href="/docs/integrations/globalization/i18n">
+    Multi-language docs with folder-based routing and RTL layouts.
+  </Card>
+  <Card title="Versioning" icon={<GitBranch />} href="/docs/integrations/globalization/versioning">
+    Maintain and switch between multiple parallel release versions.
+  </Card>
+</Cards>
+
+### Content Features
+<Cards cols={2}>
+  <Card title="Collections" icon={<FolderOpen />} href="/docs/integrations/features/collections">
+    Group documents into blogs, release notes, or tutorials with custom views.
+  </Card>
+  <Card title="Custom Feedback" icon={<MessageSquare />} href="/docs/integrations/features/feedback">
+    Native GitHub Discussion ratings and page-level comments.
   </Card>
 </Cards>
 
@@ -106,6 +128,7 @@ Page views are tracked automatically. Use the `useTrackEvent()` hook for custom 
 | Key | Type | Description |
 | :--- | :--- | :--- |
 | **`integrations.ga4`** | `GA4Config` | Google Analytics 4 settings |
+| **`integrations.feedback`** | `FeedbackConfig` | Custom feedback integration settings |
 | **`i18n`** | `I18nConfig` | Internationalization settings |
 | **`versions`** | `VersionsConfig` | Versioning settings |
 | **`seo`** | `SeoConfig` | Global SEO defaults |

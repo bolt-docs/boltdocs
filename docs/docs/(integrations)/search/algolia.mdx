@@ -1,0 +1,53 @@
+---
+title: Algolia DocSearch
+sidebarPosition: 3
+description: Integrate Algolia DocSearch to power your documentation with high-performance, cloud-hosted indexing.
+---
+
+For large documentation sites, you can replace the default local FlexSearch index with **Algolia DocSearch**. Algolia crawls your production documentation pages, indexes them on their cloud servers, and provides synonym mapping, advanced search analytics, and cloud-hosted speed.
+
+Algolia DocSearch is free for public open-source projects. You can apply for a container at [docsearch.algolia.com](https://docsearch.algolia.com/).
+
+---
+
+## Configuring Algolia
+
+To enable Algolia, register your credentials under the `integrations.algolia` key in `boltdocs.config.ts`:
+
+```ts title="boltdocs.config.ts"
+import { defineConfig } from 'boltdocs'
+
+export default defineConfig({
+  integrations: {
+    algolia: {
+      appId: 'YOUR_APP_ID',
+      apiKey: 'YOUR_SEARCH_ONLY_API_KEY', // Public search-only API key
+      indexName: 'YOUR_INDEX_NAME',
+    },
+  },
+})
+```
+
+Once configured, Boltdocs automatically hooks the search bar components (`SearchDialog` and the `useSearch` hook) to fetch query matches from Algolia instead of parsing the local FlexSearch offline index.
+
+---
+
+## Configuration Reference
+
+| Option | Type | Required | Description |
+| :--- | :--- | :--- | :--- |
+| **`appId`** | `string` | ✓ | Your Algolia Application ID (e.g. `'MX2L9K40B1'`). |
+| **`apiKey`** | `string` | ✓ | The search-only public API key. **Do not use your admin write API key here** as it is exposed in client bundles. |
+| **`indexName`** | `string` | ✓ | The name of the index containing your crawled pages (e.g. `'boltdocs'`). |
+
+---
+
+## Troubleshooting & Staging environments
+
+### Localhost returning zero results
+Algolia DocSearch relies on crawling your public production site. It does not index localhost, private URLs, or staging pipelines by default. 
+
+**Solution:** If you are testing locally, you can temporarily comment out the `algolia` configuration block. When the `algolia` config is missing, Boltdocs automatically falls back to utilizing the default client-side FlexSearch index so you can test search behaviors locally.
+
+### Analytics and Synonyms
+To customize search behaviors, dashboard synonyms, or inspect queries that users search for, log into the [Algolia Dashboard](https://www.algolia.com/dashboard) and navigate to the Search Analytics tab matching your configured `indexName`.

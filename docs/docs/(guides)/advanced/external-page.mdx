@@ -27,7 +27,7 @@ docs/
 
 In `pages-external/index.tsx`, export a `pages` object mapping URL paths to React components:
 
-```tsx
+```tsx title="pages-external/index.tsx"
 import HomePage from '../../src/pages/home-page'
 
 export const pages = {
@@ -46,7 +46,7 @@ export const pages = {
 
 You can also export a `layout` function to wrap all external pages:
 
-```tsx
+```tsx title="pages-external/index.tsx"
 import { Navbar, Sidebar } from 'boltdocs/client'
 import HomePage from '../../src/pages/home-page'
 
@@ -73,7 +73,7 @@ export const layout = ({ children }: { children: React.ReactNode }) => (
 
 Here's a complete `pages-external/index.tsx` with landing page and custom layout:
 
-```tsx
+```tsx title="pages-external/index.tsx"
 import { Navbar, Sidebar, SearchDialog } from 'boltdocs/client'
 import LandingPage from '../../src/pages/landing-page'
 import PricingPage from '../../src/pages/pricing-page'
@@ -98,7 +98,7 @@ export const layout = ({ children }: { children: React.ReactNode }) => (
 
 External pages can import any component exported from `boltdocs/client`:
 
-```tsx
+```tsx title="pages-external/index.tsx"
 import { Navbar, Sidebar, SearchDialog, Breadcrumbs } from 'boltdocs/client'
 ```
 

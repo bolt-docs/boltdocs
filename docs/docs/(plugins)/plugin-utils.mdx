@@ -1,0 +1,349 @@
+---
+title: Plugin Utilities
+sidebarPosition: 2
+description: Boltdocs exports a comprehensive set of utilities for traversing and manipulating MDX AST nodes. These functions let you inspect, transform, and generate AST nodes without importing low-level unified libraries directly.*.
+---
+
+All utilities are imported from the `boltdocs` package:
+
+```ts
+import {
+  // Visitors
+  visitNodes,
+  visitMdxElements,
+  visitRehypeElements,
+  visitRemarkHeadings,
+  visitRemarkLinks,
+
+  // Builders
+  createMdxElement,
+  createMdxAttribute,
+  createRehypeElement,
+
+  // Properties
+  setNodeProperty,
+  getNodeProperty,
+  addNodeClass,
+  removeNodeClass,
+  hasNodeClass,
+
+  // Constants & Symbols
+  MDX_NODES,
+  SKIP,
+  EXIT,
+} from 'boltdocs'
+```
+
+---
+
+## AST Visitors
+
+### `visitNodes(tree, test, callback)`
+
+A type-safe wrapper around `unist-util-visit` for traversing the AST.
+
+```ts
+function visitNodes<T extends Node>(
+  tree: Node,
+  test: string | string[] | ((node: Node) => boolean),
+  callback: (node: T, index: number, parent: Parent) => void | symbol,
+): void
+```
+
+| Parameter | Type | Description |
+| :--- | :--- | :--- |
+| **`tree`** | `Node` | The root AST node to traverse. |
+| **`test`** | `string \| string[] \| (node) => boolean` | A node type string, array of types, or predicate function to filter nodes. |
+| **`callback`** | `(node, index, parent) => void` | Called for each matching node. Return `SKIP` or `EXIT` to control traversal. |
+
+**Example:** Replace code blocks with a custom component:
+
+```ts
+import { visitNodes, createMdxElement, SKIP, MDX_NODES } from 'boltdocs'
+
+visitNodes(tree, MDX_NODES.CODE, (node, index, parent) => {
+  if (node.lang !== 'custom') return
+  parent.children[index] = createMdxElement('CustomBlock', {
+    value: node.value,
+  }, [], true)
+  return SKIP
+})
+```
+
+### `visitMdxElements(tree, name, callback)`
+
+Visits MDX JSX elements (both flow and text elements) matching a component name.
+
+```ts
+function visitMdxElements(
+  tree: Node,
+  name: string | string[],
+  callback: (node: MdxJsxElement, index: number, parent: Parent) => void | symbol,
+): void
+```
+
+**Example:** Find all `Note` components in the tree:
+
+```ts
+visitMdxElements(tree, 'Note', (node, index, parent) => {
+  console.log('Found <Note> at index', index)
+})
+```
+
+### `visitRehypeElements(tree, tagName, callback)`
+
+Visits rehype HTML element nodes matching a tag name.
+
+```ts
+function visitRehypeElements(
+  tree: Node,
+  tagName: string,
+  callback: (node: ElementNode, index: number, parent: Parent) => void | symbol,
+): void
+```
+
+**Example:** Transform all `pre` elements:
+
+```ts
+visitRehypeElements(tree, 'pre', (node, index, parent) => {
+  node.properties = { ...node.properties, class: 'code-block' }
+})
+```
+
+### `visitRemarkHeadings(tree, callback)`
+
+Visits all heading nodes in the remark AST.
+
+```ts
+function visitRemarkHeadings(
+  tree: Node,
+  callback: (node: any, index: number, parent: Parent) => void | symbol,
+): void
+```
+
+**Example:** Generate a table of contents:
+
+```ts
+const headings: string[] = []
+visitRemarkHeadings(tree, (node) => {
+  const text = node.children?.map((c: any) => c.value).join('')
+  headings.push(text)
+})
+```
+
+### `visitRemarkLinks(tree, callback)`
+
+Visits all link nodes in the remark AST.
+
+```ts
+function visitRemarkLinks(
+  tree: Node,
+  callback: (node: any, index: number, parent: Parent) => void | symbol,
+): void
+```
+
+**Example:** Collect all external links:
+
+```ts
+visitRemarkLinks(tree, (node) => {
+  if (node.url?.startsWith('http')) {
+    console.log('External link:', node.url)
+  }
+})
+```
+
+---
+
+## AST Builders
+
+### `createMdxElement(name, attributes?, children?, isFlow?)`
+
+Creates an MDX JSX element node. This is the primary way to inject custom React components into the MDX AST.
+
+```ts
+function createMdxElement(
+  name: string,
+  attributes?: Record<string, unknown>,
+  children?: Node[],
+  isFlow?: boolean,
+): MdxJsxElement
+```
+
+| Parameter | Type | Default | Description |
+| :--- | :--- | :--- | :--- |
+| **`name`** | `string` | — | The React component name (e.g. `'Math'`, `'Mermaid'`). |
+| **`attributes`** | `Record<string, unknown>` | `{}` | Component props. Objects become `mdxJsxAttributeValueExpression`. |
+| **`children`** | `Node[]` | `[]` | Child AST nodes. |
+| **`isFlow`** | `boolean` | `true` | `true` for block-level (`mdxJsxFlowElement`), `false` for inline (`mdxJsxTextElement`). |
+
+**Example:** Create an inline `<Math>` component:
+
+```ts
+createMdxElement('Math', {}, [{ type: 'text', value: 'E = mc^2' }], false)
+// → { type: 'mdxJsxTextElement', name: 'Math', attributes: [], children: [...] }
+```
+
+**Example:** Create a block component with attributes:
+
+```ts
+createMdxElement('Mermaid', {
+  chart: 'graph TD; A-->B',
+  config: { theme: 'dark' },
+}, [], true)
+```
+
+### `createMdxAttribute(name, value)`
+
+Creates a single MDX JSX attribute node.
+
+```ts
+function createMdxAttribute(name: string, value: unknown): MdxJsxAttribute
+```
+
+If `value` is an object, it is wrapped as an `MdxJsxAttributeValueExpression`. Otherwise it is stringified.
+
+### `createRehypeElement(tagName, properties?, children?)`
+
+Creates a rehype HTML element node for the HAST tree.
+
+```ts
+function createRehypeElement(
+  tagName: string,
+  properties?: Record<string, unknown>,
+  children?: Node[],
+): ElementNode
+```
+
+**Example:** Create a `<div class="wrapper">`:
+
+```ts
+createRehypeElement('div', { class: 'wrapper' }, [
+  { type: 'text', value: 'content' },
+])
+```
+
+---
+
+## Node Properties
+
+### `setNodeProperty(node, key, value)`
+
+Sets an HTML property on a node via `node.data.hProperties`.
+
+```ts
+function setNodeProperty(node: NodeWithHProperties, key: string, value: unknown): void
+```
+
+**Example:** Add a CSS class to a code block:
+
+```ts
+setNodeProperty(node, 'class', 'highlighted')
+```
+
+### `getNodeProperty(node, key)`
+
+Reads an HTML property from `node.data.hProperties`.
+
+```ts
+function getNodeProperty(node: NodeWithHProperties, key: string): unknown
+```
+
+### `addNodeClass(node, className)`
+
+Adds a CSS class name to a rehype element node.
+
+```ts
+function addNodeClass(node: ElementNode, className: string): void
+```
+
+Handles both string and array representations of `properties.className`.
+
+### `removeNodeClass(node, className)`
+
+Removes a CSS class from a rehype element node.
+
+```ts
+function removeNodeClass(node: ElementNode, className: string): void
+```
+
+### `hasNodeClass(node, className)`
+
+Checks whether a rehype element node has a specific CSS class.
+
+```ts
+function hasNodeClass(node: ElementNode, className: string): boolean
+```
+
+---
+
+## Constants & Symbols
+
+### `MDX_NODES`
+
+A constant map of all MDX and MDAST node type strings. Use these instead of raw strings to benefit from type checking and rename safety.
+
+```ts
+const MDX_NODES = {
+  ROOT: 'root',
+  ELEMENT: 'element',
+  TEXT: 'text',
+  CODE: 'code',
+  INLINE_CODE: 'inlineCode',
+  HEADING: 'heading',
+  PARAGRAPH: 'paragraph',
+  LINK: 'link',
+  IMAGE: 'image',
+  LIST: 'list',
+  LIST_ITEM: 'listItem',
+  JSX_FLOW_ELEMENT: 'mdxJsxFlowElement',
+  JSX_TEXT_ELEMENT: 'mdxJsxTextElement',
+  JSX_ATTRIBUTE: 'mdxJsxAttribute',
+  FLOW_EXPRESSION: 'mdxFlowExpression',
+  TEXT_EXPRESSION: 'mdxTextExpression',
+  ESM: 'mdxjsEsm',
+} as const
+```
+
+**Example:**
+
+```ts
+visitNodes(tree, MDX_NODES.CODE, callback)
+// instead of
+visitNodes(tree, 'code', callback)
+```
+
+### `SKIP` and `EXIT`
+
+Control symbols re-exported from `unist-util-visit` for managing traversal flow.
+
+| Symbol | Effect |
+| :--- | :--- |
+| **`SKIP`** | Prevents visiting children of the current node. |
+| **`EXIT`** | Immediately stops traversal of the entire tree. |
+
+**Example:**
+
+```ts
+import { visitNodes, SKIP, EXIT, MDX_NODES } from 'boltdocs'
+
+visitNodes(tree, MDX_NODES.CODE, (node, index, parent) => {
+  if (node.lang === 'ignore') return SKIP  // don't visit children
+  if (node.value.includes('STOP')) return EXIT  // stop entirely
+})
+```
+
+---
+
+## FAQ
+
+### Can I import `unist-util-visit` directly instead of using `visitNodes`?
+
+Yes, but `visitNodes` provides type-safe generics, array-based type filtering, and consistent `SKIP`/`EXIT` handling. Prefer it over the raw library for Boltdocs plugin development.
+
+### Do I need to handle `mdxJsxFlowElement` and `mdxJsxTextElement` separately?
+
+When using `visitMdxElements` both types are checked automatically. If you use `visitNodes` directly, pass both types:
+
+```ts
+visitNodes(tree, [MDX_NODES.JSX_FLOW_ELEMENT, MDX_NODES.JSX_TEXT_ELEMENT], callback)
+```

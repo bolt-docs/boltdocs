@@ -196,17 +196,6 @@ export default defineConfig({
 
 ---
 
-## Ecosystem
-
-| Package | npm | Description |
-|---------|-----|-------------|
-| **boltdocs** | [npm](https://www.npmjs.com/package/boltdocs) | Core framework (this package) |
-| **@bdocs/ssg** | [npm](https://www.npmjs.com/package/@bdocs/ssg) | Standalone SSG engine for React Router |
-| **@bdocs/plugin-mermaid** | [npm](https://www.npmjs.com/package/@bdocs/plugin-mermaid) | Mermaid diagram plugin |
-| **create-boltdocs** | [npm](https://www.npmjs.com/package/create-boltdocs) | Project scaffolding tool |
-
----
-
 ## Contributing
 
 We welcome contributions! Check out the [Contributing Guide](CONTRIBUTING.md) to get started.

@@ -1,9 +1,11 @@
 import { defineConfig } from 'boltdocs'
 import mermaidPlugin from '@bdocs/plugin-mermaid'
+import mathPlugin from '@bdocs/plugin-math'
 
 export default defineConfig({
   base: '/docs',
   plugins: [
+    mathPlugin(),
     mermaidPlugin({
       themes: {
         light: {
@@ -47,7 +49,7 @@ export default defineConfig({
   theme: {
     title: 'Boltdocs',
     description:
-      'Building documentation for your project has never been easier, with boltdocs you can create beautiful documentation, 80% customizable, with 15+ components.',
+      'Building documentation for your project has never been easier. Create beautiful, highly customizable, and extremely fast sites out of the box.',
     codeTheme: {
       light: 'github-light',
       dark: 'github-dark',
@@ -84,6 +86,10 @@ export default defineConfig({
           },
         ],
       },
+      {
+        label: 'Showcase',
+        href: '/showcase',
+      },
     ],
     editLink:
       'https://github.com/jesusalcaladev/boltdocs/edit/main/docs/docs/:path',
@@ -101,6 +107,13 @@ export default defineConfig({
   integrations: {
     ga4: {
       measurementId: 'G-WRBYHMBDYQ',
+    },
+    feedback: {
+      custom: {
+        enabled: true,
+        owner: 'bolt-docs',
+        repo: 'boltdocs',
+      },
     },
   },
 })

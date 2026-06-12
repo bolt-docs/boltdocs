@@ -128,7 +128,7 @@ void main(){
 }
 `
 
-export const Grainient: React.FC<GrainientProps> = ({
+export const Grainient: React.FC<GrainientProps & { animated?: boolean }> = ({
   timeSpeed = 0.25,
   colorBalance = 0.0,
   warpStrength = 1.0,
@@ -152,7 +152,9 @@ export const Grainient: React.FC<GrainientProps> = ({
   color2 = '#5227FF',
   color3 = '#B497CF',
   className = '',
+  animated = true,
 }) => {
+  const effectiveTimeSpeed = animated ? timeSpeed : 0
   const containerRef = useRef<HTMLDivElement | null>(null)
 
   useEffect(() => {
@@ -181,7 +183,7 @@ export const Grainient: React.FC<GrainientProps> = ({
       uniforms: {
         iTime: { value: 0 },
         iResolution: { value: new Float32Array([1, 1]) },
-        uTimeSpeed: { value: timeSpeed },
+        uTimeSpeed: { value: effectiveTimeSpeed },
         uColorBalance: { value: colorBalance },
         uWarpStrength: { value: warpStrength },
         uWarpFrequency: { value: warpFrequency },
@@ -242,7 +244,7 @@ export const Grainient: React.FC<GrainientProps> = ({
       }
     }
   }, [
-    timeSpeed,
+    effectiveTimeSpeed,
     colorBalance,
     warpStrength,
     warpFrequency,

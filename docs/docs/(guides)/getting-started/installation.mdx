@@ -48,7 +48,7 @@ echo "# Hello, Boltdocs!" > docs/index.md
 
 Create `boltdocs.config.ts` in the root of your project:
 
-```ts
+```ts title="boltdocs.config.ts"
 import { defineConfig } from 'boltdocs'
 
 export default defineConfig({
@@ -66,7 +66,7 @@ This file is the single source of truth for your documentation site. You don't n
 
 ## Add Scripts to `package.json`
 
-```json
+```json title="package.json"
 {
   "scripts": {
     "docs:dev": "boltdocs",

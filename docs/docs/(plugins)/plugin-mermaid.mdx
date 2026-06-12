@@ -1,13 +1,7 @@
 ---
 title: Mermaid Diagrams
-sidebarPosition: 2
-description: Render interactive Mermaid diagrams in your MDX documentation using the @bdocs/plugin-mermaid plugin.
----
-
-# Mermaid Diagrams
-
-*The `@bdocs/plugin-mermaid` plugin integrates Mermaid.js into Boltdocs. It automatically transforms standard `mermaid` code blocks into interactive, responsive diagrams that dynamically sync with your light and dark theme preferences.*
-
+sidebarPosition: 3
+description: The `@bdocs/plugin-mermaid` plugin integrates Mermaid.js into Boltdocs. It automatically transforms standard `mermaid` code blocks into interactive, responsive diagrams that dynamically sync with your light and dark theme preferences.
 ---
 
 ## Installation & Quick Start
@@ -22,8 +16,7 @@ pnpm add @bdocs/plugin-mermaid
 ### 2. Register the plugin
 Add the plugin to the `plugins` array in your configuration file:
 
-```ts
-// boltdocs.config.ts
+```ts title="boltdocs.config.ts"
 import { defineConfig } from 'boltdocs'
 import mermaidPlugin from '@bdocs/plugin-mermaid'
 
@@ -105,8 +98,7 @@ Properties supported when using the `<Mermaid />` React component directly in MD
 
 You can customize themes by passing variable overrides directly:
 
-```ts
-// boltdocs.config.ts
+```ts title="boltdocs.config.ts"
 import { defineConfig } from 'boltdocs'
 import mermaidPlugin from '@bdocs/plugin-mermaid'
 
@@ -145,7 +137,7 @@ For advanced layouts, you can invoke the JSX component directly:
 ```
 
 <Callout variant="info" title="Syntax Recommendation">
-  While both markdown blocks and JSX tag variants produce matching outputs, we recommend standard markdown code blocks (` ```mermaid `) for maximum readability in code editors.
+  While both markdown blocks and JSX tag variants produce matching outputs, we recommend standard markdown code blocks (```` ```mermaid ````) for maximum readability in code editors.
 </Callout>
 
 ---
@@ -154,7 +146,7 @@ For advanced layouts, you can invoke the JSX component directly:
 
 ### Diagrams fail to render
 * **Verify Configuration:** Ensure `mermaidPlugin()` is registered in your `boltdocs.config.ts` plugins array.
-* **Verify Language Identifier:** The opening of your markdown code block must be exactly ` ```mermaid `.
+* **Verify Language Identifier:** The opening of your markdown code block must be exactly ```` ```mermaid ````.
 * **Check Syntax:** Check your web browser console for syntax errors raised by the Mermaid compiler (e.g. unclosed parentheses or typos in node connections).
 
 ### Themes do not sync

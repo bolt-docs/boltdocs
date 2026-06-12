@@ -25,3 +25,59 @@ Without `-s`, `serve` correctly resolves URL paths to their corresponding genera
 **Production deployments**
 
 This issue does not occur on production platforms like **Vercel**, **Netlify**, or **Cloudflare Pages** — they all handle clean-URL-to-file resolution correctly by default. The `-s` flag behavior is specific to local testing with the `serve` package.
+
+---
+
+### Custom Feedback throws "body stream already read" error
+
+If your page or code-block feedback form triggers a red validation error stating `Failed to execute 'text' on 'Response': body stream already read`.
+
+**Why this happens**
+
+This is caused by client-side response parsing bugs in older versions of the `boltdocs` core package. When an API route fails (e.g., returns `404` or `500`), the client hook attempted to parse the error payload as JSON first and then immediately read it as plain text if it failed, exhausting the response stream.
+
+**Fix**
+
+Upgrade your `boltdocs` dependency in `package.json` to `v2.8.4` or later, which correctly clones or reads the stream once:
+
+```bash
+pnpm add boltdocs@latest
+```
+
+---
+
+### Feedback fails with `404` or `505` in production
+
+When you submit a rating or comment on your live deployed site, the network tab shows that the POST request to `/api/feedback` fails with a `404 Not Found` or `405 Method Not Allowed`.
+
+**Why this happens**
+
+Since Boltdocs builds fully static sites (SSG), there is no backend server running in production to receive POST requests. 
+
+**Fix**
+
+To resolve this, you must set up a serverless function endpoint on your hosting platform to receive the feedback request and forward it to GitHub securely.
+- **For Vercel:** Create a file at `api/feedback.ts` containing:
+  ```ts title="api/feedback.ts"
+  import { handleVercelFeedback } from 'boltdocs'
+  export default handleVercelFeedback
+  ```
+- **For Cloudflare Workers:** Create a file at `functions/feedback/index.ts` containing:
+  ```ts title="functions/feedback/index.ts"
+  import { handleWebFeedback } from 'boltdocs'
+  export default handleWebFeedback
+  ```
+- **For Netlify:** Create a file at `netlify/functions/feedback.ts` containing:
+  ```ts title="netlify/functions/feedback.ts"
+  import { handleNetlifyFeedback } from 'boltdocs'
+  export default handleNetlifyFeedback
+  ```
+- **For AWS Lambda:** Create a file at `lambda/feedback/index.ts` containing:
+  ```ts title="lambda/feedback/index.ts"
+  import { handleAwsFeedback } from 'boltdocs'
+  export default handleAwsFeedback
+  ```
+- **For Environment Variables:** Make sure you have configured `BOLTDOCS_GITHUB_TOKEN`, `BOLTDOCS_GITHUB_REPO_OWNER`, and `BOLTDOCS_GITHUB_REPO_NAME` in your deployment settings.
+- **Local Testing:** Test your production builds locally using `boltdocs preview` (which automatically supports the `/api/feedback` endpoint) rather than a dummy static server like the `serve` package.
+
+

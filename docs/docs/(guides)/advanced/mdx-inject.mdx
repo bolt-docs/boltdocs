@@ -1,5 +1,5 @@
 ---
-title: MDX Components Registry
+title: MDX Components
 sidebarPosition: 6
 description: Inject custom React components globally or override default HTML tags using the mdx-components.tsx registry.
 ---
@@ -80,7 +80,7 @@ You can override standard Markdown tags by mapping the HTML tag names to your cu
 | :--- | :--- | :--- |
 | `h1`–`h6` | `#` to `######` | Headers |
 | `a` | `[Link]\(...\)` | Anchor links |
-| `pre` | ` ``` ` | Code block wrappers |
+| `pre` | ```` ``` ```` | Code block wrappers |
 | `code` | `` `code` `` | Inline code code tags |
 | `img` | `![Alt]\(...\)` | Images |
 | `table` | Tables | Table containers |
@@ -117,4 +117,4 @@ export default function myPlugin(): BoltdocsPlugin {
 }
 ```
 
-Refer to the [Mermaid Plugin](/docs/components/mdx/mermaid) for a real-world example of plugin-based component injection.
+Refer to the [Mermaid Plugin](/docs/plugins/plugin-mermaid) for a real-world example of plugin-based component injection.

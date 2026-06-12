@@ -74,6 +74,21 @@ sidebarPosition: 1
   If both a numeric prefix and `sidebarPosition` exist, the frontmatter value takes precedence.
 </Callout>
 
+### Group vs. Ungrouped Sorting (Interleaving)
+
+Boltdocs merges folder groups and ungrouped pages (like `troubleshooting.mdx` or `index.mdx` located in the root of a tab directory) into a single sorted list:
+* **Ungrouped items** use their `sidebarPosition` (defaults to `999` if not set).
+* **Folder groups** use the `order` property defined in their `meta.json` file (defaults to `999` if not set).
+* Everything is sorted numerically ascending. If positions are identical, links come before groups.
+
+For example, if you set:
+* `index.mdx` (Overview) $\rightarrow$ `sidebarPosition: 1`
+* `getting-started/` folder $\rightarrow$ `order: 1` in `meta.json`
+* `advanced/` folder $\rightarrow$ `order: 2` in `meta.json`
+* `troubleshooting.mdx` $\rightarrow$ `sidebarPosition: 20`
+
+They will render in the sidebar in that exact order, keeping `Troubleshooting` at the absolute bottom.
+
 ---
 
 ## Excluding Files
@@ -235,7 +250,7 @@ On startup, Boltdocs prioritizes:
 ## How Routes Are Built
 
 ```mermaid title="Route Building"
- flowd`chart TD
+  flowchart TD
   A["Scan docs/ with fdir"] --> B["Filter: .md / .mdx only"]
   B --> C["Filter: Exclude _ prefixed paths"]
   C --> D["Priority sort"]

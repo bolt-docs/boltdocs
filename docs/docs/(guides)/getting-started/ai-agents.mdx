@@ -1,0 +1,94 @@
+---
+title: AI Agents & Skills
+sidebarPosition: 5
+description: Teach your AI pair-programmer the Boltdocs architecture, routing, components, and styling conventions so it gives you better, more relevant suggestions.
+---
+
+Every AI assistant is only as smart as the context you give it. Whether you use **Cursor**, **Claude Code**, **GitHub Copilot**, or **Gemini Code Assist**, our structured skill teaches your tool how Boltdocs works under the hood—so it stops guessing and starts generating code that fits your project.
+
+The skill is a set of markdown files that act as a localized knowledge base. AI tools read them to learn about `boltdocs.config.ts`, file-system routing, built-in MDX components, and the Tailwind CSS v4 styling system.
+
+---
+
+## What's Inside
+
+The skill is organized into a main entrypoint file and four focused reference guides. Each guide covers one area of the framework so the AI loads only what it needs:
+
+| File | What It Teaches the AI |
+| :--- | :--- |
+| [`SKILL.md`](https://github.com/jesus-alcala/boltdocs/blob/develop/skills/boltdocs/SKILL.md) | When to activate the skill — editing config, adding docs pages, writing MDX components, or changing styles. |
+| [`configuration.md`](https://github.com/jesus-alcala/boltdocs/blob/develop/skills/boltdocs/references/configuration.md) | Writing and maintaining `boltdocs.config.ts` — `defineConfig`, site metadata, theme, plugins, and tab structure. |
+| [`routing.md`](https://github.com/jesus-alcala/boltdocs/blob/develop/skills/boltdocs/references/routing.md) | File-system routing inside `docs/`, sidebar groups, `meta.json` folder configuration, and tab alignment. |
+| [`components.md`](https://github.com/jesus-alcala/boltdocs/blob/develop/skills/boltdocs/references/components.md) | Built-in MDX components (Callout, Cards, Mermaid), code block titles, math equations, and global component injection via `mdx-components.tsx`. |
+| [`styling.md`](https://github.com/jesus-alcala/boltdocs/blob/develop/skills/boltdocs/references/styling.md) | Tailwind CSS v4 theme tokens, semantic color mappings, dark mode overrides, and Biome-safe custom variant syntax. |
+
+---
+
+## Installation
+
+We ship an automated installer script `install-ai-agents.sh` at the project root. It copies the skill files to the folder your AI environment expects.
+
+### Quick Install (Standalone)
+
+If you're adding the skill to an existing Boltdocs project without cloning the framework repository:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/jesus-alcala/boltdocs/develop/install-ai-agents.sh | bash
+```
+
+The script detects whether local skill files exist. If they don't, it downloads them from GitHub automatically.
+
+### Install from a Cloned Repository
+
+If you have the Boltdocs repository cloned, run the script directly — it uses the local files so the skill always matches your checkout:
+
+```bash
+./install-ai-agents.sh
+```
+
+<Callout variant="tip" title="Pro Tip">
+  Run the installer from your **project's root directory**, not the Boltdocs framework directory. The `--output-dir` flag lets you point it anywhere.
+</Callout>
+
+---
+
+## Script Reference
+
+The installer supports these flags for automated or CI workflows:
+
+| Flag | Value | Description |
+| :--- | :--- | :--- |
+| `-t, --target` | `cursor`, `claude`, `copilot`, `agents`, `all` | Which editor or AI environment to configure. |
+| `-o, --output-dir` | `<path>` | Custom installation directory (overrides default paths). |
+| `-y, --yes` | — | Non-interactive mode — skips prompts and confirms automatically. |
+| `-h, --help` | — | Print usage information and exit. |
+
+### Default Target Directories
+
+| Target | Installation Path |
+| :--- | :--- |
+| `cursor` | `.cursor/skills/boltdocs/` |
+| `claude` | `.claude/skills/boltdocs/` |
+| `copilot` | `.copilot/skills/boltdocs/` |
+| `agents` (Gemini) | `.agents/skills/boltdocs/` |
+
+### Example: Install for Claude in CI
+
+```bash
+./install-ai-agents.sh --target claude --yes
+```
+
+---
+
+import { Bot, HelpCircle } from 'lucide-react'
+
+## What's Next?
+
+<Cards cols={2}>
+  <Card title="Plugin System" href="/docs/plugins" icon={<Bot />}>
+    Extend your project by writing custom Remark, Rehype, and Vite plugins.
+  </Card>
+  <Card title="Troubleshooting" href="/docs/guides/troubleshooting" icon={<HelpCircle />}>
+    Resolve common configuration mismatches or SSG bundle warnings.
+  </Card>
+</Cards>

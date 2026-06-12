@@ -1,0 +1,293 @@
+---
+title: Math Equations
+sidebarPosition: 4
+description: Render LaTeX math equations in your MDX documentation using the @bdocs/plugin-math plugin.
+badge: "New"
+---
+
+*The `@bdocs/plugin-math` plugin integrates KaTeX into Boltdocs. It automatically transforms standard LaTeX delimiters (`$` and `$$`) into beautifully rendered math equations at build time, with zero configuration required.*
+
+---
+
+## Live Demo
+
+Here is inline math: $E = mc^2$, and block math:
+
+$$
+\sum_{k=1}^{\infty} \frac{1}{k^2} = \frac{\pi^2}{6}
+$$
+
+The quadratic formula $x = \frac{-b \pm \sqrt{b^2 - 4ac}}{2a}$ finds the roots of $ax^2 + bx + c = 0$.
+
+---
+
+## Installation & Quick Start
+
+Get started by adding the plugin package to your documentation project.
+
+### 1. Install the package
+
+```sh
+pnpm add @bdocs/plugin-math
+```
+
+### 2. Register the plugin
+
+Add the plugin to the `plugins` array in your configuration file:
+
+```ts title="boltdocs.config.ts"
+import { defineConfig } from 'boltdocs'
+import mathPlugin from '@bdocs/plugin-math'
+
+export default defineConfig({
+  plugins: [mathPlugin()],
+})
+```
+
+---
+
+## Concepts & Architecture
+
+The math plugin uses a build-time transformation pipeline to keep your pages fast:
+
+1. **AST Transformation:** When Boltdocs parses your MDX files, the plugin's Remark compiler scans text nodes for `$...$` and `$$...$$` delimiters. It transforms them into `<Math>` and `<BlockMath>` React components directly in the MDX AST.
+
+2. **Client-Side Rendering:** KaTeX renders the LaTeX expressions to semantic HTML at runtime via `katex.renderToString()`. The result is injected using `dangerouslySetInnerHTML` — no iframes, no layout shifts.
+
+3. **CSS via CDN:** KaTeX styles are loaded from a CDN, keeping your bundle lean. Import the stylesheet from `@bdocs/plugin-math/style.css` if your bundler supports CSS imports.
+
+---
+
+## Usage
+
+### Inline Math
+
+Wrap short expressions with a single `$` delimiter:
+
+```mdx
+The famous equation $E = mc^2$ relates energy and mass.
+```
+
+### Block Math
+
+Use `$$` delimiters for standalone centered equations:
+
+```mdx
+$$
+\sum_{i=1}^{n} i = \frac{n(n+1)}{2}
+$$
+```
+
+### Fractions
+
+```mdx
+$$
+\frac{a}{b} \quad \frac{x + y}{x - y}
+$$
+```
+
+### Summations and Products
+
+```mdx
+$$
+\sum_{k=0}^{\infty} \frac{1}{k^2} = \frac{\pi^2}{6}
+\qquad
+\prod_{i=1}^{n} x_i
+$$
+```
+
+### Integrals
+
+```mdx
+$$
+\int_{a}^{b} f(x) \, dx
+\qquad
+\oint_{C} \vec{F} \cdot d\vec{r}
+$$
+```
+
+### Matrices
+
+```mdx
+$$
+\begin{pmatrix}
+a_{11} & a_{12} & \dots & a_{1n} \\
+a_{21} & a_{22} & \dots & a_{2n} \\
+\vdots & \vdots & \ddots & \vdots \\
+a_{m1} & a_{m2} & \dots & a_{mn}
+\end{pmatrix}
+$$
+```
+
+### Systems of Equations
+
+```mdx
+$$
+\begin{cases}
+x + y = 10 \\
+x - y = 4
+\end{cases}
+$$
+```
+
+### Combined Example
+
+```mdx
+The quadratic formula $x = \frac{-b \pm \sqrt{b^2 - 4ac}}{2a}$ gives
+the roots of $ax^2 + bx + c = 0$. The discriminant is:
+
+$$
+\Delta = b^2 - 4ac
+$$
+
+When $\Delta > 0$, there are two distinct real roots.
+```
+
+---
+
+## API Reference
+
+### Plugin Options
+
+The `mathPlugin()` function accepts no options. It works out of the box with zero configuration.
+
+### Math Component
+
+Properties supported when using the `<Math />` React component directly in MDX.
+
+| Property | Type | Default | Description |
+| :--- | :--- | :--- | :--- |
+| **`children`** | `string` | `(Required)` | The LaTeX expression to render inline. |
+
+### BlockMath Component
+
+Properties supported when using the `<BlockMath />` React component directly.
+
+| Property | Type | Default | Description |
+| :--- | :--- | :--- | :--- |
+| **`children`** | `string` | `(Required)` | The LaTeX expression to render as a block. |
+
+### Component Syntax
+
+For advanced use cases, you can invoke the JSX components directly:
+
+```mdx
+Inline: <Math>E = mc^2</Math>
+
+Block: <BlockMath>\sum_{i=1}^{n} i</BlockMath>
+```
+
+---
+
+## KaTeX Quick Reference
+
+Common LaTeX commands supported by KaTeX:
+
+### Fractions and Roots
+
+| Command | Description |
+| :--- | :--- |
+| `\frac{a}{b}` | Fraction |
+| `\sqrt{x}` | Square root |
+| `\sqrt[n]{x}` | Nth root |
+
+### Greek Letters
+
+| Command | Description |
+| :--- | :--- |
+| `\alpha` | Alpha |
+| `\beta` | Beta |
+| `\gamma` | Gamma |
+| `\delta` | Delta |
+| `\theta` | Theta |
+| `\pi` | Pi |
+| `\sigma` | Sigma |
+| `\phi` | Phi |
+| `\omega` | Omega |
+
+### Operators
+
+| Command | Description |
+| :--- | :--- |
+| `\sum` | Summation |
+| `\prod` | Product |
+| `\int` | Integral |
+| `\oint` | Contour integral |
+| `\lim` | Limit |
+| `\log` | Logarithm |
+| `\sin` | Sine |
+| `\cos` | Cosine |
+
+### Delimiters
+
+| Command | Description |
+| :--- | :--- |
+| `\left( ... \right)` | Adaptive parentheses |
+| `\left[ ... \right]` | Adaptive brackets |
+| `\lbrace ... \rbrace` | Braces |
+| `\langle ... \rangle` | Angle brackets |
+
+### Symbols
+
+| Command | Description |
+| :--- | :--- |
+| `\infty` | Infinity |
+| `\partial` | Partial derivative |
+| `\nabla` | Gradient (nabla) |
+| `\approx` | Approximately equal |
+| `\neq` | Not equal |
+| `\leq` | Less than or equal |
+| `\geq` | Greater than or equal |
+| `\pm` | Plus-minus |
+| `\to` | Arrow |
+| `\cdot` | Dot |
+| `\dots` | Ellipsis |
+| `\quad` | Spacer |
+
+### Accents
+
+| Command | Description |
+| :--- | :--- |
+| `\hat{x}` | Hat |
+| `\bar{x}` | Bar |
+| `\tilde{x}` | Tilde |
+| `\vec{x}` | Vector arrow |
+
+### Matrices
+
+| Command | Description |
+| :--- | :--- |
+| `\begin{pmatrix} ... \end{pmatrix}` | Matrix with parentheses |
+| `\begin{bmatrix} ... \end{bmatrix}` | Matrix with brackets |
+| `\begin{cases} ... \end{cases}` | Piecewise / system of equations |
+| `\begin{aligned} ... \end{aligned}` | Aligned equations |
+
+---
+
+## Troubleshooting
+
+### Equations do not render
+
+- **Verify Configuration:** Ensure `mathPlugin()` is registered in your `boltdocs.config.ts` plugins array.
+- **Check Delimiters:** Use single `$` for inline math and double `$$` for block math. No spaces between the delimiter and the expression are required.
+
+### KaTeX CSS missing
+
+The plugin loads KaTeX styles from a CDN. If styles are missing, import the CSS file in your layout or stylesheet:
+
+```css
+@import url('https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css');
+```
+
+### LaTeX syntax errors
+
+When KaTeX encounters invalid LaTeX syntax, the raw expression is displayed as fallback text. Check the browser console for specific error messages. Common issues include:
+
+- Unmatched braces `{` / `}`
+- Missing `\` before commands
+- Invalid operator names
+- Unescaped special characters like `_` or `&`
+
+### Matrices overflow
+
+For wide matrices or long equations, the block math container enables horizontal scrolling automatically. No additional CSS is needed.

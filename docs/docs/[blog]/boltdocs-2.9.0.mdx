@@ -1,0 +1,133 @@
+---
+title: "Boltdocs 2.9.0 — DUI, Feedback, Math, and a Lot of Polish"
+description: "DUI goes independent, feedback integration, official math plugin, transformSource hook, dev flags, bug squashing, and a new image optimizer"
+date: 2026-06-06
+cover: /blog-covers/Boltdocs-2.9.0.webp
+author:
+  name: Jesús Alcalá
+  avatar: /avatar.jpeg
+excerpt: "2.9.0 ships the DUI toolkit as a standalone package, native feedback support, a proper math plugin with KaTeX, the transformSource lifecycle hook, CLI flags for dev, a long list of bug fixes, and a brand-new image optimizer."
+---
+
+## This one's about sharing
+
+2.8.0 was about scale — code splitting, budgets, strict types. 2.9.0 is about taking the pieces I built and pushing them further out into the world.
+
+<Callout type="info">
+  DUI is now its own package, feedback works out of the box, math looks beautiful with KaTeX, the plugin API has a new `transformSource` hook, dev gets CLI flags, and I finally squashed that theme flash that's been annoying me for months.
+</Callout>
+
+---
+
+## DUI Goes Independent
+
+I built `@bdocs/dui` as an internal toolkit for Boltdocs' CLI — colored output, spinners, tables, progress bars, the usual terminal UI stuff. But the more I used it, the more I thought: why keep this to myself?
+
+So I split it into its own repository — [`bolt-docs/dui`](https://github.com/bolt-docs/dui) — with a proper API, documentation, and a live playground at [dui-terms.vercel.app](https://dui-terms.vercel.app). Anyone can use it now, not just Boltdocs. Better API surface, better types, better everything.
+
+And yeah — it's still the fastest terminal UI library out there. Boltdocs just tends to make everything faster.
+
+---
+
+## Native Feedback Support
+
+I wanted a way for readers to tell me when something's wrong — or when it's right. So I built a feedback system directly into Boltdocs.
+
+Drop the config in and every page gets a thumbs up/down widget. It works in two modes:
+
+- **Dev/Preview**: a Vite middleware intercepts POST requests to `/api/feedback` — zero setup
+- **Production**: deploy a serverless function using the `handleFeedbackRequest` export (or Netlify, Cloudflare, AWS, Vercel)
+
+The [`useFeedback`](/docs/integrations/features/feedback) hook gives you `rating`, `comment`, `submit`, and all the state management. Code blocks can have their own per-snippet feedback too — check out `showCodeBlockFeedback` on the [`useCodeBlock`](/docs/components/mdx/code-blocks) hook.
+
+Head to the [feedback docs](/docs/integrations/features/feedback) for the full setup.
+
+---
+
+## Plugin-Math: Beautiful Equations
+
+I've wanted this for a while. `@bdocs/plugin-math` lets you write LaTeX in your MDX using familiar `$...$` and `$$...$$` delimiters:
+
+```mdx
+When $a \ne 0$, there are two solutions to $ax^2 + bx + c = 0$ and they are
+
+$$ x = {-b \pm \sqrt{b^2-4ac} \over 2a} $$
+```
+
+Under the hood it uses a `transformSource` hook to convert those delimiters into `<Math>` and `<BlockMath>` components before the MDX parser even sees them. KaTeX handles the rendering on the client side — CSS loaded from CDN, zero configuration required.
+
+Install it with `pnpm add @bdocs/plugin-math`, add `mathPlugin()` to your config plugins, and you're done. Read the [plugin-math docs](/docs/plugins/plugin-math) for details.
+
+---
+
+## `transformSource` — A New Plugin Hook
+
+Speaking of `transformSource` — it's now a first-class lifecycle hook in the plugin API. It runs on raw MDX source **before** compilation, so you can transform text patterns, inject content, or preprocess syntax before the MDX parser touches it.
+
+Multiple plugins can each register a `transformSource` hook and they chain — each output feeds into the next. The math plugin was the first real use case, but I see a lot of potential here for custom syntax extensions, templating, or preprocessing.
+
+Check the [plugin docs](/docs/plugins) for the full hook signature.
+
+---
+
+## Dev Flags: `--port`, `--host`, `--force`
+
+Three flags I finally added to `boltdocs dev`:
+
+- **`--port <number>`** — dev server port (defaults to 5173)
+- **`--host [address]`** — bind to a specific address, or bare `--host` to expose to your local network
+- **`--force`** — force Vite dependency re-optimization
+
+Nothing fancy — just flags I kept typing manually and got tired of it. Full docs on the [CLI page](/docs/api/cli).
+
+---
+
+## Bug Squashes & Polish
+
+This release had a solid round of fixes for things that have been bothering me:
+
+- **Theme flash on navigation** — the dark/light mode switch no longer flickers when navigating between pages
+- **`collapsible: true` / `collapsed: false` in meta_loaders** — these sidebar config options were being ignored. Now they work as expected
+- **Page-nav flat routes** — the page navigation component now correctly flattens nested routes
+- **i18n sync** — fixed a race condition where switching locales could leave some UI elements untranslated
+- **Code-block API improvements** — the `useCodeBlock` hook got better typing, `LangIcon` resolution, and the custom `pre` component API is more predictable
+
+---
+
+## Plugin-Image-Optimizer
+
+A new internal package: `@bdocs/plugin-image-optimizer`. It's a fork of [vite-plugin-image-optimizer](https://github.com/FatehAK/vite-plugin-image-optimizer/) — but I optimized it for Boltdocs.
+
+What's different:
+- **Persistent caching** — images aren't re-optimized on every build. Cache is keyed by content hash and survives restarts
+- **Parallel processing** — worker threads use all available cores (minus one) with zero-copy buffer transfer
+- **Scale integration** — works with Boltdocs' `AssetCache` system and respects the `.boltdocs/cache/` directory structure
+- **Stats output** — a DUI-powered table shows how much each format saved
+
+It handles PNG, JPEG, WebP, AVIF, GIF, TIFF, and SVG (via Sharp + SVGO). The existing docs site plugins section will get a page for it soon — for now, check the package README.
+
+---
+
+## Documentation Refresh
+
+I spent time updating the official docs across the board — the plugin system page, the CLI reference, the component guides, and the integration docs all got cleaned up. The feedback and math pages are brand new, and the code-blocks guide is much more complete.
+
+---
+
+## What's Next
+
+I'm already working on the next round. Here's what's coming:
+
+- **Giscus** — comment/discussion integration for docs pages
+- **Vercel Analytics & Speed Insights** — one-click analytics with zero config
+- **Google Search Console Verification** — meta tag injection for site verification
+- **Search API improvements** — better ranking, fuzzy matching, and result previews
+- **Spanish documentation** — the official docs will get a full Spanish translation
+
+Install or update:
+
+```bash
+pnpm add boltdocs@latest
+```
+
+Check the [full docs](/docs/) to explore everything new.

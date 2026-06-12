@@ -1,0 +1,83 @@
+---
+title: Search 
+sidebarPosition: 1
+description: Boltdocs includes zero-dependency, build-time search across all your pages, supporting both built-in FlexSearch and cloud-hosted Algolia.
+---
+
+Every Boltdocs site comes with search built-in. By default, it operates completely offline and client-side, compiling your document headings and body text into a static index at build time. For larger projects, it also natively integrates with Algolia.
+
+---
+
+## What Gets Indexed
+
+For each page in your documentation, Boltdocs extracts and indexes:
+
+| Data | Source |
+| :--- | :--- |
+| Page title | `title` frontmatter or filename |
+| Page description | `description` frontmatter or first paragraph |
+| All `h2`–`h6` headings | Markdown heading elements |
+| Page body | Plain text, stripped of Markdown syntax |
+
+Callouts, code blocks, and table contents are included in the body text. Images are not indexed.
+
+---
+
+## Default Search Behavior
+
+Out-of-the-box, search is triggered by:
+* Clicking the **Search** button in the top navigation bar.
+* Pressing `Cmd+K` (macOS) or `Ctrl+K` (Windows / Linux).
+
+The default dialog renders search matches grouped by page, showing highlighted text snippets.
+
+---
+
+## Search in Custom Layouts
+
+If you are developing a custom layout using your own React shell, you can render the pre-built search modal component anywhere in your DOM:
+
+```tsx
+import { SearchDialog } from 'boltdocs'
+
+export function MyLayout({ children }) {
+  return (
+    <div>
+      <SearchDialog />
+      <main>{children}</main>
+    </div>
+  )
+}
+```
+
+---
+
+## Excluding Pages from Search
+
+Pages with `sidebarHidden: true` are still indexed for search by default. To exclude a page from the search index entirely, set `hidden: true` in its frontmatter:
+
+```md
+---
+title: Internal Notes
+hidden: true
+---
+```
+
+<Callout variant="tip">
+  Use `sidebarHidden: true` to hide a page from navigation while keeping it searchable. Use `hidden: true` to exclude it from both the sidebar and the search index.
+</Callout>
+
+---
+
+## Search Integrations
+
+Deepen your configuration or customize the UI by reading the following guides:
+
+<Cards cols={2}>
+  <Card title="FlexSearch Custom UI" href="/docs/integrations/search/flexsearch" icon="⚙️">
+    Build a completely custom search bar UI and query the offline index programmatically using the useSearch hook.
+  </Card>
+  <Card title="Algolia DocSearch" href="/docs/integrations/search/algolia" icon="🔍">
+    Connect to Algolia cloud-hosted search for advanced analytics, synonym matching, and faster indexing on large sites.
+  </Card>
+</Cards>

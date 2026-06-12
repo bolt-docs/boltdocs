@@ -6,7 +6,7 @@ description: A guided walkthrough of every top-level key in boltdocs.config.ts a
 
 `boltdocs.config.ts` is the single configuration file for your entire documentation site. It lives at the root of your project alongside `package.json` and controls everything from the site title to the plugin stack and SEO behavior.
 
-```ts
+```ts title="boltdocs.config.ts"
 import { defineConfig } from 'boltdocs'
 
 export default defineConfig({
@@ -20,7 +20,7 @@ export default defineConfig({
 ```
 
 Boltdocs reads this file at startup and generates a complete Vite configuration internally. You never need to touch a `vite.config.ts`.
-
+  
 ---
 
 ## Top-Level Keys
@@ -112,7 +112,7 @@ Generates a `robots.txt` file at build time.
 | **`rules`** | `RobotsRule[]` | Array of crawl rules. Each rule accepts `userAgent`, `allow`, and `disallow`. |
 | **`sitemaps`** | `string[]` | Full URLs to your sitemap(s) to include in `robots.txt`. |
 
-```ts
+```ts title="boltdocs.config.ts"
 export default defineConfig({
   robots: {
     rules: [
@@ -156,7 +156,7 @@ export default defineConfig({
 | **`locales`** | `string[] \| Record<string, string>` | ✓ | All supported locale codes. |
 | **`localeConfigs`** | `Record<string, LocaleConfig>` | — | Per-locale display settings (label, direction, htmlLang). |
 
-See the [Internationalization guide](/docs/integrations/i18n) for full details.
+See the [Internationalization guide](/docs/integrations/globalization/i18n) for full details.
 
 ---
 
@@ -168,7 +168,7 @@ See the [Internationalization guide](/docs/integrations/i18n) for full details.
 | **`versions`** | `VersionConfig[]` | ✓ | Ordered list of available versions. |
 | **`prefix`** | `string` | — | String prepended to every version's folder path. |
 
-See the [Versioning guide](/docs/integrations/versioning) for full details.
+See the [Versioning guide](/docs/integrations/globalization/versioning) for full details.
 
 ---
 
@@ -183,7 +183,7 @@ Configures the dynamic collections system — perfect for blogs, release notes, 
 | **`dateFormat`** | `string` | `'MMMM dd, yyyy'` | Date format string for rendering post dates in listing pages. |
 | **`sortBy`** | `'date' \| 'title' \| 'sidebarPosition'` | `'date'` | Field used to sort posts within a collection. |
 
-```ts
+```ts title="boltdocs.config.ts"
 export default defineConfig({
   collections: {
     postsPerPage: 12,
@@ -198,7 +198,7 @@ export default defineConfig({
 Collections work out of the box with zero configuration. Simply create a bracketed folder like `[blog]` inside `docs/` and add your MDX files. Use `collections` only when you need to override the defaults.
 </Callout>
 
-See the [Collections guide](/docs/integrations/collections) for full details on folder conventions, custom views, and loader data.
+See the [Collections guide](/docs/integrations/features/collections) for full details on folder conventions, custom views, and loader data.
 
 ---
 
@@ -218,7 +218,7 @@ A powerful mechanism to customize how directories appear in the sidebar without 
 
 Drop a `meta.json` (or `_meta.json`) into any directory to configure it automatically:
 
-```json
+```json title="(guides)/getting-started/meta.json"
 {
   "title": "Getting Started",
   "order": 1,
@@ -231,7 +231,7 @@ Drop a `meta.json` (or `_meta.json`) into any directory to configure it automati
 
 You can also define metadata directly in `boltdocs.config.ts` for directories you don't own or when you prefer centralized configuration:
 
-```ts
+```ts title="boltdocs.config.ts"
 export default defineConfig({
   directoryMeta: {
     'guides/getting-started': {
@@ -268,7 +268,7 @@ Configure response headers, security settings, and Content Security Policy (CSP)
 
 ## Full Example
 
-```ts
+```ts title="boltdocs.config.ts"
 import { defineConfig } from 'boltdocs'
 import mermaidPlugin from '@bdocs/plugin-mermaid'
 
