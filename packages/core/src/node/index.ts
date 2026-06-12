@@ -1,20 +1,17 @@
 import type { Plugin, InlineConfig } from 'vite'
-import react from '@vitejs/plugin-react'
-import tailwindcss from '@tailwindcss/vite'
-import { boltdocsPlugin, getExternalAbsolutePaths } from './plugin/index'
-import { SECURITY_HEADERS } from './security/headers'
-import { getCSPHeader } from './security/csp'
-import { resolveConfig } from './config'
-import { generateRoutes } from './routes'
-import { generateProjectTypes, writeLinkTree } from './types-generator'
-import path from 'node:path'
-import { normalizePath } from 'vite'
-export { generateEntryCode } from './plugin/entry'
+import type { BoltdocsConfig } from './config'
 import type { BoltdocsPluginOptions } from './plugin/index'
+import path from 'node:path'
+export { generateEntryCode } from './plugin/entry'
 
 export default async function boltdocs(
   options?: BoltdocsPluginOptions,
 ): Promise<Plugin[]> {
+  const { resolveConfig } = await import('./config')
+  const { generateRoutes } = await import('./routes')
+  const { generateProjectTypes, writeLinkTree } = await import('./types-generator')
+  const { boltdocsPlugin } = await import('./plugin/index')
+
   const docsDir = options?.docsDir || 'docs'
   const config = await resolveConfig(docsDir)
   const routes = await generateRoutes(docsDir, config)
@@ -42,6 +39,31 @@ export async function createViteConfig(
   mode: 'development' | 'production' = 'development',
   preResolvedConfig?: BoltdocsConfig,
 ): Promise<InlineConfig> {
+  const [
+    reactMod,
+    tailwindcssMod,
+    { boltdocsPlugin, getExternalAbsolutePaths },
+    { SECURITY_HEADERS },
+    { getCSPHeader },
+    { resolveConfig },
+    { generateRoutes },
+    { generateProjectTypes, writeLinkTree },
+    { normalizePath },
+  ] = await Promise.all([
+    import('@vitejs/plugin-react'),
+    import('@tailwindcss/vite'),
+    import('./plugin/index'),
+    import('./security/headers'),
+    import('./security/csp'),
+    import('./config'),
+    import('./routes'),
+    import('./types-generator'),
+    import('vite').then((m) => ({ normalizePath: m.normalizePath })),
+  ])
+
+  const react = reactMod.default
+  const tailwindcss = tailwindcssMod.default
+
   const config = preResolvedConfig || await resolveConfig('docs', root)
   const routes = await generateRoutes('docs', config)
   const routePaths = routes.map((r) => r.path)
