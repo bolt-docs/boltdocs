@@ -59,22 +59,22 @@ Since Boltdocs builds fully static sites (SSG), there is no backend server runni
 To resolve this, you must set up a serverless function endpoint on your hosting platform to receive the feedback request and forward it to GitHub securely.
 - **For Vercel:** Create a file at `api/feedback.ts` containing:
   ```ts title="api/feedback.ts"
-  import { handleVercelFeedback } from 'boltdocs'
+  import { handleVercelFeedback } from 'boltdocs/server'
   export default handleVercelFeedback
   ```
 - **For Cloudflare Workers:** Create a file at `functions/feedback/index.ts` containing:
   ```ts title="functions/feedback/index.ts"
-  import { handleWebFeedback } from 'boltdocs'
+  import { handleWebFeedback } from 'boltdocs/server'
   export default handleWebFeedback
   ```
 - **For Netlify:** Create a file at `netlify/functions/feedback.ts` containing:
   ```ts title="netlify/functions/feedback.ts"
-  import { handleNetlifyFeedback } from 'boltdocs'
+  import { handleNetlifyFeedback } from 'boltdocs/server'
   export default handleNetlifyFeedback
   ```
 - **For AWS Lambda:** Create a file at `lambda/feedback/index.ts` containing:
   ```ts title="lambda/feedback/index.ts"
-  import { handleAwsFeedback } from 'boltdocs'
+  import { handleAwsFeedback } from 'boltdocs/server'
   export default handleAwsFeedback
   ```
 - **For Environment Variables:** Make sure you have configured `BOLTDOCS_GITHUB_TOKEN`, `BOLTDOCS_GITHUB_REPO_OWNER`, and `BOLTDOCS_GITHUB_REPO_NAME` in your deployment settings.

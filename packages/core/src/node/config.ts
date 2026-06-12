@@ -1,6 +1,5 @@
 import path from 'node:path'
 import fs from 'node:fs'
-import { loadConfigFromFile } from 'vite'
 import { BoltdocsConfigSchema } from './schema/config'
 import { ValidationError } from './errors'
 import { generateProjectTypes } from './types-generator'
@@ -89,6 +88,7 @@ export async function resolveConfig(
     const configPath = path.resolve(projectRoot, filename)
     if (fs.existsSync(configPath)) {
       try {
+        const { loadConfigFromFile } = await import('vite')
         const loaded = await loadConfigFromFile(
           { command: 'serve', mode: 'development' },
           configPath,

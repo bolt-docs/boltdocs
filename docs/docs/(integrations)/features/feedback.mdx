@@ -79,7 +79,7 @@ To securely submit feedback in production without exposing your GitHub credentia
 To deploy on Vercel, create a file at `api/feedback.ts` at the root of your project:
 
 ```ts title="api/feedback.ts"
-import { handleVercelFeedback } from 'boltdocs'
+import { handleVercelFeedback } from 'boltdocs/server'
 
 export default handleVercelFeedback
 ```
@@ -89,7 +89,7 @@ export default handleVercelFeedback
 For Cloudflare Workers, Pages Functions, or Edge environments utilizing the web-standard `Request`/`Response` APIs:
 
 ```ts title="worker.ts or functions/api/feedback.ts"
-import { handleWebFeedback } from 'boltdocs'
+import { handleWebFeedback } from 'boltdocs/server'
 
 export default {
   async fetch(request: Request, env: any): Promise<Response> {
@@ -107,7 +107,7 @@ export default {
 For AWS Lambda-style serverless handlers on Netlify:
 
 ```ts title="netlify/functions/feedback.ts"
-import { handleNetlifyFeedback } from 'boltdocs'
+import { handleNetlifyFeedback } from 'boltdocs/server'
 
 export const handler = async (event: any) => {
   return handleNetlifyFeedback(event, process.env)
