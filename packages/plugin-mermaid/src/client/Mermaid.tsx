@@ -65,7 +65,16 @@ export function Mermaid({ chart, config: propConfig }: MermaidProps) {
   const [error, setError] = useState<string | null>(null)
   const { resolvedTheme } = useTheme()
 
-  const pluginConfig: MermaidConfig = propConfig || {}
+  let pluginConfig: MermaidConfig = {}
+  if (typeof propConfig === 'string') {
+    try {
+      pluginConfig = JSON.parse(propConfig)
+    } catch (e) {
+      console.error('[Boltdocs] Failed to parse Mermaid config:', e)
+    }
+  } else if (propConfig) {
+    pluginConfig = propConfig
+  }
   const themes = pluginConfig.themes || {
     light: defaultLightTheme,
     dark: defaultDarkTheme,

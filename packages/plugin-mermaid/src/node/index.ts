@@ -64,31 +64,9 @@ interface MdxJsxFlowElement {
 
 const MERMAID_LANG = 'mermaid'
 const MDX_JSX_FLOW_TYPE = 'mdxJsxFlowElement'
-const MDX_JSX_ATTR_EXPR_TYPE = 'mdxJsxAttributeValueExpression'
 const COMPONENT_NAME = 'Mermaid'
 const CHART_ATTR_NAME = 'chart'
 const CONFIG_ATTR_NAME = 'config'
-
-function toJSExpr(value: unknown): string {
-  if (typeof value === 'string') {
-    const escaped = value.replace(/\\/g, '\\\\').replace(/'/g, "\\'")
-    return `'${escaped}'`
-  }
-  if (typeof value === 'number' || typeof value === 'boolean') {
-    return String(value)
-  }
-  if (value === null) return 'null'
-  if (Array.isArray(value)) {
-    return `[${value.map(toJSExpr).join(',')}]`
-  }
-  if (typeof value === 'object') {
-    const entries = Object.entries(value as Record<string, unknown>)
-      .filter(([, v]) => v !== undefined)
-      .map(([k, v]) => `${k}:${toJSExpr(v)}`)
-    return `{${entries.join(',')}}`
-  }
-  return String(value)
-}
 
 function remarkMermaid(config: {
   themes: { light: MermaidThemeVariables; dark: MermaidThemeVariables }
@@ -107,10 +85,7 @@ function remarkMermaid(config: {
           name: COMPONENT_NAME,
           attributes: [
             createMdxAttribute(CHART_ATTR_NAME, rawCode),
-            createMdxAttribute(CONFIG_ATTR_NAME, {
-              type: MDX_JSX_ATTR_EXPR_TYPE,
-              value: toJSExpr(config),
-            }),
+            createMdxAttribute(CONFIG_ATTR_NAME, JSON.stringify(config)),
           ],
           children: [],
         }
@@ -136,7 +111,7 @@ export default function mermaidPlugin(
   return {
     name: 'boltdocs-plugin-mermaid',
     version: '0.0.2',
-    remarkPlugins: [remarkMermaid(mergedConfig)],
+    remarkPlugins: [[remarkMermaid, mergedConfig]],
     components: {
       [COMPONENT_NAME]: '@bdocs/plugin-mermaid/client',
     },
