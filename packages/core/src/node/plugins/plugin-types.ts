@@ -35,6 +35,10 @@ export interface PluginLifecycleHooks {
   beforeDev?: (ctx: PluginContext) => Promise<void> | void
   afterDev?: (ctx: PluginContext) => Promise<void> | void
   buildEnd?: (ctx: PluginContext) => Promise<void> | void
+  transformSource?: (
+    ctx: PluginContext,
+    params: { code: string; filePath: string },
+  ) => Promise<{ code: string }> | { code: string }
   transformMdx?: (
     ctx: PluginContext,
     params: { code: string; filePath: string },

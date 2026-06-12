@@ -20,7 +20,6 @@ function resolveModuleLoader(loader: MdxModuleLoader): Promise<MdxModule> {
   return typeof loader === 'function' ? loader() : Promise.resolve(loader)
 }
 
-
 const EagerMdxElement = ({
   moduleLoader,
   moduleKey,

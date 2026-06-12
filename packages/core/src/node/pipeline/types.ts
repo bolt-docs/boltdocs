@@ -37,7 +37,9 @@ export class PipelineError extends Error {
     public stepName: string,
     public cause: unknown,
   ) {
-    super(`Pipeline failed at step "${stepName}": ${cause instanceof Error ? cause.message : String(cause)}`)
+    super(
+      `Pipeline failed at step "${stepName}": ${cause instanceof Error ? cause.message : String(cause)}`,
+    )
     this.name = 'PipelineError'
   }
 }

@@ -61,7 +61,9 @@ export function injectHtmlMeta(html: string, config: BoltdocsConfig): string {
     `<meta property="og:title" content="${title}">`,
     `<meta property="og:description" content="${description}">`,
     `<meta property="og:type" content="website">`,
-    config.siteUrl ? `<meta property="og:url" content="${config.siteUrl}">` : '',
+    config.siteUrl
+      ? `<meta property="og:url" content="${config.siteUrl}">`
+      : '',
     config.siteUrl ? `<link rel="canonical" href="${config.siteUrl}">` : '',
     `<meta name="twitter:card" content="summary_large_image">`,
     `<meta name="twitter:title" content="${title}">`,

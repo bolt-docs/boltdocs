@@ -6,7 +6,7 @@ import { buildModuleMap, withBase } from './create-routes.utils'
 function buildDocRoutes(options: {
   routesData: ComponentRoute[]
   config: BoltdocsConfig
-  mdxModules: Record<string, any>
+  mdxModules: Record<string, unknown>
   components?: Record<string, React.ComponentType>
   externalPages?: Record<string, React.ComponentType>
 }): { routes: RouteRecord[]; metadata: ComponentRoute[] } {
@@ -101,7 +101,7 @@ function buildDocRoutes(options: {
                 components={components}
               />
             )
-          }
+          },
         }
       }
     } else {
@@ -197,85 +197,91 @@ function buildDocRoutes(options: {
     })
   }
 
-  targetBasePaths.forEach(({ path: bPath, filter, locale: bLocale, version: bVersion }) => {
-    if (bPath === '/') return
+  targetBasePaths.forEach(
+    ({ path: bPath, filter, locale: bLocale, version: bVersion }) => {
+      if (bPath === '/') return
 
-    const normalizedPath = bPath.replace(/\/$/, '')
-    const hasExplicitMatch =
-      docPathRegistry.has(normalizedPath) || externalPaths.has(normalizedPath)
+      const normalizedPath = bPath.replace(/\/$/, '')
+      const hasExplicitMatch =
+        docPathRegistry.has(normalizedPath) || externalPaths.has(normalizedPath)
 
-    if (!hasExplicitMatch) {
-      const defaultTab = config.theme?.tabs?.[0]?.id
-      const defaultTabPath = defaultTab
-        ? `${normalizedPath}/${defaultTab}`.replace(/\/+/g, '/')
-        : null
+      if (!hasExplicitMatch) {
+        const defaultTab = config.theme?.tabs?.[0]?.id
+        const defaultTabPath = defaultTab
+          ? `${normalizedPath}/${defaultTab}`.replace(/\/+/g, '/')
+          : null
 
-      let matchedRouteObj: RouteRecord | undefined =
-        defaultTabPath && docPathRegistry.has(defaultTabPath.replace(/\/$/, ''))
-          ? docRoutes.find(
-              (r) =>
-                r.path &&
-                r.path.replace(/\/$/, '') === defaultTabPath.replace(/\/$/, ''),
-            )
-          : docRoutes.find((r) => r.path && filter(r.path) && r.path !== normalizedPath)
+        let matchedRouteObj: RouteRecord | undefined =
+          defaultTabPath &&
+          docPathRegistry.has(defaultTabPath.replace(/\/$/, ''))
+            ? docRoutes.find(
+                (r) =>
+                  r.path &&
+                  r.path.replace(/\/$/, '') ===
+                    defaultTabPath.replace(/\/$/, ''),
+              )
+            : docRoutes.find(
+                (r) => r.path && filter(r.path) && r.path !== normalizedPath,
+              )
 
-      if (!matchedRouteObj && docRoutes.length > 0) {
-        matchedRouteObj = docRoutes[0]
-      }
+        if (!matchedRouteObj && docRoutes.length > 0) {
+          matchedRouteObj = docRoutes[0]
+        }
 
-      if (matchedRouteObj) {
-        const redirectPath =
-          bPath === baseDocsPath
-            ? '.'
-            : bPath.startsWith(baseDocsPath + '/')
-              ? bPath.slice(baseDocsPath.length + 1)
-              : bPath
-
-        const isBasePathFallback = redirectPath === '.'
-        docRoutes.push({
-          ...(isBasePathFallback
-            ? { index: true as const }
-            : { path: redirectPath }),
-          element: matchedRouteObj.element,
-          lazy: matchedRouteObj.lazy,
-          loader: matchedRouteObj.loader,
-          getStaticPaths: () => [],
-        })
-
-        const matchedMetaObj = docMetadata.find((m) => {
-          const fullPath = withBase(m.path === '' ? '/' : m.path, config)
-          const p =
-            fullPath === baseDocsPath
+        if (matchedRouteObj) {
+          const redirectPath =
+            bPath === baseDocsPath
               ? '.'
-              : fullPath.startsWith(baseDocsPath + '/')
-                ? fullPath.slice(baseDocsPath.length + 1)
-                : fullPath
-          return p === matchedRouteObj.path
-        })
+              : bPath.startsWith(baseDocsPath + '/')
+                ? bPath.slice(baseDocsPath.length + 1)
+                : bPath
 
-        if (matchedMetaObj) {
-          const canonicalPath = withBase(matchedMetaObj.path, config)
-          const canonicalUrl = config.siteUrl
-            ? `${config.siteUrl.replace(/\/$/, '')}${canonicalPath}`
-            : canonicalPath
-
-          docMetadata.push({
-            ...matchedMetaObj,
-            path: bPath,
-            filePath: matchedMetaObj.filePath,
-            locale: bLocale,
-            version: bVersion,
-            slugParts: [],
-            fallback: true,
-            seo: {
-              ...matchedMetaObj.seo,
-              canonical: canonicalUrl,
-            },
+          const isBasePathFallback = redirectPath === '.'
+          docRoutes.push({
+            ...(isBasePathFallback
+              ? { index: true as const }
+              : { path: redirectPath }),
+            element: matchedRouteObj.element,
+            lazy: matchedRouteObj.lazy,
+            loader: matchedRouteObj.loader,
+            getStaticPaths: () => [],
           })
+
+          const matchedMetaObj = docMetadata.find((m) => {
+            const fullPath = withBase(m.path === '' ? '/' : m.path, config)
+            const p =
+              fullPath === baseDocsPath
+                ? '.'
+                : fullPath.startsWith(baseDocsPath + '/')
+                  ? fullPath.slice(baseDocsPath.length + 1)
+                  : fullPath
+            return p === matchedRouteObj.path
+          })
+
+          if (matchedMetaObj) {
+            const canonicalPath = withBase(matchedMetaObj.path, config)
+            const canonicalUrl = config.siteUrl
+              ? `${config.siteUrl.replace(/\/$/, '')}${canonicalPath}`
+              : canonicalPath
+
+            docMetadata.push({
+              ...matchedMetaObj,
+              path: bPath,
+              filePath: matchedMetaObj.filePath,
+              locale: bLocale,
+              version: bVersion,
+              slugParts: [],
+              fallback: true,
+              seo: {
+                ...matchedMetaObj.seo,
+                canonical: canonicalUrl,
+              },
+            })
+          }
         }
       }
-    }
-  })
+    },
+  )
 
   return { routes: docRoutes, metadata: docMetadata }
 }

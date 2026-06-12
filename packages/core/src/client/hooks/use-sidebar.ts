@@ -24,6 +24,9 @@ const getCleanDirectoryMeta = (directoryMeta?: Record<string, any>) => {
 
 interface TreeNode extends ComponentRoute {
   childrenMap?: Map<string, TreeNode>
+  collapsible?: boolean
+  collapsed?: boolean
+  hasCustomTitle?: boolean
 }
 
 const getOrCreateNode = (
@@ -47,6 +50,9 @@ const getOrCreateNode = (
         filePath: '',
         icon: meta.icon,
         groupPosition: typeof meta.order === 'number' ? meta.order : 999,
+        collapsible: meta.collapsible,
+        collapsed: meta.collapsed,
+        hasCustomTitle: meta.title !== undefined,
         subRoutes: [],
         childrenMap: new Map(),
       }
@@ -126,7 +132,9 @@ export function useSidebar(routes: ComponentRoute[]) {
       if (isIndex) {
         Object.assign(containerNode, {
           path: route.path,
-          title: route.title || containerNode.title,
+          title: containerNode.hasCustomTitle
+            ? containerNode.title
+            : route.title || containerNode.title,
           icon: route.icon || containerNode.icon,
           badge: route.badge,
           sidebarPosition: route.sidebarPosition,
@@ -150,6 +158,9 @@ export function useSidebar(routes: ComponentRoute[]) {
           path: node.path,
           filePath: node.filePath,
           routes: node.subRoutes,
+          sidebarPosition: node.sidebarPosition ?? node.groupPosition ?? 999,
+          collapsible: (node as any).collapsible,
+          collapsed: (node as any).collapsed,
         })
       } else {
         ungrouped.push(node)

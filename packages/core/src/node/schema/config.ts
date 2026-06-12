@@ -231,10 +231,42 @@ export const AlgoliaConfigSchema = z.object({
   indexName: z.string().min(1, 'Algolia Index Name is required'),
 })
 
+export const GiscusConfigSchema = z.object({
+  repo: z.string().min(1, 'Giscus repository is required'),
+  repoId: z.string().min(1, 'Giscus repository ID is required'),
+  category: z.string().optional(),
+  categoryId: z.string().optional(),
+  mapping: z
+    .enum(['pathname', 'url', 'title', 'og:title', 'specific', 'number'])
+    .optional(),
+  strict: z.union([z.enum(['0', '1']), z.boolean()]).optional(),
+  reactionsEnabled: z.union([z.enum(['0', '1']), z.boolean()]).optional(),
+  emitMetadata: z.union([z.enum(['0', '1']), z.boolean()]).optional(),
+  inputPosition: z.enum(['top', 'bottom']).optional(),
+  theme: z.string().optional(),
+  darkTheme: z.string().optional(),
+  lang: z.string().optional(),
+  loading: z.enum(['lazy', 'eager']).optional(),
+})
+
+export const CustomFeedbackConfigSchema = z.object({
+  enabled: z.boolean(),
+  owner: z.string().min(1, 'GitHub owner is required'),
+  repo: z.string().min(1, 'GitHub repository name is required'),
+  categorySlug: z.string().optional(),
+  endpoint: z.string().optional(),
+})
+
 export const IntegrationsConfigSchema = z.object({
   ga4: GA4ConfigSchema.optional(),
   gtm: GTMConfigSchema.optional(),
   algolia: AlgoliaConfigSchema.optional(),
+  feedback: z
+    .object({
+      giscus: GiscusConfigSchema.optional(),
+      custom: CustomFeedbackConfigSchema.optional(),
+    })
+    .optional(),
 })
 
 export type BoltdocsAnalyticsConfig = z.infer<typeof IntegrationsConfigSchema>

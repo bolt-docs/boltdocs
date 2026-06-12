@@ -1,7 +1,7 @@
 import { describe, it, expect, vi } from 'vitest'
 import { createRoutes } from '../../src/client/ssg/create-routes'
 import type { ComponentRoute } from '../../src/client/types'
-import * as React from 'react'
+import type * as React from 'react'
 
 vi.mock('virtual:boltdocs-search', () => ({
   default: [],
@@ -48,8 +48,10 @@ describe('createRoutes', () => {
     }
 
     const mdxModules = {
-      'docs/en/intro.md': () => Promise.resolve({ default: () => <div>Intro</div> }),
-      'docs/es/intro.md': () => Promise.resolve({ default: () => <div>Intro ES</div> }),
+      'docs/en/intro.md': () =>
+        Promise.resolve({ default: () => <div>Intro</div> }),
+      'docs/es/intro.md': () =>
+        Promise.resolve({ default: () => <div>Intro ES</div> }),
     }
 
     // This should run without throwing a TypeError
@@ -84,7 +86,8 @@ describe('createRoutes', () => {
     }
 
     const mdxModules = {
-      'docs/intro.md': () => Promise.resolve({ default: () => <div>Intro</div> }),
+      'docs/intro.md': () =>
+        Promise.resolve({ default: () => <div>Intro</div> }),
     }
 
     const result = createRoutes({
@@ -98,20 +101,19 @@ describe('createRoutes', () => {
     const allMetadata = shellElement.props.routes as ComponentRoute[]
 
     // The children list has the parent docs layout route
-    const docsLayoutRoute = result[0].children?.find(c => c.path === '/docs')
+    const docsLayoutRoute = result[0].children?.find((c) => c.path === '/docs')
     const docRoutes = docsLayoutRoute?.children || []
 
     // 1. Check metadata: should contain the fallback route metadata for 'es'
-    const esMetadata = allMetadata.find(m => m.path === '/docs/es')
+    const esMetadata = allMetadata.find((m) => m.path === '/docs/es')
     expect(esMetadata).toBeDefined()
     expect(esMetadata?.filePath).toBe('docs/intro.md')
     expect(esMetadata?.locale).toBe('es')
 
     // 2. Check docRoutes: should contain the fallback route path: 'es'
-    const esRoute = docRoutes.find(r => r.path === 'es')
+    const esRoute = docRoutes.find((r) => r.path === 'es')
     expect(esRoute).toBeDefined()
     expect(esRoute?.lazy).toBeDefined() // lazy should be copied!
     expect(typeof esRoute?.lazy).toBe('function')
   })
 })
-

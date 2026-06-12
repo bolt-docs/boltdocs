@@ -1,14 +1,13 @@
 import { useMemo } from 'react'
 import { useLocation } from 'react-router-dom'
 import { useRoutes } from './use-routes'
+import { useSidebar } from './use-sidebar'
+import { normalizePath } from '../utils/path'
 
-/**
- * Hook to manage the previous and next button functionality for documentation pages.
- * Intelligent: respects current locale, version, and tab to keep navigation logical.
- */
 export function usePageNav() {
   const { routes, currentRoute } = useRoutes()
   const location = useLocation()
+  const { groups, ungrouped } = useSidebar(routes)
 
   return useMemo(() => {
     if (!currentRoute) {
@@ -19,22 +18,63 @@ export function usePageNav() {
       }
     }
 
-    const activeTabId = currentRoute.tab?.toLowerCase()
+    // Merge groups and ungrouped into a single sorted list matching the sidebar visual order
+    const mergedItems = [
+      ...ungrouped.map((route) => ({
+        type: 'link' as const,
+        position: route.sidebarPosition ?? 999,
+        title: route.title,
+        route,
+      })),
+      ...groups.map((group) => ({
+        type: 'group' as const,
+        position: (group as any).sidebarPosition ?? 999,
+        title: group.title,
+        group,
+      })),
+    ].sort((a, b) => {
+      if (a.position !== b.position) return a.position - b.position
+      if (a.type !== b.type) {
+        return a.type === 'link' ? -1 : 1
+      }
+      return a.title.localeCompare(b.title)
+    })
 
-    // Subset of routes that match the current context (locale and version are already filtered by useRoutes)
-    // We further filter by tab to keep the user in the same logical section
-    const contextRoutes = activeTabId
-      ? routes.filter((r) => r.tab?.toLowerCase() === activeTabId)
-      : routes.filter((r) => !r.tab)
+    const orderedRoutes: typeof routes = []
 
-    const currentIndex = contextRoutes.findIndex(
-      (r) => r.path === location.pathname,
+    const flattenNode = (node: any) => {
+      if (node.path && node.path !== '#' && !node.sidebarHidden) {
+        orderedRoutes.push(node)
+      }
+      const children = node.routes || node.subRoutes
+      if (children && children.length > 0) {
+        for (const child of children) {
+          flattenNode(child)
+        }
+      }
+    }
+
+    for (const item of mergedItems) {
+      if (item.type === 'link') {
+        flattenNode(item.route)
+      } else {
+        if (item.group.routes) {
+          for (const route of item.group.routes) {
+            flattenNode(route)
+          }
+        }
+      }
+    }
+
+    const currentNormalizedPath = normalizePath(location.pathname)
+    const currentIndex = orderedRoutes.findIndex(
+      (r) => normalizePath(r.path) === currentNormalizedPath,
     )
 
-    const prevPage = currentIndex > 0 ? contextRoutes[currentIndex - 1] : null
+    const prevPage = currentIndex > 0 ? orderedRoutes[currentIndex - 1] : null
     const nextPage =
-      currentIndex !== -1 && currentIndex < contextRoutes.length - 1
-        ? contextRoutes[currentIndex + 1]
+      currentIndex !== -1 && currentIndex < orderedRoutes.length - 1
+        ? orderedRoutes[currentIndex + 1]
         : null
 
     return {
@@ -42,5 +82,5 @@ export function usePageNav() {
       nextPage,
       currentRoute,
     }
-  }, [routes, currentRoute, location.pathname])
+  }, [groups, ungrouped, currentRoute, location.pathname])
 }

@@ -38,7 +38,7 @@ export function BoltdocsProvider({
   const getSavedPrefs = (): PersistedState => {
     if (typeof window === 'undefined') return {}
     try {
-      const raw = localStorage.getItem(PREFERENCES_KEY)
+      const raw = window.localStorage.getItem(PREFERENCES_KEY)
       return raw ? JSON.parse(raw) : {}
     } catch {
       return {}
@@ -74,7 +74,7 @@ export function BoltdocsProvider({
       if (typeof window !== 'undefined') {
         try {
           const prefs = getSavedPrefs()
-          localStorage.setItem(
+          window.localStorage.setItem(
             PREFERENCES_KEY,
             JSON.stringify({ ...prefs, locale: newL }),
           )
@@ -90,7 +90,7 @@ export function BoltdocsProvider({
       if (typeof window !== 'undefined') {
         try {
           const prefs = getSavedPrefs()
-          localStorage.setItem(
+          window.localStorage.setItem(
             PREFERENCES_KEY,
             JSON.stringify({ ...prefs, version: newV }),
           )

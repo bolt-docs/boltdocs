@@ -86,10 +86,13 @@ export async function doctorAction(
 
     if (reportFormat === 'pretty') {
       console.log(
-        double('✦ DOCTOR — Documentation Health Check', [
-          `  ${colors.dim('Docs dir:')} ${docsDir}`,
-          `  ${colors.dim('Reports:')} ${root}/.boltdocs/reports/`,
-        ]),
+        double(
+          [
+            `  ${colors.dim('Docs dir:')} ${docsDir}`,
+            `  ${colors.dim('Reports:')} ${root}/.boltdocs/reports/`,
+          ],
+          { title: '✦ DOCTOR — Documentation Health Check' },
+        ),
       )
     }
 
@@ -292,19 +295,22 @@ export async function doctorAction(
               issueLines.push(`   ${colors.green('✅ Fixed automatically')}`)
             }
           }
-          console.log(`\n${single(`📄 ${file}`, issueLines)}`)
+          console.log(`\n${single(issueLines, { title: `📄 ${file}` })}`)
         }
         dividerLog()
       }
 
       if (issues.length === 0) {
         console.log(
-          round('✨ Documentation Health Check', [
-            '  Everything looks perfect!',
-            '  Your documentation is in great shape.',
-            '',
-            `  ${colors.dim(`Scanned ${files.length} file${files.length !== 1 ? 's' : ''} in ${duration}s`)}`,
-          ]),
+          round(
+            [
+              '  Everything looks perfect!',
+              '  Your documentation is in great shape.',
+              '',
+              `  ${colors.dim(`Scanned ${files.length} file${files.length !== 1 ? 's' : ''} in ${duration}s`)}`,
+            ],
+            { title: '✨ Documentation Health Check' },
+          ),
         )
       } else {
         const summaryBullets: string[] = []
@@ -331,7 +337,9 @@ export async function doctorAction(
           ),
         ]
 
-        console.log(`\n${double('Diagnosis Results', summaryLines)}\n`)
+        console.log(
+          `\n${double(summaryLines, { title: 'Diagnosis Results' })}\n`,
+        )
 
         if (fixedCount > 0) {
           success(`Successfully fixed ${fixedCount} issues automatically!`)

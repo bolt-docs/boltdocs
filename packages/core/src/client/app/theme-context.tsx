@@ -21,13 +21,21 @@ const ThemeContext =
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const [theme, setThemeState] = useState<Theme>(() => {
-    if (typeof window !== 'undefined' && typeof localStorage !== 'undefined') {
-      return (localStorage.getItem('boltdocs-theme') as Theme) || 'system'
+    if (typeof window !== 'undefined') {
+      try {
+        return (
+          (window.localStorage.getItem('boltdocs-theme') as Theme) || 'system'
+        )
+      } catch {}
     }
     return 'system'
   })
   const [resolvedTheme, setResolvedTheme] = useState<ResolvedTheme>(() => {
-    if (typeof window !== 'undefined' && typeof document !== 'undefined' && document.documentElement) {
+    if (
+      typeof window !== 'undefined' &&
+      typeof document !== 'undefined' &&
+      document.documentElement
+    ) {
       return document.documentElement.classList.contains('dark')
         ? 'dark'
         : 'light'
@@ -47,19 +55,25 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   }
 
   useEffect(() => {
-    const savedTheme = localStorage.getItem('boltdocs-theme') as Theme | null
-    if (savedTheme) {
-      setThemeState(savedTheme)
-      applyTheme(savedTheme)
-    } else {
-      applyTheme('system')
-    }
+    try {
+      const savedTheme = window.localStorage.getItem(
+        'boltdocs-theme',
+      ) as Theme | null
+      if (savedTheme) {
+        setThemeState(savedTheme)
+        applyTheme(savedTheme)
+      } else {
+        applyTheme('system')
+      }
+    } catch {}
 
     const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)')
     const listener = () => {
-      const current =
-        (localStorage.getItem('boltdocs-theme') as Theme) || 'system'
-      if (current === 'system') applyTheme('system')
+      try {
+        const current =
+          (window.localStorage.getItem('boltdocs-theme') as Theme) || 'system'
+        if (current === 'system') applyTheme('system')
+      } catch {}
     }
 
     mediaQuery.addEventListener('change', listener)
@@ -68,7 +82,9 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
 
   const setTheme = (newTheme: Theme) => {
     setThemeState(newTheme)
-    localStorage.setItem('boltdocs-theme', newTheme)
+    try {
+      window.localStorage.setItem('boltdocs-theme', newTheme)
+    } catch {}
     applyTheme(newTheme)
 
     // Notify external listeners (dual-package hazard)

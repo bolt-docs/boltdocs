@@ -3,15 +3,20 @@ import type { BoltdocsConfig } from '../config'
 import { SECURITY_HEADERS } from '../security/headers'
 import { getCSPHeader } from '../security/csp'
 import { getHtmlTemplate, injectHtmlMeta } from '../plugin/html'
+import { createFeedbackMiddleware } from '../plugin/middlewares'
 
 const ASSET_URL_RE =
   /\.(js|css|png|jpe?g|gif|svg|ico|webp|woff2?|ttf|otf|mp4|webm|ogg|mp3|wav|flac|aac|pdf|zip|gz|map|json)$/i
 
 export function setupMiddlewares(
   server: ViteDevServer,
+  docsDir: string,
   getConfig: () => BoltdocsConfig,
 ): void {
   const isProd = process.env.NODE_ENV === 'production'
+
+  // Custom feedback integration middleware for local dev server
+  server.middlewares.use(createFeedbackMiddleware(getConfig))
 
   server.middlewares.use((_req, res, next) => {
     if (isProd) {
@@ -26,7 +31,7 @@ export function setupMiddlewares(
     next()
   })
 
-  server.middlewares.use((req, res, next) => {
+  server.middlewares.use((req, _res, next) => {
     if (req.url === '/robots.txt') {
       next()
       return

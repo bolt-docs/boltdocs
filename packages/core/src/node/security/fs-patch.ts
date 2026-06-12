@@ -91,7 +91,7 @@ function isWriteFlag(flags: unknown): boolean {
 
 export function applyFsPatch(): void {
   const originalWriteFile = fs.writeFile
-  fs.writeFile = function (path: unknown, ...args: unknown[]) {
+  fs.writeFile = ((path: unknown, ...args: unknown[]) => {
     try {
       checkPath(path)
     } catch (err) {
@@ -103,16 +103,16 @@ export function applyFsPatch(): void {
       throw err
     }
     return (originalWriteFile as any).call(fs, path, ...args)
-  } as any
+  }) as any
 
   const originalWriteFileSync = fs.writeFileSync
-  fs.writeFileSync = function (path: unknown, ...args: unknown[]) {
+  fs.writeFileSync = (path: unknown, ...args: unknown[]) => {
     checkPath(path)
     return (originalWriteFileSync as any).call(fs, path, ...args)
   }
 
   const originalRm = fs.rm
-  fs.rm = function (path: unknown, ...args: unknown[]) {
+  fs.rm = ((path: unknown, ...args: unknown[]) => {
     try {
       checkPath(path)
     } catch (err) {
@@ -124,16 +124,16 @@ export function applyFsPatch(): void {
       throw err
     }
     return (originalRm as any).call(fs, path, ...args)
-  } as any
+  }) as any
 
   const originalRmSync = fs.rmSync
-  fs.rmSync = function (path: unknown, ...args: unknown[]) {
+  fs.rmSync = (path: unknown, ...args: unknown[]) => {
     checkPath(path)
     return (originalRmSync as any).call(fs, path, ...args)
   }
 
   const originalUnlink = fs.unlink
-  fs.unlink = function (path: unknown, ...args: unknown[]) {
+  fs.unlink = ((path: unknown, ...args: unknown[]) => {
     try {
       checkPath(path)
     } catch (err) {
@@ -145,16 +145,16 @@ export function applyFsPatch(): void {
       throw err
     }
     return (originalUnlink as any).call(fs, path, ...args)
-  } as any
+  }) as any
 
   const originalUnlinkSync = fs.unlinkSync
-  fs.unlinkSync = function (path: unknown, ...args: unknown[]) {
+  fs.unlinkSync = (path: unknown, ...args: unknown[]) => {
     checkPath(path)
     return (originalUnlinkSync as any).call(fs, path, ...args)
   }
 
   const originalMkdir = fs.mkdir
-  fs.mkdir = function (path: unknown, ...args: unknown[]) {
+  fs.mkdir = ((path: unknown, ...args: unknown[]) => {
     try {
       checkPath(path)
     } catch (err) {
@@ -166,16 +166,16 @@ export function applyFsPatch(): void {
       throw err
     }
     return (originalMkdir as any).call(fs, path, ...args)
-  } as any
+  }) as any
 
   const originalMkdirSync = fs.mkdirSync
-  fs.mkdirSync = function (path: unknown, ...args: unknown[]) {
+  fs.mkdirSync = (path: unknown, ...args: unknown[]) => {
     checkPath(path)
     return (originalMkdirSync as any).call(fs, path, ...args)
   }
 
   const originalRmdir = fs.rmdir
-  fs.rmdir = function (path: unknown, ...args: unknown[]) {
+  fs.rmdir = ((path: unknown, ...args: unknown[]) => {
     try {
       checkPath(path)
     } catch (err) {
@@ -187,16 +187,16 @@ export function applyFsPatch(): void {
       throw err
     }
     return (originalRmdir as any).call(fs, path, ...args)
-  } as any
+  }) as any
 
   const originalRmdirSync = fs.rmdirSync
-  fs.rmdirSync = function (path: unknown, ...args: unknown[]) {
+  fs.rmdirSync = (path: unknown, ...args: unknown[]) => {
     checkPath(path)
     return (originalRmdirSync as any).call(fs, path, ...args)
   }
 
   const originalAppendFile = fs.appendFile
-  fs.appendFile = function (path: unknown, ...args: unknown[]) {
+  fs.appendFile = ((path: unknown, ...args: unknown[]) => {
     try {
       checkPath(path)
     } catch (err) {
@@ -208,16 +208,16 @@ export function applyFsPatch(): void {
       throw err
     }
     return (originalAppendFile as any).call(fs, path, ...args)
-  } as any
+  }) as any
 
   const originalAppendFileSync = fs.appendFileSync
-  fs.appendFileSync = function (path: unknown, ...args: unknown[]) {
+  fs.appendFileSync = (path: unknown, ...args: unknown[]) => {
     checkPath(path)
     return (originalAppendFileSync as any).call(fs, path, ...args)
   }
 
   const originalCopyFile = fs.copyFile
-  fs.copyFile = function (src: unknown, dest: unknown, ...args: unknown[]) {
+  fs.copyFile = ((src: unknown, dest: unknown, ...args: unknown[]) => {
     try {
       checkPath(src)
       checkPath(dest)
@@ -230,21 +230,17 @@ export function applyFsPatch(): void {
       throw err
     }
     return (originalCopyFile as any).call(fs, src, dest, ...args)
-  } as any
+  }) as any
 
   const originalCopyFileSync = fs.copyFileSync
-  fs.copyFileSync = function (src: unknown, dest: unknown, ...args: unknown[]) {
+  fs.copyFileSync = (src: unknown, dest: unknown, ...args: unknown[]) => {
     checkPath(src)
     checkPath(dest)
     return (originalCopyFileSync as any).call(fs, src, dest, ...args)
   }
 
   const originalRename = fs.rename
-  fs.rename = function (
-    oldPath: unknown,
-    newPath: unknown,
-    ...args: unknown[]
-  ) {
+  fs.rename = ((oldPath: unknown, newPath: unknown, ...args: unknown[]) => {
     try {
       checkPath(oldPath)
       checkPath(newPath)
@@ -257,27 +253,23 @@ export function applyFsPatch(): void {
       throw err
     }
     return (originalRename as any).call(fs, oldPath, newPath, ...args)
-  } as any
+  }) as any
 
   const originalRenameSync = fs.renameSync
-  fs.renameSync = function (
-    oldPath: unknown,
-    newPath: unknown,
-    ...args: unknown[]
-  ) {
+  fs.renameSync = (oldPath: unknown, newPath: unknown, ...args: unknown[]) => {
     checkPath(oldPath)
     checkPath(newPath)
     return (originalRenameSync as any).call(fs, oldPath, newPath, ...args)
   }
 
   const originalCreateWriteStream = fs.createWriteStream
-  fs.createWriteStream = function (path: unknown, ...args: unknown[]) {
+  fs.createWriteStream = (path: unknown, ...args: unknown[]) => {
     checkPath(path)
     return (originalCreateWriteStream as any).call(fs, path, ...args)
   }
 
   const originalOpen = fs.open
-  fs.open = function (path: unknown, flags: unknown, ...args: unknown[]) {
+  fs.open = ((path: unknown, flags: unknown, ...args: unknown[]) => {
     const actualFlags = typeof flags === 'function' ? undefined : flags
     if (isWriteFlag(actualFlags)) {
       try {
@@ -298,10 +290,10 @@ export function applyFsPatch(): void {
       }
     }
     return (originalOpen as any).call(fs, path, flags, ...args)
-  } as any
+  }) as any
 
   const originalOpenSync = fs.openSync
-  fs.openSync = function (path: unknown, flags: unknown, ...args: unknown[]) {
+  fs.openSync = (path: unknown, flags: unknown, ...args: unknown[]) => {
     if (isWriteFlag(flags)) {
       checkPath(path)
     }
@@ -313,10 +305,7 @@ export function applyFsPatch(): void {
 
     const originalPromisesWriteFile = promisesObj.writeFile
     if (originalPromisesWriteFile) {
-      promisesObj.writeFile = async function (
-        path: unknown,
-        ...args: unknown[]
-      ) {
+      promisesObj.writeFile = async (path: unknown, ...args: unknown[]) => {
         checkPath(path)
         return originalPromisesWriteFile.call(promisesObj, path, ...args)
       }
@@ -324,7 +313,7 @@ export function applyFsPatch(): void {
 
     const originalPromisesRm = promisesObj.rm
     if (originalPromisesRm) {
-      promisesObj.rm = async function (path: unknown, ...args: unknown[]) {
+      promisesObj.rm = async (path: unknown, ...args: unknown[]) => {
         checkPath(path)
         return originalPromisesRm.call(promisesObj, path, ...args)
       }
@@ -332,7 +321,7 @@ export function applyFsPatch(): void {
 
     const originalPromisesMkdir = promisesObj.mkdir
     if (originalPromisesMkdir) {
-      promisesObj.mkdir = async function (path: unknown, ...args: unknown[]) {
+      promisesObj.mkdir = async (path: unknown, ...args: unknown[]) => {
         checkPath(path)
         return originalPromisesMkdir.call(promisesObj, path, ...args)
       }
@@ -340,7 +329,7 @@ export function applyFsPatch(): void {
 
     const originalPromisesRmdir = promisesObj.rmdir
     if (originalPromisesRmdir) {
-      promisesObj.rmdir = async function (path: unknown, ...args: unknown[]) {
+      promisesObj.rmdir = async (path: unknown, ...args: unknown[]) => {
         checkPath(path)
         return originalPromisesRmdir.call(promisesObj, path, ...args)
       }
@@ -348,7 +337,7 @@ export function applyFsPatch(): void {
 
     const originalPromisesUnlink = promisesObj.unlink
     if (originalPromisesUnlink) {
-      promisesObj.unlink = async function (path: unknown, ...args: unknown[]) {
+      promisesObj.unlink = async (path: unknown, ...args: unknown[]) => {
         checkPath(path)
         return originalPromisesUnlink.call(promisesObj, path, ...args)
       }
@@ -356,10 +345,7 @@ export function applyFsPatch(): void {
 
     const originalPromisesAppendFile = promisesObj.appendFile
     if (originalPromisesAppendFile) {
-      promisesObj.appendFile = async function (
-        path: unknown,
-        ...args: unknown[]
-      ) {
+      promisesObj.appendFile = async (path: unknown, ...args: unknown[]) => {
         checkPath(path)
         return originalPromisesAppendFile.call(promisesObj, path, ...args)
       }
@@ -367,11 +353,11 @@ export function applyFsPatch(): void {
 
     const originalPromisesCopyFile = promisesObj.copyFile
     if (originalPromisesCopyFile) {
-      promisesObj.copyFile = async function (
+      promisesObj.copyFile = async (
         src: unknown,
         dest: unknown,
         ...args: unknown[]
-      ) {
+      ) => {
         checkPath(src)
         checkPath(dest)
         return originalPromisesCopyFile.call(promisesObj, src, dest, ...args)
@@ -380,11 +366,11 @@ export function applyFsPatch(): void {
 
     const originalPromisesRename = promisesObj.rename
     if (originalPromisesRename) {
-      promisesObj.rename = async function (
+      promisesObj.rename = async (
         oldPath: unknown,
         newPath: unknown,
         ...args: unknown[]
-      ) {
+      ) => {
         checkPath(oldPath)
         checkPath(newPath)
         return originalPromisesRename.call(
@@ -398,11 +384,11 @@ export function applyFsPatch(): void {
 
     const originalPromisesOpen = promisesObj.open
     if (originalPromisesOpen) {
-      promisesObj.open = async function (
+      promisesObj.open = async (
         path: unknown,
         flags: unknown,
         ...args: unknown[]
-      ) {
+      ) => {
         if (isWriteFlag(flags)) {
           checkPath(path)
         }

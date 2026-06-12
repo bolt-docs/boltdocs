@@ -136,7 +136,7 @@ export class ShikiAdapter {
 
 // Module-level singleton adapter caching logic
 let _adapterInstance: ShikiAdapter | null = null
-let _adapterThemeConfigStr: string | undefined = undefined
+let _adapterThemeConfigStr: string | undefined
 
 /**
  * Returns a cached ShikiAdapter instance.

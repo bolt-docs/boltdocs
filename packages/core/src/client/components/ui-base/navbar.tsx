@@ -13,7 +13,8 @@ import { Menu as MenuIcon, X } from './icons'
 import { useLocalizedTo } from '../../hooks/use-localized-to'
 import type { NavbarLink as NavbarLinkType } from '../../types'
 import { useUI } from '../../app/ui-context'
-import { VersionSelector, I18nSelector } from './version-i18n'
+import { VersionSelector } from './version-selector'
+import { I18nSelector } from './i18n-selector'
 
 const SearchDialog = lazy(() =>
   import('./search-dialog').then((m) => ({
@@ -179,7 +180,7 @@ function NavbarLinkItem({ link }: { link: NavbarLinkType }) {
   const localizedHref = useLocalizedTo(link.href || '')
   const { pathname } = useLocation()
   const active =
-    pathname === localizedHref || pathname.startsWith(localizedHref + '/')
+    pathname === localizedHref || pathname.startsWith(`${localizedHref}/`)
   const hasItems = link.items && link.items.length > 0
 
   if (hasItems) {

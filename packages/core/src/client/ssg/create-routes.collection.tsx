@@ -176,7 +176,7 @@ function buildCollectionRoutes(options: {
                   collectionPostComponent={postComponent}
                 />
               )
-            }
+            },
           }
         }
       } else {

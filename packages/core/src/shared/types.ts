@@ -214,10 +214,44 @@ export interface BoltdocsAlgoliaConfig {
   indexName: string
 }
 
+/**
+ * Configuration for Giscus comments.
+ */
+export interface BoltdocsGiscusConfig {
+  repo: string
+  repoId: string
+  category?: string
+  categoryId?: string
+  mapping?: 'pathname' | 'url' | 'title' | 'og:title' | 'specific' | 'number'
+  strict?: '0' | '1' | boolean
+  reactionsEnabled?: '0' | '1' | boolean
+  emitMetadata?: '0' | '1' | boolean
+  inputPosition?: 'top' | 'bottom'
+  theme?: string
+  darkTheme?: string
+  lang?: string
+  loading?: 'lazy' | 'eager'
+}
+
+/**
+ * Configuration for custom feedback system using GitHub Discussions API.
+ */
+export interface BoltdocsCustomFeedbackConfig {
+  enabled: boolean
+  owner: string
+  repo: string
+  categorySlug?: string
+  endpoint?: string
+}
+
 export interface BoltdocsIntegrationsConfig {
   ga4?: BoltdocsGA4Config
   gtm?: BoltdocsGTMConfig
   algolia?: BoltdocsAlgoliaConfig
+  feedback?: {
+    giscus?: BoltdocsGiscusConfig
+    custom?: BoltdocsCustomFeedbackConfig
+  }
 }
 
 /**
@@ -236,9 +270,8 @@ export interface BoltdocsConfig {
   security?: BoltdocsSecurityConfig
   seo?: BoltdocsSeoConfig
   integrations?: BoltdocsIntegrationsConfig
-  /** Aggregated metadata from local meta.json files */
-  directoryMeta?: Record<string, any>
-  vite?: any // Avoid pulling in entire Vite types here
+  directoryMeta?: Record<string, unknown>
+  vite?: unknown
 }
 
 /**

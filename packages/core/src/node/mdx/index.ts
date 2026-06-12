@@ -4,6 +4,7 @@ import remarkFrontmatter from 'remark-frontmatter'
 import rehypeSlug from 'rehype-slug'
 import type { Plugin } from 'vite'
 import crypto from 'node:crypto'
+import fs from 'node:fs'
 
 import type { BoltdocsConfig } from '../config'
 import { mdxCache, MDX_PLUGIN_VERSION } from './cache'
@@ -51,6 +52,30 @@ export function boltdocsMdxPlugin(
         // @ts-expect-error
         await baseMdxPlugin.buildStart.call(this)
       }
+    },
+
+    async load(id, options) {
+      if (id.endsWith('.md') || id.endsWith('.mdx')) {
+        try {
+          let code = fs.readFileSync(id, 'utf-8')
+          const lifecycle = getLifecycle?.()
+          if (lifecycle) {
+            const result = await lifecycle.runChain('transformSource', {
+              code,
+              filePath: id,
+            })
+            code = result.code
+          }
+          return code
+        } catch {
+          return null
+        }
+      }
+      if (baseMdxPlugin.load) {
+        // @ts-expect-error
+        return baseMdxPlugin.load.call(this, id, options)
+      }
+      return null
     },
 
     async transform(code, id, options) {

@@ -18,6 +18,7 @@ const SecurePluginSchema = BoltdocsPluginSchema.extend({
       beforeDev: z.function().optional(),
       afterDev: z.function().optional(),
       buildEnd: z.function().optional(),
+      transformSource: z.function().optional(),
       transformMdx: z.function().optional(),
       transformHtml: z.function().optional(),
     })

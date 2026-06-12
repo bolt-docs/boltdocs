@@ -79,7 +79,9 @@ export class WorkerPool {
       this.activeWorkers++
       const workerPath = this.getWorkerPath()
       const newWorker = new Worker(workerPath, {
-        execArgv: workerPath.endsWith('.ts') ? ['--loader', 'tsx'] : [],
+        execArgv: workerPath.endsWith('.ts')
+          ? ['--loader', 'tsx', '--no-deprecation']
+          : ['--no-deprecation'],
       })
       worker = newWorker
       this.workers.push(newWorker)

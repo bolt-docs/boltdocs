@@ -23,7 +23,7 @@ export async function computeFrontmatterHash(
 export function getFrontmatterHash(filePath: string): string | undefined {
   let hash = frontmatterHashes.get(filePath)
   if (hash === undefined) {
-    const cachedDoc = docCache.get(filePath)
+    const cachedDoc = docCache.getStale(filePath)
     if (cachedDoc?.route?.frontmatter) {
       hash = hashFrontmatterData(cachedDoc.route.frontmatter)
       frontmatterHashes.set(filePath, hash)

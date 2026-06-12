@@ -21,11 +21,10 @@ export {
   single,
   double,
   round,
-  devServer,
-  previewServer,
   bullet,
   ordered,
   tasks,
   table,
 } from '@bdocs/dui'
+export { devServer, previewServer } from '../ui-utils'
 export type { BoxOptions, BoxBorderStyle } from '@bdocs/dui'

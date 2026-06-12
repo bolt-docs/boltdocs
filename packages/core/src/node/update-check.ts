@@ -4,6 +4,7 @@ import fs from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import * as dui from '@bdocs/dui'
+import { updateAvailable } from './ui-utils'
 
 const req = createRequire(import.meta.url)
 
@@ -64,7 +65,7 @@ export async function getCurrentVersion(): Promise<string> {
 }
 
 export function renderUpdateBox(current: string, latest: string): string {
-  return dui.updateAvailable(current, latest)
+  return updateAvailable(current, latest)
 }
 
 export async function notifyUpdateAvailable(): Promise<void> {
@@ -101,5 +102,5 @@ export async function notifyUpdateAvailable(): Promise<void> {
 
   if (!isNewerVersion(latest, current)) return
 
-  console.log(dui.updateAvailable(current, latest))
+  console.log(updateAvailable(current, latest))
 }

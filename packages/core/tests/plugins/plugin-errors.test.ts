@@ -34,10 +34,7 @@ describe('PluginValidationError', () => {
 
 describe('PluginCompatibilityError', () => {
   it('should extend PluginError with compatibility prefix', () => {
-    const err = new PluginCompatibilityError(
-      'test-plugin',
-      'Version mismatch',
-    )
+    const err = new PluginCompatibilityError('test-plugin', 'Version mismatch')
     expect(err.message).toBe(
       '[plugin:test-plugin] Compatibility error: Version mismatch',
     )

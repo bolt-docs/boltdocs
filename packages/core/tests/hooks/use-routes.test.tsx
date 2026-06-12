@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { renderHook } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
-import * as React from 'react'
+import type * as React from 'react'
 import * as ReactRouter from 'react-router-dom'
 
 vi.mock('react-router-dom', async () => {

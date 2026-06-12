@@ -25,20 +25,24 @@ export function Banner({
   const [isVisible, setIsVisible] = useState(true)
 
   useEffect(() => {
-    if (dismissible && id) {
-      const isDismissed = localStorage.getItem(
-        `boltdocs-banner-dismissed-${id}`,
-      )
-      if (isDismissed === 'true') {
-        setIsVisible(false)
-      }
+    if (dismissible && id && typeof window !== 'undefined') {
+      try {
+        const isDismissed = window.localStorage.getItem(
+          `boltdocs-banner-dismissed-${id}`,
+        )
+        if (isDismissed === 'true') {
+          setIsVisible(false)
+        }
+      } catch {}
     }
   }, [dismissible, id])
 
   const handleDismiss = () => {
     setIsVisible(false)
-    if (dismissible && id) {
-      localStorage.setItem(`boltdocs-banner-dismissed-${id}`, 'true')
+    if (dismissible && id && typeof window !== 'undefined') {
+      try {
+        window.localStorage.setItem(`boltdocs-banner-dismissed-${id}`, 'true')
+      } catch {}
     }
   }
 

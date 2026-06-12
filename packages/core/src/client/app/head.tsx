@@ -105,8 +105,7 @@ export function Head({ siteTitle, siteDescription, routes }: HeadProps) {
           return <meta key="noindex" name="robots" content="noindex" />
         if (key === 'robots')
           return <meta key="robots" name="robots" content={value as string} />
-        if (key === 'canonical' || key === 'og:url')
-          return null // Handled explicitly above
+        if (key === 'canonical' || key === 'og:url') return null // Handled explicitly above
 
         const isProperty =
           key.startsWith('og:') ||

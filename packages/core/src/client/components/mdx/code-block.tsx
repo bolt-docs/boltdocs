@@ -3,41 +3,7 @@ import { Copy, Check, File } from '../ui-base/icons'
 import { cn } from '../../utils/cn'
 import { useCodeBlock } from './use-code-block'
 import * as CodePrimitive from '../primitives/code-block'
-import {
-  TypeScript,
-  JavaScript,
-  React as ReactIcon,
-  Json,
-  Css,
-  BracketsOrange,
-  Markdown,
-  Shell,
-  Yaml,
-  Rust,
-  BracketsRed,
-  Csv,
-} from '../icons-dev'
 import { Tooltip } from '../primitives/tooltip'
-
-const langIconMap: Record<string, React.ComponentType<{ size?: number }>> = {
-  ts: TypeScript,
-  tsx: ReactIcon,
-  js: JavaScript,
-  jsx: ReactIcon,
-  json: Json,
-  css: Css,
-  html: BracketsOrange,
-  md: Markdown,
-  mdx: Markdown,
-  bash: Shell,
-  sh: Shell,
-  yaml: Yaml,
-  yml: Yaml,
-  rs: Rust,
-  rust: Rust,
-  toml: BracketsRed,
-  csv: Csv,
-}
 
 export interface CodeBlockProps {
   children?: React.ReactNode
@@ -49,6 +15,7 @@ export interface CodeBlockProps {
   'data-lang'?: string
   'data-title'?: string
   'data-highlighted'?: string
+  'data-highlighted-html'?: string
   plain?: boolean
   lineNumbers?: boolean | string
   showLineNumbers?: boolean | string
@@ -80,6 +47,76 @@ const CopyButton = ({
   )
 }
 
+const CodeBlockFeedback = ({
+  rated,
+  onRate,
+}: {
+  rated: 'up' | 'down' | null
+  onRate: (type: 'up' | 'down') => void
+}) => {
+  return (
+    <div className="flex items-center gap-0.5 border-r border-subtle pr-1.5 mr-1">
+      <Tooltip content={rated === 'up' ? 'Helpful!' : 'This code is helpful'}>
+        <Button
+          onPress={() => onRate('up')}
+          disabled={rated !== null}
+          className={cn(
+            'grid place-items-center size-8 bg-transparent outline-none cursor-pointer transition-all duration-200 hover:scale-110 active:scale-95 [&>svg]:size-4 [&>svg]:stroke-2 z-10',
+            rated === 'up'
+              ? 'text-emerald-500 dark:text-emerald-400'
+              : rated === 'down'
+                ? 'opacity-30 cursor-not-allowed text-muted'
+                : 'text-muted hover:text-body',
+          )}
+          aria-label="Mark as helpful"
+        >
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <path d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3zM7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3" />
+          </svg>
+        </Button>
+      </Tooltip>
+
+      <Tooltip
+        content={rated === 'down' ? 'Unhelpful' : 'This code is unhelpful'}
+      >
+        <Button
+          onPress={() => onRate('down')}
+          disabled={rated !== null}
+          className={cn(
+            'grid place-items-center size-8 bg-transparent outline-none cursor-pointer transition-all duration-200 hover:scale-110 active:scale-95 [&>svg]:size-4 [&>svg]:stroke-2 z-10',
+            rated === 'down'
+              ? 'text-rose-500 dark:text-rose-400'
+              : rated === 'up'
+                ? 'opacity-30 cursor-not-allowed text-muted'
+                : 'text-muted hover:text-body',
+          )}
+          aria-label="Mark as unhelpful"
+        >
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <path d="M10 15v4a3 3 0 0 0 3 3l4-9V2H5.72a2 2 0 0 0-2 1.7l-1.38 9a2 2 0 0 0 2 2.3zm7-13h3a2 2 0 0 1 2 2v7a2 2 0 0 1-2 2h-3" />
+          </svg>
+        </Button>
+      </Tooltip>
+    </div>
+  )
+}
+
 export function CodeBlock(props: CodeBlockProps) {
   const {
     children,
@@ -90,7 +127,6 @@ export function CodeBlock(props: CodeBlockProps) {
     'data-title': dataTitle,
     'data-lang': dataLang,
     plain = false,
-    // Extract non-standard DOM properties passed by the MDX compiler/plugins
     lineNumbers,
     showLineNumbers,
     wordWrap,
@@ -100,20 +136,6 @@ export function CodeBlock(props: CodeBlockProps) {
   } = props
 
   const { className: shikiClassName, ...cleanRest } = rest
-  const isHighlighted =
-    props['data-highlighted'] === 'true' ||
-    (typeof shikiClassName === 'string' && shikiClassName.includes('shiki'))
-
-  const rawHighlightedHtml = highlightedHtml || dataHighlightedHtml
-  const effectiveHighlightedHtml =
-    typeof rawHighlightedHtml === 'string'
-      ? rawHighlightedHtml.replace(
-          /<span class="line">\s*(?:<span[^>]*>\s*<\/span>)?\s*<\/span>\s*(<\/code>\s*<\/pre>)/g,
-          '$1',
-        )
-      : rawHighlightedHtml
-  const effectiveTitle = title || dataTitle
-  const lang = props.lang || dataLang || ''
 
   const {
     copied,
@@ -123,9 +145,14 @@ export function CodeBlock(props: CodeBlockProps) {
     preRef,
     handleCopy,
     shouldTruncate,
+    isHighlighted,
+    effectiveHighlightedHtml,
+    effectiveTitle,
+    showCodeBlockFeedback,
+    rated,
+    handleRate,
+    LangIcon,
   } = useCodeBlock(props)
-
-  const LangIcon = langIconMap[lang]
 
   return (
     <CodePrimitive.CodeBlock plain={plain} className={props.className}>
@@ -148,6 +175,9 @@ export function CodeBlock(props: CodeBlockProps) {
             )}
           </CodePrimitive.CodeBlockGroup>
           <div className="flex items-center gap-1">
+            {showCodeBlockFeedback && (
+              <CodeBlockFeedback rated={rated} onRate={handleRate} />
+            )}
             {!hideCopy && (
               <CopyButton copied={copied} handleCopy={handleCopy} />
             )}

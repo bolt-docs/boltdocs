@@ -82,9 +82,13 @@ export function setupHmr(
       }
 
       const isInsideDocs = normalized.toLowerCase().startsWith(lowerDocsDir)
-      if (!isInsideDocs || !isDocFile(normalized)) return
+      if (!isInsideDocs) return
 
-      if (type === 'add' || type === 'unlink') {
+      const isMetaJson =
+        normalized.endsWith('meta.json') || normalized.endsWith('_meta.json')
+      if (!isMetaJson && !isDocFile(normalized)) return
+
+      if (type === 'add' || type === 'unlink' || isMetaJson) {
         if (type === 'unlink') {
           removeFrontmatterHash(file)
         }
@@ -179,7 +183,11 @@ export function createHotUpdateHandler(
 ): Plugin['hotUpdate'] {
   const lowerDocsDir = normalizedDocsDir.toLowerCase()
   return ({ file }) => {
-    if (file.toLowerCase().startsWith(lowerDocsDir) && isDocFile(file)) {
+    const normalized = file.toLowerCase()
+    if (
+      normalized.startsWith(lowerDocsDir) &&
+      (isDocFile(file) || normalized.endsWith('meta.json'))
+    ) {
       return []
     }
   }

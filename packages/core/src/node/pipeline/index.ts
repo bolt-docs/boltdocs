@@ -22,7 +22,10 @@ export class Pipeline<TContext> {
   async run(initialContext: TContext): Promise<PipelineResult> {
     const stepResults: StepResult[] = []
     const totalStart = performance.now()
-    const context = { ...initialContext, timing: {} as Record<string, number> } as TContext
+    const context = {
+      ...initialContext,
+      timing: {} as Record<string, number>,
+    } as TContext
 
     for (const step of this.steps) {
       const stepStart = performance.now()
@@ -42,8 +45,12 @@ export class Pipeline<TContext> {
         })
 
         // Rollback completed steps in reverse order
-        for (const completed of stepResults.filter((r) => r.success).reverse()) {
-          const stepToRollback = this.steps.find((s) => s.name === completed.name)
+        for (const completed of stepResults
+          .filter((r) => r.success)
+          .reverse()) {
+          const stepToRollback = this.steps.find(
+            (s) => s.name === completed.name,
+          )
           if (stepToRollback?.rollback) {
             try {
               await stepToRollback.rollback(context)

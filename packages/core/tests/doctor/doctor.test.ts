@@ -9,6 +9,7 @@ vi.mock('@bdocs/dui', async (importOriginal) => {
   return {
     ...actual,
     confirm: vi.fn().mockResolvedValue(true),
+    terminalWidth: () => 80,
   }
 })
 

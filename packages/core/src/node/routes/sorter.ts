@@ -10,17 +10,23 @@ import type { RouteMeta } from './types'
  */
 export function sortRoutes(routes: RouteMeta[]): RouteMeta[] {
   return routes.sort((a, b) => {
-    // Ungrouped first
-    if (!a.group && !b.group) return compareByPosition(a, b)
-    if (!a.group) return -1
-    if (!b.group) return 1
+    const posA = a.group ? (a.groupPosition ?? 999) : (a.sidebarPosition ?? 999)
+    const posB = b.group ? (b.groupPosition ?? 999) : (b.sidebarPosition ?? 999)
 
-    // Different groups: sort by group position
-    if (a.group !== b.group) {
-      return compareByGroupPosition(a, b)
+    if (posA !== posB) {
+      return posA - posB
     }
 
-    // Same group: sort by item position
+    // If effective category positions are identical, ungrouped items come first
+    if (!a.group && b.group) return -1
+    if (a.group && !b.group) return 1
+
+    // If both are grouped in different groups, sort by group title/name
+    if (a.group && b.group && a.group !== b.group) {
+      return (a.groupTitle || a.group).localeCompare(b.groupTitle || b.group)
+    }
+
+    // Same group or both ungrouped: sort by item position/title
     return compareByPosition(a, b)
   })
 }
@@ -31,12 +37,4 @@ function compareByPosition(a: RouteMeta, b: RouteMeta): number {
   if (a.sidebarPosition !== undefined) return -1
   if (b.sidebarPosition !== undefined) return 1
   return a.title.localeCompare(b.title)
-}
-
-function compareByGroupPosition(a: RouteMeta, b: RouteMeta): number {
-  if (a.groupPosition !== undefined && b.groupPosition !== undefined)
-    return a.groupPosition - b.groupPosition
-  if (a.groupPosition !== undefined) return -1
-  if (b.groupPosition !== undefined) return 1
-  return (a.groupTitle || a.group!).localeCompare(b.groupTitle || b.group!)
 }

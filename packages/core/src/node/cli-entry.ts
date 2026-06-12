@@ -1,5 +1,12 @@
 #!/usr/bin/env node
-process.noDeprecation = true
+
+// Suppress DEP0205 deprecation warning for module.register() in Node 26+
+const { emitWarning: _emitWarn } = process
+process.emitWarning = function (warning: any, ...args: any[]) {
+  if (warning && typeof warning === 'object' && warning.code === 'DEP0205') return
+  if (typeof warning === 'string' && args.includes('DEP0205')) return
+  return Reflect.apply(_emitWarn, process, [warning, ...args])
+}
 
 import { applyFsPatch } from './security/fs-patch'
 applyFsPatch()
@@ -12,9 +19,6 @@ import { devAction, buildAction, previewAction, auditAction } from './cli/index'
 // All packages that share this process (ssg, plugins, etc.) inherit this config.
 configure({
   prefix: 'boltdocs',
-  devServerTitle: 'boltdocs dev server',
-  previewServerTitle: 'boltdocs preview server',
-  updateCommand: 'pnpm add boltdocs@latest',
 })
 
 const cli = cac('boltdocs')
@@ -23,11 +27,13 @@ cli
   .command('dev [root]', 'Start development server')
   .option('--port <port>', 'Port to listen on')
   .option('--host [host]', 'Host to bind to')
+  .option('--force', 'Force Vite to re-optimize dependencies')
   .action(devAction)
 cli
   .command('[root]', 'Start development server')
   .option('--port <port>', 'Port to listen on')
   .option('--host [host]', 'Host to bind to')
+  .option('--force', 'Force Vite to re-optimize dependencies')
   .action(devAction)
 
 cli.command('build [root]', 'Build for production').action(buildAction)

@@ -72,6 +72,25 @@
     word-break: break-all;
   }
 
+  /* Responsive Tables */
+  .boltdocs-page table {
+    width: 100%;
+    table-layout: auto;
+    border-collapse: collapse;
+  }
+
+  .boltdocs-page table th,
+  .boltdocs-page table td {
+    word-break: normal;
+    overflow-wrap: break-word;
+  }
+
+  /* Prevent code signatures and property names in tables from wrapping awkwardly or breaking mid-word */
+  .boltdocs-page table :not(pre) > code {
+    white-space: nowrap;
+    word-break: normal !important;
+  }
+
   .scrollbar-hide {
     scrollbar-width: none;
     -ms-overflow-style: none;

@@ -163,16 +163,55 @@ export function SidebarGroup({
   icon: Icon,
   children,
   className,
-}: { title?: string; icon?: React.ElementType } & ComponentBase) {
+  collapsible = false,
+  collapsed = false,
+  active = false,
+}: {
+  title?: string
+  icon?: React.ElementType
+  collapsible?: boolean
+  collapsed?: boolean
+  active?: boolean
+} & ComponentBase) {
+  const [isOpen, setIsOpen] = useState(() => active || !collapsed)
+  const [prevActive, setPrevActive] = useState(active)
+
+  if (active !== prevActive) {
+    setPrevActive(active)
+    if (active) {
+      setIsOpen(true)
+    }
+  }
+
   return (
     <div className={className}>
-      {title && (
-        <h4 className="px-2 mb-2 flex items-center gap-2 text-[11px] font-bold uppercase tracking-widest text-muted/50">
-          {Icon && <Icon size={12} />}
-          {title}
-        </h4>
+      {title &&
+        (collapsible ? (
+          <button
+            onClick={() => setIsOpen(!isOpen)}
+            className="w-full text-left px-2 mb-2 flex items-center justify-between text-xs font-regular tracking-widest text-muted/50 hover:text-body transition-colors outline-none cursor-pointer group"
+          >
+            <span className="flex items-center gap-2">
+              {Icon && <Icon size={12} />}
+              {title}
+            </span>
+            <ChevronRight
+              size={12}
+              className={cn(
+                'transition-transform duration-200 text-muted/40 group-hover:text-body',
+                isOpen && 'rotate-90',
+              )}
+            />
+          </button>
+        ) : (
+          <h4 className="px-2 mb-2 flex items-center gap-2 text-[11px] font-bold uppercase tracking-widest text-muted/50">
+            {Icon && <Icon size={12} />}
+            {title}
+          </h4>
+        ))}
+      {(!collapsible || isOpen) && (
+        <div className="flex flex-col gap-0.5">{children}</div>
       )}
-      <div className="flex flex-col gap-0.5">{children}</div>
     </div>
   )
 }
@@ -367,40 +406,121 @@ export interface SidebarItemsProps extends ComponentBase {
   routes: ComponentRoute[]
 }
 
+const isRouteActive = (
+  route: any,
+  activePath: string,
+  activeRoute?: any,
+): boolean => {
+  const normalizedPath = route.path.endsWith('/')
+    ? route.path.slice(0, -1)
+    : route.path
+  const normalizedActive = activePath.endsWith('/')
+    ? activePath.slice(0, -1)
+    : activePath
+
+  if (normalizedActive === normalizedPath) return true
+  if (
+    activeRoute?.filePath &&
+    route.filePath &&
+    activeRoute.filePath === route.filePath
+  )
+    return true
+
+  if (
+    route.routes &&
+    route.routes.some((r: any) => isRouteActive(r, activePath, activeRoute))
+  )
+    return true
+  if (
+    route.subRoutes &&
+    route.subRoutes.some((r: any) => isRouteActive(r, activePath, activeRoute))
+  )
+    return true
+
+  return false
+}
+
 export function SidebarItems({ routes, className }: SidebarItemsProps) {
   const { groups, ungrouped, activePath, activeRoute } = useSidebar(routes)
 
+  // Merge groups and ungrouped into a single sorted list
+  const mergedItems = [
+    ...ungrouped.map((route) => ({
+      type: 'link' as const,
+      position: route.sidebarPosition ?? 999,
+      title: route.title,
+      route,
+    })),
+    ...groups.map((group) => ({
+      type: 'group' as const,
+      position: (group as any).sidebarPosition ?? 999,
+      title: group.title,
+      group,
+    })),
+  ].sort((a, b) => {
+    if (a.position !== b.position) return a.position - b.position
+    if (a.type !== b.type) {
+      return a.type === 'link' ? -1 : 1
+    }
+    return a.title.localeCompare(b.title)
+  })
+
+  const renderedElements: ReactNode[] = []
+  let currentUngrouped: ComponentRoute[] = []
+
+  const pushUngrouped = () => {
+    if (currentUngrouped.length > 0) {
+      const routesToRender = [...currentUngrouped]
+      renderedElements.push(
+        <SidebarGroup key={`ungrouped-${routesToRender[0].path}`}>
+          {routesToRender.map((route) => (
+            <SidebarItem
+              key={route.path}
+              route={route}
+              activePath={activePath}
+              activeRoute={activeRoute}
+            />
+          ))}
+        </SidebarGroup>,
+      )
+      currentUngrouped = []
+    }
+  }
+
+  for (const item of mergedItems) {
+    if (item.type === 'link') {
+      currentUngrouped.push(item.route)
+    } else {
+      pushUngrouped()
+      const isGroupActive = item.group.routes.some((route: any) =>
+        isRouteActive(route, activePath, activeRoute),
+      )
+      renderedElements.push(
+        <SidebarGroup
+          key={item.group.title}
+          title={item.group.title}
+          icon={getIcon(item.group.icon)}
+          collapsible={item.group.collapsible}
+          collapsed={item.group.collapsed}
+          active={isGroupActive}
+        >
+          {item.group.routes.map((route: any) => (
+            <SidebarItem
+              key={route.path}
+              route={route}
+              activePath={activePath}
+              activeRoute={activeRoute}
+            />
+          ))}
+        </SidebarGroup>,
+      )
+    }
+  }
+  pushUngrouped()
+
   return (
     <div className={cn('flex flex-col gap-6', className)}>
-      {ungrouped.length > 0 && (
-        <SidebarGroup>
-          {ungrouped.map((route) => (
-            <SidebarItem
-              key={route.path}
-              route={route}
-              activePath={activePath}
-              activeRoute={activeRoute}
-            />
-          ))}
-        </SidebarGroup>
-      )}
-
-      {groups.map((group) => (
-        <SidebarGroup
-          key={group.title}
-          title={group.title}
-          icon={getIcon(group.icon)}
-        >
-          {group.routes.map((route) => (
-            <SidebarItem
-              key={route.path}
-              route={route}
-              activePath={activePath}
-              activeRoute={activeRoute}
-            />
-          ))}
-        </SidebarGroup>
-      ))}
+      {renderedElements}
     </div>
   )
 }

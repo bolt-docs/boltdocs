@@ -104,7 +104,11 @@ describe('PluginLifecycleManager', () => {
     const plugins: SecureBoltdocsPlugin[] = [
       {
         name: 'dev-plugin',
-        hooks: { beforeDev: async () => { executionOrder.push('beforeDev') } },
+        hooks: {
+          beforeDev: async () => {
+            executionOrder.push('beforeDev')
+          },
+        },
       },
     ]
 
@@ -119,7 +123,11 @@ describe('PluginLifecycleManager', () => {
     const plugins: SecureBoltdocsPlugin[] = [
       {
         name: 'dev-plugin',
-        hooks: { afterDev: async () => { executionOrder.push('afterDev') } },
+        hooks: {
+          afterDev: async () => {
+            executionOrder.push('afterDev')
+          },
+        },
       },
     ]
 
@@ -134,7 +142,11 @@ describe('PluginLifecycleManager', () => {
     const plugins: SecureBoltdocsPlugin[] = [
       {
         name: 'build-plugin',
-        hooks: { afterBuild: async () => { executionOrder.push('afterBuild') } },
+        hooks: {
+          afterBuild: async () => {
+            executionOrder.push('afterBuild')
+          },
+        },
       },
     ]
 
@@ -149,7 +161,11 @@ describe('PluginLifecycleManager', () => {
     const plugins: SecureBoltdocsPlugin[] = [
       {
         name: 'build-plugin',
-        hooks: { buildEnd: async () => { executionOrder.push('buildEnd') } },
+        hooks: {
+          buildEnd: async () => {
+            executionOrder.push('buildEnd')
+          },
+        },
       },
     ]
 
@@ -255,7 +271,10 @@ describe('PluginLifecycleManager', () => {
         name: 'seo-plugin',
         hooks: {
           transformHtml: async (_ctx, params) => ({
-            html: params.html.replace('</head>', '<meta name="seo" content="ok"></head>'),
+            html: params.html.replace(
+              '</head>',
+              '<meta name="seo" content="ok"></head>',
+            ),
           }),
         },
       },

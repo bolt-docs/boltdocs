@@ -138,4 +138,25 @@ describe('sortRoutes', () => {
     expect(sorted[2].title).toBe('Z') // pos 15, title Z
     expect(sorted[3].title).toBe('C') // pos 15, title C
   })
+
+  it('should sort ungrouped with high position after grouped folders', () => {
+    const r1: RouteMeta = {
+      path: '/a',
+      title: 'A',
+      group: 'group1',
+      groupPosition: 1,
+    }
+    const r2: RouteMeta = { path: '/b', title: 'B', sidebarPosition: 20 } // ungrouped, position 20
+    const r3: RouteMeta = {
+      path: '/c',
+      title: 'C',
+      group: 'group2',
+      groupPosition: 2,
+    }
+
+    const sorted = sortRoutes([r2, r1, r3])
+    expect(sorted[0].group).toBe('group1')
+    expect(sorted[1].group).toBe('group2')
+    expect(sorted[2].title).toBe('B')
+  })
 })

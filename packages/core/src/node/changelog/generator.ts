@@ -67,7 +67,7 @@ export async function generateChangelog(
     `  📝 Add this to your navbar in boltdocs.config.ts:`,
     `     { label: '${title}', href: '/changelog' }`,
   ]
-  console.log(`\n${double('Changelog Generation', summaryLines)}\n`)
+  console.log(`\n${double(summaryLines, { title: 'Changelog Generation' })}\n`)
 }
 
 function generateMarkdown(

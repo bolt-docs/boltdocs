@@ -1,11 +1,12 @@
 #!/usr/bin/env node
 
-/**
- * Stable entry point for the Boltdocs CLI.
- * This file exists in the repository to ensure that pnpm can correctly
- * create symlinks during initial installation on CI environments (like Vercel),
- * even before the 'dist' folder has been built.
- */
+// Suppress DEP0205 deprecation warning for module.register() in Node 26+
+const { emitWarning: _emitWarn } = process
+process.emitWarning = function (warning, ...args) {
+  if (warning && typeof warning === 'object' && warning.code === 'DEP0205') return
+  if (typeof warning === 'string' && args.includes('DEP0205')) return
+  return Reflect.apply(_emitWarn, process, [warning, ...args])
+}
 
 // We use dynamic import because the core package is now ESM.
 import('../dist/node/cli-entry.mjs')

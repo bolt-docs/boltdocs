@@ -28,7 +28,7 @@ export function createDevServerPlugin(
       })
 
       setupPrewarming(server, docsDir, getConfig)
-      setupMiddlewares(server, getConfig)
+      setupMiddlewares(server, docsDir, getConfig)
       configureWatcher(server, docsDir)
       setupHmr(server, docsDir, normalizedDocsDir, getConfig)
 

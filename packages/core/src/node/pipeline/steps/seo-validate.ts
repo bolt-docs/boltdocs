@@ -30,9 +30,11 @@ export class SEOValidateStep implements PipelineStep<BuildContext> {
     // Shallow/Deep copy elements to prevent context corruption
     ctx.routes = ctx.routes.map((route) => {
       const rawSeo = route.seo || {}
-      
+
       // Calculate defaults
-      const canonical = rawSeo.canonical || (siteUrl ? `${siteUrl.replace(/\/$/, '')}${route.path}` : undefined)
+      const canonical =
+        rawSeo.canonical ||
+        (siteUrl ? `${siteUrl.replace(/\/$/, '')}${route.path}` : undefined)
       const ogUrl = rawSeo['og:url'] || canonical || undefined
 
       const enrichedSeo: Record<string, any> = {
@@ -67,7 +69,6 @@ export class SEOValidateStep implements PipelineStep<BuildContext> {
       }
     })
 
-    // Re-adapt for SSG route list with enriched SEO
     ctx.ssgRoutes = adaptRoutesForSSG(ctx.routes)
   }
 }

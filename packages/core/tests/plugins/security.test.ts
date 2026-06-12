@@ -19,6 +19,15 @@ import {
 import { inspectPluginsSecurity } from '@/node/security/inspect'
 import * as dui from '@bdocs/dui'
 
+vi.mock('@bdocs/dui', async (importOriginal) => {
+  const actual = (await importOriginal()) as typeof import('@bdocs/dui')
+  return {
+    ...actual,
+    warn: vi.fn(),
+    terminalWidth: () => 80,
+  }
+})
+
 // Disable patch globally for the test environment to prevent interference with other tests
 disableFsPatch()
 
@@ -112,7 +121,8 @@ describe('Security Features', () => {
 
   describe('Plugin Install Script Inspector', () => {
     it('warns if plugin package.json defines install scripts', () => {
-      const warnSpy = vi.spyOn(dui, 'warn').mockImplementation(() => {})
+      const warnSpy = vi.mocked(dui.warn)
+      warnSpy.mockClear()
 
       const config = {
         plugins: [
@@ -139,12 +149,11 @@ describe('Security Features', () => {
       expect(warnSpy).toHaveBeenCalled()
       expect(warnSpy.mock.calls[0][0]).toContain('mock-install-plugin')
       expect(warnSpy.mock.calls[0][0]).toContain('scripts nativos')
-
-      warnSpy.mockRestore()
     })
 
     it('does not warn if plugin package.json does not define install scripts', () => {
-      const warnSpy = vi.spyOn(dui, 'warn').mockImplementation(() => {})
+      const warnSpy = vi.mocked(dui.warn)
+      warnSpy.mockClear()
 
       const config = {
         plugins: [
@@ -169,8 +178,6 @@ describe('Security Features', () => {
       inspectPluginsSecurity(config, root)
 
       expect(warnSpy).not.toHaveBeenCalled()
-
-      warnSpy.mockRestore()
     })
   })
 })

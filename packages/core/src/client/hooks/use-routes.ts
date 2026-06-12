@@ -15,23 +15,17 @@ export function useRoutes() {
   const config = useConfig()
   const location = useLocation()
 
-  // Use Zustand store for active state
   const {
-    hasHydrated,
     currentLocale: currentLocaleStore,
     currentVersion: currentVersionStore,
   } = useBoltdocsContext()
 
   const currentPath = normalizePath(location.pathname)
 
-  // Find the current active route matching the pathname
   const currentRoute = allRoutes?.find?.(
     (r) => normalizePath(r.path) === currentPath,
   )
 
-  // 2. STRICT SOURCE OF TRUTH:
-  // Derive the active states exclusively from the hydrated Context Store.
-  // This ensures that user preference (LocalStorage) takes precedence over ambiguous URL fallbacks.
   const currentLocale = config.i18n
     ? currentLocaleStore || config.i18n.defaultLocale
     : undefined
@@ -40,12 +34,9 @@ export function useRoutes() {
     ? currentVersionStore || config.versions.defaultVersion
     : undefined
 
-  // Filter routes to those matching the current version and locale
   const routes = useMemo(() => {
     if (!allRoutes) return []
 
-    // Pre-calculate alternate presence using a Map of maps or a composite key
-    // Key: filePath | (locale || defaultLocale) | (version || defaultVersion)
     const alternateCounts = new Map<string, number>()
     const defaultLocale = config.i18n?.defaultLocale || ''
     const defaultVersion = config.versions?.defaultVersion || ''
@@ -67,12 +58,17 @@ export function useRoutes() {
 
       if (!(localeMatch && versionMatch)) return false
 
-      // Resolve duplicate paths (aliases) like /docs vs /docs/en
-      // 3. Resolve duplicate route aliases (e.g., /docs/page vs /docs/latest/page or /docs/es/page)
-      // If duplicates exist, we only show the style (prefixed or unprefixed) that matches the user's current page style.
       const pathParts = location.pathname.split('/').filter(Boolean)
-      const isCurrentLocalePrefixed = !!(config.i18n && pathParts.includes(currentLocaleStore || config.i18n.defaultLocale))
-      const isCurrentVersionPrefixed = !!(config.versions && pathParts.includes(currentVersionStore || config.versions.defaultVersion))
+      const isCurrentLocalePrefixed = !!(
+        config.i18n &&
+        pathParts.includes(currentLocaleStore || config.i18n.defaultLocale)
+      )
+      const isCurrentVersionPrefixed = !!(
+        config.versions &&
+        pathParts.includes(
+          currentVersionStore || config.versions.defaultVersion,
+        )
+      )
 
       const isRouteLocalePrefixed = !!r.locale
       const isRouteVersionPrefixed = !!r.version
@@ -83,7 +79,6 @@ export function useRoutes() {
       const hasAlternate = (alternateCounts.get(key) || 0) > 1
 
       if (hasAlternate) {
-        // Style mismatch checks
         const localeMismatch =
           config.i18n && isCurrentLocalePrefixed !== isRouteLocalePrefixed
         const versionMismatch =
@@ -96,7 +91,15 @@ export function useRoutes() {
 
       return true
     })
-  }, [allRoutes, config, currentLocale, currentVersion, location.pathname, currentLocaleStore, currentVersionStore])
+  }, [
+    allRoutes,
+    config,
+    currentLocale,
+    currentVersion,
+    location.pathname,
+    currentLocaleStore,
+    currentVersionStore,
+  ])
 
   const collections = useMemo(() => {
     return new Set(
