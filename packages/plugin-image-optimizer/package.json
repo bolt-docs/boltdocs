@@ -1,0 +1,55 @@
+{
+  "name": "@bdocs/plugin-image-optimizer",
+  "version": "0.1.0",
+  "description": "Image optimization plugin for Boltdocs using Sharp.js and SVGO",
+  "author": "jesusalcaladev",
+  "license": "MIT",
+  "type": "module",
+  "files": [
+    "dist"
+  ],
+  "main": "dist/index.cjs",
+  "module": "dist/index.mjs",
+  "types": "dist/index.d.mts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.mts",
+      "import": "./dist/index.mjs"
+    },
+    "./package.json": "./package.json"
+  },
+  "scripts": {
+    "build": "tsdown --config-loader unrun",
+    "dev": "tsdown --watch --config-loader unrun"
+  },
+  "peerDependencies": {
+    "@bdocs/dui": "^0.2.0",
+    "vite": ">=7.0.0",
+    "sharp": ">=0.34.0",
+    "svgo": ">=4"
+  },
+  "peerDependenciesMeta": {
+    "sharp": {
+      "optional": true
+    },
+    "svgo": {
+      "optional": true
+    }
+  },
+  "devDependencies": {
+    "@bdocs/dui": "^0.2.0",
+    "@types/node": "^22.0.0",
+    "sharp": "^0.34.5",
+    "svgo": "^4.0.1",
+    "tsdown": "^0.21.7",
+    "typescript": "^5.9.3",
+    "vite": "^7.0.0 || ^8.0.0"
+  },
+  "packageManager": "pnpm@10.30.2",
+  "publishConfig": {
+    "access": "public"
+  },
+  "engines": {
+    "node": ">=22.0.0"
+  }
+}
