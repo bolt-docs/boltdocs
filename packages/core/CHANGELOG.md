@@ -1,5 +1,11 @@
 # boltdocs
 
+## 2.9.1
+
+### Patch Changes
+
+- [`85cf6ba`](https://github.com/bolt-docs/boltdocs/commit/85cf6baf7dcfd2bee3952d44f250d309bb955fea) Thanks [@jesusalcaladev](https://github.com/jesusalcaladev)! - Refactor main Node entrypoint imports to use dynamic imports for heavy build-time dependencies, preventing runtime crashes in Vercel serverless functions.
+
 ## 2.9.0
 
 ### Minor Changes
