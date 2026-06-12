@@ -80,4 +80,26 @@ To resolve this, you must set up a serverless function endpoint on your hosting 
 - **For Environment Variables:** Make sure you have configured `BOLTDOCS_GITHUB_TOKEN`, `BOLTDOCS_GITHUB_REPO_OWNER`, and `BOLTDOCS_GITHUB_REPO_NAME` in your deployment settings.
 - **Local Testing:** Test your production builds locally using `boltdocs preview` (which automatically supports the `/api/feedback` endpoint) rather than a dummy static server like the `serve` package.
 
+---
+
+### Custom Feedback throws "GitHub repository coordinates (owner and repo name) are missing"
+
+If your feedback form displays the red validation error: `GitHub repository coordinates (owner and repo name) are missing. Please set GITHUB_REPO_OWNER and GITHUB_REPO_NAME.`:
+
+**Why this happens**
+
+The production serverless function runs standalone and does not compile or parse `boltdocs.config.ts` (to keep the runtime container lightweight and prevent loading heavy dev tools like Vite). Therefore, the function cannot read the coordinates from your config file at runtime.
+
+**Fix**
+
+You must configure the owner and repository name as environment variables in your hosting provider's settings panel (e.g. Vercel, Netlify, Cloudflare):
+- **`BOLTDOCS_GITHUB_REPO_OWNER`** (or `GITHUB_REPO_OWNER`)
+- **`BOLTDOCS_GITHUB_REPO_NAME`** (or `GITHUB_REPO_NAME`)
+
+And make sure your local `.env` file contains:
+```env
+BOLTDOCS_GITHUB_REPO_OWNER=your-github-username-or-org
+BOLTDOCS_GITHUB_REPO_NAME=your-repo-name
+```
+
 
