@@ -122,7 +122,7 @@ export async function parseDocFile(
       author: data.author,
       draft: data.draft,
       excerpt: data.excerpt,
-      coverImage: data.coverImage,
+      coverImage: data.coverImage || data.cover,
     },
     relativeDir: resolution.collection
       ? undefined

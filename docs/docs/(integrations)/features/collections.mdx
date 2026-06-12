@@ -1,0 +1,246 @@
+---
+title: Collections
+sidebarPosition: 1
+description: Collections allow you to group related documents under dynamic directories with automated route generation. By defining folder-based conventions, you can decouple standard documentation pages from customized lists, post pages, and custom layouts.
+badge: "New"
+---
+
+## Quick Start
+
+Creating a new collection takes only two steps:
+
+### 1. Create a bracketed folder
+
+Add a directory starting with `[` and ending with `]` inside your `docs/` directory, and drop your MDX/Markdown files inside it.
+
+```bash
+mkdir -p docs/docs/\[blog\]
+touch docs/docs/\[blog\]/first-post.mdx
+```
+
+### 2. Add Frontmatter
+
+Add metadata at the top of your markdown files. Boltdocs will automatically register these files as collection posts.
+
+```md
+---
+title: "Introducing Boltdocs Collections"
+date: 2026-05-28
+author: Jesús Alcalá
+excerpt: "A look at the new flexible collection routing."
+---
+
+Welcome to the future of dynamic collections in Boltdocs!
+```
+
+That’s it! Your post will be accessible at `/blog/first-post` and a collection list index will be auto-generated at `/blog`.
+
+---
+
+## How It Works
+
+Boltdocs parses bracketed directory names (e.g. `[blog]`, `[releases]`) as collections. 
+
+```
+docs/
+└── docs/
+    └── [blog]/                  → Dynamic Collection Namespace
+        ├── list.tsx             → Custom Collection Index Layout (Optional)
+        ├── post.tsx             → Custom Post View Layout (Optional)
+        ├── layout.tsx           → Custom Root Layout for this Collection (Optional)
+        ├── first-post.mdx       → Post page at `/blog/first-post`
+        └── second-post.mdx      → Post page at `/blog/second-post`
+```
+
+### Folder Convention Rules:
+1. **Dynamic Namespace**: The name of the bracketed directory (e.g., `[blog]`) maps to the collection ID (`blog`) and serves as the URL base route `/blog`.
+2. **List Override (`list.tsx`)**: If present, overrides the index listing page at `/blog`. Receives the list of all posts in the collection.
+3. **Post Override (`post.tsx`)**: If present, overrides the wrapper layout for individual posts (e.g. `/blog/first-post`).
+4. **Layout Override (`layout.tsx`)**: If present, acts as the root route layout wrapper (with its own sidebar or navigation context) for all routes inside the collection.
+
+---
+
+## Designing Custom Views
+
+To override the default look of your collections, you can drop standard React components directly into the collection folder.
+
+### Custom Post Component (`post.tsx`)
+
+A custom post component allows you to design how individual entries (like a blog article) render. Below is an example that only shows the title, date, author, and excerpt:
+
+```tsx
+import { useLoaderData } from 'react-router-dom'
+import { useMergedComponents } from 'boltdocs/client'
+import type { CollectionPostLoaderData } from 'boltdocs/client'
+
+export default function BlogPost({ MDXComponent, mdxComponents }: any) {
+  const data = useLoaderData() as CollectionPostLoaderData
+  const { route } = data
+  const { title, date, author, excerpt, lastUpdated } = route
+  const { Frontmatter } = route
+
+  const allComponents = useMergedComponents(mdxComponents)
+  const { LastUpdated } = allComponents
+
+  return (
+    <article className="max-w-3xl mx-auto py-12 px-4 sm:px-6 lg:px-8">
+      <header className="mb-10 pb-8 border-b border-gray-200 dark:border-gray-800">
+        {title && (
+          <h1 className="text-4xl font-extrabold tracking-tight text-gray-900 dark:text-white mb-4">
+            {title}
+          </h1>
+        )}
+        
+        <div className="flex items-center space-x-4 text-sm text-gray-500 dark:text-gray-400 mt-6">
+          {date && (
+            <time dateTime={new Date(date).toISOString()}>
+              {new Date(date).toLocaleDateString(undefined, {
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric',
+              })}
+            </time>
+          )}
+          
+          {author && (
+            <>
+              <span aria-hidden="true">&middot;</span>
+              <span>{typeof author === 'string' ? author : author.name}</span>
+            </>
+          )}
+        </div>
+        
+        {excerpt && (
+          <p className="mt-6 text-xl text-gray-600 dark:text-gray-300">
+            {excerpt}
+          </p>
+        )}
+      </header>
+      
+      <div className="prose prose-blue dark:prose-invert max-w-none">
+        <MDXComponent components={allComponents} />
+      </div>
+      
+      {lastUpdated && LastUpdated && (
+        <div className="mt-12 pt-8 border-t border-gray-200 dark:border-gray-800">
+          <LastUpdated date={lastUpdated} />
+        </div>
+      )}
+    </article>
+  )
+}
+```
+
+---
+
+## API Reference
+
+### Loader Data Structures
+
+When you write custom `list.tsx` or `post.tsx` files, you retrieve collection data by importing `useLoaderData` from `react-router-dom`. The shapes are typed and exported under `boltdocs/client`.
+
+#### CollectionPostLoaderData
+
+Returned by React Router loaders for collection post routes.
+
+| Property | Type | Default | Description |
+| :--- | :--- | :--- | :--- |
+| **`route`** | [`ComponentRoute`](#componentroute) | — | Detailed route metadata extracted from the post's frontmatter. |
+| **`collection`** | `string` | — | The name of the collection this post belongs to (e.g. `'blog'`). |
+| **`headings`** | `Heading[]` | `[]` | Extracted page headers for generating dynamic table of contents (TOC). |
+
+#### CollectionListLoaderData
+
+Returned by React Router loaders for collection list indexes (e.g. `/blog`).
+
+| Property | Type | Default | Description |
+| :--- | :--- | :--- | :--- |
+| **`posts`** | [`CollectionPostItem[]`](#collectionpostitem) | `[]` | Paginated array of all posts in the collection. |
+| **`totalPages`** | `number` | `1` | Total number of pages based on post count. |
+| **`currentPage`** | `number` | `1` | Current page number (1-based index). |
+| **`collection`** | `string` | — | The name of the collection identifier. |
+
+---
+
+### Hooks
+
+Boltdocs provides several React hooks under `boltdocs/client` to fetch your collections from anywhere in your app (like sidebars, footers, or custom home pages).
+
+#### `usePosts(collection: string)`
+
+Returns an array of all posts in a specific collection.
+
+```tsx
+import { usePosts } from 'boltdocs/client'
+
+function BlogList() {
+  const posts = usePosts('blog')
+  return (
+    <ul>
+      {posts.map(post => <li key={post.path}>{post.title}</li>)}
+    </ul>
+  )
+}
+```
+
+#### `usePost(collection: string, slug: string)`
+
+Returns a specific post by its slug (or full path) from a collection, or \`undefined\` if not found.
+
+```tsx
+import { usePost } from 'boltdocs/client'
+
+function FeaturedPost() {
+  const post = usePost('blog', 'boltdocs-2.9.0')
+  return <div>{post?.title}</div>
+}
+```
+
+#### `useRecentPosts(collection: string, count?: number)`
+
+Returns the most recent posts of a collection. Default count is 5.
+
+```tsx
+import { useRecentPosts } from 'boltdocs/client'
+
+function RecentUpdates() {
+  const recent = useRecentPosts('changelog', 3)
+  // ...
+}
+```
+
+---
+
+### ComponentRoute
+
+The type mapping metadata extracted from the frontmatter of your files.
+
+| Property | Type | Default | Description |
+| :--- | :--- | :--- | :--- |
+| **`title`** | `string` | `''` | Title of the post, pulled from frontmatter `title`. |
+| **`date`** | `string \| Date` | `undefined` | Date of publication, pulled from frontmatter `date`. |
+| **`author`** | `string \| AuthorObject` | `undefined` | Details of the author, supporting plain strings or objects with `name` and `avatar`. |
+| **`excerpt`** | `string` | `''` | Short description or excerpt. |
+| **`lastUpdated`** | `string \| number` | `undefined` | The timestamp of the last git commit (or manual override). |
+| **`frontmatter`** | `Record<string, any>` | `{}` | Extensible object with all custom frontmatter parameters. |
+
+---
+
+## Advanced Customization
+
+### Pagination
+If you do not define a custom `list.tsx`, Boltdocs provides a fallback listing page. However, you can easily implement pagination inside your custom `list.tsx` by using the page numbers provided in `CollectionListLoaderData`. The listings route maps to page numbers as query strings or path suffixes automatically.
+
+By default, each page displays 10 posts, but you can configure this globally via `collections.postsPerPage` inside your `boltdocs.config.ts`:
+
+```ts title="boltdocs.config.ts"
+export default defineConfig({
+  collections: {
+    postsPerPage: 12, // Customize items per page
+  },
+})
+```
+
+<Callout variant="info" title="Metadata Access">
+  All parameters written in your post frontmatter are preserved in the `frontmatter` record property inside `route`. This means you can add custom flags (like `featured: true` or `readingTime: '5 min'`) and consume them safely in your custom components.
+</Callout>

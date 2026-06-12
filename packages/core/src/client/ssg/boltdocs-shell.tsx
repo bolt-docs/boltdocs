@@ -12,6 +12,8 @@ import type { BoltdocsConfig } from '../../shared/types'
 import type { ComponentRoute } from '../types'
 import { UIProvider } from '../app/ui-context'
 import { InternalErrorBoundary as ErrorBoundary } from '../components/internal/error-boundary'
+import { CollectionsContext } from '../collections/collections-context'
+import type { CollectionsData } from '../collections/collections-context'
 
 import virtualCustomComponents from 'virtual:boltdocs-mdx-components'
 import { normalizePath } from '../utils/path'
@@ -68,10 +70,12 @@ export function BoltdocsShell({
   config,
   routes,
   components = {},
+  collectionsData,
 }: {
   config: BoltdocsConfig
   routes: ComponentRoute[]
   components?: Record<string, React.ComponentType>
+  collectionsData?: CollectionsData
 }) {
   const allComponents = useMemo(
     () => ({
@@ -120,17 +124,19 @@ export function BoltdocsShell({
           <UIProvider>
             <MdxComponentsProvider components={allComponents}>
               <ConfigContext.Provider value={config}>
-                <ScrollHandler />
-                <BoltdocsProvider
-                  initialLocale={initialData.initLocale}
-                  initialVersion={initialData.initVersion}
-                >
-                  <StoreSync config={config} routeMap={routeMap} />
-                  <I18nUpdater config={config} />
-                  <ErrorBoundary>
-                    <Outlet />
-                  </ErrorBoundary>
-                </BoltdocsProvider>
+                <CollectionsContext.Provider value={collectionsData || {}}>
+                  <ScrollHandler />
+                  <BoltdocsProvider
+                    initialLocale={initialData.initLocale}
+                    initialVersion={initialData.initVersion}
+                  >
+                    <StoreSync config={config} routeMap={routeMap} />
+                    <I18nUpdater config={config} />
+                    <ErrorBoundary>
+                      <Outlet />
+                    </ErrorBoundary>
+                  </BoltdocsProvider>
+                </CollectionsContext.Provider>
               </ConfigContext.Provider>
             </MdxComponentsProvider>
           </UIProvider>

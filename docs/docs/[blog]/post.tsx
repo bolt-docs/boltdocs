@@ -5,7 +5,7 @@ import type { CollectionPostLoaderData } from 'boltdocs/client'
 export default function BlogPost({ MDXComponent, mdxComponents }: any) {
   const data = useLoaderData() as CollectionPostLoaderData
   const { route } = data
-  const { title, date, author, excerpt, lastUpdated } = route
+  const { title, date, author, excerpt, lastUpdated, coverImage } = route
 
   const allComponents = useMergedComponents(mdxComponents)
   const { LastUpdated } = allComponents
@@ -42,6 +42,16 @@ export default function BlogPost({ MDXComponent, mdxComponents }: any) {
             </>
           )}
         </div>
+
+        {coverImage && (
+          <div className="relative aspect-video w-full overflow-hidden rounded-xl border border-gray-200 dark:border-gray-800 bg-neutral-100 dark:bg-neutral-900 mt-8 mb-6">
+            <img
+              src={coverImage}
+              alt={title || 'Cover image'}
+              className="object-cover w-full h-full"
+            />
+          </div>
+        )}
 
         {excerpt && (
           <p className="mt-6 text-xl text-gray-600 dark:text-gray-300">

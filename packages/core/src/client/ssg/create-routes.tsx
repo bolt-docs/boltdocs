@@ -67,6 +67,7 @@ export function createRoutes(options: CreateRoutesOptions): RouteRecord[] {
           config={config}
           routes={allMetadata}
           components={components}
+          collectionsData={options.collectionsData}
         />
       ),
       children,
