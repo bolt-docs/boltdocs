@@ -101,17 +101,19 @@ describe('Configuration Validation', () => {
       path.join(tempProjectDir, 'boltdocs.config.ts'),
       `export default {
         integrations: {
-          ga4: {
-            measurementId: 'G-12345678',
-            debug: true
+          analytics: {
+            ga4: {
+              measurementId: 'G-12345678',
+              debug: true
+            }
           }
         }
       }`,
     )
 
     const config = await resolveConfig(docsDir, tempProjectDir)
-    expect(config.integrations?.ga4?.measurementId).toBe('G-12345678')
-    expect(config.integrations?.ga4?.debug).toBe(true)
+    expect(config.integrations?.analytics?.ga4?.measurementId).toBe('G-12345678')
+    expect(config.integrations?.analytics?.ga4?.debug).toBe(true)
   })
 
   it('should throw error for invalid ga4 measurementId', async () => {
@@ -119,15 +121,17 @@ describe('Configuration Validation', () => {
       path.join(tempProjectDir, 'boltdocs.config.ts'),
       `export default {
         integrations: {
-          ga4: {
-            measurementId: ''
+          analytics: {
+            ga4: {
+              measurementId: ''
+            }
           }
         }
       }`,
     )
 
     await expect(resolveConfig(docsDir, tempProjectDir)).rejects.toThrow(
-      /integrations\.ga4\.measurementId/,
+      /integrations\.analytics\.ga4\.measurementId/,
     )
   })
 })

@@ -55,7 +55,7 @@ function createGtagAnalytics(
       window.gtag?.('event', 'page_view', {
         page_path: path,
         page_title: title || document.title,
-        send_to: config?.ga4?.measurementId,
+        send_to: config?.analytics?.ga4?.measurementId,
       })
     },
     trackEvent: ({ action, category, label, value, params }) => {
@@ -63,7 +63,7 @@ function createGtagAnalytics(
         event_category: category,
         event_label: label,
         value,
-        send_to: config?.ga4?.measurementId,
+        send_to: config?.analytics?.ga4?.measurementId,
         ...params,
       })
     },
@@ -71,20 +71,20 @@ function createGtagAnalytics(
       window.gtag?.('event', 'search', {
         search_term: query,
         results_count: resultsCount,
-        send_to: config?.ga4?.measurementId,
+        send_to: config?.analytics?.ga4?.measurementId,
       })
     },
     trackDownload: (file: string, type?: string) => {
       window.gtag?.('event', 'file_download', {
         file_name: file,
         file_type: type || file.split('.').pop(),
-        send_to: config?.ga4?.measurementId,
+        send_to: config?.analytics?.ga4?.measurementId,
       })
     },
     trackExternalLink: (url: string) => {
       window.gtag?.('event', 'external_link', {
         link_url: url,
-        send_to: config?.ga4?.measurementId,
+        send_to: config?.analytics?.ga4?.measurementId,
       })
     },
     isEnabled: true,
@@ -100,7 +100,7 @@ function createDataLayerAnalytics(
         event: 'page_view',
         page_path: path,
         page_title: title || document.title,
-        send_to: config?.gtm?.tagId,
+        send_to: config?.analytics?.gtm?.tagId,
       })
     },
     trackEvent: ({ action, category, label, value, params }) => {
@@ -109,7 +109,7 @@ function createDataLayerAnalytics(
         event_category: category,
         event_label: label,
         value,
-        send_to: config?.gtm?.tagId,
+        send_to: config?.analytics?.gtm?.tagId,
         ...params,
       })
     },
@@ -118,7 +118,7 @@ function createDataLayerAnalytics(
         event: 'search',
         search_term: query,
         results_count: resultsCount,
-        send_to: config?.gtm?.tagId,
+        send_to: config?.analytics?.gtm?.tagId,
       })
     },
     trackDownload: (file: string, type?: string) => {
@@ -126,14 +126,14 @@ function createDataLayerAnalytics(
         event: 'file_download',
         file_name: file,
         file_type: type || file.split('.').pop(),
-        send_to: config?.gtm?.tagId,
+        send_to: config?.analytics?.gtm?.tagId,
       })
     },
     trackExternalLink: (url: string) => {
       window.dataLayer?.push({
         event: 'external_link',
         link_url: url,
-        send_to: config?.gtm?.tagId,
+        send_to: config?.analytics?.gtm?.tagId,
       })
     },
     isEnabled: true,

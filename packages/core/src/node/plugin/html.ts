@@ -138,8 +138,8 @@ export function injectHtmlMeta(html: string, config: BoltdocsConfig): string {
   }
 
   let ga4Script = ''
-  if (config.integrations?.ga4) {
-    const ga4 = config.integrations.ga4
+  if (config.integrations?.analytics?.ga4) {
+    const ga4 = config.integrations.analytics.ga4
     const isProd = process.env.NODE_ENV === 'production'
     if (isProd || ga4.debug) {
       const ipAnonymization = ga4.anonymizeIp ? `gtag('set', 'ip', true);` : ''
@@ -165,8 +165,8 @@ export function injectHtmlMeta(html: string, config: BoltdocsConfig): string {
 
   let gtmScript = ''
   let gtmNoScript = ''
-  if (config.integrations?.gtm) {
-    const gtm = config.integrations.gtm
+  if (config.integrations?.analytics?.gtm) {
+    const gtm = config.integrations.analytics.gtm
     const isProd = process.env.NODE_ENV === 'production'
     if (isProd) {
       const dataLayerName = gtm.dataLayerName || 'dataLayer'
@@ -190,11 +190,32 @@ export function injectHtmlMeta(html: string, config: BoltdocsConfig): string {
     }
   }
 
+  let vercelScript = ''
+  if (config.integrations?.analytics?.vercel) {
+    const vercel = config.integrations.analytics.vercel
+    const isProd = process.env.NODE_ENV === 'production'
+    if (isProd) {
+      const { analytics = true, speedInsights = true } = vercel
+      if (analytics) {
+        vercelScript += `
+    <script>window.va=window.va||function(){(window.vaq=window.vaq||[]).push(arguments)};</script>
+    <script defer src="/_vercel/insights/script.js"></script>
+`
+      }
+      if (speedInsights) {
+        vercelScript += `
+    <script>window.si=window.si||function(){(window.siq=window.siq||[]).push(arguments)};</script>
+    <script defer src="/_vercel/speed-insights/script.js"></script>
+`
+      }
+    }
+  }
+
   html = html.replace('<head>', `<head>\n${themeScript}`)
 
   html = html.replace(
     '</head>',
-    `    ${seoTags}\n${ga4Script}${gtmScript}  </head>`,
+    `    ${seoTags}\n${ga4Script}${gtmScript}${vercelScript}  </head>`,
   )
 
   if (gtmNoScript) {

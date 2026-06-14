@@ -105,8 +105,14 @@ export default defineConfig({
     sitemaps: ['https://boltdocs.vercel.app/sitemap.xml'],
   },
   integrations: {
-    ga4: {
-      measurementId: 'G-WRBYHMBDYQ',
+    analytics: {
+      ga4: {
+        measurementId: 'G-WRBYHMBDYQ',
+      },
+      vercel: {
+        analytics: true,
+        speedInsights: true,
+      },
     },
     feedback: {
       custom: {

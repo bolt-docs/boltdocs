@@ -257,19 +257,31 @@ export const CustomFeedbackConfigSchema = z.object({
   endpoint: z.string().optional(),
 })
 
-export const IntegrationsConfigSchema = z.object({
-  ga4: GA4ConfigSchema.optional(),
-  gtm: GTMConfigSchema.optional(),
-  algolia: AlgoliaConfigSchema.optional(),
-  feedback: z
-    .object({
-      giscus: GiscusConfigSchema.optional(),
-      custom: CustomFeedbackConfigSchema.optional(),
-    })
-    .optional(),
+export const VercelConfigSchema = z.object({
+  analytics: z.boolean().optional(),
+  speedInsights: z.boolean().optional(),
 })
 
-export type BoltdocsAnalyticsConfig = z.infer<typeof IntegrationsConfigSchema>
+export const AnalyticsConfigSchema = z.object({
+  ga4: GA4ConfigSchema.optional(),
+  gtm: GTMConfigSchema.optional(),
+  vercel: VercelConfigSchema.optional(),
+})
+
+export const SearchConfigSchema = z.object({
+  algolia: AlgoliaConfigSchema.optional(),
+})
+
+export const FeedbackConfigSchema = z.object({
+  giscus: GiscusConfigSchema.optional(),
+  custom: CustomFeedbackConfigSchema.optional(),
+})
+
+export const IntegrationsConfigSchema = z.object({
+  analytics: AnalyticsConfigSchema.optional(),
+  search: SearchConfigSchema.optional(),
+  feedback: FeedbackConfigSchema.optional(),
+})
 
 /**
  * Root Zod schema for Boltdocs project configuration.

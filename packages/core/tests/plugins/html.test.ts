@@ -207,7 +207,9 @@ describe('plugin html', () => {
 
       it('should inject GA4 script when configured in production', () => {
         process.env.NODE_ENV = 'production'
-        const config = { integrations: { ga4: { measurementId: 'G-TEST123' } } }
+        const config = {
+          integrations: { analytics: { ga4: { measurementId: 'G-TEST123' } } },
+        }
         const result = injectHtmlMeta(baseHtml, config as any)
 
         expect(result).toContain(
@@ -218,7 +220,9 @@ describe('plugin html', () => {
 
       it('should not inject GA4 script in development by default', () => {
         process.env.NODE_ENV = 'development'
-        const config = { integrations: { ga4: { measurementId: 'G-TEST123' } } }
+        const config = {
+          integrations: { analytics: { ga4: { measurementId: 'G-TEST123' } } },
+        }
         const result = injectHtmlMeta(baseHtml, config as any)
 
         expect(result).not.toContain('https://www.googletagmanager.com/gtag/js')
@@ -227,7 +231,9 @@ describe('plugin html', () => {
       it('should inject GA4 script in development if debug is true', () => {
         process.env.NODE_ENV = 'development'
         const config = {
-          integrations: { ga4: { measurementId: 'G-TEST123', debug: true } },
+          integrations: {
+            analytics: { ga4: { measurementId: 'G-TEST123', debug: true } },
+          },
         }
         const result = injectHtmlMeta(baseHtml, config as any)
 
@@ -247,7 +253,9 @@ describe('plugin html', () => {
 
       it('should inject GTM script and noscript when configured in production', () => {
         process.env.NODE_ENV = 'production'
-        const config = { integrations: { gtm: { tagId: 'GTM-TEST123' } } }
+        const config = {
+          integrations: { analytics: { gtm: { tagId: 'GTM-TEST123' } } },
+        }
         const result = injectHtmlMeta(baseHtml, config as any)
 
         expect(result).toContain('https://www.googletagmanager.com/gtm.js?id=')
@@ -261,7 +269,9 @@ describe('plugin html', () => {
 
       it('should not inject GTM script in development', () => {
         process.env.NODE_ENV = 'development'
-        const config = { integrations: { gtm: { tagId: 'GTM-TEST123' } } }
+        const config = {
+          integrations: { analytics: { gtm: { tagId: 'GTM-TEST123' } } },
+        }
         const result = injectHtmlMeta(baseHtml, config as any)
 
         expect(result).not.toContain('https://www.googletagmanager.com/gtm.js')

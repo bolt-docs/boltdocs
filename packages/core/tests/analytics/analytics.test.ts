@@ -35,11 +35,13 @@ describe('Analytics Integration', () => {
       process.env.NODE_ENV = 'production'
       const config = {
         integrations: {
-          ga4: {
-            measurementId: 'G-XXXXX',
-            anonymizeIp: true,
-            sendPageView: false,
-            cookieFlags: 'SameSite=None;Secure',
+          analytics: {
+            ga4: {
+              measurementId: 'G-XXXXX',
+              anonymizeIp: true,
+              sendPageView: false,
+              cookieFlags: 'SameSite=None;Secure',
+            },
           },
         },
       }
@@ -58,10 +60,12 @@ describe('Analytics Integration', () => {
       process.env.NODE_ENV = 'production'
       const config = {
         integrations: {
-          gtm: {
-            tagId: 'GTM-XXXXX',
-            dataLayerName: 'customDL',
-            preview: 'env-1',
+          analytics: {
+            gtm: {
+              tagId: 'GTM-XXXXX',
+              dataLayerName: 'customDL',
+              preview: 'env-1',
+            },
           },
         },
       }
@@ -97,7 +101,7 @@ describe('Analytics Integration', () => {
     })
 
     it('should use gtag when available', () => {
-      const config = { ga4: { measurementId: 'G-XXXXX' } }
+      const config = { analytics: { ga4: { measurementId: 'G-XXXXX' } } }
       const analytics = useAnalytics({ config })
 
       analytics.trackPageView('/test', 'Title')
@@ -118,7 +122,7 @@ describe('Analytics Integration', () => {
         dataLayer: [],
       })
       const dataLayerSpy = vi.spyOn(window.dataLayer as any, 'push')
-      const config = { gtm: { tagId: 'GTM-XXXXX' } }
+      const config = { analytics: { gtm: { tagId: 'GTM-XXXXX' } } }
 
       const analytics = useAnalytics({ config })
       analytics.trackEvent({ action: 'click', category: 'button' })
@@ -133,7 +137,7 @@ describe('Analytics Integration', () => {
     })
 
     it('should track external links', () => {
-      const config = { ga4: { measurementId: 'G-XXXXX' } }
+      const config = { analytics: { ga4: { measurementId: 'G-XXXXX' } } }
       useAnalytics({ config })
 
       // Get all click handlers and trigger them
@@ -162,7 +166,7 @@ describe('Analytics Integration', () => {
     })
 
     it('should track downloads', () => {
-      const config = { ga4: { measurementId: 'G-XXXXX' } }
+      const config = { analytics: { ga4: { measurementId: 'G-XXXXX' } } }
       useAnalytics({ config })
 
       const clickHandlers = (document.addEventListener as any).mock.calls
@@ -191,7 +195,7 @@ describe('Analytics Integration', () => {
     })
 
     it('should respect excludePatterns', () => {
-      const config = { ga4: { measurementId: 'G-XXXXX' } }
+      const config = { analytics: { ga4: { measurementId: 'G-XXXXX' } } }
       useAnalytics({
         config,
         excludePatterns: [/internal\.com/],

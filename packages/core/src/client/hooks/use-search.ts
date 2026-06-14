@@ -19,7 +19,7 @@ interface SearchDataItem {
 export function useSearch(routes: ComponentRoute[]) {
   const { currentLocale, currentVersion } = useRoutes()
   const config = useConfig()
-  const algoliaConfig = config.integrations?.algolia
+  const algoliaConfig = config.integrations?.search?.algolia
 
   const [isOpen, setIsOpen] = useState(false)
   const [query, setQuery] = useState('')

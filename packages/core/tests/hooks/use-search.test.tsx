@@ -111,7 +111,9 @@ describe('useSearch hook', () => {
     beforeEach(() => {
       vi.mocked(useConfig).mockReturnValue({
         integrations: {
-          algolia: algoliaConfig,
+          search: {
+            algolia: algoliaConfig,
+          },
         },
       })
     })
