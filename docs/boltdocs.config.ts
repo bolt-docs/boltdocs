@@ -1,113 +1,117 @@
-import { defineConfig } from 'boltdocs'
-import mermaidPlugin from '@bdocs/plugin-mermaid'
-import mathPlugin from '@bdocs/plugin-math'
+import { defineConfig } from "boltdocs";
+import mermaidPlugin from "@bdocs/plugin-mermaid";
+import mathPlugin from "@bdocs/plugin-math";
 
 export default defineConfig({
-  base: '/docs',
+  base: "/docs",
   plugins: [
     mathPlugin(),
     mermaidPlugin({
       themes: {
         light: {
-          primaryColor: '#fef4f0',
-          primaryTextColor: '#eb5828',
-          primaryBorderColor: '#faa184',
-          lineColor: '#b5b19c',
-          mainBkg: '#ffffff',
-          nodeTextColor: '#25241d',
-          secondaryColor: '#f5f4ee',
-          tertiaryColor: '#ffffff',
-          nodeBorder: '#eae8de',
-          edgeLabelBackground: '#faf9f5',
-          clusterBkg: '#f5f4ee',
-          clusterBorder: '#d9d6c7',
+          primaryColor: "#fef4f0",
+          primaryTextColor: "#eb5828",
+          primaryBorderColor: "#faa184",
+          lineColor: "#b5b19c",
+          mainBkg: "#ffffff",
+          nodeTextColor: "#25241d",
+          secondaryColor: "#f5f4ee",
+          tertiaryColor: "#ffffff",
+          nodeBorder: "#eae8de",
+          edgeLabelBackground: "#faf9f5",
+          clusterBkg: "#f5f4ee",
+          clusterBorder: "#d9d6c7",
         },
         dark: {
-          primaryColor: '#5a1503',
-          primaryTextColor: '#faa184',
-          primaryBorderColor: '#d34013',
-          lineColor: '#767673',
-          mainBkg: '#1e1e1d',
-          nodeTextColor: '#d5d5d3',
-          secondaryColor: '#252524',
-          tertiaryColor: '#141413',
-          nodeBorder: '#3c3c39',
-          edgeLabelBackground: '#252524',
-          clusterBkg: '#252524',
-          clusterBorder: '#3c3c39',
+          primaryColor: "#5a1503",
+          primaryTextColor: "#faa184",
+          primaryBorderColor: "#d34013",
+          lineColor: "#767673",
+          mainBkg: "#1e1e1d",
+          nodeTextColor: "#d5d5d3",
+          secondaryColor: "#252524",
+          tertiaryColor: "#141413",
+          nodeBorder: "#3c3c39",
+          edgeLabelBackground: "#252524",
+          clusterBkg: "#252524",
+          clusterBorder: "#3c3c39",
         },
       },
     }),
   ],
-  siteUrl: 'https://boltdocs.vercel.app/',
+  siteUrl: "https://boltdocs.vercel.app/",
   seo: {
-    indexing: 'all',
+    indexing: "all",
     thumbnails: {
-      background: '/og-image.webp',
+      background: "/og-image.webp",
+    },
+    metatags: {
+      keywords:
+        "boltdocs, ssg, framework, documentation, guides, integrations, api, plugins, components",
     },
   },
   theme: {
-    title: 'Boltdocs',
+    title: "Boltdocs",
     description:
-      'Building documentation for your project has never been easier. Create beautiful, highly customizable, and extremely fast sites out of the box.',
+      "Building documentation for your project has never been easier. Create beautiful, highly customizable, and extremely fast sites out of the box.",
     codeTheme: {
-      light: 'github-light',
-      dark: 'github-dark',
+      light: "github-light",
+      dark: "github-dark",
     },
-    favicon: '/light.svg',
+    favicon: "/light.svg",
     logo: {
-      dark: '/light.svg',
-      light: '/dark.svg',
-      alt: 'Boltdocs Logo',
+      dark: "/light.svg",
+      light: "/dark.svg",
+      alt: "Boltdocs Logo",
     },
     tabs: [
-      { id: 'guides', text: 'Guides' },
-      { id: 'integrations', text: 'Integrations' },
-      { id: 'api', text: 'API' },
-      { id: 'plugins', text: 'Plugins' },
-      { id: 'components', text: 'Components' },
+      { id: "guides", text: "Guides" },
+      { id: "integrations", text: "Integrations" },
+      { id: "api", text: "API" },
+      { id: "plugins", text: "Plugins" },
+      { id: "components", text: "Components" },
     ],
     navbar: [
       {
-        label: 'Docs',
-        href: '/docs',
+        label: "Docs",
+        href: "/docs",
         items: [
           {
-            label: 'Guides',
-            href: '/docs/guides',
+            label: "Guides",
+            href: "/docs/guides",
           },
           {
-            label: 'Installation',
-            href: '/docs/guides/getting-started/installation',
+            label: "Installation",
+            href: "/docs/guides/getting-started/installation",
           },
           {
-            label: ' Configuration',
-            href: '/docs/guides/getting-started/configuration',
+            label: " Configuration",
+            href: "/docs/guides/getting-started/configuration",
           },
         ],
       },
       {
-        label: 'Showcase',
-        href: '/showcase',
+        label: "Showcase",
+        href: "/showcase",
       },
     ],
     editLink:
-      'https://github.com/jesusalcaladev/boltdocs/edit/main/docs/docs/:path',
-    githubRepo: 'jesusalcaladev/boltdocs',
+      "https://github.com/jesusalcaladev/boltdocs/edit/main/docs/docs/:path",
+    githubRepo: "jesusalcaladev/boltdocs",
   },
   robots: {
     rules: [
       {
-        userAgent: '*',
-        allow: '/',
+        userAgent: "*",
+        allow: "/",
       },
     ],
-    sitemaps: ['https://boltdocs.vercel.app/sitemap.xml'],
+    sitemaps: ["https://boltdocs.vercel.app/sitemap.xml"],
   },
   integrations: {
     analytics: {
       ga4: {
-        measurementId: 'G-WRBYHMBDYQ',
+        measurementId: "G-WRBYHMBDYQ",
       },
       vercel: {
         analytics: true,
@@ -117,9 +121,9 @@ export default defineConfig({
     feedback: {
       custom: {
         enabled: true,
-        owner: 'bolt-docs',
-        repo: 'boltdocs',
+        owner: "bolt-docs",
+        repo: "boltdocs",
       },
     },
   },
-})
+});

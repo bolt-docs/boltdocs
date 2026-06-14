@@ -168,6 +168,14 @@ export interface BoltdocsSecurityConfig {
   customHeaders?: Record<string, string>;
 }
 
+export interface BoltdocsVerificationConfig {
+  google?: string;
+  bing?: string;
+  yandex?: string;
+  pinterest?: string;
+  facebook?: string;
+}
+
 /**
  * Configuration for SEO.
  */
@@ -177,6 +185,7 @@ export interface BoltdocsSeoConfig {
   thumbnails?: {
     background?: string;
   };
+  verification?: BoltdocsVerificationConfig;
 }
 
 /**

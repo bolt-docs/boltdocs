@@ -101,6 +101,23 @@ export function Head({ siteTitle, siteDescription, routes }: HeadProps) {
       {/* Generator */}
       <meta name="generator" content="Boltdocs" />
 
+      {/* Search engine verification tags */}
+      {config?.seo?.verification?.google && (
+        <meta name="google-site-verification" content={config.seo.verification.google} />
+      )}
+      {config?.seo?.verification?.bing && (
+        <meta name="msvalidate.01" content={config.seo.verification.bing} />
+      )}
+      {config?.seo?.verification?.yandex && (
+        <meta name="yandex-verification" content={config.seo.verification.yandex} />
+      )}
+      {config?.seo?.verification?.pinterest && (
+        <meta name="p:domain_verify" content={config.seo.verification.pinterest} />
+      )}
+      {config?.seo?.verification?.facebook && (
+        <meta name="facebook-domain-verification" content={config.seo.verification.facebook} />
+      )}
+
       {/* User-defined global metatags */}
       {Object.entries(globalMetatags).map(([key, value]) => {
         const isProperty =

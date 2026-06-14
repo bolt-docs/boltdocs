@@ -1,5 +1,5 @@
 ---
-'boltdocs': major
+"boltdocs": major
 ---
 
 Restructure integrations config into sections (breaking change)
@@ -31,10 +31,12 @@ The `integrations` configuration has been reorganized into logical sections:
 ```
 
 **New features included:**
+
 - Vercel Analytics & Speed Insights support (`integrations.analytics.vercel`)
 - Giscus comments component (`integrations.feedback.giscus`)
 
 **Fixes included:**
+
 - External pages (e.g. `/showcase`, `/about`) are now included in
   `link-tree.json` and `types.d.ts` route path generation
 - Link primitive `href` props now use `BoltdocsRoutePathWithFallback`

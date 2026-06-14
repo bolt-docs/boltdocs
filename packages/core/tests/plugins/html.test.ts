@@ -279,4 +279,109 @@ describe('plugin html', () => {
       })
     })
   })
+
+  describe('Verification meta tags (Google, Bing, Yandex, Pinterest, Facebook)', () => {
+    const baseHtml = `<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Test</title>
+</head>
+<body>
+  <div id="root"></div>
+</body>
+</html>`
+
+    it('should inject all verification tags when fully configured', () => {
+      const config = {
+        seo: {
+          verification: {
+            google: 'google123',
+            bing: 'bing456',
+            yandex: 'yandex789',
+            pinterest: 'pinterest012',
+            facebook: 'facebook345',
+          },
+        },
+      }
+      const result = injectHtmlMeta(baseHtml, config as any)
+
+      expect(result).toContain(
+        '<meta name="google-site-verification" content="google123">',
+      )
+      expect(result).toContain(
+        '<meta name="msvalidate.01" content="bing456">',
+      )
+      expect(result).toContain(
+        '<meta name="yandex-verification" content="yandex789">',
+      )
+      expect(result).toContain(
+        '<meta name="p:domain_verify" content="pinterest012">',
+      )
+      expect(result).toContain(
+        '<meta name="facebook-domain-verification" content="facebook345">',
+      )
+    })
+
+    it('should only inject configured providers (single)', () => {
+      const config = {
+        seo: {
+          verification: {
+            google: 'google-only',
+          },
+        },
+      }
+      const result = injectHtmlMeta(baseHtml, config as any)
+
+      expect(result).toContain(
+        '<meta name="google-site-verification" content="google-only">',
+      )
+      expect(result).not.toContain('msvalidate.01')
+      expect(result).not.toContain('yandex-verification')
+      expect(result).not.toContain('p:domain_verify')
+      expect(result).not.toContain('facebook-domain-verification')
+    })
+
+    it('should not inject any verification tags when config is empty', () => {
+      const config = {}
+      const result = injectHtmlMeta(baseHtml, config as any)
+
+      expect(result).not.toContain('google-site-verification')
+      expect(result).not.toContain('msvalidate.01')
+      expect(result).not.toContain('yandex-verification')
+      expect(result).not.toContain('p:domain_verify')
+      expect(result).not.toContain('facebook-domain-verification')
+    })
+
+    it('should not inject any verification tags when verification is empty object', () => {
+      const config = { seo: { verification: {} } }
+      const result = injectHtmlMeta(baseHtml, config as any)
+
+      expect(result).not.toContain('google-site-verification')
+      expect(result).not.toContain('msvalidate.01')
+      expect(result).not.toContain('yandex-verification')
+      expect(result).not.toContain('p:domain_verify')
+      expect(result).not.toContain('facebook-domain-verification')
+    })
+
+    it('should not duplicate verification tags', () => {
+      const config = {
+        seo: {
+          verification: {
+            google: 'nodup',
+            bing: 'nodup',
+          },
+        },
+      }
+      const result = injectHtmlMeta(baseHtml, config as any)
+
+      const googleMatches = result.match(
+        /google-site-verification/g,
+      )
+      expect(googleMatches).toHaveLength(1)
+
+      const bingMatches = result.match(/msvalidate\.01/g)
+      expect(bingMatches).toHaveLength(1)
+    })
+  })
 })

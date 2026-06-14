@@ -181,6 +181,14 @@ export const SecurityConfigSchema = z.object({
   customHeaders: z.record(z.string(), z.string()).optional(),
 })
 
+export const VerificationConfigSchema = z.object({
+  google: z.string().optional(),
+  bing: z.string().optional(),
+  yandex: z.string().optional(),
+  pinterest: z.string().optional(),
+  facebook: z.string().optional(),
+})
+
 /**
  * Zod schema for SEO configuration.
  */
@@ -192,6 +200,7 @@ export const BoltdocsSeoConfigSchema = z.object({
       background: z.string().optional(),
     })
     .optional(),
+  verification: VerificationConfigSchema.optional(),
 })
 
 /**
