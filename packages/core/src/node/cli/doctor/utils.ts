@@ -2,6 +2,7 @@ import path from 'node:path'
 import fs from 'node:fs'
 import { fdir } from 'fdir'
 import { parseFrontmatterAsync, fileToRoutePath } from '../../utils'
+import { getExternalRoutePaths } from '../../routes/pages-external'
 import type { BoltdocsConfig } from '../../config'
 import {
   type DoctorConfig,
@@ -186,6 +187,11 @@ export async function generateLinkTree(
   }
 
   if (!routes.includes(base)) routes.push(base)
+
+  const externalPaths = getExternalRoutePaths(docsDir, config)
+  for (const p of externalPaths) {
+    if (!routes.includes(p)) routes.push(p)
+  }
 
   const tree = {
     routes: Array.from(new Set(routes)).sort(),

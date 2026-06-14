@@ -8,7 +8,7 @@ export default async function boltdocs(
   options?: BoltdocsPluginOptions,
 ): Promise<Plugin[]> {
   const { resolveConfig } = await import('./config')
-  const { generateRoutes } = await import('./routes')
+  const { generateRoutes, getExternalRoutePaths } = await import('./routes')
   const { generateProjectTypes, writeLinkTree } = await import('./types-generator')
   const { boltdocsPlugin } = await import('./plugin/index')
 
@@ -19,6 +19,10 @@ export default async function boltdocs(
   const basePath = (config.base || '/docs').replace(/\/$/, '')
   if (!routePaths.includes(basePath)) {
     routePaths.push(basePath)
+  }
+  const externalPaths = getExternalRoutePaths(docsDir, config)
+  for (const p of externalPaths) {
+    if (!routePaths.includes(p)) routePaths.push(p)
   }
   generateProjectTypes(config, docsDir, undefined, routePaths)
   writeLinkTree(routePaths)
@@ -47,7 +51,7 @@ export async function createViteConfig(
     { getCSPHeader },
     { resolveConfig },
     { generateRoutes },
-    { generateProjectTypes, writeLinkTree },
+    { generateProjectTypes, writeLinkTree, getExternalRoutePaths },
     { normalizePath },
   ] = await Promise.all([
     import('@vitejs/plugin-react'),
@@ -70,6 +74,10 @@ export async function createViteConfig(
   const basePath = (config.base || '/docs').replace(/\/$/, '')
   if (!routePaths.includes(basePath)) {
     routePaths.push(basePath)
+  }
+  const externalPaths = getExternalRoutePaths('docs', config)
+  for (const p of externalPaths) {
+    if (!routePaths.includes(p)) routePaths.push(p)
   }
   generateProjectTypes(config, 'docs', root, routePaths)
   writeLinkTree(routePaths)

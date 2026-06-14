@@ -2,9 +2,10 @@ import { Link } from './link'
 import { ChevronLeft, ChevronRight } from '../ui-base/icons'
 import { cn } from '../../utils/cn'
 import type { ComponentBase } from './types'
+import type { BoltdocsRoutePathWithFallback } from '../../../shared/types'
 
 export interface PageNavProps extends ComponentBase {
-  to: string
+  to: BoltdocsRoutePathWithFallback
   direction: 'prev' | 'next'
 }
 

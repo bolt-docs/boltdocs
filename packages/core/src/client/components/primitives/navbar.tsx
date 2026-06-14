@@ -14,11 +14,14 @@ import { cn } from '../../utils/cn'
 import { Sun, Moon, ExternalLink, MoreVertical, X } from '../ui-base/icons'
 import * as IconsSocials from '../icons-dev'
 import type { ComponentBase } from './types'
-import type { BoltdocsSocialLink } from '../../../shared/types'
+import type {
+  BoltdocsSocialLink,
+  BoltdocsRoutePathWithFallback,
+} from '../../../shared/types'
 
 export interface NavbarLinkProps extends Omit<ComponentBase, 'children'> {
   label: ReactNode
-  href: string
+  href: BoltdocsRoutePathWithFallback
   to?: 'internal' | 'external'
 }
 
@@ -27,7 +30,7 @@ export interface NavbarLogoProps extends Omit<ComponentBase, 'children'> {
   alt: string
   width?: number
   height?: number
-  href?: string
+  href?: BoltdocsRoutePathWithFallback
 }
 
 export interface NavbarSearchTriggerProps extends ComponentBase {
@@ -138,7 +141,7 @@ function NavbarTitle({
   children,
   className,
   href = '/',
-}: { href?: string } & ComponentBase) {
+}: { href?: BoltdocsRoutePathWithFallback } & ComponentBase) {
   return (
     <Link href={href}>
       <span
@@ -240,7 +243,7 @@ function NavbarDropdownItem({
   label,
   className,
 }: {
-  href: string
+  href: BoltdocsRoutePathWithFallback
   label: string
   className?: string
 }) {

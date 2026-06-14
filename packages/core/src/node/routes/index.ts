@@ -13,8 +13,9 @@ import { sortRoutes } from './sorter'
 
 // Re-export public API
 export type { RouteMeta }
-export { invalidateFile }
 
+export { invalidateFile }
+export { getExternalRoutePaths } from './pages-external'
 // Cache for file list and localized path computations
 let cachedFileList: string[] | null = null
 const localizedPathCache = new Map<string, string>()

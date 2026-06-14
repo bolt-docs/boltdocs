@@ -3,10 +3,10 @@ import {
   Breadcrumbs as BreadcrumbsRAC,
 } from 'react-aria-components'
 import { Link } from './link'
-import type { LinkProps } from 'react-aria-components'
 import { ChevronRight } from '../ui-base/icons'
 import { cn } from '../../utils/cn'
 import type { ComponentBase } from './types'
+import type { BoltdocsRoutePathWithFallback } from '../../../shared/types'
 
 export function Breadcrumbs({ children, className, ...props }: ComponentBase) {
   return (
@@ -32,7 +32,7 @@ function BreadcrumbsLink({
   href,
   className,
   ...props
-}: LinkProps & { className?: string }) {
+}: { href: BoltdocsRoutePathWithFallback; className?: string; children?: React.ReactNode }) {
   return (
     <Link href={href} className={cn('cursor-pointer', className)} {...props}>
       {children as any}

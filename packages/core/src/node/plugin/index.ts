@@ -4,7 +4,7 @@ import * as _node_module from 'node:module'
 import { type Plugin, type ResolvedConfig, loadEnv } from 'vite'
 import { ViteImageOptimizer } from '@bdocs/plugin-image-optimizer'
 
-import { generateRoutes } from '../routes'
+import { generateRoutes, getExternalRoutePaths } from '../routes'
 import { resolveConfig, type BoltdocsConfig } from '../config'
 import { generateProjectTypes, writeLinkTree } from '../types-generator'
 import { normalizePath } from '../utils'
@@ -84,6 +84,11 @@ export function boltdocsPlugin(
           const basePath = (config.base || '/docs').replace(/\/$/, '')
 
           if (!routePaths.includes(basePath)) routePaths.push(basePath)
+
+          const externalPaths = getExternalRoutePaths(docsDir, config)
+          for (const p of externalPaths) {
+            if (!routePaths.includes(p)) routePaths.push(p)
+          }
 
           generateProjectTypes(config, docsDir, undefined, routePaths)
           writeLinkTree(routePaths)

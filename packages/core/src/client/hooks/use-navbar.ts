@@ -21,7 +21,7 @@ export function useNavbar() {
   // Transform links to the new NavbarLink structure
   const links: NavbarLink[] = useMemo(() => {
     return rawLinks.map((item: any) => {
-      const href = (item.href || item.to || item.link || '') as string
+      const href = item.href || item.to || item.link || ''
 
       // Robust active state calculation
       const getIsActive = (h: string) => {
@@ -65,10 +65,9 @@ export function useNavbar() {
       const processItems = (items?: any[]): NavbarLink[] => {
         if (!items || items.length === 0) return undefined as any
         return items.map((subItem: any) => {
-          const subHref = (subItem.href ||
+          const subHref = subItem.href ||
             subItem.to ||
-            subItem.link ||
-            '') as string
+            subItem.link || ''
           return {
             label: getTranslated(subItem.label || subItem.text, currentLocale),
             href: subHref,

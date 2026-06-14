@@ -12,6 +12,7 @@ import { Link } from './link'
 import { ChevronRight } from '../ui-base/icons'
 import type { ComponentBase } from './types'
 import type { ComponentRoute } from '../../types'
+import type { BoltdocsRoutePathWithFallback } from '../../../shared/types'
 import { useSidebar } from '../../hooks/use-sidebar'
 import { useLocalizedTo } from '../../hooks/use-localized-to'
 import * as DefaultIcons from '../ui-base/icons'
@@ -221,7 +222,7 @@ export function SidebarGroup({
  */
 export interface SidebarLinkProps extends ComponentBase {
   label: string
-  href: string
+  href: BoltdocsRoutePathWithFallback
   active?: boolean
   icon?: React.ElementType
   badge?: ComponentRoute['badge']

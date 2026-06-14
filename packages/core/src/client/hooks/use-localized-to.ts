@@ -1,12 +1,13 @@
 import { useConfig } from '../app/config-context'
 import type { LinkProps as RouterLinkProps } from 'react-router-dom'
+import type { BoltdocsRoutePathWithFallback } from '../types'
 import { useRoutes } from './use-routes'
 
 /**
  * Hook to automatically localize a path based on the current version and locale context.
  * It ensures that navigation preserves the active version and language across the entire site.
  */
-export function useLocalizedTo(to: string): string
+export function useLocalizedTo(to: BoltdocsRoutePathWithFallback): string
 export function useLocalizedTo(to: RouterLinkProps['to']): RouterLinkProps['to']
 export function useLocalizedTo(
   to: RouterLinkProps['to'],
