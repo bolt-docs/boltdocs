@@ -1,10 +1,8 @@
-import type { BoltdocsConfig } from '../config'
+import type { BoltdocsConfig } from "../config";
+import type { BoltdocsVerificationConfig } from "../../shared/types";
 
-/**
- * Provides a default HTML template if none is found in the project root.
- */
 export function getHtmlTemplate(config: BoltdocsConfig): string {
-  const title = config.theme?.title || 'Boltdocs'
+  const title = config.theme?.title || "Boltdocs";
   return `<!doctype html>
 <html lang="en">
 <head>
@@ -15,105 +13,152 @@ export function getHtmlTemplate(config: BoltdocsConfig): string {
 <body>
   <div id="root"></div>
 </body>
-</html>`
+</html>`;
 }
 
-/**
- * Injects OpenGraph, Twitter, and generic SEO meta tags into the final HTML output.
- * Also ensures the virtual entry file is injected if it's missing (e.g., standard Vite index.html).
- *
- * @param html - {string} The original HTML string
- * @param config - {BoltdocsConfig} The resolved Boltdocs configuration containing site metadata
- * @returns {string} The modified HTML string with injected tags
- */
-export function injectHtmlMeta(html: string, config: BoltdocsConfig): string {
-  // If the input HTML is empty or invalid, start with the default template
-  if (!html || !html.includes('<body') || !html.includes('<head')) {
-    html = getHtmlTemplate(config)
-  }
+function resolveLocaleValue(
+  value: string | Record<string, string> | undefined,
+  fallback: string,
+  defaultLocale?: string,
+): string {
+  if (!value) return fallback;
+  if (typeof value === "string") return value;
+  return value[defaultLocale || ""] || Object.values(value)[0] || fallback;
+}
 
-  const theme = config.theme
-  let title = theme?.title || 'Boltdocs'
-  if (typeof title === 'object') {
-    const defaultLocale = config.i18n?.defaultLocale || ''
-    title = title[defaultLocale] || Object.values(title)[0] || 'Boltdocs'
-  }
-  let description = theme?.description || ''
-  if (typeof description === 'object') {
-    const defaultLocale = config.i18n?.defaultLocale || ''
-    description =
-      description[defaultLocale] || Object.values(description)[0] || ''
-  }
+interface ResolvedMeta {
+  title: string;
+  description: string;
+  favicon: string | undefined;
+  ogImage: string | undefined;
+  robotsContent: string | undefined;
+  siteUrl: string | undefined;
+  customMetaTags: string[];
+}
 
-  // Determine favicon
-  let favicon = theme?.favicon
-  if (!favicon && theme?.logo) {
-    if (typeof theme.logo === 'string') {
-      favicon = theme.logo
+function resolveMeta(config: BoltdocsConfig): ResolvedMeta {
+  const defaultLocale = config.i18n?.defaultLocale;
+
+  const title = resolveLocaleValue(
+    config.theme?.title,
+    "Boltdocs",
+    defaultLocale,
+  );
+  const description = resolveLocaleValue(
+    config.theme?.description,
+    "",
+    defaultLocale,
+  );
+
+  let favicon = config.theme?.favicon;
+  if (!favicon && config.theme?.logo) {
+    if (typeof config.theme.logo === "string") {
+      favicon = config.theme.logo;
     } else {
-      favicon = theme.logo.light || theme.logo.dark
+      favicon = config.theme.logo.light || config.theme.logo.dark;
     }
   }
 
-  // Resolve OG image from config.seo.thumbnails
-  let ogImage: string | undefined
-  const rawOgImage = config.seo?.thumbnails?.background
+  let ogImage: string | undefined;
+  const rawOgImage = config.seo?.thumbnails?.background;
   if (rawOgImage && config.siteUrl && !/^https?:\/\/|^\/\//.test(rawOgImage)) {
-    const base = config.siteUrl.endsWith('/')
+    const base = config.siteUrl.endsWith("/")
       ? config.siteUrl.slice(0, -1)
-      : config.siteUrl
-    const path = rawOgImage.startsWith('/') ? rawOgImage : `/${rawOgImage}`
-    ogImage = `${base}${path}`
+      : config.siteUrl;
+    const path = rawOgImage.startsWith("/") ? rawOgImage : `/${rawOgImage}`;
+    ogImage = `${base}${path}`;
   } else if (rawOgImage) {
-    ogImage = rawOgImage
+    ogImage = rawOgImage;
   }
 
-  // Build custom metatags from config.seo.metatags
-  const globalMetatags = config.seo?.metatags || {}
+  const robotsContent =
+    config.seo?.indexing === "none"
+      ? "noindex, nofollow"
+      : config.seo?.indexing === "all"
+        ? undefined
+        : config.seo?.indexing;
+
+  const globalMetatags = config.seo?.metatags || {};
   const customMetaTags = Object.entries(globalMetatags).map(([key, value]) => {
     const isProperty =
-      key.startsWith('og:') ||
-      key.startsWith('music:') ||
-      key.startsWith('video:') ||
-      key.startsWith('article:') ||
-      key.startsWith('book:') ||
-      key.startsWith('profile:')
+      key.startsWith("og:") ||
+      key.startsWith("music:") ||
+      key.startsWith("video:") ||
+      key.startsWith("article:") ||
+      key.startsWith("book:") ||
+      key.startsWith("profile:");
     return isProperty
       ? `<meta property="${key}" content="${value}">`
-      : `<meta name="${key}" content="${value}">`
-  })
+      : `<meta name="${key}" content="${value}">`;
+  });
 
-  // robots from config.seo.indexing
-  const robotsContent =
-    config.seo?.indexing === 'none'
-      ? 'noindex, nofollow'
-      : config.seo?.indexing === 'all'
-        ? undefined
-        : config.seo?.indexing
+  return {
+    title,
+    description,
+    favicon,
+    ogImage,
+    robotsContent,
+    siteUrl: config.siteUrl,
+    customMetaTags,
+  };
+}
 
-  const seoTags = [
-    favicon ? `<link rel="icon" href="${favicon}">` : '',
-    `<meta name="description" content="${description}">`,
-    `<meta property="og:title" content="${title}">`,
-    `<meta property="og:description" content="${description}">`,
+function buildMetaTags(meta: ResolvedMeta): string {
+  const tags = [
+    meta.favicon ? `<link rel="icon" href="${meta.favicon}">` : "",
+    `<meta name="description" content="${meta.description}">`,
+    `<meta property="og:title" content="${meta.title}">`,
+    `<meta property="og:description" content="${meta.description}">`,
     `<meta property="og:type" content="website">`,
-    config.siteUrl
-      ? `<meta property="og:url" content="${config.siteUrl}">`
-      : '',
-    config.siteUrl ? `<link rel="canonical" href="${config.siteUrl}">` : '',
+    meta.siteUrl
+      ? `<meta property="og:url" content="${meta.siteUrl}">`
+      : "",
+    meta.siteUrl ? `<link rel="canonical" href="${meta.siteUrl}">` : "",
     `<meta name="twitter:card" content="summary_large_image">`,
-    `<meta name="twitter:title" content="${title}">`,
-    `<meta name="twitter:description" content="${description}">`,
-    ogImage ? `<meta property="og:image" content="${ogImage}">` : '',
-    ogImage ? `<meta name="twitter:image" content="${ogImage}">` : '',
-    robotsContent ? `<meta name="robots" content="${robotsContent}">` : '',
+    `<meta name="twitter:title" content="${meta.title}">`,
+    `<meta name="twitter:description" content="${meta.description}">`,
+    meta.ogImage ? `<meta property="og:image" content="${meta.ogImage}">` : "",
+    meta.ogImage ? `<meta name="twitter:image" content="${meta.ogImage}">` : "",
+    meta.robotsContent
+      ? `<meta name="robots" content="${meta.robotsContent}">`
+      : "",
     `<meta name="generator" content="Boltdocs">`,
-    ...customMetaTags,
+    ...meta.customMetaTags,
   ]
     .filter(Boolean)
-    .join('\n    ')
+    .join("\n    ");
 
-  const themeScript = `
+  return tags;
+}
+
+function buildVerificationTags(
+  verification: BoltdocsVerificationConfig | undefined,
+): string {
+  if (!verification) return "";
+  const tags: string[] = [];
+  if (verification.google)
+    tags.push(
+      `<meta name="google-site-verification" content="${verification.google}">`,
+    );
+  if (verification.bing)
+    tags.push(`<meta name="msvalidate.01" content="${verification.bing}">`);
+  if (verification.yandex)
+    tags.push(
+      `<meta name="yandex-verification" content="${verification.yandex}">`,
+    );
+  if (verification.pinterest)
+    tags.push(
+      `<meta name="p:domain_verify" content="${verification.pinterest}">`,
+    );
+  if (verification.facebook)
+    tags.push(
+      `<meta name="facebook-domain-verification" content="${verification.facebook}">`,
+    );
+  return tags.join("\n    ");
+}
+
+function buildThemeScript(): string {
+  return `
     <script>
       (function() {
         try {
@@ -124,33 +169,30 @@ export function injectHtmlMeta(html: string, config: BoltdocsConfig): string {
           document.documentElement.classList.toggle("dark", isDark);
           document.documentElement.dataset.theme = isDark ? "dark" : "light";
         } catch (e) {
-          // Ignore localStorage errors (e.g. if cookies/storage are disabled)
         }
       })();
     </script>
-  `
+  `;
+}
 
-  // Use regex to replace title or inject it if missing
-  if (html.includes('<title>')) {
-    html = html.replace(/<title>.*?<\/title>/, `<title>${title}</title>`)
-  } else {
-    html = html.replace('</head>', `  <title>${title}</title>\n  </head>`)
-  }
+function buildGa4Script(
+  ga4: NonNullable<
+    NonNullable<BoltdocsConfig["integrations"]>["analytics"]
+  >["ga4"],
+  isProd: boolean,
+): string {
+  if (!ga4) return "";
+  if (!isProd && !ga4.debug) return "";
 
-  let ga4Script = ''
-  if (config.integrations?.analytics?.ga4) {
-    const ga4 = config.integrations.analytics.ga4
-    const isProd = process.env.NODE_ENV === 'production'
-    if (isProd || ga4.debug) {
-      const ipAnonymization = ga4.anonymizeIp ? `gtag('set', 'ip', true);` : ''
-      const sendPageView =
-        ga4.sendPageView === false ? '{send_page_view: false}' : '{}'
-      const cookieFlags = ga4.cookieFlags
-        ? `, {'cookie_flags': '${ga4.cookieFlags}'}`
-        : ''
+  const ipAnonymization = ga4.anonymizeIp ? `gtag('set', 'ip', true);` : "";
+  const sendPageView =
+    ga4.sendPageView === false ? "{send_page_view: false}" : "{}";
+  const cookieFlags = ga4.cookieFlags
+    ? `, {'cookie_flags': '${ga4.cookieFlags}'}`
+    : "";
 
-      ga4Script = `
-    <!-- Google tag (gtag.js) - ${ga4.measurementId} -->
+  return `
+    <!-- Google tag (gtag.js) -->
     <script async src="https://www.googletagmanager.com/gtag/js?id=${ga4.measurementId}"></script>
     <script>
       window.dataLayer = window.dataLayer || [];
@@ -159,20 +201,21 @@ export function injectHtmlMeta(html: string, config: BoltdocsConfig): string {
       ${ipAnonymization}
       gtag('config', '${ga4.measurementId}', ${sendPageView}${cookieFlags});
     </script>
-`
-    }
-  }
+`;
+}
 
-  let gtmScript = ''
-  let gtmNoScript = ''
-  if (config.integrations?.analytics?.gtm) {
-    const gtm = config.integrations.analytics.gtm
-    const isProd = process.env.NODE_ENV === 'production'
-    if (isProd) {
-      const dataLayerName = gtm.dataLayerName || 'dataLayer'
-      const previewParam = gtm.preview ? `&gtm_preview=${gtm.preview}` : ''
+function buildGtmScript(
+  gtm: NonNullable<
+    NonNullable<BoltdocsConfig["integrations"]>["analytics"]
+  >["gtm"],
+  isProd: boolean,
+): { script: string; noScript: string } {
+  if (!gtm || !isProd) return { script: "", noScript: "" };
 
-      gtmScript = `
+  const dataLayerName = gtm.dataLayerName || "dataLayer";
+  const previewParam = gtm.preview ? `&gtm_preview=${gtm.preview}` : "";
+
+  const script = `
     <!-- Google Tag Manager -->
     <script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
     new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
@@ -180,54 +223,111 @@ export function injectHtmlMeta(html: string, config: BoltdocsConfig): string {
     'https://www.googletagmanager.com/gtm.js?id='+i+dl+'${previewParam}';f.parentNode.insertBefore(j,f);
     })(window,document,'script','${dataLayerName}','${gtm.tagId}');</script>
     <!-- End Google Tag Manager -->
-`
-      gtmNoScript = `
+`;
+
+  const noScript = `
     <!-- Google Tag Manager (noscript) -->
     <noscript><iframe src="https://www.googletagmanager.com/ns.html?id=${gtm.tagId}"
     height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     <!-- End Google Tag Manager (noscript) -->
-`
-    }
-  }
+`;
 
-  let vercelScript = ''
-  if (config.integrations?.analytics?.vercel) {
-    const vercel = config.integrations.analytics.vercel
-    const isProd = process.env.NODE_ENV === 'production'
-    if (isProd) {
-      const { analytics = true, speedInsights = true } = vercel
-      if (analytics) {
-        vercelScript += `
+  return { script, noScript };
+}
+
+function buildVercelScript(
+  vercel: NonNullable<
+    NonNullable<BoltdocsConfig["integrations"]>["analytics"]
+  >["vercel"],
+  isProd: boolean,
+): string {
+  if (!vercel || !isProd) return "";
+
+  const { analytics = true, speedInsights = true } = vercel;
+  let script = "";
+
+  if (analytics) {
+    script += `
     <script>window.va=window.va||function(){(window.vaq=window.vaq||[]).push(arguments)};</script>
     <script defer src="/_vercel/insights/script.js"></script>
-`
-      }
-      if (speedInsights) {
-        vercelScript += `
+`;
+  }
+  if (speedInsights) {
+    script += `
     <script>window.si=window.si||function(){(window.siq=window.siq||[]).push(arguments)};</script>
     <script defer src="/_vercel/speed-insights/script.js"></script>
-`
-      }
-    }
+`;
   }
 
-  html = html.replace('<head>', `<head>\n${themeScript}`)
+  return script;
+}
 
-  html = html.replace(
-    '</head>',
-    `    ${seoTags}\n${ga4Script}${gtmScript}${vercelScript}  </head>`,
-  )
+function injectTitle(html: string, title: string): string {
+  if (html.includes("<title>")) {
+    return html.replace(/<title>.*?<\/title>/, `<title>${title}</title>`);
+  }
+  return html.replace("</head>", `  <title>${title}</title>\n  </head>`);
+}
 
-  if (gtmNoScript) {
-    html = html.replace(/<body([^>]*)>/, `<body$1>\n${gtmNoScript}`)
+function injectThemeScript(html: string, themeScript: string): string {
+  return html.replace("<head>", `<head>\n${themeScript}`);
+}
+
+function injectHeadEnd(html: string, headContent: string): string {
+  return html.replace("</head>", `    ${headContent}</head>`);
+}
+
+function injectBodyStart(html: string, content: string): string {
+  if (!content) return html;
+  return html.replace(/<body([^>]*)>/, `<body$1>\n${content}`);
+}
+
+function injectEntryScript(html: string): string {
+  if (html.includes("src/main") || html.includes("virtual:boltdocs-entry")) {
+    return html;
+  }
+  return html.replace(
+    "</body>",
+    '  <script type="module">import "virtual:boltdocs-entry";</script>\n  </body>',
+  );
+}
+
+export function injectHtmlMeta(html: string, config: BoltdocsConfig): string {
+  if (!html || !html.includes("<body") || !html.includes("<head")) {
+    html = getHtmlTemplate(config);
   }
 
-  if (!html.includes('src/main') && !html.includes('virtual:boltdocs-entry')) {
-    html = html.replace(
-      '</body>',
-      '  <script type="module">import "virtual:boltdocs-entry";</script>\n  </body>',
-    )
-  }
+  const isProd = process.env.NODE_ENV === "production";
+  const meta = resolveMeta(config);
 
-  return html
+  const metaTags = buildMetaTags(meta);
+  const verificationTags = buildVerificationTags(config.seo?.verification);
+  const themeScript = buildThemeScript();
+  const ga4Script = buildGa4Script(
+    config.integrations?.analytics?.ga4,
+    isProd,
+  );
+  const gtm = buildGtmScript(config.integrations?.analytics?.gtm, isProd);
+  const vercelScript = buildVercelScript(
+    config.integrations?.analytics?.vercel,
+    isProd,
+  );
+
+  const headContent = [
+    verificationTags,
+    metaTags,
+    ga4Script,
+    gtm.script,
+    vercelScript,
+  ]
+    .filter(Boolean)
+    .join("\n");
+
+  html = injectTitle(html, meta.title);
+  html = injectThemeScript(html, themeScript);
+  html = injectHeadEnd(html, headContent);
+  html = injectBodyStart(html, gtm.noScript);
+  html = injectEntryScript(html);
+
+  return html;
 }
