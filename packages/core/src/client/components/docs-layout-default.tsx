@@ -8,7 +8,7 @@ import { ErrorBoundary } from './ui-base/error-boundary'
 import { CopyMarkdown } from './ui-base/copy-markdown'
 import { useRoutes } from '../hooks/use-routes'
 import { useConfig } from '../app/config-context'
-import { Feedback } from './ui-base/feedback'
+import { Feedback, Giscus } from './ui-base'
 
 interface DocsLayoutThemeProps {
   children?: React.ReactNode
@@ -58,6 +58,7 @@ function DocsLayoutComponent({ children }: DocsLayoutThemeProps) {
             </ErrorBoundary>
 
             {!isCollectionPage && <Feedback />}
+            {!isCollectionPage && <Giscus />}
 
             <DocsLayoutPrimitive.Footer>
               {!isCollectionPage && <PageNav />}
