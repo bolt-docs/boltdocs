@@ -34,6 +34,7 @@ The `integrations` configuration has been reorganized into logical sections:
 
 - Vercel Analytics & Speed Insights support (`integrations.analytics.vercel`)
 - Giscus comments component (`integrations.feedback.giscus`)
+- Google Search Console verification support (`seo.verification.google`, `bing`, `yandex`, `pinterest`, `facebook`)
 
 **Fixes included:**
 
