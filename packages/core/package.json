@@ -74,6 +74,7 @@
   "license": "MIT",
   "dependencies": {
     "@bdocs/dui": "^0.2.0",
+    "@bdocs/native": "workspace:*",
     "@bdocs/plugin-image-optimizer": "workspace:*",
     "@bdocs/ssg": "workspace:*",
     "@mdx-js/rollup": "3.1.1",

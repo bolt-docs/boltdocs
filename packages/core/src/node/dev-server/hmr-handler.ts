@@ -138,6 +138,7 @@ export function setupHmr(
             invalidateFile(file)
 
             if (prevHash !== undefined && prevHash !== newHash) {
+              invalidateDirectoryMetaCache()
               invalidateVirtualModule(server, 'routes')
               invalidateVirtualModule(server, 'search')
               invalidateVirtualModule(server, 'collections')
@@ -148,7 +149,20 @@ export function setupHmr(
             const relative = path.relative(docsDir, file)
             const relPath = normalizePath(relative)
 
-            const mods = server.moduleGraph.getModulesByFile(normalized)
+            let mods = server.moduleGraph.getModulesByFile(normalized)
+            if (!mods || mods.size === 0) {
+              const normalizedLower = normalized.toLowerCase()
+              for (const [key, value] of server.moduleGraph.fileToModulesMap.entries()) {
+                try {
+                  const decodedKey = decodeURIComponent(key)
+                  if (decodedKey.toLowerCase() === normalizedLower) {
+                    mods = value
+                    break
+                  }
+                } catch (e) {}
+              }
+            }
+
             if (mods && mods.size > 0) {
               for (const mod of mods) {
                 server.moduleGraph.invalidateModule(mod)

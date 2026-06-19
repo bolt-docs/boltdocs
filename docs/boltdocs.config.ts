@@ -1,11 +1,18 @@
 import { defineConfig } from "boltdocs";
 import mermaidPlugin from "@bdocs/plugin-mermaid";
 import mathPlugin from "@bdocs/plugin-math";
+import askAiPlugin from "@bdocs/plugin-ask-ai";
 
 export default defineConfig({
   base: "/docs",
   plugins: [
     mathPlugin(),
+    askAiPlugin({
+      debug: true,
+      provider: "openai",
+      ollamaModel: "qwen2.5-coder:0.5b",
+      model: "gpt-4o-mini",
+    }),
     mermaidPlugin({
       themes: {
         light: {

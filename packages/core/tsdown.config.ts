@@ -14,7 +14,6 @@ export default defineConfig([
     entry: {
       'node/index': 'src/node/index.ts',
       'node/cli-entry': 'src/node/cli-entry.ts',
-      'node/routes/worker': 'src/node/routes/worker.ts',
       'server/index': 'src/node/feedback/adapters/index.ts',
     },
     format: ['esm', 'cjs'],

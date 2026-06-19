@@ -1,7 +1,6 @@
 import { DocsLayout as DocsLayoutPrimitive } from './primitives/docs-layout'
 import { Navbar } from './ui-base/navbar'
 import { Sidebar } from './ui-base/sidebar'
-import { OnThisPage } from './ui-base/on-this-page'
 import { Breadcrumbs } from './ui-base/breadcrumbs'
 import { PageNav } from './ui-base/page-nav'
 import { ErrorBoundary } from './ui-base/error-boundary'
@@ -9,6 +8,7 @@ import { CopyMarkdown } from './ui-base/copy-markdown'
 import { useRoutes } from '../hooks/use-routes'
 import { useConfig } from '../app/config-context'
 import { Feedback, Giscus } from './ui-base'
+import { useMergedComponents } from '../hooks/use-merged-components'
 
 interface DocsLayoutThemeProps {
   children?: React.ReactNode
@@ -17,6 +17,8 @@ interface DocsLayoutThemeProps {
 function DocsLayoutComponent({ children }: DocsLayoutThemeProps) {
   const { routes: filteredRoutes, currentRoute, isCollectionPage } = useRoutes()
   const config = useConfig()
+  const components = useMergedComponents()
+  const AskAiDialog = components.AskAiDialog as React.ComponentType<any> | undefined
 
   return (
     <DocsLayoutPrimitive className="selection:bg-primary-500/10 selection:text-primary-500">
@@ -37,7 +39,6 @@ function DocsLayoutComponent({ children }: DocsLayoutThemeProps) {
                   />
                 </div>
 
-                {/* Inject Main Page Heading automatically for non-collections */}
                 {currentRoute?.title && (
                   <h1 className="text-4xl font-bold tracking-tight text-default mb-3">
                     {currentRoute.title}
@@ -65,12 +66,7 @@ function DocsLayoutComponent({ children }: DocsLayoutThemeProps) {
             </DocsLayoutPrimitive.Footer>
           </DocsLayoutPrimitive.ContentMdx>
         </DocsLayoutPrimitive.Content>
-        <OnThisPage
-          headings={currentRoute?.headings}
-          editLink={config.theme?.editLink}
-          communityHelp={config.theme?.communityHelp}
-          filePath={currentRoute?.filePath}
-        />
+        {AskAiDialog && <AskAiDialog />}
       </DocsLayoutPrimitive.Body>
     </DocsLayoutPrimitive>
   )

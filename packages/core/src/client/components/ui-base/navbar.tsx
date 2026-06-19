@@ -15,6 +15,7 @@ import type { NavbarLink as NavbarLinkType } from '../../types'
 import { useUI } from '../../app/ui-context'
 import { VersionSelector } from './version-selector'
 import { I18nSelector } from './i18n-selector'
+import { useMergedComponents } from '../../hooks/use-merged-components'
 
 const SearchDialog = lazy(() =>
   import('./search-dialog').then((m) => ({
@@ -33,6 +34,8 @@ export function Navbar() {
   } = useRoutes()
   const { isSidebarOpen, toggleSidebar } = useUI()
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
+  const components = useMergedComponents()
+  const AskAiDialog = components.AskAiDialog as React.ComponentType<any> | undefined
 
   const themeConfig = config.theme || {}
   const isDocs = !!currentRoute?.filePath && !isCollectionPage
@@ -76,18 +79,67 @@ export function Navbar() {
           </div>
         </NavbarPrimitive.Left>
         <NavbarPrimitive.Center>
-          <Suspense
-            fallback={
-              <div className="h-9 w-32 animate-pulse rounded-md bg-surface" />
-            }
-          >
-            <SearchDialog routes={routes || []} />
-          </Suspense>
+          <div className="flex items-center gap-2">
+            <Suspense
+              fallback={
+                <div className="h-9 w-32 animate-pulse rounded-md bg-surface" />
+              }
+            >
+              <SearchDialog routes={routes || []} />
+            </Suspense>
+            {AskAiDialog && (
+              <Button
+                onPress={() => window.dispatchEvent(new CustomEvent('boltdocs:ask-ai:toggle'))}
+                className="rounded-xl border border-subtle bg-surface text-muted py-1.5 px-3 flex items-center gap-1.5 transition-all duration-200 hover:border-primary-500/50 hover:text-body hover:bg-soft/50 hover:shadow-sm active:scale-[0.98] cursor-pointer select-none text-xs font-semibold h-[38px]"
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="14"
+                  height="14"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2.5"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  className="text-primary-500"
+                >
+                  <path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z" />
+                </svg>
+                Ask Assistant
+                <kbd className="hidden lg:inline-block bg-main border border-subtle rounded px-1 text-[10px] font-sans ml-1 text-muted">
+                  ⌘I
+                </kbd>
+              </Button>
+            )}
+          </div>
         </NavbarPrimitive.Center>
         <NavbarPrimitive.Right>
           <Suspense fallback={null}>
-            <div className="lg:hidden">
+            <div className="lg:hidden flex items-center gap-1">
               <SearchDialog routes={routes || []} />
+              {AskAiDialog && (
+                <Button
+                  onPress={() => window.dispatchEvent(new CustomEvent('boltdocs:ask-ai:toggle'))}
+                  className="p-1.5 text-muted hover:text-body transition-colors rounded-xl hover:bg-surface active:scale-95 cursor-pointer select-none"
+                  aria-label="Ask AI Assistant"
+                >
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="20"
+                    height="20"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2.5"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    className="text-primary-500"
+                  >
+                    <path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z" />
+                  </svg>
+                </Button>
+              )}
             </div>
           </Suspense>
           <NavbarPrimitive.Links>
@@ -172,6 +224,7 @@ export function Navbar() {
           <Tabs tabs={themeConfig.tabs} routes={routes || []} />
         </div>
       )}
+
     </NavbarPrimitive.Root>
   )
 }

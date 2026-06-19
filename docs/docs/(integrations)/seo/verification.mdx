@@ -1,0 +1,99 @@
+---
+title: Site Verification
+sidebarPosition: 5
+description: Verify your site ownership with Google Search Console, Bing Webmaster Tools, Yandex, Pinterest, and Facebook.
+---
+
+Search engines and platforms require proof of site ownership before granting access to their webmaster tools. Boltdocs automatically injects the correct `<meta>` verification tags for the five most common providers.
+
+---
+
+## Quick Start
+
+### Step 1: Get your verification code
+
+Sign in to your provider's webmaster tool and copy the verification code:
+
+| Provider | Tool | Meta Tag |
+| :--- | :--- | :--- |
+| **Google** | [Search Console](https://search.google.com/search-console) | `<meta name="google-site-verification">` |
+| **Bing** | [Webmaster Tools](https://www.bing.com/webmasters) | `<meta name="msvalidate.01">` |
+| **Yandex** | [Webmaster](https://webmaster.yandex.com/) | `<meta name="yandex-verification">` |
+| **Pinterest** | [Claim Site](https://www.pinterest.com/settings/claim) | `<meta name="p:domain_verify">` |
+| **Facebook** | [Business Settings](https://business.facebook.com/settings) | `<meta name="facebook-domain-verification">` |
+
+### Step 2: Configure in boltdocs.config.ts
+
+```ts title="boltdocs.config.ts"
+export default defineConfig({
+  seo: {
+    verification: {
+      google: 'xxxxxxxxxxxxxxxxxxxxxxxxxx',
+      bing: 'xxxxxxxxxxxxxxxxxxxxxxxxxx',
+      yandex: 'xxxxxxxxxxxxxxxxxxxxxxxxxx',
+      pinterest: 'xxxxxxxxxxxxxxxxxxxxxxxxxx',
+      facebook: 'xxxxxxxxxxxxxxxxxxxxxxxxxx',
+    },
+  },
+})
+```
+
+### Step 3: Verify ownership
+
+Deploy your site and click **Verify** in the provider's webmaster tool. The verification `<meta>` tag is automatically injected into the `<head>` of every page.
+
+---
+
+## Configuration Reference
+
+| Property | Type | Required | Description |
+| :--- | :--- | :--- | :--- |
+| **`google`** | `string` | — | Google Search Console verification code. |
+| **`bing`** | `string` | — | Bing Webmaster Tools verification code. |
+| **`yandex`** | `string` | — | Yandex Webmaster verification code. |
+| **`pinterest`** | `string` | — | Pinterest site claim code. |
+| **`facebook`** | `string` | — | Facebook Business verification code. |
+
+### Single Provider Example
+
+```ts
+seo: {
+  verification: {
+    google: 'xxxxxxxxxxxxxxxxxxxxxxxxxx',
+  },
+}
+```
+
+Only the configured providers' meta tags are injected. There is no penalty for having verification tags for services you do not use, but keeping only what you need is recommended.
+
+---
+
+## How It Works
+
+Boltdocs generates the appropriate `<meta name="..." content="...">` tag for each configured provider and injects it into the `<head>` element on both the server-rendered HTML and client-side navigation.
+
+```html
+<!-- Example: All providers enabled -->
+<head>
+  <meta name="google-site-verification" content="xxxxxxxxxxx" />
+  <meta name="msvalidate.01" content="xxxxxxxxxxx" />
+  <meta name="yandex-verification" content="xxxxxxxxxxx" />
+  <meta name="p:domain_verify" content="xxxxxxxxxxx" />
+  <meta name="facebook-domain-verification" content="xxxxxxxxxxx" />
+</head>
+```
+
+---
+
+## Troubleshooting
+
+### Verification keeps failing
+
+- Ensure the code is copied exactly (no extra spaces or characters)
+- Verify your site's canonical domain matches what you entered in the webmaster tool (e.g., `https://docs.example.com` vs `https://example.com`)
+- Check that the `<meta>` tag appears in the page source
+
+### Meta tag not appearing
+
+- Confirm `seo.verification` is nested correctly under the `seo` key (not `integrations`)
+- Check that you are viewing the deployed production site, not a local development server

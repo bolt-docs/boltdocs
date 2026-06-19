@@ -13,6 +13,7 @@
   "dependencies": {
     "@bdocs/plugin-math": "workspace:*",
     "@bdocs/plugin-mermaid": "workspace:*",
+    "@bdocs/plugin-ask-ai": "workspace:*",
     "gsap": "^3.12.5",
     "lucide-react": "^1.7.0",
     "ogl": "^1.0.11",

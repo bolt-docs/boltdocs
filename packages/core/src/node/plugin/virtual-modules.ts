@@ -9,12 +9,10 @@ import { generateEntryCode } from './entry'
 import path from 'node:path'
 import fs from 'node:fs'
 
-// Directory Meta Cache (Fix #5)
-// loadDirectoryMeta runs an fdir crawl on every request, which is expensive.
-// Cache the result in memory; it is invalidated on add/unlink of docs files
-// so stale data is never returned after a structural change.
 let _directoryMetaCache: Record<string, any> | null = null
 let _searchDataCache: string | null = null
+let _routesCache: string | null = null
+let _collectionsCache: string | null = null
 
 /**
  * Called by the dev-server watcher whenever a file is added or removed
@@ -23,6 +21,8 @@ let _searchDataCache: string | null = null
 export function invalidateDirectoryMetaCache(): void {
   _directoryMetaCache = null
   _searchDataCache = null
+  _routesCache = null
+  _collectionsCache = null
 }
 
 /**
@@ -113,31 +113,37 @@ export function createVirtualModulesPlugin(
       const name = nameWithExt.replace(/\.tsx?$/, '')
 
       if (name === 'routes') {
-        const routes = await generateRoutes(docsDir, config)
-        const ssgRoutes = adaptRoutesForSSG(routes)
-        return `export default ${JSON.stringify(ssgRoutes, null, 2)};`
+        if (!_routesCache) {
+          const routes = await generateRoutes(docsDir, config)
+          const ssgRoutes = adaptRoutesForSSG(routes)
+          _routesCache = `export default ${JSON.stringify(ssgRoutes, null, 2)};`
+        }
+        return _routesCache
       }
       if (name === 'collections') {
-        const routes = await generateRoutes(docsDir, config)
-        const ssgRoutes = adaptRoutesForSSG(routes)
-        const collections: Record<string, any[]> = {}
-        for (const r of ssgRoutes) {
-          if (r.collection) {
-            if (!collections[r.collection]) collections[r.collection] = []
-            collections[r.collection].push({
-              path: r.path,
-              title: r.title,
-              date: r.date,
-              excerpt: r.excerpt,
-              tags: r.tags,
-              author: r.author,
-              coverImage: r.coverImage,
-              filePath: r.filePath,
-              frontmatter: r.frontmatter,
-            })
+        if (!_collectionsCache) {
+          const routes = await generateRoutes(docsDir, config)
+          const ssgRoutes = adaptRoutesForSSG(routes)
+          const collections: Record<string, any[]> = {}
+          for (const r of ssgRoutes) {
+            if (r.collection) {
+              if (!collections[r.collection]) collections[r.collection] = []
+              collections[r.collection].push({
+                path: r.path,
+                title: r.title,
+                date: r.date,
+                excerpt: r.excerpt,
+                tags: r.tags,
+                author: r.author,
+                coverImage: r.coverImage,
+                filePath: r.filePath,
+                frontmatter: r.frontmatter,
+              })
+            }
           }
+          _collectionsCache = `export default ${JSON.stringify(collections, null, 2)};`
         }
-        return `export default ${JSON.stringify(collections, null, 2)};`
+        return _collectionsCache
       }
       if (name === 'config') {
         // Use cached directory meta to avoid a full fdir crawl on every request.

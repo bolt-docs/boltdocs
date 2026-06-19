@@ -50,8 +50,8 @@ export async function createViteConfig(
     { SECURITY_HEADERS },
     { getCSPHeader },
     { resolveConfig },
-    { generateRoutes },
-    { generateProjectTypes, writeLinkTree, getExternalRoutePaths },
+    { generateRoutes, getExternalRoutePaths },
+    { generateProjectTypes, writeLinkTree },
     { normalizePath },
   ] = await Promise.all([
     import('@vitejs/plugin-react'),
@@ -182,6 +182,16 @@ export async function createViteConfig(
       ],
     },
     server: {
+      watch: {
+        ignored: [
+          '**/.boltdocs/**',
+          ...(Array.isArray(config.vite?.server?.watch?.ignored)
+            ? config.vite.server.watch.ignored
+            : config.vite?.server?.watch?.ignored
+              ? [config.vite.server.watch.ignored]
+              : []),
+        ],
+      },
       headers: {
         ...securityHeaders,
         ...config.vite?.server?.headers,
@@ -201,6 +211,7 @@ export async function createViteConfig(
   return viteConfig
 }
 
+export { generateRoutes, invalidateRouteCache } from './routes'
 export type { RouteMeta } from './routes'
 export type {
   BoltdocsConfig,
@@ -215,3 +226,5 @@ export { handleFeedback } from './feedback/handler'
 export { normalizePath, sanitizeFilename } from './utils'
 export { resolveConfig } from './config'
 export { AssetCache, flushCache } from './cache'
+
+

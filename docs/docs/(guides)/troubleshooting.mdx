@@ -52,7 +52,7 @@ When you submit a rating or comment on your live deployed site, the network tab 
 
 **Why this happens**
 
-Since Boltdocs builds fully static sites (SSG), there is no backend server running in production to receive POST requests. 
+Since Boltdocs builds fully static sites (SSG), there is no backend server running in production to receive POST requests.
 
 **Fix**
 
@@ -97,9 +97,7 @@ You must configure the owner and repository name as environment variables in you
 - **`BOLTDOCS_GITHUB_REPO_NAME`** (or `GITHUB_REPO_NAME`)
 
 And make sure your local `.env` file contains:
-```env
+```plain
 BOLTDOCS_GITHUB_REPO_OWNER=your-github-username-or-org
 BOLTDOCS_GITHUB_REPO_NAME=your-repo-name
 ```
-
-

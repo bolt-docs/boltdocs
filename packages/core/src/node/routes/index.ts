@@ -7,18 +7,28 @@ import type { RouteMeta, ParsedDocFile } from './types'
 import {
   docCache,
   invalidateRouteCache as baseInvalidateRouteCache,
-  invalidateFile,
+  invalidateFile as baseInvalidateFile,
 } from './cache'
 import { sortRoutes } from './sorter'
 
 // Re-export public API
 export type { RouteMeta }
 
-export { invalidateFile }
 export { getExternalRoutePaths } from './pages-external'
 // Cache for file list and localized path computations
 let cachedFileList: string[] | null = null
 const localizedPathCache = new Map<string, string>()
+
+// In-memory cache for parsed documents from native parser
+let _cachedNativeDocs: Record<string, any> | null = null
+
+export function invalidateFile(filePath: string): void {
+  const normalized = filePath.replace(/\\/g, '/')
+  if (_cachedNativeDocs && _cachedNativeDocs[normalized]) {
+    delete _cachedNativeDocs[normalized]
+  }
+  baseInvalidateFile(filePath)
+}
 
 // Coalescing promise for concurrent calls
 let activeGenerationPromise: Promise<RouteMeta[]> | null = null
@@ -30,11 +40,11 @@ export function invalidateRouteCache(): void {
   cachedFileList = null
   localizedPathCache.clear()
   baseInvalidateRouteCache()
+  _cachedNativeDocs = null
 }
 
 /**
  * Generates the entire route map for the documentation site.
- * OPTIMIZED: Uses Map-based i18n lookups, chunked processing, and path caching.
  *
  * Automatically handles versioning and i18n routing, including fallback
  * generation for missing translations.
@@ -117,48 +127,82 @@ export async function generateRoutes(
       process.env.NODE_ENV === 'test' || process.env.VITEST === 'true'
 
     let parsed: ParsedDocFile[]
-    if (isTest) {
-      const { parseDocFile } = await import('./parser')
-      parsed = await Promise.all(
-        files.map(async (file) => {
-          const cached = docCache.get(file)
-          if (cached) return cached
-          const result = await parseDocFile(
-            file,
-            docsDir,
-            finalBasePath,
-            config,
-          )
-          docCache.set(file, result)
-          return result
-        }),
-      )
+
+    // Check if all files are already cached in docCache
+    let allCached = true
+    for (const file of files) {
+      if (!docCache.get(file)) {
+        allCached = false
+        break
+      }
+    }
+
+    if (allCached) {
+      parsed = files.map((file) => docCache.get(file)!)
     } else {
-      const { pool } = await import('./worker-pool')
+      if (!isTest && !_cachedNativeDocs) {
+        try {
+          const { runParser } = await import('@bdocs/native')
+          _cachedNativeDocs = await runParser(docsDir)
+        } catch (e) {
+          // Native parser not available or failed
+        }
+      }
 
-      // Warmup: Start processing all files immediately
-      const minimalConfig = config
-        ? {
-            i18n: config.i18n,
-            versions: config.versions,
-          }
-        : undefined
+      const useNative = !isTest && _cachedNativeDocs !== null
 
-      parsed = await Promise.all(
-        files.map(async (file) => {
-          const cached = docCache.get(file)
-          if (cached) return cached
+      if (useNative && _cachedNativeDocs) {
+        const { parseDocFileWithNative, parseDocFile } = await import(
+          './parser'
+        )
 
-          const result = await pool.parseFile(
-            file,
-            docsDir,
-            finalBasePath,
-            minimalConfig,
-          )
-          docCache.set(file, result)
-          return result
-        }),
-      )
+        parsed = await Promise.all(
+          files.map(async (file) => {
+            const cached = docCache.get(file)
+            if (cached) return cached
+
+            const normalizedPath = file.replace(/\\/g, '/')
+            const nativeDoc = _cachedNativeDocs![normalizedPath]
+
+            if (nativeDoc) {
+              const result = await parseDocFileWithNative(
+                file,
+                nativeDoc,
+                docsDir,
+                finalBasePath,
+                config,
+              )
+              docCache.set(file, result)
+              return result
+            } else {
+              const result = await parseDocFile(
+                file,
+                docsDir,
+                finalBasePath,
+                config,
+              )
+              docCache.set(file, result)
+              return result
+            }
+          }),
+        )
+      } else {
+        const { parseDocFile } = await import('./parser')
+        parsed = await Promise.all(
+          files.map(async (file) => {
+            const cached = docCache.get(file)
+            if (cached) return cached
+            const result = await parseDocFile(
+              file,
+              docsDir,
+              finalBasePath,
+              config,
+            )
+            docCache.set(file, result)
+            return result
+          }),
+        )
+      }
     }
 
     // Save cache after processing

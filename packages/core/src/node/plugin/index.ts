@@ -233,11 +233,6 @@ export function boltdocsPlugin(
         handler: (html) => injectHtmlMeta(html, config),
       },
 
-      async buildEnd() {
-        const { pool } = await import('../routes/worker-pool')
-        await pool.terminate()
-      },
-
       async closeBundle() {
         if (!isBuild || viteConfig?.build?.ssr) return
         await lifecycle?.runHook('afterBuild')

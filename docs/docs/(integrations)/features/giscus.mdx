@@ -1,0 +1,154 @@
+---
+title: Giscus Comments
+sidebarPosition: 3
+description: Add a comment system powered by GitHub Discussions to your documentation pages.
+badge: "New"
+---
+
+Giscus is a comments widget powered by the GitHub Discussions API. Visitors can leave comments using their GitHub account without any external database or moderation overhead.
+
+---
+
+## Quick Start
+
+### Step 1: Install the Giscus GitHub App
+
+Go to the [Giscus GitHub App](https://github.com/apps/giscus) page and install it on the repository where you want to store discussions.
+
+### Step 2: Configure in boltdocs.config.ts
+
+```ts title="boltdocs.config.ts"
+export default defineConfig({
+  integrations: {
+    feedback: {
+      giscus: {
+        repo: 'your-org/your-repo',
+        repoId: 'R_kgDOXXXXXXXX',
+        category: 'General',
+        categoryId: 'DIC_kwDOXXXXXXXX',
+      },
+    },
+  },
+})
+```
+
+### Step 3: Giscus comments appear automatically
+
+Once configured, the Giscus comment widget is rendered at the bottom of every documentation page. The theme automatically syncs with your site's dark/light mode.
+
+---
+
+## Finding Your Repository ID
+
+Giscus requires both the repository name and its internal GitHub GraphQL ID (`repoId`). You can find the `repoId` using the GitHub API:
+
+```bash
+# Replace 'owner' and 'repo' with your repository coordinates
+curl -H "Authorization: Bearer YOUR_GITHUB_TOKEN" \
+  https://api.github.com/repos/owner/repo \
+  | grep '"id"' | head -1
+```
+
+Or use the [Giscus Configuration Tool](https://giscus.app) — it generates the full config after you enter your repository URL.
+
+---
+
+## Configuration Reference
+
+| Property | Type | Required | Description |
+| :--- | :--- | :--- | :--- |
+| **`repo`** | `string` | ✓ | GitHub repository in the format `owner/repo`. |
+| **`repoId`** | `string` | ✓ | GitHub repository's internal GraphQL ID. |
+| **`category`** | `string` | — | Discussion category where comments are stored (e.g., `'General'`). |
+| **`categoryId`** | `string` | — | Discussion category ID (required if `category` is set). |
+| **`mapping`** | `string` | — | How to map pages to discussions. One of `'pathname'`, `'url'`, `'title'`, `'og:title'`, `'specific'`, `'number'`. Defaults to `'pathname'`. |
+| **`strict`** | `boolean \| '0' \| '1'` | — | Only allow comments on pages with a matching discussion. |
+| **`reactionsEnabled`** | `boolean \| '0' \| '1'` | — | Enable or disable reaction emojis on comments. |
+| **`emitMetadata`** | `boolean \| '0' \| '1'` | — | Emit discussion metadata as events. |
+| **`inputPosition`** | `'top' \| 'bottom'` | — | Position of the comment input box. Defaults to `'top'`. |
+| **`theme`** | `string` | — | Giscus theme name (e.g., `'light'`, `'dark'`). Defaults to `'light'`. |
+| **`darkTheme`** | `string` | — | Giscus theme name for dark mode (e.g., `'dark_dimmed'`). Defaults to the value of `theme`. |
+| **`lang`** | `string` | — | Language code for the Giscus UI (e.g., `'en'`, `'es'`). |
+| **`loading`** | `'lazy' \| 'eager'` | — | Loading strategy for the Giscus iframe. Defaults to `'lazy'`. |
+
+### Full Configuration
+
+```ts
+integrations: {
+  feedback: {
+    giscus: {
+      repo: 'your-org/your-repo',
+      repoId: 'R_kgDOXXXXXXXX',
+      category: 'General',
+      categoryId: 'DIC_kwDOXXXXXXXX',
+      mapping: 'pathname',
+      strict: '1',
+      reactionsEnabled: '1',
+      emitMetadata: '0',
+      inputPosition: 'bottom',
+      theme: 'light',
+      darkTheme: 'dark_dimmed',
+      lang: 'en',
+      loading: 'lazy',
+    },
+  },
+}
+```
+
+---
+
+## Dark Mode Support
+
+When the user switches between light and dark themes, the Giscus iframe automatically updates its theme via `postMessage`. If you specify a different `darkTheme`, Giscus will use the appropriate theme based on the current site mode.
+
+```ts
+integrations: {
+  feedback: {
+    giscus: {
+      repo: 'your-org/your-repo',
+      repoId: 'R_kgDOXXXXXXXX',
+      theme: 'light',
+      darkTheme: 'dark_dimmed',
+    },
+  },
+}
+```
+
+---
+
+## Using the Component Directly
+
+If you are using a custom layout and want full control over where Giscus appears, import the `<Giscus>` component:
+
+```tsx
+import { Giscus } from 'boltdocs/client'
+
+export function MyLayout({ children }) {
+  return (
+    <div>
+      {children}
+      <Giscus />
+    </div>
+  )
+}
+```
+
+The `<Giscus />` component reads all configuration from `integrations.feedback.giscus` automatically and handles theme synchronization.
+
+---
+
+## Troubleshooting
+
+### Comments not loading
+
+- Verify the `repo` and `repoId` are correct
+- Ensure the Giscus GitHub App is installed on the repository
+- Check browser console for CSP or CORS errors
+
+### Wrong discussion mapping
+
+If comments from one page appear on another, check the `mapping` setting. `'pathname'` (default) maps each page URL to a unique discussion.
+
+### Theme mismatch
+
+If the Giscus widget does not match your site's theme, verify the `theme` and `darkTheme` values are valid Giscus theme names. Common values: `'light'`, `'dark'`, `'dark_dimmed'`, `'transparent_dark'`, `'preferred_color_scheme'`.

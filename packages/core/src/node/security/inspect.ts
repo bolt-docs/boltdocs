@@ -1,5 +1,6 @@
 import fs from 'node:fs'
 import path from 'node:path'
+import { createRequire } from 'node:module'
 import { warn, colors } from '@bdocs/dui'
 import type { BoltdocsConfig } from '../config'
 
@@ -16,7 +17,6 @@ export function inspectPluginsSecurity(
       let pkgJsonPath: string | null = null
 
       try {
-        const { createRequire } = require('node:module')
         const localRequire = createRequire(path.resolve(root, 'package.json'))
         pkgJsonPath = localRequire.resolve(`${plugin.name}/package.json`)
       } catch (e) {

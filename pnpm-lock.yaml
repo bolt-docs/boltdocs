@@ -95,6 +95,9 @@ importers:
 
   docs:
     dependencies:
+      '@bdocs/plugin-ask-ai':
+        specifier: workspace:*
+        version: link:../packages/plugin-ask-ai
       '@bdocs/plugin-math':
         specifier: workspace:*
         version: link:../packages/plugin-math
@@ -147,6 +150,9 @@ importers:
       '@bdocs/dui':
         specifier: ^0.2.0
         version: 0.2.0
+      '@bdocs/native':
+        specifier: workspace:*
+        version: link:../native
       '@bdocs/plugin-image-optimizer':
         specifier: workspace:*
         version: link:../plugin-image-optimizer
@@ -308,6 +314,55 @@ importers:
       vitest:
         specifier: ^3.2.4
         version: 3.2.4(@edge-runtime/vm@3.2.0)(@types/debug@4.1.13)(@types/node@22.19.17)(@vitest/ui@3.2.4)(jiti@2.6.1)(jsdom@29.0.2)(lightningcss@1.32.0)(terser@5.46.1)(tsx@4.21.0)(yaml@2.8.3)
+
+  packages/native:
+    devDependencies:
+      '@types/node':
+        specifier: ^22.0.0
+        version: 22.0.0
+      tsdown:
+        specifier: ^0.21.7
+        version: 0.21.9(synckit@0.11.12)(typescript@5.9.3)
+      typescript:
+        specifier: ^5.9.3
+        version: 5.9.3
+
+  packages/plugin-ask-ai:
+    dependencies:
+      '@bdocs/dui':
+        specifier: ^0.2.0
+        version: 0.2.0
+      vite:
+        specifier: ^7.0.0 || ^8.0.0
+        version: 8.0.0(@emnapi/core@1.9.2)(@emnapi/runtime@1.9.2)(@types/node@22.0.0)(esbuild@0.25.12)(jiti@2.6.1)(terser@5.46.1)(tsx@4.21.0)(yaml@2.8.3)
+    devDependencies:
+      '@types/node':
+        specifier: ^22.0.0
+        version: 22.0.0
+      '@types/react':
+        specifier: 19.0.0
+        version: 19.0.0
+      '@types/react-dom':
+        specifier: 19.0.0
+        version: 19.0.0
+      boltdocs:
+        specifier: workspace:*
+        version: link:../core
+      flexsearch:
+        specifier: 0.8.212
+        version: 0.8.212
+      react:
+        specifier: 19.2.5
+        version: 19.2.5
+      react-dom:
+        specifier: 19.2.5
+        version: 19.2.5(react@19.2.5)
+      tsdown:
+        specifier: ^0.21.7
+        version: 0.21.9(synckit@0.11.12)(typescript@5.9.3)
+      typescript:
+        specifier: ^5.9.3
+        version: 5.9.3
 
   packages/plugin-image-optimizer:
     devDependencies:
