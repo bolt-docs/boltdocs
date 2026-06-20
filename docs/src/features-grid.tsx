@@ -2,6 +2,7 @@ import { Fragment, useRef } from 'react'
 import { useGSAPScroll } from './hooks/useGSAPScroll'
 import { Grainient } from './grainient'
 import { NoiseOverlay } from './noise-overlay'
+import { useTranslations } from './use-translations'
 
 interface Feature {
   title: string
@@ -262,6 +263,7 @@ function FeatureRow({ feature, index }: { feature: Feature; index: number }) {
 export const FeaturesGrid = () => {
   const titleRef = useRef<HTMLHeadingElement>(null)
   const subtitleRef = useRef<HTMLParagraphElement>(null)
+  const t = useTranslations()
 
   useGSAPScroll(titleRef, { animation: 'fade-up', delay: 0, duration: 0.6 })
   useGSAPScroll(subtitleRef, {
@@ -269,6 +271,12 @@ export const FeaturesGrid = () => {
     delay: 0.1,
     duration: 0.6,
   })
+
+  const featuresWithTranslations = FEATURES.map((feature, i) => ({
+    ...feature,
+    title: t.features[i]?.title || feature.title,
+    description: t.features[i]?.description || feature.description,
+  }))
 
   return (
     <section className="py-20 px-6 overflow-hidden bg-main/40 relative">
@@ -279,18 +287,18 @@ export const FeaturesGrid = () => {
             ref={titleRef}
             className="text-2xl md:text-4xl font-black tracking-tighter border-0 text-body mb-6 opacity-0"
           >
-            Powerful Features
+            {t.featuresTitle}
           </h2>
           <p
             ref={subtitleRef}
             className="max-w-2xl mx-auto text-lg leading-relaxed opacity-0 text-body/70"
           >
-            Everything you need to ship world-class technical documentation.
+            {t.featuresDescription}
           </p>
         </div>
 
         <div className="flex flex-col gap-16">
-          {FEATURES.map((feature, i) => (
+          {featuresWithTranslations.map((feature, i) => (
             <FeatureRow key={feature.title} feature={feature} index={i} />
           ))}
         </div>

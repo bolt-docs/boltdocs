@@ -3,9 +3,11 @@ import { useGSAPScroll } from './hooks/useGSAPScroll'
 import { Grainient } from './grainient'
 import { Link } from 'boltdocs/primitives'
 import { Github } from './icons'
+import { useTranslations } from './use-translations'
 
 export const CTASection = () => {
   const contentRef = useRef<HTMLDivElement>(null)
+  const t = useTranslations()
 
   useGSAPScroll(contentRef, {
     animation: 'fade-up',
@@ -50,13 +52,12 @@ export const CTASection = () => {
         >
           <div>
             <h2 className="text-3xl md:text-5xl font-black text-white border-0 mb-6 leading-[1.2] tracking-tight">
-              Start building your docs <br className="hidden md:block" />
-              in seconds
+              {t.ctaTitle} <br className="hidden md:block" />
+              {t.ctaTitleHighlight}
             </h2>
 
             <p className="text-base md:text-lg text-white/50 mb-10 max-w-xl mx-auto leading-relaxed font-medium">
-              Create beautiful, performant documentation with zero config. Join
-              thousands of developers already using Boltdocs.
+              {t.ctaDescription}
             </p>
 
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mt-8">
@@ -64,7 +65,7 @@ export const CTASection = () => {
                 href="/docs/guides"
                 className="px-8 py-4 bg-white text-black font-bold rounded-full hover:scale-105 hover:shadow-[0_0_30px_rgba(255,255,255,0.4)] transition-all duration-300 flex items-center justify-center border-0"
               >
-                Get Started
+                {t.ctaGetStarted}
               </Link>
               <Link
                 href="https://github.com/jesusalcaladev/boltdocs"

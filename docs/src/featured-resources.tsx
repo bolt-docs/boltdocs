@@ -1,8 +1,10 @@
 import { Link } from 'react-router-dom'
 import { useRecentPosts } from 'boltdocs/client'
+import { useTranslations } from './use-translations'
 
 export function FeaturedResources() {
   const recentPosts = useRecentPosts('blog', 3)
+  const t = useTranslations()
 
   return (
     <section className="py-24 px-6 relative border-t border-white/5 bg-main/40">
@@ -10,14 +12,14 @@ export function FeaturedResources() {
         <div className="flex flex-col md:flex-row md:items-end justify-between mb-12 gap-6">
           <div className="max-w-xl">
             <h2 className="text-3xl md:text-5xl font-black tracking-tighter text-body mb-4">
-              Featured resources &amp; updates
+              {t.featuredTitle}
             </h2>
           </div>
           <Link
             to="/blog"
             className="inline-flex h-10 items-center justify-center rounded-lg border border-white/10 bg-white/5 px-6 text-sm font-medium text-body transition-colors hover:bg-white/10 hover:text-white"
           >
-            All Resources
+            {t.featuredAll}
           </Link>
         </div>
 

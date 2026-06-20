@@ -11,6 +11,7 @@ import {
   Sigma,
 } from 'lucide-react'
 import { NoiseOverlay } from './noise-overlay'
+import { useTranslations } from './use-translations'
 
 const INTEGRATIONS = [
   { name: 'React / MDX', icon: <Code2 className="w-5 h-5" /> },
@@ -26,15 +27,16 @@ const INTEGRATIONS = [
 ]
 
 export const Integrations = () => {
+  const t = useTranslations()
   return (
     <section className="py-20 overflow-hidden border-y border-subtle bg-main/60 relative">
       <NoiseOverlay />
       <div className="max-w-7xl mx-auto px-6 mb-10 relative z-20">
         <p className="text-center text-sm font-semibold tracking-wider uppercase text-primary-500">
-          Integrations & Ecosystem
+          {t.integrationsLabel}
         </p>
         <h2 className="text-center text-3xl font-bold mt-2 text-body">
-          Engineered to Integrate with Industry Standards
+          {t.integrationsTitle}
         </h2>
       </div>
 

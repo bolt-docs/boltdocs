@@ -2,10 +2,12 @@ import { useRef } from 'react'
 import { Link } from 'boltdocs/primitives'
 import { useGSAPScroll } from './hooks/useGSAPScroll'
 import { NoiseOverlay } from './noise-overlay'
+import { useTranslations } from './use-translations'
 
 export const Footer = () => {
   const topRef = useRef<HTMLDivElement>(null)
   const titleRef = useRef<HTMLHeadingElement>(null)
+  const t = useTranslations()
 
   useGSAPScroll(topRef, {
     animation: 'fade-up',
@@ -36,25 +38,31 @@ export const Footer = () => {
                 href="/docs/guides"
                 className="hover:text-primary-500 transition-colors"
               >
-                Documentation
+                {t.footerDocumentation}
               </Link>
               <Link
                 href="https://github.com/jesusalcaladev/boltdocs/blob/main/CONTRIBUTING.md"
                 className="hover:text-primary-500 transition-colors"
               >
-                Contributing
+                {t.footerContributing}
               </Link>
               <Link
                 href="https://github.com/jesusalcaladev/boltdocs/issues"
                 className="hover:text-primary-500 transition-colors"
               >
-                Issues
+                {t.footerIssues}
               </Link>
               <Link
                 href="site:/blog"
                 className="hover:text-primary-500 transition-colors"
               >
-                Blog
+                {t.footerBlog}
+              </Link>
+              <Link
+                href="site:/benchmark"
+                className="hover:text-primary-500 transition-colors"
+              >
+                Benchmark
               </Link>
             </div>
             <div className="flex flex-col gap-3">
@@ -62,13 +70,13 @@ export const Footer = () => {
                 href="https://github.com/jesusalcaladev/boltdocs"
                 className="hover:text-primary-500 transition-colors"
               >
-                GitHub
+                {t.footerGitHub}
               </Link>
               <Link
                 href="/docs/api"
                 className="hover:text-primary-500 transition-colors"
               >
-                API Reference
+                {t.footerApiReference}
               </Link>
             </div>
           </div>
@@ -93,7 +101,7 @@ export const Footer = () => {
               href="site:/about"
               className="hover:text-primary-500 transition-colors"
             >
-              About Boltdocs
+              {t.footerAbout}
             </Link>
           </div>
         </div>
