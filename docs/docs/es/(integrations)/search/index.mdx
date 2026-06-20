@@ -1,0 +1,83 @@
+---
+title: Búsqueda
+sidebarPosition: 1
+description: Boltdocs incluye búsqueda sin dependencias y en tiempo de compilación en todas tus páginas, soportando tanto FlexSearch integrado como Algolia en la nube.
+---
+
+Cada sitio de Boltdocs viene con búsqueda integrada. Por defecto, opera completamente offline y del lado del cliente, compilando los encabezados y texto del cuerpo de tus documentos en un índice estático en tiempo de compilación. Para proyectos más grandes, también se integra nativamente con Algolia.
+
+---
+
+## Qué se Indexa
+
+Para cada página en tu documentación, Boltdocs extrae e indexa:
+
+| Datos | Fuente |
+| :--- | :--- |
+| Título de la página | Frontmatter `title` o nombre de archivo |
+| Descripción de la página | Frontmatter `description` o primer párrafo |
+| Todos los encabezados `h2`–`h6` | Elementos de encabezado Markdown |
+| Cuerpo de la página | Texto plano, sin sintaxis de Markdown |
+
+Los callouts, bloques de código y contenidos de tablas se incluyen en el texto del cuerpo. Las imágenes no se indexan.
+
+---
+
+## Comportamiento de Búsqueda Predeterminado
+
+De forma predeterminada, la búsqueda se activa mediante:
+* Hacer clic en el botón **Buscar** en la barra de navegación superior.
+* Presionar `Cmd+K` (macOS) o `Ctrl+K` (Windows / Linux).
+
+El diálogo predeterminado renderiza las coincidencias de búsqueda agrupadas por página, mostrando fragmentos de texto resaltados.
+
+---
+
+## Búsqueda en Diseños Personalizados
+
+Si estás desarrollando un diseño personalizado usando tu propio shell de React, puedes renderizar el componente de modal de búsqueda pre-construido en cualquier parte de tu DOM:
+
+```tsx
+import { SearchDialog } from 'boltdocs'
+
+export function MyLayout({ children }) {
+  return (
+    <div>
+      <SearchDialog />
+      <main>{children}</main>
+    </div>
+  )
+}
+```
+
+---
+
+## Excluyendo Páginas de la Búsqueda
+
+Las páginas con `sidebarHidden: true` aún se indexan para búsqueda por defecto. Para excluir una página del índice de búsqueda completamente, configura `hidden: true` en su frontmatter:
+
+```md
+---
+title: Internal Notes
+hidden: true
+---
+```
+
+<Callout variant="tip">
+  Usa `sidebarHidden: true` para ocultar una página de la navegación mientras la mantienes en la búsqueda. Usa `hidden: true` para excluir tanto de la barra lateral como del índice de búsqueda.
+</Callout>
+
+---
+
+## Integraciones de Búsqueda
+
+Profundiza tu configuración o personaliza la interfaz leyendo las siguientes guías:
+
+<Cards cols={2}>
+  <Card title="Interfaz Personalizada con FlexSearch" href="/docs/integrations/search/flexsearch" icon="⚙️">
+    Construye una interfaz de barra de búsqueda completamente personalizada y consulta el índice offline de forma programática usando el hook useSearch.
+  </Card>
+  <Card title="Algolia DocSearch" href="/docs/integrations/search/algolia" icon="🔍">
+    Conecta a la búsqueda en la nube de Algolia para analítica avanzada, coincidencia de sinónimos e indexación más rápida en sitios grandes.
+  </Card>
+</Cards>

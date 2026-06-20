@@ -1,0 +1,72 @@
+---
+title: Heading
+sidebarPosition: 7
+description: Encabezados de título de documento accesibles con anclajes de slug automatizados.
+---
+
+La primitiva `Heading` es un elemento envoltorio que renderiza encabezados de título HTML (`<h1>` a `<h6>`) y adjunta automáticamente enlaces de anclaje al portapapeles cuando se proporciona un `id`.
+
+---
+
+## Importación
+
+```tsx
+import { Heading } from 'boltdocs/primitives'
+```
+
+---
+
+## Inicio Rápido
+
+Renderiza un encabezado con envoltorio de enlace de anclaje automatizado:
+
+```tsx
+import { Heading } from 'boltdocs/primitives'
+
+export default function SectionHeader() {
+  return (
+    <Heading
+      level={2}
+      id="project-architecture"
+      className="text-2xl font-bold text-body border-b border-subtle pb-2"
+    >
+      Arquitectura del Proyecto
+    </Heading>
+  )
+}
+```
+
+---
+
+## Posiciones de Anclaje
+
+Puedes personalizar dónde aparece el símbolo de enlace de anclaje de Lucide:
+
+### Posición Wrap (Predeterminada)
+Envuelve todo el contenido del texto dentro de un hipervínculo local del router, renderizando el icono del enlace en el borde derecho al hacer hover.
+
+### Posiciones Before / After
+Renderiza el icono del enlace como un prefijo o sufijo independiente:
+
+```tsx
+<Heading level={3} id="options" anchorPosition="before">
+  Opciones de Configuración
+</Heading>
+```
+
+---
+
+## Props del Componente
+
+El componente `Heading` acepta atributos estándar de encabezado HTML más:
+
+| Propiedad | Tipo | Predeterminado | Descripción |
+| :--- | :--- | :--- | :--- |
+| **`level`** | `1 \| 2 \| 3 \| 4 \| 5 \| 6` | *Requerido* | Renderiza el elemento HTML de encabezado correspondiente (por ejemplo, `1` genera `<h1>`). |
+| **`id`** | `string` | `undefined` | Identificador único de slug de sección. Requerido para habilitar el enlace de anclaje. |
+| **`showAnchor`** | `boolean` | `true` | Alterna si se deben mostrar símbolos de anclaje al hacer hover/clic. |
+| **`anchorPosition`** | `'wrap' \| 'before' \| 'after'` | `'wrap'` | Determina la orientación de diseño de los iconos de enlace. |
+| **`anchorIcon`** | `ReactNode` | `LucideLink` | Componente de gráficos SVG personalizado para sobrescribir los gráficos de enlace predeterminados. |
+| **`anchorClassName`** | `string` | `undefined` | Sobrescrituras de estilo personalizadas para el elemento de enlace envolvente de anclaje. |
+| **`className`** | `string` | `undefined` | Sobrescritura de estilo de clase CSS para el encabezado. |
+| **`style`** | `CSSProperties` | `undefined` | Configuraciones de estilo en línea. |

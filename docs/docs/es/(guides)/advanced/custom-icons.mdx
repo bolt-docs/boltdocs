@@ -1,0 +1,200 @@
+---
+title: Iconos Personalizados
+sidebarPosition: 9
+description: Usa iconos de Lucide o strings SVG directos en toda Boltdocs — pestañas, sidebar, cards y componentes personalizados.
+---
+
+Boltdocs usa iconos de Lucide en toda la UI. Puedes pasar tanto un string de nombre de icono de Lucide como un string SVG directo en cualquier lugar donde se acepte un icono.
+
+---
+
+## Dónde se Usan los Iconos
+
+- **Pestañas** — `theme.tabs[].icon`
+- **Grupos del sidebar** — `theme.sidebarGroups[].icon` o `meta.json.icon`
+- **Cards** — `<Card icon="...">`
+- **Iconos de página** — campo `icon` del frontmatter
+- **Elementos de navbar** — entradas de navbar en configuración
+
+---
+
+## Nombres de Iconos de Lucide
+
+Simplemente pasa el nombre del icono como string:
+
+```ts title="boltdocs.config.ts"
+export default defineConfig({
+  theme: {
+    tabs: [
+      { id: 'guides', text: 'Guides', icon: 'BookOpen' },
+      { id: 'api', text: 'API', icon: 'Code2' },
+    ],
+    sidebarGroups: {
+      guides: { title: 'Getting Started', icon: 'Rocket' },
+    },
+  },
+})
+```
+
+```mdx
+import { Zap } from 'lucide-react'
+
+<Card title="Get Started" icon={<Zap />}>
+  Quick start guide
+</Card>
+```
+
+---
+
+## Iconos Disponibles
+
+Boltdocs usa iconos de **Lucide**. Consulta [Lucide.dev](https://lucide.dev/icons/) para la galería completa. Iconos comunes usados en docs:
+
+| Categoría | Iconos |
+| :--- | :--- |
+| Navegación | `ChevronRight`, `ChevronDown`, `Menu`, `X` |
+| Archivos | `FileText`, `File`, `Folder`, `FolderOpen` |
+| Acciones | `Download`, `Upload`, `Save`, `Edit`, `Copy` |
+| Meta | `BookOpen`, `Code2`, `Package`, `Layers` |
+| Estado | `Check`, `AlertCircle`, `Info`, `Warning` |
+
+---
+
+## Strings SVG Directos
+
+Para iconos que no están en Lucide, pasa un string SVG directo:
+
+```tsx
+const myIcon = `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/></svg>`
+
+// In config
+theme: {
+  tabs: [{ id: 'custom', text: 'Custom', icon: myIcon }]
+}
+
+// Or in MDX
+<Card icon={<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/></svg>} title="Custom Icon" />
+```
+
+<Callout variant="note">
+  Al usar strings SVG directos, asegúrate de que tengan atributos `width`, `height` y `viewBox` para un escalado correcto.
+</Callout>
+
+---
+
+## Icono en Frontmatter
+
+Agrega un icono a cualquier página:
+
+```md
+---
+title: Installation
+icon: Download
+---
+```
+
+El icono aparece junto al título de la página en el sidebar.
+
+---
+
+## Icono en Cards
+
+```mdx
+import { Zap, Settings } from 'lucide-react'
+
+<Cards>
+  <Card title="Quick Start" icon={<Zap />} href="/docs/guides/getting-started/installation">
+    Get up and running in 2 minutes
+  </Card>
+  <Card title="Configuration" icon={<Settings />} href="/docs/guides/getting-started/configuration">
+    Customize everything
+  </Card>
+</Cards>
+```
+
+---
+
+## Componente Icon
+
+También puedes usar el componente `<Icon>` directamente en MDX si está disponible a través de tu plugin o layout:
+
+```mdx
+import { Icon } from 'boltdocs/client'
+
+<Icon name="BookOpen" className="w-5 h-5" />
+```
+
+---
+
+## Archivo de Iconos Personalizados (`docs/icons.tsx`)
+
+Puedes registrar componentes de iconos personalizados globalmente creando un archivo `icons.tsx` (o `icons.ts` / `icons.jsx` / `icons.js`) en la raíz de tu directorio `docs`. 
+
+Boltdocs carga automáticamente este archivo a través de un módulo virtual (`virtual:boltdocs-icons`) y fusiona sus exports con el registro de iconos Lucide por defecto. 
+
+### Paso 1: Crea el Archivo de Iconos
+Exporta componentes React que representen tus iconos personalizados:
+
+```tsx title="docs/icons.tsx"
+export function MyBrandIcon(props: React.SVGProps<SVGSVGElement>) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={2}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      {...props}
+    >
+      <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" />
+    </svg>
+  )
+}
+```
+
+### Paso 2: Usa el Icono por Nombre
+Una vez exportado, puedes referenciar el icono por su string de nombre exportado (`"MyBrandIcon"`) en toda la configuración y contenido de tu sitio:
+
+- **Pestañas del Sitio** (`boltdocs.config.ts`):
+  ```ts
+  theme: {
+    tabs: [
+      { id: 'brand', text: 'Brand', icon: 'MyBrandIcon' }
+    ]
+  }
+  ```
+- **Configuraciones de Grupos del Sidebar** (archivos `meta.json` de grupo):
+  ```json title="meta.json"
+  {
+    "title": "Guides",
+    "icon": "MyBrandIcon"
+  }
+  ```
+- **Frontmatter de Página**:
+  ```yaml
+  ---
+  title: Quick Start
+  icon: MyBrandIcon
+  ---
+  ```
+
+---
+
+
+## Estilizando Iconos
+
+Los iconos heredan `currentColor` para trazo/relleno. Personaliza con CSS:
+
+```css
+/* In your index.css */
+[data-theme='dark'] .icon {
+  stroke: #e4e4e7;
+}
+
+.icon {
+  stroke-width: 2;
+}
+```
+
+O usa clases de Tailwind directamente en el elemento del icono al pasar strings SVG:

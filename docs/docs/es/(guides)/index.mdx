@@ -1,0 +1,112 @@
+---
+title: Descripción General
+sidebarPosition: 1
+description: Todo lo que necesitas para construir, configurar y personalizar un sitio de documentación con Boltdocs — desde la instalación hasta la personalización avanzada de layouts.
+---
+
+
+import { Download, Settings, Route, File, Layout, Globe, Code2, FileText, FolderCog, Palette, Zap, Paintbrush } from 'lucide-react'
+
+Boltdocs convierte una carpeta de archivos Markdown en un sitio de documentación completamente renderizado, indexado para búsqueda y optimizado para SEO. Estas guías te acompañan por cada capa del framework — desde poner tu primera página en línea en dos minutos hasta construir layouts completamente personalizados e inyectar tus propios componentes React en MDX.
+
+---
+
+## Por Dónde Empezar
+
+<Cards cols={2}>
+  <Card title="Instalación" icon={<Download />} href="/docs/es/guides/getting-started/installation">
+    Instala Boltdocs en menos de dos minutos usando `create-boltdocs` o configuración manual.
+  </Card>
+  <Card title="Configuración" icon={<Settings />} href="/docs/es/guides/getting-started/configuration">
+    Un recorrido guiado por cada clave en `boltdocs.config.ts` y qué controla.
+  </Card>
+  <Card title="Enrutamiento por Sistema de Archivos" icon={<Route />} href="/docs/es/guides/getting-started/file-routing">
+    Entiende cómo la estructura de tu carpeta `docs/` se mapea a rutas, grupos de sidebar y secciones de pestañas.
+  </Card>
+  <Card title="Frontmatter" icon={<File />} href="/docs/es/guides/getting-started/frontmatter">
+    Controla el enrutamiento, visualización del sidebar, SEO y metadatos de página desde cualquier archivo `.md` o `.mdx`.
+  </Card>
+</Cards>
+
+---
+
+## Estructura del Proyecto
+
+Un proyecto Boltdocs recién creado se ve así:
+
+```
+my-docs/
+├── docs/                  # Todo tu contenido vive aquí
+│   ├── (guides)/
+│   │   └── index.mdx
+│   └── index.md           # Página raíz → /docs
+├── public/                # Assets estáticos (imágenes, fuentes, favicons)
+│   ├── dark.svg
+│   └── light.svg
+├── src/
+│   └── components/        # Tus componentes React personalizados
+├── boltdocs.config.ts     # El cerebro de tu sitio de docs
+├── index.html             # Punto de entrada HTML de Vite
+├── index.css              # Estilos globales
+└── package.json
+```
+
+### Directorios Clave
+
+**`docs/`** — Todo aquí se convierte en una página. Boltdocs escanea recursivamente archivos `.md` y `.mdx` y los convierte en rutas. La estructura de carpetas se mapea directamente a la estructura de URLs.
+
+**`boltdocs.config.ts`** — La única fuente de verdad. Controla el tema, navegación, plugins, SEO, i18n y más. Boltdocs genera la configuración completa de Vite internamente — no necesitas un `vite.config.ts` separado.
+
+**`public/`** — Assets estáticos servidos desde la raíz de tu sitio. Referéncialos en Markdown con una ruta relativa a la raíz como `/mi-imagen.png`.
+
+**`src/components/`** — Tus componentes React personalizados, disponibles para importar en archivos `.mdx` o registrar como componentes MDX globales a través de plugins.
+
+| Archivo Opcional | Propósito |
+| :--- | :--- |
+| `docs/layout.tsx` | Layout personalizado que envuelve todas las páginas |
+| `docs/**/meta.json` | Sobreescribe títulos de grupos del sidebar, iconos y orden por directorio |
+| `doctor.json` | Configuración para el verificador de enlaces `boltdocs doctor` |
+
+<Callout variant="info" title="No necesitas vite.config.ts">
+  Boltdocs genera toda la configuración de Vite desde `boltdocs.config.ts`. Para extender Vite (por ejemplo, agregar un plugin personalizado), usa la clave `vite` dentro de `defineConfig` o escribe un plugin de Boltdocs que exponga `vitePlugins`.
+</Callout>
+
+---
+
+## Todas las Guías
+
+<Cards cols={3}>
+  <Card title="Instalación" icon={<Download />} href="/docs/es/guides/getting-started/installation">
+    Instala y ejecuta tu primer sitio de docs.
+  </Card>
+  <Card title="Configuración" icon={<Settings />} href="/docs/es/guides/getting-started/configuration">
+    Recorrido completo de `boltdocs.config.ts`.
+  </Card>
+  <Card title="Enrutamiento por Sistema de Archivos" icon={<Route />} href="/docs/es/guides/getting-started/file-routing">
+    Enrutamiento, grupos de sidebar, pestañas y ordenamiento.
+  </Card>
+  <Card title="Layout Personalizado" icon={<Layout />} href="/docs/es/guides/advanced/custom-layout">
+    Sobreescribe el layout por defecto con tu propio componente React.
+  </Card>
+  <Card title="Páginas Externas" icon={<Globe />} href="/docs/es/guides/advanced/external-page">
+    Registra páginas React que no son MDX en el router de Boltdocs.
+  </Card>
+  <Card title="Inyección MDX" icon={<Code2 />} href="/docs/es/guides/advanced/mdx-inject">
+    Agrega componentes React personalizados globalmente a tu pipeline de MDX.
+  </Card>
+  <Card title="Frontmatter" icon={<FileText />} href="/docs/es/guides/getting-started/frontmatter">
+    Referencia completa de campos de frontmatter.
+  </Card>
+  <Card title="Meta Loaders" icon={<FolderCog />} href="/docs/es/guides/advanced/meta-loaders">
+    Controla los grupos del sidebar con `meta.json`.
+  </Card>
+  <Card title="Iconos Personalizados" icon={<Palette />} href="/docs/es/guides/advanced/custom-icons">
+    Usa iconos de Lucide o SVGs directamente en tu sitio.
+  </Card>
+  <Card title="Temas Personalizados" icon={<Paintbrush />} href="/docs/es/guides/advanced/custom-icons">
+    Construye paletas de colores y variables de estilos personalizadas con reset.css.
+  </Card>
+  <Card title="Caché y Entorno" icon={<Zap />} href="/docs/es/guides/advanced/cache">
+    Cómo funciona el caché y las variables de `.env` que lo controlan.
+  </Card>
+</Cards>

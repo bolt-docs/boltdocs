@@ -1,0 +1,169 @@
+---
+title: SearchDialog
+sidebarPosition: 4
+description: El componente modal de búsqueda para realizar búsqueda de texto completo en páginas de documentación.
+---
+
+El `SearchDialog` proporciona un panel de comandos superponible accesible y totalmente personalizable que permite a los usuarios buscar instantáneamente rutas, encabezados y descripciones.
+
+---
+
+## Importación
+
+```tsx
+import { SearchDialog } from 'boltdocs/primitives'
+```
+
+---
+
+## Ejemplo de Diálogo de Búsqueda Componible
+
+Usando los subcomponentes primitivos de `SearchDialog`, puedes componer una superposición de ventana de búsqueda personalizada. El siguiente ejemplo muestra cómo conectar la superposición al hook de estado de búsqueda y construir un diálogo modal limpio con resultados de lista e iconos personalizados:
+
+```tsx
+// docs/components/CustomSearchDialog.tsx
+import React from 'react'
+import { SearchDialog } from 'boltdocs/primitives'
+import { useSearch } from 'boltdocs/client'
+
+export default function CustomSearchDialog() {
+  const { isOpen, close, query, setQuery, results } = useSearch()
+
+  return (
+    <SearchDialog
+      isOpen={isOpen}
+      onOpenChange={(open) => !open && close()}
+      className="bg-black/40 backdrop-blur-xs flex items-center justify-center p-4 transition-all"
+    >
+      <SearchDialog.Content className="w-full max-w-xl bg-white dark:bg-zinc-900 border border-subtle rounded-xl shadow-2xl overflow-hidden">
+        <SearchDialog.Dialog>
+          
+          {/* 1. Entrada de Búsqueda Estilizada en el Encabezado */}
+          <SearchDialog.Input className="flex items-center border-b border-subtle px-4 py-3">
+            <SearchDialog.Input.SearchInput
+              value={query}
+              onChange={(e) => setQuery((e.target as HTMLInputElement).value)}
+              placeholder="Buscar documentación..."
+              className="text-sm placeholder-zinc-400 outline-none"
+            />
+            {query && (
+              <SearchDialog.Input.Button className="text-xs text-muted hover:text-body">
+                Limpiar
+              </SearchDialog.Input.Button>
+            )}
+          </SearchDialog.Input>
+
+          {/* 2. Caja de Lista de Resultados Desplazable */}
+          {results.length > 0 && (
+            <SearchDialog.Autocomplete>
+              <SearchDialog.List className="p-2 max-h-96 overflow-y-auto space-y-1">
+                {results.map((item) => (
+                  <SearchDialog.Item
+                    key={item.path}
+                    id={item.path}
+                    className="p-2.5 rounded-lg transition-colors hover:bg-zinc-100 dark:hover:bg-zinc-800"
+                  >
+                    {/* Indicadores visuales para páginas regulares vs. encabezados profundos */}
+                    <SearchDialog.Item.Icon
+                      isHeading={item.path.includes('#')}
+                      className="text-muted mr-3"
+                    />
+                    
+                    <SearchDialog.Item.Title className="text-sm font-medium text-body">
+                      {item.title}
+                    </SearchDialog.Item.Title>
+                    
+                    {item.description && (
+                      <SearchDialog.Item.Bio className="text-xs text-muted">
+                        {item.description}
+                      </SearchDialog.Item.Bio>
+                    )}
+                  </SearchDialog.Item>
+                ))}
+              </SearchDialog.List>
+            </SearchDialog.Autocomplete>
+          )}
+
+          {/* Mensaje alternativo vacío */}
+          {query && results.length === 0 && (
+            <div className="p-8 text-center text-sm text-muted">
+              No se encontraron resultados para "{query}"
+            </div>
+          )}
+
+        </SearchDialog.Dialog>
+      </SearchDialog.Content>
+    </SearchDialog>
+  )
+}
+```
+
+---
+
+## Subcomponentes Componibles
+
+La primitiva `SearchDialog` proporciona los siguientes subcomponentes para la personalización de la estructura:
+
+| Componente | Etiqueta HTML | Descripción | Props |
+| :--- | :--- | :--- | :--- |
+| **`SearchDialog`** / **`SearchDialog.Overlay`** | `<div>` (Fondo) | El elemento de superposición de fondo que oscurece el fondo de la página. | [`ModalOverlayProps`](#modaloverlayprops) |
+| **`SearchDialog.Content`** | `<div>` (Modal) | El envoltorio de diseño del diálogo flotante que contiene el shell del diálogo. | [`ModalProps`](#modalprops) |
+| **`SearchDialog.Dialog`** | `<dialog>` | El contenedor del diálogo interactivo que mapea el foco y los controles de teclado. | [`DialogProps`](#dialogprops) |
+| **`SearchDialog.Input`** | `<div>` | Envuelve el diseño del formulario de entrada de búsqueda. | [`SearchFieldProps`](#searchfieldprops) |
+| **`SearchDialog.Input.SearchInput`** | `<input>` | El control de entrada de texto interno en sí mismo. | [`InputProps`](#inputprops) |
+| **`SearchDialog.Input.Button`** | `<button>` | Un botón para limpiar el texto de la consulta de entrada activa. | `ButtonProps` con `slot="clear"` |
+| **`SearchDialog.Autocomplete`** | `<div>` | Un envoltorio que alinea consultas y resaltados de lista de autocompletado. | [`AutocompleteProps`](#autocompleteprops) |
+| **`SearchDialog.List`** | `<ul>` | El viewport desplazable de lista vertical de resultados. | [`ListBoxProps`](#listboxprops) |
+| **`SearchDialog.Item`** | `<li>` | El elemento individual de celda de resultado. | [`SearchDialogItemProps`](#searchdialogitemprops) |
+| **`SearchDialog.Item.Icon`** | `<span>` | Renderiza indicadores de resultado estándar (hash `#` para encabezados, hoja para páginas). | [`Icon Props`](#icon-props) |
+| **`SearchDialog.Item.Title`** | `<div>` | Etiqueta de texto del resultado principal que coincide. | [`ComponentBaseProps`](#componentbaseprops-common) |
+| **`SearchDialog.Item.Bio`** | `<div>` | Etiqueta de contexto de descripción o extracto de sección de apoyo. | [`ComponentBaseProps`](#componentbaseprops-common) |
+
+---
+
+## Props del Componente
+
+### ComponentBaseProps (Común)
+
+| Propiedad | Tipo | Predeterminado | Descripción |
+| :--- | :--- | :--- | :--- |
+| **`children`** | `ReactNode` | `undefined` | Elementos de contenido hijos. |
+| **`className`** | `string` | `undefined` | Clases CSS utilitarias personalizadas. |
+| **`style`** | `CSSProperties` | `undefined` | Configuraciones de estilo en línea. |
+
+### `ModalOverlayProps` y `ModalProps`
+
+Hereda las configuraciones estándar de `ModalOverlayProps` y `ModalProps` de React-Aria (por ejemplo, `isOpen`, `onOpenChange`, `isDismissable`).
+
+### `DialogProps`
+
+Hereda las configuraciones estándar de `DialogProps` de React-Aria.
+
+### `SearchFieldProps`
+
+Hereda las configuraciones estándar de `SearchFieldProps` de React-Aria (por ejemplo, `value`, `onChange`).
+
+### `InputProps`
+
+Hereda las propiedades estándar del elemento HTML `input`.
+
+### `AutocompleteProps`
+
+Configuración de envoltorio personalizada que maneja el resaltado de términos de consulta de búsqueda.
+
+### `ListBoxProps`
+
+Hereda `ListBoxProps` estándar de React-Aria (por ejemplo, `items`, `selectionMode`).
+
+### `SearchDialogItemProps`
+
+| Propiedad | Tipo | Predeterminado | Descripción |
+| :--- | :--- | :--- | :--- |
+| **`id`** | `Key` | *Requerido* | Clave índice única del elemento. |
+| **`textValue`** | `string` | *Requerido* | Contenido de texto sin procesar para búsqueda por teclado. |
+
+### Props de `Icon`
+
+| Propiedad | Tipo | Predeterminado | Descripción |
+| :--- | :--- | :--- | :--- |
+| **`isHeading`** | `boolean` | `false` | Si es `true`, renderiza un icono de sección de encabezado. De lo contrario, renderiza un icono de página de documento. |

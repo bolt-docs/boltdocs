@@ -1,0 +1,45 @@
+---
+title: Card y Cards
+sidebarPosition: 2
+description: Organiza la navegación o resalta características importantes en cuadrículas de tarjetas responsivas usando los componentes Card y Cards.
+---
+
+Los componentes `<Card>` y `<Cards>` te permiten agrupar enlaces, características o recursos externos relacionados en mosaicos limpios y clickeables.
+
+---
+
+## Uso
+
+Usa `<Cards>` como envoltorio de cuadrícula responsiva, y públalo con hijos `<Card>` individuales.
+
+```mdx
+import { Rocket, Settings } from 'lucide-react'
+
+<Cards cols={2}>
+  <Card title="Instalación Rápida" icon={<Rocket />} href="/docs/guides/getting-started/installation">
+    Instala Boltdocs en menos de 2 minutos.
+  </Card>
+  <Card title="Configuración" icon={<Settings />} href="/docs/guides/getting-started/configuration">
+    Configura boltdocs.config.ts para adaptarlo a las necesidades de tu proyecto.
+  </Card>
+</Cards>
+```
+
+---
+
+## Props de Cards
+
+| Prop | Tipo | Predeterminado | Descripción |
+| :--- | :--- | :--- | :--- |
+| **`cols`** | `1 \| 2 \| 3 \| 4` | `2` | Número de columnas en el diseño de cuadrícula en pantallas de escritorio. |
+
+---
+
+## Props de Card
+
+| Prop | Tipo | Predeterminado | Descripción |
+| :--- | :--- | :--- | :--- |
+| **`title`** | `string` | *Requerido* | Texto del encabezado en negrita mostrado en la parte superior de la tarjeta. |
+| **`icon`** | `ReactNode` | `undefined` | Un icono de Lucide o elemento SVG personalizado para mostrar junto al título de la tarjeta. |
+| **`href`** | `string` | `undefined` | Destino del enlace. Cuando se proporciona, convierte toda la tarjeta en un enlace clickeable. Soporta rutas internas y URLs externas. |
+| **`children`** | `ReactNode` | `undefined` | Texto de descripción del cuerpo o elementos React personalizados. |

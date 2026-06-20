@@ -1,0 +1,196 @@
+---
+title: Google Analytics 4
+sidebarPosition: 2
+description: Rastrea vistas de página y eventos personalizados en tu documentación usando Google Analytics 4.
+---
+
+Boltdocs se integra con Google Analytics 4 (GA4) para darte información sobre cómo los usuarios navegan tu documentación.
+
+---
+
+## Inicio Rápido
+
+### Paso 1: Obtén tu Measurement ID
+
+Crea una propiedad de GA4 en [Google Analytics](https://analytics.google.com/) y obtén tu Measurement ID (comienza con `G-`).
+
+### Paso 2: Configura en boltdocs.config.ts
+
+```ts title="boltdocs.config.ts"
+export default defineConfig({
+  integrations: {
+    ga4: {
+      measurementId: 'G-XXXXXXXXXX',
+    },
+  },
+})
+```
+
+### Paso 3: Despliega
+
+El script de GA4 se inyecta automáticamente en cada página. Las vistas de página se rastrean automáticamente.
+
+---
+
+## Qué se Rastrea
+
+### Eventos Automáticos
+
+| Evento | Descripción |
+| :--- | :--- |
+| **`page_view`** | Se dispara en cada navegación de página (incluyendo navegación del lado del cliente) |
+| **`first_visit`** | Nueva sesión de usuario |
+| **`session_start`** | Nueva sesión |
+
+### Eventos Personalizados
+
+Puedes rastrear eventos personalizados usando el hook `useTrackEvent()`:
+
+```tsx
+import { useTrackEvent } from 'boltdocs'
+
+export function MyComponent() {
+  const trackEvent = useTrackEvent()
+
+  const handleClick = () => {
+    trackEvent('button_click', {
+      button_id: 'downloadPdf',
+      button_location: 'sidebar',
+    })
+  }
+
+  return <button onClick={handleClick}>Download PDF</button>
+}
+```
+
+---
+
+## Referencia de Configuración
+
+| Propiedad | Tipo | Requerido | Descripción |
+| :--- | :--- | :--- | :--- |
+| **`measurementId`** | `string` | ✓ | Tu Measurement ID de GA4 (por ejemplo `'G-XXXXXXXXXX'`) |
+| **`debug`** | `boolean` | — | Habilita modo de depuración de GA4 (registra en consola) |
+| **`anonymizeIp`** | `boolean` | — | Anonimiza direcciones IP de usuarios (predeterminado a `true`) |
+| **`sendPageView`** | `boolean` | — | Habilita rastreo automático de vista inicial de página (predeterminado a `true`) |
+| **`cookieFlags`** | `string` | — | Flags de cookies personalizados (por ejemplo `'SameSite=None;Secure'`) |
+| **`autoTrack`** | `AutoTrackConfig` | — | Configuración personalizada para rastreo automático (ver abajo) |
+
+### Opciones de Rastreo Automático (`autoTrack`)
+
+| Sub-Propiedad | Tipo | Predeterminado | Descripción |
+| :--- | :--- | :--- | :--- |
+| **`pageViews`** | `boolean` | `true` | Rastrea vistas de página automáticamente en cambios de ruta del lado del cliente |
+| **`downloads`** | `boolean` | `false` | Rastrea enlaces de descarga de archivos |
+| **`externalLinks`** | `boolean` | `false` | Rastrea clics en enlaces externos salientes |
+| **`search`** | `boolean` | `true` | Rastrea búsquedas realizadas en el sitio |
+
+### Ejemplo Avanzado
+
+```ts
+integrations: {
+  ga4: {
+    measurementId: 'G-XXXXXXXXXX',
+    debug: false,
+    anonymizeIp: true,
+    sendPageView: true,
+    cookieFlags: 'SameSite=None;Secure',
+    autoTrack: {
+      pageViews: true,
+      downloads: true,
+      externalLinks: true,
+      search: true,
+    },
+  },
+}
+```
+
+---
+
+## Usando los Hooks
+
+### `useAnalytics()`
+
+Accede a la API completa de analítica:
+
+```tsx
+import { useAnalytics } from 'boltdocs'
+
+function MyComponent() {
+  const { trackEvent, trackPageView, setUserProperties } = useAnalytics()
+
+  // Rastrea un evento personalizado
+  trackEvent('search', { query: 'installation' })
+
+  // Rastrea una vista de página manualmente
+  trackPageView('/docs/guides/getting-started/installation', 'Installation')
+
+  // Establece propiedades de usuario
+  setUserProperties({ plan: 'enterprise' })
+}
+```
+
+### `useTrackPageView()`
+
+Rastreo simplificado de vista de página:
+
+```tsx
+import { useTrackPageView } from 'boltdocs'
+
+function DocPage({ title, path }) {
+  const trackPageView = useTrackPageView()
+
+  // Rastreo automático al montar
+  useEffect(() => {
+    trackPageView(path, title)
+  }, [path, title])
+}
+```
+
+### `useTrackEvent()`
+
+Rastrea eventos arbitrarios:
+
+```tsx
+import { useTrackEvent } from 'boltdocs'
+
+function SearchBox() {
+  const trackEvent = useTrackEvent()
+
+  return (
+    <input
+      onChange={(e) => {
+        trackEvent('search_input', { query: e.target.value })
+      }}
+    />
+  )
+}
+```
+
+---
+
+## Respetando la Privacidad del Usuario
+
+Boltdocs no implementa consentimiento de cookies. Para cumplimiento de GDPR, considera:
+
+1. Agregar un banner de consentimiento de cookies en tu diseño personalizado
+2. Solo llamar a las funciones de GA4 después de que se otorgue el consentimiento
+3. Configurar GA4 para respetar Do Not Track
+
+---
+
+## Solución de Problemas
+
+### Los eventos no aparecen
+
+1. Verifica que el Measurement ID sea correcto
+2. Revisa la consola del navegador en busca de errores
+3. Usa GA4 DebugView para ver eventos en tiempo real
+
+### Vistas de página duplicadas
+
+Las vistas de página se rastrean automáticamente en la navegación. No llames a `trackPageView` manualmente a menos que sea necesario.
+
+### Errores de compilación
+
+Asegúrate de que `integrations.ga4.measurementId` sea una cadena que comience con `G-`.

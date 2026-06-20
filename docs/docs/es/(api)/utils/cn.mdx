@@ -1,0 +1,56 @@
+---
+title: Utilidad cn
+description: Combinar condicionalmente clases de Tailwind CSS y eliminar utilidades duplicadas.
+---
+
+La utilidad `cn` une clases de cadenas, evalúa expresiones condicionales y combina clases de Tailwind CSS para prevenir colisiones de especificidad (similar a las implementaciones estándar de `clsx` y `tailwind-merge`).
+
+---
+
+## Importación
+
+```tsx
+import { cn } from 'boltdocs/client'
+```
+
+---
+
+## Firma
+
+```ts
+function cn(...inputs: ClassValue[]): string
+```
+
+### Parámetros
+- **`inputs`**: Cualquier combinación de cadenas, condicionales booleanos, arreglos anidados o mapas de objetos.
+
+---
+
+## Ejemplo: Construyendo un Componente de Botón
+
+```tsx
+import { cn } from 'boltdocs/client'
+
+interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
+  variant?: 'primary' | 'secondary'
+  isLoading?: boolean
+}
+
+export function CustomButton({ variant = 'primary', isLoading, className, children, ...props }: ButtonProps) {
+  return (
+    <button
+      className={cn(
+        'px-4 py-2 rounded font-medium transition-colors duration-150',
+        variant === 'primary' && 'bg-blue-600 text-white hover:bg-blue-700',
+        variant === 'secondary' && 'bg-zinc-200 text-zinc-800 hover:bg-zinc-300',
+        isLoading && 'opacity-50 cursor-not-allowed',
+        className // Allows users to override base styles
+      )}
+      disabled={isLoading}
+      {...props}
+    >
+      {children}
+    </button>
+  )
+}
+```

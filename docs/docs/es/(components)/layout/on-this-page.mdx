@@ -1,0 +1,169 @@
+---
+title: OnThisPage
+sidebarPosition: 5
+description: Un panel de navegación de tabla de contenidos que muestra y resalta los encabezados de la página actual.
+---
+
+El componente `OnThisPage` renderiza un panel de navegación flotante que lista los encabezados del documento actual, resaltando dinámicamente las secciones activas a medida que el usuario se desplaza.
+
+---
+
+## Importación
+
+```tsx
+import { OnThisPage } from 'boltdocs/primitives'
+```
+
+---
+
+## Ejemplo de Rastreador de Scroll Componible
+
+Usando los módulos primitivos de `OnThisPage`, puedes ensamblar una tabla de contenidos completamente personalizada. El siguiente ejemplo muestra cómo componer un diseño con títulos personalizados, contenedores de listas, líneas indicadoras de actividad y comportamientos de scroll suave:
+
+```tsx
+// docs/components/CustomTOC.tsx
+import React, { useRef } from 'react'
+import { OnThisPage, AnchorProvider, ScrollProvider } from 'boltdocs/primitives'
+import { useRoutes } from 'boltdocs/client'
+
+export default function CustomTOC() {
+  const { currentRoute } = useRoutes()
+  const scrollContainerRef = useRef<HTMLDivElement>(null)
+
+  const headings = currentRoute?.headings || []
+  if (headings.length === 0) return null
+
+  // Convierte la base de datos de encabezados a una estructura estándar de TOC
+  const tocItems = headings.map((h) => ({
+    title: h.text,
+    url: `#${h.id}`,
+    depth: h.level,
+  }))
+
+  return (
+    <OnThisPage className="border-l border-subtle pl-6 py-6 bg-transparent">
+      {/* 1. Encabezado de Título Estático */}
+      <OnThisPage.Header className="text-xs font-bold uppercase tracking-wider text-zinc-400 mb-4">
+        Tabla de Contenidos
+      </OnThisPage.Header>
+
+      {/* 2. Proveedores de Envoltorio de Contexto de Rastreador de Scroll */}
+      <AnchorProvider toc={tocItems} single={false}>
+        <ScrollProvider containerRef={scrollContainerRef}>
+          
+          {/* 3. Viewport Desplazable con Máscara */}
+          <OnThisPage.Content ref={scrollContainerRef} className="max-h-[80vh]">
+            <OnThisPage.List className="relative border-l border-zinc-200 dark:border-zinc-800">
+              
+              {/* 4. Indicador de Acento de Sección Activa */}
+              <OnThisPage.Indicator className="bg-primary-500" />
+              
+              {/* 5. Mapeo Jerárquico de Enlaces */}
+              {headings.map((h) => (
+                <OnThisPage.Item key={h.id} level={h.level}>
+                  <OnThisPage.Link href={`#${h.id}`}>
+                    {h.text}
+                  </OnThisPage.Link>
+                </OnThisPage.Item>
+              ))}
+
+            </OnThisPage.List>
+          </OnThisPage.Content>
+
+        </ScrollProvider>
+      </AnchorProvider>
+    </OnThisPage>
+  )
+}
+```
+
+> [!TIP]
+> Si no quieres mapear los elementos manualmente, puedes usar el envoltorio de primitiva de alto nivel `<OnThisPage.Tree headings={headings} />` para montar automáticamente los observadores, indicadores y enlaces de lista dentro de un diseño activo.
+
+---
+
+## Subcomponentes Componibles
+
+La primitiva `OnThisPage` proporciona los siguientes subcomponentes para la personalización de la estructura:
+
+| Componente | Etiqueta HTML | Descripción | Props |
+| :--- | :--- | :--- | :--- |
+| **`OnThisPage.Root`** / **`OnThisPage`** | `<nav>` | El envoltorio contenedor exterior que representa el área de navegación de la columna derecha fija de escritorio. | [`ComponentBaseProps`](#componentbaseprops-common) |
+| **`OnThisPage.Header`** | `<div>` | Un bloque tipográfico de título para etiquetar la tabla de contenidos. | [`ComponentBaseProps`](#componentbaseprops-common) |
+| **`OnThisPage.Content`** | `<div>` | Contenedor de viewport desplazable con barras de desplazamiento ocultas. | [`OnThisPage.Content Props`](#onthispagecontent-props) |
+| **`OnThisPage.List`** | `<ul>` | Envoltorio de elemento de lista que envuelve los anclajes de elementos. | [`ComponentBaseProps`](#componentbaseprops-common) |
+| **`OnThisPage.Item`** | `<li>` | Envoltorio individual de celda de lista. Indenta elementos H3. | [`OnThisPage.Item Props`](#onthispageitem-props) |
+| **`OnThisPage.Link`** | `<a>` | Elemento de enlace de anclaje que intercepta eventos de clic para realizar desplazamientos suaves de viewport. | [`OnThisPage.Link Props`](#onthispagelink-props) |
+| **`OnThisPage.Indicator`** | `<div>` | Un indicador de pista de resaltado vertical flotante que muestra el enlace de anclaje activo. | [`ComponentBaseProps`](#componentbaseprops-common) |
+| **`OnThisPage.Items`** | Varía | Ayuda de bucle que renderiza enlaces activos e indicadores automáticamente basándose en las configuraciones de encabezado. | [`OnThisPage.Items Props`](#onthispageitems-props) |
+| **`OnThisPage.Tree`** | `<nav>` | Componente automatizado de alto nivel que agrupa todos los proveedores, observadores y elementos. | [`OnThisPage.Tree Props`](#onthispagetree-props) |
+
+---
+
+## Props del Componente
+
+### ComponentBaseProps (Común)
+
+| Propiedad | Tipo | Predeterminado | Descripción |
+| :--- | :--- | :--- | :--- |
+| **`children`** | `ReactNode` | `undefined` | Elementos de contenido hijos. |
+| **`className`** | `string` | `undefined` | Clases CSS utilitarias personalizadas. |
+| **`style`** | `CSSProperties` | `undefined` | Sobrescrituras de estilo en línea. |
+
+### Props de `OnThisPage.Content`
+
+| Propiedad | Tipo | Predeterminado | Descripción |
+| :--- | :--- | :--- | :--- |
+| **`ref`** | `Ref<HTMLDivElement>` | `undefined` | Instancia de Ref para el elemento contenedor. |
+| **`scrollRef`** | `RefObject<HTMLElement>` | `undefined` | Ref del elemento de contenido principal del viewport para rastrear el desplazamiento. |
+
+### Props de `OnThisPage.Item`
+
+| Propiedad | Tipo | Predeterminado | Descripción |
+| :--- | :--- | :--- | :--- |
+| **`level`** | `number` | `undefined` | La profundidad de la jerarquía de encabezados. Una profundidad de `3` activa relleno interno. |
+
+### Props de `OnThisPage.Link`
+
+| Propiedad | Tipo | Predeterminado | Descripción |
+| :--- | :--- | :--- | :--- |
+| **`href`** | `string` | *Requerido* | ID de anclaje objetivo del elemento (por ejemplo, `'#installation'`). |
+| **`active`** | `boolean` | `false` | Interruptor de sobrescritura de resaltado activo. |
+| **`onClick`** | `(event) => void` | `undefined` | Callback de interceptación de clic personalizado. |
+
+### Props de `OnThisPage.Items`
+
+| Propiedad | Tipo | Predeterminado | Descripción |
+| :--- | :--- | :--- | :--- |
+| **`headings`** | `TOCItemType[]` | *Requerido* | Datos sin procesar de encabezados de página a mapear. |
+
+### Props de `OnThisPage.Tree`
+
+| Propiedad | Tipo | Predeterminado | Descripción |
+| :--- | :--- | :--- | :--- |
+| **`headings`** | `TOCItemType[]` | *Requerido* | Arreglo de encabezados para renderizado activo. |
+
+---
+
+## Contextos Internos
+
+Si estás construyendo un rastreador completamente personalizado, puedes importar y envolver tu diseño en los proveedores de contexto React personalizados expuestos a través de `OnThisPage`:
+
+| Proveedor de Contexto | Descripción | Props |
+| :--- | :--- | :--- |
+| **`AnchorProvider`** | Observa eventos de desplazamiento usando IntersectionObserver y rastrea el encabezado activo de la página. | [`AnchorProviderProps`](#anchorproviderprops) |
+| **`ScrollProvider`** | Desplaza automáticamente las listas de la tabla de contenidos para mantener el elemento activo alineado en el centro del viewport. | [`ScrollProviderProps`](#scrollproviderprops) |
+
+### `AnchorProviderProps`
+
+| Propiedad | Tipo | Predeterminado | Descripción |
+| :--- | :--- | :--- | :--- |
+| **`toc`** | `TOCItemType[]` | *Requerido* | Arreglo de encabezados de la tabla de contenidos a observar. |
+| **`single`** | `boolean` | `false` | Si es `true`, solo activa un elemento a la vez. |
+| **`observerOptions`** | `IntersectionObserverInit` | `undefined` | Sobrescritura de opciones de IntersectionObserver. |
+
+### `ScrollProviderProps`
+
+| Propiedad | Tipo | Predeterminado | Descripción |
+| :--- | :--- | :--- | :--- |
+| **`containerRef`** | `RefObject<HTMLElement>` | *Requerido* | Ref del elemento contenedor de desplazamiento que contiene la lista de enlaces. |

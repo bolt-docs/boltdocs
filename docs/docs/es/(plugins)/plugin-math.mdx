@@ -1,0 +1,293 @@
+---
+title: Ecuaciones Matemáticas
+sidebarPosition: 4
+description: Renderiza ecuaciones matemáticas LaTeX en tu documentación MDX usando el plugin @bdocs/plugin-math.
+badge: "Nuevo"
+---
+
+*El plugin `@bdocs/plugin-math` integra KaTeX en Boltdocs. Transforma automáticamente los delimitadores LaTeX estándar (`$` y `$$`) en ecuaciones matemáticas bellamente renderizadas en tiempo de compilación, sin necesidad de configuración.*
+
+---
+
+## Demo en Vivo
+
+Aquí hay matemáticas en línea: $E = mc^2$, y matemáticas en bloque:
+
+$$
+\sum_{k=1}^{\infty} \frac{1}{k^2} = \frac{\pi^2}{6}
+$$
+
+La fórmula cuadrática $x = \frac{-b \pm \sqrt{b^2 - 4ac}}{2a}$ encuentra las raíces de $ax^2 + bx + c = 0$.
+
+---
+
+## Instalación y Inicio Rápido
+
+Comienza añadiendo el paquete del plugin a tu proyecto de documentación.
+
+### 1. Instalar el paquete
+
+```sh
+pnpm add @bdocs/plugin-math
+```
+
+### 2. Registrar el plugin
+
+Añade el plugin al arreglo `plugins` en tu archivo de configuración:
+
+```ts title="boltdocs.config.ts"
+import { defineConfig } from 'boltdocs'
+import mathPlugin from '@bdocs/plugin-math'
+
+export default defineConfig({
+  plugins: [mathPlugin()],
+})
+```
+
+---
+
+## Conceptos y Arquitectura
+
+El plugin matemático utiliza un pipeline de transformación en tiempo de compilación para mantener tus páginas rápidas:
+
+1. **Transformación AST:** Cuando Boltdocs parsea tus archivos MDX, el compilador Remark del plugin escanea los nodos de texto buscando delimitadores `$...$` y `$$...$$`. Los transforma directamente en componentes React `<Math>` y `<BlockMath>` en el AST de MDX.
+
+2. **Renderizado del Lado del Cliente:** KaTeX renderiza las expresiones LaTeX en HTML semántico en tiempo de ejecución mediante `katex.renderToString()`. El resultado se inyecta usando `dangerouslySetInnerHTML` — sin iframes, sin desplazamientos de diseño.
+
+3. **CSS vía CDN:** Los estilos de KaTeX se cargan desde un CDN, manteniendo tu bundle ligero. Importa la hoja de estilos desde `@bdocs/plugin-math/style.css` si tu bundler soporta importaciones CSS.
+
+---
+
+## Uso
+
+### Matemáticas en Línea
+
+Envuelve expresiones cortas con un solo delimitador `$`:
+
+```mdx
+La famosa ecuación $E = mc^2$ relaciona energía y masa.
+```
+
+### Matemáticas en Bloque
+
+Usa delimitadores `$$` para ecuaciones centradas independientes:
+
+```mdx
+$$
+\sum_{i=1}^{n} i = \frac{n(n+1)}{2}
+$$
+```
+
+### Fracciones
+
+```mdx
+$$
+\frac{a}{b} \quad \frac{x + y}{x - y}
+$$
+```
+
+### Sumatorias y Productos
+
+```mdx
+$$
+\sum_{k=0}^{\infty} \frac{1}{k^2} = \frac{\pi^2}{6}
+\qquad
+\prod_{i=1}^{n} x_i
+$$
+```
+
+### Integrales
+
+```mdx
+$$
+\int_{a}^{b} f(x) \, dx
+\qquad
+\oint_{C} \vec{F} \cdot d\vec{r}
+$$
+```
+
+### Matrices
+
+```mdx
+$$
+\begin{pmatrix}
+a_{11} & a_{12} & \dots & a_{1n} \\
+a_{21} & a_{22} & \dots & a_{2n} \\
+\vdots & \vdots & \ddots & \vdots \\
+a_{m1} & a_{m2} & \dots & a_{mn}
+\end{pmatrix}
+$$
+```
+
+### Sistemas de Ecuaciones
+
+```mdx
+$$
+\begin{cases}
+x + y = 10 \\
+x - y = 4
+\end{cases}
+$$
+```
+
+### Ejemplo Combinado
+
+```mdx
+La fórmula cuadrática $x = \frac{-b \pm \sqrt{b^2 - 4ac}}{2a}$ da
+las raíces de $ax^2 + bx + c = 0$. El discriminante es:
+
+$$
+\Delta = b^2 - 4ac
+$$
+
+Cuando $\Delta > 0$, hay dos raíces reales distintas.
+```
+
+---
+
+## Referencia de la API
+
+### Opciones del Plugin
+
+La función `mathPlugin()` no acepta opciones. Funciona directamente con cero configuración.
+
+### Componente Math
+
+Propiedades soportadas al usar el componente React `<Math />` directamente en MDX.
+
+| Propiedad | Tipo | Predeterminado | Descripción |
+| :--- | :--- | :--- | :--- |
+| **`children`** | `string` | `(Requerido)` | La expresión LaTeX a renderizar en línea. |
+
+### Componente BlockMath
+
+Propiedades soportadas al usar el componente React `<BlockMath />` directamente.
+
+| Propiedad | Tipo | Predeterminado | Descripción |
+| :--- | :--- | :--- | :--- |
+| **`children`** | `string` | `(Requerido)` | La expresión LaTeX a renderizar como bloque. |
+
+### Sintaxis de Componentes
+
+Para casos de uso avanzados, puedes invocar los componentes JSX directamente:
+
+```mdx
+Inline: <Math>E = mc^2</Math>
+
+Block: <BlockMath>\sum_{i=1}^{n} i</BlockMath>
+```
+
+---
+
+## Referencia Rápida de KaTeX
+
+Comandos LaTeX comunes soportados por KaTeX:
+
+### Fracciones y Raíces
+
+| Comando | Descripción |
+| :--- | :--- |
+| `\frac{a}{b}` | Fracción |
+| `\sqrt{x}` | Raíz cuadrada |
+| `\sqrt[n]{x}` | Raíz enésima |
+
+### Letras Griegas
+
+| Comando | Descripción |
+| :--- | :--- |
+| `\alpha` | Alfa |
+| `\beta` | Beta |
+| `\gamma` | Gamma |
+| `\delta` | Delta |
+| `\theta` | Theta |
+| `\pi` | Pi |
+| `\sigma` | Sigma |
+| `\phi` | Phi |
+| `\omega` | Omega |
+
+### Operadores
+
+| Comando | Descripción |
+| :--- | :--- |
+| `\sum` | Sumatoria |
+| `\prod` | Producto |
+| `\int` | Integral |
+| `\oint` | Integral de contorno |
+| `\lim` | Límite |
+| `\log` | Logaritmo |
+| `\sin` | Seno |
+| `\cos` | Coseno |
+
+### Delimitadores
+
+| Comando | Descripción |
+| :--- | :--- |
+| `\left( ... \right)` | Paréntesis adaptativos |
+| `\left[ ... \right]` | Corchetes adaptativos |
+| `\lbrace ... \rbrace` | Llaves |
+| `\langle ... \rangle` | Ángulos |
+
+### Símbolos
+
+| Comando | Descripción |
+| :--- | :--- |
+| `\infty` | Infinito |
+| `\partial` | Derivada parcial |
+| `\nabla` | Gradiente (nabla) |
+| `\approx` | Aproximadamente igual |
+| `\neq` | Distinto de |
+| `\leq` | Menor o igual |
+| `\geq` | Mayor o igual |
+| `\pm` | Más menos |
+| `\to` | Flecha |
+| `\cdot` | Punto |
+| `\dots` | Puntos suspensivos |
+| `\quad` | Espaciador |
+
+### Acentos
+
+| Comando | Descripción |
+| :--- | :--- |
+| `\hat{x}` | Sombrero |
+| `\bar{x}` | Barra |
+| `\tilde{x}` | Tilde |
+| `\vec{x}` | Flecha de vector |
+
+### Matrices
+
+| Comando | Descripción |
+| :--- | :--- |
+| `\begin{pmatrix} ... \end{pmatrix}` | Matriz con paréntesis |
+| `\begin{bmatrix} ... \end{bmatrix}` | Matriz con corchetes |
+| `\begin{cases} ... \end{cases}` | Definida por casos / sistema de ecuaciones |
+| `\begin{aligned} ... \end{aligned}` | Ecuaciones alineadas |
+
+---
+
+## Solución de Problemas
+
+### Las ecuaciones no se renderizan
+
+- **Verifica la Configuración:** Asegúrate de que `mathPlugin()` esté registrado en el arreglo de plugins de tu `boltdocs.config.ts`.
+- **Revisa los Delimitadores:** Usa un solo `$` para matemáticas en línea y doble `$$` para matemáticas en bloque. No se requieren espacios entre el delimitador y la expresión.
+
+### Falta el CSS de KaTeX
+
+El plugin carga los estilos de KaTeX desde un CDN. Si faltan estilos, importa el archivo CSS en tu layout o hoja de estilos:
+
+```css
+@import url('https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css');
+```
+
+### Errores de sintaxis LaTeX
+
+Cuando KaTeX encuentra sintaxis LaTeX inválida, la expresión sin procesar se muestra como texto de respaldo. Revisa la consola del navegador para mensajes de error específicos. Los problemas más comunes incluyen:
+
+- Llaves `{` / `}` sin cerrar
+- Falta `\` antes de comandos
+- Nombres de operadores inválidos
+- Caracteres especiales sin escape como `_` o `&`
+
+### Las matrices se desbordan
+
+Para matrices anchas o ecuaciones largas, el contenedor de matemáticas en bloque habilita el desplazamiento horizontal automáticamente. No se necesita CSS adicional.

@@ -1,0 +1,118 @@
+---
+title: Referencia de la API
+sidebarPosition: 1
+description: Referencia completa de la API de Boltdocs — hooks de React, componentes de diseño y asistentes de configuración.
+---
+
+import { Settings, Search, Palette, Layers, Map, ChevronsRight, ArrowRight, Globe, GitBranch, FolderOpen, Compass, Link, Terminal } from 'lucide-react'
+
+Esta sección ofrece documentación de referencia para todas las API públicas exportadas por los paquetes del framework `boltdocs`.
+
+---
+
+## Descripción General de la Arquitectura
+
+Boltdocs divide sus módulos en puntos de entrada separados para aislar las configuraciones del lado del servidor de los elementos interactivos del lado del navegador:
+
+| Importación del Módulo | Propósito | Entorno |
+| :--- | :--- | :--- |
+| **`boltdocs`** | Esquemas de configuración del proyecto y plugins | Node / Build |
+| **`boltdocs/client`** | Componentes React con estilos predeterminados, hooks de contexto y asistentes | Browser / SSR |
+| **`boltdocs/primitives`** | Elementos primitivos sin estilos para crear diseños personalizados | Browser / SSR |
+
+---
+
+## Hooks de React
+
+Los hooks te permiten consumir el estado de Boltdocs (tema activo, enlaces de navegación, selecciones de idioma, índices de búsqueda) directamente en tus componentes personalizados.
+
+<Cards cols={2}>
+  <Card title="useConfig" icon={<Settings />} href="/docs/api/hooks/use-config">
+    Obtener el objeto de configuración global parseado de Boltdocs.
+  </Card>
+  <Card title="useSearch" icon={<Search />} href="/docs/api/hooks/use-search">
+    Obtener la consulta de búsqueda, resultados y controles de apertura/cierre.
+  </Card>
+  <Card title="useTheme" icon={<Palette />} href="/docs/api/hooks/use-theme">
+    Acceder y alternar entre los temas de interfaz claro y oscuro.
+  </Card>
+  <Card title="useNavbar" icon={<Layers />} href="/docs/api/hooks/use-navbar">
+    Obtener las configuraciones de navegación activas, detalles del logo y enlaces sociales.
+  </Card>
+  <Card title="useRoutes" icon={<Map />} href="/docs/api/hooks/use-routes">
+    Leer la lista de metadatos de todas las páginas generadas.
+  </Card>
+  <Card title="useBreadcrumbs" icon={<ChevronsRight />} href="/docs/api/hooks/use-breadcrumbs">
+    Acceder a las migas de pan de navegación de la ubicación actual.
+  </Card>
+  <Card title="usePageNav" icon={<ArrowRight />} href="/docs/api/hooks/use-page-nav">
+    Determinar las rutas de páginas anterior o siguiente lógicas.
+  </Card>
+  <Card title="useI18n" icon={<Globe />} href="/docs/api/hooks/use-i18n">
+    Administrar y cambiar entre diferentes idiomas/regiones.
+  </Card>
+  <Card title="useVersion" icon={<GitBranch />} href="/docs/api/hooks/use-version">
+    Administrar y cambiar entre diferentes versiones de documentación.
+  </Card>
+  <Card title="useTabs" icon={<FolderOpen />} href="/docs/api/hooks/use-tabs">
+    Obtener las pestañas de categoría y los valores de estilo del indicador deslizante activo.
+  </Card>
+  <Card title="useLocation" icon={<Compass />} href="/docs/api/hooks/use-location">
+    Wrapper del hook de ubicación de React Router DOM para acceder a los metadatos de la ruta actual del router.
+  </Card>
+  <Card title="useLocalizedTo" icon={<Link />} href="/docs/api/hooks/use-localized-to">
+    Hook de utilidad para agregar automáticamente segmentos de idioma y versión a los enlaces de rutas.
+  </Card>
+</Cards>
+
+---
+
+## Utilidades
+
+Funciones auxiliares para combinar estilos, indexación de traducciones, compilación de texto y validación de configuración.
+
+<Cards cols={3}>
+  <Card title="cn" href="/docs/api/utils/cn">
+    Combinar estilos de Tailwind.
+  </Card>
+  <Card title="getTranslated" href="/docs/api/utils/i18n">
+    Utilidad de búsqueda por idioma.
+  </Card>
+  <Card title="reactToText" href="/docs/api/utils/react-to-text">
+    Extraer texto plano de JSX.
+  </Card>
+  <Card title="copyToClipboard" href="/docs/api/utils/copy-clipboard">
+    Escribir en el portapapeles.
+  </Card>
+  <Card title="defineConfig" href="/docs/api/utils/define-config">
+    Asistente de configuración TypeScript.
+  </Card>
+</Cards>
+
+---
+
+## Interfaz de Línea de Comandos (CLI)
+
+Boltdocs incluye comandos de CLI para construir, previsualizar, depurar y auto-reparar estructuras de documentación.
+
+<Cards cols={1}>
+  <Card title="Referencia del CLI" icon={<Terminal />} href="/docs/api/cli">
+    Conoce los comandos principales del flujo de trabajo (dev, build, preview), diagnósticos de salud (doctor) y el generador de changelog.
+  </Card>
+</Cards>
+
+---
+
+## Exportaciones de Tipos
+
+Importa las interfaces de TypeScript directamente desde `'boltdocs'` (para esquemas de configuración) o `'boltdocs/client'` (para elementos de enrutamiento del lado del cliente):
+
+### Tipos de Configuración de Build
+```ts
+import type { BoltdocsConfig, BoltdocsPlugin } from 'boltdocs'
+```
+
+### Tipos de Contexto del Cliente
+```ts
+import type { RouteMeta, SidebarGroup, Heading } from 'boltdocs/client'
+```

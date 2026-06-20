@@ -1,0 +1,155 @@
+---
+title: Internacionalización (i18n)
+sidebarPosition: 1
+description: Configura documentación multilingüe con enrutamiento de locales basado en carpetas, respaldos automáticos para páginas no traducidas y soporte RTL.
+---
+
+Boltdocs tiene soporte de primera clase para documentación multilingüe. Los locales están impulsados por **convenciones de carpetas** — coloca tus páginas traducidas en subcarpetas con nombre de locale y Boltdocs maneja el enrutamiento, los respaldos y el cambio de locale automáticamente.
+
+---
+
+## Cómo Funciona
+
+La detección de locale se basa en el sistema de archivos. Cuando un archivo vive bajo una carpeta cuyo nombre coincide con un código de locale configurado, Boltdocs asigna ese locale a la ruta:
+
+```
+docs/
+├── index.md           → /docs          (locale predeterminado: 'en')
+├── guide.md           → /docs/guide    (locale predeterminado: 'en')
+└── es/
+    ├── index.md       → /docs/es       (locale: 'es')
+    └── guide.md       → /docs/es/guide (locale: 'es')
+```
+
+---
+
+## Inicio Rápido
+
+### Paso 1: Agrega i18n a tu configuración
+
+```ts
+export default defineConfig({
+  i18n: {
+    defaultLocale: 'en',
+    locales: ['en', 'es', 'fr'],
+  },
+})
+```
+
+### Paso 2: Crea carpetas de locale
+
+Crea una subcarpeta para cada locale que no sea el predeterminado dentro de `docs/`:
+
+```sh
+mkdir docs/es docs/fr
+```
+
+### Paso 3: Agrega páginas traducidas
+
+```
+docs/
+├── getting-started.md          # Inglés (predeterminado)
+├── es/
+│   └── getting-started.md      # Traducción al español
+└── fr/
+    └── getting-started.md      # Traducción al francés
+```
+
+¡Listo! El selector de locale (si tu diseño incluye uno) y la estructura de URL se configuran automáticamente.
+
+---
+
+## Respaldos Automáticos
+
+Si una página traducida no existe para un locale, Boltdocs **genera automáticamente una ruta de respaldo** que sirve el contenido del locale predeterminado. La URL sigue prefijada con el locale para que el selector funcione correctamente:
+
+- `/docs/es/advanced` servirá el `advanced.md` en inglés si `docs/es/advanced.md` no existe.
+
+<Callout variant="note">
+  Las rutas de respaldo se generan en tiempo de compilación. Los usuarios finales llegan a la página sin ningún error, aunque el contenido estará en el idioma predeterminado. Puedes detectar esto en un diseño personalizado usando el hook `useI18n()` para mostrar un banner de "Traducción pendiente".
+</Callout>
+
+---
+
+## Referencia de Configuración i18n
+
+### `BoltdocsI18nConfig`
+
+| Propiedad | Tipo | Requerido | Descripción |
+| :--- | :--- | :--- | :--- |
+| **`defaultLocale`** | `string` | ✓ | El código de locale para tu idioma principal (por ejemplo `'en'`). Las páginas en la raíz de `docs/` (no dentro de una carpeta de locale) pertenecen a este locale. |
+| **`locales`** | `string[] \| Record<string, string>` | ✓ | Todos los códiges de locale soportados. Puede ser un arreglo de códigos o un mapa de pares `{ código: etiqueta }`. |
+| **`localeConfigs`** | `Record<string, LocaleConfig>` | — | Configuraciones de visualización y comportamiento por locale. Ver [`LocaleConfig`](#localeconfig) a continuación. |
+
+### `LocaleConfig`
+
+| Propiedad | Tipo | Predeterminado | Descripción |
+| :--- | :--- | :--- | :--- |
+| **`label`** | `string` | Código de locale | Nombre legible para este locale (por ejemplo `'English'`, `'Español'`). |
+| **`direction`** | `'ltr' \| 'rtl'` | `'ltr'` | Dirección del texto. Configura a `'rtl'` para idiomas de derecha a izquierda como árabe o hebreo. |
+| **`htmlLang`** | `string` | Código de locale | El valor del atributo `lang` para la etiqueta `<html>` (por ejemplo `'en-US'`, `'ar'`). |
+| **`calendar`** | `string` | — | El sistema de calendario a usar para el formato de fechas (por ejemplo `'islamic'`, `'buddhist'`). |
+
+---
+
+## Ejemplo de Configuración Completa
+
+```ts title="boltdocs.config.ts"
+export default defineConfig({
+  i18n: {
+    defaultLocale: 'en',
+    locales: {
+      en: 'English',
+      es: 'Español',
+      ar: 'العربية',
+    },
+    localeConfigs: {
+      en: {
+        label: 'English',
+        direction: 'ltr',
+        htmlLang: 'en-US',
+      },
+      es: {
+        label: 'Español',
+        direction: 'ltr',
+        htmlLang: 'es-ES',
+      },
+      ar: {
+        label: 'العربية',
+        direction: 'rtl',
+        htmlLang: 'ar',
+      },
+    },
+  },
+})
+```
+
+---
+
+## Soporte RTL
+
+Configurar `direction: 'rtl'` en un locale le dice a Boltdocs que invierta el diseño para ese locale. La barra lateral se mueve a la derecha, las flechas de navegación se reflejan y se establece `dir="rtl"` en el elemento `<html>`.
+
+---
+
+## Traduciendo Cadenas del Tema
+
+Propiedades como `theme.title`, `theme.description` y las etiquetas del navbar soportan mapas de claves por locale, permitiéndote traducir la interfaz junto con el contenido:
+
+```ts title="boltdocs.config.ts"
+export default defineConfig({
+  theme: {
+    title: {
+      en: 'My Project',
+      es: 'Mi Proyecto',
+      ar: 'مشروعي',
+    },
+    navbar: [
+      {
+        label: { en: 'Docs', es: 'Documentación', ar: 'المستندات' },
+        href: '/docs',
+      },
+    ],
+  },
+})
+```

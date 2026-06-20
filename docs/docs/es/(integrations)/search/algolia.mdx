@@ -1,0 +1,53 @@
+---
+title: Algolia DocSearch
+sidebarPosition: 3
+description: Integra Algolia DocSearch para potenciar tu documentación con indexación de alto rendimiento en la nube.
+---
+
+Para sitios de documentación grandes, puedes reemplazar el índice local predeterminado de FlexSearch con **Algolia DocSearch**. Algolia rastrea tus páginas de documentación en producción, las indexa en sus servidores en la nube y proporciona mapeo de sinónimos, analítica avanzada de búsqueda y velocidad alojada en la nube.
+
+Algolia DocSearch es gratuito para proyectos de código abierto públicos. Puedes solicitar un contenedor en [docsearch.algolia.com](https://docsearch.algolia.com/).
+
+---
+
+## Configurando Algolia
+
+Para habilitar Algolia, registra tus credenciales bajo la clave `integrations.algolia` en `boltdocs.config.ts`:
+
+```ts title="boltdocs.config.ts"
+import { defineConfig } from 'boltdocs'
+
+export default defineConfig({
+  integrations: {
+    algolia: {
+      appId: 'YOUR_APP_ID',
+      apiKey: 'YOUR_SEARCH_ONLY_API_KEY', // Clave pública de solo búsqueda
+      indexName: 'YOUR_INDEX_NAME',
+    },
+  },
+})
+```
+
+Una vez configurado, Boltdocs conecta automáticamente los componentes de la barra de búsqueda (`SearchDialog` y el hook `useSearch`) para obtener las coincidencias de consultas desde Algolia en lugar de parsear el índice offline local de FlexSearch.
+
+---
+
+## Referencia de Configuración
+
+| Opción | Tipo | Requerido | Descripción |
+| :--- | :--- | :--- | :--- |
+| **`appId`** | `string` | ✓ | Tu ID de Aplicación de Algolia (por ejemplo `'MX2L9K40B1'`). |
+| **`apiKey`** | `string` | ✓ | La clave pública de solo búsqueda. **No uses tu clave de API de administración aquí** ya que se expone en los paquetes del cliente. |
+| **`indexName`** | `string` | ✓ | El nombre del índice que contiene tus páginas rastreadas (por ejemplo `'boltdocs'`). |
+
+---
+
+## Solución de Problemas y Entornos de Staging
+
+### Localhost no retorna resultados
+Algolia DocSearch depende del rastreo de tu sitio público en producción. No indexa localhost, URLs privadas o pipelines de staging por defecto.
+
+**Solución:** Si estás probando localmente, puedes comentar temporalmente el bloque de configuración `algolia`. Cuando falta la configuración `algolia`, Boltdocs automáticamente recurre a utilizar el índice offline del lado del cliente de FlexSearch para que puedas probar comportamientos de búsqueda localmente.
+
+### Analítica y Sinónimos
+Para personalizar comportamientos de búsqueda, gestionar sinónimos o inspeccionar consultas que buscan los usuarios, inicia sesión en el [Panel de Algolia](https://www.algolia.com/dashboard) y navega a la pestaña de Analítica de Búsqueda que corresponda a tu `indexName` configurado.

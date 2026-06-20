@@ -1,0 +1,145 @@
+---
+title: Integraciones
+sidebarPosition: 1
+description: Conecta Boltdocs con servicios externos — analítica, búsqueda, i18n, versionado, SEO y más.
+---
+
+import { BarChart, Tag, Globe, Search, GitBranch, Bot, FolderOpen, MessageSquare } from 'lucide-react'
+
+Boltdocs se integra con servicios populares y ofrece funciones integradas para búsqueda, localización, versionado y SEO. Esta sección cubre todas las integraciones disponibles.
+
+---
+
+## Integraciones Disponibles
+
+### SEO y Analítica
+<Cards cols={3}>
+  <Card title="SEO y Robots" icon={<Bot />} href="/docs/integrations/seo">
+    Sitemap automático, robots.txt y etiquetas meta.
+  </Card>
+  <Card title="Google Analytics 4" icon={<BarChart />} href="/docs/integrations/seo/ga4">
+    Rastrea vistas de página y eventos personalizados con GA4.
+  </Card>
+  <Card title="Google Tag Manager" icon={<Tag />} href="/docs/integrations/seo/gtm">
+    Despliega y gestiona etiquetas, analítica y scripts personalizados con GTM.
+  </Card>
+  <Card title="Vercel Analytics" icon={<BarChart />} href="/docs/integrations/seo/vercel">
+    Monitorea tráfico y Core Web Vitals con Vercel Analytics sin configuración.
+  </Card>
+  <Card title="Verificación de Sitio" icon={<Tag />} href="/docs/integrations/seo/verification">
+    Verifica la titularidad con Google, Bing, Yandex, Pinterest y Facebook.
+  </Card>
+</Cards>
+
+### Búsqueda
+<Cards cols={3}>
+  <Card title="Visión General de Búsqueda" icon={<Search />} href="/docs/integrations/search">
+    Arquitectura de búsqueda integrada y opciones de personalización.
+  </Card>
+  <Card title="Interfaz Personalizada con FlexSearch" icon={<Search />} href="/docs/integrations/search/flexsearch">
+    Consulta índices offline de forma programática y construye interfaces de búsqueda personalizadas.
+  </Card>
+  <Card title="Algolia DocSearch" icon={<Search />} href="/docs/integrations/search/algolia">
+    Integra la búsqueda en la nube de Algolia para sinónimos avanzados y analítica.
+  </Card>
+</Cards>
+
+### Globalización
+<Cards cols={2}>
+  <Card title="Internacionalización" icon={<Globe />} href="/docs/integrations/globalization/i18n">
+    Documentación multilingüe con enrutamiento basado en carpetas y diseños RTL.
+  </Card>
+  <Card title="Versionado" icon={<GitBranch />} href="/docs/integrations/globalization/versioning">
+    Mantén y cambia entre múltiples versiones de lanzamiento en paralelo.
+  </Card>
+</Cards>
+
+### Funcionalidades de Contenido
+<Cards cols={3}>
+  <Card title="Colecciones" icon={<FolderOpen />} href="/docs/integrations/features/collections">
+    Agrupa documentos en blogs, notas de lanzamiento o tutoriales con vistas personalizadas.
+  </Card>
+  <Card title="Retroalimentación Personalizada" icon={<MessageSquare />} href="/docs/integrations/features/feedback">
+    Calificaciones nativas de GitHub Discussion y comentarios a nivel de página.
+  </Card>
+  <Card title="Comentarios con Giscus" icon={<MessageSquare />} href="/docs/integrations/features/giscus">
+    Agrega comentarios impulsados por GitHub Discussions a tu documentación.
+  </Card>
+</Cards>
+
+
+---
+
+## Funciones Integradas
+
+### Búsqueda
+
+Boltdocs incluye búsqueda de texto completo sin dependencias. El índice de búsqueda se construye en tiempo de compilación y se incrusta en el paquete del cliente. Sin claves de API, sin servicios externos.
+
+- **Indexación:** Títulos, encabezados, descripciones, texto del cuerpo
+- **Activación:** `Cmd+K` / `Ctrl+K` o haz clic en el botón de búsqueda
+- **Personalización:** Usa el hook `useSearch()` o el componente `<SearchDialog>`
+
+### Internacionalización
+
+Enrutamiento basado en locales usando convenciones de carpetas. Soporta idiomas RTL, respaldos automáticos para páginas no traducidas y temáticas específicas por locale.
+
+- **Configuración:** `i18n.defaultLocale`, `i18n.locales`
+- **Estructura de carpetas:** `docs/es/`, `docs/fr/`
+- **Soporte RTL:** Configura `direction: 'rtl'` en la configuración del locale
+
+### Versionado
+
+Mantén múltiples versiones de documentación (v1, v2, etc.) en paralelo. Cada versión es una carpeta en la raíz de `docs/`.
+
+- **Configuración:** `versions.defaultVersion`, `versions.versions`
+- **Estructura de carpetas:** `docs/v1/`, `docs/v2/`
+- **Selector de versión:** Integrado en el diseño predeterminado
+
+### SEO y Robots
+
+Generación automática de etiquetas meta, imágenes Open Graph, sitemap.xml y robots.txt. Control detallado por página mediante frontmatter.
+
+- **Configuración:** `seo`, `robots`, `siteUrl`
+- **Auto-generado:** `sitemap.xml`, `robots.txt`
+- **Por página:** Override mediante campo `seo` en frontmatter
+
+### Colecciones
+
+Agrupa archivos en directorios dinámicos usando convenciones de carpetas. Boltdocs mapea automáticamente las carpetas entre corchetes (por ejemplo `[blog]`) a rutas de colección, permitiendo listados personalizados, vistas de publicaciones y diseños aislados.
+
+- **Convenciones:** `layout.tsx`, `list.tsx`, `post.tsx`
+- **Cargadores de Datos:** Los datos tipados del cargador de colección están disponibles mediante `useLoaderData()`
+
+---
+
+
+## Servicios Externos
+
+### Google Analytics 4
+
+Rastrea vistas de página y eventos personalizados. Configura mediante `integrations.ga4` en tu configuración:
+
+```ts
+integrations: {
+  ga4: {
+    measurementId: 'G-XXXXXXXXXX',
+  },
+}
+```
+
+Las vistas de página se rastrean automáticamente. Usa el hook `useTrackEvent()` para eventos personalizados.
+
+---
+
+## Referencia de Configuración
+
+| Clave | Tipo | Descripción |
+| :--- | :--- | :--- |
+| **`integrations.ga4`** | `GA4Config` | Configuración de Google Analytics 4 |
+| **`integrations.feedback`** | `FeedbackConfig` | Configuración de la integración de retroalimentación personalizada |
+| **`i18n`** | `I18nConfig` | Configuración de internacionalización |
+| **`versions`** | `VersionsConfig` | Configuración de versionado |
+| **`seo`** | `SeoConfig` | Valores predeterminados globales de SEO |
+| **`robots`** | `RobotsConfig` | Configuración de robots.txt |
+| **`siteUrl`** | `string` | Requerido para URLs absolutas en sitemap/og:image |

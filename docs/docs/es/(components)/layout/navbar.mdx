@@ -1,0 +1,380 @@
+---
+title: Navbar
+sidebarPosition: 2
+description: Barra de navegación superior que contiene la marca del sitio, elementos de pestañas y acciones de búsqueda.
+---
+
+El componente `Navbar` muestra logos del sitio, enlaces de navegación, pestañas de documentación y disparadores de búsqueda.
+
+---
+
+## Importación
+
+```tsx
+import { Navbar } from 'boltdocs/primitives'
+```
+
+---
+
+## Ejemplo de Navbar Componible
+
+Usando la primitiva `Navbar` y sus subcomponentes, puedes diseñar una barra de navegación completamente personalizada. El siguiente ejemplo muestra cómo construir un encabezado con coincidencia de pestaña activa, disparadores de búsqueda, integraciones sociales y alternancia de temas:
+
+```tsx
+// docs/components/CustomNavbar.tsx
+import React, { useState } from 'react'
+import { Navbar } from 'boltdocs/primitives'
+import { useNavbar, useTheme, useSearch } from 'boltdocs/client'
+
+export default function CustomNavbar() {
+  const { links, theme, logo, title } = useNavbar()
+  const { toggleTheme } = useTheme()
+  const { openSearch } = useSearch()
+  const [mobileOpen, setMobileOpen] = useState(false)
+
+  return (
+    <Navbar className="bg-white/80 dark:bg-black/80 backdrop-blur-md border-b border-subtle">
+      <Navbar.Content>
+        {/* Sección Izquierda: Marca */}
+        <Navbar.Left>
+          {logo && <Navbar.Logo src={logo} alt={title} href="/" />}
+          <Navbar.Title className="font-bold text-lg">{title}</Navbar.Title>
+        </Navbar.Left>
+
+        {/* Sección Central: Enlaces de Navegación Principales */}
+        <Navbar.Center>
+          {links.map((link) => (
+            <Navbar.Link
+              key={link.href}
+              href={link.href}
+              label={link.label}
+              className={link.active ? 'text-primary font-medium' : 'text-muted'}
+            />
+          ))}
+        </Navbar.Center>
+
+        {/* Sección Derecha: Acciones */}
+        <Navbar.Right>
+          {/* Disparador de Diálogo de Búsqueda Personalizado */}
+          <Navbar.SearchTrigger onPress={openSearch} />
+
+          {/* Botón de Alternancia de Tema */}
+          <Navbar.Theme
+            theme={theme}
+            onThemeChange={(isDark) => toggleTheme()}
+          />
+
+          {/* Botón Social de Github */}
+          <Navbar.Socials icon="github" link="https://github.com/myorg/myrepo" />
+
+          {/* Disparador de Cajón Móvil (Icono Más Vertical) */}
+          <Navbar.More onPress={() => setMobileOpen(true)} className="lg:hidden" />
+        </Navbar.Right>
+      </Navbar.Content>
+
+      {/* Menú Cajón Móvil Responsivo */}
+      <Navbar.MobileMenu isOpen={mobileOpen} onClose={() => setMobileOpen(false)}>
+        {links.map((link) => (
+          <Navbar.MobileLink
+            key={link.href}
+            href={link.href}
+            label={link.label}
+            onPress={() => setMobileOpen(false)}
+            className="text-lg py-2"
+          />
+        ))}
+      </Navbar.MobileMenu>
+    </Navbar>
+```
+
+---
+
+## Referencia de Producción del Mundo Real
+
+A continuación se muestra una implementación de referencia completa y lista para producción que demuestra cómo construir una barra de navegación con todas las funcionalidades (similar al navbar del tema integrado). Integra menús desplegables de cambio de versión, selectores de traducción de idioma, alternancia de sidebar responsiva, menús de sub-enlaces, modos de tema y un menú móvil responsivo:
+
+```tsx
+// docs/components/ProductionNavbar.tsx
+import React, { useState } from 'react'
+import { Navbar, Menu, Button } from 'boltdocs/primitives'
+import {
+  useNavbar,
+  useTheme,
+  useSearch,
+  useVersion,
+  useI18n,
+  useUI,
+  useLocation,
+  useLocalizedTo
+} from 'boltdocs/client'
+import { Menu as MenuIcon, X, ChevronDown, Languages } from 'lucide-react'
+
+export default function ProductionNavbar() {
+  const { links, title, logo, logoProps, github, social, config } = useNavbar()
+  const { theme, toggleTheme } = useTheme()
+  const { openSearch } = useSearch()
+  const { isSidebarOpen, toggleSidebar } = useUI()
+  const { pathname } = useLocation()
+  const [mobileOpen, setMobileOpen] = useState(false)
+
+  // 1. Menú Desplegable de Cambio de Versión
+  const { currentVersionLabel, availableVersions, handleVersionChange } = useVersion()
+  const VersionDropdown = availableVersions.length > 0 && (
+    <Menu.Trigger>
+      <Button className="flex items-center gap-1.5 px-3 py-1.5 border rounded-xl text-xs bg-surface font-semibold text-body hover:bg-zinc-50 dark:hover:bg-zinc-900 transition-all">
+        <span>{currentVersionLabel}</span>
+        <ChevronDown size={14} className="opacity-60" />
+      </Button>
+      <Menu.Root className="w-40 bg-white dark:bg-zinc-900 border border-subtle rounded-xl p-1.5 shadow-md flex flex-col gap-0.5">
+        <Menu.Section items={availableVersions}>
+          {(version) => (
+            <Menu.Item
+              key={version.value}
+              onPress={() => handleVersionChange(version.value)}
+              className="px-3 py-2 text-xs rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800 cursor-pointer outline-none"
+            >
+              {version.label}
+            </Menu.Item>
+          )}
+        </Menu.Section>
+      </Menu.Root>
+    </Menu.Trigger>
+  )
+
+  // 2. Selector de Idioma/i18n Desplegable
+  const { currentLocale, availableLocales, handleLocaleChange } = useI18n()
+  const LocaleDropdown = availableLocales.length > 0 && (
+    <Menu.Trigger>
+      <Button className="flex items-center gap-1.5 px-3 py-1.5 border border-subtle bg-surface rounded-xl text-xs font-semibold text-body hover:bg-zinc-50 dark:hover:bg-zinc-900 transition-all">
+        <Languages size={14} className="text-primary-500" />
+        <span className="uppercase">{currentLocale}</span>
+        <ChevronDown size={14} className="opacity-60" />
+      </Button>
+      <Menu.Root className="w-40 bg-white dark:bg-zinc-900 border border-subtle rounded-xl p-1.5 shadow-md flex flex-col gap-0.5">
+        <Menu.Section items={availableLocales}>
+          {(locale) => (
+            <Menu.Item
+              key={locale.value}
+              onPress={() => handleLocaleChange(locale.value)}
+              className="px-3 py-2 text-xs rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800 cursor-pointer outline-none"
+            >
+              {locale.label}
+            </Menu.Item>
+          )}
+        </Menu.Section>
+      </Menu.Root>
+    </Menu.Trigger>
+  )
+
+  return (
+    <Navbar className="bg-main/80 backdrop-blur-md border-b border-subtle">
+      <Navbar.Content>
+        
+        {/* Sección Izquierda: Alternador de sidebar móvil, Logo, Título y Selección de Versión */}
+        <Navbar.Left>
+          {pathname.startsWith('/docs') && (
+            <Button
+              onPress={toggleSidebar}
+              className="mr-2 lg:hidden p-1.5 text-muted hover:text-body rounded-lg hover:bg-surface transition-colors"
+            >
+              {isSidebarOpen ? <X size={20} /> : <MenuIcon size={20} />}
+            </Button>
+          )}
+
+          {logo && <Navbar.Logo src={logo} alt={logoProps?.alt || title} href="/" />}
+          <Navbar.Title href="/">{title}</Navbar.Title>
+          
+          <div className="hidden sm:block">
+            {VersionDropdown}
+          </div>
+        </Navbar.Left>
+
+        {/* Sección Central: Barra disparadora de diálogo de búsqueda */}
+        <Navbar.Center>
+          <Navbar.SearchTrigger onPress={openSearch} />
+        </Navbar.Center>
+
+        {/* Sección Derecha: Enlaces de Navegación, interruptor i18n, alternancia de tema, estrellas de Github y redes sociales */}
+        <Navbar.Right>
+          {/* Enlaces Principales de Escritorio */}
+          <Navbar.Links>
+            {links.map((link) => {
+              const localizedHref = useLocalizedTo(link.href || '')
+              const active = pathname === localizedHref || pathname.startsWith(localizedHref + '/')
+              const hasItems = link.items && link.items.length > 0
+
+              if (hasItems) {
+                return (
+                  <Navbar.Dropdown
+                    key={link.href}
+                    label={
+                      <span className={`px-2 py-1 font-medium transition-colors cursor-pointer ${
+                        active ? 'text-primary' : 'text-muted hover:text-body'
+                      }`}>
+                        {link.label}
+                      </span>
+                    }
+                  >
+                    {link.items?.map((sub) => (
+                      <Navbar.DropdownItem
+                        key={sub.href}
+                        href={useLocalizedTo(sub.href || '')}
+                        label={sub.label}
+                      />
+                    ))}
+                  </Navbar.Dropdown>
+                )
+              }
+
+              return (
+                <Navbar.Link
+                  key={link.href}
+                  href={localizedHref}
+                  label={link.label}
+                  active={active}
+                  className={active ? 'text-primary font-semibold' : 'text-muted hover:text-body'}
+                />
+              )
+            })}
+          </Navbar.Links>
+
+          {/* Configuraciones de utilidad de escritorio */}
+          <div className="hidden sm:flex items-center gap-2">
+            {LocaleDropdown}
+            <Navbar.Split className="bg-subtle" />
+          </div>
+
+          <Navbar.Theme theme={theme} onThemeChange={toggleTheme} />
+
+          {/* Conexiones sociales (por ejemplo, botón de enlace de GitHub) */}
+          {github && (
+            <Navbar.Socials icon="github" link={github} />
+          )}
+
+          {/* Disparador "Más" para cajones móviles */}
+          <Navbar.More onPress={() => setMobileOpen(true)} className="lg:hidden" />
+        </Navbar.Right>
+      </Navbar.Content>
+
+      {/* Superposición de menú cajón móvil */}
+      <Navbar.MobileMenu isOpen={mobileOpen} onClose={() => setMobileOpen(false)}>
+        <div className="flex flex-col gap-1">
+          {links.map((link) => {
+            const localizedHref = useLocalizedTo(link.href || '')
+            const active = pathname === localizedHref
+
+            return (
+              <Navbar.MobileLink
+                key={link.href}
+                href={localizedHref}
+                label={link.label}
+                active={active}
+                onPress={() => setMobileOpen(false)}
+                className="text-lg py-2"
+              />
+            )
+          })}
+        </div>
+
+        {/* Lista unificada de selección de versiones e idiomas en vista móvil */}
+        <div className="mt-6 border-t border-subtle pt-6 flex flex-col gap-4">
+          <div className="flex justify-between items-center px-4">
+            <span className="text-xs text-muted font-semibold uppercase">Versión</span>
+            {VersionDropdown}
+          </div>
+          <div className="flex justify-between items-center px-4">
+            <span className="text-xs text-muted font-semibold uppercase">Idioma</span>
+            {LocaleDropdown}
+          </div>
+        </div>
+      </Navbar.MobileMenu>
+    </Navbar>
+  )
+}
+```
+
+---
+
+## Subcomponentes Componibles
+
+La primitiva `Navbar` proporciona los siguientes subcomponentes para la personalización de la estructura:
+
+| Componente | Etiqueta HTML | Descripción | Props |
+| :--- | :--- | :--- | :--- |
+| **`Navbar.Root`** / **`Navbar`** | `<header>` | Contenedor principal exterior del navbar. | [`ComponentBaseProps`](#componentbaseprops-common) |
+| **`Navbar.Content`** | `<div>` | Contenedor de diseño centrado que contiene los elementos flex internos. | [`ComponentBaseProps`](#componentbaseprops-common) |
+| **`Navbar.Left`** / **`Navbar.Center`** / **`Navbar.Right`** | `<div>` | Zonas de alineación de fila flex para logos, enlaces de navegación y botones de acción. | [`ComponentBaseProps`](#componentbaseprops-common) |
+| **`Navbar.Logo`** | `<img>` envuelto en `<a>` | Renderiza un logo de imagen de marca envuelto en un enlace Router del cliente. | [`Navbar.Logo Props`](#navbarlogo-props) |
+| **`Navbar.Title`** | `<span>` | Renderiza una etiqueta de marca tipográfica de texto plano. | [`ComponentBaseProps`](#componentbaseprops-common) |
+| **`Navbar.Link`** | `<a>` | Renderiza un enlace de anclaje optimizado a una ruta de página. | [`Navbar.Link Props`](#navbarlink-props) |
+| **`Navbar.SearchTrigger`** | `<button>` | Un botón totalmente accesible para activar el diálogo de búsqueda. | [`Navbar.SearchTrigger Props`](#navbarsearchtrigger-props) |
+| **`Navbar.Theme`** | `<button>` | Renderiza un botón de icono para alternar modo claro/oscuro. | [`Navbar.Theme Props`](#navbartheme-props) |
+| **`Navbar.Socials`** | `<a>` | Un acceso rápido a enlace social con icono (por ejemplo, GitHub, Discord, Twitter). | [`Navbar.Socials Props`](#navbarsocials-props) |
+| **`Navbar.MobileMenu`** | `<div>` (Modal) | Superposición de cajón modal responsivo deslizante para pantallas móviles. | [`Navbar.MobileMenu Props`](#navbarmobilemenu-props) |
+| **`Navbar.MobileLink`** | `<a>` | Elementos de navegación dimensionados diseñados para menús de cajón móvil. | [`Navbar.MobileLink Props`](#navbarmobilelink-props) |
+
+---
+
+## Props del Componente
+
+### ComponentBaseProps (Común)
+
+| Propiedad | Tipo | Predeterminado | Descripción |
+| :--- | :--- | :--- | :--- |
+| **`children`** | `ReactNode` | `undefined` | Elementos de contenido hijos. |
+| **`className`** | `string` | `undefined` | Clases CSS utilitarias personalizadas. |
+| **`style`** | `CSSProperties` | `undefined` | Configuraciones de estilo en línea. |
+
+### Props de `Navbar.Logo`
+
+| Propiedad | Tipo | Predeterminado | Descripción |
+| :--- | :--- | :--- | :--- |
+| **`src`** | `string` | *Requerido* | Ruta al archivo de imagen del logo. |
+| **`alt`** | `string` | *Requerido* | Texto alternativo de accesibilidad. |
+| **`href`** | `string` | `'/'` | Ruta de destino al hacer clic en el logo. |
+| **`width`** | `number` | `24` | Dimensión de ancho de la imagen. |
+| **`height`** | `number` | `24` | Dimensión de alto de la imagen. |
+
+### Props de `Navbar.Link`
+
+| Propiedad | Tipo | Predeterminado | Descripción |
+| :--- | :--- | :--- | :--- |
+| **`label`** | `ReactNode` | *Requerido* | Texto del contenido de la etiqueta a mostrar. |
+| **`href`** | `string` | *Requerido* | Ruta de destino de enrutamiento. |
+| **`to`** | `'internal' \| 'external'` | `'internal'` | Si la navegación es de enrutamiento interno o un enlace externo. |
+
+### Props de `Navbar.SearchTrigger`
+
+| Propiedad | Tipo | Predeterminado | Descripción |
+| :--- | :--- | :--- | :--- |
+| **`onPress`** | `() => void` | *Requerido* | Callback de acción del disparador de presión. |
+
+### Props de `Navbar.Theme`
+
+| Propiedad | Tipo | Predeterminado | Descripción |
+| :--- | :--- | :--- | :--- |
+| **`theme`** | `'dark' \| 'light'` | *Requerido* | Selección del tema activo. |
+| **`onThemeChange`** | `(isSelected: boolean) => void` | *Requerido* | Callback de cambio de alternancia de tema. |
+
+### Props de `Navbar.Socials`
+
+| Propiedad | Tipo | Predeterminado | Descripción |
+| :--- | :--- | :--- | :--- |
+| **`icon`** | `'github' \| 'discord' \| 'twitter'` | *Requerido* | Icono gráfico de la red social de destino. |
+| **`link`** | `string` | *Requerido* | Ruta del enlace URL. |
+
+### Props de `Navbar.MobileMenu`
+
+| Propiedad | Tipo | Predeterminado | Descripción |
+| :--- | :--- | :--- | :--- |
+| **`isOpen`** | `boolean` | `false` | Estado de visibilidad deslizante activa. |
+| **`onClose`** | `() => void` | *Requerido* | Callback del disparador de cierre. |
+| **`children`** | `ReactNode` | *Requerido* | Celdas de contenido del menú del cajón móvil. |
+
+### Props de `Navbar.MobileLink`
+
+Hereda todas las [`Props de Navbar.Link`](#navbarlink-props) más:
+
+| Propiedad | Tipo | Predeterminado | Descripción |
+| :--- | :--- | :--- | :--- |
+| **`onPress`** | `() => void` | `undefined` | Callback personalizado al hacer clic (por ejemplo, para cerrar cajones automáticamente). |

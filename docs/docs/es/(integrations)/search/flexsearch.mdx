@@ -1,0 +1,70 @@
+---
+title: FlexSearch
+description: Boltdocs incluye **FlexSearch** como su motor de búsqueda offline predeterminado. Durante la fase de compilación, Boltdocs escanea todos los archivos markdown, parsea su HTML/encabezados y compila un archivo JSON de índice altamente comprimido. El runtime del lado del cliente carga este índice y realiza coincidencias locales de alta velocidad sin consultas de red
+---
+
+## El Hook `useSearch()`
+
+Para construir una barra de búsqueda personalizada, entradas de consulta o búsqueda en lista en línea, usa el hook `useSearch()` de `boltdocs`. Expone el estado de consulta en vivo, los resultados de búsqueda y los callbacks de control del diálogo.
+
+```tsx
+import { useSearch } from 'boltdocs'
+
+export function MySearchBar() {
+  const { query, setQuery, results, isOpen, open, close } = useSearch()
+
+  return (
+    <div className="search-container">
+      <input
+        value={query}
+        onChange={(e) => setQuery(e.target.value)}
+        placeholder="Type to search..."
+        onFocus={open}
+      />
+      {isOpen && results.length > 0 && (
+        <div className="search-dropdown">
+          {results.map((result) => (
+            <a key={result.path} href={result.path} className="search-item">
+              <span className="search-title">{result.title}</span>
+              <p className="search-desc">{result.description}</p>
+            </a>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+```
+
+---
+
+## Referencia de API
+
+### Valores de Retorno de `useSearch()`
+
+| Propiedad | Tipo | Descripción |
+| :--- | :--- | :--- |
+| **`query`** | `string` | La consulta de texto de búsqueda activa. |
+| **`setQuery`** | `(q: string) => void` | Actualiza la cadena de búsqueda y consulta el índice offline de FlexSearch. |
+| **`results`** | [`SearchResult[]`](#searchresult) | Arreglo de rutas de páginas coincidentes, ordenadas por puntuación de relevancia. |
+| **`isOpen`** | `boolean` | `true` si el modal de búsqueda está actualmente abierto. |
+| **`open`** | `() => void` | Abre el estado del modal de búsqueda. |
+| **`close`** | `() => void` | Cierra el estado del modal de búsqueda y restablece la cadena de consulta. |
+
+---
+
+### `SearchResult`
+
+| Propiedad | Tipo | Descripción |
+| :--- | :--- | :--- |
+| **`path`** | `string` | La ruta absoluta resuelta (por ejemplo `'/docs/guides/getting-started'`). |
+| **`title`** | `string` | El título de la página que coincide. |
+| **`description`** | `string` | La descripción de la página (del frontmatter o extracto). |
+| **`headings`** | `HeadingMatch[]` | Sub-encabezados (`h2`–`h6`) dentro de la página que coincidieron con la consulta de búsqueda. |
+
+---
+
+## Desarrollo Local vs. Producción
+
+* **Desarrollo Local:** El índice de búsqueda se actualiza incrementalmente mediante Vite HMR a medida que editas archivos, haciendo que las pruebas de cambios de búsqueda en vivo sean fluidas.
+* **Producción:** El índice se empaqueta en un paquete separado con división de chunks que se carga de forma asíncrona solo cuando el usuario interactúa con la entrada de búsqueda, manteniendo el tamaño de carga inicial del paquete extremadamente mínimo.

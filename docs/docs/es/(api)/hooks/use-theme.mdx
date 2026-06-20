@@ -1,0 +1,45 @@
+---
+title: useTheme
+description: Obtener y actualizar el tema de color activo (modo claro/oscuro).
+---
+
+El hook `useTheme` permite que los componentes se suscriban y modifiquen el tema de color de interfaz activo.
+
+---
+
+## Importación
+
+```tsx
+import { useTheme } from 'boltdocs/client'
+```
+
+---
+
+## Valores de Retorno
+
+| Propiedad | Tipo | Descripción |
+| :--- | :--- | :--- |
+| **`theme`** | `'light' \| 'dark'` | El modo de color activo. |
+| **`setTheme`** | `(t: 'light' \| 'dark') => void` | Establecer directamente un modo de color específico. |
+| **`toggleTheme`** | `() => void` | Alternar el tema entre los modos claro y oscuro. |
+
+---
+
+## Ejemplo: Botón de Alternancia de Tema Personalizado
+
+```tsx
+import { useTheme } from 'boltdocs/client'
+
+export function ThemeButton() {
+  const { theme, toggleTheme } = useTheme()
+
+  return (
+    <button
+      onClick={toggleTheme}
+      className="p-2 border rounded bg-zinc-100 dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100"
+    >
+      Active: {theme === 'dark' ? '🌙 Dark Mode' : '☀️ Light Mode'}
+    </button>
+  )
+}
+```

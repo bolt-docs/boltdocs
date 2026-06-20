@@ -1,0 +1,69 @@
+---
+title: useConfig
+description: Obtener el objeto de configuración global parseado de Boltdocs.
+---
+
+El hook `useConfig` permite que los componentes personalizados accedan a propiedades del archivo activo `boltdocs.config.ts`, como rutas base, directorios localizados, entradas de navegación y configuraciones de tema.
+
+---
+
+## Importación
+
+```tsx
+import { useConfig } from 'boltdocs/client'
+```
+
+---
+
+## Esquema de Respuesta
+
+El hook retorna las configuraciones completas parseadas que coinciden con la interfaz `BoltdocsConfig`:
+
+```ts
+interface BoltdocsConfig {
+  base?: string                     // The root URL directory prefix path (defaults to '/docs')
+  theme?: {
+    title?: string | Record<string, string> // Page title/branding label (with localized strings option)
+    logo?: string | { light: string; dark: string; alt?: string; width?: number; height?: number }
+    navbar?: NavbarLink[]           // Global navbar links
+    socialLinks?: SocialLink[]      // Social links (e.g. github, twitter)
+    githubRepo?: string             // Owner/repository string for GitHub widgets
+    tabs?: TabConfig[]              // Custom tabs/categories configuration
+  }
+  i18n?: {
+    locales: string[] | Record<string, string> // Supported locale keys / language labels
+    defaultLocale: string           // Default/fallback language code
+    localeConfigs?: Record<string, LocaleConfig> // Translations/meta configs for locales
+  }
+  versions?: {
+    versions: VersionConfig[]       // Available documentation version tags
+    defaultVersion: string          // Default version path
+  }
+  directoryMeta?: Record<string, DirectoryMeta> // Metadata configurations for directories/folders
+}
+```
+
+---
+
+## Ejemplo de Uso
+
+El siguiente ejemplo muestra cómo acceder a las opciones de metadatos personalizados desde la configuración para mostrar derechos de autor personalizados en el pie de página:
+
+```tsx
+import React from 'react'
+import { useConfig } from 'boltdocs/client'
+
+export default function CustomFooter() {
+  const config = useConfig()
+  const currentYear = new Date().getFullYear()
+
+  return (
+    <footer className="mt-20 border-t py-8 text-center text-xs text-muted">
+      <p>
+        © {currentYear} {typeof config.theme?.title === 'string' ? config.theme.title : 'Project'}.
+        All rights reserved.
+      </p>
+    </footer>
+  )
+}
+```

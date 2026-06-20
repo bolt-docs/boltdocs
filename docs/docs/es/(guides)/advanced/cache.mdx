@@ -1,0 +1,180 @@
+---
+title: Caché y Entorno
+sidebarPosition: 10
+description: Cómo funciona el caché de Boltdocs, qué se cachea y las variables de entorno que lo controlan.
+---
+
+Boltdocs cachea archivos parseados y transformaciones para que las compilaciones subsiguientes y los reinicios del servidor de desarrollo sean rápidos. Esta guía cubre cómo funciona el caché y cómo configurarlo.
+
+---
+
+## Cómo Funciona el Caché
+
+Boltdocs usa un sistema de caché multicapa:
+
+1. **Caché LRU en Memoria** — Caché rápido dentro del proceso para datos calientes
+2. **Caché en Disco** — Persistido en el directorio `.boltdocs/` (organizado bajo `.boltdocs/cache/`, `.boltdocs/build/`, `.boltdocs/generated/`, `.boltdocs/reports/`) para reutilizar entre reinicios
+3. **Invalidación** — Automática basada en mtime del archivo y hash de contenido
+
+### Qué se Cachea
+
+| Tipo de Caché | Qué se Almacena | Ubicación |
+| :--- | :--- | :--- |
+| **Caché de Parser** | Frontmatter, encabezados, metadatos de cada archivo `.md`/`.mdx` | `.boltdocs/cache/parser/` |
+| **Transformación MDX** | Código MDX compilado para cada archivo | `.boltdocs/cache/mdx/` |
+| **Caché de Rutas** | Objetos de ruta construidos con todos los metadatos | `.boltdocs/cache/routes/` |
+
+---
+
+## Comportamiento del Caché
+
+### Modo Desarrollo
+
+- El caché se carga al inicio para navegación instantánea
+- Los archivos se observan — los cambios invalidan entradas de caché relevantes
+- Reconstrucción completa solo cuando cambian la configuración o los plugins
+
+### Compilación de Producción
+
+- Inicio en frío construye desde cero
+- Caché escrito en disco para uso futuro
+- Entornos CI/CD obtienen compilaciones consistentes
+
+---
+
+## Variables de Entorno
+
+Configura el comportamiento del caché a través de variables de entorno:
+
+| Variable | Tipo | Por Defecto | Descripción |
+| :--- | :--- | :--- | :--- |
+| **`BOLTDOCS_CACHE_DIR`** | `string` | `.boltdocs/cache` | Directorio para archivos de caché de procesamiento principal |
+| **`BOLTDOCS_NO_CACHE`** | `boolean` | `false` | Establece en `1` para deshabilitar todo el caché |
+| **`BOLTDOCS_CACHE_LRU_LIMIT`** | `number` | `2000` | Máximo de entradas en el caché LRU en memoria |
+| **`BOLTDOCS_CACHE_LRU_TTL`** | `number` | `14400000` | TTL en ms (por defecto 4 horas) |
+| **`BOLTDOCS_CACHE_COMPRESS`** | `boolean` | `true` | Habilitar compresión gzip para archivos de caché |
+
+---
+
+### Variables de Entorno de Integración
+
+Además de las opciones de caché, Boltdocs resuelve claves específicas de integración de tus variables de entorno de forma segura:
+
+| Variable | Alcance | Descripción |
+| :--- | :--- | :--- |
+| **`BOLTDOCS_GITHUB_TOKEN`** | Feedback Personalizado | Un token de acceso personal (PAT) con acceso de escritura a GitHub Discussions. |
+| **`BOLTDOCS_GITHUB_REPO_OWNER`** | Feedback Personalizado | Sobreescribe el nombre de usuario o organización del propietario del repositorio destino. |
+| **`BOLTDOCS_GITHUB_REPO_NAME`** | Feedback Personalizado | Sobreescribe el nombre del repositorio destino. |
+| **`GITHUB_APP_ID`** | Autenticación GitHub App | El ID único de App generado por tu GitHub App. |
+| **`GITHUB_PRIVATE_KEY`** | Autenticación GitHub App | La clave privada RSA de la GitHub App. |
+| **`GITHUB_INSTALLATION_ID`** | Autenticación GitHub App | El ID de instalación asociado a tu repositorio destino. |
+
+---
+
+### Ejemplos de Uso
+
+```bash
+# Disable all caching (useful for debugging)
+BOLTDOCS_NO_CACHE=1 pnpm docs:dev
+
+# Use custom cache directory
+BOLTDOCS_CACHE_DIR=.cache/boltdocs pnpm docs:dev
+
+# Increase cache size for large projects
+BOLTDOCS_CACHE_LRU_LIMIT=5000 pnpm docs:dev
+```
+
+---
+
+## Invalidación del Caché
+
+El caché se invalida automáticamente cuando:
+
+1. **El contenido del archivo cambia** — Detectado vía hash de contenido
+2. **El archivo se elimina** — Entrada de caché removida
+3. **La configuración cambia** — Se activa invalidación completa
+4. **La versión del plugin cambia** — Caché MDX invalidado
+
+### Invalidación Manual
+
+Elimina el directorio de caché:
+
+```bash
+rm -rf .boltdocs
+```
+
+O en desarrollo, el servidor de desarrollo se invalida automáticamente en cambios de archivos.
+
+---
+
+## Ubicación del Caché
+
+Por defecto, el caché vive en `.boltdocs/` en la raíz de tu proyecto:
+
+```
+my-docs/
+├── .boltdocs/
+│   ├── build/
+│   │   ├── framework-hash.txt
+│   │   ├── template-index.html
+│   │   ├── render-cache.json
+│   │   └── pages/         ← HTML cacheado por página
+│   ├── cache/
+│   │   ├── parser/        ← Resultados del parser (JSON)
+│   │   ├── mdx/           ← Código compilado MDX
+│   │   ├── routes/        ← Metadatos de rutas
+│   │   └── assets/        ← Assets procesados
+│   ├── generated/
+│   │   ├── types.d.ts
+│   │   └── link-tree.json
+│   ├── reports/
+│   │   ├── doctor.json
+│   │   └── performance.json
+│   └── backups/           ← Respaldos de fix de Doctor
+├── docs/
+└── boltdocs.config.ts
+```
+
+---
+
+## Solución de Problemas
+
+### Caché corrupto
+
+Si sospechas de entradas de caché corruptas:
+
+```bash
+# Clear all caches
+rm -rf .boltdocs
+
+# Restart dev server
+pnpm docs:dev
+```
+
+### Contenido desactualizado en producción
+
+Asegúrate de que tu pipeline CI inicie limpio:
+
+```bash
+# Clean before build
+rm -rf .boltdocs
+pnpm docs:build
+```
+
+### Tamaño de caché grande
+
+Para sitios de documentación muy grandes:
+
+```bash
+# Disable compression to save CPU at the cost of disk space
+BOLTDOCS_CACHE_COMPRESS=0 pnpm docs:build
+```
+
+---
+
+## Notas de Rendimiento
+
+- El primer inicio es más lento — el caché se está poblando
+- Los inicios subsiguientes son casi instantáneos (< 100ms)
+- Cuantas más páginas tengas, más ayuda el caché
+- La compresión del caché agrega ~10% de sobrecarga de CPU pero ahorra ~70% de disco

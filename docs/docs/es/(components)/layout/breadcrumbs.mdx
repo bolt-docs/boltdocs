@@ -1,0 +1,99 @@
+---
+title: Breadcrumbs
+sidebarPosition: 6
+description: "Un indicador de ruta de navegación que muestra la ubicación del usuario en la jerarquía de la documentación."
+---
+
+El componente `Breadcrumbs` muestra una cadena horizontal de enlaces de migas de pan que indica la estructura de navegación de la página activa actual.
+
+---
+
+## Importación
+
+```tsx
+import { Breadcrumbs } from 'boltdocs/primitives'
+```
+
+---
+
+## Ejemplo de Breadcrumbs Componible
+
+Usando los subcomponentes primitivos de `Breadcrumbs`, puedes diseñar un indicador de migas de pan personalizado. El siguiente ejemplo muestra cómo obtener los segmentos de ruta a través de `useBreadcrumbs` y renderizarlos con iconos y separadores personalizados:
+
+```tsx
+// docs/components/CustomBreadcrumbs.tsx
+import React from 'react'
+import { Breadcrumbs } from 'boltdocs/primitives'
+import { useBreadcrumbs } from 'boltdocs/client'
+import { Home } from 'lucide-react'
+
+export default function CustomBreadcrumbs() {
+  const { crumbs, activeRoute } = useBreadcrumbs()
+
+  if (crumbs.length === 0) return null
+
+  return (
+    <Breadcrumbs.Root className="flex items-center gap-2 text-sm font-medium">
+      
+      {/* 1. Nodo Base Inicio */}
+      <Breadcrumbs.Item>
+        <Breadcrumbs.Link href="/" className="text-muted hover:text-body transition-colors flex items-center">
+          <Home size={14} />
+        </Breadcrumbs.Link>
+      </Breadcrumbs.Item>
+
+      {/* 2. Nodos Hermanos */}
+      {crumbs.map((crumb, idx) => {
+        const isActive = crumb.href === activeRoute?.path
+
+        return (
+          <Breadcrumbs.Item key={`${crumb.href}-${idx}`} className="gap-2">
+            <Breadcrumbs.Separator className="text-muted/40" />
+            <Breadcrumbs.Link
+              href={crumb.href}
+              className={isActive
+                ? 'text-body font-semibold cursor-default pointer-events-none'
+                : 'text-muted hover:text-body transition-colors'
+              }
+            >
+              {crumb.label}
+            </Breadcrumbs.Link>
+          </Breadcrumbs.Item>
+        )
+      })}
+    </Breadcrumbs.Root>
+  )
+}
+```
+
+---
+
+## Subcomponentes Componibles
+
+La primitiva `Breadcrumbs` proporciona los siguientes subcomponentes para la personalización de la estructura:
+
+| Componente | Etiqueta HTML | Descripción | Props |
+| :--- | :--- | :--- | :--- |
+| **`Breadcrumbs.Root`** / **`Breadcrumbs`** | `<nav>` | El contenedor principal nav inline envolvente. | [`ComponentBaseProps`](#componentbaseprops-common) |
+| **`Breadcrumbs.Item`** | `<li>` | La celda individual contenedora de miga de pan. | [`ComponentBaseProps`](#componentbaseprops-common) |
+| **`Breadcrumbs.Link`** | `<a>` | Un elemento de anclaje optimizado que enlaza a una categoría de ruta padre. | [`Breadcrumbs.Link Props`](#breadcrumbslink-props) |
+| **`Breadcrumbs.Separator`** | `<span>` | Renderiza un icono de separación direccional (por defecto usa el icono Chevron Right). | [`ComponentBaseProps`](#componentbaseprops-common) |
+
+---
+
+## Props del Componente
+
+### ComponentBaseProps (Común)
+
+| Propiedad | Tipo | Predeterminado | Descripción |
+| :--- | :--- | :--- | :--- |
+| **`children`** | `ReactNode` | `undefined` | Elementos de contenido hijos. |
+| **`className`** | `string` | `undefined` | Clases CSS utilitarias personalizadas. |
+| **`style`** | `CSSProperties` | `undefined` | Sobrescrituras de estilo en línea. |
+
+### Props de `Breadcrumbs.Link`
+
+| Propiedad | Tipo | Predeterminado | Descripción |
+| :--- | :--- | :--- | :--- |
+| **`href`** | `string` | *Requerido* | Ruta de destino de la ruta de navegación. |
+| **`className`** | `string` | `undefined` | Sobrescritura de estilo de clase CSS. |

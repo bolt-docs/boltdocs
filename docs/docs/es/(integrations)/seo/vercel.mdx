@@ -1,0 +1,89 @@
+---
+title: Vercel Analytics y Speed Insights
+sidebarPosition: 4
+description: Monitorea tráfico y Core Web Vitals con Vercel Analytics y Speed Insights sin configuración.
+---
+
+Vercel proporciona analítica integrada y monitoreo de usuarios reales (RUM) para sitios desplegados en su plataforma. Boltdocs inyecta los scripts requeridos automáticamente cuando los habilitas en tu configuración.
+
+---
+
+## Inicio Rápido
+
+### Paso 1: Habilita la analítica en boltdocs.config.ts
+
+```ts title="boltdocs.config.ts"
+export default defineConfig({
+  integrations: {
+    analytics: {
+      vercel: {
+        analytics: true,
+        speedInsights: true,
+      },
+    },
+  },
+})
+```
+
+### Paso 2: Despliega en Vercel
+
+Ambos scripts solo se inyectan en compilaciones de **producción** (`NODE_ENV === 'production'`). No se cargan durante el desarrollo local o despliegues de vista previa.
+
+---
+
+## Referencia de Configuración
+
+| Propiedad | Tipo | Predeterminado | Descripción |
+| :--- | :--- | :--- | :--- |
+| **`analytics`** | `boolean` | `true` | Habilita Vercel Web Analytics (vistas de página, visitantes únicos). |
+| **`speedInsights`** | `boolean` | `true` | Habilita Vercel Speed Insights (Core Web Vitals, LCP, CLS, INP). |
+
+### Ejemplo Mínimo
+
+```ts
+integrations: {
+  analytics: {
+    vercel: {
+      analytics: true,
+    },
+  },
+}
+```
+
+### Ambos Habilitados (Predeterminado)
+
+```ts
+integrations: {
+  analytics: {
+    vercel: {
+      analytics: true,
+      speedInsights: true,
+    },
+  },
+}
+```
+
+---
+
+## Cómo Funciona
+
+Cuando están habilitados, Boltdocs inyecta dos fragmentos de script en el `<head>` de cada página en tiempo de compilación:
+
+1. **Vercel Analytics** — `<script defer src="/_vercel/insights/script.js">`
+2. **Speed Insights** — `<script defer src="/_vercel/speed-insights/script.js">`
+
+Vercel maneja automáticamente la canalización de recolección de datos en su red edge. No se requieren claves de API adicionales ni configuración.
+
+---
+
+## Solución de Problemas
+
+### Los scripts no aparecen en desarrollo
+
+Esto es esperado. Ambos scripts solo se inyectan en compilaciones de producción. Ejecuta `boltdocs build && boltdocs preview` para probar localmente.
+
+### Los datos no aparecen en el panel de Vercel
+
+- Asegúrate de que tu proyecto esté desplegado en el entorno de producción de Vercel
+- Verifica que los scripts estén presentes revisando el código fuente de la página de tu sitio desplegado
+- Espera hasta 24 horas para que los datos aparezcan en el panel

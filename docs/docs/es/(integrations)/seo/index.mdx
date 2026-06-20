@@ -1,0 +1,180 @@
+---
+title: SEO y Robots
+sidebarPosition: 1
+description: Sitemap automático, robots.txt, etiquetas meta e imágenes Open Graph para motores de búsqueda y redes sociales.
+---
+
+Boltdocs genera automáticamente metadatos SEO para cada página. Esto incluye sitemap.xml, robots.txt, URLs canónicas, etiquetas Open Graph y Twitter Cards.
+
+---
+
+## Configuración
+
+### SEO Básico
+
+```ts
+export default defineConfig({
+  siteUrl: 'https://docs.example.com',
+  seo: {
+    indexing: 'all', // o 'none', 'noindex'
+    thumbnails: {
+      background: '/og-image.webp',
+    },
+  },
+})
+```
+
+### Robots.txt
+
+```ts
+export default defineConfig({
+  robots: {
+    rules: [
+      {
+        userAgent: '*',
+        allow: '/',
+        disallow: ['/private/', '/draft/'],
+      },
+    ],
+    sitemaps: ['https://docs.example.com/sitemap.xml'],
+  },
+})
+```
+
+---
+
+## Referencia de Configuración SEO
+
+### `SeoConfig`
+
+| Propiedad | Tipo | Predeterminado | Descripción |
+| :--- | :--- | :--- | :--- |
+| **`indexing`** | `'all' \| 'none' \| 'noindex'` | `'all'` | Controla la etiqueta `<meta name="robots">`. |
+| **`thumbnails`** | `ThumbnailConfig` | — | Configuración de imágenes Open Graph. |
+| **`defaultImage`** | `string` | — | Imagen OG de respaldo para páginas sin frontmatter. |
+
+### `ThumbnailConfig`
+
+| Propiedad | Tipo | Descripción |
+| :--- | :--- | :--- |
+| **`background`** | `string` | Ruta a la imagen de fondo para tarjetas OG. |
+| **`theme`** | `'light' \| 'dark'` | Tema para miniaturas auto-generadas. |
+
+---
+
+## Referencia de Configuración Robots
+
+| Propiedad | Tipo | Descripción |
+| :--- | :--- | :--- |
+| **`rules`** | `RobotRule[]` | Arreglo de reglas de rastreo. |
+| **`sitemaps`** | `string[]` | URLs de archivos sitemap.xml. |
+
+### `RobotRule`
+
+| Propiedad | Tipo | Descripción |
+| :--- | :--- | :--- |
+| **`userAgent`** | `string` | User agent objetivo (por ejemplo `'*'` para todos). |
+| **`allow`** | `string \| string[]` | Rutas a permitir. |
+| **`disallow`** | `string \| string[]` | Rutas a denegar. |
+| **`crawlDelay`** | `number` | Retraso entre solicitudes (en segundos). |
+
+---
+
+## Archivos Auto-Generados
+
+### sitemap.xml
+
+Generado en tiempo de compilación. Contiene todas las rutas indexadas con:
+- `loc` — URL completa
+- `lastmod` — Fecha de última modificación (de git o mtime del archivo)
+- `changefreq` — Frecuencia de actualización de la página
+- `priority` — Calculada a partir de la posición en la barra lateral
+
+### robots.txt
+
+Generado desde tu configuración `robots`. Ejemplo de salida:
+
+```
+User-Agent: *
+Allow: /
+Disallow: /private/
+Sitemap: https://docs.example.com/sitemap.xml
+```
+
+---
+
+## Override de SEO por Página
+
+Sobrescribe los ajustes SEO globales en frontmatter:
+
+```md
+---
+title: Internal Page
+seo:
+  noindex: true
+  og:image: /custom-og.png
+  twitter:card: summary
+---
+```
+
+| Propiedad | Tipo | Descripción |
+| :--- | :--- | :--- |
+| **`noindex`** | `boolean` | Agrega etiqueta meta noindex. |
+| **`og:image`** | `string` | Imagen Open Graph personalizada. |
+| **`og:type`** | `string` | Tipo de Open Graph (predeterminado: `'website'`). |
+| **`twitter:card`** | `string` | Tipo de tarjeta de Twitter. |
+
+---
+
+## Imágenes Open Graph
+
+Boltdocs auto-genera imágenes OG usando `seo.thumbnails.background`. Cada página obtiene una imagen generada con:
+- Tu imagen de fondo
+- Título de la página superpuesto
+- Nombre del sitio en la esquina
+
+### Imagen OG Manual
+
+Sobrescribe por página:
+
+```md
+---
+seo:
+  og:image: /assets/my-custom-og.png
+---
+```
+
+O globalmente:
+
+```ts
+export default defineConfig({
+  seo: {
+    defaultImage: '/default-og.png',
+  },
+})
+```
+
+---
+
+## URLs Canónicas
+
+Las URLs canónicas se generan automáticamente para cada página basándose en `siteUrl` + ruta de la página. Esto ayuda a consolidar problemas de contenido duplicado.
+
+---
+
+## Solución de Problemas
+
+### sitemap.xml falta
+
+Asegúrate de que `siteUrl` esté configurado.
+
+### Contenido duplicado
+
+Revisa las URLs canónicas en el código fuente de la página. Usa `permalink` en frontmatter para establecer URLs consistentes.
+
+### Imágenes OG no se muestran
+
+Verifica que `seo.thumbnails.background` apunte a una imagen válida. Revisa los validadores de tarjetas para redes sociales:
+
+- [Facebook Debugger](https://developers.facebook.com/tools/debug/)
+- [Twitter Card Validator](https://cards-dev.twitter.com/validator)

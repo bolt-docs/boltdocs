@@ -1,0 +1,62 @@
+---
+title: copyToClipboard
+description: "Escribir cadenas de texto de forma segura en el portapapeles del sistema del usuario usando APIs del navegador."
+---
+
+La utilidad `copyToClipboard` intenta escribir datos de cadena en el portapapeles del sistema operativo, con alternativas para navegadores más antiguos.
+
+---
+
+## Importación
+
+```tsx
+import { copyToClipboard } from 'boltdocs/client'
+```
+
+---
+
+## Firma
+
+```ts
+function copyToClipboard(text: string): Promise<boolean>
+```
+
+### Retorna
+Una promesa que resuelve a `true` si la copia fue exitosa, y `false` si encontró errores de permisos o fallos en las capacidades del navegador.
+
+---
+
+## Ejemplo: Disparador de Copia de Fragmento de Código
+
+```tsx
+import React, { useState } from 'react'
+import { copyToClipboard } from 'boltdocs/client'
+
+interface CodeBoxProps {
+  code: string
+}
+
+export function CodeBox({ code }: CodeBoxProps) {
+  const [copied, setCopied] = useState(false)
+
+  const handleCopy = async () => {
+    const success = await copyToClipboard(code)
+    if (success) {
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    }
+  }
+
+  return (
+    <div className="relative border rounded p-4 bg-zinc-950 text-white font-mono text-sm">
+      <pre>{code}</pre>
+      <button
+        onClick={handleCopy}
+        className="absolute top-2 right-2 px-2 py-1 text-xs bg-zinc-800 rounded hover:bg-zinc-700"
+      >
+        {copied ? 'Copied! ✓' : 'Copy'}
+      </button>
+    </div>
+  )
+}
+```

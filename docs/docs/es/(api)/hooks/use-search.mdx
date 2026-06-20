@@ -1,0 +1,77 @@
+---
+title: useSearch
+description: Acceder a la consulta de búsqueda, resultados y controles de apertura/cierre de forma programática.
+---
+
+El hook `useSearch` proporciona control programático sobre el estado de búsqueda de texto completo de la documentación y los datos de resultados de búsqueda.
+
+---
+
+## Importación
+
+```tsx
+import { useSearch } from 'boltdocs/client'
+```
+
+---
+
+## Valores de Retorno
+
+| Propiedad | Tipo | Descripción |
+| :--- | :--- | :--- |
+| **`query`** | `string` | El valor de texto actual de la consulta de búsqueda. |
+| **`setQuery`** | `(q: string) => void` | Actualiza la consulta de búsqueda y activa la indexación de búsqueda. |
+| **`results`** | `SearchResult[]` | Arreglo de resultados de búsqueda coincidentes ordenados por puntaje de relevancia. |
+| **`isOpen`** | `boolean` | Verdadero si el diálogo/modo superposición de búsqueda está actualmente abierto. |
+| **`open`** | `() => void` | Abre el diálogo de búsqueda. |
+| **`close`** | `() => void` | Cierra el diálogo de búsqueda y limpia la consulta activa. |
+
+---
+
+## Interfaz SearchResult
+
+```ts
+interface SearchResult {
+  path: string          // Absolute page route path
+  title: string         // Main page title
+  description?: string  // Page description
+  headings?: string[]   // Headings matching the search query
+  tab?: string          // Active folder tab grouping
+}
+```
+
+---
+
+## Ejemplo: Entrada de Búsqueda en Línea
+
+```tsx
+import { useSearch } from 'boltdocs/client'
+
+export function SimpleSearch() {
+  const { query, setQuery, results } = useSearch()
+
+  return (
+    <div className="search-box">
+      <input
+        type="search"
+        value={query}
+        onChange={(e) => setQuery(e.target.value)}
+        placeholder="Type to search..."
+        className="w-full border p-2 rounded"
+      />
+      {query && (
+        <ul className="results-list">
+          {results.map((res) => (
+            <li key={res.path}>
+              <a href={res.path} className="font-semibold text-blue-500">
+                {res.title}
+              </a>
+              {res.description && <p className="text-sm text-gray-500">{res.description}</p>}
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  )
+}
+```

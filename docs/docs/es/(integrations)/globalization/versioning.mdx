@@ -1,0 +1,139 @@
+---
+title: Versionado
+sidebarPosition: 2
+description: Mantén múltiples versiones de tu documentación lado a lado usando convenciones de carpetas y la clave de configuración versions.
+---
+
+El versionado te permite mantener múltiples ediciones paralelas de tu documentación activas al mismo tiempo — una para cada versión principal de tu proyecto. Los usuarios pueden cambiar entre ellas, y las versiones más antiguas permanecen accesibles sin ningún mantenimiento manual.
+
+---
+
+## Cómo Funciona
+
+Al igual que los locales, las versiones están **basadas en carpetas**. Cada versión vive en una subcarpeta en la raíz de `docs/`. Boltdocs mapea esas carpetas a prefijos de URL versionados.
+
+```
+docs/
+├── index.md            → /docs/guide (versión predeterminada / actual)
+├── guide/
+│   └── index.md        → /docs/guide
+└── v1/
+    └── guide/
+        └── index.md    → /docs/v1/guide
+```
+
+---
+
+## Inicio Rápido
+
+### Paso 1: Agrega versiones a tu configuración
+
+```ts
+export default defineConfig({
+  versions: {
+    defaultVersion: 'v2',
+    versions: [
+      { label: 'v2 (latest)', path: 'v2' },
+      { label: 'v1',          path: 'v1' },
+    ],
+  },
+})
+```
+
+### Paso 2: Crea carpetas de versión
+
+```sh
+mkdir docs/v2 docs/v1
+```
+
+### Paso 3: Agrega tu contenido versionado
+
+```
+docs/
+├── v2/
+│   ├── guide/
+│   │   └── index.md    → /docs/v2/guide
+│   └── api/
+│       └── config.md   → /docs/v2/api/config
+└── v1/
+    └── guide/
+        └── index.md    → /docs/v1/guide
+```
+
+---
+
+## Referencia de Configuración
+
+### `BoltdocsVersionsConfig`
+
+| Propiedad | Tipo | Requerido | Descripción |
+| :--- | :--- | :--- | :--- |
+| **`defaultVersion`** | `string` | ✓ | La `path` de versión que se considera la actual/predeterminada. Las páginas de esta versión no necesariamente requieren su propia carpeta si las deseas en la raíz. |
+| **`prefix`** | `string` | — | Una cadena que se antepone a la ruta de cada versión dentro de `docs/` (por ejemplo `'v'` → las carpetas se convierten en `docs/v1/`, `docs/v2/`). |
+| **`versions`** | `VersionConfig[]` | ✓ | La lista ordenada de versiones disponibles. El primer elemento aparece primero en el selector de versiones. |
+
+### `VersionConfig`
+
+| Propiedad | Tipo | Requerido | Descripción |
+| :--- | :--- | :--- | :--- |
+| **`label`** | `string` | ✓ | Etiqueta legible para esta versión (por ejemplo `'v2 (latest)'`). Se muestra en la interfaz del selector de versiones. |
+| **`path`** | `string` | ✓ | El nombre de la carpeta en `docs/` y el segmento de URL para esta versión (por ejemplo `'v1'`). |
+
+---
+
+## Usando un Prefijo de Carpeta
+
+Si deseas que todas las carpetas de versión compartan un prefijo común (por ejemplo `docs/releases/v1/`, `docs/releases/v2/`), configura la opción `prefix`:
+
+```ts
+export default defineConfig({
+  versions: {
+    defaultVersion: 'v2',
+    prefix: 'releases/',
+    versions: [
+      { label: 'v2 (latest)', path: 'v2' },
+      { label: 'v1',          path: 'v1' },
+    ],
+  },
+})
+```
+
+Esto mapea `docs/releases/v2/guide.md` → `/docs/releases/v2/guide`.
+
+---
+
+## Combinando Versionado con i18n
+
+Cuando tanto el versionado como i18n están activos, la jerarquía de carpetas siempre es **versión primero, luego locale**:
+
+```
+docs/
+└── v2/
+    ├── guide.md         → /docs/v2/guide      (locale predeterminado)
+    └── es/
+        └── guide.md     → /docs/v2/es/guide   (español)
+```
+
+<Callout variant="warning" title="El orden importa">
+  El segmento de versión siempre se resuelve antes del segmento de locale. Coloca las carpetas de locale **dentro** de las carpetas de versión, no al revés. La estructura inversa (`docs/es/v2/`) no está soportada.
+</Callout>
+
+---
+
+## URLs Versionadas
+
+Dada esta configuración:
+
+```ts
+versions: {
+  defaultVersion: 'v2',
+  versions: [
+    { label: 'v2', path: 'v2' },
+    { label: 'v1', path: 'v1' },
+  ],
+}
+```
+
+Un archivo en `docs/v1/guide/install.md` se resuelve a `/docs/v1/guide/install`. Un archivo en `docs/v2/guide/install.md` se resuelve a `/docs/v2/guide/install`.
+
+El selector de versiones en el diseño predeterminado permite a los usuarios saltar entre versiones mientras permanecen en la página equivalente.

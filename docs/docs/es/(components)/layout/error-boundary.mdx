@@ -1,0 +1,104 @@
+---
+title: ErrorBoundary
+sidebarPosition: 8
+description: Contenedor de límite de errores para capturar errores de renderizado en componentes de documentación.
+---
+
+El componente `ErrorBoundary` captura excepciones inesperadas de JavaScript en sus componentes descendientes y muestra una vista alternativa limpia y amigable para el usuario en lugar de bloquear toda la página.
+
+---
+
+## Importación
+
+```tsx
+import { ErrorBoundary, ErrorBoundaryFallback } from 'boltdocs/primitives'
+```
+
+---
+
+## Ejemplo de Fallback Componible
+
+Usando la primitiva `ErrorBoundary` y sus props, puedes pasar un componente alternativo personalizado que recibe el objeto `error` lanzado y una función de callback `resetErrorBoundary` para permitir a los usuarios reintentar la renderización sin recargar el navegador:
+
+```tsx
+// docs/components/CustomErrorWrapper.tsx
+import React from 'react'
+import { ErrorBoundary, ErrorBoundaryFallback } from 'boltdocs/primitives'
+
+// 1. Define un panel de errores interactivo personalizado
+function MyCustomFallback({ error, resetErrorBoundary }: { error: Error; resetErrorBoundary: () => void }) {
+  return (
+    <div className="flex flex-col gap-3 p-6 border-2 border-red-500 bg-red-50/50 rounded-xl max-w-md mx-auto text-center">
+      <h4 className="font-bold text-red-600">Fallo de Widget Detectado</h4>
+      <p className="text-xs text-zinc-500">{error.message}</p>
+      <button
+        onClick={resetErrorBoundary}
+        className="mt-2 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg text-xs font-semibold"
+      >
+        Reintentar Renderización
+      </button>
+    </div>
+  )
+}
+
+// 2. Envuelve componentes de diseño frágiles
+export default function SafeLayoutSection({ children }) {
+  return (
+    <ErrorBoundary
+      FallbackComponent={MyCustomFallback}
+      onError={(error, info) => {
+        // Registra metadatos del fallo en servicios externos
+        console.error('Fallo registrado:', error, info)
+      }}
+      onReset={() => {
+        // Limpia el estado de la aplicación en caché o valores de contexto antes de reintentar
+        console.log('Estado de reinicio activado')
+      }}
+    >
+      {children}
+    </ErrorBoundary>
+  )
+}
+```
+
+---
+
+## Subcomponentes Componibles
+
+La primitiva `ErrorBoundary` proporciona las siguientes referencias de componentes:
+
+| Componente | Etiqueta HTML | Descripción | Props |
+| :--- | :--- | :--- | :--- |
+| **`ErrorBoundary`** | Envoltorio | Captura excepciones en tiempo de ejecución de descendientes y monta la UI alternativa. | [`ErrorBoundary Props`](#errorboundary-props) |
+| **`ErrorBoundaryFallback`** | `<div>` | Vista alternativa de tarjeta de advertencia predeterminada que contiene un botón de Reintentar. | [`ComponentBaseProps`](#componentbaseprops-common) |
+
+---
+
+## Props del Componente
+
+### ComponentBaseProps (Común)
+
+| Propiedad | Tipo | Predeterminado | Descripción |
+| :--- | :--- | :--- | :--- |
+| **`children`** | `ReactNode` | `undefined` | Elementos de contenido hijos. |
+| **`className`** | `string` | `undefined` | Clases CSS utilitarias personalizadas. |
+| **`style`** | `CSSProperties` | `undefined` | Configuraciones de estilo en línea. |
+
+### Props de `ErrorBoundary`
+
+| Propiedad | Tipo | Predeterminado | Descripción |
+| :--- | :--- | :--- | :--- |
+| **`children`** | `ReactNode` | *Requerido* | Componentes descendientes a monitorear para errores de renderizado. |
+| **`FallbackComponent`** | `ComponentType<FallbackProps>` | `undefined` | Un componente de React a renderizar cuando se captura un error. Recibe las propiedades `error` y `resetErrorBoundary`. |
+| **`fallback`** | `ReactNode` | `undefined` | Un nodo React estático a renderizar cuando se captura un error. |
+| **`onError`** | `(error: Error, info: ErrorInfo) => void` | `undefined` | Callback que se activa cuando el límite intercepta una excepción. |
+| **`onReset`** | `() => void` | `undefined` | Callback que se activa cuando el componente alternativo invoca `resetErrorBoundary`. |
+
+### Esquema `FallbackProps`
+
+El componente alternativo especificado en `FallbackComponent` recibe las siguientes props:
+
+| Propiedad | Tipo | Descripción |
+| :--- | :--- | :--- |
+| **`error`** | `Error` | El objeto de excepción de JavaScript capturado. |
+| **`resetErrorBoundary`** | `() => void` | Activa la limpieza de estado para reintentar la renderización del componente. |

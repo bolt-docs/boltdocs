@@ -1,0 +1,106 @@
+---
+title: Componentes
+sidebarPosition: 1
+description: Referencia completa de los componentes de Boltdocs — componentes de contenido MDX y primitivas de diseño.
+---
+
+Boltdocs proporciona tres categorías de componentes:
+
+1. **Componentes MDX** — Disponibles dentro de los archivos de contenido `.mdx`.
+2. **Primitivas de Diseño** — Componentes estructurales para componer diseños personalizados de páginas de documentación.
+3. **Primitivas de UI** — Controles de interfaz modulares y totalmente accesibles.
+
+---
+
+## Componentes MDX
+
+Estos componentes se registran automáticamente de forma global y están disponibles en cada archivo `.mdx`:
+
+| Componente | Descripción |
+| :--- | :--- |
+| **`<Callout>`** | Cajas de alerta con variantes: note, info, tip, warning, danger. |
+| **`<Card>` / `<Cards>`** | Cuadrícula de tarjetas clickeables para navegación de tipo dashboard. |
+| **`<Field>`** | Filas descriptivas de propiedades API en línea. |
+| **`<Image>`** | Imágenes adaptables al tema, con diseño responsivo y leyendas. |
+| **`<Mermaid>`** | Bloque de renderizado de diagramas (requiere el plugin mermaid). |
+
+---
+
+## Primitivas de Diseño
+
+Componentes estructurales exportados desde `'boltdocs/primitives'` utilizados para construir diseños personalizados de documentación:
+
+| Componente | Descripción |
+| :--- | :--- |
+| **`DocsLayout`** | Contenedor principal del shell para la cuadrícula de la página de docs. |
+| **`Navbar`** | Barra de navegación superior con pestañas y controles. |
+| **`Sidebar`** | Lista de navegación del directorio lateral izquierdo. |
+| **`SearchDialog`** | Modal de búsqueda superponible accesible. |
+| **`OnThisPage`** | Rastreador de tabla de contenidos en la columna derecha. |
+| **`Breadcrumbs`** | Barra de navegación de ruta en línea. |
+| **`PageNav`** | Enlaces de navegación de páginas para páginas adyacentes. |
+| **`ErrorBoundary`** | Límite de errores interactivo de React en tiempo de ejecución. |
+
+---
+
+## Primitivas de UI
+
+Componentes de interfaz de usuario accesibles y genéricos exportados desde `'boltdocs/primitives'`:
+
+| Componente | Descripción |
+| :--- | :--- |
+| **`Button`** | Disparador de presión accesible envuelto en React Aria. |
+| **`ButtonGroup`** | Contenedor de diseño para agrupar botones adyacentes. |
+| **`Tabs`** | Selector de paneles con pestañas componibles. |
+| **`Popover`** | Diálogo superponible contextual flotante. |
+| **`Tooltip`** | Etiqueta emergente auxiliar de hover/foco. |
+| **`Link`** | Etiqueta de anclaje con enrutamiento SPA localizado. |
+| **`Heading`** | Renderiza encabezados HTML con enlaces de anclaje automáticos. |
+| **`Menu`** | Menús de acciones desplegables y de selección anidados. |
+| **`Skeleton`** | Marcador de posición de estado de carga con pulso. |
+
+---
+
+## Inicio Rápido
+
+### Uso de Componentes MDX
+
+```mdx
+<Callout variant="tip" title="Consejo Pro">
+  ¡Usa Cards para enlazar páginas relacionadas!
+</Callout>
+
+<Cards>
+  <Card title="Instalación" href="/docs/guides/getting-started/installation">
+    Comienza en 2 minutos
+  </Card>
+</Cards>
+```
+
+### Uso de Primitivas
+
+```tsx
+import { Navbar, Sidebar, OnThisPage } from 'boltdocs/primitives'
+
+export function MyLayout({ children, headings }) {
+  return (
+    <div>
+      <Navbar />
+      <div className="flex">
+        <Sidebar />
+        <main>{children}</main>
+        <OnThisPage headings={headings} />
+      </div>
+    </div>
+  )
+}
+```
+
+---
+
+## Secciones Relacionadas
+
+- [Componentes MDX](/docs/components/mdx/callout) — Referencias de componentes Callout, Card, Field, Image y Mermaid.
+- [Primitivas de Diseño](/docs/components/layout/docs-layout) — Componentes estructurales principales como Navbar, Sidebar y DocsLayout.
+- [Primitivas de UI](/docs/components/ui/button) — Primitivas accesibles genéricas como Button, Tabs, Menu y Popover.
+- [Diseños Personalizados](/docs/guides/advanced/custom-layout) — Construye tu propio diseño de documentación desde cero.

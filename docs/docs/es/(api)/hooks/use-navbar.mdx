@@ -1,0 +1,71 @@
+---
+title: useNavbar
+description: Obtener las configuraciones de navegación activas, detalles del logo y enlaces sociales.
+---
+
+El hook `useNavbar` resuelve el título del sitio, las estructuras de enlaces del menú de navegación, los logos (adaptados a los modos claro/oscuro) y las conexiones sociales directamente desde `boltdocs.config.ts`.
+
+---
+
+## Importación
+
+```tsx
+import { useNavbar } from 'boltdocs/client'
+```
+
+---
+
+## Payload de Respuesta
+
+El hook `useNavbar` retorna los siguientes parámetros del objeto:
+
+```ts
+interface UseNavbarResult {
+  links: NavbarLink[]         // Processed navbar links (includes nested dropdowns and active flags)
+  title: string               // The resolved site branding title text
+  logo: string | null         // URL/path to the active logo image (automatically switches for dark mode)
+  logoProps: {                // Logo dimensional and alt-text properties
+    alt: string
+    width?: number
+    height?: number
+  }
+  github: string | null       // URL path to the GitHub repository (if configured)
+  social: SocialLink[]        // Array of custom social link icons and URLs
+  theme: 'light' | 'dark'     // The active user theme state
+  config: BoltdocsConfig      // Full parsed Boltdocs configuration file
+}
+```
+
+---
+
+## Ejemplo de Uso
+
+```tsx
+import React from 'react'
+import { useNavbar } from 'boltdocs/client'
+
+export default function SimpleHeader() {
+  const { title, links, logo } = useNavbar()
+
+  return (
+    <header className="flex justify-between items-center px-6 py-4">
+      <div className="flex items-center gap-2">
+        {logo && <img src={logo} alt={title} className="h-6 w-auto" />}
+        <span className="font-bold">{title}</span>
+      </div>
+      
+      <nav className="flex gap-4">
+        {links.map((link) => (
+          <a
+            key={link.href}
+            href={link.href}
+            className={link.active ? 'text-primary' : 'text-muted'}
+          >
+            {link.label}
+          </a>
+        ))}
+      </nav>
+    </header>
+  )
+}
+```

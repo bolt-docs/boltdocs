@@ -1,0 +1,51 @@
+---
+title: Button
+sidebarPosition: 1
+description: Primitiva de botón interactivo envuelta en React Aria Components.
+---
+
+La primitiva `Button` es un componente de botón interactivo sin estilos y totalmente accesible que soporta navegación por teclado, accesibilidad para lectores de pantalla y estados de hover/foco/presión.
+
+---
+
+## Importación
+
+```tsx
+import { Button } from 'boltdocs/primitives'
+```
+
+---
+
+## Inicio Rápido
+
+Crea un envoltorio de botón interactivo accesible y estilizado:
+
+```tsx
+import { Button } from 'boltdocs/primitives'
+
+export default function PrimaryButton() {
+  return (
+    <Button
+      onPress={() => alert('¡Botón Presionado!')}
+      className="px-4 py-2 bg-primary-500 text-white rounded-lg hover:bg-primary-600 focus:outline-2 focus:outline-primary-500"
+    >
+      Haz clic aquí
+    </Button>
+  )
+}
+```
+
+---
+
+## Props del Componente
+
+El componente `Button` acepta todas las propiedades de `ButtonProps` de React Aria más estilos utilitarios comunes:
+
+| Propiedad | Tipo | Predeterminado | Descripción |
+| :--- | :--- | :--- | :--- |
+| **`onPress`** | `(e: PressEvent) => void` | `undefined` | Callback que se activa cuando el botón es presionado (ya sea por clic, toque o espacio/enter del teclado). |
+| **`isDisabled`** | `boolean` | `false` | Deshabilita el botón, previene interacciones y establece `aria-disabled="true"`. |
+| **`type`** | `'button' \| 'submit' \| 'reset'` | `'button'` | El tipo del elemento HTML button. |
+| **`className`** | `string` | `undefined` | Sobrescrituras de clases CSS utilitarias personalizadas. |
+| **`style`** | `CSSProperties` | `undefined` | Sobrescrituras de estilo en línea. |
+| **`children`** | `ReactNode` | `undefined` | El texto de la etiqueta o elementos gráficos a renderizar dentro del botón. |

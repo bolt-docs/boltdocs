@@ -1,0 +1,246 @@
+---
+title: Colecciones
+sidebarPosition: 1
+description: Las colecciones te permiten agrupar documentos relacionados bajo directorios dinámicos con generación automática de rutas. Al definir convenciones basadas en carpetas, puedes desacoplar las páginas de documentación estándar de listas personalizadas, páginas de publicaciones y diseños personalizados.
+badge: "New"
+---
+
+## Inicio Rápido
+
+Crear una nueva colección solo requiere dos pasos:
+
+### 1. Crea una carpeta entre corchetes
+
+Agrega un directorio que comience con `[` y termine con `]` dentro de tu directorio `docs/` y coloca tus archivos MDX/Markdown dentro.
+
+```bash
+mkdir -p docs/docs/\[blog\]
+touch docs/docs/\[blog\]/first-post.mdx
+```
+
+### 2. Agrega Frontmatter
+
+Agrega metadatos en la parte superior de tus archivos markdown. Boltdocs registrará automáticamente estos archivos como publicaciones de colección.
+
+```md
+---
+title: "Introducing Boltdocs Collections"
+date: 2026-05-28
+author: Jesús Alcalá
+excerpt: "A look at the new flexible collection routing."
+---
+
+Welcome to the future of dynamic collections in Boltdocs!
+```
+
+¡Listo! Tu publicación será accesible en `/blog/first-post` y un índice de lista de colección se generará automáticamente en `/blog`.
+
+---
+
+## Cómo Funciona
+
+Boltdocs interpreta los nombres de directorios entre corchetes (por ejemplo `[blog]`, `[releases]`) como colecciones.
+
+```
+docs/
+└── docs/
+    └── [blog]/                  → Espacio de Nombres de Colección Dinámica
+        ├── list.tsx             → Diseño Personalizado del Índice de Colección (Opcional)
+        ├── post.tsx             → Diseño Personalizado de Vista de Publicación (Opcional)
+        ├── layout.tsx           → Diseño Raíz Personalizado para esta Colección (Opcional)
+        ├── first-post.mdx       → Página de publicación en `/blog/first-post`
+        └── second-post.mdx      → Página de publicación en `/blog/second-post`
+```
+
+### Reglas de Convención de Carpetas:
+1. **Espacio de Nombres Dinámico**: El nombre de la carpeta entre corchetes (por ejemplo `[blog]`) se mapea al ID de colección (`blog`) y sirve como ruta base de URL `/blog`.
+2. **Sobrescritura de Lista (`list.tsx`)**: Si existe, sobrescribe la página de listado de índice en `/blog`. Recibe la lista de todas las publicaciones en la colección.
+3. **Sobrescritura de Publicación (`post.tsx`)**: Si existe, sobrescribe el diseño contenedor para publicaciones individuales (por ejemplo `/blog/first-post`).
+4. **Sobrescritura de Diseño (`layout.tsx`)**: Si existe, actúa como el diseño contenedor de la ruta raíz (con su propia barra lateral o contexto de navegación) para todas las rutas dentro de la colección.
+
+---
+
+## Diseño de Vistas Personalizadas
+
+Para sobrescribir la apariencia predeterminada de tus colecciones, puedes colocar componentes React estándar directamente en la carpeta de la colección.
+
+### Componente de Publicación Personalizado (`post.tsx`)
+
+Un componente de publicación personalizado te permite diseñar cómo se renderizan las entradas individuales (como un artículo de blog). A continuación se muestra un ejemplo que solo muestra el título, fecha, autor y extracto:
+
+```tsx
+import { useLoaderData } from 'react-router-dom'
+import { useMergedComponents } from 'boltdocs/client'
+import type { CollectionPostLoaderData } from 'boltdocs/client'
+
+export default function BlogPost({ MDXComponent, mdxComponents }: any) {
+  const data = useLoaderData() as CollectionPostLoaderData
+  const { route } = data
+  const { title, date, author, excerpt, lastUpdated } = route
+  const { Frontmatter } = route
+
+  const allComponents = useMergedComponents(mdxComponents)
+  const { LastUpdated } = allComponents
+
+  return (
+    <article className="max-w-3xl mx-auto py-12 px-4 sm:px-6 lg:px-8">
+      <header className="mb-10 pb-8 border-b border-gray-200 dark:border-gray-800">
+        {title && (
+          <h1 className="text-4xl font-extrabold tracking-tight text-gray-900 dark:text-white mb-4">
+            {title}
+          </h1>
+        )}
+        
+        <div className="flex items-center space-x-4 text-sm text-gray-500 dark:text-gray-400 mt-6">
+          {date && (
+            <time dateTime={new Date(date).toISOString()}>
+              {new Date(date).toLocaleDateString(undefined, {
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric',
+              })}
+            </time>
+          )}
+          
+          {author && (
+            <>
+              <span aria-hidden="true">&middot;</span>
+              <span>{typeof author === 'string' ? author : author.name}</span>
+            </>
+          )}
+        </div>
+        
+        {excerpt && (
+          <p className="mt-6 text-xl text-gray-600 dark:text-gray-300">
+            {excerpt}
+          </p>
+        )}
+      </header>
+      
+      <div className="prose prose-blue dark:prose-invert max-w-none">
+        <MDXComponent components={allComponents} />
+      </div>
+      
+      {lastUpdated && LastUpdated && (
+        <div className="mt-12 pt-8 border-t border-gray-200 dark:border-gray-800">
+          <LastUpdated date={lastUpdated} />
+        </div>
+      )}
+    </article>
+  )
+}
+```
+
+---
+
+## Referencia de API
+
+### Estructuras de Datos del Cargador
+
+Cuando escribes archivos `list.tsx` o `post.tsx` personalizados, obtienes los datos de la colección importando `useLoaderData` desde `react-router-dom`. Las estructuras están tipadas y exportadas bajo `boltdocs/client`.
+
+#### CollectionPostLoaderData
+
+Retornado por los cargadores de React Router para rutas de publicaciones de colección.
+
+| Propiedad | Tipo | Predeterminado | Descripción |
+| :--- | :--- | :--- | :--- |
+| **`route`** | [`ComponentRoute`](#componentroute) | — | Metadatos detallados de la ruta extraídos del frontmatter de la publicación. |
+| **`collection`** | `string` | — | El nombre de la colección a la que pertenece esta publicación (por ejemplo `'blog'`). |
+| **`headings`** | `Heading[]` | `[]` | Encabezados de página extraídos para generar tabla de contenido dinámica (TOC). |
+
+#### CollectionListLoaderData
+
+Retornado por los cargadores de React Router para índices de listas de colección (por ejemplo `/blog`).
+
+| Propiedad | Tipo | Predeterminado | Descripción |
+| :--- | :--- | :--- | :--- |
+| **`posts`** | [`CollectionPostItem[]`](#collectionpostitem) | `[]` | Arreglo paginado de todas las publicaciones en la colección. |
+| **`totalPages`** | `number` | `1` | Número total de páginas basado en la cantidad de publicaciones. |
+| **`currentPage`** | `number` | `1` | Número de página actual (índice basado en 1). |
+| **`collection`** | `string` | — | El nombre del identificador de la colección. |
+
+---
+
+### Hooks
+
+Boltdocs proporciona varios hooks de React bajo `boltdocs/client` para obtener tus colecciones desde cualquier parte de tu aplicación (como barras laterales, pies de página o páginas de inicio personalizadas).
+
+#### `usePosts(collection: string)`
+
+Retorna un arreglo de todas las publicaciones en una colección específica.
+
+```tsx
+import { usePosts } from 'boltdocs/client'
+
+function BlogList() {
+  const posts = usePosts('blog')
+  return (
+    <ul>
+      {posts.map(post => <li key={post.path}>{post.title}</li>)}
+    </ul>
+  )
+}
+```
+
+#### `usePost(collection: string, slug: string)`
+
+Retorna una publicación específica por su slug (o ruta completa) desde una colección, o `undefined` si no se encuentra.
+
+```tsx
+import { usePost } from 'boltdocs/client'
+
+function FeaturedPost() {
+  const post = usePost('blog', 'boltdocs-2.9.0')
+  return <div>{post?.title}</div>
+}
+```
+
+#### `useRecentPosts(collection: string, count?: number)`
+
+Retorna las publicaciones más recientes de una colección. La cantidad predeterminada es 5.
+
+```tsx
+import { useRecentPosts } from 'boltdocs/client'
+
+function RecentUpdates() {
+  const recent = useRecentPosts('changelog', 3)
+  // ...
+}
+```
+
+---
+
+### ComponentRoute
+
+El tipo de mapeo de metadatos extraídos del frontmatter de tus archivos.
+
+| Propiedad | Tipo | Predeterminado | Descripción |
+| :--- | :--- | :--- | :--- |
+| **`title`** | `string` | `''` | Título de la publicación, obtenido del frontmatter `title`. |
+| **`date`** | `string \| Date` | `undefined` | Fecha de publicación, obtenida del frontmatter `date`. |
+| **`author`** | `string \| AuthorObject` | `undefined` | Detalles del autor, soporta cadenas simples u objetos con `name` y `avatar`. |
+| **`excerpt`** | `string` | `''` | Descripción corta o extracto. |
+| **`lastUpdated`** | `string \| number` | `undefined` | La marca de tiempo del último commit de git (o override manual). |
+| **`frontmatter`** | `Record<string, any>` | `{}` | Objeto extensible con todos los parámetros de frontmatter personalizados. |
+
+---
+
+## Personalización Avanzada
+
+### Paginación
+Si no defines un `list.tsx` personalizado, Boltdocs proporciona una página de listado de respaldo. Sin embargo, puedes implementar paginación fácilmente dentro de tu `list.tsx` personalizado usando los números de página proporcionados en `CollectionListLoaderData`. La ruta de listados mapea a números de página como cadenas de consulta o sufijos de ruta automáticamente.
+
+Por defecto, cada página muestra 10 publicaciones, pero puedes configurar esto globalmente mediante `collections.postsPerPage` en tu `boltdocs.config.ts`:
+
+```ts title="boltdocs.config.ts"
+export default defineConfig({
+  collections: {
+    postsPerPage: 12, // Personaliza elementos por página
+  },
+})
+```
+
+<Callout variant="info" title="Acceso a Metadatos">
+  Todos los parámetros escritos en el frontmatter de tu publicación se preservan en la propiedad de registro `frontmatter` dentro de `route`. Esto significa que puedes agregar banderas personalizadas (como `featured: true` o `readingTime: '5 min'`) y consumirlas de forma segura en tus componentes personalizados.
+</Callout>

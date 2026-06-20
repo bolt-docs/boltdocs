@@ -1,0 +1,78 @@
+---
+title: Callout
+sidebarPosition: 1
+description: Usa Callouts para resaltar información importante, consejos, advertencias o cambios importantes en tu documentación.
+---
+
+El componente `<Callout>` se utiliza para atraer la atención del lector hacia notas al margen críticas, consejos o detalles de advertencia. Soporta cinco variantes con colores e iconos etiquetados listas para usar.
+
+---
+
+## Uso
+
+```mdx
+<Callout variant="note" title="Nota Importante">
+  Aquí hay un aviso estándar para proporcionar contexto al usuario.
+</Callout>
+```
+
+---
+
+## Variantes
+
+Aquí están las cinco variantes visuales disponibles:
+
+### Note (Predeterminada)
+Usada para explicaciones neutrales y suplementarias.
+
+```mdx
+<Callout variant="note" title="Nota">
+  Esta es una nota al margen neutral.
+</Callout>
+```
+
+### Info
+Usada para resaltar aspectos o características técnicas clave.
+
+```mdx
+<Callout variant="info" title="Info">
+  Esto explica los mecanismos internos de renderizado.
+</Callout>
+```
+
+### Tip
+Usada para mejores prácticas y sugerencias de eficiencia.
+
+```mdx
+<Callout variant="tip" title="Consejo">
+  ¡Usa la división de código para reducir los tamaños de paquete!
+</Callout>
+```
+
+### Warning
+Usada para trampas, avisos de descontinuación o condiciones que requieren precaución.
+
+```mdx
+<Callout variant="warning" title="Advertencia">
+  Ten en cuenta que las APIs antiguas podrían eliminarse en versiones futuras.
+</Callout>
+```
+
+### Danger
+Usada para cambios importantes, advertencias de seguridad o riesgos críticos.
+
+```mdx
+<Callout variant="danger" title="Cambio Importante">
+  La actualización a la versión 2 requiere migraciones de esquema.
+</Callout>
+```
+
+---
+
+## Props
+
+| Prop | Tipo | Predeterminado | Descripción |
+| :--- | :--- | :--- | :--- |
+| **`variant`** | `'note' \| 'info' \| 'tip' \| 'warning' \| 'danger'` | `'note'` | El estilo visual, icono y colores aplicados al contenedor del callout. |
+| **`title`** | `string` | *(Nombre de la variante)* | Etiqueta en negrita mostrada en la parte superior de la caja del callout. |
+| **`children`** | `ReactNode` | — | El contenido principal o texto del cuerpo renderizado dentro del bloque del callout. |

@@ -1,0 +1,124 @@
+---
+title: Páginas Externas
+sidebarPosition: 5
+description: Registra páginas React que no son MDX en el router de Boltdocs usando la convención pages-external.
+---
+
+Boltdocs te permite registrar páginas React personalizadas que viven fuera del pipeline MDX. Esto es útil para landing pages, layouts completamente personalizados o páginas que necesitan interactividad del lado del cliente más allá de lo que Markdown ofrece.
+
+---
+
+## Cómo Funciona
+
+Crea una carpeta `pages-external/` en tu directorio de docs. Boltdocs importa automáticamente cualquier archivo `index.tsx` que encuentre allí y fusiona sus rutas en el router.
+
+```
+docs/
+├── pages-external/
+│   └── index.tsx        → Rutas React personalizadas
+├── guides/
+│   └── index.mdx        → Rutas MDX
+└── index.md             → Ruta MDX
+```
+
+---
+
+## Definiendo Páginas
+
+En `pages-external/index.tsx`, exporta un objeto `pages` que mapee rutas de URL a componentes React:
+
+```tsx title="pages-external/index.tsx"
+import HomePage from '../../src/pages/home-page'
+
+export const pages = {
+  '/': HomePage,
+  '/custom': MyCustomPage,
+}
+```
+
+<Callout variant="info">
+  Las páginas externas NO se envuelven en el layout de docs por defecto. Tú controlas el layout completamente a través del export `layout`.
+</Callout>
+
+---
+
+## Layout Personalizado
+
+También puedes exportar una función `layout` para envolver todas las páginas externas:
+
+```tsx title="pages-external/index.tsx"
+import { Navbar, Sidebar } from 'boltdocs/client'
+import HomePage from '../../src/pages/home-page'
+
+export const pages = {
+  '/': HomePage,
+}
+
+export const layout = ({ children }: { children: React.ReactNode }) => (
+  <div className="min-h-screen">
+    <Navbar />
+    <div className="flex">
+      <Sidebar />
+      <main className="flex-1 p-8">
+        {children}
+      </main>
+    </div>
+  </div>
+)
+```
+
+---
+
+## Ejemplo Completo
+
+Aquí hay un `pages-external/index.tsx` completo con landing page y layout personalizado:
+
+```tsx title="pages-external/index.tsx"
+import { Navbar, Sidebar, SearchDialog } from 'boltdocs/client'
+import LandingPage from '../../src/pages/landing-page'
+import PricingPage from '../../src/pages/pricing-page'
+
+export const pages = {
+  '/': LandingPage,
+  '/pricing': PricingPage,
+}
+
+export const layout = ({ children }: { children: React.ReactNode }) => (
+  <div className="min-h-screen bg-white dark:bg-zinc-900">
+    <Navbar />
+    <SearchDialog />
+    {children}
+  </div>
+)
+```
+
+---
+
+## Usando Componentes de Boltdocs
+
+Las páginas externas pueden importar cualquier componente exportado de `boltdocs/client`:
+
+```tsx title="pages-external/index.tsx"
+import { Navbar, Sidebar, SearchDialog, Breadcrumbs } from 'boltdocs/client'
+```
+
+Esto te da acceso a las mismas primitivas de UI usadas en el layout de docs por defecto.
+
+---
+
+## Limitaciones
+
+- Las páginas externas **no** soportan características MDX como `<Callout>` o `<Card>`
+- Frontmatter no está disponible — todos los metadatos deben manejarse en React
+- La indexación de búsqueda funciona automáticamente, pero puedes necesitar registrar encabezados manualmente a través de metadatos de ruta
+
+---
+
+## Cuándo Usar Páginas Externas
+
+| Caso de Uso | Enfoque Recomendado |
+| :--- | :--- |
+| Landing page | Página externa con layout personalizado |
+| Página de precios | Página externa |
+| Tema de docs completamente personalizado | `layout.tsx` personalizado en la raíz de docs |
+| Blog con contenido MDX | Rutas MDX (no se necesita página externa) |

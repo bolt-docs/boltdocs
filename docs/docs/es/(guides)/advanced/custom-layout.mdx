@@ -1,0 +1,180 @@
+---
+title: Layout Personalizado
+sidebarPosition: 4
+description: Sobreescribe el layout de docs por defecto con tu propio componente React usando docs/layout.tsx.
+---
+
+Boltdocs envuelve cada página MDX en un layout. Por defecto, usa `DocsLayout` que incluye la navbar, sidebar, área de contenido y navegación "En esta página". Puedes sobreescribir esto creando un layout personalizado.
+
+---
+
+## Creando un Layout Personalizado
+
+Crea `docs/layout.tsx` en tu carpeta de docs:
+
+```tsx title="docs/layout.tsx"
+import { DocsLayout } from 'boltdocs/client'
+
+export default function Layout({ children }: { children: React.ReactNode }) {
+  return <DocsLayout>{children}</DocsLayout>
+}
+```
+
+Esto reemplaza el layout por defecto para **todas** las páginas de tus docs.
+
+---
+
+## Layout Personalizado Completo
+
+Para control total, construye tu propio layout desde primitivas:
+
+```tsx title="docs/layout.tsx"
+import { Navbar, Sidebar, OnThisPage, Breadcrumbs, PageNav } from 'boltdocs/client'
+
+export default function CustomLayout({
+  children,
+  frontmatter,
+  headings,
+}: {
+  children: React.ReactNode
+  frontmatter: Record<string, any>
+  headings: { id: string; text: string; level: number }[]
+}) {
+  return (
+    <div className="min-h-screen">
+      <Navbar />
+      <div className="flex">
+        <Sidebar />
+        <div className="flex-1 max-w-4xl mx-auto px-8 py-12">
+          <Breadcrumbs />
+          <article className="prose dark:prose-invert max-w-none">
+            {children}
+          </article>
+          <OnThisPage headings={headings} />
+          <PageNav />
+        </div>
+      </div>
+    </div>
+  )
+}
+```
+
+---
+
+## Props del Layout
+
+Tu layout personalizado recibe estas props:
+
+| Prop | Tipo | Descripción |
+| :--- | :--- | :--- |
+| **`children`** | `ReactNode` | El contenido MDX renderizado |
+| **`frontmatter`** | `Record<string, any>` | Los campos de frontmatter de la página actual |
+| **`headings`** | `Heading[]` | Encabezados extraídos para "En esta página" |
+
+### Tipo `Heading`
+
+```ts
+interface Heading {
+  id: string
+  text: string
+  level: number // 1-6 (h1-h6)
+}
+```
+
+---
+
+## Usando Componentes de DocsLayout
+
+Boltdocs exporta primitivas de layout que puedes combinar:
+
+| Componente | Propósito |
+| :--- | :--- |
+| **`DocsLayout`** | Layout por defecto con navbar, sidebar, contenido, "En esta página" |
+| **`Navbar`** | Barra de navegación superior con pestañas y búsqueda |
+| **`Sidebar`** | Sidebar izquierda con grupos y secciones plegables |
+| **`OnThisPage`** | Tabla de contenidos del lado derecho |
+| **`Breadcrumbs`** | Navegación de ruta debajo de la navbar |
+| **`PageNav`** | Navegación de página anterior/siguiente en la parte inferior |
+| **`SearchDialog`** | Modal de búsqueda global |
+
+---
+
+## Ejemplo de Layout: Estilo Landing Page
+
+```tsx
+import { Navbar, SearchDialog } from 'boltdocs/client'
+
+export default function LandingLayout({
+  children,
+}: {
+  children: React.ReactNode
+}) {
+  return (
+    <div className="min-h-screen bg-linear-to-b from-white to-zinc-50 dark:from-zinc-900 dark:to-zinc-950">
+      <Navbar />
+      <SearchDialog />
+      <main className="max-w-5xl mx-auto px-6 py-20">
+        {children}
+      </main>
+    </div>
+  )
+}
+```
+
+---
+
+## Layouts Condicionales
+
+Usa frontmatter para seleccionar diferentes layouts:
+
+```tsx
+// docs/layout.tsx
+import { DocsLayout } from 'boltdocs/client'
+
+export default function Layout(props: any) {
+  if (props.frontmatter?.layout === 'landing') {
+    return <LandingLayout {...props} />
+  }
+  return <DocsLayout>{props.children}</DocsLayout>
+}
+```
+
+Luego en tu MDX:
+
+```md
+---
+title: Welcome
+layout: landing
+---
+```
+
+---
+
+## Combinando con Páginas Externas
+
+Las páginas externas (`pages-external/`) tienen su propio export `layout`. Usa el mismo enfoque para consistencia:
+
+```tsx
+// docs/pages-external/index.tsx
+import { Navbar } from 'boltdocs/client'
+import CustomPage from './CustomPage'
+
+export const pages = {
+  '/custom': CustomPage,
+}
+
+export const layout = ({ children }: { children: React.ReactNode }) => (
+  <div className="custom-wrapper">
+    <Navbar />
+    {children}
+  </div>
+)
+```
+
+---
+
+## Notas de Rendimiento
+
+- Los layouts personalizados se renderizan del lado del servidor durante SSG
+- En modo dev, los cambios de layout activan hot reload
+- Los layouts personalizados pesados pueden ralentizar la carga inicial — mantenlos ligeros

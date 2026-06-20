@@ -1,0 +1,77 @@
+---
+title: Link
+sidebarPosition: 6
+description: Anclas de enlace localizadas integradas con el router.
+---
+
+Las primitivas `Link` y `NavLink` extienden los enlaces de anclaje HTML estándar integrando locales de idioma, directorios base y navegación de rutas SPA.
+
+---
+
+## Importación
+
+```tsx
+import { Link, NavLink } from 'boltdocs/primitives'
+```
+
+---
+
+## Inicio Rápido
+
+Crea enlaces de enrutamiento localizados y conscientes de SPA:
+
+```tsx
+import { Link, NavLink } from 'boltdocs/primitives'
+
+export default function SidebarNav() {
+  return (
+    <div className="flex flex-col gap-2">
+      {/* 1. Navegación localizada estándar */}
+      <Link href="/getting-started" className="text-primary-500 hover:underline">
+        Primeros Pasos
+      </Link>
+
+      {/* 2. NavLink con resaltado automático de estado activo */}
+      <NavLink
+        href="/api/config-reference"
+        className={({ isActive }) =>
+          `px-3 py-1 rounded text-sm ${isActive ? 'bg-primary-500 text-white' : 'text-muted hover:bg-soft'}`
+        }
+      >
+        Referencia de Configuración
+      </NavLink>
+    </div>
+  )
+}
+```
+
+---
+
+## Mecanismos Internos
+
+* **Localización**: Las cadenas `href` directas (como `/getting-started`) se analizan y traducen automáticamente a través del hook `useLocalizedTo`. Por ejemplo, en una página localizada en español, `/getting-started` se transforma transparentemente a `/es/getting-started`.
+* **Enrutamiento SPA**: Los clics en enlaces internos interceptan la navegación predeterminada del navegador para realizar enrutamiento rápido del lado del cliente, previniendo recargas completas de página.
+
+---
+
+## Props del Componente
+
+### Props de `Link`
+
+Hereda todos los atributos estándar del elemento HTML `anchor` (`<a>`):
+
+| Propiedad | Tipo | Predeterminado | Descripción |
+| :--- | :--- | :--- | :--- |
+| **`href`** | `string` | `undefined` | Ruta de destino de la ruta (por ejemplo, `/docs/getting-started`). |
+| **`prefetch`** | `'hover' \| 'none'` | `'hover'` | Estrategia de precarga para objetivos de enlaces del router. |
+
+### Props de `NavLink`
+
+Extiende las propiedades estándar de `Link`:
+
+| Propiedad | Tipo | Predeterminado | Descripción |
+| :--- | :--- | :--- | :--- |
+| **`href`** | `string` | `undefined` | Ruta de destino. |
+| **`end`** | `boolean` | `false` | Si se establece en `true`, el enlace solo se resalta como activo cuando las rutas coinciden exactamente. |
+| **`className`** | `string \| ((props: { isActive: boolean }) => string)` | `undefined` | Nombre de clase de estilo, soportando funciones de lógica condicional. |
+| **`children`** | `ReactNode \| ((props: { isActive: boolean }) => ReactNode)` | `undefined` | Nodos hijos, soportando funciones de renderizado condicional. |

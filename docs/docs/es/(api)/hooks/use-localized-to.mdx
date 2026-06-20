@@ -1,0 +1,64 @@
+---
+title: useLocalizedTo
+description: Hook de utilidad para agregar automáticamente segmentos de idioma y versión a los enlaces de rutas.
+---
+
+El hook `useLocalizedTo` agrega prefijos a los enlaces de rutas con la versión activa y los códigos de idioma de la región para que los usuarios no pierdan su contexto de ubicación actual al hacer clic en anclas internas.
+
+---
+
+## Importación
+
+```tsx
+import { useLocalizedTo } from 'boltdocs/client'
+```
+
+---
+
+## Firma del Método
+
+```ts
+function useLocalizedTo(to: string): string
+```
+
+### Parámetros
+
+- **`to`** (`string`): La ruta relativa del enlace de destino (ej. `/getting-started`).
+
+### Valor de Retorno
+
+- Retorna la cadena de ruta de destino completamente construida que contiene los subdirectorios de versión y idioma activos (ej. `/docs/2.x/es/getting-started`).
+
+---
+
+## Reglas de Comportamiento
+
+- **Entradas sin cambios**: Los enlaces externos absolutos (`http://`, `https://`, `//`) o las anclas de destino hash (`#installation`) se omiten y retornan sin modificar.
+- **Resolución de Contexto de Docs**: Si la configuración contiene rutas `base`, el hook inyecta la etiqueta de versión activa y el código de idioma entre los directorios base y de contenido:
+  `"/getting-started"` ➔ `"/docs/[version]/[locale]/getting-started"`
+- **Contexto de Páginas Externas**: Las URLs de enrutamiento que no son de docs se prefijan solo con el código de idioma activo:
+  `"/about"` ➔ `"/es/about"`
+
+---
+
+## Ejemplo de Uso
+
+A continuación se muestra un componente de selector de enlaces personalizado que maneja la localización de enrutamiento usando el hook `useLocalizedTo`:
+
+```tsx
+import React from 'react'
+import { useLocalizedTo } from 'boltdocs/client'
+
+export default function LocalLink({ href, label }: { href: string; label: string }) {
+  const targetPath = useLocalizedTo(href)
+
+  return (
+    <a
+      href={targetPath}
+      className="text-sm text-zinc-500 hover:text-zinc-950 transition-colors"
+    >
+      {label}
+    </a>
+  )
+}
+```

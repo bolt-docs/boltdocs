@@ -1,0 +1,133 @@
+---
+title: "Boltdocs 2.9.0 — DUI, Feedback, Math y mucho pulido"
+description: "DUI se vuelve independiente, integración de feedback, plugin oficial de matemáticas, hook transformSource, banderas de desarrollo, corrección de bugs y un nuevo optimizador de imágenes"
+date: 2026-06-06
+cover: /blog-covers/Boltdocs-2.9.0.webp
+author:
+  name: Jesús Alcalá
+  avatar: /avatar.jpeg
+excerpt: "2.9.0 lanza el toolkit DUI como paquete independiente, soporte nativo de feedback, un plugin de matemáticas con KaTeX, el hook de ciclo de vida transformSource, banderas CLI para desarrollo, una larga lista de correcciones de bugs y un optimizador de imágenes completamente nuevo."
+---
+
+## Esta se trata de compartir
+
+2.8.0 fue sobre escala — división de código, presupuestos, tipos estrictos. 2.9.0 es sobre tomar las piezas que construí y llevarlas más lejos al mundo.
+
+<Callout type="info">
+  DUI ahora es su propio paquete, el feedback funciona out of the box, las matemáticas se ven hermosas con KaTeX, la API de plugins tiene un nuevo hook `transformSource`, el desarrollo tiene banderas CLI y finalmente corregí ese flash de tema que me ha estado molestando durante meses.
+</Callout>
+
+---
+
+## DUI se vuelve independiente
+
+Construí `@bdocs/dui` como un toolkit interno para el CLI de Boltdocs — salida con colores, spinners, tablas, barras de progreso, lo típico de UI de terminal. Pero cuanto más lo usaba, más pensaba: ¿por qué quedarme solo con esto?
+
+Así que lo separé en su propio repositorio — [`bolt-docs/dui`](https://github.com/bolt-docs/dui) — con una API adecuada, documentación y un playground en vivo en [dui-terms.vercel.app](https://dui-terms.vercel.app). Cualquiera puede usarlo ahora, no solo Boltdocs. Mejor superficie de API, mejores tipos, mejor todo.
+
+Y sí — sigue siendo la biblioteca de UI de terminal más rápida que existe. Boltdocs simplemente tiende a hacer todo más rápido.
+
+---
+
+## Soporte nativo de feedback
+
+Quería una forma para que los lectores me digan cuando algo está mal — o cuando está bien. Así que construí un sistema de feedback directamente en Boltdocs.
+
+Agrega la configuración y cada página obtiene un widget de pulgar arriba/abajo. Funciona en dos modos:
+
+- **Desarrollo/Vista previa**: un middleware de Vite intercepta las solicitudes POST a `/api/feedback` — cero configuración
+- **Producción**: despliega una función serverless usando la exportación `handleFeedbackRequest` (o Netlify, Cloudflare, AWS, Vercel)
+
+El hook [`useFeedback`](/docs/integrations/features/feedback) te da `rating`, `comment`, `submit` y todo el manejo de estado. Los bloques de código pueden tener su propio feedback por fragmento — revisa `showCodeBlockFeedback` en el hook [`useCodeBlock`](/docs/components/mdx/code-blocks).
+
+Visita la [documentación de feedback](/docs/integrations/features/feedback) para la configuración completa.
+
+---
+
+## Plugin-Math: Ecuaciones hermosas
+
+He querido esto por un tiempo. `@bdocs/plugin-math` te permite escribir LaTeX en tu MDX usando los delimitadores familiares `$...$` y `$$...$$`:
+
+```mdx
+Cuando $a \ne 0$, hay dos soluciones para $ax^2 + bx + c = 0$ y son
+
+$$ x = {-b \pm \sqrt{b^2-4ac} \over 2a} $$
+```
+
+Internamente usa un hook `transformSource` para convertir esos delimitadores en componentes `<Math>` y `<BlockMath>` antes de que el parser MDX los vea. KaTeX maneja el renderizado del lado del cliente — CSS cargado desde CDN, cero configuración requerida.
+
+Instálalo con `pnpm add @bdocs/plugin-math`, agrega `mathPlugin()` a los plugins de tu configuración y listo. Lee la [documentación de plugin-math](/docs/plugins/plugin-math) para más detalles.
+
+---
+
+## `transformSource` — Un nuevo hook de plugins
+
+Hablando de `transformSource` — ahora es un hook de ciclo de vida de primera clase en la API de plugins. Se ejecuta en la fuente MDX en bruto **antes** de la compilación, para que puedas transformar patrones de texto, inyectar contenido o preprocesar sintaxis antes de que el parser MDX lo toque.
+
+Múltiples plugins pueden registrar cada uno un hook `transformSource` y se encadenan — la salida de cada uno alimenta al siguiente. El plugin de matemáticas fue el primer caso de uso real, pero veo mucho potencial aquí para extensiones de sintaxis personalizadas, plantillas o preprocesamiento.
+
+Revisa la [documentación de plugins](/docs/plugins) para la firma completa del hook.
+
+---
+
+## Banderas de desarrollo: `--port`, `--host`, `--force`
+
+Tres banderas que finalmente agregué a `boltdocs dev`:
+
+- **`--port <number>`** — puerto del servidor de desarrollo (por defecto 5173)
+- **`--host [address]** — vincular a una dirección específica, o `--host` sin argumentos para exponer a tu red local
+- **`--force`** — forzar la re-optimización de dependencias de Vite
+
+Nada fancy — solo banderas que escribía manualmente y me cansé de hacerlo. Documentación completa en la [página de CLI](/docs/api/cli).
+
+---
+
+## Corrección de bugs y pulido
+
+Este lanzamiento tuvo una ronda sólida de correcciones para cosas que me han estado molestando:
+
+- **Flash de tema en la navegación** — el cambio de modo oscuro/claro ya no parpadea al navegar entre páginas
+- **`collapsible: true` / `collapsed: false` en meta_loaders** — estas opciones de configuración de la barra lateral estaban siendo ignoradas. Ahora funcionan como se espera
+- **Rutas planas de page-nav** — el componente de navegación de página ahora aplan correctamente las rutas anidadas
+- **Sincronización i18n** — se corrigió una condición de carrera donde cambiar de idioma podía dejar algunos elementos de UI sin traducir
+- **Mejoras en la API de code-block** — el hook `useCodeBlock` obtuvo mejor tipado, resolución de `LangIcon` y la API del componente `pre` personalizado es más predecible
+
+---
+
+## Plugin-Image-Optimizer
+
+Un nuevo paquete interno: `@bdocs/plugin-image-optimizer`. Es un fork de [vite-plugin-image-optimizer](https://github.com/FatehAK/vite-plugin-image-optimizer/) — pero lo optimicé para Boltdocs.
+
+Qué es diferente:
+- **Caché persistente** — las imágenes no se re-optimizan en cada construcción. La caché se indexa por hash de contenido y sobrevive reinicios
+- **Procesamiento paralelo** — los hilos de trabajo usan todos los núcleos disponibles (menos uno) con transferencia de buffer zero-copy
+- **Integración de escala** — funciona con el sistema `AssetCache` de Boltdocs y respeta la estructura de directorio `.boltdocs/cache/`
+- **Salida de estadísticas** — una tabla impulsada por DUI muestra cuánto ahorró cada formato
+
+Maneja PNG, JPEG, WebP, AVIF, GIF, TIFF y SVG (a través de Sharp + SVGO). La sección de plugins del sitio de documentación oficial tendrá una página pronto — por ahora, revisa el README del paquete.
+
+---
+
+## Actualización de documentación
+
+Pasé tiempo actualizando la documentación oficial en todos los frentes — la página del sistema de plugins, la referencia del CLI, las guías de componentes y la documentación de integraciones todas se limpiaron. Las páginas de feedback y matemáticas son completamente nuevas, y la guía de code-blocks es mucho más completa.
+
+---
+
+## Qué sigue
+
+Ya estoy trabajando en la siguiente ronda. Esto es lo que viene:
+
+- **Giscus** — integración de comentarios/discusiones para páginas de documentación
+- **Vercel Analytics & Speed Insights** — analíticas con un clic y cero configuración
+- **Verificación de Google Search Console** — inyección de meta tag para verificación del sitio
+- **Mejoras en la API de búsqueda** — mejor ranking, coincidencia difusa y vistas previas de resultados
+- **Documentación en español** — la documentación oficial obtendrá una traducción completa al español
+
+Instala o actualiza:
+
+```bash
+pnpm add boltdocs@latest
+```
+
+Revisa la [documentación completa](/docs/) para explorar todo lo nuevo.

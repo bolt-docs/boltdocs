@@ -1,0 +1,64 @@
+---
+title: getTranslated
+description: Extraer valores traducidos de un diccionario de mapeo de idiomas.
+---
+
+La utilidad `getTranslated` extrae cadenas localizadas o páginas dependiendo del código de idioma activo.
+
+---
+
+## Importación
+
+```tsx
+import { getTranslated } from 'boltdocs/client'
+```
+
+---
+
+## Firma
+
+```ts
+function getTranslated(
+  value: string | Record<string, string> | undefined,
+  locale: string,
+  fallback?: string
+): string
+```
+
+### Parámetros
+
+| Nombre | Tipo | Descripción |
+| :--- | :--- | :--- |
+| **`value`** | `string \| Record<string, string> \| undefined` | Un mapa de localización clave-valor o una cadena predeterminada simple. |
+| **`locale`** | `string` | La clave de idioma de la región activa (ej. `'es'`). |
+| **`fallback`** | `string` | Etiqueta de respaldo retornada si la región actual no coincide con ninguna clave en el diccionario. |
+
+---
+
+## Ejemplo: Localizando Títulos de Diseño
+
+```tsx
+import { getTranslated, useI18n } from 'boltdocs/client'
+
+const headingTranslations = {
+  en: 'Welcome to the documentation',
+  es: 'Bienvenido a la documentación',
+  fr: 'Bienvenue dans la documentation'
+}
+
+export function LocalizedBanner() {
+  const { currentLocale } = useI18n()
+
+  const bannerText = getTranslated(
+    headingTranslations,
+    currentLocale || 'en',
+    'Welcome'
+  )
+
+  return (
+    <header className="py-6 border-b">
+      <h1 className="text-2xl font-bold">{bannerText}</h1>
+    </header>
+  )
+}
+```

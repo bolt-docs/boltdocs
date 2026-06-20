@@ -1,0 +1,69 @@
+---
+title: Tooltip
+sidebarPosition: 5
+description: Superposición emergente que muestra detalles suplementarios al hacer hover sobre un elemento.
+---
+
+La primitiva `Tooltip` proporciona superposiciones de etiquetas auxiliares accesibles y conscientes del teclado que aparecen al hacer hover del mouse o al enfocar un elemento.
+
+---
+
+## Importación
+
+```tsx
+import { Tooltip } from 'boltdocs/primitives'
+```
+
+---
+
+## Inicio Rápido
+
+Envuelve un elemento interactivo para adjuntar una burbuja auxiliar de descripción de hover/foco:
+
+```tsx
+import { Tooltip, Button } from 'boltdocs/primitives'
+
+export default function App() {
+  return (
+    <Tooltip content="Eliminar permanentemente los archivos de metadatos del proyecto" delay={300}>
+      <Button className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700">
+        Eliminar Repositorio
+      </Button>
+    </Tooltip>
+  )
+}
+```
+
+---
+
+## Subcomponentes Componibles
+
+Si necesitas control total sobre el ciclo de vida del flujo de disparador, puedes componer tooltips usando los componentes anidados:
+
+| Componente | Etiqueta HTML | Descripción | Props |
+| :--- | :--- | :--- | :--- |
+| **`Tooltip.Root`** / **`Tooltip`** | Envoltorio | Envoltorio de auto-disparador que maneja demoras de hover y estados. | [`Tooltip Props`](#tooltip-props) |
+| **`Tooltip.Content`** | `<div>` | Contenedor flotante que renderiza la caja de descripción del tooltip y la flecha de superposición. | [`TooltipContent Props`](#tooltipcontent-props) |
+
+---
+
+## Props del Componente
+
+### Props de `Tooltip`
+
+| Propiedad | Tipo | Predeterminado | Descripción |
+| :--- | :--- | :--- | :--- |
+| **`content`** | `ReactNode` | *Requerido* | El contenido de texto o gráficos a renderizar dentro del tooltip emergente. |
+| **`children`** | `ReactElement` | *Requerido* | El elemento objetivo interactivo del disparador (debe soportar hooks de eventos de hover/foco). |
+| **`delay`** | `number` | `500` | Duración de la demora del hover en milisegundos antes de que el tooltip aparezca con transición. |
+| **`closeDelay`** | `number` | `0` | Duración de la demora en milisegundos antes de que el tooltip desaparezca al salir el mouse. |
+| **`placement`** | `'bottom' \| 'top' \| 'left' \| 'right'` | `'top'` | Lado de posicionamiento de alineación preferido. |
+
+### Props de `Tooltip.Content`
+
+Hereda las propiedades estándar de `TooltipProps` de React Aria:
+
+| Propiedad | Tipo | Predeterminado | Descripción |
+| :--- | :--- | :--- | :--- |
+| **`className`** | `string` | `undefined` | Sobrescrituras de clases CSS utilitarias personalizadas. |
+| **`style`** | `CSSProperties` | `undefined` | Sobrescrituras de estilo en línea. |

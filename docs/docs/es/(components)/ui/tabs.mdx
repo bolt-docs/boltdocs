@@ -1,0 +1,100 @@
+---
+title: Tabs
+sidebarPosition: 3
+description: Contenedor de pestañas de diseño componible para alternar entre vistas.
+---
+
+La primitiva `Tabs` proporciona una estructura de componente modular y navegable por teclado para organizar contenido en directorios de paneles discretos.
+
+---
+
+## Importación
+
+```tsx
+import { Tabs } from 'boltdocs/primitives'
+```
+
+---
+
+## Inicio Rápido
+
+Compón botones y paneles de pestañas usando subcomponentes:
+
+```tsx
+import React, { useState } from 'react'
+import { Tabs } from 'boltdocs/primitives'
+
+export default function CustomTabs() {
+  const [activeTab, setActiveTab] = useState('tab-1')
+
+  return (
+    <Tabs>
+      <Tabs.List className="border-b border-subtle mb-4">
+        <Tabs.Item
+          id="tab-1"
+          selected={activeTab === 'tab-1'}
+          onClick={() => setActiveTab('tab-1')}
+          className="px-4 py-2 text-sm font-semibold data-[selected=true]:text-primary-500 border-b-2 border-transparent data-[selected=true]:border-primary-500"
+        >
+          Descripción General
+        </Tabs.Item>
+        <Tabs.Item
+          id="tab-2"
+          selected={activeTab === 'tab-2'}
+          onClick={() => setActiveTab('tab-2')}
+          className="px-4 py-2 text-sm font-semibold data-[selected=true]:text-primary-500 border-b-2 border-transparent data-[selected=true]:border-primary-500"
+        >
+          Referencia de API
+        </Tabs.Item>
+      </Tabs.List>
+
+      <Tabs.Content>
+        {activeTab === 'tab-1' && <div>Panel de descripción general del contenido...</div>}
+        {activeTab === 'tab-2' && <div>Descripción detallada de la referencia de API...</div>}
+      </Tabs.Content>
+    </Tabs>
+  )
+}
+```
+
+---
+
+## Subcomponentes Componibles
+
+La primitiva `Tabs` proporciona los siguientes espacios de nombres para personalización de diseño:
+
+| Componente | Etiqueta HTML | Descripción | Props |
+| :--- | :--- | :--- | :--- |
+| **`Tabs.Root`** / **`Tabs`** | `<div>` | Envoltorio principal del bloque de pestañas de nivel superior. | [`ComponentBaseProps`](#componentbaseprops-common) |
+| **`Tabs.List`** | `<div>` (tablist) | Contiene los disparadores de categorías de pestañas. | [`ComponentBaseProps`](#componentbaseprops-common) |
+| **`Tabs.Item`** | `<button>` (tab) | La celda selector individual del botón de pestaña. | [`Tabs.Item Props`](#tabsitem-props) |
+| **`Tabs.Content`** | `<div>` (tabpanel) | Contenedor de vista que envuelve las secciones de contenido activas. | [`ComponentBaseProps`](#componentbaseprops-common) |
+| **`Tabs.Indicator`** | `<div>` | Una línea de resaltado de posicionamiento absoluto que muestra la pestaña activa. | [`Tabs.Indicator Props`](#tabsindicator-props) |
+
+---
+
+## Props del Componente
+
+### ComponentBaseProps (Común)
+
+| Propiedad | Tipo | Predeterminado | Descripción |
+| :--- | :--- | :--- | :--- |
+| **`children`** | `ReactNode` | `undefined` | Elementos de contenido hijos. |
+| **`className`** | `string` | `undefined` | Clases CSS utilitarias personalizadas. |
+| **`style`** | `CSSProperties` | `undefined` | Configuraciones de estilo en línea. |
+
+### Props de `Tabs.Item`
+
+| Propiedad | Tipo | Predeterminado | Descripción |
+| :--- | :--- | :--- | :--- |
+| **`id`** | `string` | *Requerido* | Clave selector única que coincide con el panel de contenido de la pestaña. |
+| **`selected`** | `boolean` | `false` | Estado de selección activa resaltada. |
+| **`disabled`** | `boolean` | `false` | Previene disparadores de clic de selección. |
+| **`onClick`** | `() => void` | `undefined` | Manipulador de callback de selección activada. |
+| **`onKeyDown`** | `(e: KeyboardEvent) => void` | `undefined` | Manipulador de callback de activación de pulsación de tecla. |
+
+### Props de `Tabs.Indicator`
+
+| Propiedad | Tipo | Predeterminado | Descripción |
+| :--- | :--- | :--- | :--- |
+| **`style`** | `CSSProperties` | `undefined` | Estilos de mapeo de coordenadas dinámicas (por ejemplo, `transform`, `width`). |

@@ -1,0 +1,52 @@
+---
+title: Skeleton
+sidebarPosition: 9
+description: Componente de marcador de posición de estado de carga con pulso.
+---
+
+La primitiva `Skeleton` renderiza formas de marcador de posición con animación de pulso para representar bloques de contenido (como encabezados de texto, tarjetas multimedia o fotos de perfil) mientras se obtienen los recursos.
+
+---
+
+## Importación
+
+```tsx
+import { Skeleton } from 'boltdocs/primitives'
+```
+
+---
+
+## Inicio Rápido
+
+Simula un estado de carga de una tarjeta de perfil de usuario:
+
+```tsx
+import { Skeleton } from 'boltdocs/primitives'
+
+export default function ProfileLoadingCard() {
+  return (
+    <div className="flex items-center gap-4 p-4 border border-subtle rounded-xl max-w-sm">
+      {/* 1. Skeleton circular para foto de perfil */}
+      <Skeleton variant="circle" className="size-12 shrink-0" />
+
+      {/* 2. Marcadores de posición rect de texto */}
+      <div className="flex-1 flex flex-col gap-2">
+        <Skeleton variant="rect" className="h-4 w-2/3" />
+        <Skeleton variant="rect" className="h-3 w-1/2" />
+      </div>
+    </div>
+  )
+}
+```
+
+---
+
+## Props del Componente
+
+El componente `Skeleton` acepta propiedades estándar del elemento HTML `div` más:
+
+| Propiedad | Tipo | Predeterminado | Descripción |
+| :--- | :--- | :--- | :--- |
+| **`variant`** | `'rect' \| 'circle'` | `'rect'` | Estilo de estructura de forma. Renderiza `rounded-full` para `'circle'` y `rounded-md` para `'rect'`. |
+| **`className`** | `string` | `undefined` | Sobrescrituras de clases CSS utilitarias personalizadas (por ejemplo, mapeando dimensiones como `w-full h-8`). |
+| **`style`** | `CSSProperties` | `undefined` | Configuraciones de estilo en línea. |

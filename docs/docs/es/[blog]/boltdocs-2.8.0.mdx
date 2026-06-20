@@ -1,0 +1,317 @@
+---
+title: "Boltdocs 2.8.0 — Más rápido, más inteligente y realmente divertido de usar"
+description: "División de código a nivel de ruta, presupuestos de rendimiento en doctor, tipos de ruta estrictos, Algolia DocSearch, API de plugins, plugin Mermaid optimizado y una salida de construcción más limpia"
+date: 2026-05-27
+cover: /blog-covers/Boltdocs-2.8.0.webp
+author:
+  name: Jesús Alcalá
+  avatar: /avatar.jpeg
+excerpt: "Boltdocs 2.8.0 trae división de código real, un doctor con presupuestos de rendimiento, tipado estricto de rutas, integración con Algolia DocSearch, una potente API de plugins, una estructura de `.boltdocs/` más limpia y Mermaid que no arrastra todo tu sitio."
+---
+
+import { File, Image, Clock } from 'lucide-react'
+
+## Esta se trata de escala
+
+2.8.0 es nuestro lanzamiento más grande hasta ahora. No porque hayamos añadido un montón de características llamativas — sino porque finalmente arreglamos lo que empieza a doler cuando tu documentación crece más allá de 50 páginas.
+
+<Callout type="info">
+  División de código a nivel de ruta, una bandera `--budget` para `doctor`,
+  tipos de ruta estrictos generados automáticamente, integración con Algolia DocSearch,
+  una API de plugins adecuada, estructura de `.boltdocs/` más limpia y un plugin de Mermaid
+  que solo se carga cuando realmente hay un diagrama en la página.
+</Callout>
+
+---
+
+## División de código a nivel de ruta
+
+Cada página MDX solía cargarse eager en el bundle principal. Eso significaba que tocar una página recompilaba todo. En un proyecto grande, eso es doloroso.
+
+### El inicio de desarrollo ahora es ~45% más rápido
+
+Con 2.8.0, los módulos MDX se cargan bajo demanda usando `React.lazy`. Los números hablan por sí mismos:
+
+- **Inicio en frío del servidor de desarrollo**: de 3.4s a ~1.8s en un sitio de 68 páginas
+- **HMR**: solo recompila la página que estás editando
+- **Construcción de producción**: cada página tiene su propio chunk
+
+```tsx showLineNumbers
+// Antes: eager — todo en memoria
+const modules = import.meta.glob('/docs/**/*.mdx', { eager: true })
+
+// Después: lazy + prefetch inteligente
+const modules = import.meta.glob('/docs/**/*.mdx')
+```
+
+### Prefetch en segundo plano
+
+Después del primer render, `requestIdleCallback` precarga los chunks MDX en lotes de 6. Para cuando un usuario hace clic en un enlace, el chunk ya está en caché. La navegación se siente instantánea.
+
+---
+
+## `boltdocs doctor --budget`
+
+El comando `doctor` ahora tiene una bandera `--budget`. Verifica tu construcción contra umbrales configurables y te avisa si algo está fuera de lugar:
+
+<Cards>
+  <Card title="Bundle JS" icon={<File />}>
+    Tamaño máximo del bundle JS. Te ayuda a detectar bloat antes de que se publique.
+  </Card>
+  <Card title="Bundle CSS" icon={<File />}>
+    Lo mismo para hojas de estilo — útil cuando empiezas a apilar plugins visuales.
+  </Card>
+  <Card title="HTML por página" icon={<File />}>
+    Señala páginas que generan demasiado HTML. Genial para auditorías SEO.
+  </Card>
+  <Card title="Imágenes" icon={<Image />}>
+    Límite total en KB para activos de imagen.
+  </Card>
+  <Card title="Tiempo de construcción" icon={<Clock />}>
+    Falla la construcción si toma más de X segundos. Perfecto para CI.
+  </Card>
+</Cards>
+
+### Configuración
+
+Coloca un archivo `doctor.json` en la raíz de tu proyecto:
+
+```json
+{
+  "checks": {
+    "performance": {
+      "maxJSBundleSize": 200,
+      "maxCSSBundleSize": 50,
+      "maxPageHTMLSize": 100,
+      "maxImagesKB": 500,
+      "maxBuildTime": 30,
+      "maxFontCount": 3
+    }
+  },
+  "failOnError": true,
+  "maxWarnings": 5
+}
+```
+
+Luego ejecuta:
+
+```bash
+pnpm build && pnpm boltdocs doctor --budget
+```
+
+Cada violación es un `DoctorIssue` con severidad configurable. Establece `failOnError: true` y úsalo como puerta de CI.
+
+---
+
+## Limpieza de `.boltdocs/`
+
+El directorio de salida ya no es un cajón de desastres:
+
+```
+.boltdocs/
+├── build/        ← Caché de construcción SSG
+├── cache/        ← Cachés de procesamiento (rutas, etc.)
+├── generated/    ← Definiciones de tipos generadas
+└── reports/      ← Reportes de diagnóstico (doctor, etc.)
+```
+
+Esto no es cosmético — directorios separados significan que herramientas externas (scripts de CI, linters, pipelines de despliegue) pueden apuntar exactamente a lo que necesitan sin adivinar rutas internas.
+
+---
+
+## Tipado estricto de rutas
+
+Una de las características más solicitadas. Los enlaces de la barra de navegación, los enlaces de la barra lateral y el componente `Link` ahora tienen autocompletado completo:
+
+```tsx
+// Antes: cualquier string — los errores tipográficos van a producción
+<Link href="/docs/guides/getting-started/installation">Install</Link>
+
+// Después: autocompletado con validación en tiempo de compilación
+<Link href="/docs/guides/getting-started/installation">Install</Link>
+// ❌ Error si la ruta no existe
+```
+
+El tipo `BoltdocsRoutePaths` se genera durante la construcción y se expone como una augmentación de namespace global. Funciona out of the box con TypeScript y VS Code.
+
+---
+
+## Plugin de Mermaid más inteligente
+
+Mermaid ahora carga *solo* cuando hay diagramas en la página:
+
+- **Importación dinámica**: `await import('mermaid')` dentro de `useEffect` — ahorra ~27KB en páginas sin diagramas
+- **Serialización de temas corregida**: la configuración de tema claro/oscuro ahora se serializa correctamente como un atributo JSX. Los temas realmente funcionan ahora
+- **Mejor estado de carga**: mientras la biblioteca carga, se muestra el código fuente del diagrama en bruto en lugar de un placeholder animado vacío
+
+```mdx
+// Misma API — solo mucho más eficiente
+<Mermaid chart={`
+graph TD
+  A[Instalar] --> B[Usar]
+`} />
+```
+
+---
+
+## Salida de construcción más limpia
+
+La salida de construcción SSG pasó de este desorden ruidoso:
+
+```
+✓ built in 3.2s
+✓ built in 3.5s
+📄 /docs/...
+📄 /docs/guides/...
+📄 /blog/hello-world
+... (80+ líneas)
+```
+
+A esto:
+
+```
+✦ Construcción del cliente completa
+✦ Construcción del servidor completa
+✦ Renderizado completo
+✦ Datos del loader generados
+══════════════════════════════════
+  ✓ 71 páginas estáticas generadas
+```
+
+Cada fase tiene un separador visual y un mensaje de finalización claro. Las 80+ líneas de páginas individuales se comprimen en un solo contador. Mucho más fácil de leer, mucho más útil.
+
+---
+
+## Algolia DocSearch
+
+La búsqueda se volvió mucho más potente. Aunque Boltdocs siempre ha incluido FlexSearch sin configuración, 2.8.0 añade soporte **de primera clase para Algolia DocSearch** para sitios que necesitan búsqueda en la nube con analíticas, coincidencia de sinónimos y tolerancia a errores tipográficos a escala.
+
+### Cómo funciona
+
+Añade tres líneas a tu `boltdocs.config.ts`:
+
+```ts
+import { defineConfig } from 'boltdocs'
+
+export default defineConfig({
+  integrations: {
+    algolia: {
+      appId: 'YOUR_APP_ID',
+      apiKey: 'YOUR_SEARCH_ONLY_API_KEY',
+      indexName: 'YOUR_INDEX_NAME',
+    },
+  },
+})
+```
+
+Cuando Algolia está configurado, el cliente automáticamente ignora FlexSearch y consulta tu índice de Algolia directamente a través de la API REST — no se necesita SDK de npm.
+
+### Fallback más inteligente
+
+La integración hace debounce de consultas a 250ms, soporta filtrado por facetas de idioma y versión de forma nativa, y mapea los resultados de jerarquía de Algolia a la misma forma `SearchResult` usada internamente. Comenta la configuración durante el desarrollo local y FlexSearch toma el control de forma transparente.
+
+### Costo de bundle cero
+
+Como usamos la API REST directamente en lugar del paquete oficial `@docsearch/react`, el soporte de Algolia añade **cero bytes** a tu bundle del cliente hasta que lo configures.
+
+---
+
+## API del sistema de plugins
+
+2.8.0 introduce una **API de plugins adecuada** que te permite extender cada capa de Boltdocs — desde la compilación MDX hasta el pipeline de construcción de Vite.
+
+### Hooks de ciclo de vida
+
+Los plugins pueden engancharse al ciclo de vida de construcción y desarrollo:
+
+| Hook | Cuándo se ejecuta |
+|------|-------------------|
+| `beforeBuild` / `afterBuild` | Antes y después de la construcción de producción |
+| `beforeDev` / `afterDev` | El servidor de desarrollo inicia y finaliza |
+| `buildEnd` | La construcción completa (incluso con error) |
+| `transformMdx` | Transforma la fuente MDX antes de la compilación |
+| `transformHtml` | Transforma la salida HTML final |
+
+### Cómo se ve un plugin
+
+```ts
+import { defineConfig, type BoltdocsPlugin } from 'boltdocs'
+
+const myPlugin: BoltdocsPlugin = {
+  name: 'my-plugin',
+  enforce: 'pre',
+  remarkPlugins: [myRemarkPlugin],
+  vitePlugins: [myVitePlugin],
+  components: { MyComponent: './components/my-component' },
+  hooks: {
+    beforeBuild: async (ctx) => {
+      ctx.logger.info('Building...')
+      ctx.store.set('my-plugin', 'start', Date.now())
+    },
+    afterBuild: async (ctx) => {
+      const start = ctx.store.get('my-plugin', 'start')
+      ctx.logger.success(`Done in ${Date.now() - start}ms`)
+    },
+  },
+}
+
+export default defineConfig({
+  plugins: [myPlugin],
+})
+```
+
+### Almacén del plugin
+
+Cada plugin obtiene un almacén de pares clave-valor con namespace para compartir datos entre hooks sin colisiones. Los valores se clonan profundamente para inmutabilidad.
+
+### Utilidades de AST
+
+La API de plugins incluye un conjunto completo de herramientas para recorrer y manipular ASTs de MDX y rehype:
+
+- `visitNodes`, `visitRehypeElements`, `visitMdxElements`
+- `visitRemarkHeadings`, `visitRemarkLinks`
+- `createMdxElement`, `createRehypeElement`, `createMdxAttribute`
+- `addNodeClass`, `removeNodeClass`, `hasNodeClass`
+- `setNodeProperty`, `getNodeProperty`
+
+### Validación de seguridad
+
+Cada plugin se valida al iniciar — nombres duplicados, incompatibilidades de semver e intentos de path traversal se detectan antes de que causen daño. El comando `boltdocs audit` escanea los plugins instalados en busca de llamadas de red y acceso a variables de entorno.
+
+---
+
+## Otros detalles
+
+- **`boltdocs audit`**: nuevo comando CLI que escanea plugins en busca de llamadas de red, acceso a variables de entorno y path traversal — ejecuta `boltdocs audit` antes de añadir plugins de terceros
+- **Caché de construcción inteligente**: SSG ahora calcula un hash SHA-256 de los mtimes de las fuentes del cliente. Las fuentes sin cambios saltan la reconstrucción del cliente por completo. Las páginas individuales se cachean por hash MD5 con recolección de basura automática
+- **Arquitectura de pipeline**: la construcción ahora es un pipeline de 6 etapas — ConfigResolve → RouteGenerate → SEOValidate → TypeGenerate → SSGBuild → SEOWrite — cada una con soporte de rollback
+- **Unicode en DUI**: `@bdocs/dui` ahora usa `string-width` para medir correctamente caracteres Unicode. La alineación de tablas finalmente funciona cuando los títulos contienen ✨, 📄 o ✔
+- **SSR con Vite 8**: se movió `react-router-dom` a `ssr.noExternal` para corregir errores de "module is not defined" en el módulo SSR runner de Vite 8
+- **Pestañas responsivas**: se añadió `overflow-x-auto` para que las pestañas hagan scroll horizontal en móvil en lugar de romper el diseño
+- **Padding móvil**: `px-4 sm:px-6` en el layout de documentación para mejor legibilidad en pantallas pequeñas
+
+---
+
+## Actualizando
+
+La migración desde 2.7.x es sencilla — no hay cambios de ruptura en la API pública. Pero si tienes scripts accediendo a `.boltdocs/`, actualiza tus rutas:
+
+| Antes | Después |
+|-------|---------|
+| `.boltdocs/routes.json` | `.boltdocs/cache/routes.json` |
+| `.boltdocs/types.d.ts` | `.boltdocs/generated/types.d.ts` |
+| `.boltdocs/cache-*` | `.boltdocs/cache/*` |
+
+---
+
+## Qué sigue
+
+2.8.0 sienta las bases para colecciones nativas (blog, changelog, documentación de API con sus propios layouts), una integración más profunda con Vite 8 y una expansión continua de la API de plugins. Las colecciones ya llegaron con soporte de paginación, y estamos viendo más tipos de colecciones, hooks de plugins más ricos y una personalización SSG más profunda.
+
+Instala o actualiza:
+
+```bash
+pnpm add boltdocs@latest
+```
+
+Revisa la [documentación completa](/docs/) para explorar todo lo nuevo.

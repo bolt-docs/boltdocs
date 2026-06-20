@@ -1,0 +1,83 @@
+---
+title: Google Tag Manager
+sidebarPosition: 3
+description: Despliega y gestiona etiquetas de marketing, scripts personalizados y analítica con Google Tag Manager.
+---
+
+Google Tag Manager (GTM) te permite gestionar etiquetas, píxeles de rastreo y scripts personalizados en tu sitio de Boltdocs sin editar código directamente.
+
+---
+
+## Inicio Rápido
+
+### Paso 1: Obtén tu ID de Contenedor de GTM
+
+Inicia sesión en tu cuenta de [Google Tag Manager](https://tagmanager.google.com/) y copia tu ID de Contenedor (comienza con `GTM-`).
+
+### Paso 2: Configura en boltdocs.config.ts
+
+```ts title="boltdocs.config.ts"
+export default defineConfig({
+  integrations: {
+    gtm: {
+      tagId: 'GTM-XXXXXX',
+    },
+  },
+})
+```
+
+### Paso 3: Despliega
+
+Boltdocs inyecta automáticamente el script oficial de GTM en el `<head>` de la página y el bloque noscript de fallback de iframe en el `<body>` de la página.
+
+---
+
+## Referencia de Configuración
+
+| Propiedad | Tipo | Requerido | Descripción |
+| :--- | :--- | :--- | :--- |
+| **`tagId`** | `string` | ✓ | Tu ID de Contenedor de GTM (por ejemplo `'GTM-XXXXXX'`). |
+| **`dataLayerName`** | `string` | — | El nombre de la variable global dataLayer de GTM (predeterminado a `'dataLayer'`). |
+| **`preview`** | `string` | — | Cadena de parámetro de consulta de entorno de GTM para probar etiquetas en borrador. |
+
+### Ejemplo Avanzado
+
+```ts
+integrations: {
+  gtm: {
+    tagId: 'GTM-XXXXXX',
+    dataLayerName: 'customDataLayer',
+    preview: 'env-3&auth=xxxxx',
+  },
+}
+```
+
+---
+
+## Usando el DataLayer
+
+Puedes interactuar con GTM empujando eventos directamente al dataLayer. En tus componentes personalizados:
+
+```tsx
+export function LeadButton() {
+  const handlePush = () => {
+    // Si personalizaste dataLayerName, reemplaza 'dataLayer' con tu nombre personalizado
+    const dataLayer = (window as any).dataLayer || [];
+    dataLayer.push({
+      event: 'form_submission',
+      category: 'lead',
+      action: 'click',
+    });
+  };
+
+  return (
+    <button onClick={handlePush}>
+      Submit Form
+    </button>
+  );
+}
+```
+
+<Callout variant="warning" title="GDPR y gestión de consentimiento">
+  Asegúrate de configurar GTM para respetar el consentimiento del usuario antes de cargar etiquetas de marketing de terceros, especialmente si estás atendiendo usuarios en la UE.
+</Callout>

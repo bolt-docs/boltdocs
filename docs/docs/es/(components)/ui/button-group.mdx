@@ -1,0 +1,72 @@
+---
+title: ButtonGroup
+sidebarPosition: 2
+description: Envoltorio de diseño para agrupar y alinear botones de acción relacionados.
+---
+
+La primitiva `ButtonGroup` te permite agrupar múltiples botones adyacentes en una sola unidad horizontal o vertical, manejando automáticamente la fusión de bordes y el recorte de radio de esquina.
+
+---
+
+## Importación
+
+```tsx
+import { ButtonGroup } from 'boltdocs/primitives'
+```
+
+---
+
+## Inicio Rápido
+
+Agrupa botones juntos horizontalmente:
+
+```tsx
+import { Button, ButtonGroup } from 'boltdocs/primitives'
+
+export default function FilterGroup() {
+  return (
+    <ButtonGroup className="rounded-lg border border-subtle overflow-hidden">
+      <Button className="px-4 py-2 bg-surface hover:bg-soft text-body border-r border-subtle">
+        Pestaña 1
+      </Button>
+      <Button className="px-4 py-2 bg-surface hover:bg-soft text-body border-r border-subtle">
+        Pestaña 2
+      </Button>
+      <Button className="px-4 py-2 bg-surface hover:bg-soft text-body">
+        Pestaña 3
+      </Button>
+    </ButtonGroup>
+  )
+}
+```
+
+---
+
+## Configuraciones de Diseño
+
+### Alineación Horizontal (Predeterminada)
+Por defecto, `<ButtonGroup>` alinea los hijos botón en una fila. Elimina los márgenes de borde interno adyacentes y aplica radios de borde izquierdo y derecho correctamente a los bordes exteriores.
+
+### Alineación Vertical
+Establece `vertical` en `true` para apilar los hijos botón en una estructura de columna vertical.
+
+```tsx
+<ButtonGroup vertical className="rounded-md">
+  <Button className="px-4 py-2 border-b border-subtle">Apilar Arriba</Button>
+  <Button className="px-4 py-2 border-b border-subtle">Apilar Medio</Button>
+  <Button className="px-4 py-2">Apilar Abajo</Button>
+</ButtonGroup>
+```
+
+---
+
+## Props del Componente
+
+El componente `ButtonGroup` acepta estas propiedades de configuración de diseño:
+
+| Propiedad | Tipo | Predeterminado | Descripción |
+| :--- | :--- | :--- | :--- |
+| **`vertical`** | `boolean` | `false` | Apila los botones verticalmente si se establece en `true`. De lo contrario, los organiza en una fila flex horizontal. |
+| **`children`** | `ReactNode` | *Requerido* | Los botones o nodos de lista interactivos a agrupar. |
+| **`className`** | `string` | `undefined` | Sobrescrituras de clases CSS utilitarias personalizadas. |
+| **`style`** | `CSSProperties` | `undefined` | Sobrescrituras de estilo en línea. |

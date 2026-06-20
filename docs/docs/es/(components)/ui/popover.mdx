@@ -1,0 +1,59 @@
+---
+title: Popover
+sidebarPosition: 4
+description: Primitiva contenedor superponible que muestra ventanas emergentes contextuales.
+---
+
+La primitiva `Popover` es un contenedor superponible utilizado para renderizar menús, tooltips, formularios de selección o widgets de ventana emergente contextuales personalizados activados por botones de anclaje.
+
+---
+
+## Importación
+
+```tsx
+import { Popover } from 'boltdocs/primitives'
+```
+
+---
+
+## Inicio Rápido
+
+Una implementación básica de Popover usando componentes disparadores de React Aria:
+
+```tsx
+import { DialogTrigger, Button } from 'react-aria-components'
+import { Popover } from 'boltdocs/primitives'
+
+export default function ConfigPopover() {
+  return (
+    <DialogTrigger>
+      <Button className="px-4 py-2 bg-primary-500 text-white rounded-lg">
+        Configuración
+      </Button>
+      <Popover className="p-4 bg-surface border border-subtle rounded-xl shadow-xl max-w-sm">
+        <div>
+          <h4 className="font-bold mb-2">Configuración del Espacio de Trabajo</h4>
+          <p className="text-xs text-muted mb-4">Ajusta las banderas del compilador y objetivos del proyecto a continuación.</p>
+          <button className="px-3 py-1 bg-soft rounded text-xs font-semibold">Listo</button>
+        </div>
+      </Popover>
+    </DialogTrigger>
+  )
+}
+```
+
+---
+
+## Props del Componente
+
+El componente `Popover` envuelve las propiedades de `Popover` de React Aria:
+
+| Propiedad | Tipo | Predeterminado | Descripción |
+| :--- | :--- | :--- | :--- |
+| **`placement`** | `'bottom' \| 'top' \| 'left' \| 'right' \| 'start' \| 'end'` | `'bottom'` | Lado objetivo del elemento disparador para posicionar el popover. |
+| **`offset`** | `number` | `8` | Distancia de espaciado en píxeles entre el elemento disparador y la superposición del popover. |
+| **`crossOffset`** | `number` | `0` | Desplazamiento de alineación del eje cruzado en píxeles. |
+| **`isDismissable`** | `boolean` | `true` | Cierra el popover automáticamente al hacer clic fuera o presionar Escape. |
+| **`children`** | `ReactNode` | *Requerido* | Elementos hijos a renderizar dentro del marco de contenido de la superposición del popover. |
+| **`className`** | `string` | `undefined` | Sobrescrituras de clases CSS utilitarias personalizadas. |
+| **`style`** | `CSSProperties` | `undefined` | Sobrescrituras de estilo en línea. |

@@ -1,0 +1,209 @@
+---
+title: Bloques de Código
+sidebarPosition: 5
+description: Usa resaltado de sintaxis Shiki, títulos, números de línea, ajuste de texto y copiado en bloques de código Markdown.
+---
+
+Los bloques de código con cerca en Boltdocs usan **Shiki** para el resaltado de sintaxis. Se calculan completamente en tiempo de compilación, asegurando tiempos de carga rápidos con cero costo de rendimiento en el lado del cliente.
+
+---
+
+## Uso
+
+Crea bloques de código usando las comillas triples estándar de Markdown. Especifica el identificador de idioma para soporte de resaltado.
+
+```ts
+// Ejemplo: src/index.ts
+export function greet(name: string): string {
+  return `Hello, ${name}!`
+}
+```
+
+---
+
+## Parámetros del Bloque de Código (Propiedades Meta)
+
+Boltdocs soporta parámetros personalizados en la línea de encabezado del bloque de código para configurar títulos, números de línea y ajuste de texto dinámicamente.
+
+### 1. Banner de Título
+Agrega `title="file_name.extension"` para mostrar un encabezado estilizado que contiene el nombre del archivo y un icono de idioma coincidente:
+
+````markdown
+```tsx title="components/Button.tsx"
+export const Button = () => <button>Click me</button>;
+```
+````
+
+### 2. Números de Línea
+Agrega `showLineNumbers` (o `lineNumbers`) para mostrar números de línea junto a tu código:
+
+````markdown
+```ts showLineNumbers
+const num = 42;
+console.log(num);
+```
+````
+
+### 3. Ajuste de Texto
+Agrega `wordWrap` (o `word-wrap`) para romper líneas de código largas, evitando la barra de desplazamiento horizontal predeterminada:
+
+````markdown
+```css wordWrap
+.very-long-class-selector-that-needs-to-wrap-rather-than-overflowing-and-creating-a-scrollbar {
+  color: red;
+}
+```
+````
+
+### Combinando Parámetros
+Puedes combinar estos atributos en cualquier orden:
+
+````markdown
+```json title="package.json" showLineNumbers wordWrap
+{
+  "name": "my-cool-package",
+  "version": "1.0.0",
+  "description": "Un párrafo muy descriptivo que se ajustará a múltiples líneas en el renderizado del bloque de código generado en lugar de causar barras de desplazamiento horizontales."
+}
+```
+````
+
+---
+
+## Configuración
+
+Puedes personalizar los temas de Shiki en `boltdocs.config.ts`. Puedes elegir diferentes temas para los modos claro y oscuro:
+
+```ts
+// boltdocs.config.ts
+import { defineConfig } from 'boltdocs'
+
+export default defineConfig({
+  theme: {
+    codeTheme: {
+      light: 'github-light',
+      dark: 'github-dark',
+    },
+  },
+})
+```
+
+---
+
+## Temas Soportados
+
+Los siguientes temas de resaltado de sintaxis están soportados de forma predeterminada:
+
+- `github-light` / `github-dark`
+- `tokyo-night`
+- `dracula`
+- `nord`
+- `one-dark-pro`
+- `one-light`
+
+---
+
+## Características Mejoradas
+
+- **Botón de Copiar Código**: Un botón de copiar flotante se agrega automáticamente a la esquina superior derecha de cada bloque de código.
+- **Ajuste de Texto**: Las líneas de código largas se desbordan limpiamente con una barra de desplazamiento o se ajustan cuando se establece el parámetro `wordWrap` o `word-wrap`.
+
+---
+
+## Personalizando Bloques de Código
+
+Si el diseño, estilo o interacciones predeterminados del bloque de código no se ajustan a tu sistema de diseño, puedes construir fácilmente un componente de bloque de código completamente personalizado.
+
+Boltdocs expone el estado central y la lógica de los bloques de código a través del hook `useCodeBlock`, permitiéndote enfocarte puramente en tu renderizado visual personalizado sin tener que reescribir el análisis complejo de HTML resaltado, temporizadores de copiado al portapapeles, lógica de expansión y truncamiento, o integraciones de formularios de retroalimentación.
+
+### 1. Registrando un Bloque de Código Personalizado
+
+Para sobrescribir el componente de bloque de código predeterminado, registra tu componente personalizado como el renderizador de la etiqueta `pre` en tu archivo `docs/mdx-components.tsx`:
+
+```tsx title="docs/mdx-components.tsx"
+import { CustomCodeBlock } from '../src/components/CustomCodeBlock'
+
+export default {
+  pre: CustomCodeBlock,
+}
+```
+
+### 2. Construyendo un Componente de Bloque de Código Personalizado
+
+Usa el hook `useCodeBlock` de `'boltdocs/client'` para acceder al estado resuelto del bloque de código y envolver la salida en las primitivas de diseño importadas desde `'boltdocs/primitives'`:
+
+```tsx title="src/components/CustomCodeBlock.tsx"
+import { useCodeBlock } from 'boltdocs/client'
+import { CodeBlock } from 'boltdocs/primitives'
+
+export function CustomCodeBlock(props) {
+  const {
+    preRef,
+    copied,
+    handleCopy,
+    effectiveTitle,
+    effectiveHighlightedHtml,
+    LangIcon,
+    isExpandable,
+    isExpanded,
+    setIsExpanded,
+    shouldTruncate,
+  } = useCodeBlock(props)
+
+  return (
+    <CodeBlock plain={props.plain}>
+      {effectiveTitle && (
+        <CodeBlock.Header>
+          <CodeBlock.Group>
+            {LangIcon && <LangIcon size={14} />}
+            <span>{effectiveTitle}</span>
+          </CodeBlock.Group>
+          
+          <button onClick={handleCopy}>
+            {copied ? '¡Copiado!' : 'Copiar'}
+          </button>
+        </CodeBlock.Header>
+      )}
+
+      <CodeBlock.Content shouldTruncate={shouldTruncate}>
+        {effectiveHighlightedHtml ? (
+          <div
+            ref={preRef}
+            dangerouslySetInnerHTML={{ __html: effectiveHighlightedHtml }}
+          />
+        ) : (
+          <pre ref={preRef}>{props.children}</pre>
+        )}
+
+        {isExpandable && (
+          <button onClick={() => setIsExpanded(!isExpanded)}>
+            {isExpanded ? 'Mostrar menos' : 'Expandir'}
+          </button>
+        )}
+      </CodeBlock.Content>
+    </CodeBlock>
+  )
+}
+```
+
+### 3. Referencia de la API del Hook (`useCodeBlock`)
+
+El hook `useCodeBlock` acepta las propiedades estándar del bloque de código (pasadas desde el compilador MDX) y devuelve el siguiente estado y propiedades resueltas:
+
+| Propiedad | Tipo | Descripción |
+| :--- | :--- | :--- |
+| **`copied`** | `boolean` | `true` si el código fue recientemente copiado al portapapeles (se restablece después de 2 segundos). |
+| **`handleCopy`** | `() => void` | Copia el contenido de texto plano actual del bloque de código al portapapeles. |
+| **`isExpanded`** | `boolean` | `true` si un bloque de código expandible está actualmente expandido. |
+| **`setIsExpanded`** | `(val: boolean) => void` | Actualiza el estado de expansión del bloque de código. |
+| **`isExpandable`** | `boolean` | `true` si el bloque de código excede 6 líneas y soporta expansión/truncamiento. |
+| **`shouldTruncate`** | `boolean` | Bandera auxiliar que es `true` cuando el bloque es expandible y aún no está expandido. |
+| **`preRef`** | `RefObject<HTMLElement>` | Un React Ref que DEBE adjuntarse al elemento contenedor que renderiza el texto del código o el HTML de Shiki. Se usa para leer el texto a copiar y calcular conteos de líneas. |
+| **`isHighlighted`** | `boolean` | `true` si el bloque de código tiene resaltado de sintaxis (por ejemplo, a través de Shiki). |
+| **`effectiveHighlightedHtml`** | `string \| undefined` | La cadena HTML de resaltado de sintaxis preprocesada y limpiada. Renderiza usando `dangerouslySetInnerHTML` si está presente. |
+| **`effectiveTitle`** | `string \| undefined` | El título resuelto de los parámetros meta del bloque de código. |
+| **`lang`** | `string` | El identificador de idioma analizado del bloque de código (por ejemplo, `'ts'`, `'json'`). |
+| **`showCodeBlockFeedback`** | `boolean` | `true` si los formularios de retroalimentación de bloques de código están habilitados en `boltdocs.config.ts` y el bloque no está en modo plano. |
+| **`rated`** | `'up' \| 'down' \| null` | La calificación de retroalimentación actual enviada por el usuario. |
+| **`handleRate`** | `(type: 'up' \| 'down') => Promise<void>` | Función de callback para enviar la calificación de retroalimentación al endpoint serverless. |
+| **`LangIcon`** | `ComponentType<{ size?: number }>` | El componente de icono React resuelto que coincide con el idioma analizado del bloque de código. |

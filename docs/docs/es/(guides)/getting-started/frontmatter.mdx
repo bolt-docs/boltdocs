@@ -1,0 +1,179 @@
+---
+title: Frontmatter
+sidebarPosition: 7
+description: Referencia completa de cada campo de frontmatter que Boltdocs reconoce, incluyendo enrutamiento, sidebar, SEO y metadatos de visualización.
+---
+
+Frontmatter es un bloque de YAML en la parte superior de cualquier archivo `.md` o `.mdx`, encerrado por guiones triples (`---`). Boltdocs lo lee para controlar el enrutamiento, visualización del sidebar, SEO y metadatos de página.
+
+```md
+---
+title: Getting Started
+description: Install and run Boltdocs in under two minutes.
+sidebarPosition: 1
+badge: New
+---
+
+# Getting Started
+
+Your page content starts here...
+```
+
+---
+
+## Referencia Completa
+
+| Propiedad | Tipo | Por Defecto | Descripción |
+| :--- | :--- | :--- | :--- |
+| **`title`** | `string` | Nombre del archivo | El título de la página mostrado en el sidebar, pestaña del navegador y tags OG. Si se omite, Boltdocs usa el nombre del archivo (con el prefijo numérico eliminado). |
+| **`description`** | `string` | Primer párrafo | Una descripción corta para meta tags de SEO y fragmentos de resultados de búsqueda. Máximo 500 caracteres. |
+| **`permalink`** | `string` | — | Sobreescribe la URL auto-generada para esta página (por ejemplo, `'/docs/my-custom-path'`). |
+| **`sidebarPosition`** | `number` | — | Posición explícita de esta página dentro de su grupo del sidebar. Los números más bajos aparecen primero. |
+| **`sidebarLabel`** | `string` | `title` | Una etiqueta más corta para mostrar en el sidebar en lugar del título completo de la página. |
+| **`sidebarHidden`** | `boolean` | `false` | Oculta esta página del sidebar mientras la mantiene accesible a través de su URL. |
+| **`hidden`** | `boolean` | `false` | Alias de `sidebarHidden`. |
+| **`order`** | `number` | — | Campo de ordenamiento alternativo. Se comporta igual que `sidebarPosition`. |
+| **`badge`** | `string \| BadgeConfig` | — | Un badge mostrado junto al título de la página en el sidebar. Consulta [`BadgeConfig`](#badgeconfig) más abajo. |
+| **`icon`** | `string` | — | Un nombre de icono de Lucide (por ejemplo, `'Rocket'`) o string SVG directo mostrado junto al título de la página. |
+| **`date`** | `string \| Date` | — | Fecha de publicación de la página. Usado en docs estilo blog o changelogs. |
+| **`lastUpdated`** | `string \| Date` | — | Marca de tiempo mostrada en el pie de página "Última actualización". |
+| **`category`** | `string` | — | Etiqueta de categoría de forma libre (máximo 50 caracteres). |
+| **`groupTitle`** | `string` | Nombre de la carpeta | En un archivo `index.md`, sobreescribe el título del grupo del sidebar para la carpeta contenedora. |
+| **`groupPosition`** | `number` | — | En un archivo `index.md`, establece la posición de ordenamiento de todo el grupo en el sidebar. |
+| **`seo`** | `Record<string, any>` | — | Sobreescripciones personalizadas de Open Graph y meta tags. Consulta [`seo`](#seo-field) más abajo. |
+
+---
+
+## `BadgeConfig`
+
+El campo `badge` acepta tanto un string simple como un objeto con una fecha de expiración opcional. Cuando se establece una expiración y la fecha ha pasado, Boltdocs oculta automáticamente el badge.
+
+| Propiedad | Tipo | Descripción |
+| :--- | :--- | :--- |
+| **`text`** | `string` | La etiqueta del badge (por ejemplo, `'New'`, `'Beta'`, `'Deprecated'`). Máximo 50 caracteres. |
+| **`expires`** | `string` | Una cadena de fecha ISO 8601. Después de esta fecha, el badge ya no se muestra. |
+
+**Ejemplos:**
+
+```md
+---
+# Badge simple de string
+badge: New
+
+# Badge con fecha de expiración
+badge:
+  text: Beta
+  expires: '2026-12-31'
+---
+```
+
+---
+
+## Campo `seo`
+
+Sobreescribe o extiende los meta tags de SEO auto-generados para una página específica:
+
+```md
+---
+seo:
+  og:image: /assets/my-custom-og-image.png
+  og:type: article
+  twitter:card: summary_large_image
+---
+```
+
+Cualquier clave que proporciones aquí se fusiona sobre los tags generados por defecto de Boltdocs.
+
+---
+
+## Sobreescripción de Permalink
+
+Usa `permalink` para desacoplar la URL de una página de su ubicación de archivo. Esto es útil para migrar contenido sin romper enlaces existentes:
+
+```md
+---
+title: Legacy Setup Guide
+permalink: /docs/setup
+---
+```
+
+El archivo puede vivir en cualquier lugar de `docs/`, pero siempre se servirá en `/docs/setup`.
+
+<Callout variant="warning" title="Conflictos de permalink">
+  Si dos páginas comparten el mismo `permalink`, la última procesada gana y se imprime una advertencia en la consola. Siempre asegúrate de que los permalinks sean únicos.
+</Callout>
+
+---
+
+## Frontmatter Personalizado y `useMdxComponents`
+
+No estás limitado a las propiedades de frontmatter incorporadas. Puedes agregar claves personalizadas arbitrarias al bloque de frontmatter de cualquier página para adjuntar metadatos extra (por ejemplo, autores, versiones o etiquetas de estado):
+
+```md
+---
+title: Advanced Guide
+author: "Jane Doe"
+version: "v2.1.0"
+---
+```
+
+Para renderizar estos campos personalizados usando componentes de UI personalizados, puedes registrar componentes con un prefijo `Frontmatter_` dentro de tu archivo `docs/mdx-components.tsx`.
+
+### Paso 1: Registrar Componentes de Frontmatter Personalizados
+Exporta tus componentes de formato prefijando sus nombres con `Frontmatter_`:
+
+```tsx title="docs/mdx-components.tsx"
+// Mapped component for the 'author' frontmatter key
+function Frontmatter_author({ value }: { value: string }) {
+  return (
+    <div className="flex items-center gap-2 mt-2">
+      <span className="text-xs font-semibold text-zinc-500">Author:</span>
+      <span className="text-sm text-zinc-900 dark:text-zinc-100">{value}</span>
+    </div>
+  )
+}
+
+// Mapped component for the 'version' frontmatter key
+function Frontmatter_version({ value }: { value: string }) {
+  return (
+    <span className="inline-block bg-primary-500/10 text-primary-500 text-xs px-2 py-0.5 rounded-full">
+      Added in {value}
+    </span>
+  )
+}
+
+export default {
+  Frontmatter_author,
+  Frontmatter_version,
+} 
+```
+
+### Paso 2: Obtener y Renderizar a través del Hook
+En tu layout o componentes personalizados, puedes llamar al hook `useMdxComponents` para obtener tu registro de frontmatter. Boltdocs elimina automáticamente el prefijo `Frontmatter_` y coloca estos componentes en un namespace anidado `Frontmatter`:
+
+```tsx title="docs/layout.tsx"
+import { useMdxComponents, useRoutes } from 'boltdocs/client'
+
+export default function CustomLayout({ children }) {
+  const { currentRoute } = useRoutes()
+  const components = useMdxComponents()
+
+  // Extract the custom frontmatter data from the current route
+  const author = currentRoute?.frontmatter?.author
+  const version = currentRoute?.frontmatter?.version
+
+  // Get the mapped formatter components
+  const AuthorFormatter = components.Frontmatter?.author
+  const VersionFormatter = components.Frontmatter?.version
+
+  return (
+    <div>
+      <header>
+        {AuthorFormatter && author && <AuthorFormatter value={author} />}
+        {VersionFormatter && version && <VersionFormatter value={version} />}
+      </header>
+      <main>{children}</main>
+    </div>
+  )
+}
+```

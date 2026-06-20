@@ -1,0 +1,106 @@
+---
+title: Menu
+sidebarPosition: 8
+description: Menús desplegables y de contexto anidados componibles.
+---
+
+La primitiva `Menu` es un componente de menú desplegable modular de navegación y selector de opciones que soporta accesibilidad por teclado, submenús anidados, indexación de búsqueda y casillas de verificación de selección.
+
+---
+
+## Importación
+
+```tsx
+import { Menu } from 'boltdocs/primitives'
+```
+
+---
+
+## Inicio Rápido
+
+Compón un menú desplegable de acciones totalmente accesible:
+
+```tsx
+import { Menu, Button } from 'boltdocs/primitives'
+
+export default function FileActions() {
+  return (
+    <Menu.Trigger placement="bottom start">
+      <Button className="px-4 py-2 bg-primary-500 text-white rounded-lg">
+        Acciones
+      </Button>
+      <Menu className="p-1 bg-surface border border-subtle rounded-lg shadow-lg w-48 flex flex-col gap-0.5">
+        <Menu.Item
+          onAction={() => alert('¡Nuevo documento creado!')}
+          className="px-3 py-1.5 text-xs text-body hover:bg-soft rounded cursor-default"
+        >
+          Nuevo Archivo
+        </Menu.Item>
+        <Menu.Item
+          onAction={() => alert('¡Documento copiado!')}
+          className="px-3 py-1.5 text-xs text-body hover:bg-soft rounded cursor-default"
+        >
+          Duplicar Archivo
+        </Menu.Item>
+        <Menu.Separator className="border-t border-subtle my-1" />
+        <Menu.Item
+          onAction={() => alert('¡Documento eliminado!')}
+          className="px-3 py-1.5 text-xs text-danger-500 hover:bg-danger-500/10 rounded cursor-default"
+        >
+          Eliminar Archivo
+        </Menu.Item>
+      </Menu>
+    </Menu.Trigger>
+  )
+}
+```
+
+---
+
+## Subcomponentes Componibles
+
+Compón menús de selección enriquecidos y árboles de diseño anidados usando los siguientes espacios de nombres:
+
+| Componente | Etiqueta HTML | Descripción | Props |
+| :--- | :--- | :--- | :--- |
+| **`Menu.Root`** / **`Menu`** | `<div>` (menu) | Envoltorio que contiene el viewport de la lista de elementos del menú. | [`MenuProps`](#menuprops) |
+| **`Menu.Trigger`** | Envoltorio | Envuelve el botón Trigger y la superposición emergente del menú. | [`MenuTriggerProps`](#menutriggerprops) |
+| **`Menu.SubTrigger`** | Envoltorio | Envuelve elementos de disparador padre y capas de submenú hijo anidadas. | [`SubmenuTriggerProps`](#submenutriggerprops) |
+| **`Menu.Item`** | `<div>` (menuitem) | Un elemento clickeable individual dentro de la lista de selección del menú. | [`MenuItemProps`](#menuitemprops) |
+| **`Menu.Section`** | `<div>` | Agrupa una colección de elementos bajo una etiqueta de sección específica. | [`MenuSectionProps`](#menusectionprops) |
+| **`Menu.Separator`** | `<hr>` | Separador visual que divide categorías de opciones. | `SeparatorProps` |
+
+---
+
+## Props del Componente
+
+### `MenuProps`
+
+Hereda las configuraciones estándar de `MenuProps` de React Aria:
+
+| Propiedad | Tipo | Predeterminado | Descripción |
+| :--- | :--- | :--- | :--- |
+| **`onAction`** | `(key: Key) => void` | `undefined` | Callback invocado cuando cualquier elemento no deshabilitado es clickeado/seleccionado. |
+| **`className`** | `string` | `undefined` | Clases CSS personalizadas. |
+
+### `MenuTriggerProps`
+
+Hereda `MenuTriggerProps` de React Aria más:
+
+| Propiedad | Tipo | Predeterminado | Descripción |
+| :--- | :--- | :--- | :--- |
+| **`placement`** | `'bottom' \| 'top' \| 'left' \| 'right' \| 'start' \| 'end'` | `'bottom'` | Posición de alineación relativa al disparador. |
+
+### `MenuItemProps`
+
+Hereda `MenuItemProps` estándar de React Aria (por ejemplo, `isDisabled`, `onAction`):
+
+| Propiedad | Tipo | Predeterminado | Descripción |
+| :--- | :--- | :--- | :--- |
+| **`textValue`** | `string` | `undefined` | Valor de texto equivalente que coincide con el elemento para autocompletado de búsqueda por teclado. |
+
+### `MenuSectionProps`
+
+| Propiedad | Tipo | Predeterminado | Descripción |
+| :--- | :--- | :--- | :--- |
+| **`title`** | `string` | `undefined` | Texto del encabezado de la etiqueta de sección. |

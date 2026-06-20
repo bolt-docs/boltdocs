@@ -1,0 +1,75 @@
+---
+title: useRoutes
+description: Acceder a metadatos y configuraciones de mapeo de todas las páginas de documentación compiladas.
+---
+
+El hook `useRoutes` brinda acceso a los metadatos de todas las rutas de páginas generadas, junto con configuraciones de versión localizadas.
+
+---
+
+## Importación
+
+```tsx
+import { useRoutes } from 'boltdocs/client'
+```
+
+---
+
+## Valores de Retorno
+
+| Propiedad | Tipo | Descripción |
+| :--- | :--- | :--- |
+| **`allRoutes`** | `RouteMeta[]` | Lista de todos los registros de enrutamiento de páginas de documentación compiladas. |
+| **`currentRoute`** | `RouteMeta \| undefined` | Metadatos que representan la ruta activa. |
+| **`currentLocale`** | `string \| undefined` | El identificador de región de idioma activo. |
+| **`currentVersion`** | `string \| undefined` | La etiqueta de versión de configuración activa. |
+
+---
+
+## Interfaz RouteMeta
+
+```ts
+interface RouteMeta {
+  path: string              // URL path route (e.g. '/docs/guides')
+  title: string             // Page title from frontmatter or heading
+  description?: string      // Page description from frontmatter
+  headings: Heading[]       // Array of MDX headers in the file
+  frontmatter: any          // Raw frontmatter metadata map
+  sidebarPosition?: number  // Custom sorting index for left side navigation
+}
+```
+
+---
+
+## Ejemplo: Mostrando Índice de Sub-Páginas
+
+```tsx
+import { useRoutes } from 'boltdocs/client'
+
+export function GuideList() {
+  const { allRoutes, currentRoute } = useRoutes()
+
+  // Filter routes that are children of the current path
+  const subPages = allRoutes.filter(
+    (route) =>
+      route.path.startsWith(currentRoute?.path || '') &&
+      route.path !== currentRoute?.path
+  )
+
+  return (
+    <div className="my-6">
+      <h3 className="text-lg font-bold mb-2">In this section:</h3>
+      <ul className="list-disc pl-5">
+        {subPages.map((route) => (
+          <li key={route.path}>
+            <a href={route.path} className="text-blue-500 hover:underline">
+              {route.title}
+            </a>
+            {route.description && <p className="text-xs text-gray-500">{route.description}</p>}
+          </li>
+        ))}
+      </ul>
+    </div>
+  )
+}
+```

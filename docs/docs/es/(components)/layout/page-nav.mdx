@@ -1,0 +1,108 @@
+---
+title: PageNav
+sidebarPosition: 7
+description: Botones de navegación de página anterior/siguiente renderizados en la parte inferior de las páginas.
+---
+
+El componente `PageNav` muestra controles de navegación en la parte inferior de las páginas, dirigiendo a los lectores a los capítulos lógicamente precedentes o siguientes.
+
+---
+
+## Importación
+
+```tsx
+import { PageNav } from 'boltdocs/primitives'
+```
+
+---
+
+## Ejemplo de Navegación de Página Componible
+
+Usando los subcomponentes primitivos de `PageNav`, puedes componer un pie de página paginador personalizado. El siguiente ejemplo muestra cómo recuperar metadatos de páginas hermanas activas a través de `usePageNav` y estructurar los enlaces con bordes y estilos de diseño personalizados:
+
+```tsx
+// docs/components/CustomFooterNav.tsx
+import React from 'react'
+import { PageNav } from 'boltdocs/primitives'
+import { usePageNav } from 'boltdocs/client'
+
+export default function CustomFooterNav() {
+  const { prevPage, nextPage } = usePageNav()
+
+  if (!prevPage && !nextPage) return null
+
+  return (
+    <PageNav.Root className="border-t border-subtle pt-8 mt-12 grid grid-cols-2 gap-4">
+      {/* 1. Dirección de Página Anterior */}
+      {prevPage ? (
+        <PageNav.Link
+          to={prevPage.path}
+          direction="prev"
+          className="group p-4 rounded-xl border border-zinc-200 dark:border-zinc-800 hover:border-primary-500 transition-colors"
+        >
+          <PageNav.Title className="text-xs uppercase font-bold text-zinc-400 dark:text-zinc-500 group-hover:text-primary-500 transition-colors">
+            Capítulo Anterior
+          </PageNav.Title>
+          <PageNav.Description className="text-sm font-semibold text-zinc-800 dark:text-zinc-200 mt-1">
+            {prevPage.title}
+          </PageNav.Description>
+        </PageNav.Link>
+      ) : (
+        <div /> // Espaciador de compensación de columna
+      )}
+
+      {/* 2. Dirección de Página Siguiente */}
+      {nextPage ? (
+        <PageNav.Link
+          to={nextPage.path}
+          direction="next"
+          className="group p-4 rounded-xl border border-zinc-200 dark:border-zinc-800 hover:border-primary-500 transition-colors text-right"
+        >
+          <PageNav.Title className="text-xs uppercase font-bold text-zinc-400 dark:text-zinc-500 group-hover:text-primary-500 transition-colors">
+            Siguiente Capítulo
+          </PageNav.Title>
+          <PageNav.Description className="text-sm font-semibold text-zinc-800 dark:text-zinc-200 mt-1">
+            {nextPage.title}
+          </PageNav.Description>
+        </PageNav.Link>
+      ) : (
+        <div /> // Espaciador de compensación de columna
+      )}
+    </PageNav.Root>
+  )
+}
+```
+
+---
+
+## Subcomponentes Componibles
+
+La primitiva `PageNav` proporciona los siguientes subcomponentes para la personalización de la estructura:
+
+| Componente | Etiqueta HTML | Descripción | Props |
+| :--- | :--- | :--- | :--- |
+| **`PageNav.Root`** / **`PageNav`** | `<nav>` | El contenedor principal exterior de cuadrícula flex que contiene los enlaces de paginación. | [`ComponentBaseProps`](#componentbaseprops-common) |
+| **`PageNav.Link`** | `<a>` | Un elemento de anclaje optimizado que enlaza a páginas adyacentes. Renderiza flechas de chevrón automáticamente. | [`PageNav.Link Props`](#pagenavlink-props) |
+| **`PageNav.Title`** | `<span>` | Etiqueta de texto auxiliar direccional (por ejemplo, "Siguiente" o "Anterior"). | [`ComponentBaseProps`](#componentbaseprops-common) |
+| **`PageNav.Description`** | `<div>` | Texto del título del encabezado del documento de la página hermana de destino. | [`ComponentBaseProps`](#componentbaseprops-common) |
+| **`PageNav.Icon`** | `<span>` | Un contenedor de diseño utilizado para albergar gráficos de flecha o caret personalizados. | [`ComponentBaseProps`](#componentbaseprops-common) |
+
+---
+
+## Props del Componente
+
+### ComponentBaseProps (Común)
+
+| Propiedad | Tipo | Predeterminado | Descripción |
+| :--- | :--- | :--- | :--- |
+| **`children`** | `ReactNode` | `undefined` | Elementos de contenido hijos. |
+| **`className`** | `string` | `undefined` | Clases CSS utilitarias personalizadas. |
+| **`style`** | `CSSProperties` | `undefined` | Configuraciones de estilo en línea. |
+
+### Props de `PageNav.Link`
+
+| Propiedad | Tipo | Predeterminado | Descripción |
+| :--- | :--- | :--- | :--- |
+| **`to`** | `string` | *Requerido* | Ruta de destino de la página hermana. |
+| **`direction`** | `'prev' \| 'next'` | *Requerido* | Indicador de dirección para controlar el orden flex y los chevrones. |
+| **`className`** | `string` | `undefined` | Clases utilitarias personalizadas. |

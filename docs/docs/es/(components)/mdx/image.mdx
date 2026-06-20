@@ -1,0 +1,36 @@
+---
+title: Image
+sidebarPosition: 4
+description: Renderiza imágenes adaptables al tema, responsivas y bellamente estilizadas usando el componente Image.
+---
+
+Boltdocs estiliza automáticamente las imágenes Markdown predeterminadas, dándoles una sombra sutil, esquinas redondeadas y alineación centrada. Además, puedes usar el componente `<Image>` directamente para configurar comportamientos adaptables al tema.
+
+---
+
+## Uso
+
+### Imágenes Markdown Estándar
+Las definiciones de imágenes Markdown estándar se interceptan automáticamente y se renderizan con el estilo premium de Boltdocs:
+
+```mdx
+![Diagrama de Arquitectura](/public/light.svg)
+```
+
+### Renderizado Adaptable al Tema
+Puedes usar el componente `<Image>` para renderizar diferentes recursos dependiendo de si el usuario está viendo el sitio en modo claro u oscuro.
+
+```mdx
+<Image src="/public/light.svg" alt="Flujo del Sistema" theme="light" />
+<Image src="/public/dark.svg" alt="Flujo del Sistema" theme="dark" />
+```
+
+---
+
+## Props
+
+| Prop | Tipo | Predeterminado | Descripción |
+| :--- | :--- | :--- | :--- |
+| **`src`** | `string` | *Requerido* | Ruta absoluta o relativa al recurso de imagen. |
+| **`alt`** | `string` | `''` | Texto de descripción alternativa para lectores de pantalla y SEO. |
+| **`theme`** | `'light' \| 'dark'` | `undefined` | Restringe la visibilidad a un solo tema. La imagen se oculta cuando el otro tema está activo. |

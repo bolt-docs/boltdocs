@@ -1,0 +1,120 @@
+---
+title: Componentes MDX
+sidebarPosition: 6
+description: Inyecta componentes React personalizados globalmente o sobreescribe etiquetas HTML predeterminadas usando el registro mdx-components.tsx.
+---
+
+Boltdocs te permite registrar componentes React personalizados que están disponibles en cada archivo `.mdx` sin imports explícitos. Esto es perfecto para estilizar elementos Markdown predeterminados, introducir bloques de layout personalizados o usar componentes de terceros.
+
+---
+
+## El Registro `mdx-components.tsx`
+
+Para registrar componentes globales, crea un archivo `mdx-components.tsx` (o `mdx-components.ts` / `.jsx` / `.js`) en la raíz de tu directorio `docs`.
+
+### Ejemplo de Configuración
+
+```tsx title="docs/mdx-components.tsx"
+import type { ComponentType } from 'react'
+import { Card, Cards } from 'boltdocs/client'
+
+// Import your own custom components
+import MyCustomAlert from './src/components/MyCustomAlert'
+import Highlight from './src/components/Highlight'
+
+const mdxComponents: Record<string, ComponentType<any>> = {
+  // 1. Expose custom components globally
+  MyCustomAlert,
+  Highlight,
+  Card,
+  Cards,
+
+  // 2. Override default HTML elements
+  h2: ({ children, ...props }) => (
+    <h2 className="text-2xl font-bold my-4 text-primary" {...props}>
+      {children}
+    </h2>
+  ),
+  
+  a: ({ href, children, ...props }) => (
+    <a href={href} className="underline text-blue-600 hover:text-blue-800" {...props}>
+      {children}
+    </a>
+  ),
+}
+
+export default mdxComponents
+```
+
+---
+
+## Usando Componentes Registrados
+
+Una vez agregados a `mdx-components.tsx`, puedes usar estos componentes dentro de cualquier archivo `.mdx` sin importarlos:
+
+```mdx
+---
+title: Sample Page
+---
+
+# Welcome
+
+This is a custom alert component:
+
+<MyCustomAlert type="success">
+  This alert is globally available!
+</MyCustomAlert>
+
+You can also use inline highlights:
+
+This is <Highlight color="yellow">important text</Highlight>.
+```
+
+---
+
+## Sobreescribiendo Elementos Markdown Estándar
+
+Puedes sobreescribir etiquetas Markdown estándar mapeando los nombres de etiquetas HTML a tus componentes React personalizados:
+
+| Etiqueta | Sintaxis Markdown | Descripción |
+| :--- | :--- | :--- |
+| `h1`–`h6` | `#` a `######` | Encabezados |
+| `a` | `[Link]\(...\)` | Enlaces de anclaje |
+| `pre` | ```` ``` ```` | Envoltorios de bloques de código |
+| `code` | `` `code` `` | Tags de código inline |
+| `img` | `![Alt]\(...\)` | Imágenes |
+| `table` | Tables | Contenedores de tablas |
+
+Por ejemplo, para envolver todas las tablas en un contenedor responsive personalizado:
+
+```tsx title="docs/mdx-components.tsx"
+export default {
+  table: (props) => (
+    <div style={{ overflowX: 'auto' }}>
+      <table {...props} />
+    </div>
+  ),
+}
+```
+
+---
+
+## Avanzado: Inyección a través de Plugins
+
+Si estás desarrollando un plugin reutilizable, puedes inyectar componentes MDX usando la configuración `components` del plugin:
+
+```ts title="my-plugin.ts"
+import type { BoltdocsPlugin } from 'boltdocs'
+
+export default function myPlugin(): BoltdocsPlugin {
+  return {
+    name: 'my-plugin',
+    components: {
+      // Key: component name in MDX, Value: path to the module
+      MyComponent: './src/components/MyComponent.tsx',
+    },
+  }
+}
+```
+
+Consulta el [Plugin Mermaid](/docs/plugins/plugin-mermaid) para un ejemplo real de inyección de componentes basada en plugins.

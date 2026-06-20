@@ -1,0 +1,145 @@
+---
+title: Meta Loaders
+sidebarPosition: 8
+description: Controla los grupos del sidebar con meta.json o _meta.json — metadatos por directorio para títulos, iconos, orden y estado plegable.
+---
+
+Boltdocs carga automáticamente archivos `meta.json` o `_meta.json` de tus directorios de docs para controlar los metadatos de los grupos del sidebar sin editar cada página individual.
+
+---
+
+## Cómo Funciona
+
+Coloca un archivo `meta.json` en cualquier carpeta dentro de `docs/`. Boltdocs escanea estos archivos en tiempo de compilación y aplica los metadatos al grupo del sidebar de ese directorio.
+
+```
+docs/
+├── guides/
+│   ├── meta.json          ← se aplica a todas las páginas de guides/
+│   ├── index.md
+│   ├── installation.md
+│   └── configuration.md
+└── api/
+    ├── _meta.json         ← también funciona con prefijo de guión bajo
+    └── reference.md
+```
+
+---
+
+## Referencia de meta.json
+
+| Propiedad | Tipo | Descripción |
+| :--- | :--- | :--- |
+| **`title`** | `string` | Nombre de visualización para este grupo del sidebar. |
+| **`order`** | `string[] \| number` | Ordenamiento explícito — ya sea un número de posición o un array de slugs de página en el orden deseado. |
+| **`icon`** | `string` | Nombre de icono de Lucide o string SVG directo para el icono del grupo. |
+| **`collapsible`** | `boolean` | Si los usuarios pueden plegar/expandir este grupo. Por defecto: `true`. |
+| **`collapsed`** | `boolean` | Si el grupo inicia colapsado al cargar la página. Por defecto: `false`. |
+
+---
+
+## Ejemplos
+
+### Configuración Básica de Grupo
+
+```json
+{
+  "title": "Getting Started",
+  "icon": "Rocket"
+}
+```
+
+### Colapsado por Defecto
+
+```json
+{
+  "title": "Advanced Topics",
+  "collapsed": true,
+  "collapsible": true
+}
+```
+
+### Ordenamiento Personalizado
+
+```json
+{
+  "title": "Guide",
+  "order": ["installation", "configuration", "deployment"]
+}
+```
+
+O usa una posición numérica:
+
+```json
+{
+  "title": "Guide",
+  "order": 2
+}
+```
+
+---
+
+## Ejemplo Completo
+
+```
+docs/
+├── (guides)/
+│   ├── meta.json
+│   ├── index.md
+│   ├── installation.md
+│   └── configuration.md
+└── (api)/
+    ├── meta.json
+    └── reference.md
+```
+
+**guides/meta.json:**
+```json
+{
+  "title": "Guides",
+  "icon": "BookOpen",
+  "collapsible": true,
+  "collapsed": false
+}
+```
+
+**api/meta.json:**
+```json
+{
+  "title": "API Reference",
+  "icon": "Code2",
+  "collapsed": true
+}
+```
+
+---
+
+## Diferencia Entre meta.json y _meta.json
+
+Ambos funcionan idénticamente. La variante con guión bajo es útil cuando quieres que el archivo esté oculto de los docs pero siga cargándose:
+
+- `meta.json` — Visible en algunos IDEs, puede aparecer en exploradores de archivos
+- `_meta.json` — Excluido del enrutamiento como otras rutas con prefijo de guión bajo
+
+Usa el que mejor se adapte a tu flujo de trabajo.
+
+---
+
+## Precedencia
+
+Los ajustes de meta.json se aplican en este orden (los posteriores sobreescriben los anteriores):
+
+1. `theme.sidebarGroups` en configuración (global)
+2. `meta.json` / `_meta.json` en la carpeta
+3. Frontmatter del `index.md` de la carpeta (por ejemplo, `groupTitle`, `groupPosition`)
+
+---
+
+## Depuración
+
+Si meta.json no está teniendo efecto:
+
+1. Verifica que el archivo se llame exactamente `meta.json` o `_meta.json`
+2. Revisa que el JSON sea válido (sin comas finales)
+3. Asegúrate de que el archivo esté dentro de una carpeta que contenga archivos `.md` o `.mdx`
+4. Revisa la consola para advertencias de "[Boltdocs] Failed to read meta.json"

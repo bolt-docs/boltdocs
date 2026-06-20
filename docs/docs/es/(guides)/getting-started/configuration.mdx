@@ -1,0 +1,329 @@
+---
+title: Configuración
+sidebarPosition: 2
+description: Un recorrido guiado por cada clave de nivel superior en boltdocs.config.ts y los problemas reales que cada una resuelve.
+---
+
+`boltdocs.config.ts` es el único archivo de configuración para todo tu sitio de documentación. Vive en la raíz de tu proyecto junto a `package.json` y controla todo, desde el título del sitio hasta el stack de plugins y el comportamiento de SEO.
+
+```ts title="boltdocs.config.ts"
+import { defineConfig } from 'boltdocs'
+
+export default defineConfig({
+  siteUrl: 'https://my-project.com',
+  base: '/docs',
+  theme: {
+    title: 'My Project',
+    githubRepo: 'my-org/my-project',
+  },
+})
+```
+
+Boltdocs lee este archivo al iniciar y genera una configuración completa de Vite internamente. Nunca necesitas tocar un `vite.config.ts`.
+  
+---
+
+## Claves de Nivel Superior
+
+| Propiedad | Tipo | Por Defecto | Descripción |
+| :--- | :--- | :--- | :--- |
+| **`siteUrl`** | `string` | `undefined` | La URL de producción de tu sitio. Crítica para generar `sitemap.xml` y tags canónicos de SEO. |
+| **`base`** | `string` | `'/'` | La sub-ruta donde se despliega el sitio de docs (por ejemplo, `/docs`). Todos los assets estáticos y enlaces internos serán relativos a esto. |
+| **`docsDir`** | `string` | `'./docs'` | Ruta al directorio que contiene tu contenido Markdown. Relativa a la raíz del proyecto. |
+| **`plugins`** | `BoltdocsPlugin[]` | `[]` | Un array de plugins de Boltdocs. Consulta la pestaña [Plugins](/docs/plugins) para la referencia completa del sistema de plugins. |
+| **`theme`** | [`ThemeConfig`](#themeconfig) | — | Controla la apariencia visual, navegación, sidebar y opciones de visualización. |
+| **`seo`** | [`SeoConfig`](#seoconfig) | — | Controla el comportamiento de indexación y generación de thumbnails Open Graph. |
+| **`robots`** | [`RobotsConfig`](#robotsconfig) | — | Genera `robots.txt` y enlaza tu sitemap. |
+| **`integrations`** | [`IntegrationsConfig`](#integrationsconfig) | — | Habilita integraciones de terceros como Google Analytics 4 y Google Tag Manager. |
+| **`i18n`** | [`I18nConfig`](#i18nconfig) | — | Habilita documentación multilingüe con enrutamiento basado en carpetas por locale. |
+| **`versions`** | [`VersionsConfig`](#versionsconfig) | — | Habilita documentación versionada lado a lado. |
+| **`collections`** | [`CollectionsConfig`](#collectionsconfig) | — | Configura el sistema de colecciones dinámicas (blog) para agrupar publicaciones relacionadas. |
+| **`directoryMeta`** | `Record<string, DirectoryMeta>` | — | Sobreescribe títulos del sidebar, iconos y orden para directorios usando archivos `meta.json`. |
+| **`security`** | [`SecurityConfig`](#securityconfig) | — | Configura headers de seguridad HTTP y reglas CSP. |
+| **`vite`** | `ViteUserConfig` | — | Extiende la configuración de Vite generada internamente con opciones personalizadas. |
+
+---
+
+## `ThemeConfig`
+
+Controla toda la shell visual de tu sitio de documentación.
+
+| Propiedad | Tipo | Por Defecto | Descripción |
+| :--- | :--- | :--- | :--- |
+| **`title`** | `string \| Record<string, string>` | `'Boltdocs'` | El título principal mostrado en la navbar y pestañas del navegador. Soporta mapas de claves de locale para i18n. |
+| **`description`** | `string` | — | Una descripción corta usada en meta tags de SEO por defecto. |
+| **`logo`** | [`LogoConfig`](#logoconfig) | `undefined` | Imágenes de logo personalizadas para modos claro y oscuro. |
+| **`favicon`** | `string` | — | Ruta al favicon (relativa a `public/`). |
+| **`githubRepo`** | `string` | — | Repositorio en formato `owner/repo`. Habilita el enlace de GitHub en la navbar automáticamente. |
+| **`navbar`** | `NavbarItem[]` | — | Enlaces de navegación de nivel superior. Soporta elementos anidados con dropdown. |
+| **`tabs`** | `TabConfig[]` | — | Franja de pestañas horizontal sobre el sidebar. Consulta [Enrutamiento por Sistema de Archivos](/docs/guides/getting-started/file-routing). |
+| **`sidebar`** | `SidebarConfig` | — | Estructura del sidebar definida manualmente (deshabilita el auto-descubrimiento para esos prefijos). |
+| **`sidebarGroups`** | `Record<string, SidebarGroupConfig>` | — | Sobreescribe títulos e iconos de grupos sin definir un sidebar manual completo. |
+| **`codeTheme`** | [`CodeThemeConfig`](#codethemeconfig) | — | Tema de Shiki usado para el resaltado de código. |
+| **`editLink`** | `string` | — | Plantilla de URL para el enlace "Editar esta página". Usa `:path` como placeholder para la ruta relativa del archivo actual. |
+| **`socialLinks`** | `SocialLink[]` | — | Enlaces de iconos extra (Twitter/X, Discord, etc.) mostrados en la navbar. |
+| **`communityHelp`** | `string` | — | Enlace de soporte (por ejemplo, URL de Discord, Slack o foro) mostrado en el pie de página. |
+| **`version`** | `string` | — | Cadena de versión del release mostrada en la navbar. |
+
+### `LogoConfig`
+
+| Propiedad | Tipo | Por Defecto | Descripción |
+| :--- | :--- | :--- | :--- |
+| **`dark`** | `string` | — | Ruta a la imagen del logo mostrada en modo oscuro (relativa a `public/`). |
+| **`light`** | `string` | — | Ruta a la imagen del logo mostrada en modo claro. |
+| **`alt`** | `string` | Título | Texto alternativo para el `<img>` del logo. |
+| **`width`** | `number` | — | Ancho explícito en píxeles para la imagen del logo. |
+| **`height`** | `number` | — | Alto explícito en píxeles para la imagen del logo. |
+
+### `CodeThemeConfig`
+
+| Propiedad | Tipo | Por Defecto | Descripción |
+| :--- | :--- | :--- | :--- |
+| **`light`** | `string` | `'github-light'` | Nombre del tema de Shiki para modo claro. |
+| **`dark`** | `string` | `'github-dark'` | Nombre del tema de Shiki para modo oscuro. |
+
+Temas disponibles: `github-light`, `github-dark`, `tokyo-night`, `dracula`, `nord`, `one-dark-pro`, `one-light`.
+
+---
+
+## `SeoConfig`
+
+Controla cómo los motores de búsqueda indexan tu sitio y cómo se ven los compartidos en redes sociales.
+
+| Propiedad | Tipo | Por Defecto | Descripción |
+| :--- | :--- | :--- | :--- |
+| **`indexing`** | `'all' \| 'none' \| 'noindex' \| 'nofollow'` | `'all'` | Controla la directiva `<meta name="robots">` aplicada a cada página. |
+| **`thumbnails`** | [`ThumbnailConfig`](#thumbnailconfig) | — | Genera imágenes Open Graph para cada página usando una plantilla de fondo. |
+
+### `ThumbnailConfig`
+
+| Propiedad | Tipo | Descripción |
+| :--- | :--- | :--- |
+| **`background`** | `string` | Ruta (relativa a `public/`) a la imagen de fondo usada para thumbnails OG. |
+
+---
+
+## `RobotsConfig`
+
+Genera un archivo `robots.txt` en tiempo de compilación.
+
+| Propiedad | Tipo | Descripción |
+| :--- | :--- | :--- |
+| **`rules`** | `RobotsRule[]` | Array de reglas de rastreo. Cada regla acepta `userAgent`, `allow` y `disallow`. |
+| **`sitemaps`** | `string[]` | URLs completas de tu(s) sitemap(s) para incluir en `robots.txt`. |
+
+```ts title="boltdocs.config.ts"
+export default defineConfig({
+  robots: {
+    rules: [
+      { userAgent: '*', allow: '/' },
+    ],
+    sitemaps: ['https://my-project.com/sitemap.xml'],
+  },
+})
+```
+
+---
+
+## `IntegrationsConfig`
+
+| Propiedad | Tipo | Descripción |
+| :--- | :--- | :--- |
+| **`ga4`** | [`GA4Config`](#ga4config) | Configuración de Google Analytics 4. |
+| **`gtm`** | [`GTMConfig`](#gtmconfig) | Configuración de Google Tag Manager. |
+
+### `GA4Config`
+
+| Propiedad | Tipo | Descripción |
+| :--- | :--- | :--- |
+| **`measurementId`** | `string` | Tu ID de Medición de GA4 (por ejemplo, `'G-XXXXXXXXXX'`). Boltdocs inyecta el script de rastreo automáticamente. |
+
+### `GTMConfig`
+
+| Propiedad | Tipo | Descripción |
+| :--- | :--- | :--- |
+| **`tagId`** | `string` | Tu ID de Contenedor de Google Tag Manager (por ejemplo, `'GTM-XXXXXX'`). |
+| **`dataLayerName`** | `string` | Nombre personalizado para el dataLayer de GTM (por defecto `'dataLayer'`). |
+| **`preview`** | `string` | Cadena de consulta de identificador de preview/entorno de GTM. |
+
+---
+
+## `I18nConfig`
+
+| Propiedad | Tipo | Requerido | Descripción |
+| :--- | :--- | :--- | :--- |
+| **`defaultLocale`** | `string` | ✓ | El código de idioma principal (por ejemplo, `'en'`). |
+| **`locales`** | `string[] \| Record<string, string>` | ✓ | Todos los códiges de locale soportados. |
+| **`localeConfigs`** | `Record<string, LocaleConfig>` | — | Configuraciones de visualización por locale (label, direction, htmlLang). |
+
+Consulta la [guía de Internacionalización](/docs/integrations/globalization/i18n) para más detalles.
+
+---
+
+## `VersionsConfig`
+
+| Propiedad | Tipo | Requerido | Descripción |
+| :--- | :--- | :--- | :--- |
+| **`defaultVersion`** | `string` | ✓ | La ruta de versión considerada como la actual por defecto. |
+| **`versions`** | `VersionConfig[]` | ✓ | Lista ordenada de versiones disponibles. |
+| **`prefix`** | `string` | — | Cadena antepuesta a la ruta de carpeta de cada versión. |
+
+Consulta la [guía de Versionado](/docs/integrations/globalization/versioning) para más detalles.
+
+---
+
+## `CollectionsConfig`
+
+Configura el sistema de colecciones dinámicas — perfecto para blogs, notas de release, changelogs o cualquier contenido que siga una estructura repetitiva. Las colecciones se definen con nombres de carpeta entre corchetes (por ejemplo, `[blog]`) dentro de tu directorio `docs/`.
+
+| Propiedad | Tipo | Por Defecto | Descripción |
+| :--- | :--- | :--- | :--- |
+| **`postsPerPage`** | `number` | `10` | Número de publicaciones mostradas por página en los índices de listado de colecciones. |
+| **`defaultCollection`** | `string` | `'blog'` | El ID de colección usado por `BlogList` cuando no se especifica una colección explícitamente. |
+| **`dateFormat`** | `string` | `'MMMM dd, yyyy'` | Cadena de formato de fecha para renderizar las fechas de publicación en páginas de listado. |
+| **`sortBy`** | `'date' \| 'title' \| 'sidebarPosition'` | `'date'` | Campo usado para ordenar publicaciones dentro de una colección. |
+
+```ts title="boltdocs.config.ts"
+export default defineConfig({
+  collections: {
+    postsPerPage: 12,
+    defaultCollection: 'blog',
+    dateFormat: 'MMM dd, yyyy',
+    sortBy: 'date',
+  },
+})
+```
+
+<Callout variant="tip" title="Configuración Rápida">
+Las colecciones funcionan de fábrica sin ninguna configuración. Simplemente crea una carpeta entre corchetes como `[blog]` dentro de `docs/` y agrega tus archivos MDX. Usa `collections` solo cuando necesites sobreescribir los valores por defecto.
+</Callout>
+
+Consulta la [guía de Colecciones](/docs/integrations/features/collections) para más detalles sobre convenciones de carpetas, vistas personalizadas y datos de loaders.
+
+---
+
+## `directoryMeta`
+
+Un mecanismo poderoso para personalizar cómo aparecen los directorios en el sidebar sin escribir ningún código. Boltdocs escanea automáticamente archivos `meta.json` dentro de tu directorio `docs/` y los fusiona en la configuración del sidebar en tiempo de compilación.
+
+| Propiedad | Tipo | Descripción |
+| :--- | :--- | :--- |
+| **`title`** | `string` | Título de visualización personalizado para el directorio en el sidebar. |
+| **`order`** | `number \| string[]` | Posición numérica u ordenamiento explícito de elementos hijos dentro del directorio. |
+| **`icon`** | `string` | Nombre del icono mostrado junto a la etiqueta del directorio (soporta iconos de Lucide). |
+| **`collapsible`** | `boolean` | Si el grupo del sidebar es plegable. |
+| **`collapsed`** | `boolean` | Si el grupo inicia en estado colapsado. |
+
+### Usando Archivos `meta.json` (Recomendado)
+
+Coloca un `meta.json` (o `_meta.json`) en cualquier directorio para configurarlo automáticamente:
+
+```json title="(guides)/getting-started/meta.json"
+{
+  "title": "Primeros Pasos",
+  "order": 1,
+  "icon": "Rocket",
+  "collapsed": false
+}
+```
+
+### Usando `directoryMeta` en Configuración
+
+También puedes definir metadatos directamente en `boltdocs.config.ts` para directorios que no controlas o cuando prefieres una configuración centralizada:
+
+```ts title="boltdocs.config.ts"
+export default defineConfig({
+  directoryMeta: {
+    'guides/getting-started': {
+      title: 'Inicio Rápido',
+      icon: 'Zap',
+      order: 0,
+    },
+    'api': {
+      title: 'Referencia API',
+      icon: 'Code2',
+      collapsed: false,
+    },
+  },
+})
+```
+
+<Callout variant="info" title="Formato de Ruta">
+Las claves de directorio usan la ruta relativa desde tu directorio `docs/` (por ejemplo, `'guides/getting-started'`). El directorio raíz se representa como `'.'`.
+</Callout>
+
+---
+
+## `SecurityConfig`
+
+Configura headers de respuesta, ajustes de seguridad y Content Security Policy (CSP).
+
+| Propiedad | Tipo | Descripción |
+| :--- | :--- | :--- |
+| **`enableCSP`** | `boolean` | Establece en `true` para inyectar un header de Content Security Policy seguro por defecto. |
+| **`headers`** | `Record<string, string>` | Headers HTTP personalizados enviados en todas las solicitudes. |
+| **`customHeaders`** | `Record<string, string>` | Headers de sobreescritura adicionales para el servidor web. |
+
+---
+
+## Ejemplo Completo
+
+```ts title="boltdocs.config.ts"
+import { defineConfig } from 'boltdocs'
+import mermaidPlugin from '@bdocs/plugin-mermaid'
+
+export default defineConfig({
+  siteUrl: 'https://my-project.com',
+  base: '/docs',
+  plugins: [mermaidPlugin()],
+  seo: {
+    indexing: 'all',
+    thumbnails: {
+      background: '/og-image.webp',
+    },
+  },
+  theme: {
+    title: 'My Project',
+    description: 'My project documentation.',
+    logo: {
+      dark: '/logo-light.svg',
+      light: '/logo-dark.svg',
+      alt: 'My Project Logo',
+    },
+    githubRepo: 'my-org/my-project',
+    codeTheme: {
+      light: 'github-light',
+      dark: 'github-dark',
+    },
+    editLink: 'https://github.com/my-org/my-project/edit/main/docs/:path',
+    tabs: [
+      { id: 'guides', text: 'Guides', icon: 'BookOpen' },
+      { id: 'api', text: 'API', icon: 'Code2' },
+    ],
+    navbar: [
+      { label: 'Docs', href: '/docs' },
+    ],
+  },
+  robots: {
+    rules: [{ userAgent: '*', allow: '/' }],
+    sitemaps: ['https://my-project.com/sitemap.xml'],
+  },
+  collections: {
+    postsPerPage: 12,
+    defaultCollection: 'blog',
+    sortBy: 'date',
+  },
+  directoryMeta: {
+    'guides/getting-started': {
+      title: 'Inicio Rápido',
+      icon: 'Zap',
+      order: 0,
+    },
+  },
+  integrations: {
+    ga4: {
+      measurementId: 'G-XXXXXXXXXX',
+    },
+  },
+})
+```

@@ -1,0 +1,103 @@
+---
+title: Solución de Problemas
+sidebarPosition: 20
+description: Problemas comunes y cómo resolverlos al trabajar con Boltdocs.
+---
+
+### `serve -s` muestra la página de inicio en todas las rutas
+
+Si estás probando la compilación estática localmente **con `pnpx serve -s .`, podrías notar que cada URL (por ejemplo, `/about`, `/docs/guides`) renderiza la página de inicio en lugar del contenido esperado.
+
+**Por qué sucede**
+
+La bandera `-s` (aplicación de página única) le dice a `serve` que vuelva a `index.html` para cualquier ruta que no coincida con un archivo. Como `serve` no resuelve automáticamente `/about` a `about.html` (o `about/index.html`) en este modo, el fallback se activa y sirve la página raíz en su lugar.
+
+**Solución**
+
+Usa `serve` **sin** la bandera `-s`:
+
+```sh
+pnpx serve . -l 3000
+```
+
+Sin `-s`, `serve` resuelve correctamente las rutas de URL a sus archivos HTML generados correspondientes (por ejemplo, `/about` → `about.html`, `/docs/guides` → `docs/guides.html`).
+
+**Despliegues en producción**
+
+Este problema no ocurre en plataformas de producción como **Vercel**, **Netlify** o **Cloudflare Pages** — todas manejan la resolución de URLs limpias a archivos correctamente por defecto. El comportamiento de la bandera `-s` es específico de las pruebas locales con el paquete `serve`.
+
+---
+
+### Feedback personalizado lanza error "body stream already read"
+
+Si tu formulario de feedback de página o bloque de código lanza un error de validación rojo que dice `Failed to execute 'text' on 'Response': body stream already read`.
+
+**Por qué sucede**
+
+Esto es causado por bugs de parseo de respuesta del lado del cliente en versiones antiguas del paquete central `boltdocs`. Cuando una ruta de API falla (por ejemplo, devuelve `404` o `500`), el hook del cliente intentaba parsear el payload de error como JSON primero y luego inmediatamente leía como texto plano si fallaba, agotando el stream de respuesta.
+
+**Solución**
+
+Actualiza tu dependencia de `boltdocs` en `package.json` a `v2.8.4` o posterior, que clona o lee el stream correctamente una vez:
+
+```bash
+pnombre add boltdocs@latest
+```
+
+---
+
+### Feedback falla con `404` o `405` en producción
+
+Cuando envías una calificación o comentario en tu sitio desplegado, la pestaña de red muestra que la solicitud POST a `/api/feedback` falla con `404 Not Found` o `405 Method Not Allowed`.
+
+**Por qué sucede**
+
+Como Boltdocs construye sitios completamente estáticos (SSG), no hay un servidor backend ejecutándose en producción para recibir solicitudes POST.
+
+**Solución**
+
+Para resolver esto, debes configurar un endpoint de función serverless en tu plataforma de hosting para recibir la solicitud de feedback y reenviarla a GitHub de forma segura.
+- **Para Vercel:** Crea un archivo en `api/feedback.ts` que contenga:
+  ```ts title="api/feedback.ts"
+  import { handleVercelFeedback } from 'boltdocs/server'
+  export default handleVercelFeedback
+  ```
+- **Para Cloudflare Workers:** Crea un archivo en `functions/feedback/index.ts` que contenga:
+  ```ts title="functions/feedback/index.ts"
+  import { handleWebFeedback } from 'boltdocs/server'
+  export default handleWebFeedback
+  ```
+- **Para Netlify:** Crea un archivo en `netlify/functions/feedback.ts` que contenga:
+  ```ts title="netlify/functions/feedback.ts"
+  import { handleNetlifyFeedback } from 'boltdocs/server'
+  export default handleNetlifyFeedback
+  ```
+- **Para AWS Lambda:** Crea un archivo en `lambda/feedback/index.ts` que contenga:
+  ```ts title="lambda/feedback/index.ts"
+  import { handleAwsFeedback } from 'boltdocs/server'
+  export default handleAwsFeedback
+  ```
+- **Variables de Entorno:** Asegúrate de haber configurado `BOLTDOCS_GITHUB_TOKEN`, `BOLTDOCS_GITHUB_REPO_OWNER` y `BOLTDOCS_GITHUB_REPO_NAME` en tus ajustes de despliegue.
+- **Pruebas Locales:** Prueba tus compilaciones de producción localmente usando `boltdocs preview` (que soporta automáticamente el endpoint `/api/feedback`) en lugar de un servidor estático falso como el paquete `serve`.
+
+---
+
+### Feedback personalizado lanza "GitHub repository coordinates (owner and repo name) are missing"
+
+Si tu formulario de feedback muestra el error de validación rojo: `GitHub repository coordinates (owner and repo name) are missing. Please set GITHUB_REPO_OWNER and GITHUB_REPO_NAME.`:
+
+**Por qué sucede**
+
+La función serverless de producción se ejecuta de forma independiente y no compila ni parsea `boltdocs.config.ts` (para mantener el contenedor de runtime ligero y evitar cargar herramientas de desarrollo pesadas como Vite). Por lo tanto, la función no puede leer las coordenadas de tu archivo de configuración en tiempo de ejecución.
+
+**Solución**
+
+Debes configurar el propietario y nombre del repositorio como variables de entorno en el panel de ajustes de tu proveedor de hosting (por ejemplo, Vercel, Netlify, Cloudflare):
+- **`BOLTDOCS_GITHUB_REPO_OWNER`** (o `GITHUB_REPO_OWNER`)
+- **`BOLTDOCS_GITHUB_REPO_NAME`** (o `GITHUB_REPO_NAME`)
+
+Y asegúrate de que tu archivo `.env` local contenga:
+```plain
+BOLTDOCS_GITHUB_REPO_OWNER=tu-usuario-o-org-de-github
+BOLTDOCS_GITHUB_REPO_NAME=tu-nombre-de-repo
+```

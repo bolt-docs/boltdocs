@@ -1,0 +1,234 @@
+---
+title: Sidebar
+sidebarPosition: 3
+description: La barra de navegación lateral izquierda colapsable para listar páginas y guías anidadas.
+---
+
+El componente `Sidebar` muestra la estructura de directorios del sitio, listando carpetas anidadas, rutas de páginas, encabezados de categorías y etiquetas de navegación.
+
+---
+
+## Importación
+
+```tsx
+import { Sidebar } from 'boltdocs/primitives'
+```
+
+---
+
+## Ejemplo de Sidebar Componible
+
+La primitiva sin estilos `Sidebar` está diseñada para ser ensamblada usando bloques componibles. El siguiente ejemplo muestra cómo construir una barra lateral personalizada responsiva usando los contenedores primitivos y el hook de enrutamiento automático:
+
+```tsx
+// docs/components/CustomSidebar.tsx
+import React from 'react'
+import { Sidebar } from 'boltdocs/primitives'
+import { useRoutes } from 'boltdocs/client'
+
+export default function CustomSidebar() {
+  const { routes } = useRoutes()
+
+  return (
+    <>
+      {/* 1. Contenedor de Sidebar de Escritorio */}
+      <Sidebar className="hidden lg:flex border-r border-subtle bg-zinc-50 dark:bg-zinc-950">
+        <Sidebar.Header className="px-4 py-3 flex items-center justify-between border-b">
+          <span className="text-xs font-bold uppercase tracking-wider text-muted">Navegación</span>
+        </Sidebar.Header>
+        <Sidebar.Content>
+          {/* Maneja automáticamente rutas anidadas colapsables y encabezados de grupo */}
+          <Sidebar.Items routes={routes} />
+        </Sidebar.Content>
+      </Sidebar>
+
+      {/* 2. Contenedor de Cajón Móvil Responsivo */}
+      <Sidebar.Mobile className="bg-zinc-50 dark:bg-zinc-950">
+        <Sidebar.Header className="px-4 py-3 flex items-center justify-between border-b">
+          <span className="text-xs font-bold uppercase tracking-wider text-muted">Menú</span>
+        </Sidebar.Header>
+        <Sidebar.Content>
+          <Sidebar.Items routes={routes} />
+        </Sidebar.Content>
+      </Sidebar.Mobile>
+    </>
+  )
+}
+```
+
+---
+
+## Referencia de Producción del Mundo Real
+
+A continuación se muestra una implementación de referencia completa y lista para producción que demuestra cómo construir un sistema de navegación de barra lateral con todas las funcionalidades (similar a la barra lateral del tema integrado). Integra marca de logo, controles de cierre de sidebar móvil, estructuras de escritorio vs. móvil, y combina menús desplegables de versión y traducción dentro del cajón del menú móvil:
+
+```tsx
+// docs/components/ProductionSidebar.tsx
+import React from 'react'
+import { Sidebar, Button, Menu } from 'boltdocs/primitives'
+import { useRoutes, useNavbar, useUI, useVersion, useI18n } from 'boltdocs/client'
+import { X, ChevronDown, Languages } from 'lucide-react'
+
+export default function ProductionSidebar() {
+  const { routes, config } = useRoutes()
+  const { logo, title, logoProps } = useNavbar()
+  const { closeSidebar } = useUI()
+
+  const { currentVersionLabel, availableVersions, handleVersionChange } = useVersion()
+  const { currentLocale, availableLocales, handleLocaleChange } = useI18n()
+
+  const SidebarLogo = logo ? (
+    <img
+      src={logo}
+      alt={logoProps?.alt || title}
+      width={24}
+      height={24}
+      className="rounded-lg"
+    />
+  ) : null
+
+  // 1. Selector de Cambio de Versión para Diseños Móviles
+  const MobileVersionSelector = availableVersions.length > 0 && (
+    <select
+      value={availableVersions.find(v => v.isCurrent)?.value}
+      onChange={(e) => handleVersionChange(e.target.value)}
+      className="flex-1 bg-surface border border-subtle rounded-lg px-3 py-2 text-xs font-semibold"
+    >
+      {availableVersions.map(v => (
+        <option key={v.key} value={v.value}>{v.label}</option>
+      ))}
+    </select>
+  )
+
+  // 2. Selector de Idioma para Diseños Móviles
+  const MobileLocaleSelector = availableLocales.length > 0 && (
+    <select
+      value={currentLocale}
+      onChange={(e) => handleLocaleChange(e.target.value)}
+      className="flex-1 bg-surface border border-subtle rounded-lg px-3 py-2 text-xs font-semibold"
+    >
+      {availableLocales.map(loc => (
+        <option key={loc.key} value={loc.value}>{loc.label}</option>
+      ))}
+    </select>
+  )
+
+  const hasMobileSelectors = availableVersions.length > 0 || availableLocales.length > 0
+
+  return (
+    <>
+      {/* A. Panel de Sidebar de Escritorio */}
+      <Sidebar className="hidden lg:flex border-r border-subtle bg-main">
+        <Sidebar.Content>
+          <Sidebar.Items routes={routes} />
+        </Sidebar.Content>
+      </Sidebar>
+
+      {/* B. Panel de Cajón Móvil */}
+      <Sidebar.Mobile className="bg-main">
+        <Sidebar.Header className="flex items-center justify-between border-b border-subtle px-4 py-3">
+          <div className="flex items-center gap-3">
+            {SidebarLogo}
+            <span className="font-bold text-base text-body truncate max-w-[140px]">
+              {title}
+            </span>
+          </div>
+          
+          <Button
+            onPress={closeSidebar}
+            className="h-8 w-8 flex items-center justify-center text-muted hover:text-body rounded-lg hover:bg-surface transition-colors"
+          >
+            <X size={18} />
+          </Button>
+        </Sidebar.Header>
+
+        <Sidebar.Content className="p-4">
+          {/* Menús desplegables de Versión/Idioma incrustados dentro del cajón móvil */}
+          {hasMobileSelectors && (
+            <div className="flex flex-col gap-3 mb-6">
+              <div className="flex gap-2">
+                {MobileVersionSelector}
+                {MobileLocaleSelector}
+              </div>
+              <div className="border-b border-subtle my-2" />
+            </div>
+          )}
+
+          <Sidebar.Items routes={routes} />
+        </Sidebar.Content>
+      </Sidebar.Mobile>
+    </>
+  )
+}
+```
+
+---
+
+## Subcomponentes Componibles
+
+La primitiva `Sidebar` proporciona los siguientes subcomponentes para la personalización de la estructura:
+
+| Componente | Etiqueta HTML | Descripción | Props |
+| :--- | :--- | :--- | :--- |
+| **`Sidebar.Root`** / **`Sidebar`** | `<aside>` | Contenedor principal exterior de la barra lateral de escritorio. | [`ComponentBaseProps`](#componentbaseprops-common) |
+| **`Sidebar.Mobile`** | `<div>` (Modal) | Contenedor de cajón de barra lateral móvil usando superposiciones accesibles. | [`ComponentBaseProps`](#componentbaseprops-common) |
+| **`Sidebar.Header`** | `<div>` | Contenedor de sección superior con relleno (ideal para logos, entradas de búsqueda o encabezados). | [`ComponentBaseProps`](#componentbaseprops-common) |
+| **`Sidebar.Content`** | `<div>` | Envoltorio de lista de navegación desplazable que mantiene posiciones de scroll. | [`ComponentBaseProps`](#componentbaseprops-common) |
+| **`Sidebar.Group`** | `<div>` | Agrupa un conjunto de enlaces de navegación relacionados bajo un título común. | [`Sidebar.Group Props`](#sidebargroup-props) |
+| **`Sidebar.Link`** | `<a>` | Un enlace de navegación optimizado a una ruta de página específica. | [`Sidebar.Link Props`](#sidebarlink-props) |
+| **`Sidebar.SubGroup`** | `<div>` | Un contenedor de sección colapsable para sub-rutas anidadas. | [`Sidebar.SubGroup Props`](#sidebarsubgroup-props) |
+| **`Sidebar.Item`** | Varía | Utilidad recursiva de mapeo de enrutador que renderiza enlaces o subgrupos automáticamente. | [`Sidebar.Item Props`](#sidebaritem-props) |
+| **`Sidebar.Items`** | Varía | Contenedor de bucle automatizado que mapea y renderiza una colección de rutas. | [`Sidebar.Items Props`](#sidebaritems-props) |
+
+---
+
+## Props del Componente
+
+### ComponentBaseProps (Común)
+
+| Propiedad | Tipo | Predeterminado | Descripción |
+| :--- | :--- | :--- | :--- |
+| **`children`** | `ReactNode` | `undefined` | Elementos de contenido hijos. |
+| **`className`** | `string` | `undefined` | Clases CSS utilitarias personalizadas. |
+| **`style`** | `CSSProperties` | `undefined` | Configuraciones de estilo en línea. |
+
+### Props de `Sidebar.Group`
+
+| Propiedad | Tipo | Predeterminado | Descripción |
+| :--- | :--- | :--- | :--- |
+| **`title`** | `string` | `undefined` | Texto del título de la categoría del grupo. |
+| **`icon`** | `ElementType` | `undefined` | Componente de icono principal personalizado. |
+| **`children`** | `ReactNode` | *Requerido* | Elementos hijos de la barra lateral. |
+
+### Props de `Sidebar.Link`
+
+| Propiedad | Tipo | Predeterminado | Descripción |
+| :--- | :--- | :--- | :--- |
+| **`label`** | `string` | *Requerido* | Etiqueta de nombre a mostrar del enlace. |
+| **`href`** | `string` | *Requerido* | Ruta de destino de la ruta de enlace. |
+| **`active`** | `boolean` | `false` | Interruptor de estilo de estado activo. |
+| **`icon`** | `ElementType` | `undefined` | Envoltorio de elemento de icono principal. |
+| **`badge`** | `string \| BadgeConfig` | `undefined` | Etiqueta de estado de notificación. |
+
+### Props de `Sidebar.SubGroup`
+
+Hereda todas las [`Props de Sidebar.Link`](#sidebarlink-props) más:
+
+| Propiedad | Tipo | Predeterminado | Descripción |
+| :--- | :--- | :--- | :--- |
+| **`isOpen`** | `boolean` | `false` | Indicador de visibilidad del estado colapsado. |
+| **`onToggle`** | `() => void` | `undefined` | Manipulador de callback del disparador de alternancia. |
+| **`children`** | `ReactNode` | *Requerido* | Enlaces de navegación del subgrupo. |
+
+### Props de `Sidebar.Item`
+
+| Propiedad | Tipo | Predeterminado | Descripción |
+| :--- | :--- | :--- | :--- |
+| **`route`** | `ComponentRoute` | *Requerido* | Objeto de configuración de ruta a analizar. |
+| **`activePath`** | `string` | *Requerido* | Ruta URL activa de la ventana. |
+
+### Props de `Sidebar.Items`
+
+| Propiedad | Tipo | Predeterminado | Descripción |
+| :--- | :--- | :--- | :--- |
+| **`routes`** | `ComponentRoute[]` | *Requerido* | Arreglo de configuraciones de ruta para renderizar recursivamente. |

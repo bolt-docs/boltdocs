@@ -1,0 +1,67 @@
+---
+title: useVersion
+description: Administrar y cambiar entre diferentes versiones de documentación.
+---
+
+El hook `useVersion` obtiene información sobre la versión activa de la documentación, lista otras rutas de compilación disponibles y redirige a los usuarios cuando actualizan las selecciones del dropdown de versiones.
+
+---
+
+## Importación
+
+```tsx
+import { useVersion } from 'boltdocs/client'
+```
+
+---
+
+## Esquema de Respuesta
+
+El hook retorna los siguientes parámetros:
+
+```ts
+interface UseVersionReturn {
+  currentVersion: string | undefined      // Active documentation version folder name (e.g. '1.0')
+  currentVersionLabel: string | undefined // Human-readable release label (e.g. 'v1.0.0')
+  availableVersions: VersionOption[]      // List of all configured versions
+  handleVersionChange: (version: string) => void // Directs routing flow to the matching version route path
+}
+
+interface VersionOption {
+  key: string                            // Version route segment key (e.g. '2.x')
+  label: string                          // Visual label (e.g. 'v2.0 (Prerelease)')
+  value: string                          // Version directory path
+  isCurrent: boolean                     // True if this option is the active version
+}
+```
+
+---
+
+## Ejemplo de Uso
+
+A continuación se muestra una implementación de referencia de un componente select de selección de versión personalizado:
+
+```tsx
+import React from 'react'
+import { useVersion } from 'boltdocs/client'
+
+export default function VersionDropdown() {
+  const { currentVersion, availableVersions, handleVersionChange } = useVersion()
+
+  if (availableVersions.length <= 1) return null
+
+  return (
+    <select
+      value={currentVersion}
+      onChange={(e) => handleVersionChange(e.target.value)}
+      className="px-2 py-1 text-xs border rounded bg-transparent font-medium hover:border-zinc-400 dark:hover:border-zinc-600 outline-none cursor-pointer"
+    >
+      {availableVersions.map((v) => (
+        <option key={v.key} value={v.value} className="bg-main text-body">
+          {v.label}
+        </option>
+      ))}
+    </select>
+  )
+}
+```

@@ -1,0 +1,86 @@
+---
+title: useTabs
+description: Obtener las pestañas de categoría y los valores de estilo del indicador deslizante activo.
+---
+
+El hook `useTabs` obtiene las pestañas/categorías de diseño del sitio, rastrea qué pestaña de categoría coincide con el enrutamiento del documento activo, y genera estilos en línea para animar un bloque indicador de fondo deslizante.
+
+---
+
+## Importación
+
+```tsx
+import { useTabs } from 'boltdocs/client'
+```
+
+---
+
+## Esquema de Respuesta
+
+El hook retorna los siguientes parámetros:
+
+```ts
+interface UseTabsReturn {
+  tabs: BoltdocsTab[]                 // Array of configured category tab items
+  activeIndex: number                 // Index of the matching category tab (defaults to 0)
+  indicatorStyle: React.CSSProperties // Animated CSS styles (transform translate, width, and opacity)
+  tabRefs: React.MutableRefObject<(HTMLAnchorElement | null)[]> // Ref tracker to measure tab sizes
+  activeTabId: string | undefined     // String identifier representing the active route tab
+}
+
+interface BoltdocsTab {
+  id: string                          // Unique tab identifier (e.g. 'docs', 'guide')
+  label: string                       // Display label of the tab (e.g. 'Reference Guide')
+  to: string                          // Relative root folder route
+}
+```
+
+---
+
+## Ejemplo de Uso
+
+A continuación se muestra una implementación de referencia que enseña cómo construir un selector de pestañas horizontal animado dentro de un encabezado de diseño personalizado:
+
+```tsx
+import React from 'react'
+import { useTabs, useRoutes } from 'boltdocs/client'
+
+export default function CategoryTabs() {
+  const { config, allRoutes } = useRoutes()
+  const { tabs, activeIndex, indicatorStyle, tabRefs } = useTabs(
+    config.theme?.tabs || [],
+    allRoutes || []
+  )
+
+  if (tabs.length === 0) return null
+
+  return (
+    <div className="relative flex items-center border-b border-subtle h-12 bg-main px-4">
+      <div className="relative flex gap-2 h-full">
+        {/* Animated sliding indicator backdrop pill */}
+        <div
+          style={indicatorStyle}
+          className="absolute bottom-0 left-0 h-0.5 bg-primary-500 transition-all duration-300 ease-out"
+        />
+
+        {tabs.map((tab, idx) => (
+          <a
+            key={tab.id}
+            href={tab.to}
+            ref={(el) => {
+              tabRefs.current[idx] = el
+            }}
+            className={`flex items-center px-4 h-full text-sm transition-colors ${
+              idx === activeIndex
+                ? 'text-primary font-semibold'
+                : 'text-muted hover:text-body'
+            }`}
+          >
+            {tab.label}
+          </a>
+        ))}
+      </div>
+    </div>
+  )
+}
+```

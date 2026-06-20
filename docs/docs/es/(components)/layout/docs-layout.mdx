@@ -1,0 +1,215 @@
+---
+title: DocsLayout
+sidebarPosition: 1
+description: El componente envoltorio principal para páginas de documentación estándar en Boltdocs.
+---
+
+El componente `DocsLayout` es el contenedor de alto nivel que estructura las páginas de documentación estándar.
+
+---
+
+## Importación
+
+```tsx
+import { DocsLayout } from 'boltdocs/primitives'
+```
+
+---
+
+## Ejemplo de Ensamblaje de Diseño Componible
+
+La primitiva `DocsLayout` y sus módulos de diseño acompañantes están estructurados usando un **patrón de subcomponentes componibles**. Esto te permite definir envoltorios HTML exactos e inyectar clases de estilo personalizadas alrededor de encabezados, barras laterales, regiones de contenido y pies de página.
+
+Aquí hay un ejemplo que muestra cómo ensamblar un diseño personalizado completo usando solo primitivas (sin depender de archivos de temas pre-estilizados):
+
+```tsx
+// docs/layout.tsx
+import {
+  DocsLayout,
+  Navbar,
+  Sidebar,
+  OnThisPage,
+  Breadcrumbs,
+  PageNav,
+  ErrorBoundary
+} from 'boltdocs/primitives'
+import { useRoutes } from 'boltdocs/client'
+
+export default function CustomLayout({ children }) {
+  // Consultar rutas y detalles de la página activa desde el contexto
+  const { routes, currentRoute } = useRoutes()
+
+  return (
+    <DocsLayout className="selection:bg-primary-500/10">
+      {/* Primitiva Navbar Componible */}
+      <Navbar className="bg-white dark:bg-black border-b">
+        <Navbar.Content>
+          <Navbar.Left>
+            <Navbar.Logo src="/logo-light.svg" alt="Branding" />
+            <Navbar.Title>Framework Docs</Navbar.Title>
+          </Navbar.Left>
+          <Navbar.Right>
+            {/* Agrega disparadores de cuadro de búsqueda personalizados o alternancia de temas aquí */}
+          </Navbar.Right>
+        </Navbar.Content>
+      </Navbar>
+
+      <DocsLayout.Body className="bg-zinc-50 dark:bg-zinc-950">
+        {/* Primitiva Sidebar Componible */}
+        <Sidebar className="border-r">
+          <Sidebar.Content>
+            <Sidebar.Items routes={routes} />
+          </Sidebar.Content>
+        </Sidebar>
+
+        {/* Shell de Contenido */}
+        <DocsLayout.Content className="scroll-smooth">
+          <DocsLayout.ContentMdx className="max-w-4xl pt-8 pb-20">
+            {/* Sección de encabezado que contiene migas de pan y detalles de la página */}
+            <DocsLayout.Header>
+              <Breadcrumbs />
+              {currentRoute?.title && (
+                <h1 className="text-3xl font-bold mt-4">{currentRoute.title}</h1>
+              )}
+              {currentRoute?.description && (
+                <p className="text-zinc-500 mt-2">{currentRoute.description}</p>
+              )}
+            </DocsLayout.Header>
+
+            {/* Contenido principal MDX envuelto dentro de un Límite de Errores */}
+            <ErrorBoundary>
+              <article className="prose dark:prose-invert">
+                {children}
+              </article>
+            </ErrorBoundary>
+
+            {/* Sección de pie que contiene botones de navegación anterior/siguiente */}
+            <DocsLayout.Footer>
+              <PageNav />
+            </DocsLayout.Footer>
+          </DocsLayout.ContentMdx>
+        </DocsLayout.Content>
+
+        {/* Tabla de Contenidos Componible (Rastreador de Scroll) */}
+        <OnThisPage headings={currentRoute?.headings} />
+      </DocsLayout.Body>
+    </DocsLayout>
+  )
+}
+```
+
+---
+
+## Referencia de Producción del Mundo Real
+
+A continuación se muestra una implementación de referencia completa y lista para producción que demuestra cómo construir un envoltorio de página unificado. Conecta el `Navbar` personalizado, `Sidebar`, migas de pan, guías de navegación de páginas anterior/siguiente, vistas alternativas de límite de errores globales y barras laterales de tabla de contenidos:
+
+```tsx
+// docs/components/ProductionLayout.tsx
+import React from 'react'
+import { DocsLayout } from 'boltdocs/primitives'
+import { useRoutes, useConfig } from 'boltdocs/client'
+import ProductionNavbar from './ProductionNavbar'
+import ProductionSidebar from './ProductionSidebar'
+import CustomBreadcrumbs from './CustomBreadcrumbs'
+import CustomPageNav from './CustomPageNav'
+import CustomErrorBoundary from './CustomErrorBoundary'
+import CustomOnThisPage from './CustomOnThisPage'
+
+interface LayoutProps {
+  children?: React.ReactNode
+}
+
+export default function ProductionLayout({ children }: LayoutProps) {
+  const { routes, currentRoute } = useRoutes()
+  const config = useConfig()
+
+  return (
+    <DocsLayout className="selection:bg-primary-500/10 selection:text-primary-500 min-h-screen">
+      {/* 1. Navegación de Encabezado Cohesiva */}
+      <ProductionNavbar />
+
+      {/* 2. Cuerpo Principal de la Página */}
+      <DocsLayout.Body className="bg-main">
+        
+        {/* Componente Sidebar Responsivo */}
+        <ProductionSidebar />
+
+        {/* 3. Flujo de contenido de lectura central */}
+        <DocsLayout.Content className="scroll-smooth">
+          <DocsLayout.ContentMdx className="max-w-5xl px-4 pt-8 pb-24 mx-auto">
+            
+            {/* Encabezado: rutas de migas de pan y detalles dinámicos de metatítulo de página */}
+            <DocsLayout.Header>
+              <div className="mb-4 border-b border-subtle pb-4">
+                <CustomBreadcrumbs />
+              </div>
+
+              {currentRoute?.title && (
+                <h1 className="text-4xl font-bold tracking-tight text-body mb-3">
+                  {currentRoute.title}
+                </h1>
+              )}
+              {currentRoute?.description && (
+                <p className="text-lg text-muted mb-6 leading-relaxed">
+                  {currentRoute.description}
+                </p>
+              )}
+            </DocsLayout.Header>
+
+            {/* Cuerpo principal de contenido envuelto en un Límite de Errores */}
+            <CustomErrorBoundary>
+              <div className="prose dark:prose-invert max-w-none">
+                {children}
+              </div>
+            </CustomErrorBoundary>
+
+            {/* Pie que contiene guías de navegación */}
+            <DocsLayout.Footer className="mt-12">
+              <CustomPageNav />
+            </DocsLayout.Footer>
+
+          </DocsLayout.ContentMdx>
+        </DocsLayout.Content>
+
+        {/* 4. Columna derecha de tabla de contenidos */}
+        <CustomOnThisPage
+          headings={currentRoute?.headings}
+          editLink={config.theme?.editLink}
+          communityHelp={config.theme?.communityHelp}
+          filePath={currentRoute?.filePath}
+        />
+      </DocsLayout.Body>
+    </DocsLayout>
+  )
+}
+```
+
+---
+
+## Subcomponentes Componibles
+
+La primitiva `DocsLayout` proporciona los siguientes componentes contenedor de ranuras:
+
+| Componente | Etiqueta HTML | Descripción | Props |
+| :--- | :--- | :--- | :--- |
+| **`DocsLayout.Root`** / **`DocsLayout`** | `<div>` | Contenedor de columna flex de nivel superior para todo el diseño de la página del sitio. | [`ComponentBaseProps`](#componentbaseprops-common) |
+| **`DocsLayout.Body`** | `<div>` | Envoltorio de fila flex que agrupa la barra lateral, el área de contenido principal y la tabla de contenidos de la columna derecha. | [`ComponentBaseProps`](#componentbaseprops-common) |
+| **`DocsLayout.Content`** | `<main>` | Contenedor exterior desplazable del flujo principal de lectura de la página. | [`ComponentBaseProps`](#componentbaseprops-common) |
+| **`DocsLayout.ContentMdx`** | `<div>` | Contenedor de contenido con relleno que impone restricciones máximas de lectura. | [`ComponentBaseProps`](#componentbaseprops-common) |
+| **`DocsLayout.Header`** | `<header>` | Envoltorio de sección superior dentro del flujo de lectura (por ejemplo, para migas de pan y título). | [`ComponentBaseProps`](#componentbaseprops-common) |
+| **`DocsLayout.Footer`** | `<footer>` | Envoltorio de sección inferior dentro del flujo de lectura (por ejemplo, para enlaces de navegación). | [`ComponentBaseProps`](#componentbaseprops-common) |
+
+---
+
+## Props del Componente
+
+### ComponentBaseProps (Común)
+
+Todas las subcomponentes primitivas aceptan estas propiedades comunes para estilos e inyección de contenido:
+
+| Propiedad | Tipo | Predeterminado | Descripción |
+| :--- | :--- | :--- | :--- |
+| **`children`** | `ReactNode` | `undefined` | Los elementos de contenido a renderizar dentro del contenedor. |
+| **`className`** | `string` | `undefined` | Clases Tailwind o CSS personalizadas para estilos utilitarios. |
+| **`style`** | `CSSProperties` | `undefined` | Sobrescrituras de estilo en línea. |

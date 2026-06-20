@@ -1,0 +1,116 @@
+---
+title: Instalación
+sidebarPosition: 1
+description: Instala Boltdocs y ejecuta tu primer sitio de documentación en menos de dos minutos.
+---
+
+Boltdocs requiere **Node.js 18+** y un gestor de paquetes. Recomendamos `pnpm` por su velocidad y eficiencia en disco, pero `npm` y `yarn` también funcionan perfectamente.
+
+<Callout variant="tip" title="Crea un proyecto completo al instante">
+  Si estás empezando desde cero, usa `create-boltdocs` para generar un proyecto completo con todo el boilerplate listo:
+  ```sh
+  pnpm create boltdocs@latest my-docs
+  ```
+  Luego salta directamente a [ejecutar el servidor de desarrollo](#ejecutar-el-servidor-de-desarrollo).
+</Callout>
+
+---
+
+## Instalación Manual
+
+Si estás agregando Boltdocs a un proyecto existente, instálalo como dependencia de desarrollo:
+
+```sh
+# pnpm
+pnpm add -D boltdocs
+
+# npm
+npm install --save-dev boltdocs
+
+# yarn
+yarn add --dev boltdocs
+```
+
+---
+
+## Crea el Directorio de Docs
+
+Boltdocs espera que tu contenido viva en una carpeta `docs/` en la raíz de tu proyecto. Créala y agrega tu primera página:
+
+```sh
+mkdir docs
+echo "# Hello, Boltdocs!" > docs/index.md
+```
+
+---
+
+## Agrega un Archivo de Configuración
+
+Crea `boltdocs.config.ts` en la raíz de tu proyecto:
+
+```ts title="boltdocs.config.ts"
+import { defineConfig } from 'boltdocs'
+
+export default defineConfig({
+  siteUrl: 'https://my-project.com',
+  theme: {
+    title: 'My Project Docs',
+    githubRepo: 'my-org/my-project',
+  },
+})
+```
+
+Este archivo es la única fuente de verdad para tu sitio de documentación. No necesitas un `vite.config.ts` — Boltdocs genera la configuración completa de Vite internamente.
+
+---
+
+## Agrega Scripts a `package.json`
+
+```json title="package.json"
+{
+  "scripts": {
+    "docs:dev": "boltdocs",
+    "docs:build": "boltdocs build",
+    "docs:preview": "boltdocs preview"
+  }
+}
+```
+
+---
+
+## Ejecuta el Servidor de Desarrollo
+
+```sh
+pnpm docs:dev
+```
+
+Abre [http://localhost:5173](http://localhost:5173) y verás tu sitio de documentación ejecutándose localmente con hot reload.
+
+<Callout variant="note">
+  El primer inicio es un poco más lento mientras Boltdocs construye su mapa de rutas interno y calienta el caché de archivos. Los reinicios posteriores son casi instantáneos.
+</Callout>
+
+---
+
+## Construye para Producción
+
+```sh
+pnpm docs:build
+```
+
+El resultado se genera en `dist/`. Cada página se pre-renderiza como HTML estático, con un bundle del cliente para navegación y búsqueda.
+
+---
+
+import { Route, Settings } from 'lucide-react'
+
+## ¿Qué Sigue?
+
+<Cards cols={2}>
+  <Card title="Configuración" href="/docs/es/guides/getting-started/configuration" icon={<Settings />}>
+    Aprende a personalizar el título, logo, navegación y cada otra opción en tu archivo de configuración.
+  </Card>
+  <Card title="Enrutamiento por Sistema de Archivos" href="/docs/es/guides/getting-started/file-routing" icon={<Route />}>
+    Aprende cómo Boltdocs convierte tu carpeta `docs/` en una estructura de navegación completa.
+  </Card>
+</Cards>

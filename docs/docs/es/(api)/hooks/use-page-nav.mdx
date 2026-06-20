@@ -1,0 +1,66 @@
+---
+title: usePageNav
+description: Acceder a las rutas de páginas de documentación anterior y siguiente relativas a la barra lateral activa.
+---
+
+El hook `usePageNav` resuelve los nodos adyacentes en la lista de la barra lateral para construir los disparadores de enlaces de páginas anterior y siguiente.
+
+---
+
+## Importación
+
+```tsx
+import { usePageNav } from 'boltdocs/client'
+```
+
+---
+
+## Valores de Retorno
+
+| Propiedad | Tipo | Descripción |
+| :--- | :--- | :--- |
+| **`prev`** | `PageNavItem \| null` | Metadatos de la página anterior, o `null` si estás en la primera página. |
+| **`next`** | `PageNavItem \| null` | Metadatos de la página siguiente, o `null` si estás en la última página. |
+
+---
+
+## Esquema de PageNavItem
+
+```ts
+interface PageNavItem {
+  title: string   // Page display label
+  path: string    // URL path route
+}
+```
+
+---
+
+## Ejemplo: Botones de Paginación
+
+```tsx
+import { usePageNav } from 'boltdocs/client'
+
+export function PaginationControl() {
+  const { prev, next } = usePageNav()
+
+  return (
+    <div className="flex justify-between items-center mt-8 pt-4 border-t border-zinc-200">
+      {prev ? (
+        <a href={prev.path} className="px-4 py-2 border rounded hover:bg-zinc-50 text-sm">
+          ← {prev.title}
+        </a>
+      ) : (
+        <span className="text-zinc-300 text-sm">First Page</span>
+      )}
+      
+      {next ? (
+        <a href={next.path} className="px-4 py-2 border rounded hover:bg-zinc-50 text-sm">
+          {next.title} →
+        </a>
+      ) : (
+        <span className="text-zinc-300 text-sm">End of Guide</span>
+      )}
+    </div>
+  )
+}
+```

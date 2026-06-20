@@ -1,0 +1,99 @@
+---
+title: Verificación de Sitio
+sidebarPosition: 5
+description: Verifica la titularidad de tu sitio con Google Search Console, Bing Webmaster Tools, Yandex, Pinterest y Facebook.
+---
+
+Los motores de búsqueda y plataformas requieren prueba de titularidad del sitio antes de otorgar acceso a sus herramientas de webmaster. Boltdocs inyecta automáticamente las etiquetas `<meta>` de verificación correctas para los cinco proveedores más comunes.
+
+---
+
+## Inicio Rápido
+
+### Paso 1: Obtén tu código de verificación
+
+Inicia sesión en la herramienta de webmaster de tu proveedor y copia el código de verificación:
+
+| Proveedor | Herramienta | Etiqueta Meta |
+| :--- | :--- | :--- |
+| **Google** | [Search Console](https://search.google.com/search-console) | `<meta name="google-site-verification">` |
+| **Bing** | [Webmaster Tools](https://www.bing.com/webmasters) | `<meta name="msvalidate.01">` |
+| **Yandex** | [Webmaster](https://webmaster.yandex.com/) | `<meta name="yandex-verification">` |
+| **Pinterest** | [Claim Site](https://www.pinterest.com/settings/claim) | `<meta name="p:domain_verify">` |
+| **Facebook** | [Business Settings](https://business.facebook.com/settings) | `<meta name="facebook-domain-verification">` |
+
+### Paso 2: Configura en boltdocs.config.ts
+
+```ts title="boltdocs.config.ts"
+export default defineConfig({
+  seo: {
+    verification: {
+      google: 'xxxxxxxxxxxxxxxxxxxxxxxxxx',
+      bing: 'xxxxxxxxxxxxxxxxxxxxxxxxxx',
+      yandex: 'xxxxxxxxxxxxxxxxxxxxxxxxxx',
+      pinterest: 'xxxxxxxxxxxxxxxxxxxxxxxxxx',
+      facebook: 'xxxxxxxxxxxxxxxxxxxxxxxxxx',
+    },
+  },
+})
+```
+
+### Paso 3: Verifica la titularidad
+
+Despliega tu sitio y haz clic en **Verify** en la herramienta de webmaster del proveedor. La etiqueta `<meta>` de verificación se inyecta automáticamente en el `<head>` de cada página.
+
+---
+
+## Referencia de Configuración
+
+| Propiedad | Tipo | Requerido | Descripción |
+| :--- | :--- | :--- | :--- |
+| **`google`** | `string` | — | Código de verificación de Google Search Console. |
+| **`bing`** | `string` | — | Código de verificación de Bing Webmaster Tools. |
+| **`yandex`** | `string` | — | Código de verificación de Yandex Webmaster. |
+| **`pinterest`** | `string` | — | Código de reclamación de sitio de Pinterest. |
+| **`facebook`** | `string` | — | Código de verificación de Facebook Business. |
+
+### Ejemplo con un Solo Proveedor
+
+```ts
+seo: {
+  verification: {
+    google: 'xxxxxxxxxxxxxxxxxxxxxxxxxx',
+  },
+}
+```
+
+Solo se inyectan las etiquetas meta de los proveedores configurados. No hay penalización por tener etiquetas de verificación para servicios que no usas, pero se recomienda mantener solo lo que necesitas.
+
+---
+
+## Cómo Funciona
+
+Boltdocs genera la etiqueta `<meta name="..." content="...">` apropiada para cada proveedor configurado y la inyecta en el elemento `<head>` tanto en el HTML renderizado por el servidor como en la navegación del lado del cliente.
+
+```html
+<!-- Ejemplo: Todos los proveedores habilitados -->
+<head>
+  <meta name="google-site-verification" content="xxxxxxxxxxx" />
+  <meta name="msvalidate.01" content="xxxxxxxxxxx" />
+  <meta name="yandex-verification" content="xxxxxxxxxxx" />
+  <meta name="p:domain_verify" content="xxxxxxxxxxx" />
+  <meta name="facebook-domain-verification" content="xxxxxxxxxxx" />
+</head>
+```
+
+---
+
+## Solución de Problemas
+
+### La verificación sigue fallando
+
+- Asegúrate de que el código se copie exactamente (sin espacios o caracteres adicionales)
+- Verifica que el dominio canónico de tu sitio coincida con lo que ingresaste en la herramienta de webmaster (por ejemplo `https://docs.example.com` vs `https://example.com`)
+- Revisa que la etiqueta `<meta>` aparezca en el código fuente de la página
+
+### La etiqueta meta no aparece
+
+- Confirma que `seo.verification` esté anidado correctamente bajo la clave `seo` (no `integrations`)
+- Revisa que estés viendo el sitio de producción desplegado, no un servidor de desarrollo local

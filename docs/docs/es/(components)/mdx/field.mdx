@@ -1,0 +1,29 @@
+---
+title: Field
+sidebarPosition: 3
+description: Documenta propiedades de API, claves de configuración o definiciones de esquema en línea con el componente Field.
+---
+
+El componente `<Field>` es una forma limpia de documentar configuraciones específicas, parámetros de configuración o propiedades de API. Renderiza un borde limpio, detalles de parámetros en monoespacio, etiquetas de tipo e indicadores que muestran si el parámetro es requerido.
+
+---
+
+## Uso
+
+```mdx
+<Field name="siteUrl" type="string" required>
+  La URL de producción de tu sitio de documentación. Se usa para generar sitemaps, robots.txt y configurar enlaces canónicos para SEO.
+</Field>
+```
+
+---
+
+## Props
+
+| Prop | Tipo | Predeterminado | Descripción |
+| :--- | :--- | :--- | :--- |
+| **`name`** | `string` | *Requerido* | El nombre de la propiedad, variable u opción en estilo de código monoespacio. |
+| **`type`** | `string` | `undefined` | La representación de tipo de la propiedad (por ejemplo, `'string'`, `'number'`, `'boolean'`). |
+| **`required`** | `boolean` | `false` | Si es `true`, muestra una etiqueta roja `'required'` junto al tipo. |
+| **`description`** | `string` | `undefined` | Texto de resumen opcional. También puedes especificar la descripción directamente como elementos hijos para soporte de formato. |
+| **`children`** | `ReactNode` | `undefined` | La descripción del cuerpo que explica para qué sirve el campo. |
