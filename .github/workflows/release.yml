@@ -44,3 +44,16 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.TOKEN_GITHUB }}
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: Create parser tag if published
+        if: steps.changesets.outputs.published == 'true'
+        run: |
+          # Check if @bdocs/parser was published
+          if echo "${{ steps.changesets.outputs.publishedPackages }}" | grep -q '"name": "@bdocs/parser"'; then
+            # Extract version from package.json
+            VERSION=$(node -p "require('./packages/parser/package.json').version")
+            TAG="@bdocs/parser@${VERSION}"
+            echo "Creating tag: ${TAG}"
+            git tag "${TAG}"
+            git push origin "${TAG}"
+          fi

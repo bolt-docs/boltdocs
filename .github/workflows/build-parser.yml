@@ -1,0 +1,81 @@
+name: Build Parser Binaries
+
+on:
+  push:
+    tags:
+      - '@bdocs/parser@*'
+  workflow_dispatch:
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        include:
+          - target: x86_64-linux-gnu
+            os: ubuntu-latest
+            binary: parser-linux-x64
+          - target: aarch64-linux-gnu
+            os: ubuntu-latest
+            binary: parser-linux-arm64
+          - target: x86_64-macos-none
+            os: macos-latest
+            binary: parser-darwin-x64
+          - target: aarch64-macos-none
+            os: macos-latest
+            binary: parser-darwin-arm64
+          - target: x86_64-windows-gnu
+            os: windows-latest
+            binary: parser-win-x64.exe
+
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Zig
+        uses: mlugg/setup-zig@v1
+
+      - name: Build binary
+        run: zig build -Dtarget=${{ matrix.target }} -Doptimize=ReleaseFast
+
+      - name: Upload binary as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.binary }}
+          path: zig-out/bin/bdocs-parser${{ matrix.target == 'x86_64-windows-gnu' && '.exe' || '' }}
+
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: List artifacts
+        run: ls -la artifacts/
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.ref_name }}
+          name: Parser Binaries ${{ github.ref_name }}
+          body: |
+            Native parser binaries for @bdocs/parser.
+            
+            Download the binary for your platform and place it in:
+            ```
+            node_modules/.cache/@bdocs/parser/
+            ```
+            
+            Or run `npm install @bdocs/parser` and the postinstall script will download it automatically.
+          files: |
+            artifacts/parser-linux-x64/bdocs-parser
+            artifacts/parser-linux-arm64/bdocs-parser
+            artifacts/parser-darwin-x64/bdocs-parser
+            artifacts/parser-darwin-arm64/bdocs-parser
+            artifacts/parser-win-x64.exe/bdocs-parser.exe
+          draft: false
+          prerelease: false

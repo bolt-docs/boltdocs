@@ -1,0 +1,32 @@
+{
+  "name": "@bdocs/parser",
+  "version": "0.1.0",
+  "license": "MIT",
+  "type": "module",
+  "main": "./dist/index.mjs",
+  "types": "./dist/index.d.mts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.mts",
+      "import": "./dist/index.mjs"
+    }
+  },
+  "files": [
+    "dist",
+    "install.mjs"
+  ],
+  "scripts": {
+    "postinstall": "node install.mjs",
+    "prepack": "cp zig-out/bin/bdocs-parser.wasm dist/",
+    "build": "tsdown index.ts && cp zig-out/bin/bdocs-parser.wasm dist/",
+    "build:wasm": "zig build -Dtarget=wasm32-wasi -Doptimize=ReleaseFast",
+    "build:native": "zig build -Doptimize=ReleaseFast",
+    "build:all-platforms": "node scripts/build-all.mjs",
+    "test": "zig build test"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "tsdown": "^0.21.7",
+    "typescript": "^5.9.3"
+  }
+}
