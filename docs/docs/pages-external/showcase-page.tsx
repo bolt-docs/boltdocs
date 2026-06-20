@@ -1,28 +1,68 @@
-import { ArrowRight, ExternalLink, Terminal, Palette, Layers, Grip, ListChecks, TextCursorInput, LoaderCircle, Table2, BarChart3, KeyRound } from 'lucide-react'
+import {
+  ArrowRight,
+  ExternalLink,
+  Terminal,
+  Palette,
+  Layers,
+  Grip,
+  ListChecks,
+  TextCursorInput,
+  LoaderCircle,
+  Table2,
+  BarChart3,
+  KeyRound,
+} from 'lucide-react'
 import { Link } from 'boltdocs/primitives'
 import { useRef, useState, useEffect, useCallback } from 'react'
 import { useGSAPScroll, useGSAPStaggerIn } from '../../src/hooks/useGSAPScroll'
 import { Github } from '../../src/icons'
 import { NoiseOverlay } from '../../src/noise-overlay'
+import { useTranslations } from '../../src/use-translations'
 
-const SHOWCASE_ITEMS = [
-  {
-    name: 'DUI — Terminal UI',
-    description: 'The zero-dependency terminal UI library that powers every Boltdocs CLI. ANSI true-color, boxes, tables, spinners, progress bars, and interactive prompts.',
-    href: 'https://dui-terms.vercel.app',
-    repo: 'https://github.com/bolt-docs/dui',
-    images: ['/showscase-image/dui-1.webp', '/showscase-image/dui-2.webp'],
-    features: [
-      { label: 'Color System', icon: <Palette className="w-4 h-4" /> },
-      { label: 'Tables & Boxes', icon: <Table2 className="w-4 h-4" /> },
-      { label: 'Spinners', icon: <LoaderCircle className="w-4 h-4" /> },
-      { label: 'Progress Bars', icon: <BarChart3 className="w-4 h-4" /> },
-      { label: 'Interactive Prompts', icon: <TextCursorInput className="w-4 h-4" /> },
-      { label: 'Steps & Lists', icon: <ListChecks className="w-4 h-4" /> },
-      { label: 'Keyframe Animation', icon: <KeyRound className="w-4 h-4" /> },
-    ],
-  },
-]
+function ShowcaseItems() {
+  const t = useTranslations()
+  const items = [
+    {
+      name: 'DUI — Terminal UI',
+      description:
+        'The zero-dependency terminal UI library that powers every Boltdocs CLI. ANSI true-color, boxes, tables, spinners, progress bars, and interactive prompts.',
+      href: 'https://dui-terms.vercel.app',
+      repo: 'https://github.com/bolt-docs/dui',
+      images: ['/showscase-image/dui-1.webp', '/showscase-image/dui-2.webp'],
+      features: [
+        {
+          label: t.showcaseFeatures.colorSystem,
+          icon: <Palette className="w-4 h-4" />,
+        },
+        {
+          label: t.showcaseFeatures.tablesAndBoxes,
+          icon: <Table2 className="w-4 h-4" />,
+        },
+        {
+          label: t.showcaseFeatures.spinners,
+          icon: <LoaderCircle className="w-4 h-4" />,
+        },
+        {
+          label: t.showcaseFeatures.progressBars,
+          icon: <BarChart3 className="w-4 h-4" />,
+        },
+        {
+          label: t.showcaseFeatures.interactivePrompts,
+          icon: <TextCursorInput className="w-4 h-4" />,
+        },
+        {
+          label: t.showcaseFeatures.stepsAndLists,
+          icon: <ListChecks className="w-4 h-4" />,
+        },
+        {
+          label: t.showcaseFeatures.keyframeAnimation,
+          icon: <KeyRound className="w-4 h-4" />,
+        },
+      ],
+    },
+  ]
+  return items
+}
 
 function ImageCarousel({ images }: { images: string[] }) {
   const [current, setCurrent] = useState(0)
@@ -79,8 +119,18 @@ function ImageCarousel({ images }: { images: string[] }) {
             className="absolute left-3 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-black/50 backdrop-blur-sm text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300 hover:bg-black/70 cursor-pointer border-0"
             aria-label="Previous image"
           >
-            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
+            <svg
+              className="w-4 h-4"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              strokeWidth={2}
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M15 19l-7-7 7-7"
+              />
             </svg>
           </button>
           <button
@@ -88,8 +138,18 @@ function ImageCarousel({ images }: { images: string[] }) {
             className="absolute right-3 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-black/50 backdrop-blur-sm text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300 hover:bg-black/70 cursor-pointer border-0"
             aria-label="Next image"
           >
-            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+            <svg
+              className="w-4 h-4"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              strokeWidth={2}
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M9 5l7 7-7 7"
+              />
             </svg>
           </button>
           <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-2">
@@ -120,11 +180,21 @@ export default function ShowcasePage() {
   const subtitleRef = useRef<HTMLParagraphElement>(null)
   const cardsRef = useRef<HTMLDivElement>(null)
   const carouselRef = useRef<HTMLDivElement>(null)
+  const t = useTranslations()
+  const showcaseItems = ShowcaseItems()
 
   useGSAPScroll(titleRef, { animation: 'fade-up', delay: 0, duration: 0.6 })
-  useGSAPScroll(subtitleRef, { animation: 'fade-up', delay: 0.1, duration: 0.6 })
+  useGSAPScroll(subtitleRef, {
+    animation: 'fade-up',
+    delay: 0.1,
+    duration: 0.6,
+  })
   useGSAPStaggerIn(cardsRef, { stagger: 0.1, duration: 0.5, y: 25 })
-  useGSAPScroll(carouselRef, { animation: 'fade-up', delay: 0.1, duration: 0.8 })
+  useGSAPScroll(carouselRef, {
+    animation: 'fade-up',
+    delay: 0.1,
+    duration: 0.8,
+  })
 
   return (
     <div className="font-sans antialiased min-h-screen bg-main text-body flex flex-col justify-start relative">
@@ -140,14 +210,13 @@ export default function ShowcasePage() {
             ref={titleRef}
             className="text-4xl md:text-6xl font-black tracking-tighter text-body mb-6 opacity-0"
           >
-            Showcase
+            {t.showcaseTitle}
           </h1>
           <p
             ref={subtitleRef}
             className="text-lg md:text-xl text-body/70 max-w-2xl mx-auto leading-relaxed opacity-0"
           >
-            Curated showcase of the libraries, tools, and packages that power
-            the Boltdocs ecosystem.
+            {t.showcaseDescription}
           </p>
         </div>
       </section>
@@ -156,7 +225,7 @@ export default function ShowcasePage() {
       <section className="pb-20 px-6">
         <div className="max-w-5xl mx-auto">
           <div ref={cardsRef} className="flex flex-col gap-16">
-            {SHOWCASE_ITEMS.map((item) => (
+            {showcaseItems.map((item) => (
               <div key={item.name}>
                 {/* Card Header */}
                 <div className="mb-8">
@@ -183,14 +252,14 @@ export default function ShowcasePage() {
                     className="inline-flex items-center gap-2 px-6 py-3 bg-primary-500 text-white font-bold rounded-full hover:scale-105 hover:shadow-[0_0_30px_rgba(235,88,40,0.3)] transition-all duration-300 text-sm border-0"
                   >
                     <ExternalLink className="w-4 h-4" />
-                    Visit Documentation
+                    {t.showcaseVisitDocs}
                   </Link>
                   <Link
                     href={item.repo}
                     className="inline-flex items-center gap-2 px-6 py-3 bg-white/5 backdrop-blur-md text-body font-bold rounded-full border border-white/10 hover:bg-white/10 hover:scale-105 transition-all duration-300 text-sm"
                   >
                     <Github />
-                    View on GitHub
+                    {t.showcaseViewGithub}
                   </Link>
                 </div>
 
@@ -216,17 +285,16 @@ export default function ShowcasePage() {
       <section className="py-20 px-6 border-t border-white/5">
         <div className="max-w-3xl mx-auto text-center">
           <h2 className="text-2xl md:text-3xl font-bold tracking-tight text-body mb-4">
-            Want to contribute?
+            {t.showcaseCtaTitle}
           </h2>
           <p className="text-body/70 mb-8 max-w-xl mx-auto leading-relaxed">
-            Have a suggestion for a new Showcase entry? Open an issue in the
-            Boltdocs GitHub repository describing the package.
+            {t.showcaseCtaDescription}
           </p>
           <Link
             href="https://github.com/jesusalcaladev/boltdocs/issues/new"
             className="inline-flex items-center gap-2 px-8 py-4 bg-white/5 backdrop-blur-md text-body font-bold rounded-full border border-white/10 hover:bg-white/10 hover:scale-105 transition-all duration-300"
           >
-            Open an Issue <ArrowRight className="w-4 h-4" />
+            {t.showcaseOpenIssue} <ArrowRight className="w-4 h-4" />
           </Link>
         </div>
       </section>

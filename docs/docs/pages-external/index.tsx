@@ -3,8 +3,10 @@ import { Footer } from '../../src/footer'
 import HomePage from './home-page'
 import AboutPage from './about-page'
 import ShowcasePage from './showcase-page'
+import BenchmarkPage from './benchmark-page'
 import { useLocation } from 'react-router-dom'
 import { ArrowRight } from 'lucide-react'
+import { useTranslations } from '../../src/use-translations'
 
 /**
  * Custom external routes.
@@ -14,10 +16,12 @@ export const pages = {
   '/': HomePage,
   '/about': AboutPage,
   '/showcase': ShowcasePage,
+  '/benchmark': BenchmarkPage,
 }
 
 export const layout = ({ children }: { children: React.ReactNode }) => {
   const { pathname } = useLocation()
+  const t = useTranslations()
   return (
     <div className="pb-0">
       <Banner
@@ -25,9 +29,9 @@ export const layout = ({ children }: { children: React.ReactNode }) => {
         dismissible
         className="group dark:bg-white dark:text-black h-[40px] bg-neutral-800 text-white transition-colors duration-200"
       >
-        New version 2.9.0 is out!{' '}
+        {t.bannerNewVersion}{' '}
         <a href="/blog/boltdocs-2.9.0" className="underline underline-offset-4">
-          Read post
+          {t.bannerReadPost}
         </a>
         <span className="group-hover:translate-x-1 transition-transform duration-300">
           <ArrowRight className="size-4" />
