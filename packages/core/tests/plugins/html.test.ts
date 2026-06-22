@@ -309,9 +309,7 @@ describe('plugin html', () => {
       expect(result).toContain(
         '<meta name="google-site-verification" content="google123">',
       )
-      expect(result).toContain(
-        '<meta name="msvalidate.01" content="bing456">',
-      )
+      expect(result).toContain('<meta name="msvalidate.01" content="bing456">')
       expect(result).toContain(
         '<meta name="yandex-verification" content="yandex789">',
       )
@@ -375,9 +373,7 @@ describe('plugin html', () => {
       }
       const result = injectHtmlMeta(baseHtml, config as any)
 
-      const googleMatches = result.match(
-        /google-site-verification/g,
-      )
+      const googleMatches = result.match(/google-site-verification/g)
       expect(googleMatches).toHaveLength(1)
 
       const bingMatches = result.match(/msvalidate\.01/g)

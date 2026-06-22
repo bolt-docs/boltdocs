@@ -112,7 +112,9 @@ describe('Configuration Validation', () => {
     )
 
     const config = await resolveConfig(docsDir, tempProjectDir)
-    expect(config.integrations?.analytics?.ga4?.measurementId).toBe('G-12345678')
+    expect(config.integrations?.analytics?.ga4?.measurementId).toBe(
+      'G-12345678',
+    )
     expect(config.integrations?.analytics?.ga4?.debug).toBe(true)
   })
 

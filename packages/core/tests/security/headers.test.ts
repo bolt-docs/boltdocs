@@ -38,7 +38,7 @@ describe('Security: Headers and CSP', () => {
         'camera=(), microphone=(), geolocation=()',
       )
       expect(SECURITY_HEADERS['Strict-Transport-Security']).toBe(
-        'max-age=31536000; includeSubDomains',
+        'max-age=31536000; includeSubDomains; preload',
       )
     })
   })

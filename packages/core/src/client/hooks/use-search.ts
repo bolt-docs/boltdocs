@@ -1,10 +1,11 @@
-import { useState, useMemo, useEffect } from 'react'
+import { useState, useMemo, useEffect, useCallback } from 'react'
 import { Index } from 'flexsearch'
 import { useRoutes } from './use-routes'
 import { useConfig } from '../app/config-context'
 import type { ComponentRoute } from '../types'
 // @ts-expect-error
 import searchData from 'virtual:boltdocs-search'
+import { useNavigate } from 'react-router-dom'
 
 interface SearchDataItem {
   id: string
@@ -24,7 +25,43 @@ export function useSearch(routes: ComponentRoute[]) {
   const [isOpen, setIsOpen] = useState(false)
   const [query, setQuery] = useState('')
   const [index, setIndex] = useState<Index | null>(null)
-  const [algoliaResults, setAlgoliaResults] = useState<any[]>([])
+  const [algoliaResults, setAlgoliaResults] = useState<[]>([])
+  const navigate = useNavigate()
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      const isMac = /Mac/.test(navigator.userAgent)
+      const isMeta = isMac ? e.metaKey : e.ctrlKey
+
+      if (isMeta && (e.key === 'k' || e.key === 'j')) {
+        e.preventDefault()
+        setIsOpen((prev) => !prev)
+      }
+    }
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [])
+
+  const handleSelect = useCallback(
+    (key: React.Key) => {
+      const path = String(key)
+      setIsOpen(false)
+
+      const [baseUrl, hash] = path.split('#')
+      const search = query ? `?hl=${encodeURIComponent(query)}` : ''
+      const finalPath = `${baseUrl}${search}${hash ? `#${hash}` : ''}`
+
+      navigate(finalPath)
+
+      if (hash) {
+        setTimeout(() => {
+          const el = document.getElementById(hash)
+          if (el) el.scrollIntoView({ behavior: 'smooth' })
+        }, 100)
+      }
+    },
+    [navigate, query],
+  )
 
   // Initialize FlexSearch index once (only if Algolia is NOT configured)
   useEffect(() => {
@@ -217,6 +254,7 @@ export function useSearch(routes: ComponentRoute[]) {
     query,
     setQuery,
     list,
+    handleSelect,
     input: {
       value: query,
       onChange: (e: React.ChangeEvent<HTMLInputElement>) =>

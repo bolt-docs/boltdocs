@@ -330,11 +330,7 @@ DOMPurify.addHook('afterSanitizeAttributes', (node) => {
  */
 export function stripHtmlTags(html: string): string {
   if (!html) return ''
-  return html
-    .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
-    .replace(/<style\b[^<]*(?:(?!<\/style>)<[^<]*)*<\/style>/gi, '')
-    .replace(/<!--[\s\S]*?-->/g, '')
-    .replace(/<[^>]+>/g, ' ')
+  return DOMPurify.sanitize(html, { ALLOWED_TAGS: [] })
     .replace(/\s+/g, ' ')
     .trim()
 }

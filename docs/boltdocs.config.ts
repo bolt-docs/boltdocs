@@ -123,7 +123,6 @@ export default defineConfig({
         measurementId: 'G-WRBYHMBDYQ',
       },
       vercel: {
-        analytics: true,
         speedInsights: true,
       },
     },
