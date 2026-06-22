@@ -1,0 +1,35 @@
+{
+  "name": "@bdocs/zig-critters",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Critical CSS extraction engine written in Zig, compiled to WebAssembly",
+  "type": "module",
+  "main": "dist/index.mjs",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.mjs",
+      "types": "./dist/index.d.ts"
+    }
+  },
+  "scripts": {
+    "build:wasm": "cd zig && rm -rf .zig-cache && zig build -Dtarget=wasm32-wasi -Doptimize=ReleaseFast && mkdir -p zig-out/bin && find .zig-cache -name 'zig-critters.wasm' -exec cp {} zig-out/bin/zig-critters.wasm \\;",
+    "build:native": "cd zig && zig build -Doptimize=ReleaseFast",
+    "build": "pnpm run build:wasm && pnpm run build:wrapper",
+    "build:wrapper": "tsdown",
+    "dev": "cd zig && zig build",
+    "test": "cd zig && zig build test",
+    "bench": "pnpm run build:wasm && node bench/bench.mjs"
+  },
+  "files": [
+    "dist/",
+    "wasm/",
+    "zig/src/",
+    "zig/build.zig",
+    "zig/zig-out/bin/zig-critters.wasm"
+  ],
+  "license": "MIT",
+  "devDependencies": {
+    "tsdown": "catalog:"
+  }
+}
