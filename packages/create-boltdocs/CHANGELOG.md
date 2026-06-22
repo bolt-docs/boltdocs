@@ -1,5 +1,11 @@
 # create-boltdocs
 
+## 0.4.1
+
+### Patch Changes
+
+- [`cb0c2c4`](https://github.com/bolt-docs/boltdocs/commit/cb0c2c437ecac0432ee06632f68ba3076960e43c) Thanks [@jesusalcaladev](https://github.com/jesusalcaladev)! - Fix crash in `create-boltdocs` scaffolder caused by using non-existent `colors.orange` from `@bdocs/dui`. Replaced with `colorize()` using Cloudflare brand hex color.
+
 ## 0.4.0
 
 ### Minor Changes
