@@ -1,0 +1,219 @@
+---
+title: "Boltdocs 3.0.0 — Native Parser, Vercel Analytics, Giscus, and a Complete Rewrite"
+description: "Zig-powered native parser, Vercel Analytics & Speed Insights, Giscus comments, custom feedback, Ask AI overhaul, and dozens of improvements"
+date: 2026-06-22
+cover: /blog-covers/Boltdocs-3.0.0.webp
+author:
+  name: Jesús Alcalá
+  avatar: /avatar.jpeg
+excerpt: "3.0.0 is the biggest release yet — a native Zig parser that's 5-6x faster, zero-config Vercel Analytics, Giscus comment integration and dozens of UI/UX and SEO improvements across the board."
+---
+
+## This one's about raw speed
+
+2.9.0 was about sharing — DUI, feedback, math. 3.0.0 is about tearing out the engine and replacing it with something much faster.
+
+<Callout type="info">
+  A Zig-compiled native parser that's 5-6x faster than the old JS parser. Vercel Analytics and Speed Insights with zero config. Giscus comments that just work and dozens of fixes and improvements I've been sitting on for months.
+</Callout>
+
+---
+
+## Native Parser — 5-6x Faster Builds
+
+This is the big one. I rewrote the markdown parser in Zig and compiled it to a native binary.
+
+The old JS parser crawled your docs directory, extracted frontmatter, parsed headings, and collected plain text for search — but it did all of that in JavaScript. The new `@bdocs/parser` does the same thing, but it's a compiled binary that runs 5-6x faster.
+
+Some numbers from my benchmarks:
+
+| Files | JS Parser | Native Parser | Speedup |
+|-------|-----------|---------------|---------|
+| 100 | 574ms | 98ms | **5.9x** |
+| 500 | 1,398ms | 278ms | **5.0x** |
+| 1,000 | 2,447ms | 463ms | **5.3x** |
+| 2,000 | 4,835ms | 828ms | **5.8x** |
+
+The binary is compiled for 5 platforms — Linux x64/ARM64, macOS x64/ARM64, and Windows x64. When you install `boltdocs`, the postinstall script automatically downloads the right binary from GitHub Releases. If that fails (corporate firewall, no internet, whatever), it falls back to a WASM build that works everywhere.
+
+Set `FORCE_WASM=true` if you want to skip the native binary entirely. The WASM version is still 5x faster than the old JS parser.
+
+Check the [`@bdocs/parser` package](https://www.npmjs.com/package/@bdocs/parser) for details.
+
+---
+
+## Breaking Change: Integrations Config
+
+The `integrations` config has been reorganized into logical sections. This is a breaking change — the old flat structure no longer works.
+
+**Before (2.x):**
+
+```ts
+export default defineConfig({
+  integrations: {
+    ga4: { measurementId: 'G-XXXXX' },
+    algolia: { appId: '...' },
+    feedback: { custom: { ... } },
+  },
+})
+```
+
+**After (3.0):**
+
+```ts
+export default defineConfig({
+  integrations: {
+    analytics: {
+      ga4: { measurementId: 'G-XXXXX' },
+      vercel: { analytics: true, speedInsights: true },
+    },
+    search: {
+      algolia: { appId: '...' },
+    },
+    feedback: {
+      custom: { ... },
+      giscus: { ... },
+    },
+  },
+})
+```
+
+Everything is now grouped under `analytics`, `search`, and `feedback`. Update your config before upgrading.
+
+---
+
+## Vercel Analytics & Speed Insights
+
+I wanted analytics that just work — no configuration, no tracking IDs to copy-paste, no scripts to manually inject.
+
+If you're deploying to Vercel, add two lines to your config:
+
+```ts
+export default defineConfig({
+  integrations: {
+    analytics: {
+      vercel: {
+        analytics: true,
+        speedInsights: true,
+      },
+    },
+  },
+})
+```
+
+That's it. Boltdocs injects the Vercel scripts (`/_vercel/insights/script.js` and `/_vercel/speed-insights/script.js`) into your pages automatically — but only in production builds. Dev and preview stays clean.
+
+Read the full setup in the [Vercel integration docs](/docs/integrations/seo/vercel).
+
+---
+
+## Search Engine Verification
+
+Add your verification meta tags for Google, Bing, Yandex, Pinterest, and Facebook — Boltdocs injects them server-side and client-side:
+
+```ts
+export default defineConfig({
+  seo: {
+    verification: {
+      google: 'XXXXX',
+      bing: 'XXXXX',
+      yandex: 'XXXXX',
+      pinterest: 'XXXXX',
+      facebook: 'XXXXX',
+    },
+  },
+})
+```
+
+No more manually editing `index.html` for search engine ownership verification.
+
+---
+
+## Giscus Comments
+
+Comments and discussions, powered by GitHub Discussions. Drop in your repo config and every page gets a comment section.
+
+```ts
+export default defineConfig({
+  integrations: {
+    feedback: {
+      giscus: {
+        repo: 'your-org/your-repo',
+        repoId: 'R_kgDO_XXXXX',
+        category: 'Announcements',
+        categoryId: 'DIC_kwDO_XXXXX',
+      },
+    },
+  },
+})
+```
+
+Theme sync works automatically — light mode uses your light Giscus theme, dark mode uses your dark theme. No manual `postMessage` handling needed.
+
+The component renders below the feedback widget and above the page navigation. If you're using the default layout, it just appears. If you have a custom layout, import `<Giscus />` from `boltdocs/client`.
+
+Full config reference in the [Giscus docs](/docs/integrations/features/giscus).
+
+---
+
+## UI/UX Improvements
+
+A bunch of small things that add up:
+
+- **Card component** — new mouse spotlight effect with radial gradient glow and icon rotation on hover
+- **Tabs** — DOMPurify sanitization for inline SVG icons
+- **Theme context** — fixed dual-package hazard with global Symbol-based registry and CustomEvent sync
+- **Breadcrumbs** — proper typed routing with `BoltdocsRoutePathWithFallback`
+- **Logo** — `fetchPriority="high"` for LCP improvement
+
+---
+
+## SEO & Meta Improvements
+
+The head management got a lot smarter:
+
+- **OG images** — relative paths now resolved against `siteUrl`, canonical URLs calculated correctly
+- **Structured SEO** — proper `og:`, `article:`, `music:`, `video:`, `book:`, `profile:` prefixes
+- **Twitter cards** — auto-selects `summary` vs `summary_large_image` based on OG image presence
+- **Verification tags** — Google, Bing, Yandex, Pinterest, Facebook search engine verification meta tags now properly injected
+- **Preload links** — logo image preloaded with correct MIME type and `fetchpriority="high"`
+
+---
+
+## Dev Server & HMR
+
+- **Link tree regeneration** — file add/unlink events now trigger link tree regeneration
+- **Config updates** — `boltdocs:config-update` custom event with theme/i18n/versions/siteUrl data
+- **Module invalidation** — case-insensitive fallback search for module resolution
+
+---
+
+## Node 26+ Compatibility
+
+Added DEP0205 warning suppression for Node.js 26+ in the CLI entry points. If you're running the latest Node, you won't see those deprecation warnings anymore.
+
+---
+
+## Documentation Refresh
+
+The docs got a full pass — new pages for [Vercel Analytics](/docs/integrations/seo/vercel), [Giscus](/docs/integrations/features/giscus), and [Feedback](/docs/integrations/features/feedback), all in English and Spanish. The plugin system page, CLI reference, and component guides are all updated.
+
+---
+
+## What's Next
+
+I'm already working on the next round. Here's what's coming in the next minor releases:
+
+- **`--turbo` flag for build (experimental)** — I'm rewriting Beasties (the CSS critical extraction engine) in Zig. Same concept as the parser — native speed for build-critical operations. The `--turbo` flag will use the new Zig implementation instead of the JS fallback. This is experimental — more performance improvements are coming alongside it
+- **Plugin-Ask-AI new** — AI integration for documentation. Ask anything about your docs and get instant answers.
+- **`@bdocs/zig-critters`** — the Zig-based CSS extraction engine is in testing. It's already extracting critical CSS from 300 HTML files in under a second. Expect this to land as an opt-in build flag soon
+- **Search improvements** — better ranking, fuzzy matching, and result previews
+- **More i18n** — additional language support beyond English and Spanish
+
+Install or update:
+
+```bash
+pnpm add boltdocs@latest
+```
+
+Check the [full docs](/docs/) to explore everything new.

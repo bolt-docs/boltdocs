@@ -1,0 +1,219 @@
+---
+title: "Boltdocs 3.0.0 — Parser Nativo, Vercel Analytics, Giscus y una Reescritura Completa"
+description: "Parser nativo impulsado por Zig, Vercel Analytics y Speed Insights, comentarios con Giscus, feedback personalizado, Ask AI renovado y docenas de mejoras"
+date: 2026-06-22
+cover: /blog-covers/Boltdocs-3.0.0.webp
+author:
+  name: Jesús Alcalá
+  avatar: /avatar.jpeg
+excerpt: "3.0.0 es el lanzamiento más grande hasta ahora — un parser nativo en Zig que es 5-6x más rápido, Vercel Analytics sin configuración, integración de comentarios con Giscus y docenas de mejoras en UI/UX y SEO."
+---
+
+## Esta se trata de velocidad pura
+
+2.9.0 fue sobre compartir — DUI, feedback, matemáticas. 3.0.0 es sobre desarmar el motor y reemplazarlo por algo mucho más rápido.
+
+<Callout type="info">
+  Un parser compilado en Zig que es 5-6x más rápido que el parser JS anterior. Vercel Analytics y Speed Insights sin configuración. Comentarios con Giscus que simplemente funcionan Y docenas de correcciones y mejoras que tenía guardadas durante meses.
+</Callout>
+
+---
+
+## Parser Nativo — Builds 5-6x Más Rápidos
+
+Esto es lo más importante. Reescribí el parser de markdown en Zig y lo compilé a un binario nativo.
+
+El parser JS anterior recorría tu directorio de docs, extraía frontmatter, parseaba headings y recopilaba texto plano para búsqueda — pero todo eso lo hacía en JavaScript. El nuevo `@bdocs/parser` hace lo mismo, pero es un binario compilado que corre 5-6x más rápido.
+
+Algunos números de mis benchmarks:
+
+| Archivos | Parser JS | Parser Nativo | Aceleración |
+|----------|-----------|---------------|-------------|
+| 100 | 574ms | 98ms | **5.9x** |
+| 500 | 1,398ms | 278ms | **5.0x** |
+| 1,000 | 2,447ms | 463ms | **5.3x** |
+| 2,000 | 4,835ms | 828ms | **5.8x** |
+
+El binario está compilado para 5 plataformas — Linux x64/ARM64, macOS x64/ARM64 y Windows x64. Cuando instalas `boltdocs`, el script postinstall descarga automáticamente el binario correcto desde GitHub Releases. Si falla (firewall corporado, sin internet, lo que sea), usa un fallback a WASM que funciona en todas partes.
+
+Define `FORCE_WASM=true` si quieres saltar el binario nativo completamente. La versión WASM sigue siendo 5x más rápida que el parser JS anterior.
+
+Consulta el [paquete `@bdocs/parser`](https://www.npmjs.com/package/@bdocs/parser) para más detalles.
+
+---
+
+## Breaking Change: Reestructuración de Integrations
+
+La configuración `integrations` ha sido reorganizada en secciones lógicas. Este es un breaking change — la estructura plana anterior ya no funciona.
+
+**Antes (2.x):**
+
+```ts
+export default defineConfig({
+  integrations: {
+    ga4: { measurementId: 'G-XXXXX' },
+    algolia: { appId: '...' },
+    feedback: { custom: { ... } },
+  },
+})
+```
+
+**Después (3.0):**
+
+```ts
+export default defineConfig({
+  integrations: {
+    analytics: {
+      ga4: { measurementId: 'G-XXXXX' },
+      vercel: { analytics: true, speedInsights: true },
+    },
+    search: {
+      algolia: { appId: '...' },
+    },
+    feedback: {
+      custom: { ... },
+      giscus: { ... },
+    },
+  },
+})
+```
+
+Todo ahora está agrupado bajo `analytics`, `search` y `feedback`. Actualiza tu configuración antes de actualizar.
+
+---
+
+## Vercel Analytics y Speed Insights
+
+Quería analíticas que simplemente funcionen — sin configuración, sin IDs de tracking para copiar y pegar, sin scripts para inyectar manualmente.
+
+Si despliegas en Vercel, agrega dos líneas a tu configuración:
+
+```ts
+export default defineConfig({
+  integrations: {
+    analytics: {
+      vercel: {
+        analytics: true,
+        speedInsights: true,
+      },
+    },
+  },
+})
+```
+
+Eso es todo. Boltdocs inyecta los scripts de Vercel (`/_vercel/insights/script.js` y `/_vercel/speed-insights/script.js`) en tus páginas automáticamente — pero solo en builds de producción. Dev y preview se mantienen limpios.
+
+Lee la configuración completa en la [documentación de integración con Vercel](/docs/integrations/seo/vercel).
+
+---
+
+## Verificación de Motores de Búsqueda
+
+Agrega tus meta tags de verificación para Google, Bing, Yandex, Pinterest y Facebook — Boltdocs los inyecta server-side y client-side:
+
+```ts
+export default defineConfig({
+  seo: {
+    verification: {
+      google: 'XXXXX',
+      bing: 'XXXXX',
+      yandex: 'XXXXX',
+      pinterest: 'XXXXX',
+      facebook: 'XXXXX',
+    },
+  },
+})
+```
+
+Sin más ediciones manuales de `index.html` para verificación de propiedad en motores de búsqueda.
+
+---
+
+## Comentarios con Giscus
+
+Comentarios y discusiones, impulsados por GitHub Discussions. Agrega la configuración de tu repo y cada página obtiene una sección de comentarios.
+
+```ts
+export default defineConfig({
+  integrations: {
+    feedback: {
+      giscus: {
+        repo: 'tu-org/tu-repo',
+        repoId: 'R_kgDO_XXXXX',
+        category: 'Announcements',
+        categoryId: 'DIC_kwDO_XXXXX',
+      },
+    },
+  },
+})
+```
+
+La sincronización de temas funciona automáticamente — el modo claro usa tu tema claro de Giscus, el modo oscuro usa tu tema oscuro. No necesitas manejo manual de `postMessage`.
+
+El componente se renderiza debajo del widget de feedback y encima de la navegación de página. Si usas el layout por defecto, simplemente aparece. Si tienes un layout personalizado, importa `<Giscus />` desde `boltdocs/client`.
+
+Referencia completa de configuración en la [documentación de Giscus](/docs/integrations/features/giscus).
+
+---
+
+## Mejoras en UI/UX
+
+Un montón de cosas pequeñas que se suman:
+
+- **Componente Card** — nuevo efecto de spotlight de mouse con brillo de gradiente radial y rotación de icono al hover
+- **Tabs** — sanitización DOMPurify para iconos SVG inline
+- **Theme context** — fix de dual-package hazard con registry basado en Symbol global y sync por CustomEvent
+- **Breadcrumbs** — routing tipado correcto con `BoltdocsRoutePathWithFallback`
+- **Logo** — `fetchPriority="high"` para mejora de LCP
+
+---
+
+## Mejoras en SEO y Meta
+
+La gestión de head se volvió mucho más inteligente:
+
+- **OG images** — rutas relativas ahora resueltas contra `siteUrl`, canonical URLs calculadas correctamente
+- **SEO estructurado** — prefijos correctos `og:`, `article:`, `music:`, `video:`, `book:`, `profile:`
+- **Twitter cards** — selección automática entre `summary` y `summary_large_image` basada en presencia de imagen OG
+- **Tags de verificación** — meta tags de verificación de Google, Bing, Yandex, Pinterest y Facebook ahora inyectados correctamente
+- **Preload links** — imagen de logo precargada con MIME type correcto y `fetchpriority="high"`
+
+---
+
+## Dev Server y HMR
+
+- **Regeneración de link tree** — eventos de add/unlink de archivos ahora disparan regeneración del link tree
+- **Actualizaciones de config** — evento custom `boltdocs:config-update` con datos de theme/i18n/versions/siteUrl
+- **Invalidación de módulos** — búsqueda fallback case-insensitive para resolución de módulos
+
+---
+
+## Compatibilidad con Node 26+
+
+Agregada supresión de advertencias DEP0205 para Node.js 26+ en los entry points del CLI. Si estás corriendo el último Node, no verás esas advertencias de deprecación.
+
+---
+
+## Actualización de Documentación
+
+La documentación recibió una pasada completa — nuevas páginas para [Vercel Analytics](/docs/integrations/seo/vercel), [Giscus](/docs/integrations/features/giscus) y [Feedback](/docs/integrations/features/feedback), todo en inglés y español. La página del sistema de plugins, la referencia del CLI y las guías de componentes están todas actualizadas.
+
+---
+
+## Qué Sigue
+
+Ya estoy trabajando en la siguiente ronda. Esto es lo que viene en los próximos releases menores:
+
+- **Bandera `--turbo` para build (experimental)** — estoy reescribiendo Beasties (el motor de extracción de CSS crítico) en Zig. Mismo concepto que el parser — velocidad nativa para operaciones críticas de build. La bandera `--turbo` usará la nueva implementación en Zig en lugar del fallback JS. Esto es experimental — más mejoras de rendimiento vienen junto con esto
+- **Nuevo Plugin-Ask-AI** — Integracion de AI para la documentación. Pregunta cualquier cosa sobre tu docs y obtén respuestas instantáneas.
+- **`@bdocs/zig-critters`** — el motor de extracción de CSS basado en Zig está en pruebas. Ya está extrayendo CSS crítico de 300 archivos HTML en menos de un segundo. Esperen esto como flag de build opcional pronto
+- **Mejoras en búsqueda** — mejor ranking, coincidencia difusa y vistas previas de resultados
+- **Más i18n** — soporte de idiomas adicionales además de inglés y español
+
+Instala o actualiza**********************:**********************
+
+```bash
+pnpm add boltdocs@latest
+```
+
+Revisa la [documentación completa](/docs/) para explorar todo lo nuevo.
