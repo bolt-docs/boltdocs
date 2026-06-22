@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react'
+import { useRef } from 'react'
 import { cn } from '../../utils/cn'
 
 export interface CardProps extends React.HTMLAttributes<HTMLDivElement> {
@@ -15,18 +15,16 @@ export function Card({
   children,
   ...props
 }: CardProps) {
-  const [position, setPosition] = useState({ x: 0, y: 0 })
-  const [opacity, setOpacity] = useState(0)
   const cardRef = useRef<HTMLDivElement>(null)
 
   const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
     if (!cardRef.current) return
     const rect = cardRef.current.getBoundingClientRect()
-    setPosition({ x: e.clientX - rect.left, y: e.clientY - rect.top })
+    const x = e.clientX - rect.left
+    const y = e.clientY - rect.top
+    cardRef.current.style.setProperty('--mouse-x', `${x}px`)
+    cardRef.current.style.setProperty('--mouse-y', `${y}px`)
   }
-
-  const handleMouseEnter = () => setOpacity(1)
-  const handleMouseLeave = () => setOpacity(0)
 
   const Wrapper = href ? 'a' : 'div'
   const spotlightColor = 'var(--color-primary-500, #eb5828)'
@@ -36,32 +34,29 @@ export function Card({
       ref={cardRef}
       href={href}
       onMouseMove={handleMouseMove}
-      onMouseEnter={handleMouseEnter}
-      onMouseLeave={handleMouseLeave}
       className={cn(
-        'group relative flex flex-col gap-3 rounded-2xl border p-6 overflow-hidden transition-all duration-300',
+        'group relative flex flex-col gap-3 rounded-2xl border p-6 overflow-hidden',
+        'transition-[box-shadow,transform] duration-300',
         'hover:shadow-lg dark:hover:shadow-none hover:-translate-y-0.5',
         'bg-surface border-subtle text-paragraph',
         href && 'cursor-pointer',
         className,
       )}
-      {...(props as any)}
+      {...(props as React.HTMLAttributes<HTMLDivElement>)}
     >
       {/* Background Spotlight */}
       <div
-        className="pointer-events-none absolute inset-0 transition-opacity duration-300"
+        className="pointer-events-none absolute inset-0 opacity-0 transition-opacity duration-300 group-hover:opacity-100"
         style={{
-          opacity,
-          background: `radial-gradient(600px circle at ${position.x}px ${position.y}px, color-mix(in srgb, ${spotlightColor} 8%, transparent), transparent 40%)`,
+          background: `radial-gradient(600px circle at var(--mouse-x, 50%) var(--mouse-y, 50%), color-mix(in srgb, ${spotlightColor} 8%, transparent), transparent 40%)`,
         }}
       />
       {/* Border Spotlight Glow */}
       <div
-        className="pointer-events-none absolute inset-0 rounded-2xl transition-opacity duration-300"
+        className="pointer-events-none absolute inset-0 rounded-2xl opacity-0 transition-opacity duration-300 group-hover:opacity-100"
         style={{
-          opacity,
           padding: '1px',
-          background: `radial-gradient(400px circle at ${position.x}px ${position.y}px, color-mix(in srgb, ${spotlightColor} 50%, transparent), transparent 40%)`,
+          background: `radial-gradient(400px circle at var(--mouse-x, 50%) var(--mouse-y, 50%), color-mix(in srgb, ${spotlightColor} 50%, transparent), transparent 40%)`,
           WebkitMask:
             'linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)',
           WebkitMaskComposite: 'xor',

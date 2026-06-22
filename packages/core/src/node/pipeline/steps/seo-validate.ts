@@ -38,7 +38,8 @@ export class SEOValidateStep implements PipelineStep<BuildContext> {
       const ogUrl = rawSeo['og:url'] || canonical || undefined
 
       const defaultOgImage = ctx.config.seo?.thumbnails?.background
-      const rawOgImage = rawSeo['og:image'] || route.coverImage || defaultOgImage
+      const rawOgImage =
+        rawSeo['og:image'] || route.coverImage || defaultOgImage
       let ogImage = rawOgImage
       if (ogImage && siteUrl && !/^https?:\/\/|^\/\//.test(ogImage)) {
         const base = siteUrl.endsWith('/') ? siteUrl.slice(0, -1) : siteUrl

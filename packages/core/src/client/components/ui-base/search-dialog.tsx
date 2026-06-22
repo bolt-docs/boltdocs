@@ -1,9 +1,7 @@
-import { useEffect, useCallback } from 'react'
-import { Search } from './icons'
+import { Search, X } from './icons'
 import { useSearch } from '../../hooks/use-search'
 import { SearchDialog as SearchDialogPrimitive } from '../primitives/search-dialog'
 import Navbar from '../primitives/navbar'
-import { useNavigate } from 'react-router-dom'
 import type { ComponentRoute } from '../../types'
 import { InternalErrorBoundary as ErrorBoundary } from '../internal/error-boundary'
 
@@ -40,43 +38,8 @@ function Highlight({ text, query }: { text: string; query: string }) {
 }
 
 export function SearchDialog({ routes }: { routes: ComponentRoute[] }) {
-  const { isOpen, setIsOpen, query, setQuery, list } = useSearch(routes)
-  const navigate = useNavigate()
-
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      const isMac = /Mac/.test(navigator.userAgent)
-      const isMeta = isMac ? e.metaKey : e.ctrlKey
-
-      if (isMeta && (e.key === 'k' || e.key === 'j')) {
-        e.preventDefault()
-        setIsOpen((prev) => !prev)
-      }
-    }
-    window.addEventListener('keydown', handleKeyDown)
-    return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [setIsOpen])
-
-  const handleSelect = useCallback(
-    (key: React.Key) => {
-      const path = String(key)
-      setIsOpen(false)
-
-      const [baseUrl, hash] = path.split('#')
-      const search = query ? `?hl=${encodeURIComponent(query)}` : ''
-      const finalPath = `${baseUrl}${search}${hash ? `#${hash}` : ''}`
-
-      navigate(finalPath)
-
-      if (hash) {
-        setTimeout(() => {
-          const el = document.getElementById(hash)
-          if (el) el.scrollIntoView({ behavior: 'smooth' })
-        }, 100)
-      }
-    },
-    [navigate, setIsOpen, query],
-  )
+  const { isOpen, setIsOpen, query, setQuery, list, handleSelect } =
+    useSearch(routes)
 
   return (
     <>
@@ -126,9 +89,9 @@ export function SearchDialog({ routes }: { routes: ComponentRoute[] }) {
                   {query && (
                     <SearchDialogPrimitive.Input.Button
                       onPress={() => setQuery('')}
-                      className="text-muted hover:text-body text-xs cursor-pointer select-none"
+                      className="text-muted hover:text-body hover:bg-surface rounded-md p-1 cursor-pointer select-none transition-colors"
                     >
-                      ✕
+                      <X size={16} />
                     </SearchDialogPrimitive.Input.Button>
                   )}
                 </SearchDialogPrimitive.Input>

@@ -21,10 +21,6 @@ export function Head({ siteTitle, siteDescription, routes }: HeadProps) {
   const config = useConfig()
   const { currentLocale, currentRoute } = useRoutes()
 
-  // Find the current route's metadata — memoized so the O(n) search only
-  // re-runs when the routes array or the current URL changes, not on every render.
-  // We use currentRoute from useRoutes hook which handles path normalization and locales,
-  // falling back to pathname search if not found.
   const route = useMemo(() => {
     if (currentRoute) return currentRoute
     const normalizedPath =
@@ -43,8 +39,7 @@ export function Head({ siteTitle, siteDescription, routes }: HeadProps) {
     siteDescription,
     currentLocale,
   )
-  const pageDescription =
-    route?.description || translatedSiteDescription || ''
+  const pageDescription = route?.description || translatedSiteDescription || ''
 
   const translatedSiteTitle = getTranslated(siteTitle, currentLocale)
   const finalTitle = pageTitle
@@ -69,11 +64,15 @@ export function Head({ siteTitle, siteDescription, routes }: HeadProps) {
 
   // Calculate specific ones
   const defaultOgImage = config?.seo?.thumbnails?.background
-  const rawOgImage = (seo['og:image'] || route?.coverImage || defaultOgImage) as string | undefined
+  const rawOgImage = (seo['og:image'] || route?.coverImage || defaultOgImage) as
+    | string
+    | undefined
 
   let ogImage = rawOgImage
   if (ogImage && config?.siteUrl && !/^https?:\/\/|^\/\//.test(ogImage)) {
-    const base = config.siteUrl.endsWith('/') ? config.siteUrl.slice(0, -1) : config.siteUrl
+    const base = config.siteUrl.endsWith('/')
+      ? config.siteUrl.slice(0, -1)
+      : config.siteUrl
     const path = ogImage.startsWith('/') ? ogImage : `/${ogImage}`
     ogImage = `${base}${path}`
   }
@@ -92,7 +91,10 @@ export function Head({ siteTitle, siteDescription, routes }: HeadProps) {
       {ogUrl && <meta property="og:url" content={ogUrl} />}
 
       {/* Default Twitter Card */}
-      <meta name="twitter:card" content={ogImage ? 'summary_large_image' : 'summary'} />
+      <meta
+        name="twitter:card"
+        content={ogImage ? 'summary_large_image' : 'summary'}
+      />
       <meta name="twitter:title" content={finalTitle} />
       <meta name="twitter:description" content={pageDescription} />
       {ogImage && <meta name="twitter:image" content={ogImage} />}
@@ -103,19 +105,31 @@ export function Head({ siteTitle, siteDescription, routes }: HeadProps) {
 
       {/* Search engine verification tags */}
       {config?.seo?.verification?.google && (
-        <meta name="google-site-verification" content={config.seo.verification.google} />
+        <meta
+          name="google-site-verification"
+          content={config.seo.verification.google}
+        />
       )}
       {config?.seo?.verification?.bing && (
         <meta name="msvalidate.01" content={config.seo.verification.bing} />
       )}
       {config?.seo?.verification?.yandex && (
-        <meta name="yandex-verification" content={config.seo.verification.yandex} />
+        <meta
+          name="yandex-verification"
+          content={config.seo.verification.yandex}
+        />
       )}
       {config?.seo?.verification?.pinterest && (
-        <meta name="p:domain_verify" content={config.seo.verification.pinterest} />
+        <meta
+          name="p:domain_verify"
+          content={config.seo.verification.pinterest}
+        />
       )}
       {config?.seo?.verification?.facebook && (
-        <meta name="facebook-domain-verification" content={config.seo.verification.facebook} />
+        <meta
+          name="facebook-domain-verification"
+          content={config.seo.verification.facebook}
+        />
       )}
 
       {/* User-defined global metatags */}

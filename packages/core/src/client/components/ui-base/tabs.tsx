@@ -7,6 +7,7 @@ import * as DefaultIcons from './icons'
 import virtualIcons from 'virtual:boltdocs-icons'
 import { getTranslated } from '../../utils/i18n'
 import { useRoutes } from '../../hooks/use-routes'
+import DOMPurify from 'isomorphic-dompurify'
 
 export function Tabs({
   tabs,
@@ -32,11 +33,11 @@ export function Tabs({
   const renderTabIcon = (iconName?: string) => {
     if (!iconName) return null
     if (iconName.trim().startsWith('<svg')) {
+      const clean = DOMPurify.sanitize(iconName, {
+        USE_PROFILES: { svg: true },
+      })
       return (
-        <span
-          className="h-4 w-4"
-          dangerouslySetInnerHTML={{ __html: iconName }}
-        />
+        <span className="h-4 w-4" dangerouslySetInnerHTML={{ __html: clean }} />
       )
     }
     const icons = { ...DefaultIcons, ...virtualIcons } as Record<string, any>

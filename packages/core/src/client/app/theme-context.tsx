@@ -13,19 +13,27 @@ const THEME_CONTEXT_SYMBOL = Symbol.for('__BDOCS_THEME_CONTEXT__')
 const THEME_INSTANCE_SYMBOL = Symbol.for('__BDOCS_THEME_INSTANCE__')
 const THEME_EVENT = 'boltdocs-theme-change'
 
+interface GlobalThemeStore {
+  [THEME_CONTEXT_SYMBOL]?: React.Context<ThemeContextType | undefined>
+  [THEME_INSTANCE_SYMBOL]?: ThemeContextType
+}
+
+function isValidTheme(value: string): value is Theme {
+  return value === 'light' || value === 'dark' || value === 'system'
+}
+
+const globalStore = globalThis as GlobalThemeStore
 const ThemeContext =
-  (globalThis as any)[THEME_CONTEXT_SYMBOL] ||
-  ((globalThis as any)[THEME_CONTEXT_SYMBOL] = createContext<
-    ThemeContextType | undefined
-  >(undefined))
+  globalStore[THEME_CONTEXT_SYMBOL] ??
+  createContext<ThemeContextType | undefined>(undefined)
+globalStore[THEME_CONTEXT_SYMBOL] = ThemeContext
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const [theme, setThemeState] = useState<Theme>(() => {
     if (typeof window !== 'undefined') {
       try {
-        return (
-          (window.localStorage.getItem('boltdocs-theme') as Theme) || 'system'
-        )
+        const raw = window.localStorage.getItem('boltdocs-theme')
+        return raw && isValidTheme(raw) ? raw : 'system'
       } catch {}
     }
     return 'system'
@@ -43,11 +51,11 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     setResolvedTheme(isDark ? 'dark' : 'light')
   }
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: we only want to run this on mount
   useEffect(() => {
     try {
-      const savedTheme = window.localStorage.getItem(
-        'boltdocs-theme',
-      ) as Theme | null
+      const raw = window.localStorage.getItem('boltdocs-theme')
+      const savedTheme = raw && isValidTheme(raw) ? raw : null
       if (savedTheme) {
         setThemeState(savedTheme)
         applyTheme(savedTheme)
@@ -59,8 +67,8 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)')
     const listener = () => {
       try {
-        const current =
-          (window.localStorage.getItem('boltdocs-theme') as Theme) || 'system'
+        const raw = window.localStorage.getItem('boltdocs-theme')
+        const current = raw && isValidTheme(raw) ? raw : 'system'
         if (current === 'system') applyTheme('system')
       } catch {}
     }
@@ -86,7 +94,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
 
   // Sync with global registry
   if (typeof globalThis !== 'undefined') {
-    ;(globalThis as any)[THEME_INSTANCE_SYMBOL] = value
+    globalStore[THEME_INSTANCE_SYMBOL] = value
   }
 
   return <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>
@@ -108,9 +116,9 @@ export function useTheme() {
   if (
     !context &&
     typeof globalThis !== 'undefined' &&
-    (globalThis as any)[THEME_INSTANCE_SYMBOL]
+    globalStore[THEME_INSTANCE_SYMBOL]
   ) {
-    return (globalThis as any)[THEME_INSTANCE_SYMBOL] as ThemeContextType
+    return globalStore[THEME_INSTANCE_SYMBOL]
   }
 
   if (context === undefined) {

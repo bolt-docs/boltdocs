@@ -130,6 +130,7 @@ function NavbarLogo({
           alt={alt}
           width={width}
           height={height}
+          fetchPriority="high"
           className="h-6 w-6 object-contain"
         />
       ) : null}

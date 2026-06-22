@@ -65,9 +65,7 @@ export function useNavbar() {
       const processItems = (items?: any[]): NavbarLink[] => {
         if (!items || items.length === 0) return undefined as any
         return items.map((subItem: any) => {
-          const subHref = subItem.href ||
-            subItem.to ||
-            subItem.link || ''
+          const subHref = subItem.href || subItem.to || subItem.link || ''
           return {
             label: getTranslated(subItem.label || subItem.text, currentLocale),
             href: subHref,

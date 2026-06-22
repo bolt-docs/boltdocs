@@ -32,7 +32,11 @@ function BreadcrumbsLink({
   href,
   className,
   ...props
-}: { href: BoltdocsRoutePathWithFallback; className?: string; children?: React.ReactNode }) {
+}: {
+  href: BoltdocsRoutePathWithFallback
+  className?: string
+  children?: React.ReactNode
+}) {
   return (
     <Link href={href} className={cn('cursor-pointer', className)} {...props}>
       {children as any}
