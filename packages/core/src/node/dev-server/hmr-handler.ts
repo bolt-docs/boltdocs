@@ -152,7 +152,10 @@ export function setupHmr(
             let mods = server.moduleGraph.getModulesByFile(normalized)
             if (!mods || mods.size === 0) {
               const normalizedLower = normalized.toLowerCase()
-              for (const [key, value] of server.moduleGraph.fileToModulesMap.entries()) {
+              for (const [
+                key,
+                value,
+              ] of server.moduleGraph.fileToModulesMap.entries()) {
                 try {
                   const decodedKey = decodeURIComponent(key)
                   if (decodedKey.toLowerCase() === normalizedLower) {

@@ -142,7 +142,7 @@ export async function generateRoutes(
     } else {
       if (!isTest && !_cachedNativeDocs) {
         try {
-          const { runParser } = await import('@bdocs/native')
+          const { runParser } = await import('@bdocs/parser')
           _cachedNativeDocs = await runParser(docsDir)
         } catch (e) {
           // Native parser not available or failed

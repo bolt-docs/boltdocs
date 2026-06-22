@@ -259,6 +259,8 @@ function ViteImageOptimizer(optionsParam: Options = {}): Plugin {
           basename(path),
         )
 
+        const validCacheFilenames = new Set<string>()
+
         if (files.length > 0) {
           const handles = files.map(async (publicFilePath: string) => {
             const relativePath: string = publicFilePath.replace(
@@ -281,8 +283,16 @@ function ViteImageOptimizer(optionsParam: Options = {}): Plugin {
             const optionsHash = computeOptionsHash(formatOpts)
 
             if (assetCache) {
+              const sourceHash = await assetCache.getFileHash(publicFilePath)
+              const ext = extname(publicFilePath)
+              const name = basename(publicFilePath, ext)
+              const safeKey = `${PLUGIN_VERSION}-${optionsHash}-${sourceHash}`
+                .replace(/[^a-z0-9]/gi, '-')
+                .toLowerCase()
+              validCacheFilenames.add(`${name}.${safeKey}${ext}`)
+
               const cachedPath = await assetCache.get(
-                fullFilePath,
+                publicFilePath,
                 `${PLUGIN_VERSION}-${optionsHash}`,
               )
               if (cachedPath) {
@@ -307,9 +317,9 @@ function ViteImageOptimizer(optionsParam: Options = {}): Plugin {
               await fsp.writeFile(fullFilePath, content)
               mtimeCache.set(relativePath, Date.now())
               if (assetCache) {
-                const sourceHash = await assetCache.getFileHash(fullFilePath)
+                const sourceHash = await assetCache.getFileHash(publicFilePath)
                 assetCache.set(
-                  fullFilePath,
+                  publicFilePath,
                   `${PLUGIN_VERSION}-${optionsHash}`,
                   content,
                   sourceHash,
@@ -318,6 +328,11 @@ function ViteImageOptimizer(optionsParam: Options = {}): Plugin {
             }
           })
           await Promise.all(handles)
+        }
+
+        if (assetCache) {
+          await assetCache.pruneStale(validCacheFilenames)
+          await assetCache.enforceSizeLimit()
         }
       }
       if (

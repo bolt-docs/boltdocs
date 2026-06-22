@@ -9,10 +9,10 @@ const memoryCache = new Map<string, { data: ParsedDocFile; mtime: number }>()
 
 const getParserCacheDir = () => {
   const config = getCacheConfig()
-  return path.resolve(process.cwd(), config.dir, 'cache/parser')
+  return path.resolve(process.cwd(), config.dir, 'parser')
 }
 
-const PARSER_VERSION = 'v2.4'
+const PARSER_VERSION = 'v2.5'
 
 export class ParserCache {
   static async get(file: string): Promise<ParsedDocFile | null> {

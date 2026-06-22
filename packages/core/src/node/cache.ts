@@ -15,9 +15,8 @@ const gzipPromise = promisify(zlib.gzip)
 const gunzipPromise = promisify(zlib.gunzip)
 
 /**
- * Assets and Shards directory names.
+ * Shards directory name.
  */
-const ASSETS_DIR = 'assets'
 const SHARDS_DIR = 'shards'
 
 /**
@@ -331,88 +330,6 @@ export class TransformCache {
 
   get size() {
     return this.index.size
-  }
-
-  async flush() {
-    await globalBackgroundQueue.flush()
-  }
-}
-
-/**
- * Specialized cache for processed assets (e.g., optimized images).
- */
-export class AssetCache {
-  private readonly assetsDir: string
-  private hashMap = new Map<string, { hash: string; mtime: number }>()
-
-  constructor(root: string = process.cwd()) {
-    const config = getCacheConfig()
-    this.assetsDir = path.resolve(root, config.dir, ASSETS_DIR)
-  }
-
-  async getFileHash(filePath: string): Promise<string> {
-    const stat = await fsPromises.stat(filePath)
-    const mtime = stat.mtimeMs
-    const cached = this.hashMap.get(filePath)
-    if (cached && cached.mtime === mtime) {
-      return cached.hash
-    }
-    const hash = crypto
-      .createHash('md5')
-      .update(`${stat.size}-${mtime}`)
-      .digest('hex')
-    this.hashMap.set(filePath, { hash, mtime })
-    return hash
-  }
-
-  async get(sourcePath: string, cacheKey: string): Promise<string | null> {
-    try {
-      const sourceHash = await this.getFileHash(sourcePath)
-      const cachedPath = this.getCachedPath(
-        sourcePath,
-        `${cacheKey}-${sourceHash}`,
-      )
-      await fsPromises.access(cachedPath)
-      return cachedPath
-    } catch (e) {
-      return null
-    }
-  }
-
-  set(
-    sourcePath: string,
-    cacheKey: string,
-    content: Buffer | string,
-    sourceHash: string,
-  ): void {
-    const cachedPath = this.getCachedPath(
-      sourcePath,
-      `${cacheKey}-${sourceHash}`,
-    )
-
-    globalBackgroundQueue.add(async () => {
-      try {
-        await mkdir(this.assetsDir, { recursive: true })
-        const tempPath = `${cachedPath}.${crypto.randomBytes(4).toString('hex')}.tmp`
-        await writeFile(tempPath, content)
-        await rename(tempPath, cachedPath)
-      } catch (e) {
-        // Ignore asset write errors
-      }
-    })
-  }
-
-  private getCachedPath(sourcePath: string, cacheKey: string): string {
-    const ext = path.extname(sourcePath)
-    const name = path.basename(sourcePath, ext)
-    const safeKey = cacheKey.replace(/[^a-z0-9]/gi, '-').toLowerCase()
-    return path.join(this.assetsDir, `${name}.${safeKey}${ext}`)
-  }
-
-  clear(): void {
-    if (fs.existsSync(this.assetsDir)) {
-      fs.rmSync(this.assetsDir, { recursive: true, force: true })
-    }
   }
 
   async flush() {

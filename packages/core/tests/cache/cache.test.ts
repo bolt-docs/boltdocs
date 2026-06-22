@@ -1,10 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import {
-  FileCache,
-  TransformCache,
-  AssetCache,
-  flushCache,
-} from '../../src/node/cache'
+import { FileCache, TransformCache, flushCache } from '../../src/node/cache'
 import fs from 'node:fs'
 import path from 'node:path'
 import os from 'node:os'
@@ -350,58 +345,6 @@ describe('cache system', () => {
       // Should be in memory now
       const result2 = await cache.getAsync('key')
       expect(result2).toBe('value')
-    })
-  })
-
-  describe('AssetCache', () => {
-    it('should store and retrieve assets', async () => {
-      const cache = new AssetCache(tempDir)
-      const source = path.join(tempDir, 'source.txt')
-      fs.writeFileSync(source, 'hello')
-
-      const hash = await cache.getFileHash(source)
-      cache.set(source, 'v1', 'content', hash)
-      await cache.flush()
-
-      const hit = await cache.get(source, 'v1')
-      expect(hit).not.toBeNull()
-    })
-
-    it('should return null for non-existent sources', async () => {
-      const cache = new AssetCache(tempDir)
-      expect(await cache.get('/nonexistent/file.txt', 'v1')).toBeNull()
-    })
-
-    it('should handle different cache keys for same source', async () => {
-      const cache = new AssetCache(tempDir)
-      const source = path.join(tempDir, 'image.png')
-      fs.writeFileSync(source, 'image data')
-
-      const hash = await cache.getFileHash(source)
-      cache.set(source, 'v1', 'optimized1', hash)
-      cache.set(source, 'v2', 'optimized2', hash)
-      await cache.flush()
-
-      const hit1 = await cache.get(source, 'v1')
-      const hit2 = await cache.get(source, 'v2')
-
-      expect(hit1).not.toBeNull()
-      expect(hit2).not.toBeNull()
-      expect(hit1).not.toBe(hit2)
-    })
-
-    it('should clear all cached assets', async () => {
-      const cache = new AssetCache(tempDir)
-      const source = path.join(tempDir, 'source.txt')
-      fs.writeFileSync(source, 'data')
-
-      const hash = await cache.getFileHash(source)
-      cache.set(source, 'v1', 'content', hash)
-      cache.clear()
-
-      expect(
-        fs.existsSync(path.join(tempDir, '.boltdocs', 'cache', 'assets')),
-      ).toBe(false)
     })
   })
 

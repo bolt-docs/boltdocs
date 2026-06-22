@@ -95,6 +95,43 @@ export class AssetCache {
     return path.join(this.assetsDir, `${name}.${safeKey}${ext}`)
   }
 
+  async pruneStale(validFilenames: Set<string>): Promise<void> {
+    if (!fs.existsSync(this.assetsDir)) return
+    const files = await fsPromises.readdir(this.assetsDir)
+    for (const file of files) {
+      if (!validFilenames.has(file)) {
+        await fsPromises.unlink(path.join(this.assetsDir, file)).catch(() => {})
+      }
+    }
+  }
+
+  async enforceSizeLimit(
+    maxSizeBytes: number = 10 * 1024 * 1024,
+  ): Promise<void> {
+    if (!fs.existsSync(this.assetsDir)) return
+    const entries = await fsPromises.readdir(this.assetsDir)
+    let totalSize = 0
+    const files: { name: string; size: number; mtime: number }[] = []
+
+    for (const name of entries) {
+      const filePath = path.join(this.assetsDir, name)
+      const stat = await fsPromises.stat(filePath)
+      totalSize += stat.size
+      files.push({ name, size: stat.size, mtime: stat.mtimeMs })
+    }
+
+    if (totalSize <= maxSizeBytes) return
+
+    files.sort((a, b) => a.mtime - b.mtime)
+    for (const file of files) {
+      if (totalSize <= maxSizeBytes) break
+      await fsPromises
+        .unlink(path.join(this.assetsDir, file.name))
+        .catch(() => {})
+      totalSize -= file.size
+    }
+  }
+
   clear(): void {
     if (fs.existsSync(this.assetsDir)) {
       fs.rmSync(this.assetsDir, { recursive: true, force: true })
