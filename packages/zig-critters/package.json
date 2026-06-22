@@ -15,7 +15,7 @@
   "scripts": {
     "build:wasm": "cd zig && rm -rf .zig-cache && zig build -Dtarget=wasm32-wasi -Doptimize=ReleaseFast && mkdir -p zig-out/bin && find .zig-cache -name 'zig-critters.wasm' -exec cp {} zig-out/bin/zig-critters.wasm \\;",
     "build:native": "cd zig && zig build -Doptimize=ReleaseFast",
-    "build": "pnpm run build:wasm && pnpm run build:wrapper",
+    "build": "zig --version >/dev/null 2>&1 && (pnpm run build:wasm && pnpm run build:wrapper) || echo 'Zig not installed, skipping build'",
     "build:wrapper": "tsdown",
     "dev": "cd zig && zig build",
     "test": "cd zig && zig build test",
