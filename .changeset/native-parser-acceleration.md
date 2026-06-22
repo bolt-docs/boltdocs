@@ -1,13 +1,65 @@
 ---
-"boltdocs": "patch"
-"@bdocs/native": "patch"
+"boltdocs": "major"
+"@bdocs/parser": "major"
 ---
 
-feat(core,native): integrate high-performance native parser in Zig 0.16.0 to accelerate route generation
+feat: Boltdocs v3.0.0 - Native Parser, Vercel Analytics, Giscus, and More
 
-Introduces a compiled Zig binary (`bdocs-parser`) that crawls the documentation directory, extracts frontmatter, processes and sanitizes headings using the GitHub Slugger algorithm, and collects plain text for search indexing.
+## Native Parser Acceleration (@bdocs/parser)
+- Zig-compiled binary for markdown parsing with WASM fallback
+- 5-6x faster than JS parser (10.5x on 75-file dataset)
+- Cold start reduced from 3.67s to 349ms (90.5% reduction)
+- Cross-platform binaries: Linux x64/ARM64, macOS x64/ARM64, Windows x64
+- Auto-download via postinstall script from GitHub Releases
 
-- **Speedup**: Replaced the JS-based worker-pool parser with a native Zig crawler/parser, resulting in a **10.5x speedup** on a 75-file dataset.
-- **Cold Start Time**: Reduced from **3.67 seconds (3670ms)** down to **349.73ms** (a **90.5% build-time reduction**).
-- **Zig 0.16.0 Compatibility**: Implemented using explicit allocator-driven structures (`std.ArrayList.empty`, `iterateAllocator`) and async-first standard library directory methods.
-- **Robust Fallback**: Automatically falls back to the original JS-based worker pool parsing if the compiled binary is unavailable or unsupported on the host platform.
+## Vercel Analytics + Speed Insights
+- Zero-config integration via `integrations.vercel.analytics` and `integrations.vercel.speedInsights`
+- Scripts injected only in production builds
+- Full documentation in English and Spanish
+
+## Giscus Comment System
+- Complete component with theme sync (dark/light)
+- Configurable via `integrations.feedback.giscus`
+- Support for repo, category, mapping, reactions, custom themes
+- Full documentation in English and Spanish
+
+## Custom Feedback System
+- GitHub Discussions-powered feedback
+- Middleware for dev/preview environments
+- Adapters for Vercel, Netlify, AWS, and Web platforms
+- Full documentation in English and Spanish
+
+## Ask AI Plugin Overhaul
+- Complete handler and adapter rewrite
+- New sidebar panel + floating bubble UI
+- Dedicated MarkdownRenderer component
+- Comprehensive test suite (adapters, handler, Ollama integration)
+- SSE streaming with batching and AbortSignal support
+
+## UI/UX Improvements
+- Card component: mouse spotlight effect
+- Navbar: Ask AI button integration
+- Search: Cmd+J shortcut, result highlighting
+- Tabs: SVG icon sanitization
+- Theme context: dual-package hazard fix
+- Breadcrumbs: typed routing
+
+## SEO/Meta Improvements
+- OG image resolution with siteUrl
+- Canonical URLs
+- Structured SEO tags
+- Google search engine verification tags
+- Twitter card dynamic selection
+
+## Cache System Refactor
+- TransformCache with LRU + gzipped shards
+- BackgroundQueue for async persistence
+- Image optimizer cache with stale pruning
+
+## Dev Server/HMR Improvements
+- Link tree regeneration on file events
+- boltdocs:config-update custom event
+- Case-insensitive module invalidation
+
+## Node 26+ Compatibility
+- DEP0205 warning suppression in CLI

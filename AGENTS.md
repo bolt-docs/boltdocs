@@ -23,14 +23,14 @@ Boltdocs is a React/Vite documentation framework. Monorepo managed by Turborepo 
 | Image Optimizer | `@bdocs/plugin-image-optimizer` | `packages/plugin-image-optimizer` | Sharp/SVGO image optimization Vite plugin |
 | Ask AI | `@bdocs/plugin-ask-ai` | `packages/plugin-ask-ai` | Context-aware AI assistant querying plugin |
 | Create | `create-boltdocs` | `packages/create-boltdocs` | Scaffolder CLI for new projects |
-| Native | `@bdocs/native` | `packages/native` | Zig/WASM native parser (private, not published) |
+| Parser | `@bdocs/parser` | `packages/parser` | Zig/WASM markdown parser with cross-platform native binaries |
 
 ### Workspace Dependencies
 
 ```
 boltdocs (core)
   ├── @bdocs/ssg
-  ├── @bdocs/native (workspace:*)
+  ├── @bdocs/parser (workspace:*)
   └── @bdocs/plugin-image-optimizer (workspace:*)
 ```
 

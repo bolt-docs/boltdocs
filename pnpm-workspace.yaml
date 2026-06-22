@@ -3,5 +3,8 @@ packages:
   - docs
   - tests/*
 
+catalog:
+  tsdown: ^0.21.7
+
 onlyBuiltDependencies:
   - sharp
