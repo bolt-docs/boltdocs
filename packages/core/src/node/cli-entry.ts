@@ -3,7 +3,8 @@
 // Suppress DEP0205 deprecation warning for module.register() in Node 26+
 const { emitWarning: _emitWarn } = process
 process.emitWarning = function (warning: any, ...args: any[]) {
-  if (warning && typeof warning === 'object' && warning.code === 'DEP0205') return
+  if (warning && typeof warning === 'object' && warning.code === 'DEP0205')
+    return
   if (typeof warning === 'string' && args.includes('DEP0205')) return
   return Reflect.apply(_emitWarn, process, [warning, ...args])
 }
@@ -15,8 +16,6 @@ import { configure } from '@bdocs/dui'
 import cac from 'cac'
 import { devAction, buildAction, previewAction, auditAction } from './cli/index'
 
-// Configure @bdocs/dui with boltdocs-specific values once, at process start.
-// All packages that share this process (ssg, plugins, etc.) inherit this config.
 configure({
   prefix: 'boltdocs',
 })
@@ -108,7 +107,5 @@ cli
   )
 
 cli.help()
-// This will be replaced at build time or package publishing, but hardcoded to 2.0.0 for now
-cli.version('2.0.0')
-
+cli.version('3.0.0')
 cli.parse()

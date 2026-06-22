@@ -9,7 +9,9 @@ export default async function boltdocs(
 ): Promise<Plugin[]> {
   const { resolveConfig } = await import('./config')
   const { generateRoutes, getExternalRoutePaths } = await import('./routes')
-  const { generateProjectTypes, writeLinkTree } = await import('./types-generator')
+  const { generateProjectTypes, writeLinkTree } = await import(
+    './types-generator'
+  )
   const { boltdocsPlugin } = await import('./plugin/index')
 
   const docsDir = options?.docsDir || 'docs'
@@ -68,7 +70,7 @@ export async function createViteConfig(
   const react = reactMod.default
   const tailwindcss = tailwindcssMod.default
 
-  const config = preResolvedConfig || await resolveConfig('docs', root)
+  const config = preResolvedConfig || (await resolveConfig('docs', root))
   const routes = await generateRoutes('docs', config)
   const routePaths = routes.map((r) => r.path)
   const basePath = (config.base || '/docs').replace(/\/$/, '')
@@ -225,6 +227,4 @@ export type { BoltdocsPluginOptions }
 export { handleFeedback } from './feedback/handler'
 export { normalizePath, sanitizeFilename } from './utils'
 export { resolveConfig } from './config'
-export { AssetCache, flushCache } from './cache'
-
-
+export { flushCache } from './cache'

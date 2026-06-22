@@ -21,7 +21,7 @@ export const SECURITY_HEADERS = {
   'Permissions-Policy': 'camera=(), microphone=(), geolocation=()',
 
   /** Enforces HTTPS for the domain and all subdomains for 1 year. */
-  'Strict-Transport-Security': 'max-age=31536000; includeSubDomains',
+  'Strict-Transport-Security': 'max-age=31536000; includeSubDomains; preload',
 } as const
 
 export type SecurityHeaderKey = keyof typeof SECURITY_HEADERS

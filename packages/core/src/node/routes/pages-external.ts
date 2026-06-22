@@ -41,9 +41,7 @@ export function getExternalRoutePaths(
       const locales = Object.keys(config.i18n.locales)
       for (const locale of locales) {
         const localePath =
-          normalizedPath === '/'
-            ? `/${locale}`
-            : `/${locale}${normalizedPath}`
+          normalizedPath === '/' ? `/${locale}` : `/${locale}${normalizedPath}`
         if (!keys.includes(localePath)) {
           keys.push(localePath)
         }

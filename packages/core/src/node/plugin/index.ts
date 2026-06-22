@@ -53,7 +53,28 @@ export function boltdocsPlugin(
   let viteConfig: ResolvedConfig
   let isBuild = false
   let lifecycle: PluginLifecycleManager
+
+  // Validate plugins and extract vitePlugins synchronously at creation time
+  // so they're available when the plugins array is returned to Vite.
+  // The config() hook runs AFTER Vite receives the array, so we can't
+  // populate resolvedExtraVitePlugins there.
   let resolvedExtraVitePlugins: Plugin[] = []
+  if (config?.plugins?.length) {
+    try {
+      const { version } = JSON.parse(
+        fs.readFileSync(
+          path.resolve(__dirname, '../../../package.json'),
+          'utf-8',
+        ),
+      )
+      const validated = validatePlugins(config.plugins, version)
+      config.plugins = validated as any
+      lifecycle = new PluginLifecycleManager(validated, config)
+      resolvedExtraVitePlugins = validated.flatMap(
+        (p) => (p.vitePlugins || []) as Plugin[],
+      )
+    } catch {}
+  }
 
   const getConfig = () => config
   const setConfig = (c: BoltdocsConfig) => {

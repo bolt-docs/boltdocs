@@ -4,13 +4,7 @@ import fs from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { spawn } from 'node:child_process'
-import {
-  colors,
-  warn,
-  error,
-  steps,
-  renderStatic,
-} from '@bdocs/dui'
+import { colors, warn, error, steps, renderStatic } from '@bdocs/dui'
 import type { StepItem } from '@bdocs/dui'
 
 import { parseCliAndPrompt } from './cli'
@@ -55,7 +49,9 @@ const BANNER = colors.cyan.bold(`
    ██████╔╝╚██████╔╝███████╗██║   ██████╔╝╚██████╔╝╚██████╗███████║
    ╚══════╝  ╚═════╝ ╚══════╝╚═╝   ╚═════╝  ╚═════╝  ╚═════╝╚══════╝`)
 
-const TAGLINE = colors.dim('\n  ⚡ Boltdocs - the modern documentation framework\n')
+const TAGLINE = colors.dim(
+  '\n  ⚡ Boltdocs - the modern documentation framework\n',
+)
 
 function renderAll(stepsList: StepItem[]) {
   if (process.stdout.isTTY) {
@@ -127,7 +123,9 @@ export async function run() {
     if (installIndex !== -1) {
       stepsList[installIndex].status = 'running'
     } else {
-      const finalIdx = stepsList.findIndex((s) => s.label === 'Finalizing setup')
+      const finalIdx = stepsList.findIndex(
+        (s) => s.label === 'Finalizing setup',
+      )
       stepsList[finalIdx].status = 'running'
     }
     renderAll(stepsList)
@@ -168,9 +166,7 @@ export async function run() {
     )
   }
 
-  renderStatic(
-    colors.bold('  ✨ All set! Your documentation is ready. ✨'),
-  )
+  renderStatic(colors.bold('  ✨ All set! Your documentation is ready. ✨'))
   console.log('')
   console.log('  To start developing:')
   console.log(`    cd ${projectName}`)

@@ -65,13 +65,17 @@ export function validatePlugins(
 
     if (plugin.components) {
       for (const [compName, compPath] of Object.entries(plugin.components)) {
-        if (compPath.includes('..') || path.isAbsolute(compPath)) {
-          if (compPath.includes('..')) {
-            throw new PluginValidationError(
-              plugin.name,
-              `Component '${compName}' has an invalid path: traversal sequences are not allowed.`,
-            )
-          }
+        if (compPath.includes('..')) {
+          throw new PluginValidationError(
+            plugin.name,
+            `Component '${compName}' has an invalid path: traversal sequences are not allowed.`,
+          )
+        }
+        if (path.isAbsolute(compPath)) {
+          throw new PluginValidationError(
+            plugin.name,
+            `Component '${compName}' has an invalid path: absolute paths are not allowed.`,
+          )
         }
       }
     }
