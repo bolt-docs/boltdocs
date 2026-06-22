@@ -19,8 +19,17 @@ export function createFeedbackMiddleware(
       return next()
     }
 
+    const MAX_BODY_SIZE = 10 * 1024
     let body = ''
+    let bodySize = 0
     req.on('data', (chunk) => {
+      bodySize += chunk.length
+      if (bodySize > MAX_BODY_SIZE) {
+        res.statusCode = 413
+        res.end(JSON.stringify({ error: 'Request body too large' }))
+        req.destroy()
+        return
+      }
       body += chunk
     })
     req.on('end', async () => {

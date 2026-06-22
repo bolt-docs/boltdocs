@@ -1,3 +1,4 @@
+import { useState, useEffect } from 'react'
 import { DocsLayout as DocsLayoutPrimitive } from './primitives/docs-layout'
 import { Navbar } from './ui-base/navbar'
 import { Sidebar } from './ui-base/sidebar'
@@ -5,6 +6,7 @@ import { Breadcrumbs } from './ui-base/breadcrumbs'
 import { PageNav } from './ui-base/page-nav'
 import { ErrorBoundary } from './ui-base/error-boundary'
 import { CopyMarkdown } from './ui-base/copy-markdown'
+import { OnThisPage } from './ui-base/on-this-page'
 import { useRoutes } from '../hooks/use-routes'
 import { useConfig } from '../app/config-context'
 import { Feedback, Giscus } from './ui-base'
@@ -18,7 +20,19 @@ function DocsLayoutComponent({ children }: DocsLayoutThemeProps) {
   const { routes: filteredRoutes, currentRoute, isCollectionPage } = useRoutes()
   const config = useConfig()
   const components = useMergedComponents()
-  const AskAiDialog = components.AskAiDialog as React.ComponentType<any> | undefined
+  const AskAiDialog = components.AskAiDialog as React.ComponentType
+  const [isAskAiOpen, setIsAskAiOpen] = useState(false)
+
+  useEffect(() => {
+    const handleOpen = () => setIsAskAiOpen(true)
+    const handleClose = () => setIsAskAiOpen(false)
+    window.addEventListener('boltdocs:ask-ai:open', handleOpen)
+    window.addEventListener('boltdocs:ask-ai:close', handleClose)
+    return () => {
+      window.removeEventListener('boltdocs:ask-ai:open', handleOpen)
+      window.removeEventListener('boltdocs:ask-ai:close', handleClose)
+    }
+  }, [])
 
   return (
     <DocsLayoutPrimitive className="selection:bg-primary-500/10 selection:text-primary-500">
@@ -66,7 +80,16 @@ function DocsLayoutComponent({ children }: DocsLayoutThemeProps) {
             </DocsLayoutPrimitive.Footer>
           </DocsLayoutPrimitive.ContentMdx>
         </DocsLayoutPrimitive.Content>
+
         {AskAiDialog && <AskAiDialog />}
+        {!isCollectionPage && !isAskAiOpen && (
+          <OnThisPage
+            headings={currentRoute?.headings}
+            filePath={currentRoute?.filePath}
+            communityHelp={config.theme?.communityHelp}
+            editLink={config.theme?.editLink}
+          />
+        )}
       </DocsLayoutPrimitive.Body>
     </DocsLayoutPrimitive>
   )
