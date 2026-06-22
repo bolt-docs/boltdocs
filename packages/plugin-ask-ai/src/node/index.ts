@@ -12,10 +12,17 @@ export interface AskAiPluginOptions {
   ollamaModel?: string
 }
 
-const DEFAULT_SYSTEM_PROMPT = `You are a helpful, expert AI documentation assistant. 
-Use the provided documentation context to answer the user's question accurately. 
-If the information is not in the context, politely state that you do not know. 
-Keep answers concise, accurate, and format code snippets in Markdown.`
+const DEFAULT_SYSTEM_PROMPT = `Eres un asistente de documentación experto para Boltdocs.
+
+REGLAS ESTRICTAS:
+- Responde SOLO basándote en el contexto de documentación proporcionado
+- Si el contexto contiene la documentación de una página, resumes ESA página específicamente
+- Usa markdown: bullet points para listas, **bold** para nombres de componentes/funciones, \`code\` para código inline, y code blocks para snippets
+- Si no tienes información suficiente, di "No encontré información suficiente sobre esto en la documentación"
+- Sé conciso pero completo
+- Responde en el idioma del usuario
+- NO inventes información que no esté en el contexto
+- Incluye ejemplos de uso cuando sea relevante`
 
 const OLLAMA_DEFAULT_BASE_URL = 'http://localhost:11434/v1'
 
@@ -23,17 +30,22 @@ export default function askAiPlugin(
   options: AskAiPluginOptions = {},
 ): BoltdocsPlugin {
   const debug = options.debug === true
-  const provider = options.provider || (debug ? 'custom' : 'openai')
-  const model = options.model || (debug
-    ? (options.ollamaModel || 'qwen2.5-coder:0.5b')
-    : (provider === 'anthropic' ? 'claude-3-5-haiku-latest' : 'gpt-4o-mini'))
+  // When debug=true, force custom provider + Ollama model regardless of explicit options.
+  // The user's config might specify provider:'openai' but they want Ollama in debug mode.
+  const provider = debug ? 'custom' : options.provider || 'openai'
+  const model = debug
+    ? options.ollamaModel || 'qwen2.5-coder:0.5b'
+    : options.model ||
+      (provider === 'anthropic' ? 'claude-3-5-haiku-latest' : 'gpt-4o-mini')
   const autoInject = options.autoInject !== false
   const endpoint = options.endpoint || '/api/ask-ai'
   const systemPrompt = options.systemPrompt || DEFAULT_SYSTEM_PROMPT
   const baseURL = debug ? OLLAMA_DEFAULT_BASE_URL : undefined
 
   if (debug) {
-    info(`[Ask AI] Debug mode enabled → using Ollama (${model}) at ${OLLAMA_DEFAULT_BASE_URL}`)
+    info(
+      `[Ask AI] Debug mode enabled → using Ollama (${model}) at ${OLLAMA_DEFAULT_BASE_URL}`,
+    )
   }
 
   return {
@@ -61,6 +73,7 @@ export default function askAiPlugin(
               systemPrompt,
               debug,
               baseURL,
+              docsDir: 'docs',
             }),
           )
         },
@@ -72,6 +85,7 @@ export default function askAiPlugin(
               systemPrompt,
               debug,
               baseURL,
+              docsDir: 'docs',
             }),
           )
         },
@@ -86,6 +100,7 @@ interface MiddlewareConfig {
   systemPrompt: string
   debug: boolean
   baseURL?: string
+  docsDir: string
 }
 
 function createAskAiMiddleware(
@@ -93,11 +108,13 @@ function createAskAiMiddleware(
   config: MiddlewareConfig,
 ): Connect.NextHandleFunction {
   return (req, res, next) => {
-    if (
-      req.method !== 'POST' ||
-      req.url?.split('?')[0] !== endpoint
-    ) {
+    console.log(`[Ask AI Middleware] ${req.method} ${req.url}`)
+    if (req.method !== 'POST' || req.url?.split('?')[0] !== endpoint) {
       return next()
+    }
+
+    if (config.debug) {
+      info(`[Ask AI] Middleware hit: ${req.method} ${req.url}`)
     }
 
     let body = ''
@@ -115,21 +132,94 @@ function createAskAiMiddleware(
 
       try {
         const payload = JSON.parse(body)
-        const { question, context } = payload
+        let { question, context, currentPage } = payload
 
         if (config.debug) {
           info(`[Ask AI] ─── Request ───`)
           info(`[Ask AI]   Provider: ${config.provider}`)
           info(`[Ask AI]   Model:    ${config.model}`)
-          info(`[Ask AI]   BaseURL:  ${config.baseURL || '(default provider URL)'}`)
+          info(
+            `[Ask AI]   BaseURL:  ${config.baseURL || '(default provider URL)'}`,
+          )
           info(`[Ask AI]   Question: ${question?.slice(0, 200)}`)
-          info(`[Ask AI]   Context docs: ${context?.length || 0}`)
+          info(`[Ask AI]   Context docs from client: ${context?.length || 0}`)
+          info(`[Ask AI]   Current page: ${currentPage || '(none)'}`)
         }
 
         if (!question) {
           res.statusCode = 400
           res.end(JSON.stringify({ error: 'Missing question in request body' }))
           return
+        }
+
+        try {
+          const boltdocs = await import('boltdocs')
+          const generateRoutes = boltdocs.generateRoutes
+          const routes = await generateRoutes(config.docsDir, config)
+
+          if (currentPage) {
+            const normalizedPage = currentPage?.replace(/\/$/, '') || ''
+            const currentDoc =
+              routes.find((r: any) => {
+                const routePath = r.path?.replace(/\/$/, '') || ''
+                return routePath === normalizedPage
+              }) ||
+              routes.find((r: any) => {
+                const routePath = r.path?.replace(/\/$/, '') || ''
+                return (
+                  normalizedPage.endsWith(routePath) && routePath.length > 5
+                )
+              })
+            if (currentDoc && currentDoc._content) {
+              context = [
+                `Title: ${currentDoc.title}\nPath: ${currentDoc.path}\nContent: ${(currentDoc._content || '').slice(0, 3000)}`,
+              ]
+              if (config.debug) {
+                info(
+                  `[Ask AI]   Found current page: ${currentDoc.title} (${(currentDoc._content || '').length} chars)`,
+                )
+              }
+            } else if (config.debug) {
+              info(`[Ask AI]   No route matched for: ${normalizedPage}`)
+            }
+          }
+
+          if (!context || context.length === 0) {
+            const words = question
+              .toLowerCase()
+              .split(/\s+/)
+              .filter((w: string) => w.length > 2)
+            const scored = routes
+              .filter((r: any) => r.title || r._content)
+              .map((r: any) => {
+                const title = (r.title || '').toLowerCase()
+                const content = (r._content || '').toLowerCase()
+                let score = 0
+                for (const word of words) {
+                  if (title.includes(word)) score += 10
+                  if (content.includes(word)) score += 1
+                }
+                return { route: r, score }
+              })
+              .filter((s: any) => s.score > 0)
+              .sort((a: any, b: any) => b.score - a.score)
+              .slice(0, 5)
+
+            context = scored.map(
+              (s: any) =>
+                `Title: ${s.route.title}\nPath: ${s.route.path}\nContent: ${(s.route._content || '').slice(0, 800)}`,
+            )
+
+            if (config.debug) {
+              info(`[Ask AI]   Server-side context: ${context.length} docs`)
+              for (const c of context) {
+                info(`[Ask AI]     - ${c.split('\n')[0]}`)
+              }
+            }
+          }
+        } catch (e) {
+          if (config.debug)
+            warn(`[Ask AI]   Failed to generate server context: ${e}`)
         }
 
         const { streamLLMResponse } = await import('../server/index')
@@ -144,14 +234,27 @@ function createAskAiMiddleware(
             systemPrompt: config.systemPrompt,
             question,
             context: context || [],
-            env: { ...process.env, ...(config.baseURL ? { OPENAI_BASE_URL: config.baseURL } : {}) },
+            env: {
+              ...process.env,
+              ...(config.baseURL ? { OPENAI_BASE_URL: config.baseURL } : {}),
+            },
             debug: config.debug,
           },
           (textChunk) => {
             if (chunkCount === 0) {
               firstChunkTime = Date.now() - startTime
+              if (config.debug) {
+                info(
+                  `[Ask AI]   First chunk received after ${firstChunkTime}ms`,
+                )
+              }
             }
             chunkCount++
+            if (config.debug && chunkCount <= 3) {
+              info(
+                `[Ask AI]   Chunk #${chunkCount}: "${textChunk.slice(0, 80)}"`,
+              )
+            }
             res.write(`data: ${JSON.stringify({ text: textChunk })}\n\n`)
           },
         )
@@ -171,11 +274,11 @@ function createAskAiMiddleware(
         if (config.debug && err instanceof Error) {
           warn(`[Ask AI] Stack: ${err.stack}`)
         }
-        res.write(`data: ${JSON.stringify({ error: err instanceof Error ? err.message : 'Unknown error' })}\n\n`)
+        res.write(
+          `data: ${JSON.stringify({ error: err instanceof Error ? err.message : 'Unknown error' })}\n\n`,
+        )
         res.end()
       }
     })
   }
 }
-
-

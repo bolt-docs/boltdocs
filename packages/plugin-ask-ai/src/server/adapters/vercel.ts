@@ -1,10 +1,12 @@
 import { streamLLMResponse } from '../handler'
 import { headers } from './headers'
+import type { AdapterConfig, AdapterEnv } from './types'
 
 export async function handleVercelAskAi(
   req: any,
   res: any,
-  config: { provider: string; model: string; systemPrompt: string },
+  config: AdapterConfig,
+  env: AdapterEnv = process.env as Record<string, string | undefined>,
 ) {
   Object.entries(headers).forEach(([key, value]) => {
     res.setHeader(key, value)
@@ -34,7 +36,7 @@ export async function handleVercelAskAi(
         systemPrompt: config.systemPrompt,
         question,
         context: context || [],
-        env: process.env,
+        env,
       },
       (chunk) => {
         res.write(`data: ${JSON.stringify({ text: chunk })}\n\n`)
@@ -44,7 +46,9 @@ export async function handleVercelAskAi(
     res.write('data: [DONE]\n\n')
     res.end()
   } catch (err) {
-    res.write(`data: ${JSON.stringify({ error: err instanceof Error ? err.message : 'Server error' })}\n\n`)
+    res.write(
+      `data: ${JSON.stringify({ error: err instanceof Error ? err.message : 'Server error' })}\n\n`,
+    )
     res.end()
   }
 }

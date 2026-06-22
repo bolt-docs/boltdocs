@@ -1,17 +1,14 @@
 import { streamLLMResponse } from '../handler'
 import { headers } from './headers'
+import type { AdapterConfig, AdapterEnv } from './types'
 
 export async function handleNetlifyAskAi(
   event: any,
-  config: { provider: string; model: string; systemPrompt: string },
-  env: Record<string, string | undefined> = process.env,
+  config: AdapterConfig,
+  env: AdapterEnv = process.env as Record<string, string | undefined>,
 ): Promise<any> {
   if (event.httpMethod === 'OPTIONS') {
-    return {
-      statusCode: 200,
-      headers,
-      body: '',
-    }
+    return { statusCode: 200, headers, body: '' }
   }
 
   if (event.httpMethod !== 'POST') {
@@ -50,13 +47,10 @@ export async function handleNetlifyAskAi(
     )
     accumulatedBody += 'data: [DONE]\n\n'
 
-    return {
-      statusCode: 200,
-      headers,
-      body: accumulatedBody,
-    }
+    return { statusCode: 200, headers, body: accumulatedBody }
   } catch (error) {
-    const message = error instanceof Error ? error.message : 'Failed to query AI assistant'
+    const message =
+      error instanceof Error ? error.message : 'Failed to query AI assistant'
     return {
       statusCode: 500,
       headers,

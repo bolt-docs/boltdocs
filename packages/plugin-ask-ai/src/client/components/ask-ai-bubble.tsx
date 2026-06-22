@@ -1,65 +1,6 @@
-import { useRef, useEffect } from "react";
-import { useAskAi } from "../use-ask-ai";
-
-function renderMarkdown(text: string) {
-  if (!text) return null;
-  const parts = text.split(/(```[\s\S]*?```)/g);
-
-  return parts.map((part, index) => {
-    if (part.startsWith("```")) {
-      const match = part.match(/```(\w*)\n([\s\S]*?)```/);
-      const language = match ? match[1] : "";
-      const code = match ? match[2].trim() : part.slice(3, -3).trim();
-      return (
-        <pre
-          key={index}
-          className="p-3 my-2 overflow-x-auto rounded-lg bg-surface border border-subtle text-xs font-mono text-body"
-        >
-          {language && (
-            <div className="text-[10px] text-muted uppercase font-bold tracking-widest mb-1.5 border-b border-subtle pb-1">
-              {language}
-            </div>
-          )}
-          <code>{code}</code>
-        </pre>
-      );
-    }
-
-    const lines = part.split("\n").filter(Boolean);
-    return lines.map((line, lineIndex) => {
-      const inlineParts = line.split(/(`[^`]+`|\*\*[^*]+\*\*)/g);
-      const content = inlineParts.map((subPart, subIndex) => {
-        if (subPart.startsWith("`") && subPart.endsWith("`")) {
-          return (
-            <code
-              key={subIndex}
-              className="px-1.5 py-0.5 rounded-md bg-surface border border-subtle text-xs font-mono text-primary-500"
-            >
-              {subPart.slice(1, -1)}
-            </code>
-          );
-        }
-        if (subPart.startsWith("**") && subPart.endsWith("**")) {
-          return (
-            <strong key={subIndex} className="font-semibold text-body">
-              {subPart.slice(2, -2)}
-            </strong>
-          );
-        }
-        return subPart;
-      });
-
-      return (
-        <p
-          key={`${index}-${lineIndex}`}
-          className="mb-2 text-sm text-body/90 leading-relaxed last:mb-0"
-        >
-          {content}
-        </p>
-      );
-    });
-  });
-}
+import { useRef, useEffect } from 'react'
+import { useAskAi } from '../use-ask-ai'
+import { MarkdownRenderer } from '../render-markdown'
 
 export function AskAiBubble() {
   const {
@@ -68,30 +9,31 @@ export function AskAiBubble() {
     setInput,
     isLoading,
     submitQuestion,
+    stopStreaming,
     clearChat,
     isOpen,
     setIsOpen,
     isDebug,
-  } = useAskAi();
+  } = useAskAi()
 
-  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const messagesEndRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     if (isOpen) {
-      messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+      messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
     }
-  }, [messages, isOpen]);
+  }, [messages, isOpen])
 
   const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!input.trim()) return;
-    submitQuestion(input);
-  };
+    e.preventDefault()
+    if (!input.trim()) return
+    submitQuestion(input)
+  }
 
   return (
     <div className="fixed bottom-6 right-6 z-50 flex flex-col items-end">
       {isOpen && (
-        <div className="mb-4 w-[380px] max-w-[calc(100vw-2rem)] h-[500px] bg-main/90 backdrop-blur-md border border-subtle rounded-2xl shadow-xl flex flex-col overflow-hidden animate-in fade-in slide-in-from-bottom-5 duration-200">
+        <div className="mb-4 w-[380px] max-w-[calc(100vw-2rem)] h-[min(500px,calc(100vh-8rem))] bg-main/90 backdrop-blur-md border border-subtle rounded-2xl shadow-xl flex flex-col overflow-hidden animate-in fade-in slide-in-from-bottom-5 duration-200">
           {/* Header */}
           <div className="px-4 py-3 border-b border-subtle flex items-center justify-between bg-surface/50">
             <div className="flex items-center gap-2">
@@ -199,22 +141,50 @@ export function AskAiBubble() {
                 <div
                   key={i}
                   className={`flex flex-col max-w-[85%] ${
-                    msg.role === "user"
-                      ? "align-self-end items-end ml-auto"
-                      : "align-self-start items-start"
+                    msg.role === 'user'
+                      ? 'align-self-end items-end ml-auto'
+                      : 'align-self-start items-start'
                   }`}
                 >
+                  {msg.role === 'assistant' && msg.readFile && (
+                    <div className="flex items-center gap-1.5 px-2 py-1 mb-1 text-[11px] text-muted">
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        width="12"
+                        height="12"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      >
+                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                        <polyline points="14 2 14 8 20 8" />
+                      </svg>
+                      <span>
+                        Read{' '}
+                        <code className="px-1 py-0.5 rounded bg-surface text-primary-500 text-[10px] font-mono">
+                          {msg.readFile.path}
+                        </code>
+                      </span>
+                      <span className="text-green-500">✓</span>
+                      <span>{msg.readFile.timeMs}ms</span>
+                    </div>
+                  )}
                   <div
-                    className={`px-3 py-2 rounded-xl text-sm ${
-                      msg.role === "user"
-                        ? "bg-primary-500 text-white rounded-br-none"
-                        : "bg-surface border border-subtle text-body rounded-bl-none"
+                    className={`px-3 py-2 rounded-xl ${
+                      msg.role === 'user'
+                        ? 'bg-primary-500 text-white rounded-br-none'
+                        : 'bg-surface border border-subtle text-body rounded-bl-none'
                     }`}
                   >
-                    {msg.role === "user" ? (
-                      <p className="whitespace-pre-wrap">{msg.content}</p>
+                    {msg.role === 'user' ? (
+                      <p className="whitespace-pre-wrap text-sm">
+                        {msg.content}
+                      </p>
                     ) : (
-                      renderMarkdown(msg.content)
+                      <MarkdownRenderer content={msg.content} />
                     )}
                   </div>
                 </div>
@@ -224,7 +194,7 @@ export function AskAiBubble() {
             {/* Typing indicator */}
             {isLoading &&
               messages.length > 0 &&
-              messages[messages.length - 1].content === "" && (
+              messages[messages.length - 1].content === '' && (
                 <div className="align-self-start items-start max-w-[85%]">
                   <div className="bg-surface border border-subtle px-4 py-3 rounded-xl rounded-bl-none flex gap-1">
                     <span className="w-2 h-2 rounded-full bg-muted animate-bounce" />
@@ -250,26 +220,45 @@ export function AskAiBubble() {
               className="flex-1 bg-surface border border-subtle rounded-xl px-3 py-1.5 text-sm outline-none text-body focus-visible:border-primary-500 transition-colors"
               disabled={isLoading}
             />
-            <button
-              type="submit"
-              disabled={isLoading || !input.trim()}
-              className="px-3 py-1.5 bg-primary-500 hover:bg-primary-600 disabled:opacity-50 text-white text-sm font-semibold rounded-xl flex items-center justify-center transition-colors cursor-pointer select-none"
-            >
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                width="16"
-                height="16"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2.5"
-                strokeLinecap="round"
-                strokeLinejoin="round"
+            {isLoading ? (
+              <button
+                type="button"
+                onClick={stopStreaming}
+                className="px-3 py-1.5 bg-red-500 hover:bg-red-600 text-white text-sm font-semibold rounded-xl flex items-center justify-center transition-colors cursor-pointer select-none"
+                title="Stop generating"
               >
-                <path d="m22 2-7 20-4-9-9-4Z" />
-                <path d="M22 2 11 13" />
-              </svg>
-            </button>
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="16"
+                  height="16"
+                  viewBox="0 0 24 24"
+                  fill="currentColor"
+                >
+                  <rect x="6" y="6" width="12" height="12" rx="2" />
+                </svg>
+              </button>
+            ) : (
+              <button
+                type="submit"
+                disabled={!input.trim()}
+                className="px-3 py-1.5 bg-primary-500 hover:bg-primary-600 disabled:opacity-50 text-white text-sm font-semibold rounded-xl flex items-center justify-center transition-colors cursor-pointer select-none"
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="16"
+                  height="16"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2.5"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <path d="m22 2-7 20-4-9-9-4Z" />
+                  <path d="M22 2 11 13" />
+                </svg>
+              </button>
+            )}
           </form>
         </div>
       )}
@@ -313,5 +302,5 @@ export function AskAiBubble() {
         )}
       </button>
     </div>
-  );
+  )
 }

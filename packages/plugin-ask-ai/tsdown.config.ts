@@ -17,6 +17,8 @@ export default defineConfig({
       'react/jsx-runtime',
       'vite',
       'flexsearch',
+      'react-markdown',
+      'remark-gfm',
       'boltdocs',
       'boltdocs/client',
     ],
