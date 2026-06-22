@@ -1,5 +1,5 @@
 import prompts from 'prompts'
-import { colors, warn } from '@bdocs/dui'
+import { colors, colorize, warn } from '@bdocs/dui'
 
 export interface CliOptions {
   projectName: string
@@ -133,7 +133,7 @@ export async function parseCliAndPrompt(): Promise<CliOptions | null> {
                 value: 'netlify',
               },
               {
-                title: colors.orange('Cloudflare Pages'),
+                title: colorize('Cloudflare Pages', '#f6821f'),
                 description: 'Deploy using Cloudflare Pages Functions.',
                 value: 'cloudflare',
               },
