@@ -33,6 +33,14 @@ vi.mock('../../src/client/hooks/use-routes', () => ({
   useRoutes: vi.fn(),
 }))
 
+vi.mock('react-router-dom', async () => {
+  const actual = await vi.importActual('react-router-dom')
+  return {
+    ...actual,
+    useNavigate: vi.fn(() => vi.fn()),
+  }
+})
+
 describe('useSearch hook', () => {
   const mockRoutes = [
     {
