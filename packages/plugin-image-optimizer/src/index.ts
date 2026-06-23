@@ -331,6 +331,7 @@ function ViteImageOptimizer(optionsParam: Options = {}): Plugin {
         }
 
         if (assetCache) {
+          await assetCache.flush()
           await assetCache.pruneStale(validCacheFilenames)
           await assetCache.enforceSizeLimit()
         }

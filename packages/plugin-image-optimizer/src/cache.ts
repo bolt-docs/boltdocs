@@ -115,7 +115,8 @@ export class AssetCache {
 
     for (const name of entries) {
       const filePath = path.join(this.assetsDir, name)
-      const stat = await fsPromises.stat(filePath)
+      const stat = await fsPromises.stat(filePath).catch(() => null)
+      if (!stat) continue
       totalSize += stat.size
       files.push({ name, size: stat.size, mtime: stat.mtimeMs })
     }
