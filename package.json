@@ -18,7 +18,16 @@
     "lint:md:fix": "markdownlint-cli2 --fix \"**/*.{md,mdx}\"",
     "format": "pnpm exec biome format --write .",
     "format:core": "pnpm exec biome format --write ./packages/core/src",
-    "build:schema": "tsx scripts/generate-doctor-schema.ts"
+    "build:schema": "tsx scripts/generate-doctor-schema.ts",
+    "benchmark": "tsx scripts/benchmarks/run.ts",
+    "benchmark:pipeline": "tsx scripts/benchmarks/run.ts --suite pipeline",
+    "benchmark:ssg": "tsx scripts/benchmarks/run.ts --suite ssg",
+    "benchmark:vite": "tsx scripts/benchmarks/run.ts --suite vite",
+    "benchmark:parser": "tsx scripts/benchmarks/run.ts --suite parser",
+    "benchmark:mdx": "tsx scripts/benchmarks/run.ts --suite mdx",
+    "benchmark:report": "tsx scripts/benchmarks/run.ts --suite all",
+    "benchmark:native": "tsx scripts/benchmarks/parser-native.ts",
+    "benchmark:compare": "tsx scripts/benchmarks/compare-boltdocs-docusaurus.ts"
   },
   "packageManager": "pnpm@10.30.2",
   "devDependencies": {
@@ -33,6 +42,7 @@
     "boltdocs": "workspace:*",
     "brace-expansion": "^2.1.0",
     "markdownlint-cli2": "^0.21.0",
+    "tinybench": "^6.0.2",
     "tsx": "^4.21.0",
     "turbo": "latest",
     "typescript-json-schema": "^0.67.1",

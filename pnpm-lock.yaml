@@ -83,6 +83,9 @@ importers:
       markdownlint-cli2:
         specifier: ^0.21.0
         version: 0.21.0
+      tinybench:
+        specifier: ^6.0.2
+        version: 6.0.2
       tsx:
         specifier: ^4.21.0
         version: 4.21.0
@@ -7007,6 +7010,10 @@ packages:
   tinybench@2.9.0:
     resolution: {integrity: sha512-0+DUvqWMValLmha6lr4kD8iAMK1HzV0/aKnCtWb9v9641TnP/MFb7Pc2bxoxQjTXAErryXVgUOfv2YqNllqGeg==}
 
+  tinybench@6.0.2:
+    resolution: {integrity: sha512-FlHoQpcFvCzeXK5kVPvV7IVgW/hs/B36QWTz876iSdeJguBDfdTSRQmYmaHX+fQNt4hp+gEFB2XXw+8hT4/y8A==}
+    engines: {node: '>=20.0.0'}
+
   tinyexec@0.3.2:
     resolution: {integrity: sha512-KQQR9yN7R5+OSwaK0XQoj22pwHoTlgYqmUscPYoknOoWCWfj/5/ABTMRi69FrKU5ffPVh5QcFikpWJI/P1ocHA==}
 
@@ -11627,7 +11634,7 @@ snapshots:
       sirv: 3.0.2
       tinyglobby: 0.2.16
       tinyrainbow: 2.0.0
-      vitest: 3.2.4(@edge-runtime/vm@3.2.0)(@types/debug@4.1.13)(@types/node@22.0.0)(@vitest/ui@3.2.4)(jiti@2.6.1)(jsdom@24.1.3)(lightningcss@1.32.0)(terser@5.46.1)(tsx@4.21.0)(yaml@2.8.3)
+      vitest: 3.2.4(@edge-runtime/vm@3.2.0)(@types/debug@4.1.13)(@types/node@18.19.130)(@vitest/ui@3.2.4)(jiti@2.6.1)(jsdom@29.0.2)(lightningcss@1.32.0)(terser@5.46.1)(tsx@4.21.0)(yaml@2.8.3)
 
   '@vitest/utils@3.2.4':
     dependencies:
@@ -15421,6 +15428,8 @@ snapshots:
       convert-hrtime: 3.0.0
 
   tinybench@2.9.0: {}
+
+  tinybench@6.0.2: {}
 
   tinyexec@0.3.2: {}
 
