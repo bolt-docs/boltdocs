@@ -43,12 +43,6 @@ const PLATFORM_MAP = {
   'win32-x64': 'parser-win-x64.exe',
 }
 
-function getBinaryName() {
-  return process.platform === 'win32'
-    ? 'parser-win-x64.exe'
-    : 'parser-linux-x64'
-}
-
 function getPlatformKey() {
   return `${process.platform}-${process.arch}`
 }
