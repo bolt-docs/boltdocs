@@ -1,4 +1,4 @@
-import { Card, Cards } from 'boltdocs/client'
+import { Card, Cards } from 'boltdocs/mdx'
 import { Route, FileText, Settings, Sparkles } from 'lucide-react'
 
 const features = [
