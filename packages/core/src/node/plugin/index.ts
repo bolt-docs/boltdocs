@@ -187,7 +187,6 @@ export function boltdocsPlugin(
               'react-dom',
               'react-helmet-async',
               '@bdocs/ssg',
-              'react-fast-compare',
               'invariant',
               ...getExternalAbsolutePaths(req),
             ],

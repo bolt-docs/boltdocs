@@ -45,6 +45,8 @@ cd my-docs
 pnpm dev
 ```
 
+> **pnpm 10+ users:** The template includes `pnpm.onlyBuiltDependencies` so `pnpm install` works out of the box. If adding Boltdocs to an existing project, add `esbuild`, `sharp`, and `@swc/core` to your `pnpm.onlyBuiltDependencies` in `package.json`.
+
 Or add to an existing project:
 
 ```bash

@@ -10,7 +10,6 @@ const EXTERNALS = [
   'react-router-dom',
   'react-helmet-async',
   '@bdocs/ssg',
-  'react-fast-compare',
   'invariant',
 ]
 const SUBPATHS = [

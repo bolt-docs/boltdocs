@@ -6,12 +6,14 @@ description: Instala Boltdocs y ejecuta tu primer sitio de documentación en men
 
 Boltdocs requiere **Node.js 18+** y un gestor de paquetes. Recomendamos `pnpm` por su velocidad y eficiencia en disco, pero `npm` y `yarn` también funcionan perfectamente.
 
-<Callout variant="tip" title="Crea un proyecto completo al instante">
-  Si estás empezando desde cero, usa `create-boltdocs` para generar un proyecto completo con todo el boilerplate listo:
-  ```sh
-  pnpm create boltdocs@latest my-docs
-  ```
-  Luego salta directamente a [ejecutar el servidor de desarrollo](#ejecutar-el-servidor-de-desarrollo).
+Si estás empezando desde cero, usa `create-boltdocs` para generar un proyecto completo con todo el boilerplate listo:
+```sh
+pnpm create boltdocs@latest my-docs
+```
+Luego salta directamente a [ejecutar el servidor de desarrollo](#ejecutar-el-servidor-de-desarrollo).
+
+<Callout variant="note" title="Scripts de build en pnpm 10+">
+  pnpm 10+ bloquea los scripts de lifecycle (preinstall/postinstall) de las dependencias por defecto. El template de `create-boltdocs` ya incluye la configuración requerida `pnpm.onlyBuiltDependencies`, así que `pnpm install` funciona sin problemas. Si estás agregando Boltdocs a un proyecto existente de forma manual, consulta la [guía de solución de problemas](/docs/es/guides/troubleshooting#err_pnpm_ignored_builds) para la configuración requerida.
 </Callout>
 
 ---

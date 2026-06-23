@@ -4,6 +4,40 @@ sidebarPosition: 20
 description: Common issues and how to resolve them when working with Boltdocs.
 ---
 
+### `ERR_PNPM_IGNORED_BUILDS` when running `pnpm install`
+
+After scaffolding a new project with `create-boltdocs`, running `pnpm install` fails with:
+
+```
+[ERR_PNPM_IGNORED_BUILDS] Ignored build scripts: esbuild@0.14.47, sharp@0.34.5
+```
+
+**Why this happens**
+
+pnpm 10+ blocks lifecycle scripts (`preinstall`, `postinstall`, `install`) from dependencies by default. Packages like `esbuild`, `sharp`, and `@swc/core` require native build scripts to compile platform-specific binaries. Without explicit approval, pnpm refuses to run them.
+
+**Fix**
+
+If you used `create-boltdocs`, the template already includes the required configuration. If you're adding Boltdocs to an existing project, add the following to your `package.json`:
+
+```json title="package.json"
+{
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "@swc/core",
+      "esbuild",
+      "sharp"
+    ]
+  }
+}
+```
+
+Then run `pnpm install` again. This tells pnpm to allow build scripts for these specific packages.
+
+Alternatively, you can run `pnpm approve-builds` interactively to pick which dependencies should be allowed to run scripts.
+
+---
+
 ### `serve -s` shows the home page on every routes
 
 If you're testing the static build locally **with `pnpx serve -s .`, you might notice that every URL (e.g., `/about`, `/docs/guides`) renders the home page instead of the expected content.

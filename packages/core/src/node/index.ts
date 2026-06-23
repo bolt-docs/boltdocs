@@ -161,7 +161,6 @@ export async function createViteConfig(
         'react-dom',
         'react-helmet-async',
         '@bdocs/ssg',
-        'react-fast-compare',
         'invariant',
         ...getExternalAbsolutePaths(),
       ],
