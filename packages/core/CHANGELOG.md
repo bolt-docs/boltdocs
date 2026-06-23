@@ -1,5 +1,19 @@
 # boltdocs
 
+## 3.0.2
+
+### Patch Changes
+
+- [`2b98bc8`](https://github.com/bolt-docs/boltdocs/commit/2b98bc8c0dc12fe37d8889c15c219cfdea84406a) Thanks [@jesusalcaladev](https://github.com/jesusalcaladev)! - fix: filter collections and search by locale/version with default fallback
+  - Add `locale` and `version` fields to `CollectionPost` interface
+  - Filter `usePosts` results by current locale and version, falling back to config defaults
+  - Fix search to match routes against default locale/version when not explicitly set
+  - Include locale and version in collection virtual module data
+
+- [`e5225e5`](https://github.com/bolt-docs/boltdocs/commit/e5225e5678b8e046dadb745010becf9bf652973e) Thanks [@jesusalcaladev](https://github.com/jesusalcaladev)! - fix: resolve SSG build and pnpm 10+ install failures
+  - Remove `react-fast-compare` from SSR external list to fix `ERR_MODULE_NOT_FOUND` during SSG builds (it's a CJS-only transitive dep of `react-helmet-async` that can't be resolved from pnpm's strict node_modules)
+  - Add `pnpm.onlyBuiltDependencies` to `create-boltdocs` templates (base + i18n) so `pnpm install` works out of the box with pnpm 10+ without requiring manual `pnpm approve-builds`
+
 ## 3.0.1
 
 ### Patch Changes

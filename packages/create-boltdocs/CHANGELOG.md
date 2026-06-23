@@ -1,5 +1,15 @@
 # create-boltdocs
 
+## 0.4.2
+
+### Patch Changes
+
+- [`0cd980e`](https://github.com/bolt-docs/boltdocs/commit/0cd980e1731bf9ced14808bf61c66f9084305db8) Thanks [@jesusalcaladev](https://github.com/jesusalcaladev)! - Fix: repared imports of components mdx
+
+- [`e5225e5`](https://github.com/bolt-docs/boltdocs/commit/e5225e5678b8e046dadb745010becf9bf652973e) Thanks [@jesusalcaladev](https://github.com/jesusalcaladev)! - fix: resolve SSG build and pnpm 10+ install failures
+  - Remove `react-fast-compare` from SSR external list to fix `ERR_MODULE_NOT_FOUND` during SSG builds (it's a CJS-only transitive dep of `react-helmet-async` that can't be resolved from pnpm's strict node_modules)
+  - Add `pnpm.onlyBuiltDependencies` to `create-boltdocs` templates (base + i18n) so `pnpm install` works out of the box with pnpm 10+ without requiring manual `pnpm approve-builds`
+
 ## 0.4.1
 
 ### Patch Changes
