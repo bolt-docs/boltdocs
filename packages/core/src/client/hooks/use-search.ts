@@ -186,8 +186,11 @@ export function useSearch(routes: ComponentRoute[]) {
       // Default results: just active routes
       return routes
         .filter((r) => {
-          const localeMatch = !currentLocale || r.locale === currentLocale
-          const versionMatch = !currentVersion || r.version === currentVersion
+          const routeLocale = r.locale || config.i18n?.defaultLocale
+          const routeVersion = r.version || config.versions?.defaultVersion
+          const localeMatch = !currentLocale || routeLocale === currentLocale
+          const versionMatch =
+            !currentVersion || routeVersion === currentVersion
           return localeMatch && versionMatch
         })
         .slice(0, 10)
@@ -218,9 +221,10 @@ export function useSearch(routes: ComponentRoute[]) {
       const doc = searchDataMap.get(id as string)
       if (!doc) continue
 
-      // Filter by locale and version
-      const localeMatch = !currentLocale || doc.locale === currentLocale
-      const versionMatch = !currentVersion || doc.version === currentVersion
+      const docLocale = doc.locale || config.i18n?.defaultLocale
+      const docVersion = doc.version || config.versions?.defaultVersion
+      const localeMatch = !currentLocale || docLocale === currentLocale
+      const versionMatch = !currentVersion || docVersion === currentVersion
       if (!localeMatch || !versionMatch) continue
 
       if (seen.has(doc.url)) continue
@@ -246,6 +250,7 @@ export function useSearch(routes: ComponentRoute[]) {
     searchDataMap,
     algoliaConfig,
     algoliaResults,
+    config,
   ])
 
   return {

@@ -9,6 +9,8 @@ export interface CollectionPost {
   author?: string
   coverImage?: string
   filePath: string
+  locale?: string
+  version?: string
   frontmatter?: Record<string, any>
 }
 

@@ -1,5 +1,7 @@
 import { useMemo } from 'react'
+import { useConfig } from '../app/config-context'
 import { useCollectionsData } from './collections-context'
+import { useRoutes } from '../hooks/use-routes'
 import type { CollectionPost } from './collections-context'
 
 // useHeadings lives in hooks/use-headings — re-exported here for backwards compat
@@ -12,15 +14,23 @@ export { useHeadings } from '../hooks/use-headings'
  */
 export function usePosts(collection: string): CollectionPost[] {
   const data = useCollectionsData()
-  return data[collection] || []
-}
+  const { currentLocale, currentVersion } = useRoutes()
+  const config = useConfig()
 
-/**
- * Returns a post by its slug.
- * @param collection - The name of the collection.
- * @param slug - The slug of the post.
- * @returns The post with the given slug.
- */
+  const posts = data[collection] || []
+  const defaultLocale = config.i18n?.defaultLocale
+  const defaultVersion = config.versions?.defaultVersion
+
+  return useMemo(() => {
+    return posts.filter((post) => {
+      const postLocale = post.locale || defaultLocale
+      const postVersion = post.version || defaultVersion
+      const localeMatch = !currentLocale || postLocale === currentLocale
+      const versionMatch = !currentVersion || postVersion === currentVersion
+      return localeMatch && versionMatch
+    })
+  }, [posts, currentLocale, currentVersion, defaultLocale, defaultVersion])
+}
 export function usePost(
   collection: string,
   slug: string,

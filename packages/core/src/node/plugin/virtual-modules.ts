@@ -137,6 +137,8 @@ export function createVirtualModulesPlugin(
                 author: r.author,
                 coverImage: r.coverImage,
                 filePath: r.filePath,
+                locale: r.locale,
+                version: r.version,
                 frontmatter: r.frontmatter,
               })
             }
