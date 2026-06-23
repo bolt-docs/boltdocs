@@ -1,14 +1,6 @@
 #!/usr/bin/env node
 
-/**
- * Postinstall script for @bdocs/parser
- *
- * Downloads the native parser binary from GitHub Releases.
- * Falls back to WASM if download fails.
- *
- * Cache location: node_modules/.cache/@bdocs/parser/<version>/
- */
-
+// Script for install native binary
 import { execSync } from 'node:child_process'
 import fs from 'node:fs'
 import path from 'node:path'
@@ -136,7 +128,6 @@ async function install() {
     if (verifyBinary(cachePath)) {
       return
     }
-    // Binary corrupted or wrong version, re-download
     fs.unlinkSync(cachePath)
   }
 

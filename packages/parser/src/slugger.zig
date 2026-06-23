@@ -1,9 +1,5 @@
 const std = @import("std");
 
-/// Native implementation of the GitHub Slugger algorithm.
-/// Matches the behavior of the JS `github-slugger` package.
-/// Converts text into a URL-friendly slug.
-/// Caller owns the returned memory slice.
 pub fn slug(allocator: std.mem.Allocator, text: []const u8) ![]u8 {
     var out = std.ArrayList(u8).empty;
     errdefer out.deinit(allocator);
