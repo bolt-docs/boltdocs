@@ -1,5 +1,12 @@
 # @bdocs/plugin-math
 
+## 2.0.2
+
+### Patch Changes
+
+- Updated dependencies [[`2b98bc8`](https://github.com/bolt-docs/boltdocs/commit/2b98bc8c0dc12fe37d8889c15c219cfdea84406a), [`e5225e5`](https://github.com/bolt-docs/boltdocs/commit/e5225e5678b8e046dadb745010becf9bf652973e)]:
+  - boltdocs@3.0.2
+
 ## 2.0.1
 
 ### Patch Changes

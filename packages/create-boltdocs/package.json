@@ -1,6 +1,6 @@
 {
   "name": "create-boltdocs",
-  "version": "0.4.1",
+  "version": "0.4.2",
   "description": "Create a new boltdocs project",
   "type": "module",
   "author": "Jesus Alcala",
