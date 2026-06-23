@@ -1,5 +1,12 @@
 # boltdocs
 
+## 3.0.1
+
+### Patch Changes
+
+- Updated dependencies [[`3f21800`](https://github.com/bolt-docs/boltdocs/commit/3f21800f3738550e85b8b84155707c473abcd54c)]:
+  - @bdocs/plugin-image-optimizer@0.2.1
+
 ## 3.0.0
 
 ### Major Changes

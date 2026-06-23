@@ -1,5 +1,11 @@
 # @bdocs/plugin-image-optimizer
 
+## 0.2.1
+
+### Patch Changes
+
+- [`3f21800`](https://github.com/bolt-docs/boltdocs/commit/3f21800f3738550e85b8b84155707c473abcd54c) Thanks [@jesusalcaladev](https://github.com/jesusalcaladev)! - Fix ENOENT crash in `closeBundle` caused by race condition between background cache writes and `enforceSizeLimit`. Added `flush()` before pruning/size check, and made `stat()` resilient to TOCTOU file disappearance.
+
 ## 0.2.0
 
 ### Minor Changes

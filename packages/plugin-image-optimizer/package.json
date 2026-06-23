@@ -1,6 +1,6 @@
 {
   "name": "@bdocs/plugin-image-optimizer",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "Image optimization plugin for Boltdocs using Sharp.js and SVGO",
   "author": "jesusalcaladev",
   "license": "MIT",
