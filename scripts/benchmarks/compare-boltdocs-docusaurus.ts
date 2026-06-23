@@ -6,11 +6,11 @@ import { fileURLToPath } from 'node:url'
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
 
-const WORKSPACE_ROOT = path.resolve(__dirname, '..')
+const WORKSPACE_ROOT = path.resolve(__dirname, '..', '..')
 const TEMP_ROOT = path.resolve(WORKSPACE_ROOT, '.benchmark-temp')
 const BOLTDOCS_DIR = path.resolve(TEMP_ROOT, 'boltdocs')
 const DOCUSAURUS_DIR = path.resolve(TEMP_ROOT, 'docusaurus')
-const PAGE_COUNT = Number(process.env.PAGE_COUNT) || 100
+const PAGE_COUNT = Number(process.env.PAGE_COUNT) || 10000
 
 // Helper to calculate directory size recursively in bytes
 function getDirSize(dirPath: string): number {
@@ -66,6 +66,11 @@ This is the homepage of the benchmarking docs site.
     const content = `---
 title: Benchmarking Page ${i}
 sidebar_label: Page ${i}
+tags:
+  - benchmark
+  - performance
+  - docs
+summary: "This generated benchmark page includes headings, code blocks, tables, lists, and HTML markup."
 ---
 # Page ${i}
 
@@ -77,11 +82,44 @@ Some random markdown content with formatting.
 - *Italic text*
 - [A Link](https://google.com)
 
-\`\`\`typescript
-function helloWorld(): string {
-  return "Hello from page ${i}";
+> This is a nested quote inside the page content, and it should remain intact.
+
+### Nested list example
+- Item A
+  - Item A1
+    - Item A1.1
+  - Item A2
+- Item B
+
+| Feature | Value | Notes |
+| --- | --- | --- |
+| Page index | ${i} | Generated benchmark content |
+| Code sample | yes | Multi-line fenced code |
+
+<div class="benchmark-note">
+  <strong>HTML block:</strong> This is a raw HTML section inside the markdown file.
+</div>
+
+\`\`\`tsx
+interface BenchmarkEntry {
+  id: number
+  title: string
+  isComplex: boolean
+}
+
+const entry: BenchmarkEntry = {
+  id: ${i},
+  title: 'Benchmarking Page ${i}',
+  isComplex: true,
 }
 \`\`\`
+
+## Section B
+Some additional paragraph text to increase content size and AST depth.
+
+- [React](https://react.dev)
+- [Vite](https://vitejs.dev)
+- [Boltdocs](https://boltdocs.vercel.app)
 `
     fs.writeFileSync(path.join(boltdocsDocs, `page-${i}.md`), content)
     fs.writeFileSync(path.join(docusaurusDocs, `page-${i}.md`), content)
