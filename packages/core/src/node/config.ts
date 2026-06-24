@@ -12,7 +12,6 @@ import type {
   BoltdocsPlugin,
   BoltdocsSecurityConfig,
   BoltdocsSocialLink,
-  BoltdocsFooterConfig,
   BoltdocsRobotsConfig,
   BoltdocsLocaleConfig,
   BoltdocsVersionConfig,
@@ -26,7 +25,6 @@ export type {
   BoltdocsPlugin,
   BoltdocsSecurityConfig,
   BoltdocsSocialLink,
-  BoltdocsFooterConfig,
   BoltdocsRobotsConfig,
   BoltdocsLocaleConfig,
   BoltdocsVersionConfig,
@@ -40,9 +38,6 @@ export const CONFIG_FILES = [
   'boltdocs.config.ts',
 ]
 
-/**
- * Small helper to handle partial config objects from user input.
- */
 interface RawUserConfig
   extends Partial<BoltdocsConfig>,
     Partial<BoltdocsThemeConfig> {
@@ -99,7 +94,9 @@ export async function resolveConfig(
           break
         }
       } catch (e) {
-        warn(`Failed to load config from ${filename}:`, e)
+        if (e instanceof Error) {
+          warn(`Failed to load config from ${filename}: ${e}`)
+        }
       }
     }
   }
@@ -130,9 +127,9 @@ export async function resolveConfig(
     Object.entries(userThemeConfig).filter(([_, v]) => v !== undefined),
   ) as BoltdocsThemeConfig
   if (cleanThemeConfig.navbar) {
-    cleanThemeConfig.navbar = cleanThemeConfig.navbar.map((item: any) => ({
-      label: item.label || item.text || '',
-      href: item.href || item.link || item.to || '',
+    cleanThemeConfig.navbar = cleanThemeConfig.navbar.map((item) => ({
+      label: item.label || '',
+      href: item.href || '',
       items: item.items,
     }))
   }
