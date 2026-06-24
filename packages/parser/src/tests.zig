@@ -145,6 +145,149 @@ test "parser - parseDoc integration" {
     try testing.expectEqualStrings("# Header 1 ## Header 2 Welcome to the document!", doc.plainText);
 }
 
+test "parser - parseDocSinglePass produces identical results" {
+    const testing = std.testing;
+    const allocator = testing.allocator;
+
+    const input =
+        \\---
+        \\title: Single Pass Test
+        \\---
+        \\# Header 1
+        \\## Section A
+        \\Some content here.
+        \\### Section A.1
+        \\More details.
+        \\#### Sub section
+        \\Deep content.
+        \\##### Level 5 ignored
+        \\
+        \\```code
+        \\## Heading in code block
+        \\```
+        \\
+        \\Normal paragraph with [link](http://example.com) and **bold** text.
+    ;
+
+    // Parse with original function
+    const doc_old = try parser.parseDoc(allocator, input);
+    defer {
+        for (doc_old.headings) |h| {
+            allocator.free(h.text);
+            allocator.free(h.id);
+        }
+        allocator.free(doc_old.headings);
+        allocator.free(doc_old.plainText);
+        allocator.free(doc_old.description);
+    }
+
+    // Parse with single-pass function
+    const doc_new = try parser.parseDocSinglePass(allocator, input);
+    defer {
+        for (doc_new.headings) |h| {
+            allocator.free(h.text);
+            allocator.free(h.id);
+        }
+        allocator.free(doc_new.headings);
+        allocator.free(doc_new.plainText);
+        allocator.free(doc_new.description);
+    }
+
+    // Compare results
+    try testing.expectEqualStrings(doc_old.rawMatter, doc_new.rawMatter);
+    try testing.expectEqualStrings(doc_old.content, doc_new.content);
+    try testing.expectEqual(doc_old.headings.len, doc_new.headings.len);
+
+    for (doc_old.headings, doc_new.headings) |h_old, h_new| {
+        try testing.expectEqual(h_old.level, h_new.level);
+        try testing.expectEqualStrings(h_old.text, h_new.text);
+        try testing.expectEqualStrings(h_old.id, h_new.id);
+    }
+
+    try testing.expectEqualStrings(doc_old.plainText, doc_new.plainText);
+    try testing.expectEqualStrings(doc_old.description, doc_new.description);
+}
+
+test "parser - parseDocSinglePass with empty content" {
+    const testing = std.testing;
+    const allocator = testing.allocator;
+
+    const input = "";
+    const doc = try parser.parseDocSinglePass(allocator, input);
+    defer {
+        for (doc.headings) |h| {
+            allocator.free(h.text);
+            allocator.free(h.id);
+        }
+        allocator.free(doc.headings);
+        allocator.free(doc.plainText);
+        allocator.free(doc.description);
+    }
+
+    try testing.expectEqualStrings("", doc.rawMatter);
+    try testing.expectEqualStrings("", doc.content);
+    try testing.expectEqual(@as(usize, 0), doc.headings.len);
+    try testing.expectEqualStrings("", doc.plainText);
+    try testing.expectEqualStrings("", doc.description);
+}
+
+test "parser - parseDocSinglePass with only headings" {
+    const testing = std.testing;
+    const allocator = testing.allocator;
+
+    const input =
+        \\---
+        \\title: Headings Only
+        \\---
+        \\## First Section
+        \\## Second Section
+        \\### Sub Section
+    ;
+
+    const doc = try parser.parseDocSinglePass(allocator, input);
+    defer {
+        for (doc.headings) |h| {
+            allocator.free(h.text);
+            allocator.free(h.id);
+        }
+        allocator.free(doc.headings);
+        allocator.free(doc.plainText);
+        allocator.free(doc.description);
+    }
+
+    try testing.expectEqual(@as(usize, 3), doc.headings.len);
+    try testing.expectEqualStrings("First Section", doc.headings[0].text);
+    try testing.expectEqualStrings("first-section", doc.headings[0].id);
+    try testing.expectEqualStrings("Second Section", doc.headings[1].text);
+    try testing.expectEqualStrings("second-section", doc.headings[1].id);
+    try testing.expectEqualStrings("Sub Section", doc.headings[2].text);
+    try testing.expectEqualStrings("sub-section", doc.headings[2].id);
+}
+
+test "parser - stripAndDecodeInto shared buffer" {
+    const testing = std.testing;
+    const allocator = testing.allocator;
+
+    var ctx = parser.ParseContext.init();
+    defer ctx.deinit(allocator);
+
+    // First use
+    const input1 = "First document content.";
+    var last_was_space = true;
+    try parser.stripAndDecodeInto(&ctx.buffer, allocator, input1, &last_was_space);
+    try testing.expectEqualStrings("First document content.", ctx.buffer.items);
+
+    // Reset and reuse
+    ctx.reset();
+    try testing.expectEqual(@as(usize, 0), ctx.buffer.items.len);
+
+    // Second use
+    const input2 = "Second document with <b>HTML</b>.";
+    last_was_space = true;
+    try parser.stripAndDecodeInto(&ctx.buffer, allocator, input2, &last_was_space);
+    try testing.expectEqualStrings("Second document with HTML.", ctx.buffer.items);
+}
+
 test "slug - basic conversions" {
     const testing = std.testing;
     const allocator = testing.allocator;

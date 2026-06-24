@@ -69,8 +69,11 @@ function getNativeBinaryPath(): string | null {
   // 2. Local development paths
   const localPaths = [
     path.resolve(__dirname, 'zig-out', 'bin', binaryName),
+    path.resolve(__dirname, 'zig-out', 'bin', 'bdocs-parser'),
     path.resolve(__dirname, '..', 'zig-out', 'bin', binaryName),
+    path.resolve(__dirname, '..', 'zig-out', 'bin', 'bdocs-parser'),
     path.resolve(__dirname, '..', '..', 'zig-out', 'bin', binaryName),
+    path.resolve(__dirname, '..', '..', 'zig-out', 'bin', 'bdocs-parser'),
   ]
 
   for (const p of localPaths) {
@@ -83,8 +86,11 @@ function getNativeBinaryPath(): string | null {
 async function runNativeParser(
   docsDir: string,
   binaryPath: string,
+  turbo: boolean = false,
 ): Promise<Record<string, ParsedDoc>> {
-  const { stdout } = await execFilePromise(binaryPath, ['--dir', docsDir], {
+  const args = ['--dir', docsDir]
+  if (turbo) args.push('--turbo')
+  const { stdout } = await execFilePromise(binaryPath, args, {
     maxBuffer: 50 * 1024 * 1024,
   })
   const parsed = JSON.parse(stdout)
@@ -98,6 +104,7 @@ async function runNativeParser(
 
 async function runWasmParser(
   docsDir: string,
+  turbo: boolean = false,
 ): Promise<Record<string, ParsedDoc>> {
   const { WASI } = await import('node:wasi')
 
@@ -112,9 +119,12 @@ async function runWasmParser(
   const fd = fs.openSync(tempFile, 'w+')
 
   try {
+    const args = ['bdocs-parser.wasm', '--dir', '.']
+    if (turbo) args.push('--turbo')
+
     const wasi = new WASI({
       version: 'preview1',
-      args: ['bdocs-parser.wasm', '--dir', '.'],
+      args,
       preopens: {
         '.': docsDir,
       },
@@ -159,13 +169,14 @@ async function runWasmParser(
  */
 export async function runParser(
   docsDir: string,
+  turbo: boolean = false,
 ): Promise<Record<string, ParsedDoc>> {
   // 1. Try native binary
   if (process.env.FORCE_WASM !== 'true') {
     const nativePath = getNativeBinaryPath()
     if (nativePath) {
       try {
-        return await runNativeParser(docsDir, nativePath)
+        return await runNativeParser(docsDir, nativePath, turbo)
       } catch {
         // Fall through to WASM
       }
@@ -173,5 +184,5 @@ export async function runParser(
   }
 
   // 2. Fallback to WASM (embedded as base64)
-  return await runWasmParser(docsDir)
+  return await runWasmParser(docsDir, turbo)
 }

@@ -19,7 +19,7 @@ pub fn slug(allocator: std.mem.Allocator, text: []const u8) ![]u8 {
     return out.toOwnedSlice(allocator);
 }
 
-fn shouldRemove(c: u8) bool {
+pub fn shouldRemove(c: u8) bool {
     if (c <= 0x1F) return true;
     if (c >= 0x21 and c <= 0x2C) return true;
     if (c == '.' or c == '/') return true;

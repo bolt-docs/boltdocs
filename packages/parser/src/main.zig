@@ -52,6 +52,7 @@ const WorkerContext = struct {
     init: std.process.Init,
     tasks: []FileTask,
     next_task_idx: *std.atomic.Value(usize),
+    turbo: bool,
 };
 
 fn workerFn(context: WorkerContext, thread_idx: usize, arena: *std.heap.ArenaAllocator) void {
@@ -76,10 +77,16 @@ fn workerFn(context: WorkerContext, thread_idx: usize, arena: *std.heap.ArenaAll
             continue;
         };
 
-        const doc = parser.parseDoc(arena_allocator, file_content) catch |err| {
-            task.err = err;
-            continue;
-        };
+        const doc = if (context.turbo)
+            parser.parseDocSinglePass(arena_allocator, file_content) catch |err| {
+                task.err = err;
+                continue;
+            }
+        else
+            parser.parseDoc(arena_allocator, file_content) catch |err| {
+                task.err = err;
+                continue;
+            };
 
         task.doc = doc;
     }
@@ -92,6 +99,7 @@ pub fn main(init: std.process.Init) !void {
     defer args_it.deinit();
 
     var docs_dir: ?[]const u8 = null;
+    var turbo = false;
 
     _ = args_it.skip();
 
@@ -100,12 +108,14 @@ pub fn main(init: std.process.Init) !void {
             if (args_it.next()) |val| {
                 docs_dir = try allocator.dupe(u8, val);
             }
+        } else if (std.mem.eql(u8, arg, "--turbo")) {
+            turbo = true;
         }
     }
     defer if (docs_dir) |d| allocator.free(d);
 
     if (docs_dir == null) {
-        std.debug.print("Usage: bdocs-parser --dir <docs_directory>\n", .{});
+        std.debug.print("Usage: bdocs-parser --dir <docs_directory> [--turbo]\n", .{});
         std.process.exit(1);
     }
 
@@ -164,6 +174,7 @@ pub fn main(init: std.process.Init) !void {
         .init = init,
         .tasks = tasks.items,
         .next_task_idx = &next_task_idx,
+        .turbo = turbo,
     };
 
     if (use_threads and num_threads > 1) {
