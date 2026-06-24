@@ -9,6 +9,17 @@ export enum AssetType {
   font = 'font',
 }
 
+// Hoist matchRoutes import to module scope
+let _matchRoutes: typeof import('react-router-dom')['matchRoutes'] | null = null
+
+async function getMatchRoutes() {
+  if (!_matchRoutes) {
+    const { matchRoutes } = await import('react-router-dom')
+    _matchRoutes = matchRoutes
+  }
+  return _matchRoutes
+}
+
 interface CollectAssetsOpts {
   routes: RouteRecord[]
   locationArg: string
@@ -26,7 +37,7 @@ export async function collectAssets({
   manifest,
   ssrManifest,
 }: CollectAssetsOpts) {
-  const { matchRoutes } = await import('react-router-dom')
+  const matchRoutes = await getMatchRoutes()
   const matches = matchRoutes([...routes], locationArg, base)
   const routeEntries =
     (matches?.map((item) => item.route.entry).filter(Boolean) as string[]) ?? []

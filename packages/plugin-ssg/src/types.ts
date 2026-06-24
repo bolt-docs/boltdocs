@@ -75,6 +75,12 @@ export interface ViteReactSSGOptions<Context = ViteReactSSGContext> {
    */
   beastiesOptions?: BeastiesOptions | false
   /**
+   * Enable turbo mode: use zig-critters WASM instead of beasties JS for critical CSS.
+   *
+   * @default false
+   */
+  turbo?: boolean
+  /**
    * Custom function to modify the routes to do the SSG.
    *
    * Works only when `includeAllRoutes` is set to false.

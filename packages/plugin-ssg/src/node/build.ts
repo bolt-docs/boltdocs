@@ -17,7 +17,6 @@ import type {
 import { createRequire } from 'node:module'
 import { dirname, isAbsolute, join, relative } from 'node:path'
 import fs from 'fs-extra'
-import { JSDOM } from 'jsdom'
 import {
   createLogger,
   mergeConfig,
@@ -32,10 +31,10 @@ import {
 } from '../utils/path'
 import { serializeState } from '../utils/state'
 import { collectAssets } from './assets'
-import { getBeasties } from './critical'
+import { getBeasties, getZigCritters } from './critical'
 import crypto from 'node:crypto'
 import { detectEntry, renderHTML, SCRIPT_COMMENT_PLACEHOLDER } from './html'
-import { renderPreloadLinks } from './preload-links'
+import { renderPreloadLinks, renderPreloadLinksString } from './preload-links'
 import { getAdapter } from './router-adapter'
 import { buildLog, getSize, resolveAlias, routesToPaths } from './utils'
 import {
@@ -52,58 +51,52 @@ function buildBundlerOptions<T extends Record<string, unknown>>(
     : { rollupOptions: options }
 }
 
-function getFilesRecursively(
-  dir: string,
-  baseDir: string,
-  docsDirName: string,
-  outDirName: string,
-): string[] {
+function getSourceFiles(dir: string): string[] {
   const files: string[] = []
   if (!fs.existsSync(dir)) return files
+
+  const SOURCE_EXTS = new Set([
+    '.ts',
+    '.tsx',
+    '.js',
+    '.jsx',
+    '.css',
+    '.json',
+    '.md',
+    '.mdx',
+    '.html',
+    '.svg',
+    '.yaml',
+    '.yml',
+  ])
+
+  const IGNORE_DIRS = new Set([
+    'node_modules',
+    '.git',
+    '.boltdocs',
+    '.turbo',
+    'dist',
+    'coverage',
+    '__tests__',
+    'test',
+    'tests',
+    '.next',
+    '.cache',
+    'public',
+  ])
+
   const list = fs.readdirSync(dir, { withFileTypes: true })
-  const isRoot = dir === baseDir
-
   for (const dirent of list) {
-    const file = dirent.name
+    if (dirent.name.startsWith('.') || IGNORE_DIRS.has(dirent.name)) continue
 
-    // Ignore directories like node_modules, .git, etc., at any depth
-    if (
-      file === 'node_modules' ||
-      file === '.git' ||
-      file === '.boltdocs' ||
-      file === '.turbo' ||
-      file === 'dist' ||
-      file === 'coverage'
-    ) {
-      continue
-    }
-
-    // ignore docs/dist only at the root level.
-    if (
-      isRoot &&
-      ((docsDirName && file === docsDirName) ||
-        (outDirName && file === outDirName))
-    ) {
-      continue
-    }
-
-    const filePath = join(dir, file)
-
-    let isDir = dirent.isDirectory()
-    if (dirent.isSymbolicLink()) {
-      try {
-        isDir = fs.statSync(filePath).isDirectory()
-      } catch (e) {
-        continue
-      }
-    }
-
-    if (isDir) {
-      files.push(
-        ...getFilesRecursively(filePath, baseDir, docsDirName, outDirName),
-      )
+    const filePath = join(dir, dirent.name)
+    if (dirent.isDirectory()) {
+      files.push(...getSourceFiles(filePath))
     } else {
-      files.push(filePath)
+      const ext = '.' + dirent.name.split('.').pop()?.toLowerCase()
+      if (SOURCE_EXTS.has(ext)) {
+        files.push(filePath)
+      }
     }
   }
   return files
@@ -115,25 +108,39 @@ function computeClientCodeHash(
   outDirName: string,
 ): string {
   try {
-    const files = getFilesRecursively(root, root, docsDirName, outDirName)
+    const files: string[] = []
 
-    // Scan framework packages if running in the workspace to invalidate cache on framework changes
-    const workspaceRoot = join(root, '..')
-    const packagesDir = join(workspaceRoot, 'packages')
-    if (
-      fs.existsSync(packagesDir) &&
-      fs.existsSync(join(packagesDir, 'core/package.json'))
-    ) {
-      const frameworkFiles = getFilesRecursively(
-        packagesDir,
-        packagesDir,
-        '',
-        '',
-      )
-      files.push(...frameworkFiles)
+    // Scan project source files (excludes docs/ and out/)
+    const list = fs.readdirSync(root, { withFileTypes: true })
+    for (const dirent of list) {
+      if (dirent.name.startsWith('.') || dirent.name === 'node_modules')
+        continue
+      if (docsDirName && dirent.name === docsDirName) continue
+      if (outDirName && dirent.name === outDirName) continue
+
+      const filePath = join(root, dirent.name)
+      if (dirent.isDirectory()) {
+        files.push(...getSourceFiles(filePath))
+      } else {
+        const ext = '.' + dirent.name.split('.').pop()?.toLowerCase()
+        if (['.ts', '.tsx', '.js', '.jsx', '.json', '.css'].includes(ext)) {
+          files.push(filePath)
+        }
+      }
     }
 
-    // Sort files to ensure deterministic hash
+    // Scan framework packages (only core and plugin-ssg source)
+    const packagesDir = join(root, '..', 'packages')
+    if (fs.existsSync(packagesDir)) {
+      for (const pkg of ['core/src', 'plugin-ssg/src']) {
+        const pkgDir = join(packagesDir, pkg)
+        if (fs.existsSync(pkgDir)) {
+          files.push(...getSourceFiles(pkgDir))
+        }
+      }
+    }
+
+    // Sort for deterministic hash
     files.sort()
 
     const hasher = crypto.createHash('sha256')
@@ -241,6 +248,7 @@ export async function build(
   }: ViteReactSSGOptions = mergedOptions
 
   const beastiesOptions = mergedOptions.beastiesOptions ?? {}
+  const turbo = mergedOptions.turbo ?? false
 
   let docsDirName = 'docs'
   const sourceFiles = Object.values(routeToSourceFileMap)
@@ -369,45 +377,55 @@ export async function build(
   }
 
   // server
-  buildLog('Build for server...')
-  process.env.VITE_SSG = 'true'
   const ssrEntry = await resolveAlias(config, entry)
-  await viteBuild(
-    mergeConfig(viteConfig, {
-      logLevel: 'warn',
-      build: {
-        ssr: ssrEntry,
-        manifest: true,
-        outDir: ssgOut,
-        minify: false,
-        cssCodeSplit: false,
-        ...buildBundlerOptions({
-          output:
-            format === 'esm'
-              ? {
-                  entryFileNames: '[name].mjs',
-                  format: 'esm',
-                }
-              : {
-                  entryFileNames: '[name].cjs',
-                  format: 'cjs',
-                },
-          // @ts-expect-error rollup type
-          onLog(level, log, handler) {
-            if (
-              log.message.includes('react-helmet-async') ||
-              shouldSuppressLog(log.message)
-            )
-              return
-            handler(level, log)
-          },
-        }),
-      },
-      customLogger: clientLogger,
-      mode: config.mode,
-    }),
-  )
-  success('Server build complete')
+  const serverBuildSkipped =
+    canBypassClientBuild &&
+    fs.existsSync(ssgOut) &&
+    fs
+      .readdirSync(ssgOut)
+      .filter((f) => f.endsWith('.mjs') || f.endsWith('.cjs')).length > 0
+  if (serverBuildSkipped) {
+    buildLog('Server build unchanged. Bypassing server build...')
+  } else {
+    buildLog('Build for server...')
+    process.env.VITE_SSG = 'true'
+    await viteBuild(
+      mergeConfig(viteConfig, {
+        logLevel: 'warn',
+        build: {
+          ssr: ssrEntry,
+          manifest: true,
+          outDir: ssgOut,
+          minify: false,
+          cssCodeSplit: false,
+          ...buildBundlerOptions({
+            output:
+              format === 'esm'
+                ? {
+                    entryFileNames: '[name].mjs',
+                    format: 'esm',
+                  }
+                : {
+                    entryFileNames: '[name].cjs',
+                    format: 'cjs',
+                  },
+            // @ts-expect-error rollup type
+            onLog(level, log, handler) {
+              if (
+                log.message.includes('react-helmet-async') ||
+                shouldSuppressLog(log.message)
+              )
+                return
+              handler(level, log)
+            },
+          }),
+        },
+        customLogger: clientLogger,
+        mode: config.mode,
+      }),
+    )
+    success('Server build complete')
+  }
 
   const prefix =
     format === 'esm' && process.platform === 'win32' ? 'file://' : ''
@@ -472,8 +490,31 @@ export async function build(
           ...beastiesOptions,
         })
       : undefined
-  if (beasties) {
+
+  let zigCritters: import('./critical').ZigCritters | undefined
+  if (turbo) {
+    zigCritters = await getZigCritters()
+    if (zigCritters) {
+      info('Critical CSS generation enabled via `zig-critters` (turbo)')
+    } else {
+      warn('zig-critters not available, falling back to beasties')
+    }
+  }
+
+  if (beasties && !zigCritters) {
     info('Critical CSS generation enabled via `beasties`')
+  }
+
+  // Cache CSS content for zig-critters (read once, not per page)
+  let cachedAllCss = ''
+  if (zigCritters) {
+    const cssDir = join(out, 'assets')
+    if (fs.existsSync(cssDir)) {
+      const cssFiles = fs.readdirSync(cssDir).filter((f) => f.endsWith('.css'))
+      for (const cssFile of cssFiles) {
+        cachedAllCss += fs.readFileSync(join(cssDir, cssFile), 'utf-8') + '\n'
+      }
+    }
   }
 
   const renderSpinner = createSpinner('Rendering pages...')
@@ -496,6 +537,9 @@ export async function build(
   const staticLoaderDataManifest: StaticLoaderDataManifest = {}
   let loaderDataFileCount = 0
 
+  // Cache for collectAssets per route path (same route = same assets)
+  const assetsCache = new Map<string, Set<string>>()
+
   let renderedCount = 0
   let cachedCount = 0
   let renderedSize = 0
@@ -517,6 +561,22 @@ export async function build(
     string,
     { mtime: number; loaderDataFilePath?: string }
   > = { ...ssgCache }
+
+  // Pre-create all output directories to avoid ensureDir per page
+  const outputDirs = new Set<string>()
+  outputDirs.add(ssgPagesDir)
+  for (const p of routesPaths) {
+    const filename =
+      dirStyle === 'nested'
+        ? join(p.replace(/^\//g, ''), 'index.html')
+        : `${(p.endsWith('/') ? `${p}index` : p).replace(/^\//g, '')}.html`
+    outputDirs.add(join(out, dirname(filename)))
+    // Also add loader data subdirectories
+    const normalized = p === '/' ? '/index' : p.endsWith('/') ? `${p}index` : p
+    outputDirs.add(join(out, 'static-loader-data', dirname(normalized)))
+  }
+  outputDirs.add(join(out, 'static-loader-data'))
+  await Promise.all([...outputDirs].map((d) => fs.ensureDir(d)))
 
   for (const path of routesPaths) {
     const pathHash = crypto.createHash('md5').update(path).digest('hex')
@@ -556,8 +616,6 @@ export async function build(
     if (isCached) {
       queue.add(async () => {
         try {
-          await fs.ensureDir(dirname(finalOutFile))
-
           if (canBypassClientBuild) {
             // Hash unchanged, direct copy
             await fs.copy(cachedHtmlFile, finalOutFile)
@@ -580,7 +638,6 @@ export async function build(
             const loaderDataFilePath = canBypassClientBuild
               ? cachedItem.loaderDataFilePath
               : getLoaderDataFilePath(path, hash)
-            await fs.ensureDir(join(out, dirname(loaderDataFilePath)))
             await fs.copy(cachedLoaderFile, join(out, loaderDataFilePath))
             staticLoaderDataManifest[getNormalizedPathKey(path, configBase)] =
               loaderDataFilePath
@@ -616,17 +673,25 @@ export async function build(
         const fetchUrl = `${withTrailingSlash(base)}${removeLeadingSlash(path)}`
 
         const adapter = getAdapter(appCtx)
-        const assets =
-          !app && routerType === 'remix'
-            ? await collectAssets({
-                routes: [...routes],
-                locationArg: fetchUrl,
-                base,
-                serverManifest,
-                manifest,
-                ssrManifest,
-              })
-            : new Set<string>()
+        let assets: Set<string>
+        if (!app && routerType === 'remix') {
+          const cachedAssets = assetsCache.get(path)
+          if (cachedAssets) {
+            assets = cachedAssets
+          } else {
+            assets = await collectAssets({
+              routes: [...routes],
+              locationArg: fetchUrl,
+              base,
+              serverManifest,
+              manifest,
+              ssrManifest,
+            })
+            assetsCache.set(path, assets)
+          }
+        } else {
+          assets = new Set<string>()
+        }
 
         const {
           appHTML,
@@ -646,7 +711,6 @@ export async function build(
         if (loaderData && Object.keys(loaderData).length > 0) {
           const loaderDataFilePath = getLoaderDataFilePath(path, hash)
           writtenLoaderDataPath = loaderDataFilePath
-          await fs.ensureDir(join(out, dirname(loaderDataFilePath)))
           await fs.writeFile(
             join(out, loaderDataFilePath),
             JSON.stringify(loaderData),
@@ -668,25 +732,21 @@ export async function build(
           initialState: null,
         })
 
-        const jsdom = new JSDOM(renderedHTML)
+        // String-based preload links (no JSDOM needed)
+        const preloadLinksHtml = renderPreloadLinksString(assets)
 
-        renderPreloadLinks(jsdom.window.document, assets)
+        // Remove __staticRouterHydrationData script via regex (no JSDOM needed)
+        // Use negative lookahead to avoid crossing </script> boundaries
+        let html = renderedHTML.replace(
+          /<script[^>]*>(?:(?!<\/script>)[\s\S])*__staticRouterHydrationData(?:(?!<\/script>)[\s\S])*<\/script>/g,
+          '',
+        )
 
-        // React Router v7's StaticRouterProvider renders its own
-        // __staticRouterHydrationData script INSIDE the SSR HTML tree.
-        // We must REMOVE it from inside #root (where it would break
-        // hydrateRoot) and instead inject our own in <head>.
-        const doc = jsdom.window.document
-        for (const script of doc.querySelectorAll('script')) {
-          if (
-            script.textContent?.includes('window.__staticRouterHydrationData')
-          ) {
-            script.remove()
-          }
+        // Inject preload links into <head>
+        if (preloadLinksHtml) {
+          html = html.replace('<head>', `<head>${preloadLinksHtml}`)
         }
 
-        const html = jsdom.serialize()
-        jsdom.window.close()
         let transformed = (await onPageRendered?.(path, html, appCtx)) || html
         let loaderDataScript = ''
         if (loaderData && Object.keys(loaderData).length > 0) {
@@ -721,7 +781,23 @@ export async function build(
           `<script>${SCRIPT_COMMENT_PLACEHOLDER}</script>`,
           '',
         )
-        if (beasties) {
+        if (zigCritters) {
+          // Turbo mode: use zig-critters WASM for critical CSS (cached CSS)
+          try {
+            if (cachedAllCss) {
+              transformed = await zigCritters.processHtml(
+                transformed,
+                cachedAllCss,
+              )
+            }
+          } catch (e) {
+            // zig-critters failed, continue without critical CSS
+          }
+          transformed = transformed.replace(
+            /<link\srel="stylesheet"/g,
+            '<link rel="stylesheet" crossorigin',
+          )
+        } else if (beasties) {
           transformed = (await crittersQueue.add(() =>
             beasties.process(transformed),
           ))!
@@ -736,12 +812,10 @@ export async function build(
 
         const formatted = await formatHtml(transformed, formatting)
 
-        await fs.ensureDir(join(out, dirname(filename)))
         await fs.writeFile(join(out, filename), formatted, 'utf-8')
 
         // Save generated page and loader data to the SSG cache folder
         if (sourceFile && fs.existsSync(sourceFile)) {
-          await fs.ensureDir(ssgPagesDir)
           await fs.writeFile(cachedHtmlFile, formatted, 'utf-8')
 
           const normalizedKey = withLeadingSlash(path).replace(/\/$/, '')

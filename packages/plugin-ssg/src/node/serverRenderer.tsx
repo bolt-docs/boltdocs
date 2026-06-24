@@ -15,9 +15,6 @@ export async function renderStaticApp(app: ReactNode): Promise<string> {
     return ReactDomServer.renderToString(<>{app}</>)
   }
 
-  // Inspired from
-  // https://react.dev/reference/react-dom/server/renderToPipeableStream#waiting-for-all-content-to-load-for-crawlers-and-static-generation
-  // https://github.com/gatsbyjs/gatsby/blob/master/packages/gatsby/cache-dir/static-entry.js
   const writableStream = new WritableAsPromise()
 
   const { pipe } = ReactDomServer.renderToPipeableStream(app, {
@@ -31,8 +28,6 @@ export async function renderStaticApp(app: ReactNode): Promise<string> {
 
   return writableStream.getPromise()
 }
-
-// WritableAsPromise inspired by https://github.com/gatsbyjs/gatsby/blob/master/packages/gatsby/cache-dir/server-utils/writable-as-promise.js
 
 class WritableAsPromise extends Writable {
   private _output: string

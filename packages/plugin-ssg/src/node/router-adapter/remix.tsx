@@ -18,8 +18,23 @@ import { convertRoutesToDataRoutes } from '~/utils/remix-router'
 import { renderStaticApp } from '../serverRenderer'
 import { extractHelmet } from './utils'
 
+// Hoist react-router-dom imports to module scope (avoid per-page dynamic import)
+let _reactRouterDom: typeof import('react-router-dom') | null = null
+
+async function getReactRouterDom() {
+  if (!_reactRouterDom) {
+    _reactRouterDom = await import('react-router-dom')
+  }
+  return _reactRouterDom
+}
+
 export class RemixAdapter implements IRouterAdapter<ViteReactSSGContext> {
   context: ViteReactSSGContext<true>
+  private _dataRoutes: ReturnType<typeof convertRoutesToDataRoutes> | null =
+    null
+  private _staticHandler: {
+    query: (request: Request) => Promise<unknown>
+  } | null = null
   constructor(context: ViteReactSSGContext) {
     this.context = context
   }
@@ -40,9 +55,13 @@ export class RemixAdapter implements IRouterAdapter<ViteReactSSGContext> {
     const helmetContext = {} as FilledContext
     let routerContext: StaticHandlerContext | null = null
     const { StaticRouterProvider, createStaticHandler, createStaticRouter } =
-      await import('react-router-dom')
-    const dataRoutes = convertRoutesToDataRoutes([...routes], (route) => route)
-    const { query } = createStaticHandler(dataRoutes, { basename: base })
+      await getReactRouterDom()
+    const dataRoutes = (this._dataRoutes ??= convertRoutesToDataRoutes(
+      [...routes],
+      (route) => route,
+    ))
+    this._staticHandler ??= createStaticHandler(dataRoutes, { basename: base })
+    const { query } = this._staticHandler
     let _context = await query(request)
 
     // Follow redirects (e.g., /docs -> /docs/guides) during SSR
@@ -106,7 +125,7 @@ export class RemixAdapter implements IRouterAdapter<ViteReactSSGContext> {
     res: ServerResponse<IncomingMessage>,
   ) => void = async (req, res) => {
     const { routes, base } = this.context
-    const { matchRoutes } = await import('react-router-dom')
+    const { matchRoutes } = await getReactRouterDom()
     const request = fromNodeRequest(req)
     const url = new URL(request.url)
     const routeId = decodeURIComponent(url.searchParams.get('_data')!)
@@ -161,7 +180,7 @@ export async function callRouteLoader({
   params: LoaderFunctionArgs['params']
   routeId: string
 }) {
-  const { json } = await import('react-router-dom')
+  const { json } = await getReactRouterDom()
   const result = await loader({
     request: stripDataParam(stripIndexParam(request)),
     params,

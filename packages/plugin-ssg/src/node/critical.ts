@@ -20,3 +20,18 @@ export async function getBeasties(
     return undefined
   }
 }
+
+export interface ZigCritters {
+  processHtml(html: string, css: string): Promise<string>
+}
+
+export async function getZigCritters(): Promise<ZigCritters | undefined> {
+  try {
+    const mod = await import('@bdocs/zig-critters')
+    const processHtml = mod.processHtml || mod.default?.processHtml
+    if (!processHtml) return undefined
+    return { processHtml }
+  } catch (e) {
+    return undefined
+  }
+}
