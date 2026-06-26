@@ -1,11 +1,10 @@
-import { useLoaderData } from 'react-router-dom'
-import { useMergedComponents } from 'boltdocs/client'
-import type { CollectionPostLoaderData } from 'boltdocs/client'
+import { usePost, useMergedComponents } from 'boltdocs/client'
 
 export default function BlogPost({ MDXComponent, mdxComponents }: any) {
-  const data = useLoaderData() as CollectionPostLoaderData
-  const { route } = data
-  const { title, date, author, excerpt, lastUpdated, coverImage } = route
+  const post = usePost()
+  if (!post) return null
+
+  const { title, date, author, excerpt, lastUpdated, coverImage } = post
 
   const allComponents = useMergedComponents(mdxComponents)
   const { LastUpdated } = allComponents
