@@ -1,0 +1,187 @@
+---
+title: "Boltdocs 3.1.0 — Turbo Mode, Sätteri MDX, and Zig Critical CSS"
+description: "Experimental --turbo flag with Rust-powered MDX, Zig-compiled critical CSS extraction, and single-pass parser — the first phase of Project Nitro"
+date: 2026-06-26
+cover: /blog-covers/Boltdocs-3.1.0.webp
+author:
+  name: Jesús Alcalá
+  avatar: /avatar.jpeg
+excerpt: "3.1.0 ships the --turbo flag: a Rust-based MDX compiler, Zig-compiled critical CSS extraction, and a single-pass parser. Phase 1 of the road to 4x faster builds."
+tags: ["Release"]
+---
+
+## This one's about the foundation
+
+3.0.0 was about raw speed — the native parser. 3.1.0 is about the next layer: turbo mode. This is Phase 1 of Project Nitro, and it changes what runs under the hood when you build.
+
+<Callout type="info">
+  An experimental `--turbo` flag that swaps the MDX compiler for Rust-powered Sätteri, replaces Beasties with Zig-compiled critical CSS extraction, and enables a single-pass parser mode. This is the first step toward 4x faster builds.
+</Callout>
+
+---
+
+## `--turbo` — Experimental Build Mode
+
+The new `--turbo` flag activates three native-powered optimizations in a single command:
+
+```bash
+pnpm boltdocs build --turbo
+```
+
+Or set it permanently via environment variable:
+
+```bash
+BOLTDOCS_TURBO=true pnpm boltdocs build
+```
+
+What changes under the hood:
+
+| Component | Without `--turbo` | With `--turbo` |
+|-----------|-------------------|----------------|
+| MDX compilation | `@mdx-js/rollup` + remark/rehype JS plugins | Sätteri (Rust) + native plugins |
+| Critical CSS | Beasties (JavaScript) | `@bdocs/zig-critters` (Zig/WASM) |
+| Parser | Multi-pass mode | Single-pass with shared buffer |
+
+<Callout type="warning">
+  This flag is experimental. You may encounter CSS compatibility issues from zig-critters or MDX compilation differences from Sätteri. If something breaks, remove `--turbo` and report the issue — your standard build is unaffected.
+</Callout>
+
+---
+
+## Sätteri MDX — Rust-Powered Compilation
+
+The biggest change in `--turbo` mode is the MDX compiler. Sätteri replaces `@mdx-js/rollup` with a Rust-based processor built on pulldown-cmark with MDX extensions.
+
+The pipeline:
+
+1. Rust parser (`satteri-pulldown-cmark`) parses Markdown/MDX into an arena-allocated AST
+2. MDAST plugins run on the arena (remark-meta, remark-gfm)
+3. AST converts to HAST
+4. HAST plugins run (rehype-slug, rehype-shiki)
+5. `mdxToJs()` compiles HAST to JSX output
+
+Benchmarks from the Boltdocs docs site (241 pages):
+
+| Metric | Default (`@mdx-js/rollup`) | Turbo (Sätteri) | Difference |
+|--------|---------------------------|-----------------|------------|
+| Build Time | 97.3s | 43.9s | **2.2x faster** |
+| SSG Total | 98.7s | 45.1s | **54% faster** |
+| JavaScript Output | 10.5 MB | 8.4 MB | **20% smaller** |
+| HTML Output | 25.65 MB | 15.51 MB | **40% smaller** |
+
+Sätteri also includes three native sub-plugins that replace the standard remark/rehype equivalents:
+
+- **`satteriRemarkMetaPlugin`** — captures code fence meta strings into `hProperties.metastring`
+- **`satteriRehypeSlugPlugin`** — adds `id` attributes to headings
+- **`satteriRehypeShikiPlugin`** — Shiki syntax highlighting via HAST visitor
+
+### Fallback behavior
+
+If Sätteri fails to compile a file, it automatically falls back to `@mdx-js/rollup` with basic plugins (remark-gfm, remark-frontmatter, rehype-slug). Your build won't break — it just won't be turbo for that file.
+
+### Known limitation: legacy plugin compatibility
+
+Sätteri uses a Rust arena for HAST nodes. Standard unified/remark/rehype plugins that mutate nodes in place won't work — Sätteri requires a return-to-replace pattern. If you use custom plugins via `remarkPlugins` or `rehypePlugins` in your config, they may not apply in turbo mode. The adapter layer detects this and logs a warning.
+
+For now, turbo mode is best for sites with standard MDX (code blocks, GFM tables, frontmatter). Custom plugin-heavy sites should stick with the default compiler.
+
+---
+
+## `@bdocs/zig-critters` — Zig-Compiled Critical CSS
+
+Beasties extracts critical CSS by loading your HTML and CSS, matching selectors, and inlining only the rules that apply above the fold. It works — but it's written in JavaScript.
+
+`@bdocs/zig-critters` is a complete rewrite in Zig, compiled to WebAssembly. Same algorithm, native speed.
+
+How it works:
+
+1. Loads the pre-compiled WASM binary on first use
+2. Encodes your HTML and CSS into WASM linear memory
+3. Parses CSS into rules, parses HTML into a flat element list
+4. Matches selectors against elements, marks unused rules
+5. Serializes only the critical rules back to JS
+
+The result is injected as a `<style data-zig-critters>...</style>` tag before `</head>`.
+
+### What it supports
+
+- `@media` and `@supports` containers — kept if any child rule matches
+- `@keyframes` — three strategies: `critical` (only used), `all`, `none`
+- `@font-face` — optional inline via `inline_fonts`
+- `@property` rules — always kept
+- Comment-based include/exclude directives
+- CSS minification (enabled by default)
+
+### Known limitation: CSS compatibility
+
+zig-critters strips pseudo-classes and pseudo-elements when matching (matching Beasties behavior). This means `:hover`, `:focus`, and viewport-dependent selectors are matched against their base element only. Some edge cases with complex selector chains may produce different critical CSS output than Beasties.
+
+If you notice styling issues in turbo mode, try removing `--turbo` to confirm it's a zig-critters issue, then report it with a reproduction.
+
+---
+
+## Single-Pass Parser Mode
+
+The native Zig parser already runs 5-6x faster than the old JS parser. In turbo mode, it switches to a single-pass algorithm:
+
+- **Normal mode**: `parseDoc()` — two passes (one for frontmatter/headings, one for plain text)
+- **Turbo mode**: `parseDocSinglePass()` — one pass with a shared `ParseContext` buffer
+
+Same output, less memory allocation. The single-pass mode generates headings, plain text, and content in one scan with arena-style allocation.
+
+---
+
+## What This Means for the Nitro Roadmap
+
+3.1.0 is Phase 1 of Project Nitro — the plan to hit 4x faster builds in v4.0.0. Here's where we are:
+
+| Phase | Status | What's included |
+|-------|--------|----------------|
+| **Phase 1 (this release)** | **Done** | `--turbo` flag, Sätteri MDX, zig-critters, single-pass parser |
+| Phase 2 | Next | Sharded FileStore, per-route cache, delta HMR, MDX worker threads |
+| Phase 3 | Planned | Zig parser v2, N-API addon, concurrent SSG builds, content-addressable pages |
+
+The `--turbo` flag is the foundation. Every subsequent phase extends it.
+
+---
+
+## Other bits
+
+- **Plugin timing visibility** — the turbo build now reports per-plugin timing in the build output, so you can see exactly where time is spent
+- **Lazy-loaded Sätteri** — the Sätteri plugin is dynamically imported on first use, not at startup. If you're not using `--turbo`, there's zero overhead
+- **Cache separation** — Sätteri and the default MDX compiler use separate cache namespaces (`v6-fallback` vs `v3`). Switching between turbo and non-turbo modes doesn't corrupt cached transforms
+- **Beasties fallback** — if zig-critters WASM binary is missing, Beasties takes over with a warning. Your build never fails because of a missing binary
+
+---
+
+## Upgrading
+
+No breaking changes. The `--turbo` flag is opt-in — your existing build command works exactly the same.
+
+To try turbo mode:
+
+```bash
+pnpm boltdocs build --turbo
+```
+
+If you hit issues, remove the flag. The standard build is unchanged.
+
+---
+
+## What's Next
+
+Phase 2 of Nitro is already in progress:
+
+- **Sharded FileStore** — replacing the monolithic route cache with per-file shards
+- **Per-route cache + delta patches** — changing one file won't invalidate all routes
+- **Frontmatter delta HMR** — editing a title won't reload the browser
+- **MDX worker threads** — parallel MDX transforms across CPU cores
+- **Client Code Dependency Map** — rebuild only the pages affected by a CSS change
+
+Install or update:
+
+```bash
+pnpm add boltdocs@latest
+```
+
+Check the [full docs](/docs/) to explore everything new.
