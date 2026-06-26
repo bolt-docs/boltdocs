@@ -42,7 +42,7 @@ That’s it! Your post will be accessible at `/blog/first-post` and a collection
 Boltdocs parses bracketed directory names (e.g. `[blog]`, `[releases]`) as collections. 
 
 ```
-docs/
+website/
 └── docs/
     └── [blog]/                  → Dynamic Collection Namespace
         ├── list.tsx             → Custom Collection Index Layout (Optional)
@@ -66,18 +66,16 @@ To override the default look of your collections, you can drop standard React co
 
 ### Custom Post Component (`post.tsx`)
 
-A custom post component allows you to design how individual entries (like a blog article) render. Below is an example that only shows the title, date, author, and excerpt:
+A custom post component allows you to design how individual entries (like a blog article) render. Use `usePost()` to access the current post's data — no `useLoaderData` required:
 
 ```tsx
-import { useLoaderData } from 'react-router-dom'
-import { useMergedComponents } from 'boltdocs/client'
-import type { CollectionPostLoaderData } from 'boltdocs/client'
+import { usePost, useMergedComponents } from 'boltdocs/client'
 
 export default function BlogPost({ MDXComponent, mdxComponents }: any) {
-  const data = useLoaderData() as CollectionPostLoaderData
-  const { route } = data
-  const { title, date, author, excerpt, lastUpdated } = route
-  const { Frontmatter } = route
+  const post = usePost()
+  if (!post) return null
+
+  const { title, date, author, excerpt, lastUpdated, coverImage } = post
 
   const allComponents = useMergedComponents(mdxComponents)
   const { LastUpdated } = allComponents
@@ -90,7 +88,7 @@ export default function BlogPost({ MDXComponent, mdxComponents }: any) {
             {title}
           </h1>
         )}
-        
+
         <div className="flex items-center space-x-4 text-sm text-gray-500 dark:text-gray-400 mt-6">
           {date && (
             <time dateTime={new Date(date).toISOString()}>
@@ -101,26 +99,41 @@ export default function BlogPost({ MDXComponent, mdxComponents }: any) {
               })}
             </time>
           )}
-          
+
           {author && (
             <>
               <span aria-hidden="true">&middot;</span>
+              <img
+                src={typeof author === 'string' ? author : author.avatar}
+                alt={typeof author === 'string' ? author : author.name}
+                className="w-8 h-8 rounded-full"
+              />
               <span>{typeof author === 'string' ? author : author.name}</span>
             </>
           )}
         </div>
-        
+
+        {coverImage && (
+          <div className="relative aspect-video w-full overflow-hidden rounded-xl border border-gray-200 dark:border-gray-800 bg-neutral-100 dark:bg-neutral-900 mt-8 mb-6">
+            <img
+              src={coverImage}
+              alt={title || 'Cover image'}
+              className="object-cover w-full h-full"
+            />
+          </div>
+        )}
+
         {excerpt && (
           <p className="mt-6 text-xl text-gray-600 dark:text-gray-300">
             {excerpt}
           </p>
         )}
       </header>
-      
+
       <div className="prose prose-blue dark:prose-invert max-w-none">
         <MDXComponent components={allComponents} />
       </div>
-      
+
       {lastUpdated && LastUpdated && (
         <div className="mt-12 pt-8 border-t border-gray-200 dark:border-gray-800">
           <LastUpdated date={lastUpdated} />
@@ -131,17 +144,21 @@ export default function BlogPost({ MDXComponent, mdxComponents }: any) {
 }
 ```
 
+<Callout type="info">
+  `usePost()` called without parameters returns the current post's data when used inside a `post.tsx` component. It reads from an internal context — no `useLoaderData` or React Router imports needed.
+</Callout>
+
 ---
 
 ## API Reference
 
 ### Loader Data Structures
 
-When you write custom `list.tsx` or `post.tsx` files, you retrieve collection data by importing `useLoaderData` from `react-router-dom`. The shapes are typed and exported under `boltdocs/client`.
+When you write custom `list.tsx` or `post.tsx` files, Boltdocs provides hooks (`usePosts`, `usePost`) that handle data access internally. The loader data structures below are what React Router loaders return, but you should use the hooks instead:
 
 #### CollectionPostLoaderData
 
-Returned by React Router loaders for collection post routes.
+Returned by React Router loaders for collection post routes. Use `usePost()` instead of accessing this directly.
 
 | Property | Type | Default | Description |
 | :--- | :--- | :--- | :--- |
@@ -151,7 +168,7 @@ Returned by React Router loaders for collection post routes.
 
 #### CollectionListLoaderData
 
-Returned by React Router loaders for collection list indexes (e.g. `/blog`).
+Returned by React Router loaders for collection list indexes (e.g. `/blog`). Use `usePosts()` instead of accessing this directly.
 
 | Property | Type | Default | Description |
 | :--- | :--- | :--- | :--- |
@@ -166,26 +183,58 @@ Returned by React Router loaders for collection list indexes (e.g. `/blog`).
 
 Boltdocs provides several React hooks under `boltdocs/client` to fetch your collections from anywhere in your app (like sidebars, footers, or custom home pages).
 
-#### `usePosts(collection: string)`
+All hooks default to the `"blog"` collection when no collection is specified.
 
-Returns an array of all posts in a specific collection.
+#### `usePosts(collection?: string)`
+
+Returns an array of all posts in a collection, filtered by the current locale and version. Defaults to `"blog"`. Use this for lists, sidebars, or any component that needs collection posts.
 
 ```tsx
 import { usePosts } from 'boltdocs/client'
 
-function BlogList() {
-  const posts = usePosts('blog')
+// Defaults to "blog" collection
+function BlogSidebar() {
+  const posts = usePosts()
   return (
     <ul>
       {posts.map(post => <li key={post.path}>{post.title}</li>)}
     </ul>
   )
 }
+
+// Explicit collection
+function ChangelogList() {
+  const posts = usePosts('changelog')
+  // ...
+}
 ```
 
-#### `usePost(collection: string, slug: string)`
+The returned array includes all filtered posts — implement your own pagination or infinite scroll by slicing the array:
 
-Returns a specific post by its slug (or full path) from a collection, or \`undefined\` if not found.
+```tsx
+function PaginatedBlog() {
+  const allPosts = usePosts()
+  const [page, setPage] = useState(1)
+  const perPage = 10
+  const posts = allPosts.slice((page - 1) * perPage, page * perPage)
+  // ...
+}
+```
+
+#### `usePost()`
+
+Returns the current post's data when called inside a `post.tsx` component. No parameters needed — the hook reads from an internal context provided by the framework.
+
+```tsx
+import { usePost } from 'boltdocs/client'
+
+export default function BlogPost({ MDXComponent, mdxComponents }) {
+  const { title, date, author, headings, lastUpdated } = usePost()
+  // ...
+}
+```
+
+You can also call `usePost(collection, slug)` with explicit parameters to look up a specific post from anywhere in your app:
 
 ```tsx
 import { usePost } from 'boltdocs/client'
@@ -196,15 +245,16 @@ function FeaturedPost() {
 }
 ```
 
-#### `useRecentPosts(collection: string, count?: number)`
+#### `useRecentPosts(collection?: string, count?: number)`
 
-Returns the most recent posts of a collection. Default count is 5.
+Returns the most recent posts of a collection. Defaults to `"blog"` collection and count of 5.
 
 ```tsx
 import { useRecentPosts } from 'boltdocs/client'
 
+// Defaults to "blog", returns 3 most recent
 function RecentUpdates() {
-  const recent = useRecentPosts('changelog', 3)
+  const recent = useRecentPosts('blog', 3)
   // ...
 }
 ```
@@ -228,8 +278,98 @@ The type mapping metadata extracted from the frontmatter of your files.
 
 ## Advanced Customization
 
+### Custom List (`list.tsx`)
+
+Create a `list.tsx` file inside your collection folder to override the default listing page. Use `usePosts()` to get all filtered posts and handle pagination:
+
+```tsx title="docs/docs/[blog]/list.tsx"
+import { useState } from 'react'
+import { usePosts } from 'boltdocs/client'
+
+export default function BlogList() {
+  const allPosts = usePosts()
+  const [page, setPage] = useState(1)
+  const perPage = 10
+  const posts = allPosts.slice((page - 1) * perPage, page * perPage)
+  const totalPages = Math.ceil(allPosts.length / perPage)
+
+  return (
+    <div className="py-8 max-w-2xl mx-auto px-4">
+      <h1 className="text-3xl font-bold mb-6">Blog</h1>
+
+      <div className="space-y-8">
+        {posts.map(post => (
+          <article key={post.path} className="border-b border-subtle pb-6">
+            <h2 className="text-xl font-semibold mb-2">
+              <a href={post.path} className="text-primary-600 hover:underline">
+                {post.title}
+              </a>
+            </h2>
+            {post.date && (
+              <time className="text-xs text-muted block mb-2">
+                {new Date(post.date).toLocaleDateString()}
+              </time>
+            )}
+            {post.excerpt && <p className="text-sm text-body">{post.excerpt}</p>}
+          </article>
+        ))}
+      </div>
+
+      {totalPages > 1 && (
+        <div className="mt-8 flex gap-4 text-sm">
+          {page > 1 && (
+            <button onClick={() => setPage(page - 1)} className="text-primary-600 hover:underline">
+              Previous
+            </button>
+          )}
+          <span>
+            Page {page} of {totalPages}
+          </span>
+          {page < totalPages && (
+            <button onClick={() => setPage(page + 1)} className="text-primary-600 hover:underline">
+              Next
+            </button>
+          )}
+        </div>
+      )}
+    </div>
+  )
+}
+```
+
+### Custom Layout (`layout.tsx`)
+
+Create a `layout.tsx` file inside your collection folder to wrap all routes (list and posts) with a custom layout. This is useful for adding collection-specific navigation, sidebars, or headers:
+
+```tsx title="docs/docs/[blog]/layout.tsx"
+import { usePosts } from 'boltdocs/client'
+
+export default function BlogLayout({ children }: { children: React.ReactNode }) {
+  const posts = usePosts()
+
+  return (
+    <div className="flex">
+      <aside className="w-64 border-r border-subtle p-4">
+        <h2 className="font-bold mb-4">Blog</h2>
+        <nav>
+          {posts.map(post => (
+            <a
+              key={post.path}
+              href={post.path}
+              className="block py-1 text-sm hover:text-primary-600"
+            >
+              {post.title}
+            </a>
+          ))}
+        </nav>
+      </aside>
+      <main className="flex-1">{children}</main>
+    </div>
+  )
+}
+```
+
 ### Pagination
-If you do not define a custom `list.tsx`, Boltdocs provides a fallback listing page. However, you can easily implement pagination inside your custom `list.tsx` by using the page numbers provided in `CollectionListLoaderData`. The listings route maps to page numbers as query strings or path suffixes automatically.
 
 By default, each page displays 10 posts, but you can configure this globally via `collections.postsPerPage` inside your `boltdocs.config.ts`:
 
