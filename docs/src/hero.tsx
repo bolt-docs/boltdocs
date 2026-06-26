@@ -3,6 +3,7 @@ import { ArrowRight } from 'lucide-react'
 import { Grainient } from './grainient'
 import { getVersion } from './data/version'
 import { useTranslations } from './use-translations'
+import { color_active_version } from './color'
 
 export const Hero = () => {
   const t = useTranslations()
@@ -10,10 +11,8 @@ export const Hero = () => {
     <section className="relative py-20 px-6 w-full overflow-hidden min-h-[80dvh] flex items-center">
       <Grainient
         className="-z-10 inset-0"
-        color1="#FF9FFC"
-        color2="#5227FF"
-        color3="#1a1a2e"
-        animated={false}
+        {...color_active_version}
+        // animated={false}
         blendAngle={45}
         blendSoftness={0.15}
         noiseScale={3}

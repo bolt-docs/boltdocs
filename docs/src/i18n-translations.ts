@@ -101,7 +101,7 @@ export const translations = {
     footerAbout: 'About Boltdocs',
 
     // Banner
-    bannerNewVersion: 'New version 3.0.0 is out!',
+    bannerNewVersion: 'New version 3.1.0 is out — turbo mode!',
     bannerReadPost: 'Read post',
 
     // Benchmark
@@ -223,7 +223,7 @@ export const translations = {
     footerAbout: 'Sobre Boltdocs',
 
     // Banner
-    bannerNewVersion: '¡Nueva versión 3.0.0 disponible!',
+    bannerNewVersion: '¡Nueva versión 3.1.0 — modo turbo!',
     bannerReadPost: 'Leer publicación',
 
     // Benchmark

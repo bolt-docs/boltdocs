@@ -3,6 +3,7 @@ import { useGSAPScroll } from './hooks/useGSAPScroll'
 import { Grainient } from './grainient'
 import { NoiseOverlay } from './noise-overlay'
 import { useTranslations } from './use-translations'
+import { color_active_version } from './color'
 
 interface Feature {
   title: string
@@ -129,7 +130,6 @@ const FEATURES: Feature[] = [
   ✔ HMR applied (0.3ms)
 → Ready at http://localhost:4321`,
     delay: 0,
-    colors: { color1: '#7C3AED', color2: '#2D1B69', color3: '#0f0f1a' },
   },
   {
     title: 'Lightning Builds',
@@ -147,7 +147,6 @@ const FEATURES: Feature[] = [
   ╰────────────┴────────╯
   ✔ Build complete — dist/ ready`,
     delay: 0.15,
-    colors: { color1: '#4F46E5', color2: '#1E1B4B', color3: '#0f0f1a' },
   },
   {
     title: 'Full SEO Control',
@@ -166,7 +165,6 @@ const FEATURES: Feature[] = [
   },
 })`,
     delay: 0.3,
-    colors: { color1: '#8B5CF6', color2: '#2E1065', color3: '#0f0f1a' },
   },
   {
     title: 'Built-in Search',
@@ -184,7 +182,6 @@ const FEATURES: Feature[] = [
   ◉ Fuzzy match enabled (threshold: 0.6)
   ◉ 12 results in 0.8ms`,
     delay: 0.45,
-    colors: { color1: '#6366F1', color2: '#1E1B4B', color3: '#0f0f1a' },
   },
   {
     title: 'Secure by Default',
@@ -223,12 +220,10 @@ function FeatureRow({ feature, index }: { feature: Feature; index: number }) {
       className={`flex flex-col ${isReversed ? 'md:flex-row-reverse' : 'md:flex-row'} gap-6 md:gap-10 items-center opacity-0`}
     >
       {/* Preview */}
-      <div className="relative w-full md:w-1/2 h-[26rem] rounded-2xl overflow-hidden border border-white/10 shadow-xl">
+      <div className="relative w-full md:w-1/2 h-104 rounded-2xl overflow-hidden border border-white/10 shadow-xl">
         <Grainient
           className="absolute inset-0"
-          color1={feature.colors.color1}
-          color2={feature.colors.color2}
-          color3={feature.colors.color3}
+          {...color_active_version}
           animated={false}
           blendAngle={45}
           blendSoftness={0.15}

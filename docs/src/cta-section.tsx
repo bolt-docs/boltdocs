@@ -4,6 +4,7 @@ import { Grainient } from './grainient'
 import { Link } from 'boltdocs/primitives'
 import { Github } from './icons'
 import { useTranslations } from './use-translations'
+import { color_active_version } from './color'
 
 export const CTASection = () => {
   const contentRef = useRef<HTMLDivElement>(null)
@@ -20,9 +21,7 @@ export const CTASection = () => {
     <section className="relative overflow-hidden w-full h-[70dvh]">
       <Grainient
         className="-z-10"
-        color1="#FF9FFC"
-        color2="#5227FF"
-        color3="#B497CF"
+        {...color_active_version}
         timeSpeed={0.25}
         colorBalance={0}
         warpStrength={1}
@@ -56,7 +55,7 @@ export const CTASection = () => {
               {t.ctaTitleHighlight}
             </h2>
 
-            <p className="text-base md:text-lg text-white/50 mb-10 max-w-xl mx-auto leading-relaxed font-medium">
+            <p className="text-base md:text-lg text-white/70 mb-10 max-w-xl mx-auto leading-relaxed font-medium">
               {t.ctaDescription}
             </p>
 
