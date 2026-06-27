@@ -26,7 +26,9 @@ function collectUserPlugins(config: BoltdocsConfig) {
           const [fn, opts] = entry
           // Detect mermaid plugin by name pattern
           if (plugin.name === 'boltdocs-plugin-mermaid') {
-            remarkPlugins.push(wrapRemarkCodePlugin(fn, opts, 'Mermaid', 'mermaid'))
+            remarkPlugins.push(
+              wrapRemarkCodePlugin(fn, opts, 'Mermaid', 'mermaid'),
+            )
           } else {
             remarkPlugins.push(wrapRemarkPlugin(fn))
           }
