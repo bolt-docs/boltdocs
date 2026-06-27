@@ -36,3 +36,6 @@ Fixed:
   - Beasties critical CSS engine now skipped in turbo mode (uses zig-critters only)
   - Config resolution no longer runs twice in build pipeline
   - Turbo flag now propagated through entire pipeline to `generateRoutes`
+- **`useLocalizedTo` home link fix**: `site:/` now resolves to `/${activeLocale}` instead of bare `/` when i18n is enabled, ensuring the navbar home button stays in the current locale
+- **`useI18n` collection locale switching fix**: Switching locale from a blog post page (`/blog/en/post`) now correctly produces `/blog/es/post` instead of `/en/blog/es/post`
+- **`useI18n` collection list locale switching fix**: Switching locale from a collection root page (e.g., `/blog`) no longer navigates away — collection root URLs are locale-independent

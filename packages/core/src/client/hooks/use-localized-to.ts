@@ -22,16 +22,19 @@ export function useLocalizedTo(
   if (!config || typeof to !== 'string') return to
 
   // External, absolute, or anchor links don't need localization prefixing
-  if (
-    to.startsWith('http') ||
-    to.startsWith('//') ||
-    to.startsWith('#') ||
-    to.startsWith('site:')
-  ) {
-    return to.replace('site:', '')
+  if (to.startsWith('http') || to.startsWith('//') || to.startsWith('#')) {
+    return to
   }
 
-  // 0. Identify if the incoming path is explicitly registered as a known route
+  // Site protocol: strip prefix — only localize home root (site:/)
+  if (to.startsWith('site:')) {
+    to = to.replace('site:', '')
+    if (to === '' || to === '/') {
+      return config.i18n && activeLocale ? `/${activeLocale}` : '/'
+    }
+    return to
+  }
+
   const [pathOnly, hashAndQuery] = to.split(/([?#].*)/s)
   const normalizedTo =
     pathOnly.endsWith('/') && pathOnly.length > 1
@@ -57,7 +60,6 @@ export function useLocalizedTo(
     baseSegment && rawParts.length > 0 && rawParts[0] === baseSegment
   const isDocsPath = hasExplicitBase || (!isKnownRoute && rawParts.length > 0)
 
-  // 3. Clean the 'to' path of ANY existing prefixes to avoid stacking
   const parts = [...rawParts]
   let pIdx = 0
 
