@@ -296,10 +296,9 @@ function buildVercelScript(
   isProd: boolean,
 ): string {
   if (!vercel || !isProd) return ''
-
-  const { analytics = true, speedInsights = true } = vercel
+  // If was not able to find the vercel analytics script, we can skip it
+  const { analytics, speedInsights } = vercel
   let script = ''
-
   if (analytics) {
     script += `
     <script>window.va=window.va||function(){(window.vaq=window.vaq||[]).push(arguments)};</script>
@@ -312,7 +311,6 @@ function buildVercelScript(
     <script defer src="/_vercel/speed-insights/script.js"></script>
 `
   }
-
   return script
 }
 
