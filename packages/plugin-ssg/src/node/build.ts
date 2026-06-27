@@ -536,17 +536,20 @@ export async function build(
   let renderedSize = 0
 
   // Load the previous SSG cache metadata
+  // Turbo mode skips page caching entirely for faster cold builds
   const cachePath = join(finalCacheDir, 'ssg-cache.json')
   const ssgPagesDir = join(finalCacheDir, 'ssg-pages')
 
   let ssgCache: Record<string, { mtime: number; loaderDataFilePath?: string }> =
     {}
-  try {
-    if (fs.existsSync(cachePath)) {
-      ssgCache = await fs.readJson(cachePath)
+  if (!turbo) {
+    try {
+      if (fs.existsSync(cachePath)) {
+        ssgCache = await fs.readJson(cachePath)
+      }
+    } catch (e) {
+      // Ignore cache errors
     }
-  } catch (e) {
-    // Ignore cache errors
   }
   const newSsgCache: Record<
     string,
@@ -590,7 +593,12 @@ export async function build(
 
     let isCached = false
     let sourceMtime = 0
-    if (canBypassClientBuild && sourceFile && fs.existsSync(sourceFile)) {
+    if (
+      !turbo &&
+      canBypassClientBuild &&
+      sourceFile &&
+      fs.existsSync(sourceFile)
+    ) {
       try {
         sourceMtime = Math.round(fs.statSync(sourceFile).mtimeMs)
         if (fs.existsSync(cachedHtmlFile)) {
@@ -808,7 +816,8 @@ export async function build(
         await fs.writeFile(join(out, filename), formatted, 'utf-8')
 
         // Save generated page and loader data to the SSG cache folder
-        if (sourceFile && fs.existsSync(sourceFile)) {
+        // Skip in turbo mode for faster builds
+        if (!turbo && sourceFile && fs.existsSync(sourceFile)) {
           await fs.writeFile(cachedHtmlFile, formatted, 'utf-8')
 
           const normalizedKey = withLeadingSlash(path).replace(/\/$/, '')
@@ -854,34 +863,37 @@ export async function build(
   )
 
   // Save the updated cache index
-  try {
-    await fs.ensureDir(dirname(cachePath))
-    await fs.writeJson(cachePath, newSsgCache)
+  // Skip in turbo mode for faster builds
+  if (!turbo) {
+    try {
+      await fs.ensureDir(dirname(cachePath))
+      await fs.writeJson(cachePath, newSsgCache)
 
-    // Garbage collect unused cached HTML and JSON loader files in ssg-pages
-    if (fs.existsSync(ssgPagesDir)) {
-      const cachedFiles = await fs.readdir(ssgPagesDir)
-      const activeHashes = new Set<string>()
-      for (const route of Object.keys(newSsgCache)) {
-        const pathHash = crypto.createHash('md5').update(route).digest('hex')
-        activeHashes.add(`${pathHash}.html`)
-        activeHashes.add(`${pathHash}.json`)
-      }
-      let prunedCount = 0
-      for (const file of cachedFiles) {
-        if (file.endsWith('.html') || file.endsWith('.json')) {
-          if (!activeHashes.has(file)) {
-            await fs.remove(join(ssgPagesDir, file))
-            prunedCount++
+      // Garbage collect unused cached HTML and JSON loader files in ssg-pages
+      if (fs.existsSync(ssgPagesDir)) {
+        const cachedFiles = await fs.readdir(ssgPagesDir)
+        const activeHashes = new Set<string>()
+        for (const route of Object.keys(newSsgCache)) {
+          const pathHash = crypto.createHash('md5').update(route).digest('hex')
+          activeHashes.add(`${pathHash}.html`)
+          activeHashes.add(`${pathHash}.json`)
+        }
+        let prunedCount = 0
+        for (const file of cachedFiles) {
+          if (file.endsWith('.html') || file.endsWith('.json')) {
+            if (!activeHashes.has(file)) {
+              await fs.remove(join(ssgPagesDir, file))
+              prunedCount++
+            }
           }
         }
+        if (prunedCount > 0) {
+          buildLog(`Pruned ${prunedCount} obsolete files from SSG cache.`)
+        }
       }
-      if (prunedCount > 0) {
-        buildLog(`Pruned ${prunedCount} obsolete files from SSG cache.`)
-      }
+    } catch (e) {
+      // Ignore cache and pruning errors
     }
-  } catch (e) {
-    // Ignore cache and pruning errors
   }
 
   dividerLog()
