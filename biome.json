@@ -21,6 +21,9 @@
       "security": {
         "noDangerouslySetInnerHtml": "off"
       },
+      "correctness": {
+        "useHookAtTopLevel": "off"
+      },
       "a11y": {
         "useKeyWithClickEvents": "off",
         "noStaticElementInteractions": "off",
