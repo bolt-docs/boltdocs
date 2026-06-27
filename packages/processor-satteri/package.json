@@ -1,0 +1,45 @@
+{
+  "name": "@bdocs/processor-satteri",
+  "version": "0.1.0",
+  "description": "Sätteri MDX processor for Boltdocs (Rust-based)",
+  "type": "module",
+  "main": "dist/node/index.js",
+  "module": "dist/node/index.mjs",
+  "types": "dist/node/index.d.ts",
+  "publishConfig": {
+    "access": "public"
+  },
+  "files": [
+    "dist"
+  ],
+  "exports": {
+    ".": {
+      "types": "./dist/node/index.d.mts",
+      "import": "./dist/node/index.mjs"
+    },
+    "./node": {
+      "types": "./dist/node/index.d.mts",
+      "import": "./dist/node/index.mjs"
+    }
+  },
+  "scripts": {
+    "build": "tsdown --config-loader unrun",
+    "dev": "tsdown --watch --config-loader unrun",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "satteri": "^0.9.2"
+  },
+  "peerDependencies": {
+    "vite": "^7.0.0 || ^8.0.0"
+  },
+  "peerDependenciesMeta": {
+    "vite": {
+      "optional": true
+    }
+  },
+  "devDependencies": {
+    "tsdown": "^0.21.7",
+    "typescript": "^5.9.3"
+  }
+}
