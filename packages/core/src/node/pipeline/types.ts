@@ -12,6 +12,7 @@ export interface BuildContext {
   paths?: string[]
   outDir?: string
   timing: Record<string, number>
+  turbo?: boolean
 }
 
 export interface StepResult {

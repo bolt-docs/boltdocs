@@ -25,6 +25,7 @@ export class SSGBuildStep implements PipelineStep<BuildContext> {
         entry: 'boltdocs/entry',
         routeToSourceFileMap,
         cacheDir: path.resolve(ctx.root, '.boltdocs/build'),
+        turbo: ctx.turbo,
       },
       ctx.viteConfig,
     )

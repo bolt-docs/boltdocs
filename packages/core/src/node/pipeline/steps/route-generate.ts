@@ -13,7 +13,13 @@ export class RouteGenerateStep implements PipelineStep<BuildContext> {
     }
     const docsDir = path.resolve(ctx.root, 'docs')
     const basePath = ctx.viteConfig?.base || ctx.config.base || '/docs'
-    const routes = await generateRoutes(docsDir, ctx.config, basePath)
+    const routes = await generateRoutes(
+      docsDir,
+      ctx.config,
+      basePath,
+      false,
+      ctx.turbo,
+    )
 
     // Shallow copy array to prevent unintended side effects and support clean rollback
     ctx.routes = [...routes]

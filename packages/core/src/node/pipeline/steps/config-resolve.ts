@@ -10,6 +10,11 @@ export class ConfigResolveStep implements PipelineStep<BuildContext> {
   async execute(ctx: BuildContext): Promise<void> {
     ctx.config = await resolveConfig('docs', ctx.root)
     inspectPluginsSecurity(ctx.config, ctx.root)
-    ctx.viteConfig = await createViteConfig(ctx.root, 'production')
+    ctx.viteConfig = await createViteConfig(
+      ctx.root,
+      'production',
+      undefined,
+      ctx.turbo,
+    )
   }
 }
