@@ -706,7 +706,7 @@ export async function build(
         const loaderData = routerContext?.loaderData as
           | Record<string, unknown>
           | undefined
-        let writtenLoaderDataPath: string | undefined = undefined
+        let writtenLoaderDataPath: string | undefined
 
         if (loaderData && Object.keys(loaderData).length > 0) {
           const loaderDataFilePath = getLoaderDataFilePath(path, hash)
@@ -791,7 +791,9 @@ export async function build(
               )
             }
           } catch (e) {
-            // zig-critters failed, continue without critical CSS
+            warn(
+              `[zig-critters] Failed to inline CSS for "${path}": ${e instanceof Error ? e.message : String(e)}`,
+            )
           }
           transformed = transformed.replace(
             /<link\srel="stylesheet"/g,
