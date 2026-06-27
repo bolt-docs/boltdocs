@@ -108,27 +108,27 @@ export function useI18n(): UseI18nReturn {
         }
       }
     } else {
-      // Case B: Fallback for Unknown / 404 page
-      // Try to find first available page that matches the intended combo
-      const targetRoute = allRoutes.find(
-        (r) =>
-          (r.locale || i18n.defaultLocale) === locale &&
-          (r.version || config.versions?.defaultVersion) ===
-            (currentVersion || config.versions?.defaultVersion),
-      )
+      // Case B: Fallback for Unknown / 404 / collection pages
+      // Use pathname-based approach: strip existing locale, prepend new locale
+      const currentPath = location.pathname
+      const parts = currentPath.split('/').filter(Boolean)
 
-      if (targetRoute) {
-        targetPath = targetRoute.path
-      } else {
-        const vPath =
-          currentVersion && currentVersion !== config.versions?.defaultVersion
-            ? `/${currentVersion}`
-            : ''
-        targetPath =
-          locale === i18n.defaultLocale
-            ? `${safeBase}${vPath}`
-            : `${safeBase}${vPath}/${locale}`
+      // Strip existing locale if present
+      if (
+        parts.length > 0 &&
+        (Array.isArray(i18n.locales)
+          ? i18n.locales.includes(parts[0])
+          : !!i18n.locales[parts[0]])
+      ) {
+        parts.shift()
       }
+
+      // Prepend new locale (if not default)
+      if (locale !== i18n.defaultLocale) {
+        parts.unshift(locale)
+      }
+
+      targetPath = '/' + parts.join('/')
     }
 
     // Final safety check: cleanup double slashes and empty targets

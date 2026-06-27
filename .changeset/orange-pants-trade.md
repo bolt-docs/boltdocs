@@ -22,6 +22,7 @@ Feature:
   - `BOLTDOCS_DRAFTS=true` env var to force draft visibility
 
 Fixed:
+- **Locale switching bug**: Switching languages on collection pages (e.g., `/blog`) now correctly navigates to the localized version (e.g., `/es/blog`) instead of redirecting to `/docs`
 - **Vercel analytics script fix**: `vercel.analytics` and `vercel.speedInsights` now default to `true` if not specified in config, preventing accidental omission of analytics scripts 
 - Native parser binary path lookup now includes `bdocs-parser` as a local fallback
 - Removed `build:wrapper` script from `zig-critters` package.json (was broken)
