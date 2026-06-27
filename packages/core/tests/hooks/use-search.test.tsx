@@ -75,7 +75,9 @@ describe('useSearch hook', () => {
 
   describe('FlexSearch (Fallback Mode)', () => {
     beforeEach(() => {
-      vi.mocked(useConfig).mockReturnValue({})
+      vi.mocked(useConfig).mockReturnValue({
+        i18n: { defaultLocale: 'en' },
+      })
     })
 
     it('should return default active routes when query is empty', () => {
