@@ -70,6 +70,12 @@ export function Navbar() {
           )}
           <NavbarPrimitive.Title href="site:/">{title}</NavbarPrimitive.Title>
 
+          {currentRoute?.draft && (
+            <span className="hidden sm:inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400 border border-yellow-200 dark:border-yellow-800">
+              Draft
+            </span>
+          )}
+
           <div className="hidden sm:block">
             {config.versions && currentVersion && <VersionSelector />}
           </div>

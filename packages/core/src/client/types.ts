@@ -72,6 +72,8 @@ export interface ComponentRoute {
       }
   /** Draft flag */
   draft?: boolean
+  /** Feature flags required for this page to be visible */
+  featureFlags?: string[]
   /** Short excerpt for list displays */
   excerpt?: string
   /** Cover image for blog posts */

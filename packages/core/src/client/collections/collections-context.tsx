@@ -15,6 +15,7 @@ export interface CollectionPost {
   frontmatter?: Record<string, any>
   lastUpdated?: string | number | Date
   headings?: { level: number; text: string; id: string }[]
+  draft?: boolean
 }
 
 export type CollectionsData = Record<string, CollectionPost[]>

@@ -6,14 +6,21 @@ import type { CollectionPost } from './collections-context'
 
 const DEFAULT_COLLECTION = 'blog'
 
+interface UsePostsOptions {
+  includeDrafts?: boolean
+}
+
 /**
  * Returns the posts of a collection, filtered by the current locale and version.
  * Defaults to "blog" if no collection is specified.
  * @param collection - The name of the collection. Defaults to "blog".
+ * @param options - Options to customize the query.
+ * @param options.includeDrafts - If true, includes draft posts in the results.
  * @returns The filtered posts of the collection.
  */
 export function usePosts(
   collection: string = DEFAULT_COLLECTION,
+  options?: UsePostsOptions,
 ): CollectionPost[] {
   const data = useCollectionsData()
   const { currentLocale, currentVersion } = useRoutes()
@@ -29,9 +36,17 @@ export function usePosts(
       const postVersion = post.version || defaultVersion
       const localeMatch = !currentLocale || postLocale === currentLocale
       const versionMatch = !currentVersion || postVersion === currentVersion
-      return localeMatch && versionMatch
+      const draftMatch = options?.includeDrafts || !post.draft
+      return localeMatch && versionMatch && draftMatch
     })
-  }, [posts, currentLocale, currentVersion, defaultLocale, defaultVersion])
+  }, [
+    posts,
+    currentLocale,
+    currentVersion,
+    defaultLocale,
+    defaultVersion,
+    options?.includeDrafts,
+  ])
 }
 
 /**
