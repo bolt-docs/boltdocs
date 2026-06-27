@@ -28,8 +28,9 @@ pub const CriticalCssResult = struct {
     non_critical_css: ?[]const u8 = null,
 };
 
-/// Check if selector is :root, html, body, ::before, or ::after
+/// Check if selector or any comma-separated part is an always-include selector
 fn isAlwaysInclude(sel: []const u8) bool {
+    // Check exact match first
     if (mem.eql(u8, sel, ":root")) return true;
     if (mem.eql(u8, sel, "html")) return true;
     if (mem.eql(u8, sel, "body")) return true;
@@ -37,6 +38,15 @@ fn isAlwaysInclude(sel: []const u8) bool {
     if (mem.eql(u8, sel, "::after")) return true;
     if (mem.eql(u8, sel, ":before")) return true;
     if (mem.eql(u8, sel, ":after")) return true;
+    // Check each comma-separated part for always-include selectors
+    // (handles cases like ":root,:host" or "html,:host")
+    var iter = mem.splitScalar(u8, sel, ',');
+    while (iter.next()) |part| {
+        const trimmed = mem.trim(u8, part, " \t\n\r");
+        if (mem.eql(u8, trimmed, ":root")) return true;
+        if (mem.eql(u8, trimmed, "html")) return true;
+        if (mem.eql(u8, trimmed, "body")) return true;
+    }
     return false;
 }
 
@@ -220,6 +230,10 @@ fn markUnusedRules(
                         } else {
                             rule.marked_for_removal = true;
                         }
+                    },
+                    .property => {
+                        // @property rules are always kept (they define custom properties)
+                        rule.marked_for_removal = false;
                     },
                     .keyframes => {
                         switch (options.keyframes) {

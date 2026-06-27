@@ -58,14 +58,20 @@ pub const Attr = struct {
 
 /// Strip pseudo-classes and pseudo-elements from a selector string.
 /// This matches Beasties' behavior: if the base element exists in DOM, the rule is kept.
+/// Handles CSS escape sequences: \: is a literal colon, not a pseudo-class separator.
 fn stripPseudo(sel: []const u8) []const u8 {
     var result = sel;
     while (result.len > 0) {
         var found = false;
         var i: usize = 0;
         while (i < result.len) : (i += 1) {
+            // Skip escaped characters (\x) - these are literal, not pseudo
+            if (result[i] == '\\' and i + 1 < result.len) {
+                i += 2; // Skip backslash and the escaped character
+                continue;
+            }
             if (result[i] == ':' and i + 1 < result.len and result[i + 1] == ':') {
-                // Pseudo-element ::xxx
+                // Pseudo-element ::xxx (only if not escaped)
                 const start = i;
                 i += 2;
                 while (i < result.len and result[i] != ' ' and result[i] != ',' and result[i] != '>' and result[i] != '+' and result[i] != '~') : (i += 1) {}
@@ -81,7 +87,7 @@ fn stripPseudo(sel: []const u8) []const u8 {
                 found = true;
                 break;
             } else if (result[i] == ':' and i + 1 < result.len and isAsciiAlpha(result[i + 1])) {
-                // Pseudo-class :xxx
+                // Pseudo-class :xxx (only if not escaped)
                 const start = i;
                 i += 1;
                 while (i < result.len and isAsciiAlpha(result[i])) : (i += 1) {}
@@ -195,20 +201,66 @@ pub fn parseSelector(allocator: Allocator, sel: []const u8) ![]SelectorToken {
         }
 
         if (c == '.') {
-            // Class selector
+            // Class selector - may contain CSS escape sequences (\: \/ etc)
+            // We need to decode escapes to match raw HTML class names (md:hidden, bg-main/80)
             i += 1;
-            const start = i;
-            while (i < stripped.len and (isAsciiAlphaNum(stripped[i]) or stripped[i] == '-' or stripped[i] == '_')) : (i += 1) {}
-            try tokens.append(allocator, .{ .class = stripped[start..i] });
+            var name_buf: [256]u8 = undefined;
+            var name_len: usize = 0;
+            while (i < stripped.len) : (i += 1) {
+                const ch = stripped[i];
+                if (ch == '\\' and i + 1 < stripped.len) {
+                    // CSS escape: \x -> literal x
+                    i += 1;
+                    if (name_len < name_buf.len) {
+                        name_buf[name_len] = stripped[i];
+                        name_len += 1;
+                    }
+                } else if (isAsciiAlphaNum(ch) or ch == '-' or ch == '_' or ch == ':' or ch == '/' or ch == '[' or ch == ']' or ch == '(' or ch == ')' or ch == '.') {
+                    if (name_len < name_buf.len) {
+                        name_buf[name_len] = ch;
+                        name_len += 1;
+                    }
+                } else {
+                    break;
+                }
+            }
+            // Use a slice from stripped if no escapes were decoded (zero-copy path)
+            if (name_len == (i - 1) - (i - name_len - 1)) {
+                // Check if the original substring matches (no escapes were decoded)
+                // Actually simpler: check if we can just use a substring
+            }
+            // For simplicity, always use the decoded name. We need to allocate.
+            const decoded = try allocator.dupe(u8, name_buf[0..name_len]);
+            errdefer allocator.free(decoded);
+            try tokens.append(allocator, .{ .class = decoded });
             continue;
         }
 
         if (c == '#') {
-            // ID selector
+            // ID selector - may contain CSS escape sequences
             i += 1;
-            const start = i;
-            while (i < stripped.len and (isAsciiAlphaNum(stripped[i]) or stripped[i] == '-' or stripped[i] == '_')) : (i += 1) {}
-            try tokens.append(allocator, .{ .id = stripped[start..i] });
+            var name_buf: [256]u8 = undefined;
+            var name_len: usize = 0;
+            while (i < stripped.len) : (i += 1) {
+                const ch = stripped[i];
+                if (ch == '\\' and i + 1 < stripped.len) {
+                    i += 1;
+                    if (name_len < name_buf.len) {
+                        name_buf[name_len] = stripped[i];
+                        name_len += 1;
+                    }
+                } else if (isAsciiAlphaNum(ch) or ch == '-' or ch == '_') {
+                    if (name_len < name_buf.len) {
+                        name_buf[name_len] = ch;
+                        name_len += 1;
+                    }
+                } else {
+                    break;
+                }
+            }
+            const decoded = try allocator.dupe(u8, name_buf[0..name_len]);
+            errdefer allocator.free(decoded);
+            try tokens.append(allocator, .{ .id = decoded });
             continue;
         }
 

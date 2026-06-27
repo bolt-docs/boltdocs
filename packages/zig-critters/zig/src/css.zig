@@ -14,6 +14,7 @@ pub const AtRuleType = enum {
     font_face,
     layer,
     supports,
+    property,
     other,
 };
 
@@ -111,6 +112,8 @@ pub const CssParser = struct {
     fn readUntil(self: *CssParser, delimiter: u8) []const u8 {
         const start = self.pos;
         while (self.pos < self.input.len and self.input[self.pos] != delimiter) {
+            // Always stop at closing brace to prevent runaway parsing past block boundaries
+            if (self.input[self.pos] == '}') break;
             if (self.input[self.pos] == '\'' or self.input[self.pos] == '"') {
                 const q = self.input[self.pos];
                 self.pos += 1;
@@ -190,6 +193,7 @@ pub const CssParser = struct {
         if (mem.eql(u8, name, "font-face")) return .font_face;
         if (mem.eql(u8, name, "layer")) return .layer;
         if (mem.eql(u8, name, "supports")) return .supports;
+        if (mem.eql(u8, name, "property")) return .property;
         return .other;
     }
 
@@ -343,11 +347,35 @@ fn trimRight(comptime T: type, slice: []const T, chars: []const T) []const T {
 
                 self.skipWhitespace();
 
-                // Read params (for @media, @keyframes, etc.)
+                // Read params (for @media, @keyframes, @supports, @layer, @property etc.)
+                // Stop at {, ;, or } to handle both block and statement forms
                 var params: []const u8 = "";
-                if (at_type == .media or at_type == .keyframes or at_type == .supports or at_type == .layer) {
-                    params = self.readUntil('{');
-                    params = trimRight(u8, params, " \t\n\r");
+                if (at_type == .media or at_type == .keyframes or at_type == .supports or at_type == .layer or at_type == .property) {
+                    const start = self.pos;
+                    while (self.pos < self.input.len) {
+                        const ch = self.input[self.pos];
+                        if (ch == '{' or ch == ';' or ch == '}') break;
+                        if (ch == '\'' or ch == '"') {
+                            const q = ch;
+                            self.pos += 1;
+                            while (self.pos < self.input.len and self.input[self.pos] != q) {
+                                if (self.input[self.pos] == '\\') self.pos += 1;
+                                self.pos += 1;
+                            }
+                            if (self.pos < self.input.len) self.pos += 1;
+                        } else if (ch == '(') {
+                            self.pos += 1;
+                            var depth: u32 = 1;
+                            while (self.pos < self.input.len and depth > 0) {
+                                if (self.input[self.pos] == '(') depth += 1;
+                                if (self.input[self.pos] == ')') depth -= 1;
+                                self.pos += 1;
+                            }
+                        } else {
+                            self.pos += 1;
+                        }
+                    }
+                    params = trimRight(u8, self.input[start..self.pos], " \t\n\r");
                 }
 
                 self.skipWhitespace();
@@ -355,13 +383,14 @@ fn trimRight(comptime T: type, slice: []const T, chars: []const T) []const T {
                 if (self.pos < self.input.len and self.input[self.pos] == '{') {
                     self.pos += 1; // skip {
 
-                    if (at_type == .font_face) {
-                        // @font-face has declarations only
+                    if (at_type == .font_face or at_type == .property) {
+                        // @font-face and @property have declarations only
                         const decls = self.parseDeclarations();
                         rules.append(self.allocator, .{
                             .type = .atrule,
-                            .at_rule_type = .font_face,
+                            .at_rule_type = at_type,
                             .at_rule_name = at_name,
+                            .at_rule_params = params,
                             .declarations = decls,
                         }) catch continue;
                     } else if (at_type == .keyframes) {
@@ -387,8 +416,19 @@ fn trimRight(comptime T: type, slice: []const T, chars: []const T) []const T {
                     }
                 } else {
                     // At-rule without block (e.g., @charset, @import)
+                    // Must handle quoted strings to avoid stopping at ; inside URLs
                     while (self.pos < self.input.len and self.input[self.pos] != ';' and self.input[self.pos] != '{') {
-                        self.pos += 1;
+                        if (self.input[self.pos] == '\'' or self.input[self.pos] == '"') {
+                            const q = self.input[self.pos];
+                            self.pos += 1;
+                            while (self.pos < self.input.len and self.input[self.pos] != q) {
+                                if (self.input[self.pos] == '\\') self.pos += 1;
+                                self.pos += 1;
+                            }
+                            if (self.pos < self.input.len) self.pos += 1;
+                        } else {
+                            self.pos += 1;
+                        }
                     }
                     if (self.pos < self.input.len and self.input[self.pos] == ';') self.pos += 1;
                 }

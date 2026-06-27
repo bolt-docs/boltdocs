@@ -58,17 +58,21 @@ export async function extractCriticalCss(html, css, options = {}) {
   const htmlBytes = new TextEncoder().encode(html)
   const cssBytes = new TextEncoder().encode(css)
 
-  // Grow memory if needed
-  const totalNeeded =
-    heapBase + htmlBytes.length + cssBytes.length + 1024 * 1024
+  // Compute layout: [inputs at heapBase][arena after inputs]
+  const inputOffset = heapBase
+  const inputEnd = inputOffset + htmlBytes.length + cssBytes.length
+  const arenaSize = 2 * 1024 * 1024 // 2MB buffer for all allocations
+  const arenaOffset = inputEnd
+
+  // Grow memory to fit inputs + arena
+  const totalNeeded = arenaOffset + arenaSize
   const currentMemory = memory.buffer.byteLength
   if (totalNeeded > currentMemory) {
     const pagesNeeded = Math.ceil((totalNeeded - currentMemory) / 65536)
     memory.grow(pagesNeeded)
   }
 
-  // Write inputs into WASM heap
-  const inputOffset = heapBase
+  // Write inputs into WASM heap (at heapBase)
   const inputBuf = new Uint8Array(
     memory.buffer,
     inputOffset,
@@ -77,16 +81,21 @@ export async function extractCriticalCss(html, css, options = {}) {
   inputBuf.set(htmlBytes, 0)
   inputBuf.set(cssBytes, htmlBytes.length)
 
-  // Process
+  // Process: pass arena offset and size so WASM can use FixedBufferAllocator
   const resultLen = processCriticalCss(
     inputOffset,
     htmlBytes.length,
     inputOffset + htmlBytes.length,
     cssBytes.length,
+    arenaOffset,
+    arenaSize,
     compress,
   )
 
   if (resultLen === 0) {
+    console.error(
+      `[zig-critters/debug] WASM returned 0 (empty CSS). HTML=${(htmlBytes.length / 1024).toFixed(1)}KB, CSS=${(cssBytes.length / 1024).toFixed(1)}KB, memory=${(currentMemory / 1024 / 1024).toFixed(1)}MB`,
+    )
     reset()
     return { criticalCss: '', stats: {} }
   }
@@ -95,6 +104,11 @@ export async function extractCriticalCss(html, css, options = {}) {
   const resultPtr = Number(getResultPtr())
   const resultBytes = new Uint8Array(memory.buffer, resultPtr, resultLen)
   const criticalCss = new TextDecoder().decode(resultBytes.slice())
+
+  const cssLenKB = (cssBytes.length / 1024).toFixed(1)
+  console.error(
+    `[zig-critters/debug] Generated ${(resultLen / 1024).toFixed(1)}KB critical CSS from ${cssLenKB}KB CSS`,
+  )
 
   // Reset allocator
   reset()
