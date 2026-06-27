@@ -110,44 +110,25 @@ function computeClientCodeHash(
   try {
     const files: string[] = []
 
-    // Scan project source files (excludes docs/ and out/)
-    // Skip monorepo directories that don't affect client code
-    const MONOREPO_DIRS = new Set([
-      'packages',
-      'plugins',
-      'scripts',
-      'tests',
-      'assets',
-      'apps',
-    ])
-    const list = fs.readdirSync(root, { withFileTypes: true })
-    for (const dirent of list) {
-      if (dirent.name.startsWith('.') || dirent.name === 'node_modules')
-        continue
-      if (docsDirName && dirent.name === docsDirName) continue
-      if (outDirName && dirent.name === outDirName) continue
-      if (MONOREPO_DIRS.has(dirent.name)) continue
-
-      const filePath = join(root, dirent.name)
-      if (dirent.isDirectory()) {
-        files.push(...getSourceFiles(filePath))
-      } else {
-        const ext = '.' + dirent.name.split('.').pop()?.toLowerCase()
-        if (['.ts', '.tsx', '.js', '.jsx', '.json', '.css'].includes(ext)) {
-          files.push(filePath)
-        }
-      }
+    // Hash only the docs directory contents — this is the client source
+    const docsDir = join(root, docsDirName)
+    if (fs.existsSync(docsDir)) {
+      files.push(...getSourceFiles(docsDir))
     }
 
-    // Scan framework packages (only core and plugin-ssg source)
-    // Skip if running in turbo mode — turbo manages its own cache invalidation
-    const packagesDir = join(root, '..', 'packages')
-    if (fs.existsSync(packagesDir)) {
-      for (const pkg of ['core/src', 'plugin-ssg/src']) {
-        const pkgDir = join(packagesDir, pkg)
-        if (fs.existsSync(pkgDir)) {
-          files.push(...getSourceFiles(pkgDir))
-        }
+    // Hash config files that affect the client build
+    const CONFIG_FILES = [
+      'boltdocs.config.ts',
+      'boltdocs.config.js',
+      'boltdocs.config.mjs',
+      'boltdocs.config.cjs',
+      'package.json',
+      'tsconfig.json',
+    ]
+    for (const configFile of CONFIG_FILES) {
+      const configPath = join(root, configFile)
+      if (fs.existsSync(configPath)) {
+        files.push(configPath)
       }
     }
 
