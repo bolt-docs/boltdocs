@@ -6,11 +6,29 @@ import { createBuildPipeline } from '../pipeline/index'
 import { createViteConfig } from '../index'
 import { flushCache } from '../cache'
 
-export async function buildAction(root: string = process.cwd()) {
+export async function buildAction(
+  root: string = process.cwd(),
+  options: { turbo?: boolean } = {},
+) {
   notifyUpdateAvailable()
+
+  const turbo = options.turbo || process.env.BOLTDOCS_TURBO === 'true'
+
+  if (turbo) {
+    console.log(
+      colors.yellow(
+        '⚠ experimental — Turbo mode enabled, faster parser active',
+      ),
+    )
+  }
+
   try {
     const pipeline = createBuildPipeline()
-    const result = await pipeline.run({ root, timing: {} })
+    const result = await pipeline.run({
+      root,
+      timing: {},
+      turbo,
+    })
 
     if (!result.success) {
       error(`Build failed at step "${result.failedStep}":`, result.error)
