@@ -30,7 +30,7 @@ export const layout = ({ children }: { children: React.ReactNode }) => {
         className="group dark:bg-white dark:text-black h-10 bg-neutral-800 text-white transition-colors duration-200"
       >
         {t.bannerNewVersion}{' '}
-        <a href="/blog/boltdocs-3.0.0" className="underline underline-offset-4">
+        <a href="/blog/boltdocs-3.1.0" className="underline underline-offset-4">
           {t.bannerReadPost}
         </a>
         <span className="group-hover:translate-x-1 transition-transform duration-300">
