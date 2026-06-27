@@ -7,6 +7,7 @@ author:
   name: Jesús Alcalá
   avatar: /avatar.jpeg
 excerpt: "3.1.0 trae la bandera --turbo: un compilador MDX impulsado por Rust, extracción de CSS crítico compilada con Zig y un modo parser de pasada única. Primera fase del camino hacia builds 4x más rápidos."
+tags: ["Release"]
 ---
 
 ## Esta se trata de los cimientos
@@ -127,6 +128,67 @@ El parser nativo en Zig ya corre 5-6x más rápido que el antiguo parser JS. En 
 - **Modo turbo**: `parseDocSinglePass()` — una pasada con un `ParseContext` buffer compartido
 
 Misma salida, menos asignación de memoria. El modo de pasada única genera encabezados, texto plano y contenido en un solo escaneo con estilo de arena.
+
+---
+
+## Feature Flags y Borradores
+
+Controla qué páginas son visibles en cada entorno sin cambios de código ni builds condicionales.
+
+### Borradores
+
+Marca cualquier página como borrador en el frontmatter:
+
+```md
+---
+title: Próxima Función
+draft: true
+---
+```
+
+Las páginas en borrador se excluyen automáticamente de los builds de producción. En desarrollo, los borradores son visibles por defecto. Controla la visibilidad via config:
+
+```ts
+export default defineConfig({
+  drafts: {
+    visible: false,              // Ocultar en todos los entornos
+    environments: ['development', 'staging'],  // O por entorno
+  },
+})
+```
+
+O usa la variable de entorno `BOLTDOCS_DRAFTS=true` forzar la visibilidad.
+
+### Feature Flags
+
+Define feature flags en tu config:
+
+```ts
+export default defineConfig({
+  featureFlags: {
+    'new-dashboard': true,           // Siempre visible
+    'beta-api': 'development',       // Solo en desarrollo
+    'experimental-search': false,    // Siempre oculto
+  },
+})
+```
+
+Luego marca las páginas con flags requeridos:
+
+```md
+---
+title: Nuevo Dashboard
+featureFlags:
+  - new-dashboard
+  - beta-api
+---
+```
+
+La página solo se renderiza cuando **todos** los flags declarados están activos. Perfecto para lanzamientos progresivos, pruebas A/B u ocultar herramientas internas de producción.
+
+<Callout variant="info" title="Próximamente">
+Los feature flags se integrarán con el plugin Ask AI en v3.2.0 para habilitar respuestas contextuales basadas en funciones habilitadas.
+</Callout>
 
 ---
 

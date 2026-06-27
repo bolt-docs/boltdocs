@@ -185,7 +185,7 @@ Boltdocs proporciona varios hooks de React bajo `boltdocs/client` para obtener t
 
 Todos los hooks usan la colección `"blog"` por defecto cuando no se especifica ninguna.
 
-#### `usePosts(collection?: string)`
+#### `usePosts(collection?: string, options?: { includeDrafts?: boolean })`
 
 Retorna un arreglo de todas las publicaciones en una colección, filtradas por la locale y versión actuales. Por defecto usa `"blog"`. Usa esto para listas, barras laterales o cualquier componente que necesite publicaciones de colección.
 
@@ -217,6 +217,27 @@ function PaginatedBlog() {
   const [page, setPage] = useState(1)
   const perPage = 10
   const posts = allPosts.slice((page - 1) * perPage, page * perPage)
+  // ...
+}
+```
+
+Cuando los borradores son visibles (vía `drafts.visible: true` o `BOLTDOCS_DRAFTS=true`), las publicaciones en borrador se incluyen en los resultados. Para incluir o excluir borradores explícitamente:
+
+```tsx
+// Incluir publicaciones en borrador (útil para paneles de administración)
+function AdminBlogList() {
+  const posts = usePosts('blog', { includeDrafts: true })
+  return posts.map(post => (
+    <div key={post.path}>
+      {post.title}
+      {post.draft && <span className="badge">Borrador</span>}
+    </div>
+  ))
+}
+
+// Excluir borradores explícitamente (comportamiento por defecto)
+function PublicBlogList() {
+  const posts = usePosts('blog', { includeDrafts: false })
   // ...
 }
 ```

@@ -185,7 +185,7 @@ Boltdocs provides several React hooks under `boltdocs/client` to fetch your coll
 
 All hooks default to the `"blog"` collection when no collection is specified.
 
-#### `usePosts(collection?: string)`
+#### `usePosts(collection?: string, options?: { includeDrafts?: boolean })`
 
 Returns an array of all posts in a collection, filtered by the current locale and version. Defaults to `"blog"`. Use this for lists, sidebars, or any component that needs collection posts.
 
@@ -217,6 +217,27 @@ function PaginatedBlog() {
   const [page, setPage] = useState(1)
   const perPage = 10
   const posts = allPosts.slice((page - 1) * perPage, page * perPage)
+  // ...
+}
+```
+
+When drafts are visible (via `drafts.visible: true` or `BOLTDOCS_DRAFTS=true`), draft posts are included in the results. To explicitly include or exclude drafts:
+
+```tsx
+// Include draft posts (useful for admin panels)
+function AdminBlogList() {
+  const posts = usePosts('blog', { includeDrafts: true })
+  return posts.map(post => (
+    <div key={post.path}>
+      {post.title}
+      {post.draft && <span className="badge">Draft</span>}
+    </div>
+  ))
+}
+
+// Explicitly exclude drafts (default behavior)
+function PublicBlogList() {
+  const posts = usePosts('blog', { includeDrafts: false })
   // ...
 }
 ```

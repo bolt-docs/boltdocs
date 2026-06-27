@@ -1,0 +1,198 @@
+---
+title: "Boltdocs Nitro — The Road to 4x Faster Builds in v4.0.0"
+description: "Project Nitro: a three-phase plan to multiply build speed by 4x through native orchestration, extreme parallel processing, and intelligent persistent caching"
+date: 2026-06-28
+cover: /blog-covers/Boltdocs-4.0.0-Nitro.webp
+author:
+  name: Jesús Alcalá
+  avatar: /avatar.jpeg
+excerpt: "v4.0.0 targets a 4x speed multiplier. This is the roadmap — three phases shipping across the next minor releases, starting from the --turbo foundation in 3.0.0."
+tags: ["Speed", "Performance", "Productivity"]
+draft: true
+---
+
+## This one's about the next leap
+
+3.0.0 shipped the native Zig parser at 5-6x speedup, the experimental `--turbo` flag, and `@bdocs/zig-critters` for critical CSS. That was the warm-up.
+
+<Callout type="info">
+  Project Nitro is the v4.0.0 roadmap — a three-phase plan to hit 4x faster builds. Native orchestration, worker-thread parallelism, and per-line intelligent caching. Each phase ships at ~50% in the upcoming minor releases.
+</Callout>
+
+The `--turbo` flag we introduced in 3.0.0 was the first step. Zig-powered critical CSS extraction (`@bdocs/zig-critters`) processes 300 HTML files in under a second. That proved the concept: moving build-critical operations to native code pays off immediately.
+
+Now we're going all in.
+
+---
+
+## Where the time goes today
+
+Before we talk about 4x, here's what a production build actually looks like under the hood. These are real benchmarks from a 200-page docs site with ~600 code blocks:
+
+| Phase | Time | % of total |
+|-------|------|-----------|
+| Config resolve | ~50ms | 1% |
+| Route generation | ~500ms | 3% |
+| SEO validation | ~100ms | 1% |
+| Type generation | ~50ms | 1% |
+| **SSG client build** | **~12s** | **50-60%** |
+| **SSG server build** | **~8s** | **30-35%** |
+| Page rendering + critical CSS | ~10s | — |
+| SEO write | ~50ms | 1% |
+
+**80-90% of build time lives in the two Vite builds.** That's where Nitro focuses.
+
+---
+
+## The three phases
+
+### Phase 1 — Low effort, high impact (~2x)
+
+These ship first. They're isolated changes with immediate returns:
+
+**Shiki WASM oniguruma engine**
+
+Today Shiki uses `createJavaScriptRegexEngine()` for code highlighting. Switching to `createOnigurumaEngine()` (WASM-based) gives 3-5x faster syntax highlighting with zero API changes:
+
+```
+┌────────────────────┬────────────┐
+│ Engine             │ Time       │
+├────────────────────┼────────────┤
+│ JS regex (current) │ 20ms/block │
+│ WASM oniguruma     │ 5ms/block  │
+└────────────────────┴────────────┘
+```
+
+For 600 code blocks: **12s → ~3s**.
+
+**Smarter client code hash**
+
+`computeClientCodeHash()` recursively scans the entire monorepo with synchronous `fs.statSync()` — thousands of syscalls every build. We're caching the hash and only re-scanning when `packages/` actually changes.
+
+**Pipeline parallelism**
+
+Currently the 6-stage pipeline runs entirely sequentially. Steps that don't depend on each other (SEO validation + type generation) will run in parallel.
+
+**No gzip in dev mode**
+
+`TransformCache` gzips every shard on write — even in dev. That's unnecessary CPU on the main thread. Skip it when `NODE_ENV !== 'production'`.
+
+**Estimated gain: 2x immediately.**
+
+### Phase 2 — Medium effort, high impact
+
+**Sharded FileStore**
+
+The current `DocCache` dumps every parsed file into a single monolithic JSON. For 10,000 files that's ~50MB loaded, parsed, and saved as one blob. Replace it with content-addressable shards — O(1) per file instead of O(n).
+
+**Per-route cache + delta patches**
+
+Today, changing one file invalidates ALL virtual modules (routes, search, collections). Phase 2 stores routes individually and sends patch deltas to the client. Change a `sidebarPosition`? That's a 200-byte patch, not a full reload.
+
+**Frontmatter delta HMR**
+
+Editing frontmatter currently triggers a full browser reload. With delta updates, changing a `title` or `sidebarPosition` sends a lightweight JSON patch. The route store merges it reactively — no reload, no flicker.
+
+**MDX Worker Threads**
+
+Every MDX transform runs on the main thread. Boltdocs' `ImageWorkerPool` already proves worker-thread parallelism works. Same pattern for MDX: 8 transforms in parallel on an 8-core CPU.
+
+```typescript
+// Pattern already proven by ImageWorkerPool
+class MdxWorkerPool {
+  private workers: Worker[]
+  async transform(code: string, id: string) {
+    // Send to available worker — non-blocking
+  }
+}
+```
+
+**Client Code Dependency Map**
+
+Instead of hashing every file in the project, build a reverse dependency map from Vite's `ssr-manifest.json`. Track which source files affect which rendered pages. A CSS change that only touches 3 pages? Only re-render those 3.
+
+### Phase 3 — High effort, very high impact
+
+**Zig parser v2 — YAML + path resolution**
+
+Today the Zig parser extracts frontmatter boundaries and headings, but YAML parsing (`parseFrontmatterFast()`) and route path resolution still run in JavaScript. That's ~35 JS operations per file that should be native. Phase 3 moves them all into Zig.
+
+**N-API native addon**
+
+Replace `child_process.execFile()` (pipe → stdout → JSON → parse) with a direct N-API call. Zero serialization, zero filesystem I/O, zero-copy strings from Zig to V8.
+
+**Concurrent SSG builds**
+
+The client Vite build and server Vite build run sequentially. The server build needs the client manifest — but it doesn't need the *entire* client build to finish. Start the server build as soon as the manifest is available.
+
+**Critical CSS as batch post-processing**
+
+Today critical CSS blocks each page render (concurrency 1). Render all pages first, then process critical CSS as a parallel batch. Unlocks full rendering parallelism.
+
+**Content-addressable SSG pages**
+
+If you edit a file and undo the edit, the rendered HTML is identical. Today it's rewritten. Phase 3 caches by content hash — identical output means zero I/O.
+
+---
+
+## The math
+
+**Current baseline (200 pages): ~35s total**
+
+| Metric | v3 (current) | v4 (target) | Speedup |
+|--------|-------------|-------------|---------|
+| Cold build | 35s | 9-12s | **~3-4x** |
+| 1-line edit | 35s | 0.5-2s | **~20-70x** |
+| CI (no changes) | 35s | 1-2s | **~20-35x** |
+| Route generation | 1.5s | 0.3s | **5x** |
+| Code highlighting | 12s | 3s | **4x** |
+| Page rendering | 10s | 4s | **2.5x** |
+
+**4x is achievable on cold builds. On incremental builds, it's an order of magnitude more.**
+
+---
+
+## How we're building this
+
+Every phase is being developed with AI-assisted engineering. The codebase analysis — identifying every bottleneck, tracing every cache invalidation path, mapping every dependency — was done collaboratively with AI agents that crawled the entire monorepo. The architecture itself was stress-tested against the actual source before a single line of Phase 1 was written.
+
+The results speak for themselves: the analysis identified 12 distinct bottlenecks, ranked by impact, with specific file paths and line numbers. That's the level of precision we're working with.
+
+---
+
+## Shipping plan
+
+Each phase ships at roughly 50% completion in the next minor releases:
+
+| Release | Phase | What ships |
+|---------|-------|-----------|
+| 3.1.x | Phase 1 (50%) | Shiki WASM engine, smarter client hash, pipeline parallelism |
+| 3.2.x | Phase 1 (100%) + Phase 2 (50%) | Sharded FileStore, no-gzip dev, MDX worker threads prototype |
+| 3.3.x | Phase 2 (100%) | Per-route cache, delta patches, frontmatter HMR, dependency map |
+| 3.4.x | Phase 3 (50%) | Zig parser v2, N-API addon, concurrent SSG builds |
+| **4.0.0** | **Phase 3 (100%)** | Batch critical CSS, content-addressable pages, full Nitro |
+
+The `--turbo` flag you already know from 3.0.0 is the foundation. Every phase extends it.
+
+---
+
+## What this means for you
+
+- **No breaking changes** to your config, components, or plugins across any phase
+- **`--turbo` gets faster** with every minor release
+- **Dev server stays instant** — Phase 2's delta HMR means editing frontmatter won't reload your browser
+- **CI builds drop from minutes to seconds** when nothing changed
+
+Install or update:
+
+```bash
+pnpm add boltdocs@latest
+```
+
+Try the `--turbo` flag:
+
+```bash
+pnpm boltdocs build --turbo
+```
+
+Check the [full docs](/docs/) to explore everything new.

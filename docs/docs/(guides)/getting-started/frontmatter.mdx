@@ -41,6 +41,8 @@ Your page content starts here...
 | **`groupTitle`** | `string` | Folder name | On an `index.md` file, overrides the sidebar group title for the enclosing folder. |
 | **`groupPosition`** | `number` | — | On an `index.md` file, sets the sort position of the entire group in the sidebar. |
 | **`seo`** | `Record<string, any>` | — | Custom Open Graph and meta tag overrides. See [`seo`](#seo-field) below. |
+| **`draft`** | `boolean` | `false` | Mark this page as a draft. Draft pages are excluded from production builds unless `drafts.visible` is enabled in config or `BOLTDOCS_DRAFTS=true` is set. |
+| **`featureFlags`** | `string[]` | — | List of feature flag names required for this page to be visible. All flags must be active in config for the page to render. |
 
 ---
 

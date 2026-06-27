@@ -131,6 +131,67 @@ Same output, less memory allocation. The single-pass mode generates headings, pl
 
 ---
 
+## Feature Flags & Drafts
+
+Control which pages are visible in each environment without code changes or conditional builds.
+
+### Drafts
+
+Mark any page as a draft in frontmatter:
+
+```md
+---
+title: Upcoming Feature
+draft: true
+---
+```
+
+Draft pages are automatically excluded from production builds. In development, drafts are visible by default. Control visibility via config:
+
+```ts
+export default defineConfig({
+  drafts: {
+    visible: false,              // Hide in all environments
+    environments: ['development', 'staging'],  // Or per-environment
+  },
+})
+```
+
+Or use the `BOLTDOCS_DRAFTS=true` environment variable to force visibility.
+
+### Feature Flags
+
+Define feature flags in your config:
+
+```ts
+export default defineConfig({
+  featureFlags: {
+    'new-dashboard': true,           // Always visible
+    'beta-api': 'development',       // Only in development
+    'experimental-search': false,    // Always hidden
+  },
+})
+```
+
+Then mark pages with required flags:
+
+```md
+---
+title: New Dashboard
+featureFlags:
+  - new-dashboard
+  - beta-api
+---
+```
+
+The page only renders when **all** declared flags are active. Perfect for progressive rollouts, A/B testing, or hiding internal tools from production.
+
+<Callout variant="info" title="Coming Soon">
+Feature flags will integrate with the Ask AI plugin in v3.2.0 to enable context-aware responses based on enabled features.
+</Callout>
+
+---
+
 ## What This Means for the Nitro Roadmap
 
 3.1.0 is Phase 1 of Project Nitro — the plan to hit 4x faster builds in v4.0.0. Here's where we are:
@@ -167,16 +228,6 @@ pnpm boltdocs build --turbo
 If you hit issues, remove the flag. The standard build is unchanged.
 
 ---
-
-## What's Next
-
-Phase 2 of Nitro is already in progress:
-
-- **Sharded FileStore** — replacing the monolithic route cache with per-file shards
-- **Per-route cache + delta patches** — changing one file won't invalidate all routes
-- **Frontmatter delta HMR** — editing a title won't reload the browser
-- **MDX worker threads** — parallel MDX transforms across CPU cores
-- **Client Code Dependency Map** — rebuild only the pages affected by a CSS change
 
 Install or update:
 

@@ -119,10 +119,8 @@ export default defineConfig({
   },
   integrations: {
     analytics: {
-      ga4: {
-        measurementId: 'G-WRBYHMBDYQ',
-      },
       vercel: {
+        analytics: true,
         speedInsights: true,
       },
     },

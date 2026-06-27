@@ -202,6 +202,84 @@ See the [Collections guide](/docs/integrations/features/collections) for full de
 
 ---
 
+## `DraftsConfig`
+
+Control the visibility of draft pages across different environments.
+
+| Property | Type | Default | Description |
+| :--- | :--- | :--- | :--- |
+| **`visible`** | `boolean` | `false` | If `true`, drafts are visible in all environments. |
+| **`environments`** | `string[]` | `[]` | Environments where drafts are visible (e.g., `['development', 'staging']`). |
+
+### Behavior
+
+- **Production** (default): Drafts are excluded from builds. Pages with `draft: true` in frontmatter are filtered out.
+- **Development**: Drafts are hidden by default unless `drafts.visible: true` or `BOLTDOCS_DRAFTS=true` is set.
+- **Environment override**: Set `BOLTDOCS_DRAFTS=true` to force drafts visible in any environment.
+- **Config override**: Set `drafts.visible: true` or `drafts.environments: ['development', 'staging']` to control per-environment visibility.
+
+### Environment Variables
+
+| Variable | Effect |
+| :--- | :--- |
+| `BOLTDOCS_DRAFTS=true` | Forces draft pages to be visible, overriding all config settings |
+| `NODE_ENV=production` | Default production mode — drafts are excluded unless `drafts.visible: true` |
+| `NODE_ENV=development` | Default development mode — drafts are hidden unless enabled via config or env |
+
+```md
+---
+title: My Draft Page
+draft: true
+---
+```
+
+<Callout variant="warning" title="Drafts in Production">
+When `drafts.visible: true` is set, draft pages will appear in production builds. Use this only for preview deployments or staging environments.
+</Callout>
+
+---
+
+## `FeatureFlags`
+
+Control page visibility based on feature flags. Pages can declare required flags in their frontmatter, and only render when all flags are active in the config.
+
+| Property | Type | Description |
+| :--- | :--- | :--- |
+| **`featureFlags`** | `Record<string, boolean \| string>` | Feature flag definitions. `boolean` = always on/off. `string` = only active when matches `NODE_ENV`. |
+
+### How It Works
+
+1. Add `featureFlags` to your config:
+```ts title="boltdocs.config.ts"
+export default defineConfig({
+  featureFlags: {
+    'new-dashboard': true,           // Always visible
+    'beta-api': 'development',       // Only in development
+    'experimental-search': false,    // Always hidden
+  },
+})
+```
+
+2. Mark pages with required flags:
+```md
+---
+title: New Dashboard
+featureFlags:
+  - new-dashboard
+  - beta-api
+---
+```
+
+3. The page only renders when **all** declared flags are active in the config.
+
+<Callout variant="tip" title="Use Cases">
+- **Progressive rollout**: Enable features per environment
+- **A/B testing**: Toggle pages based on config
+- **Internal tools**: Hide pages from public builds
+</Callout>
+
+---
+
 ## `directoryMeta`
 
 A powerful mechanism to customize how directories appear in the sidebar without writing any code. Boltdocs automatically scans for `meta.json` files inside your `docs/` directory and merges them into the sidebar configuration at build time.
@@ -312,6 +390,14 @@ export default defineConfig({
     postsPerPage: 12,
     defaultCollection: 'blog',
     sortBy: 'date',
+  },
+  drafts: {
+    visible: false,
+    environments: ['development'],
+  },
+  featureFlags: {
+    'new-dashboard': true,
+    'beta-api': 'development',
   },
   directoryMeta: {
     'guides/getting-started': {
