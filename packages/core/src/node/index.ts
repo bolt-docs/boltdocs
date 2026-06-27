@@ -73,7 +73,7 @@ export async function createViteConfig(
   const tailwindcss = tailwindcssMod.default
 
   const config = preResolvedConfig || (await resolveConfig('docs', root))
-  const routes = await generateRoutes('docs', config)
+  const routes = await generateRoutes('docs', config, undefined, false, isTurbo)
   const routePaths = routes.map((r) => r.path)
   const basePath = (config.base || '/docs').replace(/\/$/, '')
   if (!routePaths.includes(basePath)) {

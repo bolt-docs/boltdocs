@@ -30,3 +30,9 @@ Fixed:
 - **Critical regex fix**: `__staticRouterHydrationData` script removal regex was crossing `</script>` boundaries, eating the entire HTML structure (missing `<body>`, `</head>`, `id="root"`). Added negative lookahead `(?!<\/script>)` to prevent matching across script tags.
 - **Locale bug fix**: `DefaultCollectionList` now uses `usePosts()` which filters by current locale/version instead of `useLoaderData()` which bypassed filtering
 - **Turbo mode fixes**: Shiki syntax highlighting now produces correct HTML with merged class attributes; CSS parser handles escape sequences and edge cases in selectors; WASM memory model uses arena allocation for reliability
+- **`--turbo` performance fixes**: Fixed 5 issues causing turbo+cache to be slower than default mode:
+  - Server build now correctly skips when client code is unchanged (was always running)
+  - `computeClientCodeHash` no longer scans monorepo directories (packages/, scripts/, etc.)
+  - Beasties critical CSS engine now skipped in turbo mode (uses zig-critters only)
+  - Config resolution no longer runs twice in build pipeline
+  - Turbo flag now propagated through entire pipeline to `generateRoutes`

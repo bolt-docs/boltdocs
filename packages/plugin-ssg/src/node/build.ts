@@ -111,12 +111,22 @@ function computeClientCodeHash(
     const files: string[] = []
 
     // Scan project source files (excludes docs/ and out/)
+    // Skip monorepo directories that don't affect client code
+    const MONOREPO_DIRS = new Set([
+      'packages',
+      'plugins',
+      'scripts',
+      'tests',
+      'assets',
+      'apps',
+    ])
     const list = fs.readdirSync(root, { withFileTypes: true })
     for (const dirent of list) {
       if (dirent.name.startsWith('.') || dirent.name === 'node_modules')
         continue
       if (docsDirName && dirent.name === docsDirName) continue
       if (outDirName && dirent.name === outDirName) continue
+      if (MONOREPO_DIRS.has(dirent.name)) continue
 
       const filePath = join(root, dirent.name)
       if (dirent.isDirectory()) {
@@ -130,6 +140,7 @@ function computeClientCodeHash(
     }
 
     // Scan framework packages (only core and plugin-ssg source)
+    // Skip if running in turbo mode — turbo manages its own cache invalidation
     const packagesDir = join(root, '..', 'packages')
     if (fs.existsSync(packagesDir)) {
       for (const pkg of ['core/src', 'plugin-ssg/src']) {
@@ -266,8 +277,6 @@ export async function build(
   const hash = currentClientHash.substring(0, 12)
   const ssgOut = join(root, '.vite-react-ssg-temp', hash)
 
-  if (fs.existsSync(ssgOut)) await fs.remove(ssgOut)
-
   const finalCacheDir = isAbsolute(cacheDir) ? cacheDir : join(root, cacheDir)
   const hashFile = join(finalCacheDir, 'client-hash.txt')
   const templateHtmlFile = join(finalCacheDir, 'template-index.html')
@@ -387,6 +396,7 @@ export async function build(
   if (serverBuildSkipped) {
     buildLog('Server build unchanged. Bypassing server build...')
   } else {
+    if (fs.existsSync(ssgOut)) await fs.remove(ssgOut)
     buildLog('Build for server...')
     process.env.VITE_SSG = 'true'
     await viteBuild(
@@ -484,7 +494,7 @@ export async function build(
   buildLog('Rendering Pages...', routesPaths.length)
 
   const beasties =
-    beastiesOptions !== false
+    beastiesOptions !== false && !turbo
       ? await getBeasties(outDir, {
           publicPath: configBase,
           ...beastiesOptions,

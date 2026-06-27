@@ -13,7 +13,7 @@ export class ConfigResolveStep implements PipelineStep<BuildContext> {
     ctx.viteConfig = await createViteConfig(
       ctx.root,
       'production',
-      undefined,
+      ctx.config,
       ctx.turbo,
     )
   }
