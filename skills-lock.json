@@ -156,10 +156,17 @@
       "skillPath": "skills/three/SKILL.md",
       "computedHash": "9be3cc37c69221363c00461b34df4165be72163250b6e6de0e9ade27692367e2"
     },
-    "turborepo": {
-      "source": "vercel/turborepo",
+    "tsdown": {
+      "source": "antfu/skills",
       "sourceType": "github",
-      "computedHash": "6009cec63f977a32eb79d6aa4678fd607da0d036e68da1e33e3db2aec2584d7f"
+      "skillPath": "skills/tsdown/SKILL.md",
+      "computedHash": "2183b9019058744215ab8b1261e34833653b5864da159bc022e3b9ad2f706aa5"
+    },
+    "turborepo": {
+      "source": "antfu/skills",
+      "sourceType": "github",
+      "skillPath": "skills/turborepo/SKILL.md",
+      "computedHash": "fda851d916bbee5b78446b9a22510e7f38aefdfab57f93de6e0bccbb5b0b537a"
     },
     "typescript-advanced-types": {
       "source": "wshobson/agents",
@@ -179,12 +186,14 @@
     "vite": {
       "source": "antfu/skills",
       "sourceType": "github",
-      "computedHash": "1cdc4bbecaa89544e6ef92566b015db989994bf90c4472683ac64f7a114dc3af"
+      "skillPath": "skills/vite/SKILL.md",
+      "computedHash": "867ff66238f3152e9c494339ad08dc432dd0df5bcf5cc7a00b61a72b580eb908"
     },
     "vitest": {
       "source": "antfu/skills",
       "sourceType": "github",
-      "computedHash": "0efd9cf8c56aada060d418d009cfe621a7915d0c73a958fe611985bc0c2fa4b8"
+      "skillPath": "skills/vitest/SKILL.md",
+      "computedHash": "943d436114c677802426741980146c07560bf375297666b03062444f4b98a785"
     },
     "waapi": {
       "source": "heygen-com/hyperframes",
