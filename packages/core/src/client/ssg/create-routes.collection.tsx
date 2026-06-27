@@ -1,26 +1,45 @@
 import type { RouteRecord } from '@bdocs/ssg'
 import type { ComponentRoute, BoltdocsConfig } from '../types'
 import type React from 'react'
-import { useLoaderData, Link } from 'react-router-dom'
+import { useLocation, Link } from 'react-router-dom'
 import type { CollectionsData } from '../collections/collections-context'
+import { usePosts } from '../collections/hooks'
+import { useConfig } from '../app/config-context'
 import { buildModuleMap } from './create-routes.utils'
 import { EagerMdxElement, resolveModuleLoader } from './mdx-elements'
 import { DocsLayout } from '../app/docs-layout'
 
 function DefaultCollectionList() {
-  const data = useLoaderData() as {
-    posts: any[]
-    currentPage: number
-    totalPages: number
-    collection: string
-  }
-  if (!data || !data.posts) return null
+  const location = useLocation()
+  const config = useConfig()
+  const postsPerPage = config.collections?.postsPerPage ?? 10
+
+  const segments = location.pathname.split('/').filter(Boolean)
+  const isLocalePrefixed =
+    config.i18n && segments[0] in (config.i18n.locales || {})
+  const collection = isLocalePrefixed ? segments[1] : segments[0]
+  const pageSegment = isLocalePrefixed ? segments[3] : segments[2]
+  const currentPage =
+    pageSegment === 'page'
+      ? Number(isLocalePrefixed ? segments[4] : segments[3]) || 1
+      : 1
+
+  const allPosts = usePosts(collection)
+  const totalPages = Math.ceil(allPosts.length / postsPerPage)
+  const start = (currentPage - 1) * postsPerPage
+  const posts = allPosts.slice(start, start + postsPerPage)
+
+  if (!posts.length) return null
+
+  const basePath = isLocalePrefixed
+    ? `/${segments[0]}/${segments[1]}`
+    : `/${segments[0]}`
 
   return (
     <div className="py-8 max-w-2xl mx-auto px-4">
-      <h1 className="text-3xl font-bold mb-6 capitalize">{data.collection}</h1>
+      <h1 className="text-3xl font-bold mb-6 capitalize">{collection}</h1>
       <div className="space-y-6">
-        {data.posts.map((post) => (
+        {posts.map((post) => (
           <article key={post.path} className="border-b border-subtle pb-4">
             <h2 className="text-xl font-semibold mb-2">
               <Link to={post.path} className="text-primary-600 hover:underline">
@@ -38,14 +57,14 @@ function DefaultCollectionList() {
           </article>
         ))}
       </div>
-      {data.totalPages > 1 && (
+      {totalPages > 1 && (
         <div className="mt-8 flex gap-4 text-sm">
-          {data.currentPage > 1 && (
+          {currentPage > 1 && (
             <Link
               to={
-                data.currentPage === 2
-                  ? `/${data.collection}`
-                  : `/${data.collection}/page/${data.currentPage - 1}`
+                currentPage === 2
+                  ? basePath
+                  : `${basePath}/page/${currentPage - 1}`
               }
               className="text-primary-600 hover:underline"
             >
@@ -53,11 +72,11 @@ function DefaultCollectionList() {
             </Link>
           )}
           <span>
-            Page {data.currentPage} of {data.totalPages}
+            Page {currentPage} of {totalPages}
           </span>
-          {data.currentPage < data.totalPages && (
+          {currentPage < totalPages && (
             <Link
-              to={`/${data.collection}/page/${data.currentPage + 1}`}
+              to={`${basePath}/page/${currentPage + 1}`}
               className="text-primary-600 hover:underline"
             >
               Next
@@ -207,6 +226,9 @@ function buildCollectionRoutes(options: {
       author: r.author,
       coverImage: r.coverImage,
       filePath: r.filePath,
+      locale: r.locale,
+      version: r.version,
+      lastUpdated: r.lastUpdated,
       frontmatter: r.frontmatter,
     }))
 

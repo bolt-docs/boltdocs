@@ -1,5 +1,6 @@
 import { useLoaderData } from 'react-router-dom'
 import { DocPage } from '../app/doc-page'
+import { CurrentPostProvider } from '../collections/collections-context'
 import type { CollectionPostLoaderData } from '../types'
 
 type MdxPageProps = {
@@ -11,8 +12,9 @@ type MdxPageProps = {
 /**
  * Renders an MDX page by consuming pre-loaded route data.
  *
- * - If the route belongs to a collection (`data.collection` is set), renders
- *   the custom post component if provided, else falls back to the standard DocPage.
+ * - If the route belongs to a collection (`data.collection` is set), wraps
+ *   the content with `CurrentPostProvider` so that `usePost()` (called without
+ *   a slug) can read the current post's data from context.
  * - Otherwise, renders the standard `DocPage` layout.
  */
 export function MdxPage({
@@ -24,16 +26,43 @@ export function MdxPage({
 
   if (!MDXComponent) return null
 
-  // If this is a collection post, delegate to the custom component if available.
-  // Otherwise, or if not in a collection, render using DocPage.
-  const isCollection = !!(data as CollectionPostLoaderData)?.collection
+  const collectionData = data as CollectionPostLoaderData
+  const isCollection = !!collectionData?.collection
 
-  if (isCollection && CollectionPost) {
-    return (
+  if (isCollection) {
+    const postElement = CollectionPost ? (
       <CollectionPost
         MDXComponent={MDXComponent}
         mdxComponents={propComponents}
       />
+    ) : (
+      <DocPage
+        route={{
+          path: collectionData.route.path,
+          filePath: collectionData.route.filePath,
+          title: collectionData.route.title,
+          description: collectionData.route.description,
+          headings: collectionData.headings,
+          locale: collectionData.route.locale,
+          version: collectionData.route.version,
+          lastUpdated: collectionData.route.lastUpdated,
+          frontmatter: collectionData.route.frontmatter,
+        }}
+        content={MDXComponent}
+        mdxComponents={propComponents}
+      />
+    )
+
+    return (
+      <CurrentPostProvider
+        value={{
+          route: collectionData.route,
+          headings: collectionData.headings,
+          collection: collectionData.collection,
+        }}
+      >
+        {postElement}
+      </CurrentPostProvider>
     )
   }
 

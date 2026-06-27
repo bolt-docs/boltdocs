@@ -1,18 +1,20 @@
 import { useMemo } from 'react'
 import { useConfig } from '../app/config-context'
-import { useCollectionsData } from './collections-context'
+import { useCollectionsData, useCurrentPostData } from './collections-context'
 import { useRoutes } from '../hooks/use-routes'
 import type { CollectionPost } from './collections-context'
 
-// useHeadings lives in hooks/use-headings — re-exported here for backwards compat
-export { useHeadings } from '../hooks/use-headings'
+const DEFAULT_COLLECTION = 'blog'
 
 /**
- * Returns the posts of a collection.
- * @param collection - The name of the collection.
- * @returns The posts of the collection.
+ * Returns the posts of a collection, filtered by the current locale and version.
+ * Defaults to "blog" if no collection is specified.
+ * @param collection - The name of the collection. Defaults to "blog".
+ * @returns The filtered posts of the collection.
  */
-export function usePosts(collection: string): CollectionPost[] {
+export function usePosts(
+  collection: string = DEFAULT_COLLECTION,
+): CollectionPost[] {
   const data = useCollectionsData()
   const { currentLocale, currentVersion } = useRoutes()
   const config = useConfig()
@@ -31,11 +33,50 @@ export function usePosts(collection: string): CollectionPost[] {
     })
   }, [posts, currentLocale, currentVersion, defaultLocale, defaultVersion])
 }
+
+/**
+ * Returns a single post from a collection.
+ *
+ * @param collection - The name of the collection (optional inside post routes).
+ * @param slug - The post slug (optional inside post routes).
+ * @returns The matching post, or undefined if not found.
+ */
+export function usePost(): CollectionPost | undefined
 export function usePost(
   collection: string,
   slug: string,
+): CollectionPost | undefined
+export function usePost(
+  collection?: string,
+  slug?: string,
 ): CollectionPost | undefined {
+  const ctx = useCurrentPostData()
   const posts = usePosts(collection)
+
+  if (ctx && !slug) {
+    const { route } = ctx
+    return useMemo(
+      () => ({
+        path: route.path,
+        title: route.title,
+        date: route.date,
+        excerpt: route.excerpt,
+        tags: route.tags,
+        author: route.author,
+        coverImage: route.coverImage,
+        filePath: route.filePath,
+        locale: route.locale,
+        version: route.version,
+        frontmatter: route.frontmatter,
+        lastUpdated: route.lastUpdated,
+        headings: route.headings,
+      }),
+      [route],
+    )
+  }
+
+  if (!collection || !slug) return undefined
+
   return useMemo(
     () =>
       posts.find(
@@ -49,13 +90,13 @@ export function usePost(
 }
 
 /**
- * Returns the recent posts of a collection.
- * @param collection - The name of the collection.
+ * Returns the recent posts of a collection. Defaults to "blog".
+ * @param collection - The name of the collection. Defaults to "blog".
  * @param count - The number of recent posts to return.
  * @returns The recent posts of the collection.
  */
 export function useRecentPosts(
-  collection: string,
+  collection: string = DEFAULT_COLLECTION,
   count: number = 5,
 ): CollectionPost[] {
   const posts = usePosts(collection)
