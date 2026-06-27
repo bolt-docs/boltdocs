@@ -256,7 +256,7 @@ export async function build(
   const out = isAbsolute(outDir) ? outDir : join(root, outDir)
   const currentClientHash = computeClientCodeHash(root, docsDirName, outDir)
   const hash = currentClientHash.substring(0, 12)
-  const ssgOut = join(root, '.vite-react-ssg-temp', hash)
+  const ssgOut = join(root, '.vite-react-ssg-temp', turbo ? 'turbo-ssr' : hash)
 
   const finalCacheDir = isAbsolute(cacheDir) ? cacheDir : join(root, cacheDir)
   const hashFile = join(finalCacheDir, 'client-hash.txt')
@@ -294,6 +294,7 @@ export async function build(
   clientLogger.warn = (msg: string, options) => {
     if (
       msg.includes('externalized for browser compatibility') ||
+      msg.includes("can't be bundled without type") ||
       shouldSuppressLog(msg)
     ) {
       return
@@ -369,7 +370,7 @@ export async function build(
   // server
   const ssrEntry = await resolveAlias(config, entry)
   const serverBuildSkipped =
-    canBypassClientBuild &&
+    (turbo || canBypassClientBuild) &&
     fs.existsSync(ssgOut) &&
     fs
       .readdirSync(ssgOut)
