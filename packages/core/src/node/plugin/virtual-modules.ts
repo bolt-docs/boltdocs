@@ -140,6 +140,7 @@ export function createVirtualModulesPlugin(
                 locale: r.locale,
                 version: r.version,
                 frontmatter: r.frontmatter,
+                draft: r.frontmatter?.draft,
               })
             }
           }

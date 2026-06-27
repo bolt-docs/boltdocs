@@ -25,14 +25,13 @@ export function generateEntryCode(
 
   const componentImports = pluginComponents
     .map(
-      ([
-        name,
-        path,
-      ]) => `import * as _comp_${name} from '${normalizePath(path)}';
-const ${name} = _comp_${name}.default || _comp_${name}['${name}'] || _comp_${name};`,
+      ([name, path]) =>
+        `import { ${name} as _comp_${name} } from '${normalizePath(path)}';`,
     )
     .join('\n')
-  const pluginComponentMap = pluginComponents.map(([name]) => name).join(', ')
+  const pluginComponentMap = pluginComponents
+    .map(([name]) => `${name}: _comp_${name}`)
+    .join(', ')
   const componentMap = pluginComponentMap
 
   const docsDirName = path.basename(options.docsDir || 'docs')

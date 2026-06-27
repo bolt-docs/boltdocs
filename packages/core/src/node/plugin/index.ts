@@ -274,7 +274,58 @@ export function boltdocsPlugin(
       setConfig,
       getLifecycle,
     ),
-    boltdocsMdxPlugin(config, getLifecycle),
+
+    // Unified MDX plugin (default) — always included, skips if turbo is active
+    ...(!options.turbo ? [boltdocsMdxPlugin(config, getLifecycle)] : []),
+
+    // Sätteri MDX plugin (turbo) — lazy-loaded, skips if turbo is off
+    ...(options.turbo
+      ? [
+          (() => {
+            let resolved: any = null
+
+            async function ensure() {
+              if (!resolved) {
+                try {
+                  const { createSatteriMdxPlugin } = await import(
+                    '@bdocs/processor-satteri/node'
+                  )
+                  resolved = createSatteriMdxPlugin(config, getLifecycle)
+                } catch {
+                  // Sätteri not available — return null for all hooks
+                }
+              }
+              return resolved
+            }
+
+            const plugin: Plugin = {
+              name: 'vite-plugin-boltdocs-satteri-mdx',
+              enforce: 'pre',
+
+              async load(id: string) {
+                const p = await ensure()
+                if (!p) return null
+                if (p.load) return p.load(id)
+                return null
+              },
+
+              async transform(code: string, id: string) {
+                const p = await ensure()
+                if (!p) return null
+                if (p.transform) return p.transform(code, id)
+                return null
+              },
+
+              async buildEnd() {
+                const p = await ensure()
+                if (p && p.buildEnd) await p.buildEnd()
+              },
+            }
+
+            return plugin
+          })(),
+        ]
+      : []),
 
     ViteImageOptimizer({ includePublic: true }),
 
