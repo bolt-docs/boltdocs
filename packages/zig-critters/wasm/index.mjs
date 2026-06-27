@@ -93,9 +93,6 @@ export async function extractCriticalCss(html, css, options = {}) {
   )
 
   if (resultLen === 0) {
-    console.error(
-      `[zig-critters/debug] WASM returned 0 (empty CSS). HTML=${(htmlBytes.length / 1024).toFixed(1)}KB, CSS=${(cssBytes.length / 1024).toFixed(1)}KB, memory=${(currentMemory / 1024 / 1024).toFixed(1)}MB`,
-    )
     reset()
     return { criticalCss: '', stats: {} }
   }
@@ -104,11 +101,6 @@ export async function extractCriticalCss(html, css, options = {}) {
   const resultPtr = Number(getResultPtr())
   const resultBytes = new Uint8Array(memory.buffer, resultPtr, resultLen)
   const criticalCss = new TextDecoder().decode(resultBytes.slice())
-
-  const cssLenKB = (cssBytes.length / 1024).toFixed(1)
-  console.error(
-    `[zig-critters/debug] Generated ${(resultLen / 1024).toFixed(1)}KB critical CSS from ${cssLenKB}KB CSS`,
-  )
 
   // Reset allocator
   reset()
