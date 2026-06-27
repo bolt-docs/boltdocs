@@ -11,7 +11,6 @@ import {
 } from './cache'
 import { sortRoutes } from './sorter'
 
-// Re-export public API
 export type { RouteMeta }
 
 export { getExternalRoutePaths } from './pages-external'
@@ -59,6 +58,7 @@ export async function generateRoutes(
   config?: BoltdocsConfig,
   basePath?: string,
   forceScan: boolean = false,
+  turbo: boolean = false,
 ): Promise<RouteMeta[]> {
   if (activeGenerationPromise) {
     return activeGenerationPromise
@@ -143,7 +143,7 @@ export async function generateRoutes(
       if (!isTest && !_cachedNativeDocs) {
         try {
           const { runParser } = await import('@bdocs/parser')
-          _cachedNativeDocs = await runParser(docsDir)
+          _cachedNativeDocs = await runParser(docsDir, turbo)
         } catch (e) {
           // Native parser not available or failed
         }
@@ -211,9 +211,27 @@ export async function generateRoutes(
     const docFiles: ParsedDocFile[] = []
     const collectionFiles: Map<string, ParsedDocFile[]> = new Map()
 
+    const nodeEnv = process.env.NODE_ENV || 'development'
+    const draftsVisible =
+      config?.drafts?.visible ||
+      process.env.BOLTDOCS_DRAFTS === 'true' ||
+      (config?.drafts?.environments?.includes(nodeEnv) ?? false)
+
     for (const p of parsed) {
-      // Exclude drafts in production
-      if (process.env.NODE_ENV === 'production' && p.route.draft) continue
+      // Exclude drafts unless drafts are configured to be visible
+      if (p.route.draft && !draftsVisible) continue
+
+      // Exclude pages with unmet feature flags
+      if (p.route.featureFlags && config?.featureFlags) {
+        const allEnabled = p.route.featureFlags.every((flag) => {
+          const value = config.featureFlags?.[flag]
+          return value === true || value === nodeEnv
+        })
+        if (!allEnabled) continue
+      } else if (p.route.featureFlags && !config?.featureFlags) {
+        // No feature flags configured but page requires them — exclude
+        continue
+      }
 
       if (p.inferredCollection) {
         const col = p.inferredCollection

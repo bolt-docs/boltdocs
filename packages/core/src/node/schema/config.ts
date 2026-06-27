@@ -16,6 +16,13 @@ export const FooterConfigSchema = z.object({
 })
 
 /**
+ * Zod schema for MDX configuration.
+ */
+export const MdxConfigSchema = z.object({
+  processor: z.enum(['unified', 'satteri']).optional(),
+})
+
+/**
  * Zod schema for a Boltdocs plugin.
  */
 export const BoltdocsPluginSchema = z.object({
@@ -293,6 +300,14 @@ export const IntegrationsConfigSchema = z.object({
 })
 
 /**
+ * Zod schema for drafts configuration.
+ */
+export const DraftsConfigSchema = z.object({
+  visible: z.boolean().optional(),
+  environments: z.array(z.string()).optional(),
+})
+
+/**
  * Root Zod schema for Boltdocs project configuration.
  */
 export const BoltdocsConfigSchema = z.object({
@@ -302,10 +317,15 @@ export const BoltdocsConfigSchema = z.object({
   theme: ThemeConfigSchema.optional(),
   i18n: I18nConfigSchema.optional(),
   versions: VersionsConfigSchema.optional(),
+  mdx: MdxConfigSchema.optional(),
   plugins: z.array(BoltdocsPluginSchema).optional(),
   robots: RobotsConfigSchema.optional(),
   security: SecurityConfigSchema.optional(),
   seo: BoltdocsSeoConfigSchema.optional(),
   integrations: IntegrationsConfigSchema.optional(),
+  drafts: DraftsConfigSchema.optional(),
+  featureFlags: z
+    .record(z.string(), z.union([z.boolean(), z.string()]))
+    .optional(),
   vite: z.record(z.string(), z.unknown()).optional(),
 })

@@ -35,7 +35,13 @@ cli
   .option('--force', 'Force Vite to re-optimize dependencies')
   .action(devAction)
 
-cli.command('build [root]', 'Build for production').action(buildAction)
+cli
+  .command('build [root]', 'Build for production')
+  .option(
+    '--turbo',
+    'Enable experimental turbo mode (faster parser, critical CSS, and more)',
+  )
+  .action(buildAction)
 
 cli
   .command('preview [root]', 'Preview production build')

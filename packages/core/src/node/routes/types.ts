@@ -47,6 +47,8 @@ export interface RouteMeta {
   author?: string
   /** Draft flag — excluded from production builds */
   draft?: boolean
+  /** Feature flags required for this page to be visible */
+  featureFlags?: string[]
   /** Short excerpt/summary for list displays */
   excerpt?: string
   /** Cover image for blog posts */

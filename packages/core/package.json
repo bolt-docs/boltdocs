@@ -22,6 +22,16 @@
       "import": "./dist/node/index.mjs",
       "require": "./dist/node/index.cjs"
     },
+    "./node/cache": {
+      "types": "./dist/node/cache.d.ts",
+      "import": "./dist/node/cache.mjs",
+      "require": "./dist/node/cache.cjs"
+    },
+    "./node/mdx/shiki-adapter": {
+      "types": "./dist/node/mdx/shiki-adapter.d.ts",
+      "import": "./dist/node/mdx/shiki-adapter.mjs",
+      "require": "./dist/node/mdx/shiki-adapter.cjs"
+    },
     "./server": {
       "types": "./dist/server/index.d.ts",
       "import": "./dist/server/index.mjs",
@@ -111,6 +121,7 @@
   },
   "packageManager": "pnpm@10.30.2",
   "devDependencies": {
+    "@bdocs/processor-satteri": "workspace:*",
     "@netlify/functions": "^5.3.0",
     "@testing-library/jest-dom": "^6.6.0",
     "@testing-library/react": "^16.0.0",

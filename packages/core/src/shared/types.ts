@@ -10,13 +10,6 @@ export interface BoltdocsSocialLink {
 }
 
 /**
- * Configuration for the site footer.
- */
-export interface BoltdocsFooterConfig {
-  text?: string
-}
-
-/**
  * Theme-specific configuration options.
  */
 export interface BoltdocsThemeConfig {
@@ -48,7 +41,6 @@ export interface BoltdocsThemeConfig {
     { title?: string | Record<string, string>; icon?: string }
   >
   socialLinks?: BoltdocsSocialLink[]
-  footer?: BoltdocsFooterConfig
   editLink?: string
   communityHelp?: string
   version?: string
@@ -128,6 +120,14 @@ export interface BoltdocsVersionsConfig {
  * Shared badge value type used in frontmatter, RouteMeta, and ComponentRoute.
  */
 export type BadgeValue = string | { text: string; expires?: string }
+
+/**
+ * MDX processor configuration.
+ * When `processor` is set to 'satteri', the Sätteri Rust-based compiler is used.
+ */
+export interface BoltdocsMdxConfig {
+  processor?: 'unified' | 'satteri'
+}
 
 /**
  * Defines a Boltdocs plugin.
@@ -274,6 +274,16 @@ export interface BoltdocsIntegrationsConfig {
 }
 
 /**
+ * Configuration for drafts visibility control.
+ */
+export interface BoltdocsDraftsConfig {
+  /** If true, drafts are visible in all environments. Default: false */
+  visible?: boolean
+  /** Environments where drafts are visible (e.g. ['development', 'staging']). Default: [] */
+  environments?: string[]
+}
+
+/**
  * The root configuration object for Boltdocs.
  */
 export interface BoltdocsConfig {
@@ -283,12 +293,15 @@ export interface BoltdocsConfig {
   theme?: BoltdocsThemeConfig
   i18n?: BoltdocsI18nConfig
   versions?: BoltdocsVersionsConfig
+  mdx?: BoltdocsMdxConfig
   plugins?: BoltdocsPlugin[]
   collections?: BoltdocsCollectionsConfig
   robots?: BoltdocsRobotsConfig
   security?: BoltdocsSecurityConfig
   seo?: BoltdocsSeoConfig
   integrations?: BoltdocsIntegrationsConfig
+  drafts?: BoltdocsDraftsConfig
+  featureFlags?: Record<string, boolean | string>
   directoryMeta?: Record<string, unknown>
   vite?: unknown
 }

@@ -44,7 +44,9 @@ export async function createViteConfig(
   root: string,
   mode: 'development' | 'production' = 'development',
   preResolvedConfig?: BoltdocsConfig,
+  turbo?: boolean,
 ): Promise<InlineConfig> {
+  const isTurbo = turbo || process.env.BOLTDOCS_TURBO === 'true'
   const [
     reactMod,
     tailwindcssMod,
@@ -120,7 +122,7 @@ export async function createViteConfig(
       react(),
       tailwindcss(),
       ...boltdocsPlugin(
-        { docsDir: 'docs', root } as BoltdocsPluginOptions,
+        { docsDir: 'docs', root, turbo: isTurbo } as BoltdocsPluginOptions,
         config,
       ),
     ],
