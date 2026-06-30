@@ -5,6 +5,7 @@ import { type Plugin, type ResolvedConfig, loadEnv } from 'vite'
 import { ViteImageOptimizer } from '@bdocs/plugin-image-optimizer'
 
 import { generateRoutes, getExternalRoutePaths } from '../routes'
+import type { RouteMeta } from '../routes/types'
 import { resolveConfig, type BoltdocsConfig } from '../config'
 import { generateProjectTypes, writeLinkTree } from '../types-generator'
 import { normalizePath } from '../utils'
@@ -53,6 +54,7 @@ export function boltdocsPlugin(
   let viteConfig: ResolvedConfig
   let isBuild = false
   let lifecycle: PluginLifecycleManager
+  let routes: RouteMeta[] = []
 
   // Validate plugins and extract vitePlugins synchronously at creation time
   // so they're available when the plugins array is returned to Vite.
@@ -100,7 +102,10 @@ export function boltdocsPlugin(
 
         if (!config) {
           config = await resolveConfig(docsDir)
-          const routes = await generateRoutes(docsDir, config)
+        }
+
+        if (routes.length === 0) {
+          routes = await generateRoutes(docsDir, config)
           const routePaths = routes.map((r) => r.path)
           const basePath = (config.base || '/docs').replace(/\/$/, '')
 
@@ -131,7 +136,14 @@ export function boltdocsPlugin(
         )
 
         config.plugins = validated as any
-        lifecycle = new PluginLifecycleManager(validated, config)
+        lifecycle = new PluginLifecycleManager(
+          validated,
+          config,
+          docsDir,
+          undefined,
+          routes,
+          viteConfig?.build?.outDir || 'dist',
+        )
         resolvedExtraVitePlugins = validated.flatMap(
           (p) => (p.vitePlugins || []) as Plugin[],
         )
@@ -146,7 +158,7 @@ export function boltdocsPlugin(
             includeAllRoutes: true,
             mock: true,
             script: 'async',
-            beastiesOptions: { preload: 'media' },
+            beastiesOptions: false,
           },
           build: { ssrManifest: isBuild },
           optimizeDeps: {

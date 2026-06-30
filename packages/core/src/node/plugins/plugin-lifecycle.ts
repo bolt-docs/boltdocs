@@ -1,4 +1,5 @@
 import type { BoltdocsConfig } from '../config'
+import type { RouteMeta } from '../routes/types'
 import { PluginHookError } from './plugin-errors'
 import type {
   PluginLifecycleHooks,
@@ -16,18 +17,24 @@ export class PluginLifecycleManager {
   private store: BoltdocsPluginStore
   private docsDir: string
   private rootDir: string
+  private routes: RouteMeta[]
+  private outDir: string
 
   constructor(
     plugins: SecureBoltdocsPlugin[],
     config: BoltdocsConfig,
     docsDir?: string,
     rootDir?: string,
+    routes?: RouteMeta[],
+    outDir?: string,
   ) {
     this.plugins = plugins
     this.config = config
     this.store = new BoltdocsPluginStore()
     this.docsDir = docsDir || process.cwd()
     this.rootDir = rootDir || process.cwd()
+    this.routes = routes || []
+    this.outDir = outDir || 'dist'
   }
 
   public async runHook(
@@ -123,6 +130,8 @@ export class PluginLifecycleManager {
       config: Object.freeze({ ...this.config }),
       docsDir: this.docsDir,
       rootDir: this.rootDir,
+      outDir: this.outDir,
+      routes: this.routes,
       meta: {
         name: plugin.name,
         version: plugin.version,

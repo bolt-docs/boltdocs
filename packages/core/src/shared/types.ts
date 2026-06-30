@@ -2,6 +2,85 @@ import type { Plugin as VitePlugin } from 'vite'
 import type { ComponentType } from 'react'
 
 /**
+ * Metadata representing a single documentation route.
+ * This information is used to build the client-side router and the sidebar navigation.
+ */
+export interface RouteMeta {
+  /** The final URL path for the route (e.g., '/docs/guide/start') */
+  path: string
+  /** The absolute filesystem path to the source markdown/mdx file */
+  componentPath: string
+  /** The title of the page, usually extracted from frontmatter or the filename */
+  title: string
+  /** The relative path from the docs directory, used for edit links */
+  filePath: string
+  /** Optional description of the page (for SEO/meta tags) */
+  description?: string
+  /** Optional explicit position for ordering in the sidebar */
+  sidebarPosition?: number
+  /** The group (directory) this route belongs to */
+  group?: string
+  /** The display title for the route's group */
+  groupTitle?: string
+  /** Optional explicit position for ordering the group itself */
+  groupPosition?: number
+  /** Optional icon for the route's group */
+  groupIcon?: string
+  /** The sub-route group this route belongs to (from folders starting with _) */
+  subRouteGroup?: string
+  /** Extracted markdown headings for search indexing */
+  headings?: { level: number; text: string; id: string }[]
+  /** The locale this route belongs to, if i18n is configured */
+  locale?: string
+  /** The version this route belongs to, if versioning is configured */
+  version?: string
+  /** Optional badge to display next to the sidebar item (e.g., 'New', 'Experimental') */
+  badge?: BadgeValue
+  /** Optional icon to display (Lucide icon name or raw SVG) */
+  icon?: string
+  /** The tab this route belongs to, if tabs are configured */
+  tab?: string
+  /** The collection this route belongs to (from [name] directories like [blog]) */
+  collection?: string
+  /** Tags for blog posts or other taxonomy */
+  tags?: string[]
+  /** Author identifier for blog posts */
+  author?: string
+  /** Draft flag — excluded from production builds */
+  draft?: boolean
+  /** Feature flags required for this page to be visible */
+  featureFlags?: string[]
+  /** Short excerpt/summary for list displays */
+  excerpt?: string
+  /** Cover image for blog posts */
+  coverImage?: string
+  /** The extracted plain-text content of the page for search indexing */
+  _content?: string
+  /** The raw markdown content of the page */
+  _rawContent?: string
+  /** Extracted SEO and Open Graph metadata from frontmatter */
+  seo?: Record<string, any>
+  /** The publication date */
+  date?: string | Date
+  /** The last updated timestamp or date */
+  lastUpdated?: string | number | Date
+  /** Optional category for the page */
+  category?: string
+  /** Optional explicit order (alternative to sidebarPosition) */
+  order?: number
+  /** Optional explicit label for the sidebar */
+  sidebarLabel?: string
+  /** Whether the page is hidden from the sidebar */
+  sidebarHidden?: boolean
+  /** Raw extensible frontmatter data for custom components and formatters */
+  frontmatter?: Record<string, any>
+  /** Optional recursive child routes for deep sidebar hierarchies */
+  subRoutes?: RouteMeta[]
+  /** Clean URL segments stripped of locale/version prefixes */
+  slugParts?: string[]
+}
+
+/**
  * Represents a single social link in the configuration.
  */
 export interface BoltdocsSocialLink {
@@ -122,6 +201,71 @@ export interface BoltdocsVersionsConfig {
 export type BadgeValue = string | { text: string; expires?: string }
 
 /**
+ * Context provided to plugin lifecycle hooks.
+ */
+export interface PluginContext {
+  readonly config: BoltdocsConfig
+  readonly logger: PluginLogger
+  readonly store: PluginStore
+  readonly meta: PluginMeta
+  readonly docsDir: string
+  readonly rootDir: string
+  readonly outDir: string
+  readonly routes: RouteMeta[]
+}
+
+/**
+ * Logger interface for plugin logging.
+ */
+export interface PluginLogger {
+  info(message: string): void
+  warn(message: string): void
+  error(message: string | Error): void
+  debug(message: string): void
+}
+
+/**
+ * Key-value store interface for plugins.
+ */
+export interface PluginStore {
+  get<T = unknown>(pluginName: string, key: string): T | undefined
+  set(pluginName: string, key: string, value: unknown): void
+  has(pluginName: string, key: string): boolean
+}
+
+/**
+ * Plugin metadata provided in the context.
+ */
+export interface PluginMeta {
+  name: string
+  version?: string
+  boltdocsVersion?: string
+}
+
+/**
+ * Plugin lifecycle hooks with full type safety.
+ */
+export interface PluginLifecycleHooks {
+  beforeBuild?: (ctx: PluginContext) => Promise<void> | void
+  afterBuild?: (ctx: PluginContext) => Promise<void> | void
+  beforeDev?: (ctx: PluginContext) => Promise<void> | void
+  afterDev?: (ctx: PluginContext) => Promise<void> | void
+  buildEnd?: (ctx: PluginContext) => Promise<void> | void
+  transformSource?: (
+    ctx: PluginContext,
+    params: { code: string; filePath: string },
+  ) => Promise<{ code: string }> | { code: string }
+  transformMdx?: (
+    ctx: PluginContext,
+    params: { code: string; filePath: string },
+  ) => Promise<{ code: string }> | { code: string }
+  transformHtml?: (
+    ctx: PluginContext,
+    params: { html: string; path: string },
+  ) => Promise<{ html: string }> | { html: string }
+}
+
+/**
  * MDX processor configuration.
  * When `processor` is set to 'satteri', the Sätteri Rust-based compiler is used.
  */
@@ -144,8 +288,8 @@ export interface BoltdocsPlugin {
   rehypePlugins?: unknown[]
   vitePlugins?: VitePlugin[]
   components?: Record<string, string>
-  /** Lifecycle hooks — use the `PluginLifecycleHooks` type from the node API. */
-  hooks?: Record<string, (ctx: unknown) => Promise<void> | void>
+  /** Lifecycle hooks with full type safety */
+  hooks?: PluginLifecycleHooks
 }
 
 /**

@@ -42,13 +42,13 @@ Después de construir tu sitio, tu feed está disponible automáticamente:
 pnpm boltdocs build
 ```
 
-- RSS: `https://mis-docs.com/feed.xml`
-- Atom: `https://mis-docs.com/atom.xml`
+- RSS: `https://mis-docs.com/rss/feed-es.xml`
+- Atom: `https://mis-docs.com/rss/atom-es.xml`
 
 Para sitios con i18n, cada idioma recibe su propio feed:
 
-- `https://mis-docs.com/feed.xml` (idioma por defecto)
-- `https://mis-docs.com/es/feed.xml` (español)
+- `https://mis-docs.com/rss/feed-en.xml` (inglés)
+- `https://mis-docs.com/rss/feed-es.xml` (español)
 
 ---
 
@@ -113,7 +113,7 @@ rssPlugin({
 
 | Propiedad | Tipo | Predeterminado | Descripción |
 | :--- | :--- | :--- | :--- |
-| **`limit`** | `number` | `20` | Número máximo de items por feed. Rango: 1–500. |
+| **`limit`** | `number` | sin límite | Número máximo de items por feed. Si no se establece, se incluyen todas las rutas. Rango: 1–500. |
 | **`paths`** | `string[]` | `undefined` | Filtra rutas por prefijo de ruta. Solo se incluyen rutas que comienzan con estas rutas. |
 | **`collections`** | `string[]` | `undefined` | Filtra rutas por nombre de colección (por ejemplo, `['blog']`). |
 | **`format`** | `'rss' \| 'atom' \| 'both'` | `'rss'` | Qué formato(s) de feed generar. |
@@ -121,12 +121,12 @@ rssPlugin({
 
 ### Archivos Generados
 
-El plugin escribe archivos de feed en el directorio de salida de la compilación:
+El plugin escribe archivos de feed en el directorio `rss/` dentro de la salida de compilación:
 
 | Formato | Idioma por Defecto | Otros Idiomas |
 | :--- | :--- | :--- |
-| RSS | `/feed.xml` | `/{locale}/feed.xml` |
-| Atom | `/atom.xml` | `/{locale}/atom.xml` |
+| RSS | `/rss/feed-{locale}.xml` | `/rss/feed-{locale}.xml` |
+| Atom | `/rss/atom-{locale}.xml` | `/rss/atom-{locale}.xml` |
 
 ### Campos del Item del Feed
 
@@ -198,6 +198,7 @@ rssPlugin({
 
 - **Verifica `siteUrl`:** El plugin requiere que `siteUrl` esté configurado. Sin él, el plugin muestra una advertencia y omite la generación.
 - **Verifica la salida de compilación:** Asegúrate de que la compilación se completó exitosamente. El hook `afterBuild` solo se ejecuta en compilaciones exitosas.
+- **Verifica las rutas:** El plugin genera feeds a partir de todas las rutas de documentación. Si no existen rutas, el feed estará vacío.
 
 ### El feed no tiene items
 
