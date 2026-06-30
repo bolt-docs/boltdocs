@@ -21,6 +21,12 @@ Feature:
   - `featureFlags` config: `Record<string, boolean | string>` — define flags, pages declare required flags
   - Draft badge in navbar when viewing draft pages
   - `BOLTDOCS_DRAFTS=true` env var to force draft visibility
+- **PostHog integration** — built-in analytics support for [PostHog](https://posthog.com/)
+  - Config: `integrations.analytics.posthog.apiKey` (required), `host` (optional, defaults to US cloud)
+  - Session recording and autocapture off by default (opt-in via config)
+  - EU cloud support: `host: 'https://eu.i.posthog.com'`
+  - Injects PostHog JS snippet into `<head>` at build time (production only)
+  - Client-side detection via `window.posthog` in `useAnalytics()` hook
 
 Fixed:
 - **Locale switching bug**: Switching languages on collection pages (e.g., `/blog`) now correctly navigates to the localized version (e.g., `/es/blog`) instead of redirecting to `/docs`

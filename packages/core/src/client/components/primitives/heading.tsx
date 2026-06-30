@@ -114,7 +114,7 @@ export const Heading = React.forwardRef<HTMLHeadingElement, HeadingProps>(
         ref={ref}
         id={id}
         className={cn(
-          'boltdocs-heading relative group flex items-center scroll-mt-24',
+          'boltdocs-heading relative group flex items-center gap-2 scroll-mt-24',
           className,
         )}
         {...props}
