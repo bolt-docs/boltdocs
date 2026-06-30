@@ -122,7 +122,13 @@ export class RemixAdapter implements IRouterAdapter<ViteReactSSGContext> {
 
     if (styleCollector) app = styleCollector.collect(app)
 
+    // Signal helmet-compat.tsx that we are inside an SSG render so it can
+    // safely set HelmetProvider.canUseDOM = false (needed for server-side
+    // Helmet context extraction). The flag is cleared immediately after
+    // renderStaticApp returns so it doesn't leak into the client bundle.
+    ;(globalThis as any).__BOLTDOCS_SSG_RENDERING__ = true
     const appHTML = await renderStaticApp(app)
+    ;(globalThis as any).__BOLTDOCS_SSG_RENDERING__ = false
 
     const { htmlAttributes, bodyAttributes, metaAttributes, styleTag } =
       extractHelmet(appHTML, helmetContext, styleCollector)

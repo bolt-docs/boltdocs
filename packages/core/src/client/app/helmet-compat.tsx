@@ -40,12 +40,20 @@ export const HelmetProvider: ComponentType<{ children?: ReactNode }> =
   mod.default?.HelmetProvider ||
   (({ children }) => <>{children}</>)
 
-// Force canUseDOM = false for SSG context. In the SSG build, jsdom may be
-// active (making `window` available), which causes react-helmet-async's
+// Force canUseDOM = false only during SSG rendering. In the SSG build, jsdom
+// may be active (making `window` available), which causes react-helmet-async's
 // `isDocument` check to return true. This makes HelmetData skip setting
 // helmetContext.helmet and emitChange() use client-side handlers instead of
 // server-side state mapping, resulting in null helmet data.
-if (typeof globalThis !== 'undefined') {
+//
+// The flag __BOLTDOCS_SSG_RENDERING__ is set by the SSG adapter (remix.tsx)
+// before renderStaticApp() and cleared immediately after. Without this guard,
+// the `canUseDOM = false` would also execute in the browser, preventing
+// Helmet from updating `document.title` on client-side navigation.
+if (
+  typeof globalThis !== 'undefined' &&
+  (globalThis as any).__BOLTDOCS_SSG_RENDERING__
+) {
   const hp = HelmetProvider as any
   if (hp && typeof hp === 'function' && hp.canUseDOM) {
     hp.canUseDOM = false
