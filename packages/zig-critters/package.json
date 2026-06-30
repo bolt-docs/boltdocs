@@ -1,6 +1,6 @@
 {
   "name": "@bdocs/zig-critters",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": true,
   "description": "Critical CSS extraction engine written in Zig, compiled to WebAssembly",
   "type": "module",

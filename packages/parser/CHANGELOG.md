@@ -1,5 +1,15 @@
 # @bdocs/parser
 
+## 1.1.0
+
+### Minor Changes
+
+- [`1e726e1`](https://github.com/bolt-docs/boltdocs/commit/1e726e1993d401120a4611d41baf95b247ac34da) Thanks [@jesusalcaladev](https://github.com/jesusalcaladev)! - - **Single-pass parser mode** (`--turbo` only)
+  - New `parseDocSinglePass()` function in Zig parser
+  - Generates headings, plain text, and HTML in a single pass through the document
+  - Shared `ParseContext` buffer reduces memory allocations
+  - `stripAndDecodeInto()` and `slugInto()` for in-place processing
+
 ## 1.0.0
 
 ### Major Changes

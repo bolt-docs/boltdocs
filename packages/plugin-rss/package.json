@@ -1,6 +1,6 @@
 {
   "name": "@bdocs/plugin-rss",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "description": "RSS/Atom feed generator plugin for Boltdocs",
   "main": "dist/node/index.js",
   "module": "dist/node/index.mjs",
