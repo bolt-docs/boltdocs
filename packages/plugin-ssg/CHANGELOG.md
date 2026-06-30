@@ -1,5 +1,22 @@
 # @bdocs/ssg
 
+## 0.2.0
+
+### Minor Changes
+
+- [`efd4872`](https://github.com/bolt-docs/boltdocs/commit/efd4872b34502ed06e9c98b20f2e0577c754f683) Thanks [@jesusalcaladev](https://github.com/jesusalcaladev)! - - **SSG Rendering Performance** (both modes)
+  - Replaced JSDOM DOM manipulation with string-based HTML operations
+  - Preload links generated as HTML strings (no `document.createElement`)
+  - `__staticRouterHydrationData` removed via regex instead of DOM queries
+  - Output directories pre-created before rendering loop (eliminates ~241 `ensureDir` calls)
+  - Critical CSS (beasties/zig-critters) initialized once before loop instead of per-page
+  - Server Vite build skipped when client hash unchanged (saves ~5s on cached builds)
+
+### Patch Changes
+
+- Updated dependencies [[`491cf14`](https://github.com/bolt-docs/boltdocs/commit/491cf14de05bb06757047b301c88448a25880406)]:
+  - @bdocs/zig-critters@0.2.0
+
 ## 0.1.1
 
 ### Patch Changes
