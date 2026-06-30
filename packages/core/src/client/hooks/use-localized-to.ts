@@ -30,7 +30,11 @@ export function useLocalizedTo(
   if (to.startsWith('site:')) {
     to = to.replace('site:', '')
     if (to === '' || to === '/') {
-      return config.i18n && activeLocale ? `/${activeLocale}` : '/'
+      return config.i18n &&
+        activeLocale &&
+        activeLocale !== config.i18n.defaultLocale
+        ? `/${activeLocale}`
+        : '/'
     }
     return to
   }
@@ -91,10 +95,12 @@ export function useLocalizedTo(
     // Reconstruct DOCS path: /base/version/locale/content
     if (baseSegment) resultParts.push(baseSegment)
     if (versions && activeVersion) resultParts.push(activeVersion)
-    if (i18n && activeLocale) resultParts.push(activeLocale)
+    if (i18n && activeLocale && activeLocale !== i18n.defaultLocale)
+      resultParts.push(activeLocale)
   } else {
     // Reconstruct EXTERNAL path: /locale/content
-    if (i18n && activeLocale) resultParts.push(activeLocale)
+    if (i18n && activeLocale && activeLocale !== i18n.defaultLocale)
+      resultParts.push(activeLocale)
   }
 
   resultParts.push(...routeContent)

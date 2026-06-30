@@ -90,4 +90,49 @@ describe('useLocalizedTo', () => {
 
     expect(useLocalizedTo('/guides/intro')).toBe('/docs/v1/es/guides/intro')
   })
+
+  it('should NOT add locale prefix when currentLocale is the default locale', () => {
+    ;(useConfig as any).mockReturnValue({
+      base: '/docs',
+      i18n: { defaultLocale: 'en', locales: { en: 'EN', es: 'ES' } },
+    })
+    ;(useRoutes as any).mockReturnValue({
+      currentLocale: 'en',
+      currentVersion: undefined,
+      allRoutes: [],
+    })
+
+    expect(useLocalizedTo('/docs/guides')).toBe('/docs/guides')
+    expect(useLocalizedTo('/guides/intro')).toBe('/docs/guides/intro')
+  })
+
+  it('should NOT add locale prefix for site: root links when currentLocale is default', () => {
+    ;(useConfig as any).mockReturnValue({
+      base: '/docs',
+      i18n: { defaultLocale: 'en', locales: { en: 'EN', es: 'ES' } },
+    })
+    ;(useRoutes as any).mockReturnValue({
+      currentLocale: 'en',
+      currentVersion: undefined,
+      allRoutes: [],
+    })
+
+    expect(useLocalizedTo('site:/')).toBe('/')
+    expect(useLocalizedTo('site:')).toBe('/')
+  })
+
+  it('should add locale prefix for site: root links when currentLocale is NOT default', () => {
+    ;(useConfig as any).mockReturnValue({
+      base: '/docs',
+      i18n: { defaultLocale: 'en', locales: { en: 'EN', es: 'ES' } },
+    })
+    ;(useRoutes as any).mockReturnValue({
+      currentLocale: 'es',
+      currentVersion: undefined,
+      allRoutes: [],
+    })
+
+    expect(useLocalizedTo('site:/')).toBe('/es')
+    expect(useLocalizedTo('site:')).toBe('/es')
+  })
 })
