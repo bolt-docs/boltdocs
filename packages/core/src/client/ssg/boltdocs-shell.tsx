@@ -3,7 +3,6 @@ import { Outlet, useLocation } from 'react-router-dom'
 import { BoltdocsProvider, useBoltdocsContext } from '../store/boltdocs-context'
 import { ThemeProvider } from '../app/theme-context'
 import { MdxComponentsProvider } from '../app/mdx-components-context'
-import { HelmetProvider } from '../app/helmet-compat'
 import { ConfigContext } from '../app/config-context'
 import { ScrollHandler } from '../app/scroll-handler'
 import { mdxComponentsDefault } from '../app/mdx-component'
@@ -119,35 +118,33 @@ export function BoltdocsShell({
   }, [currentPath, config, routeMap])
 
   return (
-    <HelmetProvider>
-      <RoutesProvider routes={routes}>
-        <ThemeProvider>
-          <UIProvider>
-            <MdxComponentsProvider components={allComponents}>
-              <ConfigContext.Provider value={config}>
-                <CollectionsContext.Provider value={collectionsData || {}}>
-                  <ScrollHandler />
-                  <BoltdocsProvider
-                    initialLocale={initialData.initLocale}
-                    initialVersion={initialData.initVersion}
-                  >
-                    <StoreSync config={config} routeMap={routeMap} />
-                    <I18nUpdater config={config} />
-                    <Head
-                      siteTitle={config.theme?.title}
-                      siteDescription={config.theme?.description}
-                      routes={routes}
-                    />
-                    <ErrorBoundary>
-                      <Outlet />
-                    </ErrorBoundary>
-                  </BoltdocsProvider>
-                </CollectionsContext.Provider>
-              </ConfigContext.Provider>
-            </MdxComponentsProvider>
-          </UIProvider>
-        </ThemeProvider>
-      </RoutesProvider>
-    </HelmetProvider>
+    <RoutesProvider routes={routes}>
+      <ThemeProvider>
+        <UIProvider>
+          <MdxComponentsProvider components={allComponents}>
+            <ConfigContext.Provider value={config}>
+              <CollectionsContext.Provider value={collectionsData || {}}>
+                <ScrollHandler />
+                <BoltdocsProvider
+                  initialLocale={initialData.initLocale}
+                  initialVersion={initialData.initVersion}
+                >
+                  <StoreSync config={config} routeMap={routeMap} />
+                  <I18nUpdater config={config} />
+                  <Head
+                    siteTitle={config.theme?.title}
+                    siteDescription={config.theme?.description}
+                    routes={routes}
+                  />
+                  <ErrorBoundary>
+                    <Outlet />
+                  </ErrorBoundary>
+                </BoltdocsProvider>
+              </CollectionsContext.Provider>
+            </ConfigContext.Provider>
+          </MdxComponentsProvider>
+        </UIProvider>
+      </ThemeProvider>
+    </RoutesProvider>
   )
 }
