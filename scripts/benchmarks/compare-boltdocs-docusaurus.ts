@@ -152,18 +152,16 @@ function writeConfigs() {
     private: true,
     type: 'module',
     dependencies: {
-      boltdocs: 'file:/tmp/boltdocs-pack/boltdocs-3.0.2.tgz',
-      '@bdocs/ssg': 'file:/tmp/boltdocs-pack/bdocs-ssg-0.1.1.tgz',
+      boltdocs: '3.1.0',
       '@bdocs/zig-critters':
-        'file:/tmp/boltdocs-pack/bdocs-zig-critters-0.1.0.tgz',
+        'file:/tmp/boltdocs-pack/bdocs-zig-critters-0.2.0.tgz',
       react: '^19.0.0',
       'react-dom': '^19.0.0',
     },
     pnpm: {
       overrides: {
-        '@bdocs/ssg': 'file:/tmp/boltdocs-pack/bdocs-ssg-0.1.1.tgz',
         '@bdocs/zig-critters':
-          'file:/tmp/boltdocs-pack/bdocs-zig-critters-0.1.0.tgz',
+          'file:/tmp/boltdocs-pack/bdocs-zig-critters-0.2.0.tgz',
       },
     },
   }
