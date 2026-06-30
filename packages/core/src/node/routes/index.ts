@@ -420,6 +420,7 @@ function generateI18nFallbacks(
   }
 
   for (const locale of allLocales) {
+    if (locale === defaultLocale) continue
     const localePaths = routesByLocale.get(locale) || new Set<string>()
 
     for (const defRoute of defaultRoutes) {
