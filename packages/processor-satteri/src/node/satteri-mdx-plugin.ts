@@ -1,4 +1,9 @@
 import { mdxToJs as satteriMdxToJs } from 'satteri'
+import type {
+  MdastPluginInput,
+  HastPluginInput,
+  RehypePluginLike,
+} from 'satteri'
 import { transformSync } from 'esbuild'
 import type { Plugin } from 'vite'
 import crypto from 'node:crypto'
@@ -6,6 +11,7 @@ import fs from 'node:fs'
 import type { BoltdocsConfig } from 'boltdocs'
 import type { PluginLifecycleManager } from 'boltdocs'
 import { createSatteriProcessorPlugin } from './index'
+import type { SatteriProcessorPlugin } from './index'
 import {
   wrapRemarkPlugin,
   wrapRemarkCodePlugin,
