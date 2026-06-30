@@ -110,6 +110,9 @@ importers:
       '@bdocs/plugin-mermaid':
         specifier: workspace:*
         version: link:../packages/plugin-mermaid
+      '@bdocs/plugin-rss':
+        specifier: workspace:*
+        version: link:../packages/plugin-rss
       gsap:
         specifier: ^3.12.5
         version: 3.15.0
@@ -482,6 +485,21 @@ importers:
       tsdown:
         specifier: ^0.21.7
         version: 0.21.7(@emnapi/core@1.11.1)(@emnapi/runtime@1.11.1)(synckit@0.11.12)(typescript@5.9.3)
+      typescript:
+        specifier: ^5.9.3
+        version: 5.9.3
+
+  packages/plugin-rss:
+    devDependencies:
+      '@types/node':
+        specifier: ^22.0.0
+        version: 22.0.0
+      boltdocs:
+        specifier: workspace:*
+        version: link:../core
+      tsdown:
+        specifier: ^0.21.7
+        version: 0.21.9(synckit@0.11.12)(typescript@5.9.3)
       typescript:
         specifier: ^5.9.3
         version: 5.9.3

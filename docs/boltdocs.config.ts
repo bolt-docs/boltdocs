@@ -1,6 +1,7 @@
 import { defineConfig } from 'boltdocs'
 import mermaidPlugin from '@bdocs/plugin-mermaid'
 import mathPlugin from '@bdocs/plugin-math'
+import rssPlugin from '@bdocs/plugin-rss'
 
 export default defineConfig({
   base: '/docs',
@@ -13,6 +14,7 @@ export default defineConfig({
   },
   plugins: [
     mathPlugin(),
+    rssPlugin(),
     mermaidPlugin({
       themes: {
         light: {

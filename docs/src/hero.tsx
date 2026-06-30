@@ -12,7 +12,6 @@ export const Hero = () => {
       <Grainient
         className="-z-10 inset-0"
         {...color_active_version}
-        // animated={false}
         blendAngle={45}
         blendSoftness={0.15}
         noiseScale={3}
@@ -22,7 +21,10 @@ export const Hero = () => {
       />
 
       <div className="max-w-4xl mx-auto text-center relative z-10 w-full">
-        <div className="inline-flex items-center gap-3 p-1 pr-4 rounded-full bg-neutral-950/70 border border-neutral-700 hover:border-primary-400/30 transition-all cursor-pointer group mb-10 backdrop-blur-sm">
+        <Link
+          href="site:/blog/boltdocs-3.1.0"
+          className="inline-flex items-center gap-3 p-1 pr-4 rounded-full bg-neutral-950/70 border border-neutral-700 hover:border-primary-400/30 transition-all cursor-pointer group mb-10 backdrop-blur-sm"
+        >
           <span className="px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest text-black bg-white">
             v{getVersion()}
           </span>
@@ -30,7 +32,7 @@ export const Hero = () => {
             {t.heroAvailable}
             <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />
           </span>
-        </div>
+        </Link>
 
         <h1 className="text-4xl md:text-6xl lg:text-7xl font-black text-white tracking-tighter mb-8 leading-tight drop-shadow-lg">
           {t.heroTitle} <br className="hidden md:block" />

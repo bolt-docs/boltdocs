@@ -228,7 +228,7 @@ interface PluginLifecycleHooks {
 
 ### Plugin Context
 
-**File**: `packages/core/src/node/plugins/plugin-types.ts:4-11`
+**File**: `packages/core/src/node/plugins/plugin-types.ts:4-12`
 
 ```typescript
 interface PluginContext {
@@ -238,6 +238,8 @@ interface PluginContext {
   readonly meta: PluginMeta         // name, version, boltdocsVersion
   readonly docsDir: string          // Absolute path to docs/
   readonly rootDir: string          // Absolute path to project root
+  readonly outDir: string           // Build output directory (e.g., 'dist/')
+  readonly routes: RouteMeta[]      // All generated documentation routes
 }
 ```
 
