@@ -50,6 +50,41 @@ fn isAlwaysInclude(sel: []const u8) bool {
     return false;
 }
 
+fn isLayoutSelector(sel: []const u8) bool {
+    const layout_terms = [_][]const u8{
+        "sidebar",
+        "navbar",
+        "toc",
+        "header",
+        "footer",
+        "nav",
+        "aside",
+        "menu",
+    };
+    for (layout_terms) |term| {
+        if (mem.indexOf(u8, sel, term) != null) {
+            return true;
+        }
+    }
+    return false;
+}
+
+fn isTooComplex(tokens: []const selector.SelectorToken, max_complexity: usize) bool {
+    var parts_count: usize = 1;
+    for (tokens) |token| {
+        switch (token) {
+            .combinator_descendant,
+            .combinator_child,
+            .combinator_sibling,
+            .combinator_adjacent => {
+                parts_count += 1;
+            },
+            else => {},
+        }
+    }
+    return parts_count > max_complexity;
+}
+
 /// Check if a CSS selector matches any element in the list
 fn selectorMatchesAnyElements(
     sel_str: []const u8,
@@ -58,6 +93,7 @@ fn selectorMatchesAnyElements(
     allocator: Allocator,
 ) bool {
     if (isAlwaysInclude(sel_str)) return true;
+    if (isLayoutSelector(sel_str)) return false;
 
     const tokens_opt = selector_tokens_cache.get(sel_str);
     var tokens: []selector.SelectorToken = undefined;
@@ -75,6 +111,8 @@ fn selectorMatchesAnyElements(
         };
         selector_tokens_cache.put(sel_str, tokens) catch {};
     }
+
+    if (isTooComplex(tokens, 2)) return false;
 
     return selector.selectorMatches(tokens, selector_elements);
 }

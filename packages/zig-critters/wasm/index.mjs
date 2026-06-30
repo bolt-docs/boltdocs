@@ -100,10 +100,15 @@ export async function extractCriticalCss(html, css, options = {}) {
   // Read result from WASM memory at the pointer returned by getResultPtr
   const resultPtr = Number(getResultPtr())
   const resultBytes = new Uint8Array(memory.buffer, resultPtr, resultLen)
-  const criticalCss = new TextDecoder().decode(resultBytes.slice())
+  let criticalCss = new TextDecoder().decode(resultBytes.slice())
 
   // Reset allocator
   reset()
+
+  const maxSize = options.maxSize !== undefined ? options.maxSize : 8192
+  if (criticalCss.length > maxSize) {
+    criticalCss = ''
+  }
 
   return { criticalCss, stats: {} }
 }
