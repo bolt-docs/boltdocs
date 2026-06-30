@@ -4,6 +4,11 @@
  * react-helmet-async ships different module shapes depending on whether it is
  * loaded via CJS or ESM. Instead of duplicating the same detection logic in
  * every component that needs Helmet/HelmetProvider, we centralise it here.
+ *
+ * During SSG, `@bdocs/ssg`'s remix adapter uses `require('react-helmet-async')`
+ * which loads a SEPARATE CJS module instance from the bundled ESM version.
+ * To ensure both share the same React context, we store the HelmetProvider on
+ * `globalThis` so the runtime-loaded remix adapter can use the same instance.
  */
 import type { ComponentType, ReactNode } from 'react'
 import * as ReactHelmetAsync from 'react-helmet-async'
@@ -34,3 +39,22 @@ export const HelmetProvider: ComponentType<{ children?: ReactNode }> =
   mod.HelmetProvider ||
   mod.default?.HelmetProvider ||
   (({ children }) => <>{children}</>)
+
+// Force canUseDOM = false for SSG context. In the SSG build, jsdom may be
+// active (making `window` available), which causes react-helmet-async's
+// `isDocument` check to return true. This makes HelmetData skip setting
+// helmetContext.helmet and emitChange() use client-side handlers instead of
+// server-side state mapping, resulting in null helmet data.
+if (typeof globalThis !== 'undefined') {
+  const hp = HelmetProvider as any
+  if (hp && typeof hp === 'function' && hp.canUseDOM) {
+    hp.canUseDOM = false
+  }
+}
+
+// Bridge for SSG: store HelmetProvider on globalThis so @bdocs/ssg's remix
+// adapter (loaded at runtime from a separate CJS module instance) can use it.
+if (typeof globalThis !== 'undefined') {
+  ;(globalThis as any).__BOLTDOCS_HELMET_PROVIDER__ = HelmetProvider
+  ;(globalThis as any).__BOLTDOCS_HELMET__ = Helmet
+}

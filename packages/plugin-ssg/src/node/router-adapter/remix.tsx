@@ -5,9 +5,25 @@ import type { StaticHandlerContext } from 'react-router-dom'
 import type { Connect } from 'vite'
 import type { IRouterAdapter } from './interface'
 import type { ViteReactSSGContext } from '~/types'
-import { createRequire } from 'node:module'
-const _require = createRequire(import.meta.url)
-const { HelmetProvider } = _require('react-helmet-async')
+// Use the HelmetProvider from helmet-compat.tsx's globalThis bridge to ensure
+// the same React context as the bundled ESM react-helmet-async instance.
+// Without this, require('react-helmet-async') loads a separate CJS module with
+// its own React.createContext(), and Helmet can't find the provider context.
+// We read at render time (not module load time) because the entry module body
+// sets the globalThis bridge AFTER externalized modules have loaded.
+let _cachedHelmetProvider: any = null
+function getHelmetProvider() {
+  if (_cachedHelmetProvider) return _cachedHelmetProvider
+  _cachedHelmetProvider =
+    (globalThis as any).__BOLTDOCS_HELMET_PROVIDER__ ||
+    (() => {
+      const { createRequire } =
+        require('node:module') as typeof import('node:module')
+      const _require = createRequire(import.meta.url)
+      return _require('react-helmet-async').HelmetProvider
+    })()
+  return _cachedHelmetProvider
+}
 import {
   fromNodeRequest,
   stripDataParam,
@@ -97,10 +113,11 @@ export class RemixAdapter implements IRouterAdapter<ViteReactSSGContext> {
     const router = createStaticRouter(dataRoutes, routerContext, {
       future: routerOptions.future,
     })
+    const HP = getHelmetProvider()
     let app = (
-      <HelmetProvider context={helmetContext}>
+      <HP context={helmetContext}>
         <StaticRouterProvider router={router} context={routerContext} />
-      </HelmetProvider>
+      </HP>
     )
 
     if (styleCollector) app = styleCollector.collect(app)

@@ -25,15 +25,14 @@ describe('plugin html', () => {
       expect(html).toContain('<!doctype html>')
       expect(html).toContain('<html lang="en">')
       expect(html).toContain('<meta charset="UTF-8" />')
-      expect(html).toContain('<title>Boltdocs</title>')
       expect(html).toContain('<div id="root"></div>')
     })
 
-    it('should use custom title from config', () => {
+    it('should not include title tag (handled by Helmet per-page)', () => {
       const config = { theme: { title: 'My Custom Site' } }
       const html = getHtmlTemplate(config as any)
 
-      expect(html).toContain('<title>My Custom Site</title>')
+      expect(html).not.toContain('<title>')
     })
   })
 
@@ -49,16 +48,16 @@ describe('plugin html', () => {
 </body>
 </html>`
 
-    it('should inject description meta tag', () => {
+    it('should not inject description meta tag (handled by Helmet per-page)', () => {
       const config = { theme: { description: 'My Description' } }
       const result = injectHtmlMeta(baseHtml, config as any)
 
-      expect(result).toContain(
+      expect(result).not.toContain(
         '<meta name="description" content="My Description">',
       )
     })
 
-    it('should inject OpenGraph meta tags', () => {
+    it('should not inject OpenGraph meta tags (handled by Helmet per-page)', () => {
       const config = {
         theme: {
           title: 'OG Site',
@@ -67,14 +66,12 @@ describe('plugin html', () => {
       }
       const result = injectHtmlMeta(baseHtml, config as any)
 
-      expect(result).toContain('<meta property="og:title" content="OG Site">')
-      expect(result).toContain(
-        '<meta property="og:description" content="OG Description">',
-      )
-      expect(result).toContain('<meta property="og:type" content="website">')
+      expect(result).not.toContain('<meta property="og:title"')
+      expect(result).not.toContain('<meta property="og:description"')
+      expect(result).not.toContain('<meta property="og:type"')
     })
 
-    it('should inject Twitter card meta tags', () => {
+    it('should not inject Twitter card meta tags (handled by Helmet per-page)', () => {
       const config = {
         theme: {
           title: 'Twitter Site',
@@ -83,15 +80,9 @@ describe('plugin html', () => {
       }
       const result = injectHtmlMeta(baseHtml, config as any)
 
-      expect(result).toContain(
-        '<meta name="twitter:card" content="summary_large_image">',
-      )
-      expect(result).toContain(
-        '<meta name="twitter:title" content="Twitter Site">',
-      )
-      expect(result).toContain(
-        '<meta name="twitter:description" content="Twitter Desc">',
-      )
+      expect(result).not.toContain('<meta name="twitter:card"')
+      expect(result).not.toContain('<meta name="twitter:title"')
+      expect(result).not.toContain('<meta name="twitter:description"')
     })
 
     it('should inject favicon from string logo', () => {
@@ -132,12 +123,12 @@ describe('plugin html', () => {
       expect(result).toContain('<link rel="icon" href="/logo-dark.svg">')
     })
 
-    it('should replace existing title', () => {
+    it('should not inject title (handled by Helmet per-page)', () => {
       const config = { theme: { title: 'New Title' } }
       const result = injectHtmlMeta(baseHtml, config as any)
 
-      expect(result).toContain('<title>New Title</title>')
-      expect(result).not.toContain('<title>Original Title</title>')
+      expect(result).not.toContain('<title>New Title</title>')
+      expect(result).toContain('<title>Original Title</title>')
     })
 
     it('should inject virtual:boltdocs-entry script', () => {
@@ -180,7 +171,7 @@ describe('plugin html', () => {
       const config = { theme: { title: 'Added Title' } }
       const result = injectHtmlMeta(htmlNoTitle, config as any)
 
-      expect(result).toContain('<title>Added Title</title>')
+      expect(result).not.toContain('<title>Added Title</title>')
     })
 
     it('should inject generator meta tag', () => {
@@ -194,8 +185,8 @@ describe('plugin html', () => {
       const config = {}
       const result = injectHtmlMeta(baseHtml, config as any)
 
-      expect(result).toContain('<title>Boltdocs</title>')
-      expect(result).toContain('<meta name="description" content="">')
+      expect(result).toContain('<title>Original Title</title>')
+      expect(result).not.toContain('<meta name="description"')
     })
 
     describe('Google Analytics 4', () => {

@@ -2,20 +2,12 @@ import type { BoltdocsConfig } from '../config'
 import type { BoltdocsVerificationConfig } from '../../shared/types'
 import { escapeHtml } from '../utils'
 
-export function getHtmlTemplate(config: BoltdocsConfig): string {
-  const rawTitle = config.theme?.title
-  const title =
-    typeof rawTitle === 'string'
-      ? rawTitle
-      : rawTitle
-        ? Object.values(rawTitle)[0] || 'Boltdocs'
-        : 'Boltdocs'
+export function getHtmlTemplate(_config: BoltdocsConfig): string {
   return `<!doctype html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>${escapeHtml(title)}</title>
 </head>
 <body>
   <div id="root"></div>
@@ -35,11 +27,8 @@ function resolveLocaleValue(
 
 interface ResolvedMeta {
   title: string
-  description: string
   favicon: string | undefined
-  ogImage: string | undefined
   robotsContent: string | undefined
-  siteUrl: string | undefined
   customMetaTags: string[]
 }
 
@@ -51,11 +40,6 @@ function resolveMeta(config: BoltdocsConfig): ResolvedMeta {
     'Boltdocs',
     defaultLocale,
   )
-  const description = resolveLocaleValue(
-    config.theme?.description,
-    '',
-    defaultLocale,
-  )
 
   let favicon = config.theme?.favicon
   if (!favicon && config.theme?.logo) {
@@ -64,18 +48,6 @@ function resolveMeta(config: BoltdocsConfig): ResolvedMeta {
     } else {
       favicon = config.theme.logo.light || config.theme.logo.dark
     }
-  }
-
-  let ogImage: string | undefined
-  const rawOgImage = config.seo?.thumbnails?.background
-  if (rawOgImage && config.siteUrl && !/^https?:\/\/|^\/\//.test(rawOgImage)) {
-    const base = config.siteUrl.endsWith('/')
-      ? config.siteUrl.slice(0, -1)
-      : config.siteUrl
-    const path = rawOgImage.startsWith('/') ? rawOgImage : `/${rawOgImage}`
-    ogImage = `${base}${path}`
-  } else if (rawOgImage) {
-    ogImage = rawOgImage
   }
 
   const robotsContent =
@@ -103,11 +75,8 @@ function resolveMeta(config: BoltdocsConfig): ResolvedMeta {
 
   return {
     title,
-    description,
     favicon,
-    ogImage,
     robotsContent,
-    siteUrl: config.siteUrl,
     customMetaTags,
   }
 }
@@ -115,25 +84,6 @@ function resolveMeta(config: BoltdocsConfig): ResolvedMeta {
 function buildMetaTags(meta: ResolvedMeta): string {
   const tags = [
     meta.favicon ? `<link rel="icon" href="${escapeHtml(meta.favicon)}">` : '',
-    `<meta name="description" content="${escapeHtml(meta.description)}">`,
-    `<meta property="og:title" content="${escapeHtml(meta.title)}">`,
-    `<meta property="og:description" content="${escapeHtml(meta.description)}">`,
-    `<meta property="og:type" content="website">`,
-    meta.siteUrl
-      ? `<meta property="og:url" content="${escapeHtml(meta.siteUrl)}">`
-      : '',
-    meta.siteUrl
-      ? `<link rel="canonical" href="${escapeHtml(meta.siteUrl)}">`
-      : '',
-    `<meta name="twitter:card" content="summary_large_image">`,
-    `<meta name="twitter:title" content="${escapeHtml(meta.title)}">`,
-    `<meta name="twitter:description" content="${escapeHtml(meta.description)}">`,
-    meta.ogImage
-      ? `<meta property="og:image" content="${escapeHtml(meta.ogImage)}">`
-      : '',
-    meta.ogImage
-      ? `<meta name="twitter:image" content="${escapeHtml(meta.ogImage)}">`
-      : '',
     meta.robotsContent
       ? `<meta name="robots" content="${escapeHtml(meta.robotsContent)}">`
       : '',
@@ -314,14 +264,6 @@ function buildVercelScript(
   return script
 }
 
-function injectTitle(html: string, title: string): string {
-  const safeTitle = escapeHtml(title)
-  if (html.includes('<title>')) {
-    return html.replace(/<title>.*?<\/title>/, `<title>${safeTitle}</title>`)
-  }
-  return html.replace('</head>', `  <title>${safeTitle}</title>\n  </head>`)
-}
-
 function injectThemeScript(html: string, themeScript: string): string {
   return html.replace('<head>', `<head>\n${themeScript}`)
 }
@@ -375,7 +317,6 @@ export function injectHtmlMeta(html: string, config: BoltdocsConfig): string {
     .filter(Boolean)
     .join('\n')
 
-  html = injectTitle(html, meta.title)
   html = injectThemeScript(html, themeScript)
   html = injectHeadEnd(html, headContent)
   html = injectBodyStart(html, gtm.noScript)

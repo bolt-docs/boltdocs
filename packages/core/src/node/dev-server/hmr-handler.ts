@@ -73,6 +73,17 @@ export function setupHmr(
       }
 
       if (
+        normalized.endsWith('/post.tsx') ||
+        normalized.endsWith('/post.jsx') ||
+        normalized.endsWith('/list.tsx') ||
+        normalized.endsWith('/list.jsx')
+      ) {
+        invalidateVirtualModule(server, 'entry')
+        server.ws.send({ type: 'full-reload' })
+        return
+      }
+
+      if (
         normalized.includes('/pages-external/') ||
         normalized.includes('\\pages-external\\')
       ) {

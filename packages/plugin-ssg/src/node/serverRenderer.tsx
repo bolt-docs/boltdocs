@@ -6,71 +6,8 @@
  */
 
 import type { ReactNode } from 'react'
-import { Writable } from 'node:stream'
 import * as ReactDomServer from 'react-dom/server'
 
 export async function renderStaticApp(app: ReactNode): Promise<string> {
-  // fallback to react17
-  if (!ReactDomServer.renderToPipeableStream) {
-    return ReactDomServer.renderToString(<>{app}</>)
-  }
-
-  const writableStream = new WritableAsPromise()
-
-  const { pipe } = ReactDomServer.renderToPipeableStream(app, {
-    onError(error) {
-      writableStream.destroy(error as Error)
-    },
-    onAllReady() {
-      pipe(writableStream)
-    },
-  })
-
-  return writableStream.getPromise()
-}
-
-class WritableAsPromise extends Writable {
-  private _output: string
-  private _deferred: {
-    promise: Promise<string> | null
-    resolve: (value: string) => void
-    reject: (reason: Error) => void
-  }
-
-  constructor() {
-    super()
-    this._output = ''
-    this._deferred = {
-      promise: null,
-      resolve: () => null,
-      reject: () => null,
-    }
-    this._deferred.promise = new Promise((resolve, reject) => {
-      this._deferred.resolve = resolve
-      this._deferred.reject = reject
-    })
-  }
-
-  override _write(
-    chunk: { toString: () => string },
-    _enc: unknown,
-    next: () => void,
-  ) {
-    this._output += chunk.toString()
-    next()
-  }
-
-  override _destroy(error: Error | null, next: (error?: Error | null) => void) {
-    if (error instanceof Error) this._deferred.reject(error)
-    else next()
-  }
-
-  override end() {
-    this._deferred.resolve(this._output)
-    return this.destroy()
-  }
-
-  getPromise(): Promise<string> {
-    return this._deferred.promise!
-  }
+  return ReactDomServer.renderToString(<>{app}</>)
 }
