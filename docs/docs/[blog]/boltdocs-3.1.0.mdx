@@ -245,6 +245,48 @@ This resulted in **74 duplicate HTML files** totaling **~8 MB** of wasted space.
 
 ---
 
+## RSS Feed Plugin
+
+The `@bdocs/plugin-rss` plugin generates RSS 2.0 and Atom feeds from your documentation routes with zero configuration.
+
+Feeds include all routes by default, organized into a clean `rss/` directory:
+
+```
+dist/
+  rss/
+    feed-en.xml
+    feed-es.xml
+```
+
+### Quick Start
+
+```sh
+pnpm add @bdocs/plugin-rss
+```
+
+```ts title="boltdocs.config.ts"
+import { defineConfig } from 'boltdocs'
+import rssPlugin from '@bdocs/plugin-rss'
+
+export default defineConfig({
+  siteUrl: 'https://my-docs.com',
+  plugins: [rssPlugin()],
+})
+```
+
+### Options
+
+| Option | Type | Default | Description |
+| :--- | :--- | :--- | :--- |
+| `limit` | `number` | unlimited | Max items per feed (1–500) |
+| `paths` | `string[]` | all routes | Filter by path prefix |
+| `collections` | `string[]` | all collections | Filter by collection name |
+| `format` | `'rss' \| 'atom' \| 'both'` | `'rss'` | Feed format(s) to generate |
+
+See the [full RSS plugin docs](/docs/plugins/plugin-rss) for details.
+
+---
+
 ## Upgrading
 
 No breaking changes. The `--turbo` flag is opt-in — your existing build command works exactly the same.
