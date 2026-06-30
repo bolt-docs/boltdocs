@@ -1,4 +1,4 @@
-import { usePost, useMergedComponents } from 'boltdocs/client'
+import { usePost, useMergedComponents, OnThisPage } from 'boltdocs/client'
 
 export default function BlogPost({ MDXComponent, mdxComponents }: any) {
   const post = usePost()

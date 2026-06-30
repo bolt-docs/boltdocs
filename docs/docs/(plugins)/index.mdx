@@ -2,6 +2,7 @@
 title: Plugin System
 sidebarPosition: 1
 description: Extend Boltdocs by writing plugins that hook into the MDX pipeline, Vite config, build lifecycle, and custom component registry.
+badge: Updated
 ---
 
 ## Quick Start
@@ -108,6 +109,8 @@ Namespaced environment context provided to all lifecycle hooks.
 | **`logger`** | `PluginLogger` | `System-defined` | Log wrapper supporting `info`, `warn`, `error`, and `debug` outputs. |
 | **`store`** | `PluginStore` | `System-defined` | Namespaced state store for exchanging values with other plugins. |
 | **`meta`** | `PluginMeta` | `System-defined` | Resolved identity metadata of the executing plugin. |
+| **`outDir`** | `string` | `System-defined` | Build output directory path (e.g., `'dist'`). Plugins can write files here during `afterBuild`. |
+| **`routes`** | `RouteMeta[]` | `System-defined` | All generated documentation routes with metadata (path, title, locale, etc.). |
 
 ---
 
@@ -179,3 +182,15 @@ export const pluginB = (): BoltdocsPlugin => ({
 <Callout variant="tip" title="Keep it Clean">
   Plugins are encouraged to write temp outputs or compile caches inside the workspace's designated `.boltdocs/` directory, which is fully accessible and ignored by version control.
 </Callout>
+
+---
+
+## Official Plugins
+
+Boltdocs ships with a curated set of official plugins. Each plugin follows the same architecture and can be installed via npm.
+
+| Plugin | Package | Description |
+| :--- | :--- | :--- |
+| **[Mermaid Diagrams](/docs/plugins/plugin-mermaid)** | `@bdocs/plugin-mermaid` | Render Mermaid.js diagrams directly in your MDX files with theme support. |
+| **[Math Equations](/docs/plugins/plugin-math)** | `@bdocs/plugin-math` | Render LaTeX math equations using KaTeX with zero configuration. |
+| **[RSS Feed Generator](/docs/plugins/plugin-rss)** | `@bdocs/plugin-rss` | <span class="text-xs bg-indigo-500/10 text-indigo-500 font-mono px-2 py-0.5 rounded-full font-semibold">New</span> Generate RSS and Atom feeds from your documentation with i18n support. |

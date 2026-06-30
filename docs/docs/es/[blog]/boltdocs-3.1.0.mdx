@@ -18,6 +18,10 @@ tags: ["Release"]
   Una bandera experimental `--turbo` que reemplaza el compilador MDX por Sätteri (Rust), Beasties por extracción de CSS crítico compilada con Zig, y activa un modo parser de pasada única. Este es el primer paso hacia builds 4x más rápidos.
 </Callout>
 
+<Callout type="info">
+  **Build output optimizado**: Beasties de inlining de CSS crítico ha sido desactivado por defecto, reduciendo el HTML total en ~7.3 MB. El bug de duplicación del locale por defecto también ha sido corregido, ahorrando ~8 MB adicionales. Combinado, el output del build es ahora ~60% más pequeño.
+</Callout>
+
 ---
 
 ## `--turbo` — Modo Build Experimental
@@ -39,7 +43,7 @@ Qué cambia por debajo:
 | Componente | Sin `--turbo` | Con `--turbo` |
 |------------|---------------|---------------|
 | Compilación MDX | `@mdx-js/rollup` + plugins remark/rehype JS | Sätteri (Rust) + plugins nativos |
-| CSS crítico | Beasties (JavaScript) | `@bdocs/zig-critters` (Zig/WASM) |
+| CSS crítico | Ninguno (CSS externo solamente) | `@bdocs/zig-critters` (Zig/WASM) |
 | Parser | Modo multi-pasada | Pasada única con buffer compartido |
 
 <Callout type="warning">
@@ -192,17 +196,42 @@ Los feature flags se integrarán con el plugin Ask AI en v3.2.0 para habilitar r
 
 ---
 
-## Qué Esto Significa para el Roadmap de Nitro
+## Optimizaciones del Build Output
 
-3.1.0 es la Fase 1 del Proyecto Nitro — el plan para alcanzar builds 4x más rápidos en v4.0.0. Aquí es donde estamos:
+### Beasties Desactivado — Por Qué?
 
-| Fase | Estado | Qué incluye |
-|------|--------|-------------|
-| **Fase 1 (este release)** | **Lista** | Bandera `--turbo`, MDX Sätteri, zig-critters, parser de pasada única |
-| Fase 2 | Siguiente | FileStore shardeado, caché por ruta, HMR delta, worker threads MDX |
-| Fase 3 | Planeado | Zig parser v2, addon N-API, builds SSG concurrentes, páginas content-addressables |
+Beasties estaba habilitado por defecto, extrayendo CSS "crítico" e inlineandolo en cada página HTML como tags `<style>`. El problema: Beasties no tiene conciencia del viewport — no usa un navegador headless. Simplemente empareja selectores CSS contra el DOM y clasifica cualquier regla que coincida con *cualquier* elemento como "crítica."
 
-La bandera `--turbo` es la base. Cada fase subsiguiente la extiende.
+Con Tailwind CSS, casi cada clase de utilidad se usa en algún lugar de la página. Esto significa que Beasties inlineó casi todo el bundle CSS (~37 KB) en cada página. A través de 246 páginas, eso es **7.3 MB de CSS duplicado** — 75x de bloat sobre el archivo CSS real de 99 KB.
+
+Consideré dos alternativas:
+
+1. **Agregar inteligencia de viewport a Beasties** — Esto requeriría ejecutar un navegador headless durante el build para determinar qué reglas CSS están realmente above-the-fold. Funciona, pero hace el build significativamente más lento (Beasties ya es el paso más lento del pipeline).
+
+2. **Desactivar Beasties completamente** — Las páginas cargan CSS via un solo tag `<link>` externo. El navegador lo cachea después de la primera carga. Sin tags `<style>` inlineados, sin CSS duplicado, sin ralentización del build.
+
+Elegí la opción 2. El archivo CSS es solo 99 KB y se comprime bien con gzip. Los navegadores modernos manejan stylesheets externos eficientemente — la tasa de aciertos de caché entre páginas es excelente.
+
+<Callout type="info">
+  **Diferencia en modo turbo**: En modo `--turbo`, `@bdocs/zig-critters` (Zig/WASM) maneja la extracción de CSS crítico. Es órdenes de magnitud más rápido que Beasties y puede extraer inteligentemente solo el CSS verdaderamente crítico. Si necesitas inlining de CSS crítico para despliegues sensibles al rendimiento, usa `--turbo`.
+</Callout>
+
+### Corrección de Locale Duplicado
+
+Anteriormente, `generateI18nFallbacks()` creaba copias con prefijo de locale del contenido del locale por defecto. Para un sitio con locales `en` (por defecto) y `es`, cada página en inglés existía dos veces:
+
+- `/docs/api/cli` — el original
+- `/docs/en/api/cli` — una copia idéntica
+
+Esto resultó en **74 archivos HTML duplicados** totalizando **~8 MB** de espacio desperdiciado. La corrección omite la generación de rutas de fallback para el locale por defecto — su contenido ya existe a nivel raíz.
+
+### Resultados
+
+| Métrica | Antes | Después | Ahorro |
+|---------|-------|---------|--------|
+| HTML output (total) | 25.4 MB | ~10.1 MB | **~15.3 MB (60%)** |
+| Tamaño por página (promedio) | ~217 KB | ~180 KB | ~37 KB por página |
+| Páginas duplicadas | 74 | 0 | **74 archivos eliminados** |
 
 ---
 
@@ -212,6 +241,7 @@ La bandera `--turbo` es la base. Cada fase subsiguiente la extiende.
 - **Sätteri lazy-loaded** — el plugin Sätteri se importa dinámicamente en el primer uso, no al iniciar. Si no usas `--turbo`, no hay sobrecarga
 - **Separación de caché** — Sätteri y el compilador MDX estándar usan namespaces de caché separados (`v6-fallback` vs `v3`). Cambiar entre modos turbo y no-turbo no corrompe los transforms cacheados
 - **Fallback de Beasties** — si el binario WASM de zig-critters no existe, Beasties toma el control con un warning. Tu build nunca falla por un binario faltante
+- **`crossorigin` duplicado corregido** — el regex que agrega `crossorigin` a los links de stylesheet ahora evita duplicar el atributo cuando ya está presente
 
 ---
 

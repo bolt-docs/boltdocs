@@ -19,15 +19,15 @@ draft: true
   Project Nitro is the v4.0.0 roadmap — a three-phase plan to hit 4x faster builds. Native orchestration, worker-thread parallelism, and per-line intelligent caching. Each phase ships at ~50% in the upcoming minor releases.
 </Callout>
 
-The `--turbo` flag we introduced in 3.0.0 was the first step. Zig-powered critical CSS extraction (`@bdocs/zig-critters`) processes 300 HTML files in under a second. That proved the concept: moving build-critical operations to native code pays off immediately.
+The `--turbo` flag I introduced in 3.0.0 was the first step. Zig-powered critical CSS extraction (`@bdocs/zig-critters`) processes 300 HTML files in under a second. That proved the concept: moving build-critical operations to native code pays off immediately.
 
-Now we're going all in.
+Now I'm going all in.
 
 ---
 
 ## Where the time goes today
 
-Before we talk about 4x, here's what a production build actually looks like under the hood. These are real benchmarks from a 200-page docs site with ~600 code blocks:
+Before I talk about 4x, here's what a production build actually looks like under the hood. These are real benchmarks from a 200-page docs site with ~600 code blocks:
 
 | Phase | Time | % of total |
 |-------|------|-----------|
@@ -67,7 +67,7 @@ For 600 code blocks: **12s → ~3s**.
 
 **Smarter client code hash**
 
-`computeClientCodeHash()` recursively scans the entire monorepo with synchronous `fs.statSync()` — thousands of syscalls every build. We're caching the hash and only re-scanning when `packages/` actually changes.
+`computeClientCodeHash()` recursively scans the entire monorepo with synchronous `fs.statSync()` — thousands of syscalls every build. I'm caching the hash and only re-scanning when `packages/` actually changes.
 
 **Pipeline parallelism**
 
@@ -152,11 +152,11 @@ If you edit a file and undo the edit, the rendered HTML is identical. Today it's
 
 ---
 
-## How we're building this
+## How I'm building this
 
 Every phase is being developed with AI-assisted engineering. The codebase analysis — identifying every bottleneck, tracing every cache invalidation path, mapping every dependency — was done collaboratively with AI agents that crawled the entire monorepo. The architecture itself was stress-tested against the actual source before a single line of Phase 1 was written.
 
-The results speak for themselves: the analysis identified 12 distinct bottlenecks, ranked by impact, with specific file paths and line numbers. That's the level of precision we're working with.
+The results speak for themselves: the analysis identified 12 distinct bottlenecks, ranked by impact, with specific file paths and line numbers. That's the level of precision I'm working with.
 
 ---
 

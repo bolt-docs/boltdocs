@@ -19,9 +19,9 @@ tags: ["Velocidad", "Rendimiento", "Productividad"]
   El Proyecto Nitro es el roadmap de v4.0.0 — un plan de tres fases para lograr builds 4x más rápidos. Orquestación nativa, paralelismo con worker threads y caché inteligente por línea. Cada fase se envía al ~50% en los próximos releases menores.
 </Callout>
 
-La bandera `--turbo` que introdujimos en 3.0.0 fue el primer paso. La extracción de CSS crítico impulsada por Zig (`@bdocs/zig-critters`) procesa 300 archivos HTML en menos de un segundo. Eso probó el concepto: mover operaciones críticas del build a código nativo paga inmediatamente.
+La bandera `--turbo` que introduje en 3.0.0 fue el primer paso. La extracción de CSS crítico impulsada por Zig (`@bdocs/zig-critters`) procesa 300 archivos HTML en menos de un segundo. Eso probó el concepto: mover operaciones críticas del build a código nativo paga inmediatamente.
 
-Ahora vamos con todo.
+Ahora voy con todo.
 
 ---
 
@@ -67,7 +67,7 @@ Para 600 bloques de código: **12s → ~3s**.
 
 **Hash de cliente más inteligente**
 
-`computeClientCodeHash()` escanea recursivamente todo el monorepo con `fs.statSync()` síncrono — miles de syscalls en cada build. Vamos a cachear el hash y solo re-escanear cuando `packages/` realmente cambie.
+`computeClientCodeHash()` escanea recursivamente todo el monorepo con `fs.statSync()` síncrono — miles de syscalls en cada build. Voy a cachear el hash y solo re-escanear cuando `packages/` realmente cambie.
 
 **Paralelismo en el pipeline**
 
@@ -152,11 +152,11 @@ Si editas un archivo y deshaces la edición, el HTML renderizado es idéntico. H
 
 ---
 
-## Cómo estamos construyendo esto
+## Cómo estoy construyendo esto
 
 Cada fase se está desarrollando con ingeniería asistida por IA. El análisis del código base — identificar cada cuello de botella, trazar cada ruta de invalidación de caché, mapear cada dependencia — se hizo en colaboración con agentes de IA que exploraron todo el monorepo. La arquitectura misma se probó contra el código fuente real antes de escribir una sola línea de la Fase 1.
 
-Los resultados hablan por sí mismos: el análisis identificó 12 cuellos de botella distintos, clasificados por impacto, con rutas de archivo y números de línea específicos. Ese es el nivel de precisión con el que estamos trabajando.
+Los resultados hablan por sí mismos: el análisis identificó 12 cuellos de botella distintos, clasificados por impacto, con rutas de archivo y números de línea específicos. Ese es el nivel de precisión con el que estoy trabajando.
 
 ---
 

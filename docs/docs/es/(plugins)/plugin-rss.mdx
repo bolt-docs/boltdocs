@@ -1,0 +1,215 @@
+---
+title: Generador de Feed RSS
+sidebarPosition: 5
+description: Genera feeds RSS y Atom a partir de tu documentación Boltdocs con soporte automático de i18n.
+badge: "Nuevo"
+---
+
+*El plugin `@bdocs/plugin-rss` genera automáticamente feeds RSS 2.0 y Atom a partir de las rutas de tu documentación. Soporta i18n, filtrado por colecciones y no requiere configuración — solo instala y tu sitio tiene un feed.*
+
+---
+
+## Inicio Rápido
+
+### 1. Instalar el paquete
+
+```sh
+pnpm add @bdocs/plugin-rss
+```
+
+### 2. Registrar el plugin
+
+Agrega el plugin al array `plugins` en tu archivo de configuración:
+
+```ts title="boltdocs.config.ts"
+import { defineConfig } from 'boltdocs'
+import rssPlugin from '@bdocs/plugin-rss'
+
+export default defineConfig({
+  siteUrl: 'https://mis-docs.com',
+  theme: {
+    title: 'Mi Documentación',
+  },
+  plugins: [rssPlugin()],
+})
+```
+
+### 3. Construir y acceder a tu feed
+
+Después de construir tu sitio, tu feed está disponible automáticamente:
+
+```sh
+pnpm boltdocs build
+```
+
+- RSS: `https://mis-docs.com/feed.xml`
+- Atom: `https://mis-docs.com/atom.xml`
+
+Para sitios con i18n, cada idioma recibe su propio feed:
+
+- `https://mis-docs.com/feed.xml` (idioma por defecto)
+- `https://mis-docs.com/es/feed.xml` (español)
+
+---
+
+## Conceptos y Arquitectura
+
+### Cómo Funciona
+
+1. **Recopilación de Rutas:** Después de que la compilación SSG completa, el plugin lee todas las rutas generadas desde el `PluginContext`. Estas son las mismas rutas que se usan para generar las páginas de tu sitio.
+
+2. **Extracción de Metadatos:** Para cada ruta, el plugin extrae `title`, `description`, `excerpt`, `date`, `lastUpdated` y `author` del frontmatter de la ruta.
+
+3. **Generación del Feed:** El plugin genera feeds XML válidos (RSS 2.0 y/o Atom) con escape de entidades correcto y formato de fecha RFC 2822 / ISO 8601.
+
+4. **Soporte i18n:** Si tu configuración tiene `i18n` habilitado, el plugin genera automáticamente un feed separado para cada idioma. Las rutas se filtran por su prefijo de idioma (por ejemplo, `/es/docs/...` va al feed en español).
+
+5. **Salida:** Los archivos del feed se escriben en el directorio de salida de la compilación junto con los archivos de tu sitio estático.
+
+### ¿Cuándo Se Ejecuta?
+
+El plugin usa el hook de ciclo de vida `afterBuild`, que se ejecuta inmediatamente después de que la compilación SSG tiene éxito:
+
+| Entorno | Comportamiento |
+| :--- | :--- |
+| **Compilación de producción** (`boltdocs build`) | Los feeds siempre se generan |
+| **Desarrollo** (`boltdocs dev`) | Los feeds NO se generan por defecto |
+
+Para generar feeds durante el desarrollo, establece `devMode: true` en las opciones del plugin.
+
+---
+
+## Configuración
+
+### Configuración Mínima
+
+El plugin funciona sin configuración. Lee automáticamente de tu `boltdocs.config.ts` existente:
+
+| Fuente | Usado Para |
+| :--- | :--- |
+| `siteUrl` | Base URL del feed (requerido — el plugin advierte si falta) |
+| `theme.title` | Título del feed (soporta i18n `Record<string, string>`) |
+| `theme.description` | Descripción del feed |
+| `i18n.locales` | Determina cuántos feeds generar |
+| `i18n.defaultLocale` | Determina la ruta del feed por defecto (`/feed.xml`) |
+
+### Opciones del Plugin
+
+Todas las opciones son opcionales. Pásalas a la función factory del plugin:
+
+```ts
+rssPlugin({
+  limit: 50,
+  format: 'both',
+  paths: ['/blog', '/docs'],
+})
+```
+
+---
+
+## Referencia de la API
+
+### Opciones del Plugin
+
+| Propiedad | Tipo | Predeterminado | Descripción |
+| :--- | :--- | :--- | :--- |
+| **`limit`** | `number` | `20` | Número máximo de items por feed. Rango: 1–500. |
+| **`paths`** | `string[]` | `undefined` | Filtra rutas por prefijo de ruta. Solo se incluyen rutas que comienzan con estas rutas. |
+| **`collections`** | `string[]` | `undefined` | Filtra rutas por nombre de colección (por ejemplo, `['blog']`). |
+| **`format`** | `'rss' \| 'atom' \| 'both'` | `'rss'` | Qué formato(s) de feed generar. |
+| **`devMode`** | `boolean` | `false` | Si es `true`, genera feeds durante `boltdocs dev`. Deshabilitado por defecto ya que los feeds solo son útiles en producción. |
+
+### Archivos Generados
+
+El plugin escribe archivos de feed en el directorio de salida de la compilación:
+
+| Formato | Idioma por Defecto | Otros Idiomas |
+| :--- | :--- | :--- |
+| RSS | `/feed.xml` | `/{locale}/feed.xml` |
+| Atom | `/atom.xml` | `/{locale}/atom.xml` |
+
+### Campos del Item del Feed
+
+Cada item en el feed corresponde a una ruta de documentación:
+
+| Campo RSS | Campo Atom | Fuente |
+| :--- | :--- | :--- |
+| `<title>` | `<title>` | `route.title` |
+| `<link>` | `<link href>` | `siteUrl + route.path` |
+| `<description>` | `<summary>` | `route.excerpt` o `route.description` |
+| `<pubDate>` | `<updated>` | `route.date` o `route.lastUpdated` |
+| `<guid>` | `<id>` | `siteUrl + route.path` |
+
+---
+
+## Ejemplos de Uso
+
+### Configuración Básica
+
+```ts
+import { defineConfig } from 'boltdocs'
+import rssPlugin from '@bdocs/plugin-rss'
+
+export default defineConfig({
+  siteUrl: 'https://docs.ejemplo.com',
+  plugins: [rssPlugin()],
+})
+```
+
+### Solo Feed de Blog
+
+Si tienes una colección de blog y solo quieres publicaciones de blog en tu feed:
+
+```ts
+rssPlugin({
+  collections: ['blog'],
+  limit: 30,
+  format: 'both',
+})
+```
+
+### Filtro de Rutas Personalizado
+
+Solo incluir rutas bajo `/docs/guides`:
+
+```ts
+rssPlugin({
+  paths: ['/docs/guides'],
+  limit: 10,
+})
+```
+
+### RSS y Atom Juntos
+
+Genera ambos formatos simultáneamente:
+
+```ts
+rssPlugin({
+  format: 'both',
+  limit: 50,
+})
+```
+
+---
+
+## Solución de Problemas
+
+### El feed no se genera
+
+- **Verifica `siteUrl`:** El plugin requiere que `siteUrl` esté configurado. Sin él, el plugin muestra una advertencia y omite la generación.
+- **Verifica la salida de compilación:** Asegúrate de que la compilación se completó exitosamente. El hook `afterBuild` solo se ejecuta en compilaciones exitosas.
+
+### El feed no tiene items
+
+- **Verifica los filtros de rutas:** Si estás usando `paths` o `collections`, asegúrate de que tus rutas cumplan con los criterios del filtro.
+- **Verifica la bandera `draft`:** Las rutas con `draft: true` en el frontmatter se excluyen del feed.
+- **Verifica el frontmatter:** Las rutas necesitan al menos un `title` para aparecer en el feed. Los items sin `date` o `lastUpdated` usan la marca de tiempo actual.
+
+### Faltan feeds i18n
+
+- **Verifica la configuración `i18n`:** Asegúrate de que `i18n.defaultLocale` e `i18n.locales` estén configurados correctamente.
+- **Verifica los prefijos de idioma de las rutas:** Las rutas deben tener prefijos de idioma (por ejemplo, `/es/docs/...`) para ser incluidas en feeds específicos de un idioma.
+
+### Título del feed incorrecto
+
+El título del feed se deriva de `theme.title`. Si tu título es un objeto i18n (`{ en: 'Docs', es: 'Documentación' }`), el plugin usa la clave de idioma correspondiente. Si no se encuentra ninguna coincidencia, usa el primer valor.

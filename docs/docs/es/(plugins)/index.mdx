@@ -2,6 +2,8 @@
 title: Sistema de Plugins
 sidebarPosition: 1
 description: Extiende Boltdocs escribiendo plugins que se integran al pipeline de MDX, la configuración de Vite, el ciclo de vida de compilación y el registro de componentes personalizados.
+badge: Updated
+
 ---
 
 ## Inicio Rápido
@@ -108,6 +110,8 @@ Contexto de entorno con namespace proporcionado a todos los hooks de ciclo de vi
 | **`logger`** | `PluginLogger` | `Definido por el sistema` | Wrapper de logging que soporta salidas `info`, `warn`, `error` y `debug`. |
 | **`store`** | `PluginStore` | `Definido por el sistema` | Almacenamiento de estado con namespace para intercambiar valores entre plugins. |
 | **`meta`** | `PluginMeta` | `Definido por el sistema` | Metadatos de identidad resueltos del plugin en ejecución. |
+| **`outDir`** | `string` | `Definido por el sistema` | Ruta del directorio de salida de la compilación (por ejemplo, `'dist'`). Los plugins pueden escribir archivos aquí durante `afterBuild`. |
+| **`routes`** | `RouteMeta[]` | `Definido por el sistema` | Todas las rutas de documentación generadas con metadatos (ruta, título, locale, etc.). |
 
 ---
 
@@ -179,3 +183,15 @@ export const pluginB = (): BoltdocsPlugin => ({
 <Callout variant="tip" title="Mantenlo Limpio">
   Se recomienda que los plugins escriban salidas temporales o cachés de compilación dentro del directorio designado `.boltdocs/` del workspace, el cual es completamente accesible y está ignorado por el control de versiones.
 </Callout>
+
+---
+
+## Plugins Oficiales
+
+Boltdocs incluye un conjunto curado de plugins oficiales. Cada plugin sigue la misma arquitectura y se puede instalar vía npm.
+
+| Plugin | Paquete | Descripción |
+| :--- | :--- | :--- |
+| **[Diagramas Mermaid](/docs/es/plugins/plugin-mermaid)** | `@bdocs/plugin-mermaid` | Renderiza diagramas Mermaid.js directamente en tus archivos MDX con soporte de temas. |
+| **[Ecuaciones Matemáticas](/docs/es/plugins/plugin-math)** | `@bdocs/plugin-math` | Renderiza ecuaciones matemáticas LaTeX usando KaTeX sin configuración. |
+| **[Generador de Feed RSS](/docs/es/plugins/plugin-rss)** | `@bdocs/plugin-rss` | <span class="text-xs bg-indigo-500/10 text-indigo-500 font-mono px-2 py-0.5 rounded-full font-semibold">Nuevo</span> Genera feeds RSS y Atom a partir de tu documentación con soporte i18n. |
