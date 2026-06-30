@@ -1,12 +1,11 @@
 <h1 align="center">Boltdocs</h1>
 
 <p align="center">
-  <strong>The fastest documentation framework. 2.5× faster warm builds than Docusaurus.</strong>
+  <strong>A modern documentation framework built with React, Vite, and MDX.</strong>
 </p>
 
 <p align="center">
   <a href="#quick-start"><img src="https://img.shields.io/badge/Quick_Start-blue?style=flat-square" alt="Quick Start" /></a>
-  <a href="#benchmarks"><img src="https://img.shields.io/badge/Benchmarks-orange?style=flat-square" alt="Benchmarks" /></a>
   <a href="https://boltdocs.vercel.app"><img src="https://img.shields.io/badge/Live_Demo-purple?style=flat-square" alt="Live Demo" /></a>
   <br />
   <a href="https://www.npmjs.com/package/boltdocs"><img src="https://img.shields.io/npm/v/boltdocs?style=flat-square" alt="npm version" /></a>
@@ -15,21 +14,6 @@
   <a href="https://github.com/bolt-docs/boltdocs"><img src="https://img.shields.io/github/stars/bolt-docs/boltdocs?style=flat-square" alt="GitHub stars" /></a>
   <a href="https://github.com/bolt-docs/boltdocs/pulls"><img src="https://img.shields.io/badge/PRs-welcome-blue.svg?style=flat-square" alt="PRs Welcome" /></a>
 </p>
-
----
-
-## Benchmarks
-
-Real performance comparison with **100 pages** — Boltdocs vs Docusaurus:
-
-| Metric | Boltdocs | Docusaurus | Advantage |
-|--------|----------|------------|-----------|
-| **Cold build** (first build) | **15.66s** | 30.50s | **1.9× faster** |
-| **Warm rebuild** (cached) | **5.68s** | 14.24s | **2.5× faster** |
-| **Dev server start** | **2132ms** | 2612ms | **1.2× faster** |
-| **Zero-config setup** | **1 line** | 60+ lines | — |
-
-<sub>Benchmark source: `docs/src/data/benchmark-results.json`. 100-page project with identical content on both frameworks.</sub>
 
 ---
 
@@ -52,7 +36,7 @@ mkdir docs && echo "# Hello World" > docs/index.md
 
 ## Why Boltdocs?
 
-**Zero config, instant docs.** A single command sets up a full documentation site with Tailwind CSS v4, TypeScript, MDX support, and a production-ready layout — no Docusaurus-style boilerplate.
+**Zero config, instant docs.** A single command sets up a full documentation site with Tailwind CSS v4, TypeScript, MDX support, and a production-ready layout — zero boilerplate.
 
 **Built-in, not bolt-on.** i18n, versioning, full-text search, SEO, analytics (GA4/GTM), syntax highlighting (Shiki), image optimization, CSP headers, and a changelog generator — all ship as part of the framework, not as third-party plugins.
 

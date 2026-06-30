@@ -8,21 +8,19 @@ interface PerformanceTableProps {
 const formatDiff = (
   boltdocsVal: number,
   docusaurusVal: number,
-  type: DiffType,
+  _type: DiffType,
 ) => {
-  if (boltdocsVal < docusaurusVal) {
-    const ratio = (docusaurusVal / boltdocsVal).toFixed(1)
-    const text = type === 'time' ? 'faster' : 'lighter'
-    return {
-      text: `${ratio}x ${text}`,
-      className: 'text-emerald-600 dark:text-emerald-500 font-semibold',
-    }
-  }
-  const ratio = (boltdocsVal / docusaurusVal).toFixed(1)
-  const text = type === 'time' ? 'slower' : 'heavier'
+  const diff = Math.abs(docusaurusVal - boltdocsVal)
+  const pct =
+    boltdocsVal < docusaurusVal
+      ? `${((diff / docusaurusVal) * 100).toFixed(0)}%`
+      : `${((diff / boltdocsVal) * 100).toFixed(0)}%`
+  const isBetter = boltdocsVal < docusaurusVal
   return {
-    text: `${ratio}x ${text}`,
-    className: 'text-rose-600 dark:text-rose-500 font-semibold',
+    text: `${pct} ${isBetter ? 'less' : 'more'}`,
+    className: isBetter
+      ? 'text-emerald-600 dark:text-emerald-500 font-semibold'
+      : 'text-rose-600 dark:text-rose-500 font-semibold',
   }
 }
 

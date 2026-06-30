@@ -5,6 +5,9 @@
   "type": "module",
   "main": "./dist/index.mjs",
   "types": "./dist/index.d.mts",
+  "publishConfig": {
+    "access": "public"
+  },
   "exports": {
     ".": {
       "types": "./dist/index.d.mts",

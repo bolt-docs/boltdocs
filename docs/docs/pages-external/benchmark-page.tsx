@@ -87,7 +87,8 @@ function MetricCard({
               : 'text-rose-600 dark:text-rose-500 bg-rose-500/10 border-rose-500/20'
           }`}
         >
-          {metric.ratio}x {metric.key === 'bundleSize' ? 'lighter' : 'faster'}
+          {metric.boltdocsVal}
+          {metric.suffix}
         </span>
       </div>
 
@@ -148,15 +149,15 @@ export default function BenchmarkPage() {
             ref={titleRef}
             className="text-5xl md:text-7xl lg:text-8xl font-black tracking-tighter text-body mb-6 opacity-0"
           >
-            Built for Speed
+            Performance Benchmarks
           </h1>
           <p
             ref={subtitleRef}
             className="text-lg md:text-xl text-body/70 max-w-2xl mx-auto leading-relaxed opacity-0"
           >
-            Real-world benchmarks comparing Boltdocs against Docusaurus across
-            {benchmarkData.pageCount} pages — cold builds, warm rebuilds, dev
-            server startup, and production output size.
+            Build times, dev server startup, and output size across{' '}
+            {benchmarkData.pageCount} pages — measured under identical
+            conditions.
           </p>
         </div>
       </section>
@@ -170,10 +171,10 @@ export default function BenchmarkPage() {
           <div className="p-5 rounded-2xl bg-surface/50 border border-subtle backdrop-blur-xl text-center opacity-0">
             <Zap className="w-5 h-5 text-primary-500 mx-auto mb-2" />
             <div className="text-2xl md:text-3xl font-black text-body">
-              {avgRatio.toFixed(1)}x
+              {benchmarkData.buildTimeCold.boltdocs}s
             </div>
             <div className="text-xs text-body/50 mt-1 font-medium">
-              Avg Speedup
+              Boltdocs Build Time
             </div>
           </div>
           <div className="p-5 rounded-2xl bg-surface/50 border border-subtle backdrop-blur-xl text-center opacity-0">

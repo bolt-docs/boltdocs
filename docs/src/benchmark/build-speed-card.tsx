@@ -28,7 +28,7 @@ export const BuildSpeedCard = ({ data }: BuildSpeedCardProps) => {
             </h3>
           </div>
           <span className="px-3 py-1 text-xs font-bold text-primary-600 dark:text-primary-500 bg-primary-500/10 rounded-full border border-primary-500/20">
-            {data.buildTimeCold.ratio}x Faster
+            {data.buildTimeCold.boltdocs}s
           </span>
         </div>
 
@@ -42,7 +42,7 @@ export const BuildSpeedCard = ({ data }: BuildSpeedCardProps) => {
               labelColor: 'text-primary-600 dark:text-primary-500 font-bold',
             },
             {
-              label: 'Docusaurus (Webpack)',
+              label: 'Docusaurus',
               value: `${data.buildTimeCold.docusaurus}s`,
               width: docusaurusWidth,
               color: 'bg-dim/50',

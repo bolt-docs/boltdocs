@@ -114,6 +114,18 @@ export class RemixAdapter implements IRouterAdapter<ViteReactSSGContext> {
       future: routerOptions.future,
     })
     const HP = getHelmetProvider()
+
+    // Force canUseDOM = false on HelmetProvider so react-helmet-async uses
+    // server-side state mapping and populates helmetContext.helmet. Without
+    // this, HelmetData skips server-side extraction and htmlAttributes/bodyAttributes
+    // come back as null. We set it directly here instead of relying on
+    // helmet-compat.tsx's __BOLTDOCS_SSG_RENDERING__ check because that check
+    // runs at module load time (before the flag is set).
+    const hpAny = HP as any
+    if (hpAny && typeof hpAny === 'function') {
+      hpAny.canUseDOM = false
+    }
+
     let app = (
       <HP context={helmetContext}>
         <StaticRouterProvider router={router} context={routerContext} />
@@ -122,13 +134,7 @@ export class RemixAdapter implements IRouterAdapter<ViteReactSSGContext> {
 
     if (styleCollector) app = styleCollector.collect(app)
 
-    // Signal helmet-compat.tsx that we are inside an SSG render so it can
-    // safely set HelmetProvider.canUseDOM = false (needed for server-side
-    // Helmet context extraction). The flag is cleared immediately after
-    // renderStaticApp returns so it doesn't leak into the client bundle.
-    ;(globalThis as any).__BOLTDOCS_SSG_RENDERING__ = true
     const appHTML = await renderStaticApp(app)
-    ;(globalThis as any).__BOLTDOCS_SSG_RENDERING__ = false
 
     const { htmlAttributes, bodyAttributes, metaAttributes, styleTag } =
       extractHelmet(appHTML, helmetContext, styleCollector)

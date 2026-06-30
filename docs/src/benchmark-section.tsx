@@ -18,11 +18,11 @@ export const BenchmarkSection = () => {
       <div className="max-w-6xl mx-auto" ref={containerRef}>
         <div className="text-center mb-16">
           <h2 className="text-3xl md:text-5xl font-black text-body mb-6 tracking-tight">
-            Built for Speed
+            Performance Benchmarks
           </h2>
           <p className="text-lg text-body/70 max-w-2xl mx-auto font-medium">
-            Real-world benchmarks showing how Boltdocs outperforms traditional
-            documentation generators.
+            Real-world benchmarks showing build times, dev server startup, and
+            output size across {benchmarkData.pageCount} pages.
           </p>
         </div>
 

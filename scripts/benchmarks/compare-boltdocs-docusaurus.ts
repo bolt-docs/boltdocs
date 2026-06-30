@@ -151,6 +151,21 @@ function writeConfigs() {
     name: 'benchmark-boltdocs',
     private: true,
     type: 'module',
+    dependencies: {
+      boltdocs: 'file:/tmp/boltdocs-pack/boltdocs-3.0.2.tgz',
+      '@bdocs/ssg': 'file:/tmp/boltdocs-pack/bdocs-ssg-0.1.1.tgz',
+      '@bdocs/zig-critters':
+        'file:/tmp/boltdocs-pack/bdocs-zig-critters-0.1.0.tgz',
+      react: '^19.0.0',
+      'react-dom': '^19.0.0',
+    },
+    pnpm: {
+      overrides: {
+        '@bdocs/ssg': 'file:/tmp/boltdocs-pack/bdocs-ssg-0.1.1.tgz',
+        '@bdocs/zig-critters':
+          'file:/tmp/boltdocs-pack/bdocs-zig-critters-0.1.0.tgz',
+      },
+    },
   }
   fs.writeFileSync(
     path.join(BOLTDOCS_DIR, 'package.json'),
@@ -182,7 +197,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
   const boltdocsDocs = path.join(BOLTDOCS_DIR, 'docs')
   fs.writeFileSync(path.join(boltdocsDocs, 'layout.tsx'), boltdocsLayout)
 
-  // Docusaurus package.json
+  // Docusaurus package.json (with Docusaurus Faster)
   const docusaurusPkg = {
     name: 'benchmark-docusaurus',
     private: true,
@@ -191,10 +206,11 @@ export default function Layout({ children }: { children: React.ReactNode }) {
       build: 'docusaurus build',
     },
     dependencies: {
-      '@docusaurus/core': '^3.2.1',
-      '@docusaurus/preset-classic': '^3.2.1',
-      react: '^18.2.0',
-      'react-dom': '^18.2.0',
+      '@docusaurus/core': '^3.10.0',
+      '@docusaurus/preset-classic': '^3.10.0',
+      '@docusaurus/faster': '^3.10.0',
+      react: '^19.0.0',
+      'react-dom': '^19.0.0',
     },
   }
   fs.writeFileSync(
@@ -202,7 +218,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
     JSON.stringify(docusaurusPkg, null, 2),
   )
 
-  // Docusaurus config
+  // Docusaurus config (with Docusaurus Faster enabled)
   const docusaurusConfig = `module.exports = {
   title: 'Docusaurus Benchmark',
   tagline: 'Benchmark site',
@@ -210,6 +226,10 @@ export default function Layout({ children }: { children: React.ReactNode }) {
   baseUrl: '/',
   onBrokenLinks: 'ignore',
   onBrokenMarkdownLinks: 'ignore',
+  future: {
+    v4: true,
+    faster: true,
+  },
   presets: [
     [
       '@docusaurus/preset-classic',
@@ -246,7 +266,6 @@ export default function Layout({ children }: { children: React.ReactNode }) {
 function runInstallation() {
   console.log('Installing dependencies for Docusaurus benchmark...')
   try {
-    // Try pnpm install first since pnpm is the primary workspace package manager
     child_process.execSync(
       'pnpm install --ignore-workspace --no-frozen-lockfile',
       {
@@ -254,7 +273,7 @@ function runInstallation() {
         stdio: 'inherit',
       },
     )
-    console.log('✅ Dependencies installed.')
+    console.log('✅ Docusaurus dependencies installed.')
   } catch (err) {
     console.error(
       'Failed to install Docusaurus dependencies with pnpm, trying npm...',
@@ -265,9 +284,36 @@ function runInstallation() {
         cwd: DOCUSAURUS_DIR,
         stdio: 'inherit',
       })
-      console.log('✅ Dependencies installed with npm.')
+      console.log('✅ Docusaurus dependencies installed with npm.')
     } catch (npmErr) {
       console.error('Failed both pnpm and npm installs:', npmErr)
+      throw npmErr
+    }
+  }
+
+  console.log('Installing dependencies for Boltdocs benchmark...')
+  try {
+    child_process.execSync(
+      'pnpm install --ignore-workspace --no-frozen-lockfile',
+      {
+        cwd: BOLTDOCS_DIR,
+        stdio: 'inherit',
+      },
+    )
+    console.log('✅ Boltdocs dependencies installed.')
+  } catch (err) {
+    console.error(
+      'Failed to install Boltdocs dependencies with pnpm, trying npm...',
+      err,
+    )
+    try {
+      child_process.execSync('npm install --no-audit --no-fund', {
+        cwd: BOLTDOCS_DIR,
+        stdio: 'inherit',
+      })
+      console.log('✅ Boltdocs dependencies installed with npm.')
+    } catch (npmErr) {
+      console.error('Failed both pnpm and npm installs for Boltdocs:', npmErr)
       throw npmErr
     }
   }
@@ -374,8 +420,8 @@ async function run() {
 
   console.log('\n--- Benchmarking Boltdocs ---')
   const boltdocsCLI = path.resolve(
-    WORKSPACE_ROOT,
-    'packages/core/bin/boltdocs.js',
+    BOLTDOCS_DIR,
+    'node_modules/boltdocs/bin/boltdocs.js',
   )
 
   // 1. Dev Startup (Boltdocs)
