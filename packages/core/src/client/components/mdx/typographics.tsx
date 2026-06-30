@@ -84,6 +84,15 @@ export const Typographics = {
       {...props}
     />
   ),
+  code: ({ className, ...props }: React.HTMLAttributes<HTMLElement>) => (
+    <code
+      className={cn(
+        'bg-code-bg text-code-text rounded-md px-1.5 py-0.5 text-[0.875em] font-mono font-medium',
+        className,
+      )}
+      {...props}
+    />
+  ),
   blockquote: ({
     className,
     ...props
