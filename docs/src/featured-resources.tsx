@@ -17,7 +17,7 @@ export function FeaturedResources() {
           </div>
           <Link
             to="/blog"
-            className="inline-flex h-10 items-center justify-center rounded-lg border border-white/10 bg-white/5 px-6 text-sm font-medium text-body transition-colors hover:bg-white/10 hover:text-white"
+            className="inline-flex h-10 items-center justify-center rounded-lg border border-white/10 bg-white/5 px-6 text-sm font-medium"
           >
             {t.featuredAll}
           </Link>
@@ -31,7 +31,7 @@ export function FeaturedResources() {
               <Link
                 key={post.path}
                 to={post.path}
-                className="group relative flex flex-col overflow-hidden rounded-2xl border border-white/10 bg-neutral-950 transition-all hover:border-white/20 hover:bg-neutral-900"
+                className="group relative flex flex-col overflow-hidden rounded-2xl border border-white/10 dark:bg-neutral-950 bg-neutral-50 transition-all hover:border-white/20 dark:hover:bg-neutral-900 hover:bg-neutral-100"
               >
                 <div className="relative aspect-video w-full overflow-hidden bg-neutral-900">
                   {cover ? (
@@ -48,7 +48,7 @@ export function FeaturedResources() {
                   <div className="text-[10px] font-mono tracking-widest text-body/50 uppercase mb-3">
                     // UPDATES
                   </div>
-                  <h3 className="text-xl font-bold tracking-tight text-body group-hover:text-white transition-colors line-clamp-2">
+                  <h3 className="text-xl font-bold tracking-tight text-body transition-colors line-clamp-2">
                     {title as string}
                   </h3>
                 </div>

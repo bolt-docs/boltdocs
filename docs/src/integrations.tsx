@@ -9,6 +9,8 @@ import {
   Image,
   MessageSquare,
   Sigma,
+  BarChart3,
+  Zap,
 } from 'lucide-react'
 import { NoiseOverlay } from './noise-overlay'
 import { useTranslations } from './use-translations'
@@ -23,6 +25,8 @@ const INTEGRATIONS = [
   { name: 'Feedback', icon: <MessageSquare className="w-5 h-5" /> },
   { name: 'i18n', icon: <Globe className="w-5 h-5" /> },
   { name: 'Google Analytics', icon: <Tag className="w-5 h-5" /> },
+  { name: 'PostHog', icon: <BarChart3 className="w-5 h-5" /> },
+  { name: 'Vercel', icon: <Zap className="w-5 h-5" /> },
   { name: 'Versioning', icon: <GitBranch className="w-5 h-5" /> },
 ]
 
