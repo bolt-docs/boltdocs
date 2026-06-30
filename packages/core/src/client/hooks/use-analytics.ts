@@ -7,6 +7,13 @@ declare global {
     gtag?: (...args: unknown[]) => void
     dataLayer?: unknown[]
     gtag_report_conversion?: (url?: string) => boolean
+    posthog?: {
+      capture: (event: string, properties?: Record<string, unknown>) => void
+      identify: (distinctId: string) => void
+      reset: () => void
+      opt_out_capturing: () => void
+      opt_in_capturing: () => void
+    }
   }
 }
 
@@ -34,6 +41,10 @@ function createAnalyticsInstance(
     return createDisabledAnalytics()
   }
 
+  if (window.posthog) {
+    return createPostHogAnalytics(config)
+  }
+
   const isGtagAvailable = typeof window.gtag === 'function'
 
   if (isGtagAvailable) {
@@ -45,6 +56,40 @@ function createAnalyticsInstance(
   }
 
   return createDisabledAnalytics()
+}
+
+function createPostHogAnalytics(
+  _config?: BoltdocsIntegrationsConfig,
+): AnalyticsInstance {
+  return {
+    trackPageView: (path: string) => {
+      window.posthog?.capture('$pageview', { $current_url: path })
+    },
+    trackEvent: ({ action, category, label, value, params }) => {
+      window.posthog?.capture(action, {
+        event_category: category,
+        event_label: label,
+        value,
+        ...params,
+      })
+    },
+    trackSearch: (query: string, resultsCount?: number) => {
+      window.posthog?.capture('search', {
+        query,
+        results_count: resultsCount,
+      })
+    },
+    trackDownload: (file: string, type?: string) => {
+      window.posthog?.capture('file_download', {
+        file_name: file,
+        file_type: type || file.split('.').pop(),
+      })
+    },
+    trackExternalLink: (url: string) => {
+      window.posthog?.capture('external_link', { link_url: url })
+    },
+    isEnabled: true,
+  }
 }
 
 function createGtagAnalytics(

@@ -278,10 +278,20 @@ export const VercelConfigSchema = z.object({
   speedInsights: z.boolean().optional(),
 })
 
+export const PostHogConfigSchema = z.object({
+  apiKey: z.string().min(1, 'API key is required for PostHog'),
+  host: z.string().url().optional(),
+  capturePageview: z.boolean().optional(),
+  capturePageleave: z.boolean().optional(),
+  sessionRecording: z.boolean().optional(),
+  autocapture: z.boolean().optional(),
+})
+
 export const AnalyticsConfigSchema = z.object({
   ga4: GA4ConfigSchema.optional(),
   gtm: GTMConfigSchema.optional(),
   vercel: VercelConfigSchema.optional(),
+  posthog: PostHogConfigSchema.optional(),
 })
 
 export const SearchConfigSchema = z.object({

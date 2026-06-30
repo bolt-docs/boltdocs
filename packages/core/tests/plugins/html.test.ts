@@ -269,6 +269,88 @@ describe('plugin html', () => {
         expect(result).not.toContain('https://www.googletagmanager.com/ns.html')
       })
     })
+
+    describe('PostHog', () => {
+      const originalEnv = process.env.NODE_ENV
+
+      afterEach(() => {
+        process.env.NODE_ENV = originalEnv
+      })
+
+      it('should inject PostHog script when configured in production', () => {
+        process.env.NODE_ENV = 'production'
+        const config = {
+          integrations: {
+            analytics: { posthog: { apiKey: 'phc_test123' } },
+          },
+        }
+        const result = injectHtmlMeta(baseHtml, config as any)
+
+        expect(result).toContain('posthog.init("phc_test123"')
+        expect(result).toContain('https://us.i.posthog.com')
+        expect(result).toContain('<!-- PostHog -->')
+      })
+
+      it('should not inject PostHog script in development', () => {
+        process.env.NODE_ENV = 'development'
+        const config = {
+          integrations: {
+            analytics: { posthog: { apiKey: 'phc_test123' } },
+          },
+        }
+        const result = injectHtmlMeta(baseHtml, config as any)
+
+        expect(result).not.toContain('posthog.init')
+        expect(result).not.toContain('<!-- PostHog -->')
+      })
+
+      it('should use custom host when provided', () => {
+        process.env.NODE_ENV = 'production'
+        const config = {
+          integrations: {
+            analytics: {
+              posthog: {
+                apiKey: 'phc_test123',
+                host: 'https://eu.i.posthog.com',
+              },
+            },
+          },
+        }
+        const result = injectHtmlMeta(baseHtml, config as any)
+
+        expect(result).toContain('https://eu.i.posthog.com')
+      })
+
+      it('should disable pageview capture when set to false', () => {
+        process.env.NODE_ENV = 'production'
+        const config = {
+          integrations: {
+            analytics: {
+              posthog: { apiKey: 'phc_test123', capturePageview: false },
+            },
+          },
+        }
+        const result = injectHtmlMeta(baseHtml, config as any)
+
+        expect(result).toContain('capture_pageview: false')
+      })
+
+      it('should enable session recording when set to true', () => {
+        process.env.NODE_ENV = 'production'
+        const config = {
+          integrations: {
+            analytics: {
+              posthog: { apiKey: 'phc_test123', sessionRecording: true },
+            },
+          },
+        }
+        const result = injectHtmlMeta(baseHtml, config as any)
+
+        expect(result).toContain(
+          'session_recording: { recordCrossOriginPages: true }',
+        )
+      })
+    })
   })
 
   describe('Verification meta tags (Google, Bing, Yandex, Pinterest, Facebook)', () => {

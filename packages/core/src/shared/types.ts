@@ -402,11 +402,21 @@ export interface BoltdocsVercelConfig {
   speedInsights?: boolean
 }
 
+export interface BoltdocsPostHogConfig {
+  apiKey: string
+  host?: string
+  capturePageview?: boolean
+  capturePageleave?: boolean
+  sessionRecording?: boolean
+  autocapture?: boolean
+}
+
 export interface BoltdocsIntegrationsConfig {
   analytics?: {
     ga4?: BoltdocsGA4Config
     vercel?: BoltdocsVercelConfig
     gtm?: BoltdocsGTMConfig
+    posthog?: BoltdocsPostHogConfig
   }
   search?: {
     algolia?: BoltdocsAlgoliaConfig
