@@ -1,0 +1,222 @@
+---
+title: PostHog
+sidebarPosition: 5
+description: Track page views, custom events, and session replays with PostHog product analytics.
+---
+
+PostHog is an open-source product analytics platform that gives you full control over your data. Boltdocs injects the PostHog JavaScript snippet automatically when you configure it.
+
+---
+
+## Quick Start
+
+### Step 1: Get your API key
+
+Create a project in [PostHog](https://app.posthog.com/) and copy your project API key (starts with `phc_`).
+
+### Step 2: Configure in boltdocs.config.ts
+
+```ts title="boltdocs.config.ts"
+export default defineConfig({
+  integrations: {
+    analytics: {
+      posthog: {
+        apiKey: 'phc_xxxxxxxxxxxxxxxxxxxx',
+      },
+    },
+  },
+})
+```
+
+### Step 3: Deploy
+
+The PostHog snippet is automatically injected into every page. Page views and page leaves are tracked by default.
+
+---
+
+## Configuration Reference
+
+| Property | Type | Default | Description |
+| :--- | :--- | :--- | :--- |
+| **`apiKey`** | `string` | ✓ | Your PostHog project API key (e.g., `'phc_xxx'`) |
+| **`host`** | `string` | `'https://us.i.posthog.com'` | PostHog API host. Use `'https://eu.i.posthog.com'` for EU cloud |
+| **`capturePageview`** | `boolean` | `true` | Automatically capture page views |
+| **`capturePageleave`** | `boolean` | `true` | Automatically capture page leave events |
+| **`sessionRecording`** | `boolean` | `false` | Enable session recording |
+| **`autocapture`** | `boolean` | `false` | Enable autocapture of click events |
+
+### Minimal Example
+
+```ts
+integrations: {
+  analytics: {
+    posthog: {
+      apiKey: 'phc_xxxxxxxxxxxxxxxxxxxx',
+    },
+  },
+}
+```
+
+### EU Cloud
+
+If your PostHog instance is hosted in the EU region:
+
+```ts
+integrations: {
+  analytics: {
+    posthog: {
+      apiKey: 'phc_xxxxxxxxxxxxxxxxxxxx',
+      host: 'https://eu.i.posthog.com',
+    },
+  },
+}
+```
+
+### With Session Recording
+
+```ts
+integrations: {
+  analytics: {
+    posthog: {
+      apiKey: 'phc_xxxxxxxxxxxxxxxxxxxx',
+      sessionRecording: true,
+    },
+  },
+}
+```
+
+---
+
+## What Gets Tracked
+
+### Automatic Events
+
+| Event | Description |
+| :--- | :--- |
+| **`$pageview`** | Fired on every page navigation (including client-side navigation) |
+| **`$pageleave`** | Fired when the user leaves a page |
+
+### Custom Events
+
+You can track custom events using the `useTrackEvent()` hook:
+
+```tsx
+import { useTrackEvent } from 'boltdocs'
+
+export function MyComponent() {
+  const trackEvent = useTrackEvent()
+
+  const handleClick = () => {
+    trackEvent('button_click', {
+      button_id: 'downloadPdf',
+      button_location: 'sidebar',
+    })
+  }
+
+  return <button onClick={handleClick}>Download PDF</button>
+}
+```
+
+---
+
+## Using the Hooks
+
+### `useAnalytics()`
+
+Access the full analytics API:
+
+```tsx
+import { useAnalytics } from 'boltdocs'
+
+function MyComponent() {
+  const { trackEvent, trackPageView } = useAnalytics()
+
+  // Track a custom event
+  trackEvent('search', { query: 'installation' })
+
+  // Track a page view manually
+  trackPageView('/docs/guides/getting-started/installation', 'Installation')
+}
+```
+
+### `useTrackPageView()`
+
+Simplified page view tracking:
+
+```tsx
+import { useTrackPageView } from 'boltdocs'
+
+function DocPage({ title, path }) {
+  const trackPageView = useTrackPageView()
+
+  useEffect(() => {
+    trackPageView(path, title)
+  }, [path, title])
+}
+```
+
+### `useTrackEvent()`
+
+Track arbitrary events:
+
+```tsx
+import { useTrackEvent } from 'boltdocs'
+
+function SearchBox() {
+  const trackEvent = useTrackEvent()
+
+  return (
+    <input
+      onChange={(e) => {
+        trackEvent('search_input', { query: e.target.value })
+      }}
+    />
+  )
+}
+```
+
+---
+
+## Respecting User Privacy
+
+PostHog supports opt-out of data capture. You can use the PostHog API to respect user consent:
+
+```tsx
+import { useEffect } from 'react'
+
+function ConsentHandler({ hasConsent }) {
+  useEffect(() => {
+    if (window.posthog) {
+      if (hasConsent) {
+        window.posthog.opt_in_capturing()
+      } else {
+        window.posthog.opt_out_capturing()
+      }
+    }
+  }, [hasConsent])
+
+  return null
+}
+```
+
+---
+
+## Troubleshooting
+
+### Events not appearing
+
+1. Verify the API key is correct (starts with `phc_`)
+2. Check browser console for errors
+3. Use PostHog's Live Events panel to see events in real-time
+
+### Scripts not appearing in development
+
+PostHog scripts are only injected in **production** builds. Run `boltdocs build && boltdocs preview` to test locally.
+
+### Duplicate page views
+
+Page views are tracked automatically on navigation. Don't call `trackPageView` manually unless needed.
+
+### Build errors
+
+Ensure `integrations.analytics.posthog.apiKey` is a non-empty string.

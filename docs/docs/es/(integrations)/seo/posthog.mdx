@@ -1,0 +1,222 @@
+---
+title: PostHog
+sidebarPosition: 5
+description: Rastrea vistas de página, eventos personalizados y grabaciones de sesión con PostHog.
+---
+
+PostHog es una plataforma de analítica de productos de código abierto que te da control total sobre tus datos. Boltdocs inyecta el fragmento JavaScript de PostHog automáticamente cuando lo configuras.
+
+---
+
+## Inicio Rápido
+
+### Paso 1: Obtén tu clave API
+
+Crea un proyecto en [PostHog](https://app.posthog.com/) y copia la clave API del proyecto (comienza con `phc_`).
+
+### Paso 2: Configura en boltdocs.config.ts
+
+```ts title="boltdocs.config.ts"
+export default defineConfig({
+  integrations: {
+    analytics: {
+      posthog: {
+        apiKey: 'phc_xxxxxxxxxxxxxxxxxxxx',
+      },
+    },
+  },
+})
+```
+
+### Paso 3: Despliega
+
+El fragmento de PostHog se inyecta automáticamente en cada página. Las vistas de página y eventos de salida se rastrean por defecto.
+
+---
+
+## Referencia de Configuración
+
+| Propiedad | Tipo | Predeterminado | Descripción |
+| :--- | :--- | :--- | :--- |
+| **`apiKey`** | `string` | ✓ | Tu clave API del proyecto PostHog (ej: `'phc_xxx'`) |
+| **`host`** | `string` | `'https://us.i.posthog.com'` | Host de la API de PostHog. Usa `'https://eu.i.posthog.com'` para la nube de la UE |
+| **`capturePageview`** | `boolean` | `true` | Capturar vistas de página automáticamente |
+| **`capturePageleave`** | `boolean` | `true` | Capturar eventos de salida de página automáticamente |
+| **`sessionRecording`** | `boolean` | `false` | Habilitar grabación de sesión |
+| **`autocapture`** | `boolean` | `false` | Habilitar captura automática de clics |
+
+### Ejemplo Mínimo
+
+```ts
+integrations: {
+  analytics: {
+    posthog: {
+      apiKey: 'phc_xxxxxxxxxxxxxxxxxxxx',
+    },
+  },
+}
+```
+
+### Nube de la UE
+
+Si tu instancia de PostHog está en la región de la UE:
+
+```ts
+integrations: {
+  analytics: {
+    posthog: {
+      apiKey: 'phc_xxxxxxxxxxxxxxxxxxxx',
+      host: 'https://eu.i.posthog.com',
+    },
+  },
+}
+```
+
+### Con Grabación de Sesión
+
+```ts
+integrations: {
+  analytics: {
+    posthog: {
+      apiKey: 'phc_xxxxxxxxxxxxxxxxxxxx',
+      sessionRecording: true,
+    },
+  },
+}
+```
+
+---
+
+## Qué se Rastrea
+
+### Eventos Automáticos
+
+| Evento | Descripción |
+| :--- | :--- |
+| **`$pageview`** | Se ejecuta en cada navegación de página (incluyendo navegación del lado del cliente) |
+| **`$pageleave`** | Se ejecuta cuando el usuario abandona una página |
+
+### Eventos Personalizados
+
+Puedes rastrear eventos personalizados usando el hook `useTrackEvent()`:
+
+```tsx
+import { useTrackEvent } from 'boltdocs'
+
+export function MyComponent() {
+  const trackEvent = useTrackEvent()
+
+  const handleClick = () => {
+    trackEvent('button_click', {
+      button_id: 'downloadPdf',
+      button_location: 'sidebar',
+    })
+  }
+
+  return <button onClick={handleClick}>Descargar PDF</button>
+}
+```
+
+---
+
+## Usando los Hooks
+
+### `useAnalytics()`
+
+Accede a la API completa de analítica:
+
+```tsx
+import { useAnalytics } from 'boltdocs'
+
+function MyComponent() {
+  const { trackEvent, trackPageView } = useAnalytics()
+
+  // Rastrear un evento personalizado
+  trackEvent('search', { query: 'instalación' })
+
+  // Rastrear una vista de página manualmente
+  trackPageView('/docs/guides/getting-started/instalación', 'Instalación')
+}
+```
+
+### `useTrackPageView()`
+
+Rastreo simplificado de vistas de página:
+
+```tsx
+import { useTrackPageView } from 'boltdocs'
+
+function DocPage({ title, path }) {
+  const trackPageView = useTrackPageView()
+
+  useEffect(() => {
+    trackPageView(path, title)
+  }, [path, title])
+}
+```
+
+### `useTrackEvent()`
+
+Rastrea eventos arbitrarios:
+
+```tsx
+import { useTrackEvent } from 'boltdocs'
+
+function SearchBox() {
+  const trackEvent = useTrackEvent()
+
+  return (
+    <input
+      onChange={(e) => {
+        trackEvent('search_input', { query: e.target.value })
+      }}
+    />
+  )
+}
+```
+
+---
+
+## Respetando la Privacidad del Usuario
+
+PostHog soporta la exclusión de captura de datos. Puedes usar la API de PostHog para respetar el consentimiento del usuario:
+
+```tsx
+import { useEffect } from 'react'
+
+function ConsentHandler({ hasConsent }) {
+  useEffect(() => {
+    if (window.posthog) {
+      if (hasConsent) {
+        window.posthog.opt_in_capturing()
+      } else {
+        window.posthog.opt_out_capturing()
+      }
+    }
+  }, [hasConsent])
+
+  return null
+}
+```
+
+---
+
+## Solución de Problemas
+
+### Los eventos no aparecen
+
+1. Verifica que la clave API sea correcta (comienza con `phc_`)
+2. Revisa la consola del navegador en busca de errores
+3. Usa el panel de Eventos en Vivo de PostHog para ver eventos en tiempo real
+
+### Los scripts no aparecen en desarrollo
+
+Los scripts de PostHog solo se inyectan en compilaciones de **producción**. Ejecuta `boltdocs build && boltdocs preview` para probar localmente.
+
+### Vistas de página duplicadas
+
+Las vistas de página se rastrean automáticamente en la navegación. No llames a `trackPageView` manualmente a menos que sea necesario.
+
+### Errores de compilación
+
+Asegúrate de que `integrations.analytics.posthog.apiKey` sea una cadena no vacía.

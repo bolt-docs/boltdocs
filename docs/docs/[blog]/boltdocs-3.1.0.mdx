@@ -242,6 +242,7 @@ This resulted in **74 duplicate HTML files** totaling **~8 MB** of wasted space.
 - **Cache separation** — Sätteri and the default MDX compiler use separate cache namespaces (`v6-fallback` vs `v3`). Switching between turbo and non-turbo modes doesn't corrupt cached transforms
 - **Beasties fallback** — if zig-critters WASM binary is missing, Beasties takes over with a warning. Your build never fails because of a missing binary
 - **Duplicate `crossorigin` fixed** — the regex that adds `crossorigin` to stylesheet links now avoids duplicating the attribute when it's already present
+- **PostHog integration** — built-in support for [PostHog](https://posthog.com/) product analytics. Configure via `integrations.analytics.posthog` with your project API key, and the PostHog snippet is injected automatically. Supports EU cloud, session recording, and autocapture (off by default)
 
 ---
 

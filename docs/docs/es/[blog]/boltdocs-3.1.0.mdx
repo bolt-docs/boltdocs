@@ -242,6 +242,7 @@ Esto resultó en **74 archivos HTML duplicados** totalizando **~8 MB** de espaci
 - **Separación de caché** — Sätteri y el compilador MDX estándar usan namespaces de caché separados (`v6-fallback` vs `v3`). Cambiar entre modos turbo y no-turbo no corrompe los transforms cacheados
 - **Fallback de Beasties** — si el binario WASM de zig-critters no existe, Beasties toma el control con un warning. Tu build nunca falla por un binario faltante
 - **`crossorigin` duplicado corregido** — el regex que agrega `crossorigin` a los links de stylesheet ahora evita duplicar el atributo cuando ya está presente
+- **Integración con PostHog** — soporte integrado para [PostHog](https://posthog.com/). Configura via `integrations.analytics.posthog` con tu clave API del proyecto, y el snippet de PostHog se inyecta automáticamente. Soporta nube de la UE, grabación de sesión y autocapture (desactivado por defecto)
 
 ---
 
