@@ -3,6 +3,7 @@
 ---
 
 Feature:
+- **`PluginContext.outDir`** — new readonly property exposing the build output directory (e.g., `'dist/'`) to plugin lifecycle hooks, eliminating the need for plugins to hardcode output paths
 - **`--turbo` mode** for `boltdocs build` — Sätteri-powered build pipeline with native WASM parsing, critical CSS extraction, and Shiki syntax highlighting
   - Available via CLI: `boltdocs build --turbo`
   - Native WASM MDX parser (satteri) replaces @mdx-js/rollup for faster compilation
@@ -41,3 +42,6 @@ Fixed:
 - **`useI18n` collection list locale switching fix**: Switching locale from a collection root page (e.g., `/blog`) no longer navigates away — collection root URLs are locale-independent
 - **SSG SEO meta tags fix**: Blog post pages and other content pages now correctly render per-page `<title>`, `og:title`, `og:description`, and `og:image` meta tags in the static HTML. Previously, react-helmet-async's `HelmetProvider` was not populating the helmet context because `isDocument` evaluated to `true` in the SSG context (jsdom active). Fixed by forcing `HelmetProvider.canUseDOM = false` and using synchronous `renderToString` to guarantee Helmet lifecycle methods complete before HTML is serialized.
 - **Duplicate meta tags cleanup**: Removed redundant generic `og:title`, `og:description`, `og:image`, `twitter:*`, `og:type`, `og:url`, `canonical`, and `<title>` from `injectHtmlMeta()`. These were duplicates of what Helmet renders per-page via `data-rh` attributes. Each page now has a single set of SEO meta tags managed by react-helmet-async.
+- **Beasties disabled**: Critical CSS inlining via Beasties is now disabled by default. HTML pages no longer contain ~37 KB of inlined `<style>` tags. CSS loads once via external `<link>` and is cached by the browser. Reduces total HTML output by ~7.3 MB across all pages.
+- **Duplicate `crossorigin` attribute fixed**: The regex that adds `crossorigin` to `<link rel="stylesheet">` now uses a negative lookahead to avoid duplicating the attribute when it's already present.
+- **Duplicate EN locale removed**: `generateI18nFallbacks()` now skips the default locale when generating fallback routes. Previously, English content was duplicated at both root level (`/docs/api/cli`) and locale-prefixed (`/docs/en/api/cli`), resulting in ~8 MB of identical HTML files.
