@@ -796,7 +796,7 @@ export async function build(
             )
           }
           transformed = transformed.replace(
-            /<link\srel="stylesheet"/g,
+            /<link\srel="stylesheet"(?!.*\bcrossorigin\b)/g,
             '<link rel="stylesheet" crossorigin',
           )
         } else if (beasties) {
@@ -804,7 +804,7 @@ export async function build(
             beasties.process(transformed),
           ))!
           transformed = transformed.replace(
-            /<link\srel="stylesheet"/g,
+            /<link\srel="stylesheet"(?!.*\bcrossorigin\b)/g,
             '<link rel="stylesheet" crossorigin',
           )
         }
