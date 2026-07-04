@@ -1,59 +1,11 @@
 import type { BoltdocsPlugin } from 'boltdocs'
 import { visitNodes, createMdxAttribute, SKIP, MDX_NODES } from 'boltdocs'
 import { warn } from '@bdocs/dui'
-
-export interface MermaidThemeVariables {
-  primaryColor?: string
-  primaryTextColor?: string
-  primaryBorderColor?: string
-  lineColor?: string
-  secondaryColor?: string
-  tertiaryColor?: string
-  nodeBorder?: string
-  mainBkg?: string
-  nodeTextColor?: string
-  edgeLabelBackground?: string
-  clusterBkg?: string
-  clusterBorder?: string
-  [key: string]: string | undefined
-}
-
-export interface MermaidPluginOptions {
-  themes?: {
-    light?: MermaidThemeVariables
-    dark?: MermaidThemeVariables
-  }
-}
-
-const defaultLightTheme: MermaidThemeVariables = {
-  primaryColor: '#f8fafc',
-  primaryTextColor: '#0f172a',
-  primaryBorderColor: '#e2e8f0',
-  lineColor: '#64748b',
-  secondaryColor: '#f1f5f9',
-  tertiaryColor: '#ffffff',
-  nodeBorder: '#e2e8f0',
-  mainBkg: '#ffffff',
-  nodeTextColor: '#0f172a',
-  edgeLabelBackground: '#f8fafc',
-  clusterBkg: '#f8fafc',
-  clusterBorder: '#e2e8f0',
-}
-
-const defaultDarkTheme: MermaidThemeVariables = {
-  primaryColor: '#1e293b',
-  primaryTextColor: '#f8fafc',
-  primaryBorderColor: '#334155',
-  lineColor: '#94a3b8',
-  secondaryColor: '#0f172a',
-  tertiaryColor: '#1e293b',
-  nodeBorder: '#334155',
-  mainBkg: '#0f172a',
-  nodeTextColor: '#f8fafc',
-  edgeLabelBackground: '#1e293b',
-  clusterBkg: '#1e293b',
-  clusterBorder: '#334155',
-}
+import type {
+  MermaidPluginOptions,
+  MermaidThemeVariables,
+} from '../shared/types'
+import { defaultTheme } from '../shared/theme-default'
 
 interface MdxJsxFlowElement {
   type: 'mdxJsxFlowElement'
@@ -104,8 +56,8 @@ export default function mermaidPlugin(
 ): BoltdocsPlugin {
   const { themes = {} } = options
 
-  const lightTheme = { ...defaultLightTheme, ...themes.light }
-  const darkTheme = { ...defaultDarkTheme, ...themes.dark }
+  const lightTheme = { ...defaultTheme.light, ...themes.light }
+  const darkTheme = { ...defaultTheme.dark, ...themes.dark }
   const mergedConfig = { themes: { light: lightTheme, dark: darkTheme } }
 
   return {

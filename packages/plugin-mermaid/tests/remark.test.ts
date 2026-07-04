@@ -30,16 +30,16 @@ function configAttr() {
     clusterBkg: '#1e293b',
     clusterBorder: '#334155',
   }
-  return {
-    type: 'mdxJsxAttributeValueExpression',
-    value: `{themes:{light:{primaryColor:'${defaultLight.primaryColor}',primaryTextColor:'${defaultLight.primaryTextColor}',primaryBorderColor:'${defaultLight.primaryBorderColor}',lineColor:'${defaultLight.lineColor}',secondaryColor:'${defaultLight.secondaryColor}',tertiaryColor:'${defaultLight.tertiaryColor}',nodeBorder:'${defaultLight.nodeBorder}',mainBkg:'${defaultLight.mainBkg}',nodeTextColor:'${defaultLight.nodeTextColor}',edgeLabelBackground:'${defaultLight.edgeLabelBackground}',clusterBkg:'${defaultLight.clusterBkg}',clusterBorder:'${defaultLight.clusterBorder}'},dark:{primaryColor:'${defaultDark.primaryColor}',primaryTextColor:'${defaultDark.primaryTextColor}',primaryBorderColor:'${defaultDark.primaryBorderColor}',lineColor:'${defaultDark.lineColor}',secondaryColor:'${defaultDark.secondaryColor}',tertiaryColor:'${defaultDark.tertiaryColor}',nodeBorder:'${defaultDark.nodeBorder}',mainBkg:'${defaultDark.mainBkg}',nodeTextColor:'${defaultDark.nodeTextColor}',edgeLabelBackground:'${defaultDark.edgeLabelBackground}',clusterBkg:'${defaultDark.clusterBkg}',clusterBorder:'${defaultDark.clusterBorder}'}}}`,
-  }
+  return JSON.stringify({ themes: { light: defaultLight, dark: defaultDark } })
 }
 
 describe('mermaidPlugin remark compiler', () => {
   it('should transform mermaid code blocks to Mermaid MDX components', () => {
     const plugin = mermaidPlugin()
-    const transform = plugin.remarkPlugins?.[0]
+    const pluginEntry = plugin.remarkPlugins?.[0]
+    expect(pluginEntry).toBeDefined()
+    const [factory, config] = pluginEntry as any
+    const transform = factory(config)
     expect(transform).toBeDefined()
 
     const tree = {
@@ -96,7 +96,10 @@ describe('mermaidPlugin remark compiler', () => {
 
   it('should handle multiple mermaid blocks in the same tree', () => {
     const plugin = mermaidPlugin()
-    const transform = plugin.remarkPlugins?.[0]
+    const pluginEntry = plugin.remarkPlugins?.[0]
+    expect(pluginEntry).toBeDefined()
+    const [factory, config] = pluginEntry as any
+    const transform = factory(config)
     expect(transform).toBeDefined()
 
     const tree = {
@@ -143,7 +146,10 @@ describe('mermaidPlugin remark compiler', () => {
 
   it('should handle nested mermaid blocks in blockquotes or lists', () => {
     const plugin = mermaidPlugin()
-    const transform = plugin.remarkPlugins?.[0]
+    const pluginEntry = plugin.remarkPlugins?.[0]
+    expect(pluginEntry).toBeDefined()
+    const [factory, config] = pluginEntry as any
+    const transform = factory(config)
     expect(transform).toBeDefined()
 
     const tree = {
@@ -177,7 +183,10 @@ describe('mermaidPlugin remark compiler', () => {
 
   it('should gracefully handle undefined or null tree', () => {
     const plugin = mermaidPlugin()
-    const transform = plugin.remarkPlugins?.[0]
+    const pluginEntry = plugin.remarkPlugins?.[0]
+    expect(pluginEntry).toBeDefined()
+    const [factory, config] = pluginEntry as any
+    const transform = factory(config)
     expect(transform).toBeDefined()
 
     expect(() => transform(undefined)).not.toThrow()

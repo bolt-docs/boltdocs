@@ -9,8 +9,8 @@
   body {
     margin: 0;
     padding: 0;
-    min-height: 100%;
-    overflow-x: hidden;
+    height: 100%;
+    overflow: hidden;
   }
 
   body {
@@ -87,8 +87,8 @@
 
   /* Prevent code signatures and property names in tables from wrapping awkwardly or breaking mid-word */
   .boltdocs-page table :not(pre) > code {
-    white-space: nowrap;
-    word-break: normal !important;
+    white-space: pre-wrap;
+    word-break: normal;
   }
 
   .scrollbar-hide {
