@@ -29,6 +29,26 @@ Now I'm going all in.
 
 Before I talk about 4x, here's what a production build actually looks like under the hood. These are real benchmarks from a 200-page docs site with ~600 code blocks:
 
+```mermaid
+flowchart TD
+    A["Config Resolve"] --> B["Route Generate"]
+    B --> C["SEO Validate"]
+    C --> D["Type Generate"]
+    D --> E["SSG Client Build"]
+    D --> F["SSG Server Build"]
+    E --> G["Page Rendering + Critical CSS"]
+    F --> G
+    G --> H["SEO Write"]
+    style A fill:#1a1a2e,stroke:#3498db,color:#fff
+    style B fill:#1a1a2e,stroke:#3498db,color:#fff
+    style C fill:#1a1a2e,stroke:#3498db,color:#fff
+    style D fill:#1a1a2e,stroke:#3498db,color:#fff
+    style E fill:#2d1a1a,stroke:#e74c3c,color:#fff
+    style F fill:#2d1a1a,stroke:#e74c3c,color:#fff
+    style G fill:#1a2d1a,stroke:#f39c12,color:#fff
+    style H fill:#1a1a2e,stroke:#3498db,color:#fff
+```
+
 | Phase | Time | % of total |
 |-------|------|-----------|
 | Config resolve | ~50ms | 1% |
@@ -119,11 +139,43 @@ Today the Zig parser extracts frontmatter boundaries and headings, but YAML pars
 
 **N-API native addon**
 
-Replace `child_process.execFile()` (pipe → stdout → JSON → parse) with a direct N-API call. Zero serialization, zero filesystem I/O, zero-copy strings from Zig to V8.
+Replace `child_process.execFile()` with a direct N-API call. Zero serialization, zero filesystem I/O, zero-copy strings from Zig to V8:
+
+```mermaid
+flowchart LR
+    subgraph Current["Current: child_process.execFile()"]
+        direction LR
+        A["JS Process"] -->|"pipe"| B["stdout buffer"]
+        B -->|"JSON.stringify()"| C["string"]
+        C -->|"JSON.parse()"| D["JS Object"]
+    end
+    subgraph New["New: N-API addon"]
+        direction LR
+        E["JS Process"] -->|"direct C++ call"| F["Zig N-API"]
+        F -->|"zero-copy ptr"| G["JS Object"]
+    end
+    style Current fill:#1a1a2e,stroke:#e74c3c,color:#fff
+    style New fill:#0d3b2e,stroke:#2ecc71,color:#fff
+```
 
 **Concurrent SSG builds**
 
-The client Vite build and server Vite build run sequentially. The server build needs the client manifest — but it doesn't need the *entire* client build to finish. Start the server build as soon as the manifest is available.
+The client Vite build and server Vite build run sequentially. The server build needs the client manifest — but it doesn't need the *entire* client build to finish. Start the server build as soon as the manifest is available:
+
+```mermaid
+flowchart LR
+    subgraph Current["Current: Sequential"]
+        direction LR
+        A["Client Build"] -->|"12s wait"| B["Server Build"]
+    end
+    subgraph New["New: Concurrent"]
+        direction LR
+        C["Client Build"] -->|"manifest ready"| D["Server Build"]
+        C -.-|"continues in parallel"| E["Rest of Client"]
+    end
+    style Current fill:#1a1a2e,stroke:#e74c3c,color:#fff
+    style New fill:#0d3b2e,stroke:#2ecc71,color:#fff
+```
 
 **Critical CSS as batch post-processing**
 
@@ -173,6 +225,46 @@ Each phase ships at roughly 50% completion in the next minor releases:
 | **4.0.0** | **Phase 3 (100%)** | Batch critical CSS, content-addressable pages, full Nitro |
 
 The `--turbo` flag you already know from 3.0.0 is the foundation. Every phase extends it.
+
+---
+
+## Beyond speed — a leaner core
+
+Nitro is about build performance. But there's another shift happening in parallel: the core is getting leaner.
+
+<Callout type="info">
+The core is decoupling from integrations, themes, and UI components — all moving to dedicated plugins. The plugin API is also getting a major upgrade to give plugins full control over providers, routes, and client config. This runs across minor releases with a `boltdocs upgrade` command for seamless migration.
+</Callout>
+
+Integrations like analytics, feedback, Algolia search, and the neutral theme currently live inside `boltdocs`. That means Vite compiles them into every build — even when you don't use them. Moving them to plugins means the core stays small and you only bundle what you actually need:
+
+```mermaid
+flowchart TD
+    A["boltdocs core"] --> B["Routing"]
+    A --> C["Build Pipeline"]
+    A --> D["CLI"]
+    A --> E["Plugin System"]
+    A --> F["Cache"]
+    A --> G["MDX Core"]
+    A --> H["Security"]
+    H -.->|"extract"| I["@bdocs/plugin-feedback"]
+    H -.->|"extract"| J["@bdocs/plugin-analytics"]
+    H -.->|"extract"| K["@bdocs/plugin-search"]
+    H -.->|"extract"| L["@bdocs/plugin-seo"]
+    M["UI + Primitives"] -.->|"extract"| N["@bdocs/theme-neutral"]
+    M -.->|"extract"| O["@bdocs/primitives"]
+    style A fill:#0d3b2e,stroke:#2ecc71,color:#fff
+    style I fill:#1a1a2e,stroke:#9b59b6,color:#fff
+    style J fill:#1a1a2e,stroke:#9b59b6,color:#fff
+    style K fill:#1a1a2e,stroke:#9b59b6,color:#fff
+    style L fill:#1a1a2e,stroke:#9b59b6,color:#fff
+    style N fill:#1a1a2e,stroke:#9b59b6,color:#fff
+    style O fill:#1a1a2e,stroke:#9b59b6,color:#fff
+```
+
+The plugin API itself is being redesigned. Plugins will be proper npm packages that export their own React hooks and components. No more declaring component paths in config — you import directly from the plugin. Core exposes utilities, contexts, and a new provider system so plugins can integrate cleanly with the shell without hacks.
+
+The rollout is gradual. Each minor release migrates one layer out of the core. Run `boltdocs upgrade` and everything moves automatically — no manual config changes.
 
 ---
 

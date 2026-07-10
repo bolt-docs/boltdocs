@@ -11,7 +11,10 @@ export function ScrollHandler() {
 
   // Helper to handle scroll logic
   const handleScroll = (behavior: ScrollBehavior = 'auto') => {
-    const container = document.querySelector('.boltdocs-content') || window
+    const container =
+      document.querySelector('.boltdocs-content') ||
+      document.querySelector('.boltdocs-shell-content') ||
+      window
 
     const getScrollTop = () => {
       if (container === window) return window.scrollY
@@ -55,18 +58,9 @@ export function ScrollHandler() {
   }, [pathname, hash])
 
   // 2. Delayed async scroll as fallback/stabilizer after paint & passive effects
+  // biome-ignore lint/correctness/useExhaustiveDependencies: pathname is used as a trigger for scroll-to-top on navigation
   useEffect(() => {
-    // Immediate run after paint (helps override old component unmount/revert side effects)
     handleScroll('auto')
-
-    // Double-check inside requestAnimationFrame to catch concurrent renders or dynamic layout recalculations
-    const rafId = requestAnimationFrame(() => {
-      handleScroll('auto')
-      // Dispatch resize event so external components/scroll libraries (like GSAP ScrollTrigger) recalculate trigger offsets
-      window.dispatchEvent(new Event('resize'))
-    })
-
-    return () => cancelAnimationFrame(rafId)
   }, [pathname, hash])
 
   return null

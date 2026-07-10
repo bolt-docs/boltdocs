@@ -137,7 +137,9 @@ export function BoltdocsShell({
                     routes={routes}
                   />
                   <ErrorBoundary>
-                    <Outlet />
+                    <div className="boltdocs-shell-content h-screen overflow-y-auto">
+                      <Outlet />
+                    </div>
                   </ErrorBoundary>
                 </BoltdocsProvider>
               </CollectionsContext.Provider>

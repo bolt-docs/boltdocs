@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react'
 import { createPortal } from 'react-dom'
-import { Toolbar, ToolbarButton } from './toolbar'
-import { CloseIcon } from './icons'
+import { Toolbar } from './toolbar'
 import { useZoomPan } from './use-zoom-pan'
 import { cn } from 'boltdocs/client'
 
@@ -14,7 +13,6 @@ export function MermaidFullscreen({ svgStr, onClose }: MermaidFullscreenProps) {
   const [instanceId] = useState(() =>
     Math.random().toString(36).substring(2, 9),
   )
-
   const {
     state: zoomPan,
     resetZoom,

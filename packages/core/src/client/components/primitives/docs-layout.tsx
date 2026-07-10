@@ -60,7 +60,6 @@ function Content({ children, className, style }: SlotProps) {
     <main
       className={cn(
         'boltdocs-content flex-1 min-w-0 overflow-y-auto',
-        'contain-layout', // Optimization: isolate main content layout
         className,
       )}
       style={style}

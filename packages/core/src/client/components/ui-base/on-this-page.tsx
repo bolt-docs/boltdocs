@@ -8,7 +8,9 @@ export function OnThisPage({
   communityHelp,
   filePath,
 }: OnThisPageProps) {
-  if (headings.length === 0) return null
+  if (headings.length === 0) {
+    return <nav className="w-toc shrink-0 hidden xl:block" aria-hidden="true" />
+  }
 
   return (
     <OTP.Root>
