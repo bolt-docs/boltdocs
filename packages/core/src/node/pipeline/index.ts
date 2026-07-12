@@ -58,7 +58,8 @@ export class Pipeline<TContext> {
         const failedStep = stepGroup.find(
           (s) => !stepResults.some((r) => r.name === s.name && r.success),
         )
-        const failedName = failedStep?.name || stepGroup.map((s) => s.name).join(' | ')
+        const failedName =
+          failedStep?.name || stepGroup.map((s) => s.name).join(' | ')
 
         stepResults.push({
           name: failedName,
@@ -72,9 +73,7 @@ export class Pipeline<TContext> {
           .filter((r) => r.success)
           .reverse()) {
           const allSteps = this.steps.flat()
-          const stepToRollback = allSteps.find(
-            (s) => s.name === completed.name,
-          )
+          const stepToRollback = allSteps.find((s) => s.name === completed.name)
           if (stepToRollback?.rollback) {
             try {
               await stepToRollback.rollback(context)

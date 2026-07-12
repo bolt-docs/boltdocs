@@ -86,18 +86,20 @@ function getSourceFiles(dir: string): string[] {
   const files: string[] = []
   if (!fs.existsSync(dir)) return files
 
-  const list = fs.readdirSync(dir, { withFileTypes: true })
-  for (const dirent of list) {
-    if (dirent.name.startsWith('.') || IGNORE_DIRS.has(dirent.name)) continue
+  // Use Node 18+ recursive readdir for non-blocking directory scan
+  const entries = fs.readdirSync(dir, { withFileTypes: true, recursive: true })
+  for (const entry of entries) {
+    if (!entry.isFile()) continue
+    if (entry.name.startsWith('.')) continue
 
-    const filePath = join(dir, dirent.name)
-    if (dirent.isDirectory()) {
-      files.push(...getSourceFiles(filePath))
-    } else {
-      const ext = '.' + dirent.name.split('.').pop()?.toLowerCase()
-      if (SOURCE_EXTS.has(ext)) {
-        files.push(filePath)
-      }
+    // Skip ignored directories (check parent path)
+    const relativePath = String(entry.parentPath ?? entry.path)
+    const segments = relativePath.split('/').slice(-1)
+    if (segments.some((s) => IGNORE_DIRS.has(s))) continue
+
+    const ext = '.' + entry.name.split('.').pop()?.toLowerCase()
+    if (SOURCE_EXTS.has(ext)) {
+      files.push(join(relativePath, entry.name))
     }
   }
   return files
@@ -143,6 +145,16 @@ function computeClientCodeHash(
       return _cachedHash
     }
 
+    // Single pass: stat each file once and collect results for both
+    // the pre-check and the hash computation.
+    const fileStats = new Array<{ file: string; mtime: number; size: number }>(
+      files.length,
+    )
+    for (let i = 0; i < files.length; i++) {
+      const stat = fs.statSync(files[i])
+      fileStats[i] = { file: files[i], mtime: stat.mtimeMs, size: stat.size }
+    }
+
     // Lightweight pre-check: compare file count + most recent mtime
     // against a persisted meta file. If unchanged, skip the full SHA-256 scan.
     if (cacheDir) {
@@ -151,13 +163,8 @@ function computeClientCodeHash(
       try {
         if (fs.existsSync(metaPath) && fs.existsSync(hashFile)) {
           const meta = JSON.parse(fs.readFileSync(metaPath, 'utf-8'))
-          const lastMtime = Math.max(
-            ...files.map((f) => fs.statSync(f).mtimeMs),
-          )
-          if (
-            meta.fileCount === files.length &&
-            meta.lastMtime === lastMtime
-          ) {
+          const lastMtime = Math.max(...fileStats.map((s) => s.mtime))
+          if (meta.fileCount === files.length && meta.lastMtime === lastMtime) {
             const savedHash = fs.readFileSync(hashFile, 'utf-8').trim()
             if (savedHash) {
               _cachedHash = savedHash
@@ -171,13 +178,12 @@ function computeClientCodeHash(
       }
     }
 
+    // Compute hash using the already-collected stats (no additional stat calls)
     const hasher = crypto.createHash('sha256')
-    for (const file of files) {
-      const stat = fs.statSync(file)
-      const relPath = relative(root, file).replace(/\\/g, '/')
-      hasher.update(relPath)
-      hasher.update(stat.mtimeMs.toString())
-      hasher.update(stat.size.toString())
+    for (const { file, mtime, size } of fileStats) {
+      hasher.update(relative(root, file).replace(/\\/g, '/'))
+      hasher.update(mtime.toString())
+      hasher.update(size.toString())
     }
     const hash = hasher.digest('hex')
     _cachedHash = hash
@@ -186,9 +192,7 @@ function computeClientCodeHash(
     // Persist meta for next build's pre-check
     if (cacheDir) {
       try {
-        const lastMtime = Math.max(
-          ...files.map((f) => fs.statSync(f).mtimeMs),
-        )
+        const lastMtime = Math.max(...fileStats.map((s) => s.mtime))
         const metaPath = join(cacheDir, 'hash-meta.json')
         fs.mkdirSync(cacheDir, { recursive: true })
         fs.writeFileSync(
@@ -311,7 +315,12 @@ export async function build(
 
   const out = isAbsolute(outDir) ? outDir : join(root, outDir)
   const finalCacheDir = isAbsolute(cacheDir) ? cacheDir : join(root, cacheDir)
-  const currentClientHash = computeClientCodeHash(root, docsDirName, outDir, finalCacheDir)
+  const currentClientHash = computeClientCodeHash(
+    root,
+    docsDirName,
+    outDir,
+    finalCacheDir,
+  )
   const hash = currentClientHash.substring(0, 12)
   const ssgOut = join(root, '.vite-react-ssg-temp', turbo ? 'turbo-ssr' : hash)
 
@@ -580,7 +589,9 @@ export async function build(
 
   const PQueue = (await import('p-queue')).default || (await import('p-queue'))
   const queue = new PQueue({ concurrency })
-  const crittersQueue = new PQueue({ concurrency: Math.min(os.cpus().length, 4) })
+  const crittersQueue = new PQueue({
+    concurrency: Math.min(os.cpus().length, 4),
+  })
 
   const staticLoaderDataManifest: StaticLoaderDataManifest = {}
   let loaderDataFileCount = 0

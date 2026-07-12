@@ -58,16 +58,30 @@ export function isDocFile(filePath: string): boolean {
 }
 
 /**
+ * In-memory mtime cache to avoid repeated synchronous stat calls.
+ * Entries expire after 2 seconds — long enough to batch cache checks,
+ * short enough to detect changes within a dev session.
+ */
+const MTIME_TTL_MS = 2000
+const mtimeCache = new Map<string, { mtime: number; ts: number }>()
+
+/**
  * Retrieves the modification time (mtime) of a file in milliseconds.
- * Useful for caching strategies to detect if a file has changed.
+ * Uses an in-memory cache with TTL to avoid repeated stat syscalls.
  * Returns 0 if the file doesn't exist or cannot be accessed.
  *
  * @param filePath - The absolute path to the file
  * @returns The modification time in milliseconds, or 0 on error
  */
 export function getFileMtime(filePath: string): number {
+  const now = Date.now()
+  const cached = mtimeCache.get(filePath)
+  if (cached && now - cached.ts < MTIME_TTL_MS) return cached.mtime
+
   try {
-    return fs.statSync(filePath).mtimeMs
+    const mtime = fs.statSync(filePath).mtimeMs
+    mtimeCache.set(filePath, { mtime, ts: now })
+    return mtime
   } catch {
     return 0
   }

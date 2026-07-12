@@ -30,6 +30,24 @@ export function setupHmr(
 ): void {
   const pendingChanges = new Map<string, ReturnType<typeof setTimeout>>()
   const lowerDocsDir = normalizedDocsDir.toLowerCase()
+  // Pre-built lowercase index for O(1) module graph fallback lookup
+  let lowerModuleIndex: Map<string, any> | null = null
+
+  function getLowerModuleIndex(): Map<string, any> {
+    if (lowerModuleIndex) return lowerModuleIndex
+    lowerModuleIndex = new Map()
+    for (const [key, value] of server.moduleGraph.fileToModulesMap.entries()) {
+      try {
+        lowerModuleIndex.set(decodeURIComponent(key).toLowerCase(), value)
+      } catch {}
+    }
+    return lowerModuleIndex
+  }
+
+  // Invalidate the lowercase index when the module graph changes
+  server.moduleGraph.onFileChange(() => {
+    lowerModuleIndex = null
+  })
 
   const handleFileEvent = async (
     file: string,
@@ -162,19 +180,8 @@ export function setupHmr(
 
             let mods = server.moduleGraph.getModulesByFile(normalized)
             if (!mods || mods.size === 0) {
-              const normalizedLower = normalized.toLowerCase()
-              for (const [
-                key,
-                value,
-              ] of server.moduleGraph.fileToModulesMap.entries()) {
-                try {
-                  const decodedKey = decodeURIComponent(key)
-                  if (decodedKey.toLowerCase() === normalizedLower) {
-                    mods = value
-                    break
-                  }
-                } catch (e) {}
-              }
+              // O(1) lookup via pre-built lowercase index instead of O(N) scan
+              mods = getLowerModuleIndex().get(normalized.toLowerCase()) || null
             }
 
             if (mods && mods.size > 0) {

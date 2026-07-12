@@ -8,6 +8,7 @@ import fs from 'node:fs'
 
 import type { BoltdocsConfig } from '../config'
 import { mdxCache, MDX_PLUGIN_VERSION } from './cache'
+import { getFileMtime } from '../utils'
 import { rehypeShiki } from './rehype-shiki'
 import { remarkMetaPlugin } from './remark-meta-plugin'
 import type { PluginLifecycleManager } from '../plugins'
@@ -85,9 +86,14 @@ export function boltdocsMdxPlugin(
         return baseMdxPlugin.transform?.call(this, code, id, options)
       }
 
-      const contentHash = crypto.createHash('md5').update(code).digest('hex')
       const isProd = process.env.NODE_ENV === 'production' ? 'prod' : 'dev'
-      const cacheKey = `${cleanId}:${contentHash}:${isProd}:${MDX_PLUGIN_VERSION}`
+      // In dev, use file path + mtime instead of content hash.
+      // This allows cache hits across restarts when files haven't changed,
+      // and avoids the O(N) cost of hashing the full source on every transform.
+      const isDev = isProd === 'dev'
+      const cacheKey = isDev
+        ? `${cleanId}:${getFileMtime(cleanId)}:${isProd}:${MDX_PLUGIN_VERSION}`
+        : `${cleanId}:${crypto.createHash('md5').update(code).digest('hex')}:${isProd}:${MDX_PLUGIN_VERSION}`
 
       const cached = await mdxCache.getAsync(cacheKey)
       if (cached) {

@@ -18,6 +18,29 @@ export { getExternalRoutePaths } from './pages-external'
 let cachedFileList: string[] | null = null
 const localizedPathCache = new Map<string, string>()
 
+const PARSE_CONCURRENCY = 32
+
+async function runWithConcurrency<T, R>(
+  items: T[],
+  concurrency: number,
+  fn: (item: T) => Promise<R>,
+): Promise<R[]> {
+  const results = new Array<R>(items.length)
+  let index = 0
+
+  async function worker() {
+    while (index < items.length) {
+      const i = index++
+      results[i] = await fn(items[i])
+    }
+  }
+
+  await Promise.all(
+    Array.from({ length: Math.min(concurrency, items.length) }, () => worker()),
+  )
+  return results
+}
+
 // In-memory cache for parsed documents from native parser
 let _cachedNativeDocs: Record<string, any> | null = null
 
@@ -156,8 +179,10 @@ export async function generateRoutes(
           './parser'
         )
 
-        parsed = await Promise.all(
-          files.map(async (file) => {
+        parsed = await runWithConcurrency(
+          files,
+          PARSE_CONCURRENCY,
+          async (file) => {
             const cached = docCache.get(file)
             if (cached) return cached
 
@@ -184,12 +209,14 @@ export async function generateRoutes(
               docCache.set(file, result)
               return result
             }
-          }),
+          },
         )
       } else {
         const { parseDocFile } = await import('./parser')
-        parsed = await Promise.all(
-          files.map(async (file) => {
+        parsed = await runWithConcurrency(
+          files,
+          PARSE_CONCURRENCY,
+          async (file) => {
             const cached = docCache.get(file)
             if (cached) return cached
             const result = await parseDocFile(
@@ -200,7 +227,7 @@ export async function generateRoutes(
             )
             docCache.set(file, result)
             return result
-          }),
+          },
         )
       }
     }

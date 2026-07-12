@@ -53,6 +53,7 @@ export class FileCache<T> {
   private entries = new Map<string, { data: T; mtime: number }>()
   private readonly cachePath: string | null = null
   private readonly compress: boolean
+  private loaded = false
 
   constructor(
     options: { name?: string; root?: string; compress?: boolean } = {},
@@ -71,6 +72,7 @@ export class FileCache<T> {
    * Loads the cache.
    */
   async load(): Promise<void> {
+    if (this.loaded) return
     const config = getCacheConfig()
     if (config.noCache) return
     if (!this.cachePath) return
@@ -82,6 +84,7 @@ export class FileCache<T> {
       }
       const data = JSON.parse(raw.toString('utf-8'))
       this.entries = new Map(Object.entries(data))
+      this.loaded = true
     } catch (e: any) {
       if (e.code === 'ENOENT') return
       // Fallback: ignore cache errors
@@ -148,6 +151,7 @@ export class FileCache<T> {
 
   invalidateAll(): void {
     this.entries.clear()
+    this.loaded = false
   }
 
   pruneStale(currentFiles: Set<string>): void {

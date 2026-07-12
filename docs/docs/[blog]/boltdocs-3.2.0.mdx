@@ -1,0 +1,296 @@
+---
+title: "Boltdocs 3.2.0 — Warm Builds 5x Faster, WASM Syntax Highlighting, and Pipeline Timing"
+description: "Server build skip, client hash pre-check, Shiki WASM engine, critical CSS concurrency, and per-step pipeline timing — Phase 1 of Project Nitro completed"
+date: 2026-07-12
+cover: /blog-covers/Boltdocs-3.2.0.webp
+author:
+  name: Jesús Alcalá
+  avatar: /avatar.jpeg
+excerpt: "3.2.0 makes warm builds 5x faster by fixing the server build skip, adds WASM-powered syntax highlighting, parallelizes critical CSS processing, and shows you exactly where build time goes."
+tags: ["Release"]
+---
+
+## This one's about making cache actually work
+
+3.1.0 shipped the foundation — turbo mode, Sätteri, zig-critters. 3.2.0 is about what happens when you build again. And again. And again.
+
+<Callout type="info">
+  Warm builds (no code changes) dropped from ~50s to ~10s — a **5x speedup**. The server Vite build is now properly skipped when nothing changes, the client hash uses a lightweight pre-check, and critical CSS processing runs in parallel across CPU cores.
+</Callout>
+
+---
+
+## The cache problem
+
+Before 3.2.0, every build ran the full server Vite build from scratch — even when nothing changed. The root cause was a single line at the end of every build:
+
+```typescript
+await fs.remove(join(root, '.vite-react-ssg-temp'))
+```
+
+This deleted the entire SSR build output directory. The next build's `serverBuildSkipped` check required that directory to exist — but it was always gone. The result: the most expensive step in the pipeline (SSR Vite bundling) ran on every build, making the cache effectively useless.
+
+<Callout type="info">
+  **The fix**: Don't delete the SSR temp directory when the client build was bypassed. If the client code hash hasn't changed, the SSR bundle hasn't changed either — no need to rebuild it.
+</Callout>
+
+### Benchmark results
+
+| Build type | Before 3.2.0 | After 3.2.0 | Speedup |
+|------------|--------------|-------------|---------|
+| Cold (first build) | ~82s | ~78s | ~1.05x |
+| Warm (no changes) | ~50s | **~10s** | **~5x** |
+| Incremental (1 file edit) | ~50s | ~15s | **~3.3x** |
+
+The cold build barely changes because the server Vite build must run. But warm and incremental builds now skip it entirely — the server bundle is reused from the previous build.
+
+---
+
+## Mtime cache: 5.9x faster stat calls
+
+Every `FileCache.get()` called `fs.statSync()` to check if a file had changed — even when the same file was checked milliseconds apart. For 500 files across multiple cache layers, this meant thousands of blocking syscalls per build.
+
+The new in-memory mtime cache stores `{ mtime, ts }` per file with a 2-second TTL. Within the TTL window, the stat call is skipped entirely:
+
+```typescript
+const MTIME_TTL_MS = 2000
+const mtimeCache = new Map<string, { mtime: number; ts: number }>()
+
+export function getFileMtime(filePath: string): number {
+  const now = Date.now()
+  const cached = mtimeCache.get(filePath)
+  if (cached && now - cached.ts < MTIME_TTL_MS) return cached.mtime
+
+  const mtime = fs.statSync(filePath).mtimeMs
+  mtimeCache.set(filePath, { mtime, ts: now })
+  return mtime
+}
+```
+
+| Metric | Before | After | Speedup |
+|--------|--------|-------|---------|
+| 5 files × 500 rounds | 18.6ms | 3.2ms | **5.9x** |
+
+---
+
+## Client hash: single stat per file
+
+`computeClientCodeHash()` was calling `fs.statSync()` up to **3 times per file** — once for the pre-check `Math.max()`, once for the hash computation, and once more for the meta persistence. The new implementation does a single pass, collecting all stats upfront and reusing them for every purpose:
+
+```typescript
+// Single pass: stat each file once
+const fileStats = files.map(file => {
+  const stat = fs.statSync(file)
+  return { file, mtime: stat.mtimeMs, size: stat.size }
+})
+
+// Pre-check uses fileStats — no extra stat calls
+const lastMtime = Math.max(...fileStats.map(s => s.mtime))
+
+// Hash uses the same fileStats
+for (const { file, mtime, size } of fileStats) {
+  hasher.update(relative(root, file)).update(mtime.toString()).update(size.toString())
+}
+```
+
+For a project with 500 files, this reduces stat calls from ~1500 to 500 — a **66% reduction**.
+
+---
+
+## MDX cache: path+mtime for dev mode
+
+The MDX cache key previously included a content hash (`crypto.createHash('md5').update(code)`), meaning the cache was invalidated on every keystroke. In dev mode, the cache now uses `file path + mtime` instead:
+
+```typescript
+// Before: invalidated on every content change
+const cacheKey = `${cleanId}:${contentHash}:${isProd}:${MDX_PLUGIN_VERSION}`
+
+// After: survives across dev restarts when files haven't changed
+const cacheKey = isDev
+  ? `${cleanId}:${getFileMtime(cleanId)}:${isProd}:${MDX_PLUGIN_VERSION}`
+  : `${cleanId}:${contentHash}:${isProd}:${MDX_PLUGIN_VERSION}`
+```
+
+This means the MDX transform cache is reused when you restart the dev server without changing any files — no more recompiling 176 MDX files from scratch.
+
+---
+
+## Bounded concurrency for route parsing
+
+Route parsing used `Promise.all(files.map(...))` with unbounded concurrency — launching all file parsers simultaneously. For projects with hundreds of files, this caused memory pressure and I/O contention.
+
+Now capped at 32 concurrent workers:
+
+```typescript
+parsed = await runWithConcurrency(files, 32, async (file) => {
+  const cached = docCache.get(file)
+  if (cached) return cached
+  const result = await parseDocFile(file, docsDir, finalBasePath, config)
+  docCache.set(file, result)
+  return result
+})
+```
+
+The worker pool pattern pulls items from a shared queue, keeping exactly 32 parsers running at any time — enough to saturate I/O without overwhelming memory.
+
+---
+
+## HMR: O(1) module graph lookup
+
+When a file changed, the HMR handler searched Vite's `fileToModulesMap` with a brute-force O(N) scan — iterating every entry and comparing decoded lowercase keys. For large projects with thousands of modules, this added latency to every content edit.
+
+The fix builds a pre-computed lowercase index on first use:
+
+```typescript
+let lowerModuleIndex: Map<string, any> | null = null
+
+function getLowerModuleIndex(): Map<string, any> {
+  if (lowerModuleIndex) return lowerModuleIndex
+  lowerModuleIndex = new Map()
+  for (const [key, value] of server.moduleGraph.fileToModulesMap.entries()) {
+    lowerModuleIndex.set(decodeURIComponent(key).toLowerCase(), value)
+  }
+  return lowerModuleIndex
+}
+
+// On file change:
+mods = getLowerModuleIndex().get(normalized.toLowerCase()) || null
+```
+
+The index is invalidated when the module graph changes (`onFileChange`), keeping lookups O(1) while staying consistent.
+
+---
+
+## docCache: no redundant disk reads
+
+`docCache.load()` was called on every `generateRoutes()` invocation — reading the entire cache from disk (potentially gzipped JSON) even when it was already loaded in memory. Now a `loaded` flag prevents re-reading:
+
+```typescript
+async load(): Promise<void> {
+  if (this.loaded) return  // Skip if already in memory
+  // ... read from disk ...
+  this.loaded = true
+}
+
+invalidateAll(): void {
+  this.entries.clear()
+  this.loaded = false  // Reset on invalidation
+}
+```
+
+---
+
+## Prewarming with route priority
+
+Previously, all routes were prewarmed in arbitrary order. Pages like `/docs/` and `/docs/getting-started` are visited first by most users, but they weren't prioritized.
+
+Now routes are sorted by priority before batching:
+
+```typescript
+const PRIORITY_PATTERNS = [/\/index\./i, /\/getting-started/i, /\/intro/i, /\/readme/i]
+
+const files = routes
+  .filter(r => r.filePath)
+  .map(r => r.filePath)
+  .sort((a, b) => getRoutePriority(a) - getRoutePriority(b))
+```
+
+The delay was also increased from 0ms to 150ms, giving the first page request a head start before prewarming consumes CPU.
+
+---
+
+## Shiki WASM engine
+
+Syntax highlighting now uses the WASM-based Oniguruma engine instead of the JavaScript regex engine:
+
+```typescript
+// Before
+import { createJavaScriptRegexEngine } from 'shiki/engine/javascript'
+engine: createJavaScriptRegexEngine()
+
+// After
+import { createOnigurumaEngine } from '@shikijs/engine-oniguruma'
+engine: createOnigurumaEngine(import('shiki/wasm'))
+```
+
+| Metric | JS Regex | WASM Oniguruma | Difference |
+|--------|----------|----------------|------------|
+| 3 langs × 50 rounds | 1101ms | 959ms | **13% faster** |
+| Per iteration | 22.0ms | 17.7ms | **4.3ms saved** |
+
+---
+
+## Critical CSS concurrency
+
+The Beasties critical CSS processor was running at `concurrency: 1` — processing 174 pages one at a time. Now it runs at `concurrency: min(cpus, 4)`, processing up to 4 pages in parallel:
+
+```typescript
+// Before
+const crittersQueue = new PQueue({ concurrency: 1 })
+
+// After
+const crittersQueue = new PQueue({ concurrency: Math.min(os.cpus().length, 4) })
+```
+
+---
+
+## Pipeline parallelism
+
+Two independent pipeline steps — SEO validation and type generation — now run in parallel:
+
+```typescript
+// Before
+.addStep(new SEOValidateStep())
+.addStep(new TypeGenerateStep())
+
+// After
+.addParallelSteps([new SEOValidateStep(), new TypeGenerateStep()])
+```
+
+---
+
+## Pipeline timing logs
+
+The build now reports per-step timing:
+
+```
+[pipeline] Build steps:
+  ConfigResolve        52ms
+  RouteGenerate        11ms
+  SEOValidate          7ms
+  TypeGenerate         7ms
+  SSGBuild             5.6s
+  SEOWrite             4ms
+  Total                6.7s
+```
+
+---
+
+## Dev mode: no gzip
+
+`TransformCache` was gzipping every cache shard on write — even in dev mode. Now compression is skipped when `NODE_ENV !== 'production'`.
+
+---
+
+## Other improvements
+
+- **Pipeline `addParallelSteps()`** — new API for running independent pipeline steps concurrently, with automatic rollback on failure
+- **Server build skip preserved across builds** — `.vite-react-ssg-temp` no longer deleted when client code hasn't changed
+- **Hash meta persistence** — `hash-meta.json` for fast cache validation without full directory scans
+- **Mermaid fullscreen animations** — entrance/exit animations for the fullscreen overlay
+- **External page scroll fix** — removed `overflow: hidden` from `html, body`
+- **Invalid Tailwind classes fixed** — `from-bg-main` → `from-main`, `-z-1` → `-z-[1]`
+
+---
+
+## Upgrading
+
+No breaking changes. Update and you're done:
+
+```bash
+pnpm add boltdocs@latest
+```
+
+Warm builds are now automatically faster — no config changes needed.
+
+Check the [full docs](/docs/) to explore everything new.

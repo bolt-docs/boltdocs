@@ -19,6 +19,7 @@ import crypto from 'node:crypto'
 import fs from 'node:fs'
 import { join, relative } from 'node:path'
 import { gzipSync } from 'node:zlib'
+import { getFileMtime } from '../../packages/core/src/node/utils'
 
 const SAMPLE_TS = `
 import { useState, useEffect } from 'react'
@@ -111,11 +112,16 @@ describe('Shiki: WASM vs JS Regex Engine', () => {
     const start = performance.now()
     for (let i = 0; i < ROUNDS; i++) {
       for (const sample of SAMPLES) {
-        highlighter.codeToHtml(sample.code, { lang: sample.lang, theme: 'github-light' })
+        highlighter.codeToHtml(sample.code, {
+          lang: sample.lang,
+          theme: 'github-light',
+        })
       }
     }
     const elapsed = performance.now() - start
-    console.log(`\n  JS regex (default):  ${elapsed.toFixed(1)}ms  (${ROUNDS}×${SAMPLES.length})`)
+    console.log(
+      `\n  JS regex (default):  ${elapsed.toFixed(1)}ms  (${ROUNDS}×${SAMPLES.length})`,
+    )
     console.log(`  Per iteration:       ${(elapsed / ROUNDS).toFixed(2)}ms`)
     await highlighter.dispose()
   })
@@ -137,11 +143,16 @@ describe('Shiki: WASM vs JS Regex Engine', () => {
     const start = performance.now()
     for (let i = 0; i < ROUNDS; i++) {
       for (const sample of SAMPLES) {
-        highlighter.codeToHtml(sample.code, { lang: sample.lang, theme: 'github-light' })
+        highlighter.codeToHtml(sample.code, {
+          lang: sample.lang,
+          theme: 'github-light',
+        })
       }
     }
     const elapsed = performance.now() - start
-    console.log(`\n  WASM oniguruma:      ${elapsed.toFixed(1)}ms  (${ROUNDS}×${SAMPLES.length})`)
+    console.log(
+      `\n  WASM oniguruma:      ${elapsed.toFixed(1)}ms  (${ROUNDS}×${SAMPLES.length})`,
+    )
     console.log(`  Per iteration:       ${(elapsed / ROUNDS).toFixed(2)}ms`)
     await highlighter.dispose()
   })
@@ -178,8 +189,15 @@ describe('Pipeline: Sequential vs Parallel', () => {
     await sleep(STEPS[5].ms) // SEOWrite
     const elapsed = performance.now() - start
     const total = STEPS.reduce((s, st) => s + st.ms, 0)
-    const parallel = STEPS[0].ms + STEPS[1].ms + Math.max(STEPS[2].ms, STEPS[3].ms) + STEPS[4].ms + STEPS[5].ms
-    console.log(`\n  Parallel:    ${elapsed.toFixed(0)}ms  (theoretical: ${parallel}ms)`)
+    const parallel =
+      STEPS[0].ms +
+      STEPS[1].ms +
+      Math.max(STEPS[2].ms, STEPS[3].ms) +
+      STEPS[4].ms +
+      STEPS[5].ms
+    console.log(
+      `\n  Parallel:    ${elapsed.toFixed(0)}ms  (theoretical: ${parallel}ms)`,
+    )
     console.log(`  Savings:     ~${total - parallel}ms per build`)
   })
 })
@@ -203,7 +221,9 @@ describe('Gzip: Compression On vs Off', () => {
     const elapsed = performance.now() - start
     const ratio = ((1 - gzipSync(buf).length / buf.length) * 100).toFixed(1)
     console.log(`\n  Gzip ON:   ${elapsed.toFixed(1)}ms  (100 iters)`)
-    console.log(`  Size:      ${buf.length} → ${gzipSync(buf).length} bytes (${ratio}% reduction)`)
+    console.log(
+      `  Size:      ${buf.length} → ${gzipSync(buf).length} bytes (${ratio}% reduction)`,
+    )
   })
 
   it('no compression (dev)', () => {
@@ -220,8 +240,24 @@ describe('Gzip: Compression On vs Off', () => {
 
 describe('Client Hash: Sync vs Async', () => {
   const ROOT = process.cwd()
-  const EXT = new Set(['.ts', '.tsx', '.js', '.jsx', '.css', '.json', '.md', '.mdx'])
-  const SKIP = new Set(['node_modules', '.git', '.boltdocs', '.turbo', 'dist', 'coverage'])
+  const EXT = new Set([
+    '.ts',
+    '.tsx',
+    '.js',
+    '.jsx',
+    '.css',
+    '.json',
+    '.md',
+    '.mdx',
+  ])
+  const SKIP = new Set([
+    'node_modules',
+    '.git',
+    '.boltdocs',
+    '.turbo',
+    'dist',
+    'coverage',
+  ])
 
   function listSync(dir: string): string[] {
     const out: string[] = []
@@ -230,21 +266,27 @@ describe('Client Hash: Sync vs Async', () => {
       if (d.name.startsWith('.') || SKIP.has(d.name)) continue
       const p = join(dir, d.name)
       if (d.isDirectory()) out.push(...listSync(p))
-      else if (EXT.has('.' + d.name.split('.').pop()?.toLowerCase())) out.push(p)
+      else if (EXT.has('.' + d.name.split('.').pop()?.toLowerCase()))
+        out.push(p)
     }
     return out
   }
 
   async function listAsync(dir: string): Promise<string[]> {
     const out: string[] = []
-    try { await fs.promises.access(dir) } catch { return out }
+    try {
+      await fs.promises.access(dir)
+    } catch {
+      return out
+    }
     const entries = await fs.promises.readdir(dir, { withFileTypes: true })
     const dirs: Promise<string[]>[] = []
     for (const d of entries) {
       if (d.name.startsWith('.') || SKIP.has(d.name)) continue
       const p = join(dir, d.name)
       if (d.isDirectory()) dirs.push(listAsync(p))
-      else if (EXT.has('.' + d.name.split('.').pop()?.toLowerCase())) out.push(p)
+      else if (EXT.has('.' + d.name.split('.').pop()?.toLowerCase()))
+        out.push(p)
     }
     for (const arr of await Promise.all(dirs)) out.push(...arr)
     return out
@@ -256,11 +298,15 @@ describe('Client Hash: Sync vs Async', () => {
     const h = crypto.createHash('sha256')
     for (const f of files) {
       const s = fs.statSync(f)
-      h.update(relative(ROOT, f)).update(s.mtimeMs.toString()).update(s.size.toString())
+      h.update(relative(ROOT, f))
+        .update(s.mtimeMs.toString())
+        .update(s.size.toString())
     }
     const hash = h.digest('hex')
     const elapsed = performance.now() - start
-    console.log(`\n  Sync:    ${elapsed.toFixed(1)}ms  (${files.length} files)  hash: ${hash.substring(0, 12)}`)
+    console.log(
+      `\n  Sync:    ${elapsed.toFixed(1)}ms  (${files.length} files)  hash: ${hash.substring(0, 12)}`,
+    )
   })
 
   it('async + Promise.all (new)', async () => {
@@ -269,11 +315,15 @@ describe('Client Hash: Sync vs Async', () => {
     const h = crypto.createHash('sha256')
     const stats = await Promise.all(files.map((f) => fs.promises.stat(f)))
     for (let i = 0; i < files.length; i++) {
-      h.update(relative(ROOT, files[i])).update(stats[i].mtimeMs.toString()).update(stats[i].size.toString())
+      h.update(relative(ROOT, files[i]))
+        .update(stats[i].mtimeMs.toString())
+        .update(stats[i].size.toString())
     }
     const hash = h.digest('hex')
     const elapsed = performance.now() - start
-    console.log(`\n  Async:   ${elapsed.toFixed(1)}ms  (${files.length} files)  hash: ${hash.substring(0, 12)}`)
+    console.log(
+      `\n  Async:   ${elapsed.toFixed(1)}ms  (${files.length} files)  hash: ${hash.substring(0, 12)}`,
+    )
   })
 
   it('sync vs async — simulated 2000 files (realistic project)', async () => {
@@ -287,9 +337,14 @@ describe('Client Hash: Sync vs Async', () => {
     for (let i = 0; i < fileCount; i++) {
       const subdir = join(tmpDir, String(i % 50))
       writePromises.push(
-        fs.promises.mkdir(subdir, { recursive: true }).then(() =>
-          fs.promises.writeFile(join(subdir, `file-${i}.ts`), `export const x${i} = ${i}`),
-        ),
+        fs.promises
+          .mkdir(subdir, { recursive: true })
+          .then(() =>
+            fs.promises.writeFile(
+              join(subdir, `file-${i}.ts`),
+              `export const x${i} = ${i}`,
+            ),
+          ),
       )
     }
     await Promise.all(writePromises)
@@ -300,7 +355,10 @@ describe('Client Hash: Sync vs Async', () => {
     const syncH = crypto.createHash('sha256')
     for (const f of syncFiles) {
       const s = fs.statSync(f)
-      syncH.update(relative(tmpDir, f)).update(s.mtimeMs.toString()).update(s.size.toString())
+      syncH
+        .update(relative(tmpDir, f))
+        .update(s.mtimeMs.toString())
+        .update(s.size.toString())
     }
     syncH.digest('hex')
     const syncElapsed = performance.now() - syncStart
@@ -309,9 +367,14 @@ describe('Client Hash: Sync vs Async', () => {
     const asyncStart = performance.now()
     const asyncFiles = (await listAsync(tmpDir)).sort()
     const asyncH = crypto.createHash('sha256')
-    const asyncStats = await Promise.all(asyncFiles.map((f) => fs.promises.stat(f)))
+    const asyncStats = await Promise.all(
+      asyncFiles.map((f) => fs.promises.stat(f)),
+    )
     for (let i = 0; i < asyncFiles.length; i++) {
-      asyncH.update(relative(tmpDir, asyncFiles[i])).update(asyncStats[i].mtimeMs.toString()).update(asyncStats[i].size.toString())
+      asyncH
+        .update(relative(tmpDir, asyncFiles[i]))
+        .update(asyncStats[i].mtimeMs.toString())
+        .update(asyncStats[i].size.toString())
     }
     asyncH.digest('hex')
     const asyncElapsed = performance.now() - asyncStart
@@ -321,5 +384,45 @@ describe('Client Hash: Sync vs Async', () => {
     console.log(`  Async:    ${asyncElapsed.toFixed(1)}ms`)
 
     await fs.promises.rm(tmpDir, { recursive: true, force: true })
+  })
+})
+
+// ─── Mtime Cache Benchmark ───────────────────────────────────────────────
+
+describe('Mtime Cache: stat on every call vs cached', () => {
+  it('statSync per call (old) vs getFileMtime cached (new)', () => {
+    const testFiles = [
+      join(process.cwd(), 'packages/core/src/node/cache.ts'),
+      join(process.cwd(), 'packages/core/src/node/utils.ts'),
+      join(process.cwd(), 'packages/core/src/node/routes/index.ts'),
+      join(process.cwd(), 'packages/plugin-ssg/src/node/build.ts'),
+      join(process.cwd(), 'packages/core/src/node/mdx/index.ts'),
+    ]
+
+    // Old: raw statSync per call
+    const ROUNDS = 500
+    const startOld = performance.now()
+    for (let i = 0; i < ROUNDS; i++) {
+      for (const f of testFiles) {
+        try {
+          fs.statSync(f).mtimeMs
+        } catch {}
+      }
+    }
+    const elapsedOld = performance.now() - startOld
+
+    // New: getFileMtime with in-memory cache
+    const startNew = performance.now()
+    for (let i = 0; i < ROUNDS; i++) {
+      for (const f of testFiles) {
+        getFileMtime(f)
+      }
+    }
+    const elapsedNew = performance.now() - startNew
+
+    console.log(`\n  ${testFiles.length} files × ${ROUNDS} rounds:`)
+    console.log(`  Raw statSync:      ${elapsedOld.toFixed(1)}ms`)
+    console.log(`  getFileMtime:      ${elapsedNew.toFixed(1)}ms`)
+    console.log(`  Speedup:           ${(elapsedOld / elapsedNew).toFixed(1)}x`)
   })
 })
