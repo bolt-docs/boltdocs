@@ -97,10 +97,11 @@ export function Mermaid({ chart, config }: MermaidProps) {
             style={{
               transform: `translate(${zoomPan.posX}px, ${zoomPan.posY}px) scale(${zoomPan.scale})`,
               transformOrigin: 'center center',
+              willChange: 'transform',
               transition:
                 zoomPan.isDragging || !zoomPan.hasInteracted
                   ? 'none'
-                  : 'transform 0.15s ease-out',
+                  : 'transform 0.25s cubic-bezier(0.25, 0.1, 0.25, 1)',
             }}
             dangerouslySetInnerHTML={{ __html: svgStr }}
           />

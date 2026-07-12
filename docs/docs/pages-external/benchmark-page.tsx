@@ -141,7 +141,7 @@ export default function BenchmarkPage() {
       {/* Hero Section */}
       <section className="relative py-24 px-6 w-full overflow-hidden">
         <div className="absolute inset-0 -z-10">
-          <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-primary-400/10 via-bg-main to-bg-main" />
+          <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-primary-400/10 via-main to-main" />
         </div>
 
         <div className="max-w-4xl mx-auto text-center">

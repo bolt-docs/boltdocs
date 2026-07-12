@@ -61,8 +61,8 @@ export const Integrations = () => {
           ))}
         </div>
 
-        <div className="absolute inset-y-0 left-0 w-40 bg-linear-to-r from-bg-main to-transparent z-10 pointer-events-none" />
-        <div className="absolute inset-y-0 right-0 w-40 bg-linear-to-l from-bg-main to-transparent z-10 pointer-events-none" />
+        <div className="absolute inset-y-0 left-0 w-40 bg-linear-to-r from-main to-transparent z-10 pointer-events-none" />
+        <div className="absolute inset-y-0 right-0 w-40 bg-linear-to-l from-main to-transparent z-10 pointer-events-none" />
       </div>
     </section>
   )

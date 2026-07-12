@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { createPortal } from 'react-dom'
 import { Toolbar } from './toolbar'
 import { useZoomPan } from './use-zoom-pan'
@@ -13,6 +13,9 @@ export function MermaidFullscreen({ svgStr, onClose }: MermaidFullscreenProps) {
   const [instanceId] = useState(() =>
     Math.random().toString(36).substring(2, 9),
   )
+  const [isVisible, setIsVisible] = useState(false)
+  const [isClosing, setIsClosing] = useState(false)
+
   const {
     state: zoomPan,
     resetZoom,
@@ -21,14 +24,27 @@ export function MermaidFullscreen({ svgStr, onClose }: MermaidFullscreenProps) {
     interactiveProps,
   } = useZoomPan()
 
+  // Animate in on mount
+  useEffect(() => {
+    const frame = requestAnimationFrame(() => setIsVisible(true))
+    return () => cancelAnimationFrame(frame)
+  }, [])
+
+  // Animated close
+  const handleClose = useCallback(() => {
+    setIsClosing(true)
+    setIsVisible(false)
+    setTimeout(() => onClose(), 200)
+  }, [onClose])
+
   // Close on Escape
   useEffect(() => {
     const handleKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose()
+      if (e.key === 'Escape') handleClose()
     }
     window.addEventListener('keydown', handleKey)
     return () => window.removeEventListener('keydown', handleKey)
-  }, [onClose])
+  }, [handleClose])
 
   // Lock body and scroll container scrolling
   useEffect(() => {
@@ -40,10 +56,16 @@ export function MermaidFullscreen({ svgStr, onClose }: MermaidFullscreenProps) {
 
   return createPortal(
     <div
-      className="fixed inset-0 z-[1000] flex items-center justify-center bg-main/90 backdrop-blur-md p-6 sm:p-10"
+      className={cn(
+        'fixed inset-0 z-[1000] flex items-center justify-center p-6 sm:p-10 transition-all duration-200 ease-out',
+        isVisible && !isClosing
+          ? 'bg-main/90 backdrop-blur-md opacity-100'
+          : 'bg-main/0 backdrop-blur-none opacity-0',
+      )}
       role="dialog"
       aria-label="Mermaid diagram fullscreen"
       tabIndex={-1}
+      onClick={handleClose}
     >
       <style>{`
         .mermaid-lock-scroll,
@@ -63,7 +85,10 @@ export function MermaidFullscreen({ svgStr, onClose }: MermaidFullscreenProps) {
 
       <div
         className={cn(
-          'relative flex w-full bg-main p-2 max-w-7xl flex-col rounded-xl border border-subtle shadow-2xl overflow-hidden',
+          'relative flex w-full bg-main p-2 max-w-7xl flex-col rounded-xl border border-subtle shadow-2xl overflow-hidden transition-all duration-200 ease-out',
+          isVisible && !isClosing
+            ? 'opacity-100 scale-100 translate-y-0'
+            : 'opacity-0 scale-95 translate-y-4',
           {
             'cursor-grabbing': zoomPan.isDragging,
             'cursor-grab': !zoomPan.isDragging,
@@ -72,11 +97,12 @@ export function MermaidFullscreen({ svgStr, onClose }: MermaidFullscreenProps) {
         style={{
           height: '70%',
         }}
+        onClick={(e) => e.stopPropagation()}
       >
         {/* Toolbar — top right */}
         <div className="absolute right-4 top-4 z-20 flex gap-1.5">
           <Toolbar
-            toggleFullscreen={onClose}
+            toggleFullscreen={handleClose}
             hasInteracted={zoomPan.hasInteracted}
             resetZoom={resetZoom}
             zoomIn={zoomIn}
@@ -100,10 +126,11 @@ export function MermaidFullscreen({ svgStr, onClose }: MermaidFullscreenProps) {
               style={{
                 transform: `translate(${zoomPan.posX}px, ${zoomPan.posY}px) scale(${zoomPan.scale})`,
                 transformOrigin: 'center center',
+                willChange: 'transform',
                 transition:
                   zoomPan.isDragging || !zoomPan.hasInteracted
                     ? 'none'
-                    : 'transform 0.15s ease-out',
+                    : 'transform 0.25s cubic-bezier(0.25, 0.1, 0.25, 1)',
               }}
               dangerouslySetInnerHTML={{ __html: svgStr }}
             />

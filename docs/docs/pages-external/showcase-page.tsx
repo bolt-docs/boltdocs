@@ -202,7 +202,7 @@ export default function ShowcasePage() {
       {/* Hero Section */}
       <section className="relative py-20 px-6 w-full overflow-hidden">
         <div className="absolute inset-0 -z-10">
-          <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-primary-400/15 via-bg-main to-bg-main" />
+          <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-primary-400/15 via-main to-main" />
         </div>
 
         <div className="max-w-4xl mx-auto text-center">
