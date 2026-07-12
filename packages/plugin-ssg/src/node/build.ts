@@ -81,20 +81,17 @@ const IGNORE_DIRS = new Set([
   'public',
 ])
 
-async function getSourceFiles(dir: string): Promise<string[]> {
+function getSourceFiles(dir: string): string[] {
   const files: string[] = []
-  const exists = await fs.access(dir).then(() => true, () => false)
-  if (!exists) return files
+  if (!fs.existsSync(dir)) return files
 
-  const list = await fs.readdir(dir, { withFileTypes: true })
-  const subdirs: Promise<string[]>[] = []
-
+  const list = fs.readdirSync(dir, { withFileTypes: true })
   for (const dirent of list) {
     if (dirent.name.startsWith('.') || IGNORE_DIRS.has(dirent.name)) continue
 
     const filePath = join(dir, dirent.name)
     if (dirent.isDirectory()) {
-      subdirs.push(getSourceFiles(filePath))
+      files.push(...getSourceFiles(filePath))
     } else {
       const ext = '.' + dirent.name.split('.').pop()?.toLowerCase()
       if (SOURCE_EXTS.has(ext)) {
@@ -102,25 +99,24 @@ async function getSourceFiles(dir: string): Promise<string[]> {
       }
     }
   }
-
-  const nested = await Promise.all(subdirs)
-  for (const arr of nested) files.push(...arr)
   return files
 }
 
 let _cachedHash: string | null = null
 let _cachedHashKey: string | null = null
 
-async function computeClientCodeHash(
+function computeClientCodeHash(
   root: string,
   docsDirName: string,
   _outDirName: string,
-): Promise<string> {
+): string {
   try {
     const files: string[] = []
 
     const docsDir = join(root, docsDirName)
-    files.push(...(await getSourceFiles(docsDir)))
+    if (fs.existsSync(docsDir)) {
+      files.push(...getSourceFiles(docsDir))
+    }
 
     const CONFIG_FILES = [
       'boltdocs.config.ts',
@@ -132,25 +128,26 @@ async function computeClientCodeHash(
     ]
     for (const configFile of CONFIG_FILES) {
       const configPath = join(root, configFile)
-      const exists = await fs.access(configPath).then(() => true, () => false)
-      if (exists) files.push(configPath)
+      if (fs.existsSync(configPath)) {
+        files.push(configPath)
+      }
     }
 
     files.sort()
 
-    // Build a fast-change key from file count + first/last paths
+    // Fast-change key: file count + first/last paths skip full recompute
     const fastKey = `${files.length}:${files[0]}:${files[files.length - 1]}`
     if (_cachedHash && _cachedHashKey === fastKey) {
       return _cachedHash
     }
 
     const hasher = crypto.createHash('sha256')
-    const stats = await Promise.all(files.map((f) => fs.stat(f)))
-    for (let i = 0; i < files.length; i++) {
-      const relPath = relative(root, files[i]).replace(/\\/g, '/')
+    for (const file of files) {
+      const stat = fs.statSync(file)
+      const relPath = relative(root, file).replace(/\\/g, '/')
       hasher.update(relPath)
-      hasher.update(stats[i].mtimeMs.toString())
-      hasher.update(stats[i].size.toString())
+      hasher.update(stat.mtimeMs.toString())
+      hasher.update(stat.size.toString())
     }
     const hash = hasher.digest('hex')
     _cachedHash = hash
@@ -265,7 +262,7 @@ export async function build(
   }
 
   const out = isAbsolute(outDir) ? outDir : join(root, outDir)
-  const currentClientHash = await computeClientCodeHash(root, docsDirName, outDir)
+  const currentClientHash = computeClientCodeHash(root, docsDirName, outDir)
   const hash = currentClientHash.substring(0, 12)
   const ssgOut = join(root, '.vite-react-ssg-temp', turbo ? 'turbo-ssr' : hash)
 
