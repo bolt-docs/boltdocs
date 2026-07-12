@@ -275,7 +275,7 @@ El build ahora reporta el tiempo por pasos:
 ## Otras mejoras
 
 - **`addParallelSteps()` del Pipeline** — nueva API para ejecutar pasos independientes concurrentemente, con rollback automático en fallo
-- **Skip del server build preservado entre builds** — `.vite-react-ssg-temp` ya no se elimina cuando el código del cliente no ha cambiado
+- **Skip del server build preservado entre builds** — el output SSR ahora vive bajo `.boltdocs/build/ssr/` y ya no se elimina cuando el código del cliente no ha cambiado
 - **Persistencia del meta del hash** — `hash-meta.json` para validación rápida de caché sin escaneos completos de directorio
 - **Animaciones del fullscreen de Mermaid** — animaciones de entrada/salida para el overlay fullscreen
 - **Corrección del scroll de páginas externas** — removido `overflow: hidden` de `html, body`

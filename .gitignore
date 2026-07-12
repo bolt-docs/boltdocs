@@ -16,7 +16,6 @@ out/
 .turbo/
 .cache/
 releases/
-.vite-react-ssg-temp/
 
 # Environment variables and secrets
 .env

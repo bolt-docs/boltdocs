@@ -275,7 +275,7 @@ The build now reports per-step timing:
 ## Other improvements
 
 - **Pipeline `addParallelSteps()`** — new API for running independent pipeline steps concurrently, with automatic rollback on failure
-- **Server build skip preserved across builds** — `.vite-react-ssg-temp` no longer deleted when client code hasn't changed
+- **Server build skip preserved across builds** — SSR output now lives under `.boltdocs/build/ssr/` and is no longer deleted when client code hasn't changed
 - **Hash meta persistence** — `hash-meta.json` for fast cache validation without full directory scans
 - **Mermaid fullscreen animations** — entrance/exit animations for the fullscreen overlay
 - **External page scroll fix** — removed `overflow: hidden` from `html, body`

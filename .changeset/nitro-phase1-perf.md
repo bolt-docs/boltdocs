@@ -7,7 +7,8 @@ Boltdocs 3.2.0 — Nitro Phase 1 performance optimizations
 
 ### Cache & Build Performance
 
-- **Server build skip preserved**: `.vite-react-ssg-temp` no longer deleted when client code hasn't changed, making warm builds skip the expensive SSR Vite bundle (~40s saved)
+- **SSR output consolidated**: Moved from `.vite-react-ssg-temp/` to `.boltdocs/build/ssr/` — all build artifacts now live under a single `.boltdocs/` directory
+- **Server build skip preserved**: SSR output no longer deleted when client code hasn't changed, making warm builds skip the expensive SSR Vite bundle (~40s saved)
 - **Mtime cache in memory**: `getFileMtime()` now uses an in-memory TTL cache (2s) instead of `fs.statSync()` on every call — 5.9x faster for repeated stat calls
 - **Client hash single stat**: `computeClientCodeHash()` reduced from 3 stat calls per file to 1 — 66% fewer syscalls
 - **Hash meta persistence**: `hash-meta.json` stores file count + last mtime for fast cache validation without full directory scans

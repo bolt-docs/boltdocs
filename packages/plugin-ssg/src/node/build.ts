@@ -322,7 +322,7 @@ export async function build(
     finalCacheDir,
   )
   const hash = currentClientHash.substring(0, 12)
-  const ssgOut = join(root, '.vite-react-ssg-temp', turbo ? 'turbo-ssr' : hash)
+  const ssgOut = join(finalCacheDir, 'ssr', turbo ? 'turbo-ssr' : hash)
 
   const hashFile = join(finalCacheDir, 'client-hash.txt')
   const templateHtmlFile = join(finalCacheDir, 'template-index.html')
@@ -347,7 +347,7 @@ export async function build(
   function shouldSuppressLog(msg: string): boolean {
     return (
       msg.startsWith('dist/') ||
-      msg.startsWith('.vite-react-ssg-temp/') ||
+      msg.startsWith('.boltdocs/build/ssr/') ||
       msg.startsWith('rendering chunks') ||
       msg === 'computing gzip size...' ||
       (msg.includes('built in') && msg.includes('s'))
@@ -982,7 +982,7 @@ export async function build(
   // Only clean up SSR temp dir when client build actually ran (hash changed).
   // When canBypassClientBuild is true, preserve it for serverBuildSkipped check.
   if (!canBypassClientBuild) {
-    await fs.remove(join(root, '.vite-react-ssg-temp'))
+    await fs.remove(join(finalCacheDir, 'ssr'))
   }
 
   unmock()
