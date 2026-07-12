@@ -15,6 +15,7 @@ import type {
   ViteReactSSGOptions,
 } from '../types'
 import { createRequire } from 'node:module'
+import os from 'node:os'
 import { dirname, isAbsolute, join, relative } from 'node:path'
 import fs from 'fs-extra'
 import {
@@ -109,6 +110,7 @@ function computeClientCodeHash(
   root: string,
   docsDirName: string,
   _outDirName: string,
+  cacheDir?: string,
 ): string {
   try {
     const files: string[] = []
@@ -141,6 +143,34 @@ function computeClientCodeHash(
       return _cachedHash
     }
 
+    // Lightweight pre-check: compare file count + most recent mtime
+    // against a persisted meta file. If unchanged, skip the full SHA-256 scan.
+    if (cacheDir) {
+      const metaPath = join(cacheDir, 'hash-meta.json')
+      const hashFile = join(cacheDir, 'client-hash.txt')
+      try {
+        if (fs.existsSync(metaPath) && fs.existsSync(hashFile)) {
+          const meta = JSON.parse(fs.readFileSync(metaPath, 'utf-8'))
+          const lastMtime = Math.max(
+            ...files.map((f) => fs.statSync(f).mtimeMs),
+          )
+          if (
+            meta.fileCount === files.length &&
+            meta.lastMtime === lastMtime
+          ) {
+            const savedHash = fs.readFileSync(hashFile, 'utf-8').trim()
+            if (savedHash) {
+              _cachedHash = savedHash
+              _cachedHashKey = fastKey
+              return savedHash
+            }
+          }
+        }
+      } catch {
+        // Fall through to full scan
+      }
+    }
+
     const hasher = crypto.createHash('sha256')
     for (const file of files) {
       const stat = fs.statSync(file)
@@ -152,6 +182,24 @@ function computeClientCodeHash(
     const hash = hasher.digest('hex')
     _cachedHash = hash
     _cachedHashKey = fastKey
+
+    // Persist meta for next build's pre-check
+    if (cacheDir) {
+      try {
+        const lastMtime = Math.max(
+          ...files.map((f) => fs.statSync(f).mtimeMs),
+        )
+        const metaPath = join(cacheDir, 'hash-meta.json')
+        fs.mkdirSync(cacheDir, { recursive: true })
+        fs.writeFileSync(
+          metaPath,
+          JSON.stringify({ fileCount: files.length, lastMtime }),
+        )
+      } catch {
+        // Non-critical, ignore
+      }
+    }
+
     return hash
   } catch (e) {
     return Math.random().toString(36).substring(2, 12)
@@ -262,11 +310,11 @@ export async function build(
   }
 
   const out = isAbsolute(outDir) ? outDir : join(root, outDir)
-  const currentClientHash = computeClientCodeHash(root, docsDirName, outDir)
+  const finalCacheDir = isAbsolute(cacheDir) ? cacheDir : join(root, cacheDir)
+  const currentClientHash = computeClientCodeHash(root, docsDirName, outDir, finalCacheDir)
   const hash = currentClientHash.substring(0, 12)
   const ssgOut = join(root, '.vite-react-ssg-temp', turbo ? 'turbo-ssr' : hash)
 
-  const finalCacheDir = isAbsolute(cacheDir) ? cacheDir : join(root, cacheDir)
   const hashFile = join(finalCacheDir, 'client-hash.txt')
   const templateHtmlFile = join(finalCacheDir, 'template-index.html')
 
@@ -532,7 +580,7 @@ export async function build(
 
   const PQueue = (await import('p-queue')).default || (await import('p-queue'))
   const queue = new PQueue({ concurrency })
-  const crittersQueue = new PQueue({ concurrency: 1 })
+  const crittersQueue = new PQueue({ concurrency: Math.min(os.cpus().length, 4) })
 
   const staticLoaderDataManifest: StaticLoaderDataManifest = {}
   let loaderDataFileCount = 0
@@ -920,7 +968,11 @@ export async function build(
     `${colors.dim(`${outDir}/`)}${colors.cyan(`static-loader-data-manifest-${hash}.json`.padEnd(15, ' '))}  ${colors.dim(getSize(staticLoaderDataManifestString))}`,
   )
 
-  await fs.remove(join(root, '.vite-react-ssg-temp'))
+  // Only clean up SSR temp dir when client build actually ran (hash changed).
+  // When canBypassClientBuild is true, preserve it for serverBuildSkipped check.
+  if (!canBypassClientBuild) {
+    await fs.remove(join(root, '.vite-react-ssg-temp'))
+  }
 
   unmock()
   const pwaPlugin: { disabled: boolean; generateSW: () => Promise<unknown> } =

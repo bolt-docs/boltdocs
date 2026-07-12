@@ -36,6 +36,21 @@ export async function buildAction(
       process.exit(1)
     }
 
+    // Log per-step timing
+    console.log('')
+    console.log(colors.dim('[pipeline] Build steps:'))
+    for (const step of result.stepResults) {
+      const ms = step.duration < 1000
+        ? `${Math.round(step.duration)}ms`
+        : `${(step.duration / 1000).toFixed(1)}s`
+      console.log(`  ${colors.dim(step.name.padEnd(20))} ${ms}`)
+    }
+    const totalTime = result.timing.total < 1000
+      ? `${Math.round(result.timing.total)}ms`
+      : `${(result.timing.total / 1000).toFixed(1)}s`
+    console.log(`  ${colors.dim('Total'.padEnd(20))} ${colors.cyan(totalTime)}`)
+    console.log('')
+
     console.log(
       double([
         `SSG build completed in ${(Math.round(result.timing.total) / 1000).toFixed(1)}s`,
