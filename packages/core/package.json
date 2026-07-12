@@ -88,6 +88,7 @@
     "@bdocs/plugin-image-optimizer": "workspace:*",
     "@bdocs/ssg": "workspace:*",
     "@mdx-js/rollup": "3.1.1",
+    "@shikijs/engine-oniguruma": "3.23.0",
     "@tailwindcss/vite": "4.3.0",
     "@vitejs/plugin-react": "6.0.1",
     "cac": "7.0.0",

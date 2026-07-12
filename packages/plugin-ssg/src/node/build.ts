@@ -51,47 +51,50 @@ function buildBundlerOptions<T extends Record<string, unknown>>(
     : { rollupOptions: options }
 }
 
-function getSourceFiles(dir: string): string[] {
+const SOURCE_EXTS = new Set([
+  '.ts',
+  '.tsx',
+  '.js',
+  '.jsx',
+  '.css',
+  '.json',
+  '.md',
+  '.mdx',
+  '.html',
+  '.svg',
+  '.yaml',
+  '.yml',
+])
+
+const IGNORE_DIRS = new Set([
+  'node_modules',
+  '.git',
+  '.boltdocs',
+  '.turbo',
+  'dist',
+  'coverage',
+  '__tests__',
+  'test',
+  'tests',
+  '.next',
+  '.cache',
+  'public',
+])
+
+async function getSourceFiles(dir: string): Promise<string[]> {
   const files: string[] = []
-  if (!fs.existsSync(dir)) return files
+  const exists = await fs.access(dir).then(() => true, () => false)
+  if (!exists) return files
 
-  const SOURCE_EXTS = new Set([
-    '.ts',
-    '.tsx',
-    '.js',
-    '.jsx',
-    '.css',
-    '.json',
-    '.md',
-    '.mdx',
-    '.html',
-    '.svg',
-    '.yaml',
-    '.yml',
-  ])
+  const list = await fs.readdir(dir, { withFileTypes: true })
+  const subdirs: Promise<string[]>[] = []
 
-  const IGNORE_DIRS = new Set([
-    'node_modules',
-    '.git',
-    '.boltdocs',
-    '.turbo',
-    'dist',
-    'coverage',
-    '__tests__',
-    'test',
-    'tests',
-    '.next',
-    '.cache',
-    'public',
-  ])
-
-  const list = fs.readdirSync(dir, { withFileTypes: true })
   for (const dirent of list) {
     if (dirent.name.startsWith('.') || IGNORE_DIRS.has(dirent.name)) continue
 
     const filePath = join(dir, dirent.name)
     if (dirent.isDirectory()) {
-      files.push(...getSourceFiles(filePath))
+      subdirs.push(getSourceFiles(filePath))
     } else {
       const ext = '.' + dirent.name.split('.').pop()?.toLowerCase()
       if (SOURCE_EXTS.has(ext)) {
@@ -99,24 +102,26 @@ function getSourceFiles(dir: string): string[] {
       }
     }
   }
+
+  const nested = await Promise.all(subdirs)
+  for (const arr of nested) files.push(...arr)
   return files
 }
 
-function computeClientCodeHash(
+let _cachedHash: string | null = null
+let _cachedHashKey: string | null = null
+
+async function computeClientCodeHash(
   root: string,
   docsDirName: string,
-  outDirName: string,
-): string {
+  _outDirName: string,
+): Promise<string> {
   try {
     const files: string[] = []
 
-    // Hash only the docs directory contents — this is the client source
     const docsDir = join(root, docsDirName)
-    if (fs.existsSync(docsDir)) {
-      files.push(...getSourceFiles(docsDir))
-    }
+    files.push(...(await getSourceFiles(docsDir)))
 
-    // Hash config files that affect the client build
     const CONFIG_FILES = [
       'boltdocs.config.ts',
       'boltdocs.config.js',
@@ -127,25 +132,31 @@ function computeClientCodeHash(
     ]
     for (const configFile of CONFIG_FILES) {
       const configPath = join(root, configFile)
-      if (fs.existsSync(configPath)) {
-        files.push(configPath)
-      }
+      const exists = await fs.access(configPath).then(() => true, () => false)
+      if (exists) files.push(configPath)
     }
 
-    // Sort for deterministic hash
     files.sort()
 
-    const hasher = crypto.createHash('sha256')
-    for (const file of files) {
-      const stat = fs.statSync(file)
-      const relPath = relative(root, file).replace(/\\/g, '/')
-      hasher.update(relPath)
-      hasher.update(stat.mtimeMs.toString())
-      hasher.update(stat.size.toString())
+    // Build a fast-change key from file count + first/last paths
+    const fastKey = `${files.length}:${files[0]}:${files[files.length - 1]}`
+    if (_cachedHash && _cachedHashKey === fastKey) {
+      return _cachedHash
     }
-    return hasher.digest('hex')
+
+    const hasher = crypto.createHash('sha256')
+    const stats = await Promise.all(files.map((f) => fs.stat(f)))
+    for (let i = 0; i < files.length; i++) {
+      const relPath = relative(root, files[i]).replace(/\\/g, '/')
+      hasher.update(relPath)
+      hasher.update(stats[i].mtimeMs.toString())
+      hasher.update(stats[i].size.toString())
+    }
+    const hash = hasher.digest('hex')
+    _cachedHash = hash
+    _cachedHashKey = fastKey
+    return hash
   } catch (e) {
-    // If anything fails, return a random hash so we force rebuild
     return Math.random().toString(36).substring(2, 12)
   }
 }
@@ -254,7 +265,7 @@ export async function build(
   }
 
   const out = isAbsolute(outDir) ? outDir : join(root, outDir)
-  const currentClientHash = computeClientCodeHash(root, docsDirName, outDir)
+  const currentClientHash = await computeClientCodeHash(root, docsDirName, outDir)
   const hash = currentClientHash.substring(0, 12)
   const ssgOut = join(root, '.vite-react-ssg-temp', turbo ? 'turbo-ssr' : hash)
 

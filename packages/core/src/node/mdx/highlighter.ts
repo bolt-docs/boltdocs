@@ -1,4 +1,4 @@
-import { createJavaScriptRegexEngine } from 'shiki/engine/javascript'
+import { createOnigurumaEngine } from '@shikijs/engine-oniguruma'
 import {
   type HighlighterCore,
   type RegexEngine,
@@ -8,12 +8,12 @@ import { THEMES_BUILD } from './shiki-themes'
 import { LANG_BUILD, type Languages } from './shiki-langs'
 import type { ShikiTheme } from '../../shared/types'
 
-let jsEngine: RegexEngine | null = null
+let onigEngine: RegexEngine | null = null
 let highlighter: Promise<HighlighterCore> | null = null
 
-const getJsEngine = (): RegexEngine => {
-  jsEngine ??= createJavaScriptRegexEngine()
-  return jsEngine
+const getOnigEngine = (): RegexEngine => {
+  onigEngine ??= createOnigurumaEngine(import('shiki/wasm'))
+  return onigEngine
 }
 
 /**
@@ -29,7 +29,7 @@ const highlight = async (
   highlighter = createHighlighterCore({
     themes: THEMES_BUILD,
     langs: LANG_BUILD,
-    engine: getJsEngine(),
+    engine: getOnigEngine(),
   })
 
   return highlighter

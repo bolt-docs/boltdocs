@@ -422,11 +422,12 @@ export function logSecurityEvent(
  * Centralizes documented variables like BOLTDOCS_CACHE_DIR and BOLTDOCS_NO_CACHE.
  */
 export function getCacheConfig() {
+  const isDev = process.env.NODE_ENV !== 'production'
   return {
     dir: process.env.BOLTDOCS_CACHE_DIR || '.boltdocs/cache',
     noCache: process.env.BOLTDOCS_NO_CACHE === '1',
     lruLimit: parseInt(process.env.BOLTDOCS_CACHE_LRU_LIMIT || '2000', 10),
     lruTTL: parseInt(process.env.BOLTDOCS_CACHE_LRU_TTL || '14400000', 10), // Default 4 hours
-    compress: process.env.BOLTDOCS_CACHE_COMPRESS !== '0',
+    compress: isDev ? false : process.env.BOLTDOCS_CACHE_COMPRESS !== '0',
   }
 }

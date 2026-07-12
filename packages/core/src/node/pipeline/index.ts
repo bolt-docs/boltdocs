@@ -12,10 +12,19 @@ export interface PipelineStep<TContext = Record<string, unknown>> {
 }
 
 export class Pipeline<TContext> {
-  private steps: PipelineStep<TContext>[] = []
+  private steps: (PipelineStep<TContext> | PipelineStep<TContext>[])[] = []
 
   addStep(step: PipelineStep<TContext>): this {
     this.steps.push(step)
+    return this
+  }
+
+  /**
+   * Add steps that will execute in parallel.
+   * All steps in the group must succeed for the pipeline to continue.
+   */
+  addParallelSteps(steps: PipelineStep<TContext>[]): this {
+    this.steps.push(steps)
     return this
   }
 
@@ -27,18 +36,32 @@ export class Pipeline<TContext> {
       timing: {} as Record<string, number>,
     } as TContext
 
-    for (const step of this.steps) {
-      const stepStart = performance.now()
-      try {
-        await step.execute(context)
+    for (const entry of this.steps) {
+      const isParallel = Array.isArray(entry)
+      const stepGroup = isParallel ? entry : [entry]
+      const groupStart = performance.now()
 
-        const duration = performance.now() - stepStart
-        stepResults.push({ name: step.name, duration, success: true })
-        ;(context as any).timing[step.name] = duration
+      try {
+        if (isParallel) {
+          await Promise.all(stepGroup.map((step) => step.execute(context)))
+        } else {
+          await stepGroup[0].execute(context)
+        }
+
+        const duration = performance.now() - groupStart
+        for (const step of stepGroup) {
+          stepResults.push({ name: step.name, duration, success: true })
+          ;(context as any).timing[step.name] = duration
+        }
       } catch (err) {
-        const duration = performance.now() - stepStart
+        const duration = performance.now() - groupStart
+        const failedStep = stepGroup.find(
+          (s) => !stepResults.some((r) => r.name === s.name && r.success),
+        )
+        const failedName = failedStep?.name || stepGroup.map((s) => s.name).join(' | ')
+
         stepResults.push({
-          name: step.name,
+          name: failedName,
           duration,
           success: false,
           error: err instanceof Error ? err : new Error(String(err)),
@@ -48,14 +71,14 @@ export class Pipeline<TContext> {
         for (const completed of stepResults
           .filter((r) => r.success)
           .reverse()) {
-          const stepToRollback = this.steps.find(
+          const allSteps = this.steps.flat()
+          const stepToRollback = allSteps.find(
             (s) => s.name === completed.name,
           )
           if (stepToRollback?.rollback) {
             try {
               await stepToRollback.rollback(context)
             } catch (rollbackErr) {
-              // Log rollback failure but don't throw
               console.error(
                 `[pipeline] rollback failed for step "${completed.name}":`,
                 rollbackErr,
@@ -67,7 +90,7 @@ export class Pipeline<TContext> {
         const totalDuration = performance.now() - totalStart
         return {
           success: false,
-          failedStep: step.name,
+          failedStep: failedName,
           error: err instanceof Error ? err : new Error(String(err)),
           timing: { total: totalDuration, steps: (context as any).timing },
           stepResults,

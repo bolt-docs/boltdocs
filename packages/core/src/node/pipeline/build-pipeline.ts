@@ -14,8 +14,7 @@ export function createBuildPipeline(): Pipeline<BuildContext> {
   return new Pipeline<BuildContext>()
     .addStep(new ConfigResolveStep())
     .addStep(new RouteGenerateStep())
-    .addStep(new SEOValidateStep())
-    .addStep(new TypeGenerateStep())
+    .addParallelSteps([new SEOValidateStep(), new TypeGenerateStep()])
     .addStep(new SSGBuildStep())
     .addStep(new SEOWriteStep())
 }
