@@ -83,7 +83,7 @@ export function boltdocsPlugin(
     config = c
   }
   const getViteConfig = () => viteConfig
-  const getLifecycle = () => lifecycle
+  const getLifecycle = (): PluginLifecycleManager | undefined => lifecycle
 
   return [
     {
@@ -288,14 +288,7 @@ export function boltdocsPlugin(
     ),
 
     // Unified MDX plugin (default) — always included, skips if turbo is active
-    ...(!options.turbo
-      ? [
-          boltdocsMdxPlugin(
-            config,
-            getLifecycle as () => PluginLifecycleManager,
-          ),
-        ]
-      : []),
+    ...(!options.turbo ? [boltdocsMdxPlugin(config, getLifecycle)] : []),
 
     // Sätteri MDX plugin (turbo) — lazy-loaded, skips if turbo is off
     ...(options.turbo
