@@ -199,16 +199,16 @@ export async function createViteConfig(
         ...securityHeaders,
         ...config.vite?.server?.headers,
       },
-      ...config.vite?.server,
-    },
+      ...(config.vite?.server as Record<string, unknown> | undefined),
+    } as InlineConfig['server'],
     preview: {
       headers: {
         ...securityHeaders,
         ...config.vite?.preview?.headers,
       },
-      ...config.vite?.preview,
-    },
-    ...config.vite,
+      ...(config.vite?.preview as Record<string, unknown> | undefined),
+    } as InlineConfig['preview'],
+    ...(config.vite as Record<string, unknown> | undefined),
   }
 
   return viteConfig

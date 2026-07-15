@@ -13,6 +13,7 @@ interface HeadProps {
     title: string
     description?: string
     seo?: Record<string, unknown>
+    coverImage?: string
   }>
 }
 
