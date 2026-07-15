@@ -182,7 +182,7 @@ function buildCollectionRoutes(options: {
 
       if (isLazy && moduleLoader) {
         routeRecord.lazy = async () => {
-          const mod = await resolveModuleLoader(moduleLoader)
+          const mod = await resolveModuleLoader(moduleLoader as any)
           return {
             Component: function LoadedCollectionMdxRoute() {
               return (
@@ -191,7 +191,7 @@ function buildCollectionRoutes(options: {
                   moduleKey={moduleKey}
                   moduleLoader={mod}
                   route={route}
-                  components={components}
+                  components={components as any}
                   collectionPostComponent={postComponent}
                 />
               )
@@ -205,8 +205,8 @@ function buildCollectionRoutes(options: {
             moduleKey={moduleKey}
             moduleLoader={moduleLoader as any}
             route={route}
-            components={components}
-            collectionPostComponent={postComponent}
+          components={components as any}
+          collectionPostComponent={postComponent}
           />
         )
       }
@@ -265,7 +265,7 @@ function buildCollectionRoutes(options: {
     const CollectionLayout = CustomLayout || DocsLayout
     const blogLayoutRoute: RouteRecord = {
       path: colBase,
-      element: <CollectionLayout collectionsData={collectionsData || {}} />,
+      element: <CollectionLayout {...({ collectionsData: collectionsData || {} } as any)} />,
       children: colChildren,
     }
 
