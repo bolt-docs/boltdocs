@@ -1,3 +1,5 @@
+import type { ReactNode } from 'react'
+import { createPortal } from 'react-dom'
 import { cn } from '../../utils/cn'
 import { SearchHighlight } from '../ui-base/search-highlight'
 
@@ -5,7 +7,7 @@ import { SearchHighlight } from '../ui-base/search-highlight'
  * Props shared by all layout slot components.
  */
 interface SlotProps {
-  children?: React.ReactNode
+  children?: ReactNode
   className?: string
   style?: React.CSSProperties
 }
@@ -18,6 +20,9 @@ interface SlotProps {
  * <DocsLayout>
  *   <Navbar />
  *   <DocsLayout.Body>...</DocsLayout.Body>
+ *   <DocsLayout.FloatingBottom />
+ *   <DocsLayout.RightRail />
+ *   <DocsLayout.BodyPortal />
  * </DocsLayout>
  * ```
  */
@@ -106,12 +111,104 @@ function Footer({ children, className, style }: SlotProps) {
   )
 }
 
+/**
+ * Floating bottom-right slot. Renders `fixed` so it escapes the Body flex.
+ * Children inherit pointer-events; the wrapper is a passthrough.
+ *
+ * Mount position: `fixed bottom-6 right-6 z-40` (below modals, above content).
+ * Tip: keep an inner `pointer-events-auto` if the slot is non-interactive.
+ */
+function FloatingBottom({ children, className, style }: SlotProps) {
+  return (
+    <div
+      className={cn(
+        'fixed bottom-6 right-6 z-40 flex flex-col items-end gap-2',
+        className,
+      )}
+      style={style}
+    >
+      {children}
+    </div>
+  )
+}
+
+/**
+ * Right-rail slot that mounts only on `xl:` viewports (≥ 1280 px). Used for
+ * persistent panels like AI assistant sidebars.
+ *
+ * Sits OUTSIDE the Body flex (so it can be `fixed`). Its `width` collapses
+ * the page content max-width implicitly via the parent's `--breakpoint-3xl`.
+ */
+function RightRail({ children, className, style }: SlotProps) {
+  return (
+    <aside
+      className={cn(
+        'hidden xl:flex fixed inset-y-0 right-0 z-30 w-[320px] flex-col border-l border-subtle bg-main pointer-events-auto',
+        className,
+      )}
+      style={style}
+    >
+      {children}
+    </aside>
+  )
+}
+
+/**
+ * Slot for ad-hoc content injected inside the navbar's right cluster.
+ * Library layouts compose this into `<Navbar.Right>` via children passthrough.
+ */
+function NavbarExtras({ children }: SlotProps) {
+  return <>{children}</>
+}
+
+/**
+ * Slot for ad-hoc content injected inside `<DocsLayoutPrimitive.Header>`
+ * below the title/description block.
+ */
+function HeaderExtras({ children }: SlotProps) {
+  return <>{children}</>
+}
+
+/**
+ * Slot for ad-hoc content injected at the bottom of `<OnThisPage>` tree.
+ */
+function TocExtras({ children }: SlotProps) {
+  return <>{children}</>
+}
+
+/**
+ * Slot for ad-hoc content injected above `<PageNav>` at the bottom of content.
+ */
+function FooterExtras({ children }: SlotProps) {
+  return <>{children}</>
+}
+
+/**
+ * Escape hatch slot for modals, toasts, lightweight popups. Renders into
+ * `document.body` via a portal so it can stack above any other layout.
+ * Falls back to an inline render during SSR (no portal available).
+ *
+ * `createPortal` is imported at module top level so the bundler can resolve
+ * it statically; the SSR guard below prevents `<body>` access in Node.
+ */
+function BodyPortal({ children }: SlotProps) {
+  if (typeof document === 'undefined') return <>{children}</>
+  return createPortal(children, document.body)
+}
+
 interface DocsLayoutComponent extends React.FC<SlotProps> {
   Body: typeof Body
   Content: typeof Content
   ContentMdx: typeof ContentMdx
   Header: typeof Header
   Footer: typeof Footer
+  FloatingBottom: typeof FloatingBottom
+  RightRail: typeof RightRail
+  NavbarExtras: typeof NavbarExtras
+  HeaderExtras: typeof HeaderExtras
+  TocExtras: typeof TocExtras
+  FooterExtras: typeof FooterExtras
+  BodyPortal: typeof BodyPortal
 }
 
 // Attach sub-components to the root
@@ -121,4 +218,11 @@ export const DocsLayout = Object.assign(DocsLayoutRoot, {
   ContentMdx,
   Header,
   Footer,
+  FloatingBottom,
+  RightRail,
+  NavbarExtras,
+  HeaderExtras,
+  TocExtras,
+  FooterExtras,
+  BodyPortal,
 }) as DocsLayoutComponent

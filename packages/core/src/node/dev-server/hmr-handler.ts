@@ -3,7 +3,10 @@ import { invalidateRouteCache, invalidateFile } from '../routes'
 import { type BoltdocsConfig, CONFIG_FILES } from '../config'
 import { generateProjectTypes } from '../types-generator'
 import { normalizePath, isDocFile } from '../utils'
-import { invalidateDirectoryMetaCache } from '../plugin/virtual-modules'
+import {
+  invalidateDirectoryMetaCache,
+  invalidateLayoutSlotsCache,
+} from '../plugin/virtual-modules'
 import {
   computeFrontmatterHash,
   getFrontmatterHash,
@@ -123,6 +126,7 @@ export function setupHmr(
         }
         invalidateRouteCache()
         invalidateDirectoryMetaCache()
+        invalidateLayoutSlotsCache()
 
         const currentConfig = getConfig()
         generateProjectTypes(currentConfig, docsDir)
@@ -131,6 +135,7 @@ export function setupHmr(
         invalidateVirtualModule(server, 'routes')
         invalidateVirtualModule(server, 'search')
         invalidateVirtualModule(server, 'collections')
+        invalidateVirtualModule(server, 'layout-slots')
 
         generateLinkTree(docsDir, process.cwd(), currentConfig).catch((e) => {
           error('Failed to update link tree:', e)

@@ -36,3 +36,6 @@ export { reactToText } from './utils/react-to-text'
 export { copyToClipboard } from './utils/copy-clipboard'
 export { getStarsRepo } from './utils/github'
 export { useCodeBlock } from './components/mdx/use-code-block'
+
+// Layout slots (plugin declarative mounting)
+export type { SlotComponent, SlotRegistry } from './hooks/use-slot-registry'

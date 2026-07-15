@@ -1,0 +1,167 @@
+import { z } from 'zod'
+
+/**
+ * Schema for a single slot declaration emitted by a plugin.
+ * Mirrors `SlotDeclaration` in `shared/types.ts`.
+ */
+export const SlotDeclarationSchema = z.object({
+  id: z.string().min(1).max(80),
+  modulePath: z.string().min(1).max(500),
+  component: z.string().min(1).max(120).optional(),
+})
+
+export type SlotDeclaration = z.infer<typeof SlotDeclarationSchema>
+
+/**
+ * Raw input form (what users write in `boltdocs.config.ts > slots`).
+ * Either a string shorthand or the full object form. Valid at this layer
+ * BEFORE schema parsing.
+ */
+export type UserSlotConfigInput =
+  | string
+  | {
+      replace?: string
+      append?: string
+      disable?: true
+    }
+
+/**
+ * Canonical object form. The output of `UserSlotConfigSchema.parse()` —
+ * always object-only, since `z.preprocess` collapses string shorthand
+ * before object validation runs.
+ */
+export type UserSlotEntryParsed = z.infer<typeof UserSlotConfigSchema>
+
+/**
+ * Schema for user-provided slot overrides. A bare string is shorthand for
+ * `{ replace: <modulePath> }` and is normalised via `z.preprocess` so
+ * the parsed output is always the canonical object form.
+ */
+export const UserSlotConfigSchema = z.preprocess(
+  (val) => (typeof val === 'string' ? { replace: val } : val),
+  z.object({
+    replace: z.string().min(1).max(500).optional(),
+    append: z.string().min(1).max(500).optional(),
+    disable: z.literal(true).optional(),
+  }),
+)
+
+/**
+ * Normalise a raw `UserSlotConfigInput` (string shorthand OR object form)
+ * to the canonical object shape. Used by the generator when callers pass
+ * un-parsed `userConfig`.
+ */
+function toUserSlotEntry(val: UserSlotConfigInput): UserSlotEntryParsed {
+  return typeof val === 'string' ? { replace: val } : val
+}
+
+/**
+ * Generate the JS source for `virtual:boltdocs-layout-slots`.
+ *
+ * The output module exports a `slotRegistry` object keyed by slot id and
+ * arrays of component expressions. Imports are static (server-side generated)
+ * so the bundler can resolve symbols at build time and tree-shake unused slots.
+ */
+export function generateLayoutSlotsCode(opts: {
+  pluginDeclarations: ReadonlyArray<{
+    pluginName: string
+    declaration: SlotDeclaration
+  }>
+  userConfig?: Readonly<Record<string, UserSlotConfigInput>> | undefined
+}): string {
+  const { pluginDeclarations, userConfig } = opts
+
+  const byId = new Map<
+    string,
+    Array<{ modulePath: string; component?: string; pluginName: string }>
+  >()
+  for (const { pluginName, declaration } of pluginDeclarations) {
+    if (!byId.has(declaration.id)) byId.set(declaration.id, [])
+    byId.get(declaration.id)!.push({
+      modulePath: declaration.modulePath,
+      component: declaration.component,
+      pluginName,
+    })
+  }
+
+  const importCache = new Map<string, string>()
+  function importModule(modulePath: string): string {
+    const cached = importCache.get(modulePath)
+    if (cached) return cached
+    // 1) strip the leading `@` from scoped npm packages so the slug reads
+    //    `bdocs_…` rather than `_bdocs_…`;
+    // 2) collapse every remaining non-alphanumeric character to `_`.
+    const safeKey = modulePath.replace(/^@/, '').replace(/[^A-Za-z0-9]/g, '_')
+    const varName = `_Slot${importCache.size}_${safeKey}`
+    importCache.set(modulePath, varName)
+    return varName
+  }
+
+  function componentExpr(
+    varName: string,
+    component: string | undefined,
+  ): string {
+    return component
+      ? `${varName}[${JSON.stringify(component)}]`
+      : `${varName}.default`
+  }
+
+  const merged: Record<string, Array<string>> = {}
+
+  for (const [slotId, components] of byId) {
+    const userRaw = userConfig?.[slotId]
+    const user = userRaw ? toUserSlotEntry(userRaw) : {}
+    if (user.disable) continue
+
+    const items: string[] = []
+
+    if (user.replace) {
+      const v = importModule(user.replace)
+      items.push(componentExpr(v, undefined))
+    } else {
+      for (const c of components) {
+        const v = importModule(c.modulePath)
+        items.push(componentExpr(v, c.component))
+      }
+    }
+
+    if (user.append) {
+      const v = importModule(user.append)
+      items.push(componentExpr(v, undefined))
+    }
+
+    if (items.length === 0) continue
+    merged[slotId] = items
+  }
+
+  // Also include user-declared slots that have NO plugin declaration but are
+  // configured via `replace` (so user slots can stand alone). `append`
+  // alone without prior plugin content is intentionally a no-op — there's
+  // nothing to append to.
+  for (const [slotId, raw] of Object.entries(userConfig ?? {})) {
+    if (byId.has(slotId)) continue
+    const user = toUserSlotEntry(raw)
+    if (user.disable) continue
+    if (!user.replace) continue
+    const v = importModule(user.replace)
+    merged[slotId] = [componentExpr(v, undefined)]
+  }
+
+  const lines: string[] = []
+  lines.push('// Generated by Boltdocs — do not edit.')
+  for (const [modulePath, varName] of importCache) {
+    lines.push(`import * as ${varName} from ${JSON.stringify(modulePath)};`)
+  }
+  lines.push('')
+  lines.push('export type SlotComponent = React.ComponentType<unknown>')
+  lines.push('export const slotRegistry: Record<string, SlotComponent[]> = {')
+  for (const [slotId, items] of Object.entries(merged)) {
+    lines.push(`  ${JSON.stringify(slotId)}: [`)
+    for (const expr of items) lines.push(`    ${expr},`)
+    lines.push(`  ],`)
+  }
+  lines.push('}')
+  lines.push('export default slotRegistry;')
+
+  return lines.join('\n')
+}

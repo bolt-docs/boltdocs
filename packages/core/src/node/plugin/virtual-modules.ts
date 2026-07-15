@@ -6,6 +6,7 @@ import { generateSearchData } from '../search'
 import type { BoltdocsConfig } from '../config'
 import type { BoltdocsPluginOptions } from './types'
 import { generateEntryCode } from './entry'
+import { generateLayoutSlotsCode } from './layout-slots'
 import path from 'node:path'
 import fs from 'node:fs'
 
@@ -13,6 +14,7 @@ let _directoryMetaCache: Record<string, any> | null = null
 let _searchDataCache: string | null = null
 let _routesCache: string | null = null
 let _collectionsCache: string | null = null
+let _layoutSlotsCache: string | null = null
 
 /**
  * Called by the dev-server watcher whenever a file is added or removed
@@ -23,6 +25,15 @@ export function invalidateDirectoryMetaCache(): void {
   _searchDataCache = null
   _routesCache = null
   _collectionsCache = null
+  _layoutSlotsCache = null
+}
+
+/**
+ * Invalidates only the layout-slots virtual module cache (used on
+ * `boltdocs.config.ts` change or plugin add/remove).
+ */
+export function invalidateLayoutSlotsCache(): void {
+  _layoutSlotsCache = null
 }
 
 /**
@@ -244,6 +255,22 @@ export default UserLayout;`
           _searchDataCache = `export default ${JSON.stringify(searchData, null, 2)};`
         }
         return _searchDataCache
+      }
+
+      if (name === 'layout-slots') {
+        if (!_layoutSlotsCache) {
+          const pluginDeclarations = (config.plugins ?? []).flatMap((p) =>
+            (p.slots ?? []).map((declaration) => ({
+              pluginName: p.name,
+              declaration,
+            })),
+          )
+          _layoutSlotsCache = generateLayoutSlotsCode({
+            pluginDeclarations,
+            userConfig: config.slots,
+          })
+        }
+        return _layoutSlotsCache
       }
 
       if (name === 'client') {

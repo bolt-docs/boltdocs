@@ -5,6 +5,7 @@ import type {
   PluginStore,
   PluginMeta,
   PluginLifecycleHooks,
+  SlotDeclaration,
 } from '../../shared/types'
 
 export type {
@@ -13,6 +14,7 @@ export type {
   PluginStore,
   PluginMeta,
   PluginLifecycleHooks,
+  SlotDeclaration,
 }
 
 export interface SecureBoltdocsPlugin {
@@ -24,5 +26,6 @@ export interface SecureBoltdocsPlugin {
   rehypePlugins?: unknown[]
   vitePlugins?: VitePlugin[]
   components?: Record<string, string>
+  slots?: SlotDeclaration[]
   hooks?: PluginLifecycleHooks
 }

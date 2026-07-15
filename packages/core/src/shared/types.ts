@@ -288,9 +288,66 @@ export interface BoltdocsPlugin {
   rehypePlugins?: unknown[]
   vitePlugins?: VitePlugin[]
   components?: Record<string, string>
+  /**
+   * Declarative layout slots. Each entry maps a slot id (e.g. `floating-bottom`,
+   * `right-rail`) to a module path + optional named export that the default
+   * `docs-layout-default` will mount at the corresponding position.
+   */
+  slots?: SlotDeclaration[]
   /** Lifecycle hooks with full type safety */
   hooks?: PluginLifecycleHooks
 }
+
+/**
+ * A single slot declaration a plugin can emit to mount UI into a reserved
+ * layout position without coupling to `packages/core`.
+ *
+ * - `id`: Reserved slot id from the core (e.g. `floating-bottom`, `right-rail`)
+ *   OR a plugin-private id consumed by a custom layout.
+ * - `modulePath`: ES module path that exports the component.
+ * - `component`: Optional named export. If omitted, the module's default
+ *   export is used.
+ */
+export interface SlotDeclaration {
+  id: string
+  modulePath: string
+  component?: string
+}
+
+/**
+ * Reserved slot ids the default docs layout understands. Layouts can support
+ * additional plugin-private ids; the core layout only mounts these 7.
+ */
+export type ReservedSlotId =
+  | 'floating-bottom'
+  | 'right-rail'
+  | 'navbar-extra'
+  | 'header-extra'
+  | 'toc-extra'
+  | 'footer-extra'
+  | 'body-portal'
+
+/**
+ * A single user-level slot override from `boltdocs.config.ts > slots`.
+ *
+ * - String shorthand: equivalent to `{ replace: <modulePath> }`.
+ * - `replace`: replace all mounting of the slot (plugin-supplied components
+ *   are discarded).
+ * - `append`: append the user component after plugin-supplied ones.
+ * - `disable`: remove the slot entirely (zero JS impact).
+ */
+export type BoltdocsSlotsEntry =
+  | string
+  | {
+      replace?: string
+      append?: string
+      disable?: true
+    }
+
+/**
+ * Top-level `slots` configuration block in `boltdocs.config.ts`.
+ */
+export type BoltdocsSlotsConfig = Record<string, BoltdocsSlotsEntry>
 
 /**
  * Configuration for the collections (blog) feature.
@@ -449,6 +506,7 @@ export interface BoltdocsConfig {
   versions?: BoltdocsVersionsConfig
   mdx?: BoltdocsMdxConfig
   plugins?: BoltdocsPlugin[]
+  slots?: BoltdocsSlotsConfig
   collections?: BoltdocsCollectionsConfig
   robots?: BoltdocsRobotsConfig
   security?: BoltdocsSecurityConfig
