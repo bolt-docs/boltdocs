@@ -13,6 +13,7 @@ export function AskAiDialog() {
     clearChat,
     isOpen,
     setIsOpen,
+    devMode,
   } = useAskAi()
 
   const messagesEndRef = useRef<HTMLDivElement>(null)
@@ -139,6 +140,24 @@ export function AskAiDialog() {
             }`}
           >
             {/* Reading chip */}
+            {msg.role === 'assistant' && msg.usage && devMode && (
+              <div className="flex items-center gap-1.5 px-2 py-1 mb-1 text-[11px] text-muted font-mono">
+                <span className="px-1 py-0.5 rounded bg-amber-500/10 text-amber-600 dark:text-amber-400 text-[10px] font-bold uppercase tracking-wide">
+                  DEV
+                </span>
+                <span>{msg.usage.provider}/{msg.usage.model}</span>
+                <span>·</span>
+                <span>{msg.usage.promptTokens}↑</span>
+                <span>{msg.usage.completionTokens}↓</span>
+                <span>·</span>
+                <span className="text-primary-500 font-semibold">
+                  {msg.usage.totalTokens} tok
+                </span>
+                <span>·</span>
+                <span>{msg.usage.elapsedMs}ms</span>
+              </div>
+            )}
+
             {msg.role === 'assistant' && msg.contextChip && (
               <div className="flex items-center gap-1.5 px-2 py-1 mb-1 text-[11px] text-muted">
                 {msg.contextChip.missing ? (

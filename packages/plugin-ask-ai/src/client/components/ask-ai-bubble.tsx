@@ -14,6 +14,7 @@ export function AskAiBubble() {
     clearChat,
     isOpen,
     setIsOpen,
+    devMode,
   } = useAskAi()
 
   const messagesEndRef = useRef<HTMLDivElement>(null)
@@ -29,10 +30,6 @@ export function AskAiBubble() {
   }
 
   return (
-    // The default docs layout keeps both the floating bubble and the right-rail
-    // dialog available across viewports. Users who want only the bubble on xl
-    // (≥ 1280 px) should disable the right-rail via
-    // `askAiPlugin({ slots: { 'right-rail': false } })` — see plugin docs.
     <div className="fixed bottom-6 right-6 z-50 flex flex-col items-end">
       {isOpen && (
         <div className="mb-4 w-[380px] max-w-[calc(100vw-2rem)] h-[min(520px,calc(100vh-8rem))] bg-main/90 backdrop-blur-md border border-subtle rounded-2xl shadow-xl flex flex-col overflow-hidden animate-in fade-in slide-in-from-bottom-5 duration-200">
@@ -145,8 +142,28 @@ export function AskAiBubble() {
                 }`}
               >
                 {/* "Reading X" chip — visible the moment the server confirms the page */}
-                {msg.role === 'assistant' && msg.contextChip && (
-                  <div className="flex items-center gap-1.5 px-2 py-1 mb-1 text-[11px] text-muted">
+                {msg.role === 'assistant' && msg.usage && devMode && (
+                  <div className="flex items-center gap-1.5 px-2 py-1 mb-1 text-[11px] text-muted font-mono">
+                    <span className="px-1 py-0.5 rounded bg-amber-500/10 text-amber-600 dark:text-amber-400 text-[10px] font-bold uppercase tracking-wide">
+                      DEV
+                    </span>
+                    <span title="Provider / model">
+                      {msg.usage.provider}/{msg.usage.model}
+                    </span>
+                    <span className="text-muted">·</span>
+                    <span title="Prompt tokens">{msg.usage.promptTokens}↑</span>
+                    <span title="Completion tokens">{msg.usage.completionTokens}↓</span>
+                    <span className="text-muted">·</span>
+                    <span title="Total tokens" className="text-primary-500 font-semibold">
+                      {msg.usage.totalTokens} tok
+                    </span>
+                    <span className="text-muted">·</span>
+                    <span title="Elapsed">{msg.usage.elapsedMs}ms</span>
+                  </div>
+                )}
+
+            {msg.role === 'assistant' && msg.contextChip && (
+              <div className="flex items-center gap-1.5 px-2 py-1 mb-1 text-[11px] text-muted">
                     {msg.contextChip.missing ? (
                       <span>No docs page in scope</span>
                     ) : (

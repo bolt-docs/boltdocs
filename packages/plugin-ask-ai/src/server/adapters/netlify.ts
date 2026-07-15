@@ -13,6 +13,8 @@ function eventToSse(event: StreamEvent): string {
       return `data: ${JSON.stringify({ error: event.data })}\n\n`
     case 'done':
       return ''
+    default:
+      return ''
   }
 }
 

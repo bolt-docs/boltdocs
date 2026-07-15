@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-// @ts-expect-error virtual module provided by boltdocs dev server
-import clientConfig from 'virtual:boltdocs-config'
+import { useConfig } from 'boltdocs/client'
 
 export type MessageStatus = 'reading' | 'streaming' | 'done' | 'error'
 
@@ -13,6 +12,14 @@ export interface Message {
     chars: number
     elapsedMs?: number
     missing?: boolean
+  }
+  usage?: {
+    promptTokens: number
+    completionTokens: number
+    totalTokens: number
+    model: string
+    provider: string
+    elapsedMs: number
   }
   errorMessage?: string
 }
@@ -36,13 +43,14 @@ export function useAskAi(options: UseAskAiOptions = {}) {
   const pendingTextRef = useRef<{ value: string }>({ value: '' })
   const pendingRafRef = useRef<number | null>(null)
 
+  const boltdocsConfig = useConfig()
+  const askAiPluginMeta = boltdocsConfig?.plugins?.find(
+    (p) => p.name === 'boltdocs-plugin-ask-ai',
+  )?.metadata as { endpoint?: string; devMode?: boolean } | undefined
+
   const customEndpoint =
-    options.endpoint ||
-    clientConfig?.plugins?.find(
-      (p: { name?: string; endpoint?: string }) =>
-        p?.name === 'boltdocs-plugin-ask-ai',
-    )?.endpoint ||
-    '/api/ask-ai'
+    options.endpoint || askAiPluginMeta?.endpoint || '/api/ask-ai'
+  const devMode = askAiPluginMeta?.devMode ?? false
 
   useEffect(() => {
     const handleOpen = () => setIsOpen(true)
@@ -57,6 +65,9 @@ export function useAskAi(options: UseAskAiOptions = {}) {
       window.removeEventListener('boltdocs:ask-ai:toggle', handleToggle)
     }
   }, [])
+
+  const startTimeRef = useRef<number>(0)
+  const usageRef = useRef<Message['usage'] | null>(null)
 
   // Commit any text still in the pending buffer into the assistant
   // message, then cancel the queued raf. Safe to call multiple times.
@@ -197,9 +208,12 @@ export function useAskAi(options: UseAskAiOptions = {}) {
                 const last = next[next.length - 1]
                 if (last && last.role === 'assistant') {
                   last.contextChip = parsed.context
+                  startTimeRef.current = Date.now()
                 }
                 return next
               })
+            } else if (parsed.usage) {
+              usageRef.current = parsed.usage
             } else if (typeof parsed.text === 'string') {
               if (!firstTextSeen) {
                 firstTextSeen = true
@@ -232,6 +246,14 @@ export function useAskAi(options: UseAskAiOptions = {}) {
             last.status = last.content ? 'done' : 'error'
             if (last.status === 'error' && !last.errorMessage) {
               last.errorMessage = 'No response received.'
+            }
+            if (usageRef.current && devMode) {
+              last.usage = {
+                ...usageRef.current,
+                elapsedMs: startTimeRef.current
+                  ? Date.now() - startTimeRef.current
+                  : usageRef.current.elapsedMs,
+              }
             }
           }
           return next
@@ -277,5 +299,6 @@ export function useAskAi(options: UseAskAiOptions = {}) {
     clearChat,
     isOpen,
     setIsOpen,
+    devMode,
   }
 }

@@ -27,5 +27,6 @@ export interface SecureBoltdocsPlugin {
   vitePlugins?: VitePlugin[]
   components?: Record<string, string>
   slots?: SlotDeclaration[]
+  metadata?: Record<string, unknown>
   hooks?: PluginLifecycleHooks
 }

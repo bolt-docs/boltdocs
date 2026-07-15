@@ -16,6 +16,9 @@ export interface StreamLLMResponseOptions {
   baseURL?: string
   env: Record<string, string | undefined>
   signal?: AbortSignal
+  provider?: string
+  providerEnvKey?: string
+  devMode?: boolean
 }
 
 export type StreamEvent =
@@ -29,6 +32,17 @@ export type StreamEvent =
       }
     }
   | { type: 'text'; data: string }
+  | {
+      type: 'usage'
+      data: {
+        promptTokens: number
+        completionTokens: number
+        totalTokens: number
+        model: string
+        provider: string
+        elapsedMs: number
+      }
+    }
   | { type: 'done' }
   | { type: 'error'; data: string }
 
@@ -77,13 +91,16 @@ export async function streamLLMResponse(
     baseURL,
     env,
     signal,
+    provider = 'openai',
+    providerEnvKey = 'OPENAI_API_KEY',
+    devMode = false,
   } = options
 
-  const apiKey = env.OPENAI_API_KEY
+  const apiKey = env[providerEnvKey]
   if (!apiKey) {
     onEvent({
       type: 'error',
-      data: 'OPENAI_API_KEY is not set in the server environment.',
+      data: `${providerEnvKey} is not set in the server environment.`,
     })
     return
   }
@@ -119,12 +136,14 @@ export async function streamLLMResponse(
     STREAM_TIMEOUT_MS,
   )
 
+  const streamStart = Date.now()
   try {
     const stream = await openai.chat.completions.create(
       {
         model,
         max_tokens: maxOutputTokens,
         stream: true,
+        stream_options: { include_usage: true },
         messages: [
           { role: 'system', content: systemPrompt },
           { role: 'user', content: userPrompt },
@@ -133,12 +152,34 @@ export async function streamLLMResponse(
       { signal: combinedController.signal },
     )
 
+    let promptTokens = 0
+    let completionTokens = 0
+
     for await (const chunk of stream) {
       if (externalSignal?.aborted || combinedController.signal.aborted) break
       const content = chunk.choices?.[0]?.delta?.content
       if (typeof content === 'string' && content.length > 0) {
         onEvent({ type: 'text', data: content })
       }
+      const usage = (chunk as { usage?: { prompt_tokens?: number; completion_tokens?: number } }).usage
+      if (usage) {
+        promptTokens = usage.prompt_tokens ?? promptTokens
+        completionTokens = usage.completion_tokens ?? completionTokens
+      }
+    }
+
+    if (devMode && (promptTokens > 0 || completionTokens > 0)) {
+      onEvent({
+        type: 'usage',
+        data: {
+          promptTokens,
+          completionTokens,
+          totalTokens: promptTokens + completionTokens,
+          model,
+          provider,
+          elapsedMs: Date.now() - streamStart,
+        },
+      })
     }
 
     if (!externalSignal?.aborted && !combinedController.signal.aborted) {

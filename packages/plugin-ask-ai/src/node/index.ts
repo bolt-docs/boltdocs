@@ -1,5 +1,6 @@
 import type { BoltdocsPlugin } from 'boltdocs'
-import type { Connect, ServerResponse } from 'vite'
+import type { Connect } from 'vite'
+import type { ServerResponse } from 'node:http'
 import { z } from 'zod'
 import { info, warn } from '@bdocs/dui'
 
@@ -9,29 +10,107 @@ interface AskAiRequest {
   context?: { page: string; content: string }
 }
 
-const ALLOWED_MODELS = ['gpt-4o-mini', 'gpt-4.1-mini', 'gpt-4.1-nano'] as const
+const PROVIDERS = [
+  'openai',
+  'anthropic',
+  'gemini',
+  'mistral',
+  'cohere',
+  'deepseek',
+  'groq',
+  'openrouter',
+  'together',
+  'ollama',
+  'azure',
+  'custom',
+] as const
 
-/** Layout slots in the default docs layout. See `docs-layout.tsx`. */
+type Provider = (typeof PROVIDERS)[number]
+
+export const PROVIDER_PRESETS: Record<
+  Provider,
+  { baseURL?: string; defaultModel: string; envKey: string; label: string }
+> = {
+  openai: {
+    baseURL: 'https://api.openai.com/v1',
+    defaultModel: 'gpt-4o-mini',
+    envKey: 'OPENAI_API_KEY',
+    label: 'OpenAI',
+  },
+  anthropic: {
+    baseURL: undefined,
+    defaultModel: 'claude-3-5-haiku-latest',
+    envKey: 'ANTHROPIC_API_KEY',
+    label: 'Anthropic (requires OpenAI-compatible proxy)',
+  },
+  gemini: {
+    baseURL: undefined,
+    defaultModel: 'gemini-2.0-flash-exp',
+    envKey: 'GEMINI_API_KEY',
+    label: 'Google Gemini (requires OpenAI-compatible proxy)',
+  },
+  mistral: {
+    baseURL: 'https://api.mistral.ai/v1',
+    defaultModel: 'mistral-small-latest',
+    envKey: 'MISTRAL_API_KEY',
+    label: 'Mistral',
+  },
+  cohere: {
+    baseURL: 'https://api.cohere.ai/v1',
+    defaultModel: 'command-r-plus',
+    envKey: 'COHERE_API_KEY',
+    label: 'Cohere',
+  },
+  deepseek: {
+    baseURL: 'https://api.deepseek.com/v1',
+    defaultModel: 'deepseek-chat',
+    envKey: 'DEEPSEEK_API_KEY',
+    label: 'DeepSeek',
+  },
+  groq: {
+    baseURL: 'https://api.groq.com/openai/v1',
+    defaultModel: 'llama-3.1-8b-instant',
+    envKey: 'GROQ_API_KEY',
+    label: 'Groq',
+  },
+  openrouter: {
+    baseURL: 'https://openrouter.ai/api/v1',
+    defaultModel: 'openai/gpt-4o-mini',
+    envKey: 'OPENROUTER_API_KEY',
+    label: 'OpenRouter',
+  },
+  together: {
+    baseURL: 'https://api.together.xyz/v1',
+    defaultModel: 'meta-llama/Llama-3-70b-chat-hf',
+    envKey: 'TOGETHER_API_KEY',
+    label: 'Together AI',
+  },
+  ollama: {
+    baseURL: 'http://localhost:11434/v1',
+    defaultModel: 'llama3.2',
+    envKey: 'OLLAMA_API_KEY',
+    label: 'Ollama (enable OLLAMA_OPENAI_COMPAT=1)',
+  },
+  azure: {
+    defaultModel: 'gpt-4o-mini',
+    envKey: 'AZURE_OPENAI_API_KEY',
+    label: 'Azure OpenAI (baseURL required)',
+  },
+  custom: {
+    defaultModel: 'gpt-4o-mini',
+    envKey: 'OPENAI_API_KEY',
+    label: 'Custom (baseURL + envKey required)',
+  },
+}
+
 const SLOT_FIELDS = ['floating-bottom', 'right-rail'] as const
 
 export const AskAiPluginOptionsSchema = z.object({
-  model: z.enum(ALLOWED_MODELS).default('gpt-4o-mini'),
+  provider: z.enum(PROVIDERS).default('openai'),
+  model: z.string().min(1).max(120).default(PROVIDER_PRESETS.openai.defaultModel),
   endpoint: z.string().default('/api/ask-ai'),
-  /**
-   * Legacy toggle. Kept for backward compatibility — when `true` it
-   * maps to `slots: { 'floating-bottom': true, 'right-rail': true }`.
-   * New code should prefer `slots` directly.
-   * @deprecated Use `slots` instead.
-   */
+  /** @deprecated Use `slots` instead. */
   autoInject: z.boolean().default(true),
-  /**
-   * Per-slot mount toggles. Default: both `floating-bottom` (bubble) and
-   * `right-rail` (dialog) are enabled.
-   *
-   * Setting `{ 'floating-bottom': false }` hides the bubble while keeping
-   * the right-rail dialog. Setting `false` for both fully disables the UI
-   * (the middleware endpoint still works for programmatic clients).
-   */
   slots: z
     .object({
       'floating-bottom': z.boolean().default(true),
@@ -40,18 +119,49 @@ export const AskAiPluginOptionsSchema = z.object({
     .default({ 'floating-bottom': true, 'right-rail': true }),
   baseURL: z.string().url().optional(),
   systemPrompt: z.string().optional(),
+  /**
+   * Per-provider system-prompt overrides. Useful when you want to use
+   * different instructions for Anthropic vs OpenAI, etc. The matching
+   * key wins over `systemPrompt` if both are provided.
+   */
+  systemPrompts: z
+    .object({
+      openai: z.string().optional(),
+      anthropic: z.string().optional(),
+      gemini: z.string().optional(),
+      mistral: z.string().optional(),
+      cohere: z.string().optional(),
+      deepseek: z.string().optional(),
+      groq: z.string().optional(),
+      openrouter: z.string().optional(),
+      together: z.string().optional(),
+      ollama: z.string().optional(),
+      azure: z.string().optional(),
+      custom: z.string().optional(),
+    })
+    .partial()
+    .optional(),
   maxInputChars: z.number().int().positive().max(20_000).default(2_000),
   maxOutputTokens: z.number().int().positive().max(4_000).default(600),
   contextChars: z.number().int().positive().max(40_000).default(6_000),
   rateLimitPerMinute: z.number().int().nonnegative().default(30),
-  // If set, callers must include `?secret=…` or header
-  // `x-boltdocs-ask-ai-key` matching it. DEPLOYMENT: deploy only behind
-  // a trusted reverse proxy that strips/overwrites client-supplied
-  // `x-forwarded-for` to prevent IP spoofing on the per-minute limiter.
+  /**
+   * If set, callers must include `?secret=…` or header
+   * `x-boltdocs-ask-ai-key` matching it. DEPLOYMENT: deploy only behind
+   * a trusted reverse proxy that strips/overwrites client-supplied
+   * `x-forwarded-for` to prevent IP spoofing on the per-minute limiter.
+   */
   secretKey: z.string().min(8).optional(),
-  // Power-user escape hatch: append strings (e.g. 'gpt-4o') to the model
-  // allowlist without bumping the schema.
+  /** Power-user escape hatch: append strings to the model allowlist. */
   customModels: z.array(z.string().min(1).max(120)).max(20).optional(),
+  /**
+   * Development mode. When `true` (or when `process.env.NODE_ENV !== 'production'`),
+   * the chat UI renders a token-consumption chip (prompt / completion / total,
+   * model, provider, elapsed ms) below each assistant response. Designed for
+   * local development only — leave `false` in production to avoid exposing
+   * usage metrics to end users.
+   */
+  devMode: z.boolean().default(false),
 })
 
 export type AskAiPluginOptions = z.input<typeof AskAiPluginOptionsSchema>
@@ -180,55 +290,61 @@ function getClientIp(req: Connect.IncomingMessage): string {
 
 const CLIENT_PACKAGE = '@bdocs/plugin-ask-ai/client'
 
-// Map slot id → named export inside the client package.
 const SLOT_COMPONENT_MAP: Record<(typeof SLOT_FIELDS)[number], string> = {
   'floating-bottom': 'AskAiBubble',
   'right-rail': 'AskAiDialog',
 }
-
-// ── Plugin factory ────────────────────────────────────────────────
 
 export default function askAiPlugin(
   rawOptions: AskAiPluginOptions = {},
 ): BoltdocsPlugin {
   const options = AskAiPluginOptionsSchema.parse(rawOptions)
   const {
+    provider,
     model,
     endpoint,
     autoInject,
     slots,
     baseURL,
     systemPrompt,
+    systemPrompts,
     maxInputChars,
     maxOutputTokens,
     contextChars,
     rateLimitPerMinute,
     secretKey,
     customModels,
+    devMode,
   } = options
 
-  // Build effective model allowlist (zod enum + user-provided extras).
+  const providerPreset = PROVIDER_PRESETS[provider]
+  const effectiveBaseURL = baseURL || providerPreset.baseURL
+  const providerEnvKey = providerPreset.envKey
+  const effectiveSystemPrompt =
+    systemPrompts?.[provider] ?? systemPrompt ?? DEFAULT_SYSTEM_PROMPT
+
   const modelAllowlist: ReadonlySet<string> = new Set([
-    ...ALLOWED_MODELS,
+    model,
     ...(customModels ?? []),
   ])
 
+  const effectiveDevMode =
+    devMode || process.env.NODE_ENV !== 'production'
+
   const denyPatterns = DEFAULT_DENY_PATTERNS
 
-  if (!process.env.OPENAI_API_KEY) {
+  if (!process.env[providerEnvKey]) {
     warn(
-      '[Ask AI] OPENAI_API_KEY is not set. The /api/ask-ai endpoint will respond with an error until you set it.',
+      `[Ask AI] ${providerEnvKey} is not set. The /api/ask-ai endpoint will respond with an error until you set it.`,
     )
   } else {
     info(
-      `[Ask AI] Initialized — model=${model}, endpoint=${endpoint}, maxOutputTokens=${maxOutputTokens}, rateLimit=${rateLimitPerMinute}/min`,
+      `[Ask AI] Initialized — provider=${provider}, model=${model}, endpoint=${endpoint}, maxOutputTokens=${maxOutputTokens}, rateLimit=${rateLimitPerMinute}/min, devMode=${effectiveDevMode}`,
     )
   }
 
-  // Legacy `autoInject` → `slots` back-compat:
-  //   autoInject: false  → both slots disabled (preserves prior behavior of an opt-out)
-  //   autoInject: true   → slots object wins (default = both enabled)
-  //   autoInject omitted → defaults to true so slots object wins
+  // `slots` always wins. `autoInject: false` is the explicit kill-switch
+  // and applies last so it overrides per-slot choices.
   const effectiveSlots: Record<(typeof SLOT_FIELDS)[number], boolean> =
     autoInject === false
       ? { 'floating-bottom': false, 'right-rail': false }
@@ -244,25 +360,26 @@ export default function askAiPlugin(
   })
 
   const middlewareConfig = {
+    provider,
     model,
     endpoint,
-    systemPrompt: systemPrompt || DEFAULT_SYSTEM_PROMPT,
+    systemPrompt: effectiveSystemPrompt,
     maxInputChars,
     maxOutputTokens,
     contextChars,
     denyPatterns,
-    baseURL,
+    baseURL: effectiveBaseURL,
+    providerEnvKey,
     docsDir: 'docs',
     rateLimitPerMinute,
     secretKey,
     modelAllowlist,
+    devMode: effectiveDevMode,
   }
 
   return {
     name: 'boltdocs-plugin-ask-ai',
     version: '0.3.0',
-    // Legacy MDX-scope registration — kept so users can still embed
-    // <AskAiBubble /> or <AskAiDialog /> manually inside `.mdx`.
     components:
       effectiveSlots['floating-bottom'] || effectiveSlots['right-rail']
         ? {
@@ -270,8 +387,13 @@ export default function askAiPlugin(
             AskAiDialog: CLIENT_PACKAGE,
           }
         : {},
-    // Declarative layout mount — consumed by `virtual:boltdocs-layout-slots`.
     slots: slotDeclarations,
+    metadata: {
+      provider,
+      model,
+      endpoint,
+      devMode: effectiveDevMode,
+    } as Record<string, unknown>,
     vitePlugins: [
       {
         name: 'vite-plugin-boltdocs-ask-ai-middleware',
@@ -294,6 +416,7 @@ interface ResolvedContext {
 }
 
 interface MiddlewareConfig {
+  provider: string
   model: string
   endpoint: string
   systemPrompt: string
@@ -302,10 +425,12 @@ interface MiddlewareConfig {
   contextChars: number
   denyPatterns: RegExp[]
   baseURL?: string
+  providerEnvKey: string
   docsDir: string
   rateLimitPerMinute: number
   secretKey?: string
   modelAllowlist: ReadonlySet<string>
+  devMode: boolean
 }
 
 function ctxToPayload(ctx: ResolvedContext, elapsedMs: number) {
@@ -392,6 +517,10 @@ function createAskAiMiddleware(
           return
         }
 
+        // checkInputSafety rejects empty/non-string question, so question is
+        // narrowed to string here.
+        const safeQuestion: string = question ?? ''
+
         // ── Context resolution ─────────────────────────────────────
         // Preferred path: client supplies pre-extracted page context for
         // serverless deployments. Fallback: server generates routes from
@@ -453,27 +582,31 @@ function createAskAiMiddleware(
 
         if (abortController.signal.aborted) return
 
-        // ── Stream from OpenAI ─────────────────────────────────────
         const { streamLLMResponse } = await import('../server/index')
 
         await streamLLMResponse(
           {
             model: config.modelAllowlist.has(config.model)
               ? config.model
-              : 'gpt-4o-mini',
+              : config.model,
             systemPrompt: config.systemPrompt,
-            question,
+            question: safeQuestion,
             context: resolved,
             maxOutputTokens: config.maxOutputTokens,
             baseURL: config.baseURL,
             env: process.env,
             signal: abortController.signal,
+            provider: config.provider,
+            providerEnvKey: config.providerEnvKey,
+            devMode: config.devMode,
           },
           (event) => {
             if (event.type === 'text') {
               sendEvent(res, { text: event.data })
             } else if (event.type === 'error') {
               sendEvent(res, { error: event.data })
+            } else if (event.type === 'usage' && config.devMode) {
+              sendEvent(res, { usage: event.data })
             }
           },
         )

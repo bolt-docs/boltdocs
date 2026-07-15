@@ -294,6 +294,8 @@ export interface BoltdocsPlugin {
    * `docs-layout-default` will mount at the corresponding position.
    */
   slots?: SlotDeclaration[]
+  /** Optional runtime metadata exposed to client via useConfig().plugins[].metadata */
+  metadata?: Record<string, unknown>
   /** Lifecycle hooks with full type safety */
   hooks?: PluginLifecycleHooks
 }
