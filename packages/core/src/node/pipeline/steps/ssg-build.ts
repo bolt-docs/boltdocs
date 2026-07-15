@@ -1,5 +1,6 @@
 import type { PipelineStep } from '../index'
 import type { BuildContext } from '../types'
+import type { StepResult } from '../types'
 import { build as ssgBuild } from '@bdocs/ssg/node'
 import path from 'node:path'
 
@@ -20,15 +21,22 @@ export class SSGBuildStep implements PipelineStep<BuildContext> {
       }
     }
 
+    const ssgSubSteps: StepResult[] = []
+
     await ssgBuild(
       {
         entry: 'boltdocs/entry',
         routeToSourceFileMap,
         cacheDir: path.resolve(ctx.root, '.boltdocs/build'),
         turbo: ctx.turbo,
+        onStep: (step) => {
+          ssgSubSteps.push(step)
+        },
       },
       ctx.viteConfig,
     )
+
+    ctx.ssgSubSteps = ssgSubSteps
 
     // Store the resulting output folder
     ctx.outDir = ctx.viteConfig.build?.outDir || 'dist'

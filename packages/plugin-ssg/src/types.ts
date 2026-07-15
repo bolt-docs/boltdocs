@@ -121,6 +121,17 @@ export interface ViteReactSSGOptions<Context = ViteReactSSGContext> {
 
   onFinished?: (dir: string) => Promise<void> | void
   /**
+   * Callback invoked at each build sub-step boundary.
+   * Used to collect step data for the pipeline summary.
+   */
+  onStep?: (step: {
+    name: string
+    duration: number
+    success: boolean
+    details?: string
+    metrics?: Record<string, any>
+  }) => void
+  /**
    * The application's root container `id`.
    *
    * @default `root`

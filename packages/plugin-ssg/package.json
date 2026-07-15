@@ -2,7 +2,7 @@
   "name": "@bdocs/ssg",
   "type": "module",
   "version": "0.2.0",
-  "packageManager": "pnpm@10.28.2",
+  "packageManager": "pnpm@10.30.0",
   "description": "A Vite plugin for static site generation (SSG) with React.",
   "license": "MIT",
   "publishConfig": {
@@ -91,11 +91,11 @@
     }
   },
   "dependencies": {
+    "@bdocs/dui": "^0.3.0",
+    "@bdocs/zig-critters": "workspace:*",
     "fs-extra": "^11.3.4",
     "html5parser": "^2.0.2",
     "jsdom": "^24.1.3",
-    "@bdocs/dui": "^0.2.0",
-    "@bdocs/zig-critters": "workspace:*",
     "p-queue": "^9.1.2",
     "react-helmet-async": "^2.0.1",
     "yargs": "^17.7.2"

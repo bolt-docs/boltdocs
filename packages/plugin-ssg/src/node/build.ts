@@ -1,13 +1,4 @@
-import {
-  colors,
-  info,
-  warn,
-  success,
-  error,
-  dividerLog,
-  table,
-  createSpinner,
-} from '@bdocs/dui'
+import { colors, warn, error } from '@bdocs/dui'
 import type { InlineConfig, PluginOption } from 'vite'
 import type {
   RouteRecord,
@@ -37,7 +28,7 @@ import crypto from 'node:crypto'
 import { detectEntry, renderHTML, SCRIPT_COMMENT_PLACEHOLDER } from './html'
 import { renderPreloadLinks, renderPreloadLinksString } from './preload-links'
 import { getAdapter } from './router-adapter'
-import { buildLog, getSize, resolveAlias, routesToPaths } from './utils'
+import { getSize, resolveAlias, routesToPaths } from './utils'
 import {
   collectPerformanceMetrics,
   writePerformanceMetrics,
@@ -271,6 +262,16 @@ export async function build(
 ) {
   const mode =
     process.env.MODE || process.env.NODE_ENV || ssgOptions.mode || 'production'
+
+  // Ensure all plugins (e.g. @bdocs/plugin-mermaid) can detect
+  // they are running inside a production build.
+  // Vite already does this for its own resolution, but we make it
+  // explicit so plugins that check process.env.NODE_ENV directly
+  // (instead of Vite's mode) see the correct value.
+  if (mode !== process.env.NODE_ENV) {
+    process.env.NODE_ENV = mode
+  }
+
   const config = await resolveConfig(viteConfig, 'build', mode, mode)
   const cwd = process.cwd()
   const root = config.root || cwd
@@ -290,6 +291,7 @@ export async function build(
     onBeforePageRender,
     onPageRendered,
     onFinished,
+    onStep,
     dirStyle = 'flat',
     includeAllRoutes = false,
     format = 'esm',
@@ -373,13 +375,17 @@ export async function build(
   }
 
   if (canBypassClientBuild) {
-    buildLog('Client code unchanged. Bypassing client build...')
+    onStep?.({
+      name: 'Client build',
+      duration: 0,
+      success: true,
+      details: 'Code unchanged, skipped',
+    })
     await fs.ensureDir(out)
     await fs.copy(templateHtmlFile, join(out, htmlEntry))
   } else {
     // client
-    dividerLog()
-    buildLog('Build for client...')
+    const clientStart = performance.now()
     await viteBuild(
       mergeConfig(viteConfig, {
         logLevel: 'warn',
@@ -414,15 +420,18 @@ export async function build(
         ],
       }),
     )
-    success('Client build complete')
+    onStep?.({
+      name: 'Client build',
+      duration: performance.now() - clientStart,
+      success: true,
+      details: 'Vite production build',
+    })
 
     // Save the template index.html to cache
     await fs.ensureDir(finalCacheDir)
     await fs.copy(join(out, htmlEntry), templateHtmlFile)
     await fs.writeFile(hashFile, currentClientHash, 'utf-8')
   }
-
-  dividerLog()
 
   let unmock = () => {}
   if (mock) {
@@ -441,11 +450,16 @@ export async function build(
       .readdirSync(ssgOut)
       .filter((f) => f.endsWith('.mjs') || f.endsWith('.cjs')).length > 0
   if (serverBuildSkipped) {
-    buildLog('Server build unchanged. Bypassing server build...')
+    onStep?.({
+      name: 'Server build',
+      duration: 0,
+      success: true,
+      details: 'SSR bundle unchanged, skipped',
+    })
   } else {
     if (fs.existsSync(ssgOut)) await fs.remove(ssgOut)
-    buildLog('Build for server...')
     process.env.VITE_SSG = 'true'
+    const serverStart = performance.now()
     await viteBuild(
       mergeConfig(viteConfig, {
         logLevel: 'warn',
@@ -481,7 +495,12 @@ export async function build(
         mode: config.mode,
       }),
     )
-    success('Server build complete')
+    onStep?.({
+      name: 'Server build',
+      duration: performance.now() - serverStart,
+      success: true,
+      details: 'Vite SSR bundle',
+    })
   }
 
   const prefix =
@@ -537,9 +556,6 @@ export async function build(
 
   routesPaths = Array.from(new Set(routesPaths))
 
-  dividerLog()
-  buildLog('Rendering Pages...', routesPaths.length)
-
   const beasties =
     beastiesOptions !== false && !turbo
       ? await getBeasties(outDir, {
@@ -551,15 +567,6 @@ export async function build(
   let zigCritters: import('./critical').ZigCritters | undefined
   if (turbo) {
     zigCritters = await getZigCritters()
-    if (zigCritters) {
-      info('Critical CSS generation enabled via `zig-critters` (turbo)')
-    } else {
-      warn('zig-critters not available, falling back to beasties')
-    }
-  }
-
-  if (beasties && !zigCritters) {
-    info('Critical CSS generation enabled via `beasties`')
   }
 
   // Cache CSS content for zig-critters (read once, not per page)
@@ -574,9 +581,7 @@ export async function build(
     }
   }
 
-  const renderSpinner = createSpinner('Rendering pages...')
-  renderSpinner.start()
-
+  const renderStartTime = performance.now()
   const ssrManifest: SSRManifest = JSON.parse(
     await fs.readFile(join(out, ...dotVitedir, 'ssr-manifest.json'), 'utf-8'),
   )
@@ -922,16 +927,12 @@ export async function build(
 
   await queue.start().onIdle()
 
-  renderSpinner.stop('success', 'Rendering complete')
-
   const totalPages = renderedCount + cachedCount
   const totalSizeMB = (renderedSize / 1024 / 1024).toFixed(2)
-  info(
-    `${colors.cyan(String(totalPages).padStart(3, ' '))} pages rendered  ${colors.dim(`(${renderedCount} new, ${cachedCount} cached, ${totalSizeMB} MB)`)}`,
-  )
 
   // Save the updated cache index
   // Skip in turbo mode for faster builds
+  let prunedCount = 0
   if (!turbo) {
     try {
       await fs.ensureDir(dirname(cachePath))
@@ -946,7 +947,6 @@ export async function build(
           activeHashes.add(`${pathHash}.html`)
           activeHashes.add(`${pathHash}.json`)
         }
-        let prunedCount = 0
         for (const file of cachedFiles) {
           if (file.endsWith('.html') || file.endsWith('.json')) {
             if (!activeHashes.has(file)) {
@@ -955,17 +955,27 @@ export async function build(
             }
           }
         }
-        if (prunedCount > 0) {
-          buildLog(`Pruned ${prunedCount} obsolete files from SSG cache.`)
-        }
       }
     } catch (e) {
       // Ignore cache and pruning errors
     }
   }
 
-  dividerLog()
-  buildLog('Generating static loader data...', loaderDataFileCount)
+  onStep?.({
+    name: 'Render pages',
+    duration: performance.now() - renderStartTime,
+    success: true,
+    details: `${totalPages} pages (${renderedCount} new, ${cachedCount} cached, ${totalSizeMB} MB)`,
+    metrics: {
+      renderedCount,
+      cachedCount,
+      renderedSize,
+      totalPages,
+      prunedCount,
+    },
+  })
+
+  const staticLoaderDataStart = performance.now()
   const staticLoaderDataManifestString = JSON.stringify(
     staticLoaderDataManifest,
     null,
@@ -974,9 +984,6 @@ export async function build(
   await fs.writeFile(
     join(out, `static-loader-data-manifest-${hash}.json`),
     staticLoaderDataManifestString,
-  )
-  info(
-    `${colors.dim(`${outDir}/`)}${colors.cyan(`static-loader-data-manifest-${hash}.json`.padEnd(15, ' '))}  ${colors.dim(getSize(staticLoaderDataManifestString))}`,
   )
 
   // Only clean up SSR temp dir when client build actually ran (hash changed).
@@ -989,7 +996,6 @@ export async function build(
   const pwaPlugin: { disabled: boolean; generateSW: () => Promise<unknown> } =
     config.plugins.find((i) => i.name === 'vite-plugin-pwa')?.api
   if (pwaPlugin && !pwaPlugin.disabled && pwaPlugin.generateSW) {
-    buildLog('Regenerate PWA...')
     await pwaPlugin.generateSW()
   }
 
@@ -997,31 +1003,26 @@ export async function build(
   const metrics = await collectPerformanceMetrics(out, buildTime)
   writePerformanceMetrics(out, metrics)
 
-  const toKB = (b: number) => (b / 1024).toFixed(0)
-  const toMB = (b: number) => (b / 1024 / 1024).toFixed(1)
-  const jsSize =
-    metrics.totalJSBundleSize > 1024 * 1024
-      ? toMB(metrics.totalJSBundleSize) + ' MB'
-      : toKB(metrics.totalJSBundleSize) + ' kB'
-  const cssSize =
-    metrics.totalCSSBundleSize > 1024 * 1024
-      ? toMB(metrics.totalCSSBundleSize) + ' MB'
-      : toKB(metrics.totalCSSBundleSize) + ' kB'
+  onStep?.({
+    name: 'Static loader data',
+    duration: performance.now() - staticLoaderDataStart,
+    success: true,
+    details: `${loaderDataFileCount} loader data files`,
+    metrics: { loaderDataFileCount },
+  })
 
-  console.log(
-    table(
-      ['Metric', 'Result'],
-      [
-        ['Build Time', `${(buildTime / 1000).toFixed(1)}s`],
-        ['Pages', String(metrics.pages.length)],
-        ['JavaScript', jsSize],
-        ['CSS', cssSize],
-      ],
-      { style: 'round', headerSeparator: true },
-    ),
-  )
-
-  success('Build finished.')
+  onStep?.({
+    name: 'Build metrics',
+    duration: 0,
+    success: true,
+    details: `Build time: ${(buildTime / 1000).toFixed(1)}s, JS: ${(metrics.totalJSBundleSize / 1024).toFixed(0)} kB, CSS: ${(metrics.totalCSSBundleSize / 1024).toFixed(0)} kB`,
+    metrics: {
+      buildTime,
+      totalPages: metrics.pages.length,
+      jsSize: metrics.totalJSBundleSize,
+      cssSize: metrics.totalCSSBundleSize,
+    },
+  })
 
   await onFinished?.(outDir)
 

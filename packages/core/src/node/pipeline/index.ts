@@ -50,8 +50,23 @@ export class Pipeline<TContext> {
 
         const duration = performance.now() - groupStart
         for (const step of stepGroup) {
-          stepResults.push({ name: step.name, duration, success: true })
+          const details = (context as any).stepDetails?.[step.name]
+          stepResults.push({
+            name: step.name,
+            duration,
+            success: true,
+            details,
+          })
           ;(context as any).timing[step.name] = duration
+        }
+
+        // Collect sub-steps from SSGBuildStep
+        if ((context as any).ssgSubSteps) {
+          // Preserve metrics from sub-step results
+          for (const subStep of (context as any).ssgSubSteps) {
+            stepResults.push(subStep)
+          }
+          delete (context as any).ssgSubSteps
         }
       } catch (err) {
         const duration = performance.now() - groupStart

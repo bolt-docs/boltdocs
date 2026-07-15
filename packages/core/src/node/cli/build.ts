@@ -1,10 +1,27 @@
 import { preview } from 'vite'
-import { colors, error, double } from '@bdocs/dui'
+import { colors, error, double, steps, table, divider } from '@bdocs/dui'
 import { previewServer } from '../ui-utils'
 import { notifyUpdateAvailable } from '../update-check'
 import { createBuildPipeline } from '../pipeline/index'
+import type { StepResult } from '../pipeline/types'
 import { createViteConfig } from '../index'
 import { flushCache } from '../cache'
+
+function formatDuration(ms: number): string {
+  return ms < 1000 ? `${Math.round(ms)}ms` : `${(ms / 1000).toFixed(1)}s`
+}
+
+function buildStepList(stepResults: StepResult[]): Array<{
+  label: string
+  status: 'success' | 'error' | 'running' | 'pending'
+  details?: string
+}> {
+  return stepResults.map((s) => ({
+    label: s.name,
+    status: s.success ? 'success' : 'error',
+    details: s.details,
+  }))
+}
 
 export async function buildAction(
   root: string = process.cwd(),
@@ -36,26 +53,51 @@ export async function buildAction(
       process.exit(1)
     }
 
-    // Log per-step timing
+    const allSteps = buildStepList(result.stepResults)
     console.log('')
-    console.log(colors.dim('[pipeline] Build steps:'))
-    for (const step of result.stepResults) {
-      const ms =
-        step.duration < 1000
-          ? `${Math.round(step.duration)}ms`
-          : `${(step.duration / 1000).toFixed(1)}s`
-      console.log(`  ${colors.dim(step.name.padEnd(20))} ${ms}`)
-    }
-    const totalTime =
-      result.timing.total < 1000
-        ? `${Math.round(result.timing.total)}ms`
-        : `${(result.timing.total / 1000).toFixed(1)}s`
-    console.log(`  ${colors.dim('Total'.padEnd(20))} ${colors.cyan(totalTime)}`)
+    console.log(steps(allSteps))
+    console.log(divider('═', 44))
+    console.log(
+      `  ${colors.dim('Total'.padEnd(20))} ${colors.cyan(formatDuration(result.timing.total))}`,
+    )
     console.log('')
 
+    // Look for SSG build metrics in sub-steps
+    const buildMetricsStep = result.stepResults.find(
+      (s) => s.name === 'Build metrics',
+    )
+    const metrics = buildMetricsStep?.metrics
+    if (metrics) {
+      const toKB = (b: number) => (b / 1024).toFixed(0)
+      const toMB = (b: number) => (b / 1024 / 1024).toFixed(1)
+      const jsSize =
+        metrics.jsSize > 1024 * 1024
+          ? toMB(metrics.jsSize) + ' MB'
+          : toKB(metrics.jsSize) + ' kB'
+      const cssSize =
+        metrics.cssSize > 1024 * 1024
+          ? toMB(metrics.cssSize) + ' MB'
+          : toKB(metrics.cssSize) + ' kB'
+
+      console.log(
+        table(
+          ['Metric', 'Result'],
+          [
+            ['Build Time', formatDuration(metrics.buildTime)],
+            ['Pages', String(metrics.totalPages)],
+            ['JavaScript', jsSize],
+            ['CSS', cssSize],
+          ],
+          { style: 'round', headerSeparator: true },
+        ),
+      )
+      console.log('')
+    }
+
+    const totalTime = formatDuration(result.timing.total)
     console.log(
       double([
-        `SSG build completed in ${(Math.round(result.timing.total) / 1000).toFixed(1)}s`,
+        `boltdocs build completed in ${totalTime}`,
         '',
         `${colors.cyan('boltdocs')} documentation is ready at ${colors.green('dist/')}`,
       ]),

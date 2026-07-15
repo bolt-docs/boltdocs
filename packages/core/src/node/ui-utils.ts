@@ -6,7 +6,7 @@ export function devServer(localUrl: string, networkUrl: string | null): string {
     : `  ${colors.green('➜')}  ${colors.green('Network:')} ${colors.gray('use --host to expose')}`
 
   const lines = [
-    `  ${colors.green('➜')}  ${colors.green('Local:')}   ${colors.bgGreen.white(localUrl)}`,
+    `  ${colors.green('➜')}  ${colors.green('Local:')}   ${colors.bgGreen.gray(localUrl)}`,
     netLine,
     '',
     `  ${colors.dim('press h + enter for help')}`,
@@ -24,7 +24,7 @@ export function previewServer(
     : `  ${colors.green('➜')}  ${colors.green('Network:')} ${colors.gray('use --host to expose')}`
 
   const lines = [
-    `  ${colors.green('➜')}  ${colors.green('Local:')}   ${colors.bgGreen.white(localUrl)}`,
+    `  ${colors.green('➜')}  ${colors.green('Local:')}   ${colors.bgGreen.gray(localUrl)}`,
     netLine,
   ]
 

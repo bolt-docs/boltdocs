@@ -13,6 +13,8 @@ export interface BuildContext {
   outDir?: string
   timing: Record<string, number>
   turbo?: boolean
+  stepDetails?: Record<string, string>
+  ssgSubSteps?: StepResult[]
 }
 
 export interface StepResult {
@@ -20,6 +22,8 @@ export interface StepResult {
   duration: number
   success: boolean
   error?: Error
+  details?: string
+  metrics?: Record<string, any>
 }
 
 export interface PipelineResult {

@@ -1,14 +1,16 @@
-import type { BoltdocsPlugin } from 'boltdocs'
 import { satteriRemarkMetaPlugin } from './satteri-plugins/remark-meta-plugin'
 import { satteriRehypeSlugPlugin } from './satteri-plugins/rehype-slug-plugin'
 import { satteriRehypeShikiPlugin } from './satteri-plugins/rehype-shiki-plugin'
 import type { MdastPluginInput, HastPluginInput } from 'satteri'
 
 /**
- * Internal Sätteri-specific plugin type that includes MDAST/HAST plugin arrays
- * not present on the public BoltdocsPlugin interface.
+ * Internal plugin type that includes MDAST/HAST plugin arrays.
+ * Used to pass plugin definitions from the processor to the main plugin.
  */
-interface SatteriProcessorPlugin extends BoltdocsPlugin {
+export interface SatteriProcessorPlugin {
+  name: string
+  version: string
+  boltdocsVersion: string
   mdastPlugins: MdastPluginInput[]
   hastPlugins: HastPluginInput[]
 }
