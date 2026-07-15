@@ -1,21 +1,17 @@
 import type { BoltdocsPlugin } from 'boltdocs'
-import type { Connect } from 'vite'
+import type { Connect, ServerResponse } from 'vite'
 import { z } from 'zod'
 import { info, warn } from '@bdocs/dui'
 
-// ── Plugin options (server-side validated) ────────────────────────
+interface AskAiRequest {
+  question?: string
+  currentPage?: string
+  context?: { page: string; content: string }
+}
 
 const ALLOWED_MODELS = ['gpt-4o-mini', 'gpt-4.1-mini', 'gpt-4.1-nano'] as const
 
-/**
- * Layout slots the plugin can mount into via the core's declarative
- * `virtual:boltdocs-layout-slots` registry. Each id corresponds to a
- * reserved slot in the default docs layout.
- *
- * - `floating-bottom`: `fixed bottom-6 right-6 z-40` — used by the bubble.
- * - `right-rail`:    `fixed inset-y-0 right-0 z-30` (xl: viewports ≥ 1280 px)
- *                    — used by the persistent dialog.
- */
+/** Layout slots in the default docs layout. See `docs-layout.tsx`. */
 const SLOT_FIELDS = ['floating-bottom', 'right-rail'] as const
 
 export const AskAiPluginOptionsSchema = z.object({
@@ -47,19 +43,14 @@ export const AskAiPluginOptionsSchema = z.object({
   maxInputChars: z.number().int().positive().max(20_000).default(2_000),
   maxOutputTokens: z.number().int().positive().max(4_000).default(600),
   contextChars: z.number().int().positive().max(40_000).default(6_000),
-  // Per-minute requests per IP. Disable with 0 or null.
   rateLimitPerMinute: z.number().int().nonnegative().default(30),
-  // Optional shared secret — if set, callers must include `?secret=…` or
-  // header `x-boltdocs-ask-ai-key` matching it.
-  //
-  // DEPLOYMENT NOTE: this middleware reads `x-forwarded-for` to bucket
-  // rate limits and to gate forwarded client context. Deploy only behind a
-  // trusted reverse proxy that strips/overwrites client-supplied headers,
-  // otherwise an attacker can spoof the IP to bypass the per-minute
-  // limiter and replace page content sent to the model.
+  // If set, callers must include `?secret=…` or header
+  // `x-boltdocs-ask-ai-key` matching it. DEPLOYMENT: deploy only behind
+  // a trusted reverse proxy that strips/overwrites client-supplied
+  // `x-forwarded-for` to prevent IP spoofing on the per-minute limiter.
   secretKey: z.string().min(8).optional(),
   // Power-user escape hatch: append strings (e.g. 'gpt-4o') to the model
-  // allowlist without bumping the schema. Pass empty to disable.
+  // allowlist without bumping the schema.
   customModels: z.array(z.string().min(1).max(120)).max(20).optional(),
 })
 
@@ -321,11 +312,11 @@ function ctxToPayload(ctx: ResolvedContext, elapsedMs: number) {
   return { page: ctx.page, chars: ctx.content.length, elapsedMs }
 }
 
-function sendEvent(res: any, payload: object): void {
+function sendEvent(res: ServerResponse, payload: object): void {
   res.write(`data: ${JSON.stringify(payload)}\n\n`)
 }
 
-function sendErrorAndDone(res: any, message: string): void {
+function sendErrorAndDone(res: ServerResponse, message: string): void {
   sendEvent(res, { error: message })
   res.write('data: [DONE]\n\n')
 }
@@ -388,7 +379,7 @@ function createAskAiMiddleware(
         if (abortController.signal.aborted) return
 
         // ── Body parse + safety checks ───────────────────────────────
-        const payload = body ? JSON.parse(body) : {}
+        const payload: AskAiRequest = body ? JSON.parse(body) : {}
         const { question, currentPage, context: clientContext } = payload
 
         const safety = checkInputSafety(

@@ -100,11 +100,11 @@ export interface ComponentRoute {
    */
   routes?: ComponentRoute[]
   /** Raw extensible frontmatter data for custom components and formatters */
-  frontmatter?: Record<string, any>
+  frontmatter?: Record<string, unknown>
   /** Clean URL segments stripped of locale/version prefixes */
   slugParts?: string[]
   /** SEO metadata for page headers */
-  seo?: Record<string, any>
+  seo?: Record<string, unknown>
   /** Flag to indicate if this is a fallback redirect route */
   fallback?: boolean
 }

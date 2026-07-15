@@ -1,6 +1,6 @@
 import path from 'node:path'
 import fs from 'node:fs'
-import * as _node_module from 'node:module'
+import { createRequire } from 'node:module'
 import { type Plugin, type ResolvedConfig, loadEnv } from 'vite'
 import { ViteImageOptimizer } from '@bdocs/plugin-image-optimizer'
 
@@ -34,7 +34,7 @@ import {
 
 export * from './types'
 
-const req = _node_module.createRequire(import.meta.url)
+const req = createRequire(import.meta.url)
 const EXTERNALS = [
   'react',
   'react-dom',

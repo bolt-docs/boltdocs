@@ -10,7 +10,7 @@ import { generateLayoutSlotsCode } from './layout-slots'
 import path from 'node:path'
 import fs from 'node:fs'
 
-let _directoryMetaCache: Record<string, any> | null = null
+let _directoryMetaCache: Record<string, unknown> | null = null
 let _searchDataCache: string | null = null
 let _routesCache: string | null = null
 let _collectionsCache: string | null = null
@@ -135,7 +135,7 @@ export function createVirtualModulesPlugin(
         if (!_collectionsCache) {
           const routes = await generateRoutes(docsDir, config)
           const ssgRoutes = adaptRoutesForSSG(routes)
-          const collections: Record<string, any[]> = {}
+          const collections: Record<string, unknown[]> = {}
           for (const r of ssgRoutes) {
             if (r.collection) {
               if (!collections[r.collection]) collections[r.collection] = []

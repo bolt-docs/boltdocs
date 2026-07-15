@@ -1,13 +1,9 @@
+/// <reference types="react" />
 /**
  * Ambient declarations for every `virtual:boltdocs-*` module emitted at
- * build time. This file MUST be a TypeScript *script* (no top-level
- * imports/exports) for the `declare module` blocks below to apply as
- * global ambient declarations. Otherwise TypeScript treats this file as
- * a module, and the `virtual:boltdocs-*` symbols are only visible to
- * files that explicitly import this `.d.ts` file.
- *
- * Type references are inlined with `import('./path').Type` syntax so the
- * file stays ambient while preserving full type fidelity.
+ * build time. This file MUST stay a TypeScript *script* (no top-level
+ * imports/exports) so the `declare module` blocks apply as global
+ * ambient declarations.
  */
 
 declare module 'virtual:boltdocs-routes' {
@@ -66,16 +62,9 @@ declare module 'virtual:boltdocs-entry' {
 }
 
 declare module 'virtual:boltdocs-layout-slots' {
-  /**
-   * `SlotComponent` is intentionally an empty interface at the boundary.
-   * The runtime signature (`ComponentType<{ route?: ComponentRoute } | undefined>`)
-   * is defined in `client/hooks/use-slot-registry.ts` and is cast at the
-   * point of consumption. Keeping this ambient type opaque preserves the
-   * boundary between virtual-module "shape" and the concrete React type.
-   */
-  // eslint-disable-next-line @typescript-eslint/no-empty-object-type
-  interface SlotComponent {}
+  type SlotComponent = React.ComponentType<
+    { route?: import('./types').ComponentRoute } | undefined
+  >
   const slotRegistry: Record<string, SlotComponent[]>
   export default slotRegistry
-  export const slotRegistry: Record<string, SlotComponent[]>
 }

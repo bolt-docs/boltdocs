@@ -1,9 +1,5 @@
 import { z } from 'zod'
 
-/**
- * Schema for a single slot declaration emitted by a plugin.
- * Mirrors `SlotDeclaration` in `shared/types.ts`.
- */
 export const SlotDeclarationSchema = z.object({
   id: z.string().min(1).max(80),
   modulePath: z.string().min(1).max(500),
@@ -12,11 +8,6 @@ export const SlotDeclarationSchema = z.object({
 
 export type SlotDeclaration = z.infer<typeof SlotDeclarationSchema>
 
-/**
- * Raw input form (what users write in `boltdocs.config.ts > slots`).
- * Either a string shorthand or the full object form. Valid at this layer
- * BEFORE schema parsing.
- */
 export type UserSlotConfigInput =
   | string
   | {
@@ -25,18 +16,8 @@ export type UserSlotConfigInput =
       disable?: true
     }
 
-/**
- * Canonical object form. The output of `UserSlotConfigSchema.parse()` —
- * always object-only, since `z.preprocess` collapses string shorthand
- * before object validation runs.
- */
 export type UserSlotEntryParsed = z.infer<typeof UserSlotConfigSchema>
 
-/**
- * Schema for user-provided slot overrides. A bare string is shorthand for
- * `{ replace: <modulePath> }` and is normalised via `z.preprocess` so
- * the parsed output is always the canonical object form.
- */
 export const UserSlotConfigSchema = z.preprocess(
   (val) => (typeof val === 'string' ? { replace: val } : val),
   z.object({
@@ -46,21 +27,14 @@ export const UserSlotConfigSchema = z.preprocess(
   }),
 )
 
-/**
- * Normalise a raw `UserSlotConfigInput` (string shorthand OR object form)
- * to the canonical object shape. Used by the generator when callers pass
- * un-parsed `userConfig`.
- */
 function toUserSlotEntry(val: UserSlotConfigInput): UserSlotEntryParsed {
   return typeof val === 'string' ? { replace: val } : val
 }
 
 /**
  * Generate the JS source for `virtual:boltdocs-layout-slots`.
- *
- * The output module exports a `slotRegistry` object keyed by slot id and
- * arrays of component expressions. Imports are static (server-side generated)
- * so the bundler can resolve symbols at build time and tree-shake unused slots.
+ * Imports are static so the bundler can resolve symbols at build time
+ * and tree-shake unused slots.
  */
 export function generateLayoutSlotsCode(opts: {
   pluginDeclarations: ReadonlyArray<{
@@ -88,9 +62,7 @@ export function generateLayoutSlotsCode(opts: {
   function importModule(modulePath: string): string {
     const cached = importCache.get(modulePath)
     if (cached) return cached
-    // 1) strip the leading `@` from scoped npm packages so the slug reads
-    //    `bdocs_…` rather than `_bdocs_…`;
-    // 2) collapse every remaining non-alphanumeric character to `_`.
+    // Strip leading `@` from scoped packages and collapse all non-alphanumerics to `_`.
     const safeKey = modulePath.replace(/^@/, '').replace(/[^A-Za-z0-9]/g, '_')
     const varName = `_Slot${importCache.size}_${safeKey}`
     importCache.set(modulePath, varName)
@@ -134,10 +106,8 @@ export function generateLayoutSlotsCode(opts: {
     merged[slotId] = items
   }
 
-  // Also include user-declared slots that have NO plugin declaration but are
-  // configured via `replace` (so user slots can stand alone). `append`
-  // alone without prior plugin content is intentionally a no-op — there's
-  // nothing to append to.
+  // Also include user-declared slots with no plugin declaration but a `replace`.
+  // `append` alone without prior plugin content is intentionally a no-op.
   for (const [slotId, raw] of Object.entries(userConfig ?? {})) {
     if (byId.has(slotId)) continue
     const user = toUserSlotEntry(raw)

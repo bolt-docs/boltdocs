@@ -1,11 +1,8 @@
-import type { ReactNode } from 'react'
+import type { ReactNode, FC } from 'react'
 import { createPortal } from 'react-dom'
 import { cn } from '../../utils/cn'
 import { SearchHighlight } from '../ui-base/search-highlight'
 
-/**
- * Props shared by all layout slot components.
- */
 interface SlotProps {
   children?: ReactNode
   className?: string
@@ -13,18 +10,8 @@ interface SlotProps {
 }
 
 /**
- * Root layout shell. Renders a full-height flex column.
- *
- * Usage:
- * ```tsx
- * <DocsLayout>
- *   <Navbar />
- *   <DocsLayout.Body>...</DocsLayout.Body>
- *   <DocsLayout.FloatingBottom />
- *   <DocsLayout.RightRail />
- *   <DocsLayout.BodyPortal />
- * </DocsLayout>
- * ```
+ * Root layout shell. Mount children like:
+ *   <DocsLayout><Navbar /><DocsLayout.Body>...</DocsLayout.Body></DocsLayout>
  */
 function DocsLayoutRoot({ children, className, style }: SlotProps) {
   return (
@@ -40,9 +27,6 @@ function DocsLayoutRoot({ children, className, style }: SlotProps) {
   )
 }
 
-/**
- * Horizontal flex container for sidebar + content + toc.
- */
 function Body({ children, className, style }: SlotProps) {
   return (
     <div
@@ -57,9 +41,6 @@ function Body({ children, className, style }: SlotProps) {
   )
 }
 
-/**
- * Main scrollable content area.
- */
 function Content({ children, className, style }: SlotProps) {
   return (
     <main
@@ -74,9 +55,6 @@ function Content({ children, className, style }: SlotProps) {
   )
 }
 
-/**
- * MDX Content wrapper with standard page padding and max-width logic.
- */
 function ContentMdx({ children, className, style }: SlotProps) {
   return (
     <div
@@ -89,9 +67,6 @@ function ContentMdx({ children, className, style }: SlotProps) {
   )
 }
 
-/**
- * Content header area (breadcrumbs, title, description, etc).
- */
 function Header({ children, className, style }: SlotProps) {
   return (
     <header className={cn('mb-10', className)} style={style}>
@@ -100,9 +75,6 @@ function Header({ children, className, style }: SlotProps) {
   )
 }
 
-/**
- * Footer area inside the content section (page nav).
- */
 function Footer({ children, className, style }: SlotProps) {
   return (
     <div className={cn('mt-20', className)} style={style}>
@@ -111,13 +83,6 @@ function Footer({ children, className, style }: SlotProps) {
   )
 }
 
-/**
- * Floating bottom-right slot. Renders `fixed` so it escapes the Body flex.
- * Children inherit pointer-events; the wrapper is a passthrough.
- *
- * Mount position: `fixed bottom-6 right-6 z-40` (below modals, above content).
- * Tip: keep an inner `pointer-events-auto` if the slot is non-interactive.
- */
 function FloatingBottom({ children, className, style }: SlotProps) {
   return (
     <div
@@ -132,13 +97,6 @@ function FloatingBottom({ children, className, style }: SlotProps) {
   )
 }
 
-/**
- * Right-rail slot that mounts only on `xl:` viewports (≥ 1280 px). Used for
- * persistent panels like AI assistant sidebars.
- *
- * Sits OUTSIDE the Body flex (so it can be `fixed`). Its `width` collapses
- * the page content max-width implicitly via the parent's `--breakpoint-3xl`.
- */
 function RightRail({ children, className, style }: SlotProps) {
   return (
     <aside
@@ -153,50 +111,28 @@ function RightRail({ children, className, style }: SlotProps) {
   )
 }
 
-/**
- * Slot for ad-hoc content injected inside the navbar's right cluster.
- * Library layouts compose this into `<Navbar.Right>` via children passthrough.
- */
 function NavbarExtras({ children }: SlotProps) {
   return <>{children}</>
 }
 
-/**
- * Slot for ad-hoc content injected inside `<DocsLayoutPrimitive.Header>`
- * below the title/description block.
- */
 function HeaderExtras({ children }: SlotProps) {
   return <>{children}</>
 }
 
-/**
- * Slot for ad-hoc content injected at the bottom of `<OnThisPage>` tree.
- */
 function TocExtras({ children }: SlotProps) {
   return <>{children}</>
 }
 
-/**
- * Slot for ad-hoc content injected above `<PageNav>` at the bottom of content.
- */
 function FooterExtras({ children }: SlotProps) {
   return <>{children}</>
 }
 
-/**
- * Escape hatch slot for modals, toasts, lightweight popups. Renders into
- * `document.body` via a portal so it can stack above any other layout.
- * Falls back to an inline render during SSR (no portal available).
- *
- * `createPortal` is imported at module top level so the bundler can resolve
- * it statically; the SSR guard below prevents `<body>` access in Node.
- */
 function BodyPortal({ children }: SlotProps) {
   if (typeof document === 'undefined') return <>{children}</>
   return createPortal(children, document.body)
 }
 
-interface DocsLayoutComponent extends React.FC<SlotProps> {
+interface DocsLayoutComponent extends FC<SlotProps> {
   Body: typeof Body
   Content: typeof Content
   ContentMdx: typeof ContentMdx
@@ -211,7 +147,6 @@ interface DocsLayoutComponent extends React.FC<SlotProps> {
   BodyPortal: typeof BodyPortal
 }
 
-// Attach sub-components to the root
 export const DocsLayout = Object.assign(DocsLayoutRoot, {
   Body,
   Content,

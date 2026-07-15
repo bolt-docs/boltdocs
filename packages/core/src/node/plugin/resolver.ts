@@ -1,9 +1,11 @@
 import path from 'node:path'
 import fs from 'node:fs'
-import * as _node_module from 'node:module'
+import { createRequire } from 'node:module'
 import { normalizePath } from '../utils'
 
-const req = _node_module.createRequire(import.meta.url)
+type NodeRequire = ReturnType<typeof createRequire>
+
+const req = createRequire(import.meta.url)
 const EXTERNALS = [
   'react',
   'react-dom',
@@ -19,17 +21,17 @@ const SUBPATHS = [
 ]
 
 export function getBaseRequire(
-  defaultReq: _node_module.Require = req,
-): _node_module.Require {
+  defaultReq: NodeRequire = req,
+): NodeRequire {
   try {
     const pkgJsonPath = path.join(
       process.cwd(),
       'node_modules/boltdocs/package.json',
     )
     if (fs.existsSync(pkgJsonPath)) {
-      return _node_module.createRequire(fs.realpathSync(pkgJsonPath))
+      return createRequire(fs.realpathSync(pkgJsonPath))
     }
-    return _node_module.createRequire(path.join(process.cwd(), 'package.json'))
+    return createRequire(path.join(process.cwd(), 'package.json'))
   } catch {
     return defaultReq
   }
