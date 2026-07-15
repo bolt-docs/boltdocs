@@ -1,5 +1,6 @@
-import { useCallback, useState } from 'react'
+import { useCallback, useMemo, useState } from 'react'
 import type { MermaidPluginOptions } from '../shared/types'
+import { useTheme } from 'boltdocs/client'
 import { useMermaidRender } from './use-mermaid-render'
 import { useZoomPan } from './use-zoom-pan'
 import { Toolbar } from './toolbar'
@@ -8,15 +9,34 @@ import { cn } from 'boltdocs/client'
 
 export interface MermaidProps {
   chart: string
+  svgLight?: string
+  svgDark?: string
   config?: MermaidPluginOptions
 }
 
-export function Mermaid({ chart, config }: MermaidProps) {
+export function Mermaid({ chart, svgLight, svgDark, config }: MermaidProps) {
   const [isFullscreen, setIsFullscreen] = useState(false)
   const [instanceId] = useState(() =>
     Math.random().toString(36).substring(2, 9),
   )
-  const { svgStr, error } = useMermaidRender(chart, config)
+  const { resolvedTheme } = useTheme()
+
+  // When pre-rendered SVGs are available, select the one matching the current theme
+  const hasPreRendered = !!svgLight && !!svgDark
+  const preRenderedSvg = useMemo(
+    () =>
+      hasPreRendered ? (resolvedTheme === 'dark' ? svgDark : svgLight) : null,
+    [hasPreRendered, resolvedTheme, svgLight, svgDark],
+  )
+
+  // Client-side fallback render (skipped when pre-rendered SVG is available)
+  const { svgStr: clientSvgStr, error } = useMermaidRender(
+    hasPreRendered ? '' : chart,
+    config,
+    hasPreRendered, // skip the client render entirely
+  )
+
+  const svgStr = preRenderedSvg ?? clientSvgStr
 
   const {
     state: zoomPan,
@@ -66,7 +86,7 @@ export function Mermaid({ chart, config }: MermaidProps) {
             cursor: ${zoomPan.isDragging ? 'grabbing' : 'grab'} !important;
           }
           .mermaid-inline-${instanceId} .mermaid-rendered {
-            overflow: hidden;
+            overflow: visible;
           }
           .mermaid-inline-${instanceId} .mermaid-rendered svg {
             display: block !important;

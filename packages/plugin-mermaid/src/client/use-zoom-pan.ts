@@ -29,13 +29,8 @@ export function useZoomPan({ resetTrigger }: UseZoomPanOptions = {}) {
   const [isDragging, setIsDragging] = useState(false)
   const [hasInteracted, setHasInteracted] = useState(false)
 
-  // Container element stored in state so useEffect re-attaches listeners
-  // when the element changes (e.g. fullscreen portal creates a new DOM node)
-  const [containerEl, setContainerEl] = useState<HTMLDivElement | null>(null)
-
   const dragStart = useRef({ x: 0, y: 0 })
   const posStart = useRef({ x: 0, y: 0 })
-  // Track whether a single-touch has committed to dragging (moved past threshold)
   const touchCommitted = useRef(false)
   const pinchRef = useRef<{
     baseScale: number
@@ -44,7 +39,7 @@ export function useZoomPan({ resetTrigger }: UseZoomPanOptions = {}) {
     startDistance: number
   } | null>(null)
 
-  // Stale-closure refs for native touch handlers
+  // Stale-closure refs for native handlers
   const scaleRef = useRef(scale)
   const posXRef = useRef(posX)
   const posYRef = useRef(posY)
@@ -54,7 +49,12 @@ export function useZoomPan({ resetTrigger }: UseZoomPanOptions = {}) {
   posYRef.current = posY
   isDraggingRef.current = isDragging
 
-  // Reset zoom on trigger change (theme switch, diagram change)
+  // Store previous container element and its cleanup so we can tear down
+  // listeners when the element reference changes (e.g. fullscreen portal).
+  const cleanupRef = useRef<(() => void) | null>(null)
+  const prevElRef = useRef<HTMLDivElement | null>(null)
+
+  // Reset zoom on trigger change
   // biome-ignore lint/correctness/useExhaustiveDependencies: resetTrigger sole dep
   useEffect(() => {
     setScale(1)
@@ -80,18 +80,18 @@ export function useZoomPan({ resetTrigger }: UseZoomPanOptions = {}) {
     setHasInteracted(true)
   }, [])
 
-  // ============================================================
-  // Touch: native listeners with passive:false
-  // ============================================================
-
-  useEffect(() => {
-    if (!containerEl) return
-
+  const attachListeners = useCallback((el: HTMLDivElement) => {
     const DRAG_THRESHOLD = 10
+
+    const onWheel = (e: WheelEvent) => {
+      e.preventDefault()
+      const delta = e.deltaY > 0 ? -ZOOM_STEP : ZOOM_STEP
+      setScale((s) => Math.min(Math.max(s + delta, ZOOM_MIN), ZOOM_MAX))
+      setHasInteracted(true)
+    }
 
     const onTouchStart = (e: TouchEvent) => {
       if (e.touches.length === 2) {
-        // Pinch-zoom: always intercept
         e.preventDefault()
         touchCommitted.current = true
         setIsDragging(true)
@@ -102,9 +102,6 @@ export function useZoomPan({ resetTrigger }: UseZoomPanOptions = {}) {
           startDistance: getTouchDistance(e.touches),
         }
       } else if (e.touches.length === 1) {
-        // Single touch: record start but do NOT preventDefault yet,
-        // so the browser can still scroll the page if this turns out
-        // to be a scroll gesture rather than a drag gesture.
         touchCommitted.current = false
         dragStart.current = {
           x: e.touches[0].clientX,
@@ -133,8 +130,6 @@ export function useZoomPan({ resetTrigger }: UseZoomPanOptions = {}) {
         setPosY(basePosY)
         setHasInteracted(true)
       } else if (e.touches.length === 1) {
-        // After a pinch-zoom ends (2→1 fingers), the remaining finger
-        // is not a drag gesture — let the browser handle it as a scroll.
         if (pinchRef.current) {
           pinchRef.current = null
           touchCommitted.current = false
@@ -146,12 +141,11 @@ export function useZoomPan({ resetTrigger }: UseZoomPanOptions = {}) {
         const dy = e.touches[0].clientY - dragStart.current.y
 
         if (!touchCommitted.current) {
-          // Check if movement exceeds threshold to commit to drag
           if (Math.abs(dx) > DRAG_THRESHOLD || Math.abs(dy) > DRAG_THRESHOLD) {
             touchCommitted.current = true
             setIsDragging(true)
           } else {
-            return // Not committed yet — let the browser scroll
+            return
           }
         }
 
@@ -168,38 +162,24 @@ export function useZoomPan({ resetTrigger }: UseZoomPanOptions = {}) {
       setIsDragging(false)
     }
 
-    containerEl.addEventListener('touchstart', onTouchStart, { passive: false })
-    containerEl.addEventListener('touchmove', onTouchMove, { passive: false })
-    containerEl.addEventListener('touchend', onTouchEnd)
-    containerEl.addEventListener('touchcancel', onTouchEnd)
+    el.addEventListener('wheel', onWheel, { passive: false })
+    el.addEventListener('touchstart', onTouchStart, { passive: false })
+    el.addEventListener('touchmove', onTouchMove, { passive: false })
+    el.addEventListener('touchend', onTouchEnd)
+    el.addEventListener('touchcancel', onTouchEnd)
 
     return () => {
-      containerEl.removeEventListener('touchstart', onTouchStart)
-      containerEl.removeEventListener('touchmove', onTouchMove)
-      containerEl.removeEventListener('touchend', onTouchEnd)
-      containerEl.removeEventListener('touchcancel', onTouchEnd)
+      el.removeEventListener('wheel', onWheel)
+      el.removeEventListener('touchstart', onTouchStart)
+      el.removeEventListener('touchmove', onTouchMove)
+      el.removeEventListener('touchend', onTouchEnd)
+      el.removeEventListener('touchcancel', onTouchEnd)
     }
-  }, [containerEl])
+  }, [])
 
   // ============================================================
   // Mouse: React synthetic events
   // ============================================================
-
-  const handleWheel = useCallback((e: React.WheelEvent) => {
-    if (e.ctrlKey || e.metaKey) {
-      e.preventDefault()
-      const delta = e.deltaY > 0 ? -ZOOM_STEP : ZOOM_STEP
-      setScale((s) => Math.min(Math.max(s + delta, ZOOM_MIN), ZOOM_MAX))
-      setHasInteracted(true)
-    }
-  }, [])
-
-  const handleDoubleClick = useCallback(() => {
-    setScale(1)
-    setPosX(0)
-    setPosY(0)
-    setHasInteracted(false)
-  }, [])
 
   const handleMouseDown = useCallback((e: React.MouseEvent) => {
     if (e.button !== 0) return
@@ -210,32 +190,40 @@ export function useZoomPan({ resetTrigger }: UseZoomPanOptions = {}) {
 
   const handleMouseMove = useCallback(
     (e: React.MouseEvent) => {
-      if (!isDragging) return
+      if (!isDraggingRef.current) return
       setPosX(posStart.current.x + (e.clientX - dragStart.current.x))
       setPosY(posStart.current.y + (e.clientY - dragStart.current.y))
     },
-    [isDragging],
+    [],
   )
 
   const handleMouseUp = useCallback(() => {
     setIsDragging(false)
   }, [])
 
-  // ============================================================
-  // Callback ref: stores element in state so useEffect re-runs
-  // ============================================================
-
-  const callbackRef = useCallback((el: HTMLDivElement | null) => {
-    setContainerEl(el)
-  }, [])
+  const callbackRef = useCallback(
+    (el: HTMLDivElement | null) => {
+      // Clean up listeners from the previous element
+      if (prevElRef.current && prevElRef.current !== el) {
+        cleanupRef.current?.()
+        cleanupRef.current = null
+      }
+      if (el) {
+        cleanupRef.current = attachListeners(el)
+        prevElRef.current = el
+      } else {
+        cleanupRef.current = null
+        prevElRef.current = null
+      }
+    },
+    [attachListeners],
+  )
 
   const state: ZoomPanState = { scale, posX, posY, isDragging, hasInteracted }
 
   const interactiveProps = {
     ref: callbackRef,
-    style: { touchAction: 'pan-y pinch-zoom' } as React.CSSProperties,
-    onWheel: handleWheel,
-    onDoubleClick: handleDoubleClick,
+    style: { touchAction: 'pan-y pinch-zoom', cursor: isDragging ? 'grabbing' : 'grab' } as React.CSSProperties,
     onMouseDown: handleMouseDown,
     onMouseMove: handleMouseMove,
     onMouseUp: handleMouseUp,

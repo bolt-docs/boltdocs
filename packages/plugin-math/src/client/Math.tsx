@@ -5,7 +5,7 @@ export interface MathProps {
   children: string
 }
 
-export function Math({ children }: MathProps) {
+export function MathComponent({ children }: MathProps) {
   const html = useMemo(() => {
     try {
       return katex.renderToString(children, { displayMode: false })

@@ -10,6 +10,7 @@ export default function mathPlugin(): BoltdocsPlugin {
     },
     components: {
       Math: '@bdocs/plugin-math/client',
+      MathComponent: '@bdocs/plugin-math/client',
       BlockMath: '@bdocs/plugin-math/client',
     },
   }

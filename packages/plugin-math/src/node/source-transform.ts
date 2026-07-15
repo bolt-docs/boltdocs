@@ -35,7 +35,7 @@ function preprocessMath(source: string): string {
     /(?<!\$)\$(?!\$)(.+?)\$(?!\$)/g,
     (_, content: string) => {
       const escaped = escapeJsString(content)
-      return `<Math>{"${escaped}"}</Math>`
+      return `<MathComponent>{"${escaped}"}</MathComponent>`
     },
   )
 

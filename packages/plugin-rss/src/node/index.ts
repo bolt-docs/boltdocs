@@ -1,8 +1,18 @@
 import fs from 'node:fs'
-import path from 'node:path'
 import type { BoltdocsPlugin } from 'boltdocs'
 import { RssPluginOptionsSchema, type RssPluginOptions } from './feed-schema'
-import { generateRssXml, generateAtomXml, FeedConfig } from './feed-generator'
+import {
+  generateRssXml,
+  generateAtomXml,
+  type FeedConfig,
+} from './feed-generator'
+import { writeFeed } from './write-feed'
+import {
+  getLocales,
+  getLocalizedDescription,
+  getLocalizedTitle,
+  getSiteTitle,
+} from './helpers'
 
 export type { RssPluginOptions }
 
@@ -32,62 +42,37 @@ export default function rssPlugin(
           return
         }
 
-        let routes = ctx.routes
+        const filteredRoutes = ctx.routes
+          .filter((route) => !route.draft)
+          .filter((route) => {
+            if (!opts.paths) return true
+            return opts.paths.some((p) => route.path.startsWith(p))
+          })
+          .filter((route) => {
+            if (!opts.collections) return true
+            return opts.collections.includes(route.collection ?? '')
+          })
+          .sort((a, b) => {
+            const dateA = new Date(a.date ?? a.lastUpdated ?? 0)
+            const dateB = new Date(b.date ?? b.lastUpdated ?? 0)
+            return dateB.getTime() - dateA.getTime()
+          })
 
-        if (opts.paths) {
-          routes = routes.filter((r) =>
-            opts.paths!.some((p) => r.path.startsWith(p)),
-          )
-        }
+        const limited = opts.limit
+          ? filteredRoutes.slice(0, opts.limit)
+          : filteredRoutes
 
-        if (opts.collections) {
-          routes = routes.filter((r) =>
-            opts.collections!.includes(r.collection ?? ''),
-          )
-        }
-
-        routes = routes.filter((r) => !r.draft)
-
-        routes.sort((a, b) => {
-          const dateA = new Date(a.date ?? a.lastUpdated ?? 0)
-          const dateB = new Date(b.date ?? b.lastUpdated ?? 0)
-          return dateB.getTime() - dateA.getTime()
-        })
-
-        const limited = opts.limit ? routes.slice(0, opts.limit) : routes
-
-        const siteTitle =
-          typeof ctx.config.theme?.title === 'object'
-            ? (Object.values(ctx.config.theme.title)[0] ?? 'Documentation')
-            : (ctx.config.theme?.title ?? 'Documentation')
-
-        const locales = ctx.config.i18n?.locales
-          ? Array.isArray(ctx.config.i18n.locales)
-            ? ctx.config.i18n.locales
-            : Object.keys(ctx.config.i18n.locales)
-          : ['en']
-
-        const defaultLocale = ctx.config.i18n?.defaultLocale ?? 'en'
+        const siteTitle = getSiteTitle(ctx)
+        const locales = getLocales(ctx)
 
         for (const locale of locales) {
           const localeRoutes = limited.filter((r) => {
-            const routeLocale = r.locale || defaultLocale
+            const routeLocale = r.locale
             return routeLocale === locale
           })
 
-          const title =
-            typeof ctx.config.theme?.title === 'object'
-              ? (ctx.config.theme.title[locale] ??
-                ctx.config.theme.title[defaultLocale] ??
-                siteTitle)
-              : siteTitle
-
-          const description =
-            typeof ctx.config.theme?.description === 'object'
-              ? (ctx.config.theme.description[locale] ??
-                ctx.config.theme.description[defaultLocale] ??
-                '')
-              : (ctx.config.theme?.description ?? '')
+          const title = getLocalizedTitle(ctx, locale, siteTitle)
+          const description = getLocalizedDescription(ctx, locale)
 
           const feedConfig: FeedConfig = {
             title,
@@ -98,21 +83,23 @@ export default function rssPlugin(
           }
 
           if (opts.format === 'rss' || opts.format === 'both') {
-            const xml = generateRssXml(feedConfig, localeRoutes)
-            const filename = `rss/feed-${locale}.xml`
-            const filePath = path.join(outDir, filename)
-            fs.mkdirSync(path.dirname(filePath), { recursive: true })
-            fs.writeFileSync(filePath, xml, 'utf-8')
-            ctx.logger.info(`RSS feed generated: ${filename}`)
+            writeFeed({
+              filename: `rss/rss-${locale}.xml`,
+              generateXml: () => generateRssXml(feedConfig, localeRoutes),
+              label: 'RSS',
+              logger: ctx.logger.info,
+              outDir,
+            })
           }
 
           if (opts.format === 'atom' || opts.format === 'both') {
-            const xml = generateAtomXml(feedConfig, localeRoutes)
-            const filename = `rss/atom-${locale}.xml`
-            const filePath = path.join(outDir, filename)
-            fs.mkdirSync(path.dirname(filePath), { recursive: true })
-            fs.writeFileSync(filePath, xml, 'utf-8')
-            ctx.logger.info(`Atom feed generated: ${filename}`)
+            writeFeed({
+              filename: `rss/atom-${locale}.xml`,
+              generateXml: () => generateAtomXml(feedConfig, localeRoutes),
+              label: 'Atom',
+              logger: ctx.logger.info,
+              outDir,
+            })
           }
         }
       },

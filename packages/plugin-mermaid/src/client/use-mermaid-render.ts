@@ -25,7 +25,7 @@ function cleanSvg(svg: string): string {
     root.removeAttribute('style')
     root.style.width = '100%'
     root.style.height = 'auto'
-    root.style.overflow = 'hidden'
+    root.style.overflow = 'visible'
 
     return new XMLSerializer().serializeToString(root)
   } catch {
@@ -36,6 +36,7 @@ function cleanSvg(svg: string): string {
 export function useMermaidRender(
   chart: string,
   config: MermaidPluginOptions | string | undefined,
+  skip: boolean = false,
 ): UseMermaidRenderResult {
   const { resolvedTheme } = useTheme()
   const [svgStr, setSvgStr] = useState('')
@@ -69,6 +70,7 @@ export function useMermaidRender(
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: themeKey covers darkTheme/lightTheme changes
   useEffect(() => {
+    if (skip || !chart) return
     let isMounted = true
     let abort = false
     const id = `mermaid-${Math.random().toString(36).substring(2, 11)}`
@@ -112,7 +114,7 @@ export function useMermaidRender(
       isMounted = false
       abort = true
     }
-  }, [chart, resolvedTheme, themeKey])
+  }, [chart, resolvedTheme, themeKey, skip])
 
   return { svgStr, error }
 }

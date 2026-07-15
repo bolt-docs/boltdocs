@@ -20,6 +20,10 @@
       "types": "./dist/client/index.d.mts",
       "import": "./dist/client/index.mjs"
     },
+    "./client/static": {
+      "types": "./dist/client/static.d.mts",
+      "import": "./dist/client/static.mjs"
+    },
     "./style.css": "./dist/client/index.css"
   },
   "scripts": {
@@ -32,8 +36,9 @@
   "license": "MIT",
   "type": "module",
   "dependencies": {
-    "@bdocs/dui": "^0.2.0",
+    "@bdocs/dui": "^0.3.0",
     "mermaid": "^11.12.3",
+    "playwright": "^1.59.0",
     "unist-util-visit": "^5.0.0"
   },
   "peerDependencies": {
@@ -44,10 +49,12 @@
   "devDependencies": {
     "@shikijs/langs": "^4.0.2",
     "@shikijs/themes": "^4.0.2",
+    "@types/jsdom": "^21.0.0",
     "@types/node": "^22.0.0",
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
     "boltdocs": "workspace:*",
+    "jsdom": "^26.0.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "tsdown": "^0.21.7",
