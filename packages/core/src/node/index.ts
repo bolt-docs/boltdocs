@@ -172,7 +172,7 @@ export async function createViteConfig(
           'react-dom',
           'react-fast-compare',
           'invariant',
-          ...(config.vite?.ssr?.optimizeDeps?.include || []),
+          ...(config.vite?.ssr?.optimizeDeps?.include || [] as string[]),
         ],
       },
       noExternal: [

@@ -143,9 +143,9 @@ export function Head({ siteTitle, siteDescription, routes }: HeadProps) {
           key.startsWith('book:') ||
           key.startsWith('profile:')
         return isProperty ? (
-          <meta key={key} property={key} content={String(value)} />
+          <meta key={key} property={key} content={String(value) as string} />
         ) : (
-          <meta key={key} name={key} content={String(value)} />
+          <meta key={key} name={key} content={String(value) as string} />
         )
       })}
 
@@ -154,7 +154,7 @@ export function Head({ siteTitle, siteDescription, routes }: HeadProps) {
         if (key === 'noindex' && value === true)
           return <meta key="noindex" name="robots" content="noindex" />
         if (key === 'robots')
-          return <meta key="robots" name="robots" content={String(value)} />
+          return <meta key="robots" name="robots" content={String(value) as string} />
         if (
           key === 'canonical' ||
           key === 'og:url' ||
@@ -171,9 +171,9 @@ export function Head({ siteTitle, siteDescription, routes }: HeadProps) {
           key.startsWith('book:') ||
           key.startsWith('profile:')
         return isProperty ? (
-          <meta key={key} property={key} content={String(value)} />
+          <meta key={key} property={key} content={String(value) as string} />
         ) : (
-          <meta key={key} name={key} content={String(value)} />
+          <meta key={key} name={key} content={String(value) as string} />
         )
       })}
     </Helmet>
