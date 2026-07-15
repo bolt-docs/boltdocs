@@ -85,7 +85,7 @@ export function usePost(
         frontmatter: route.frontmatter,
         lastUpdated: route.lastUpdated,
         headings: route.headings,
-      }),
+      }) as CollectionPost,
       [route],
     )
   }

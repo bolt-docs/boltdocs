@@ -47,7 +47,7 @@ export function MdxComponentsProvider({
       }
     })
     if (hasFrontmatter) {
-      processed.Frontmatter = frontmatter
+      ;(processed as MdxComponentsType).Frontmatter = frontmatter
     }
 
     return processed as MdxComponentsType

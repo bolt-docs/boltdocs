@@ -26,7 +26,7 @@ export function Breadcrumbs() {
           >
             <BreadcrumbsRoot.Separator className="text-muted/40" />
             <BreadcrumbsRoot.Link
-              href={crumb.href}
+              href={crumb.href ?? ''}
               className={cn(
                 'transition-colors',
                 isActive

@@ -1,5 +1,6 @@
 import fs from 'node:fs'
 import path from 'node:path'
+import { createRequire } from 'node:module'
 import { resolveConfig } from '../config'
 import { table, colors, info, warn, success, error } from '@bdocs/dui'
 
@@ -76,7 +77,6 @@ export async function auditAction(root: string = process.cwd()): Promise<void> {
 
     // Find the plugin dir
     try {
-      const { createRequire } = await import('node:module')
       const localRequire = createRequire(path.resolve(root, 'package.json'))
       const pkgJsonPath = localRequire.resolve(`${plugin.name}/package.json`)
       pluginDir = path.dirname(pkgJsonPath)

@@ -35,7 +35,7 @@ export function getSeverity(
   type: string,
   defaultLevel: 'high' | 'warning' | 'low',
 ): 'high' | 'warning' | 'low' | 'off' {
-  return ctx.doctorConfig.severity[type] || defaultLevel
+  return (ctx.doctorConfig.severity[type] as 'high' | 'warning' | 'low' | 'off') || defaultLevel
 }
 
 export async function backupFile(filePath: string, backupDir: string) {
@@ -167,8 +167,8 @@ export async function generateLinkTree(
         const { data } = await getFileData(absFile)
         let route: string
         if (data.permalink) {
-          route = data.permalink.startsWith('/')
-            ? data.permalink
+          route = String(data.permalink).startsWith('/')
+            ? String(data.permalink)
             : `/${data.permalink}`
         } else {
           route = fileToRoutePath(relFile)

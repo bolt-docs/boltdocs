@@ -48,7 +48,7 @@ export function setupHmr(
   }
 
   // Invalidate the lowercase index when the module graph changes
-  server.moduleGraph.onFileChange(() => {
+  server.watcher.on('all', () => {
     lowerModuleIndex = null
   })
 

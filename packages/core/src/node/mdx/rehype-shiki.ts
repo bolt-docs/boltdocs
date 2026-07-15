@@ -52,8 +52,8 @@ export function rehypeShiki(config?: BoltdocsConfig) {
         if (preElement && preElement.type === 'element') {
           preNode.children = preElement.children as ElementNode['children']
           preNode.properties = {
-            ...preNode.properties,
-            ...preElement.properties,
+            ...(preNode.properties || {}),
+            ...(preElement.properties || {}),
             [DATA_ATTRIBUTES.HIGHLIGHTED]: 'true',
             [DATA_ATTRIBUTES.LANG]: lang,
           }
@@ -70,7 +70,7 @@ export function rehypeShiki(config?: BoltdocsConfig) {
       }
 
       if (parsedMeta.title) {
-        preNode.properties[DATA_ATTRIBUTES.TITLE] = parsedMeta.title
+        ;(preNode.properties ??= {})[DATA_ATTRIBUTES.TITLE] = parsedMeta.title
       }
 
       return SKIP

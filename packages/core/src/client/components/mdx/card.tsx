@@ -31,9 +31,9 @@ export function Card({
 
   return (
     <Wrapper
-      ref={cardRef}
+      ref={cardRef as any}
       href={href}
-      onMouseMove={handleMouseMove}
+      onMouseMove={handleMouseMove as any}
       className={cn(
         'group relative flex flex-col gap-3 rounded-2xl border p-6 overflow-hidden',
         'transition-[box-shadow,transform] duration-300',

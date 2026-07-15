@@ -64,7 +64,7 @@ export async function doctorInit(root: string) {
  */
 export async function doctorAction(
   root: string = process.cwd(),
-  options: { fix?: boolean; checkExternal?: boolean; init?: boolean } = {},
+  options: { fix?: boolean; checkExternal?: boolean; init?: boolean; budget?: boolean } = {},
 ) {
   if (options.init) {
     await doctorInit(root)

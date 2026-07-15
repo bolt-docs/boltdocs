@@ -34,11 +34,11 @@ const CopyButton = ({
   return (
     <Tooltip content={copied ? 'Copied!' : 'Copy code'}>
       <Button
-        onPress={handleCopy}
+        onPress={handleCopy as any}
         className={cn(
           'grid place-items-center size-8 bg-transparent outline-none cursor-pointer transition-all duration-200 hover:scale-110 active:scale-95 [&>svg]:size-4 [&>svg]:stroke-2 z-10',
           copied ? 'text-emerald-400' : 'text-muted hover:text-body',
-        )}
+        ) as any}
         aria-label="Copy code"
       >
         {copied ? <Check size={20} /> : <Copy size={20} />}
@@ -58,7 +58,7 @@ const CodeBlockFeedback = ({
     <div className="flex items-center gap-0.5 border-r border-subtle pr-1.5 mr-1">
       <Tooltip content={rated === 'up' ? 'Helpful!' : 'This code is helpful'}>
         <Button
-          onPress={() => onRate('up')}
+          onPress={(() => onRate('up')) as any}
           disabled={rated !== null}
           className={cn(
             'grid place-items-center size-8 bg-transparent outline-none cursor-pointer transition-all duration-200 hover:scale-110 active:scale-95 [&>svg]:size-4 [&>svg]:stroke-2 z-10',
@@ -67,7 +67,7 @@ const CodeBlockFeedback = ({
               : rated === 'down'
                 ? 'opacity-30 cursor-not-allowed text-muted'
                 : 'text-muted hover:text-body',
-          )}
+          ) as any}
           aria-label="Mark as helpful"
         >
           <svg
@@ -88,7 +88,7 @@ const CodeBlockFeedback = ({
         content={rated === 'down' ? 'Unhelpful' : 'This code is unhelpful'}
       >
         <Button
-          onPress={() => onRate('down')}
+          onPress={(() => onRate('down')) as any}
           disabled={rated !== null}
           className={cn(
             'grid place-items-center size-8 bg-transparent outline-none cursor-pointer transition-all duration-200 hover:scale-110 active:scale-95 [&>svg]:size-4 [&>svg]:stroke-2 z-10',
@@ -97,7 +97,7 @@ const CodeBlockFeedback = ({
               : rated === 'up'
                 ? 'opacity-30 cursor-not-allowed text-muted'
                 : 'text-muted hover:text-body',
-          )}
+          ) as any}
           aria-label="Mark as unhelpful"
         >
           <svg
@@ -188,13 +188,13 @@ export function CodeBlock(props: CodeBlockProps) {
       <CodePrimitive.CodeBlockContent shouldTruncate={shouldTruncate}>
         {effectiveHighlightedHtml ? (
           <div
-            ref={preRef}
+            ref={preRef as any}
             className="shiki-wrapper overflow-x-auto [&>pre]:m-0! [&>pre]:rounded-none! [&>pre]:border-none! [&>pre]:bg-inherit! [&>pre>code]:grid! [&>pre>code]:p-5! [&>pre>code]:text-[0.875rem]! [&>pre>code]:leading-[1.6]! [&>.shiki.shiki-themes]:bg-transparent!"
             dangerouslySetInnerHTML={{ __html: effectiveHighlightedHtml }}
           />
         ) : (
           <pre
-            ref={preRef}
+            ref={preRef as any}
             className={cn(
               'm-0! rounded-none! border-none! bg-transparent!',
               'text-[0.875rem] leading-[1.6] overflow-x-auto',

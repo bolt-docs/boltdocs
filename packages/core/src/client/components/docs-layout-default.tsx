@@ -100,8 +100,8 @@ function DocsLayoutComponent({ children }: DocsLayoutThemeProps) {
               </div>
             </ErrorBoundary>
 
-            {!isCollectionPage && <Feedback />}
-            {!isCollectionPage && <Giscus />}
+            {!isCollectionPage && (Feedback as any)({})}
+            {!isCollectionPage && (Giscus as any)({})}
 
             <DocsLayoutPrimitive.Footer>
               <SlotGroup components={footerExtra} route={currentRoute} />

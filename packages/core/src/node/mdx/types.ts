@@ -26,6 +26,17 @@ export interface ElementNode {
   children?: any[]
 }
 
+export type HastNode =
+  | { type: 'root'; children?: HastNode[] }
+  | {
+      type: 'element'
+      tagName: string
+      properties?: Record<string, unknown>
+      children?: HastNode[]
+    }
+  | { type: 'text'; value: string }
+  | { type: string; children?: HastNode[]; value?: unknown; data?: unknown }
+
 export interface TextNode {
   type: 'text'
   value: string
