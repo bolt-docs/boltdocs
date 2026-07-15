@@ -272,12 +272,52 @@ The build now reports per-step timing:
 
 ---
 
+## A Mermaid bundle that doesn't ship to the browser
+
+If a page has diagrams, you expect to wait. Mermaid.js is ~800 KB of d3, DOMPurify, layout engines, and per-diagram parsers — all of it code-split on demand. On pages without a diagram, 2.8.0 already saved ~27 KB with a dynamic import. That helped, but it still left most of the cost on pages that actually used Mermaid.
+
+3.2.0 eliminates it entirely for production builds.
+
+Here's the architecture:
+
+1. At **build time**, the Remark plugin walks every ```` ```mermaid ```` block and dispatches it to a persistent Node.js worker (`render-worker.mjs`) that loads the headless Mermaid engine (via Playwright + jsdom + DOMPurify) and renders **both** the light and dark theme variants to SVG.
+2. Those two SVGs are attached to the `<Mermaid />` component as `svgLight` and `svgDark` props — they ride along in the SSG output as plain string props, no extra fetch at runtime.
+3. The plugin then registers a **Vite alias** that swaps `@bdocs/plugin-mermaid/client` to `@bdocs/plugin-mermaid/client/static` whenever `vite build` runs. The static component (`mermaid-static.tsx`, served via the `render-worker` pipeline) never references `mermaid` — it just `dangerouslySetInnerHTML`s the pre-rendered SVG.
+4. In dev, the alias is skipped so HMR keeps the live client renderer. Or opt out explicitly with `mermaidPlugin({ preRender: false })`.
+
+<Callout type="info">
+  **~800 KB of code-split Mermaid chunks** — `architectureDiagram`, `sequenceDiagram`, d3, DOMPurify, layout engines — leave the client bundle entirely. Pages render the diagram as inline SVG: zero JS round-trip, no FOUC, no flash of fallback.
+</Callout>
+
+### Before vs. after
+
+| Page type | Before 3.2.0 | After 3.2.0 |
+|-----------|--------------|-------------|
+| Page **without** diagrams | ~0 KB mermaid runtime (dynamic import in `useEffect`) | **~0 KB** — the static component never references `mermaid` |
+| Page **with** diagrams | ~800 KB of mermaid chunks loaded on demand, then `mermaid.initialize` + render | **~0 KB** — SVG is already in the initial HTML |
+| First diagram paint | After client bundle + engine initialize (~depends on connection) | **Instant** — SVG ships with the page |
+| Theme switch | Re-runs `mermaid.initialize` and re-renders on every change | **Instant** — swaps `svgLight` ↔ `svgDark` |
+| Client-side `mermaid.initialize()` calls per page | 1 (one per mount) | **0** — light/dark SVGs are serialized into HTML |
+
+### Trade-offs
+
+This is opt-out, not opt-in via the `preRender: false` flag. Three things to know:
+
+- **Build time**: every ```` ```mermaid ```` block renders through the Playwright-driven worker once. For most projects it adds a few seconds; for projects with thousands of diagrams it can cost more (run your own benchmark). The worker is persistent and processes diagrams sequentially so the Playwright context stays warm.
+- **Pre-render failures**: if Mermaid throws on a diagram (e.g. syntax error), the static component falls back to displaying the raw chart source. You'll see a small `warn` at build time — no client-side crash, no missing diagram.
+- **Truly dynamic diagrams**: this path is for static SVGs. If you need runtime diagrams (e.g. user-provided input), set `mermaidPlugin({ preRender: false })` and the legacy client renderer stays in place. The alias backs off automatically.
+
+### Mermaid fullscreen animations
+
+While we were in there, the fullscreen overlay picked up entrance/exit animations — a small detail that makes the feel match the rest of the site.
+
+---
+
 ## Other improvements
 
 - **Pipeline `addParallelSteps()`** — new API for running independent pipeline steps concurrently, with automatic rollback on failure
 - **Server build skip preserved across builds** — SSR output now lives under `.boltdocs/build/ssr/` and is no longer deleted when client code hasn't changed
 - **Hash meta persistence** — `hash-meta.json` for fast cache validation without full directory scans
-- **Mermaid fullscreen animations** — entrance/exit animations for the fullscreen overlay
 - **External page scroll fix** — removed `overflow: hidden` from `html, body`
 - **Invalid Tailwind classes fixed** — `from-bg-main` → `from-main`, `-z-1` → `-z-[1]`
 

@@ -1,10 +1,11 @@
 import { defineHastPlugin } from 'satteri'
+import type { HastVisitorContext } from 'satteri'
+import type { Element, Properties } from 'hast'
 
 interface ParsedMeta {
   title?: string
   lineNumbers?: boolean
   wordWrap?: boolean
-  [key: string]: any
 }
 
 function parseMetaString(metaStr: string): ParsedMeta {
@@ -23,15 +24,26 @@ function parseMetaString(metaStr: string): ParsedMeta {
  * may use `class` (HAST convention). We normalize and merge.
  */
 function mergeClassArrays(
-  originalProps: Record<string, any>,
-  shikiProps: Record<string, any>,
+  originalProps: Properties | undefined,
+  shikiProps: Properties | undefined,
 ): string[] {
-  const origClass = originalProps?.className || originalProps?.class || []
-  const shikiClass = shikiProps?.className || shikiProps?.class || []
+  const origClass = originalProps?.className ?? originalProps?.class ?? []
+  const shikiClass = shikiProps?.className ?? shikiProps?.class ?? []
   return [
     ...(Array.isArray(shikiClass) ? shikiClass : [shikiClass]),
     ...(Array.isArray(origClass) ? origClass : [origClass]),
-  ].filter(Boolean)
+  ].filter(Boolean) as string[]
+}
+
+/** Minimal shiki adapter interface used at runtime. */
+interface ShikiAdapter {
+  getHighlighter(): Promise<{
+    codeToHast: (
+      code: string,
+      options: Record<string, unknown>,
+    ) => { type: string; children: (Element | { type: string })[] } | Element
+  }>
+  getOptions(lang: string, meta: ParsedMeta): Record<string, unknown>
 }
 
 /**
@@ -48,23 +60,25 @@ function mergeClassArrays(
  * This plugin returns a replacement node containing the Shiki-highlighted HAST.
  */
 export function satteriRehypeShikiPlugin() {
-  let adapter: any = null
-  let highlighterPromise: Promise<any> | null = null
+  let adapter: ShikiAdapter | null = null
+  let highlighterPromise: Promise<
+    ReturnType<ShikiAdapter['getHighlighter']> extends Promise<infer T>
+      ? T
+      : never
+  > | null = null
 
   return defineHastPlugin({
     name: 'boltdocs-rehype-shiki',
     element: {
       filter: ['pre'],
-      async visit(node, ctx) {
-        // Lazy load adapter and highlighter
+      async visit(node: Readonly<Element>, ctx: HastVisitorContext) {
+        // Lazy load adapter and highlighter (atomic init to prevent race conditions)
         if (!adapter) {
           const mod = await import('boltdocs/node/mdx/shiki-adapter')
-          adapter = mod.getShikiAdapter()
-        }
-        if (!highlighterPromise) {
+          adapter = mod.getShikiAdapter() as unknown as ShikiAdapter
           highlighterPromise = adapter.getHighlighter()
         }
-        const highlighter = await highlighterPromise
+        const highlighter = await highlighterPromise!
 
         // Access children — HastChildStub materializes on read
         const codeNode = node.children?.[0]
@@ -77,7 +91,9 @@ export function satteriRehypeShikiPlugin() {
         }
 
         const className: string[] =
-          codeNode.properties?.className || codeNode.properties?.class || []
+          (codeNode.properties?.className as string[] | undefined) ??
+          (codeNode.properties?.class as string[] | undefined) ??
+          []
         const langMatch = className.find((c: string) =>
           c.startsWith('language-'),
         )
@@ -86,17 +102,23 @@ export function satteriRehypeShikiPlugin() {
         if (lang === 'mermaid') return
 
         const metaStr: string =
-          codeNode.properties?.metastring || (codeNode as any).data?.meta || ''
+          (codeNode.properties?.metastring as string | undefined) ??
+          (codeNode.data as { meta?: string } | undefined)?.meta ??
+          ''
 
         const parsedMeta = parseMetaString(metaStr)
         const options = adapter.getOptions(lang, parsedMeta)
 
         const codeText =
-          (codeNode.children?.[0] as { value?: string })?.value || ''
+          (codeNode.children?.[0] as { value?: string } | undefined)?.value ??
+          ''
 
         try {
           const hast = highlighter.codeToHast(codeText, options)
-          const preElement = hast.type === 'root' ? hast.children[0] : hast
+          const preElement: Element =
+            hast.type === 'root'
+              ? (hast.children[0] as Element)
+              : (hast as Element)
 
           // Merge class arrays from original and Shiki output.
           const mergedClassName = mergeClassArrays(
@@ -106,20 +128,16 @@ export function satteriRehypeShikiPlugin() {
 
           // Build properties by iterating ALL original property keys and
           // explicitly copying each one, SKIPPING class/className entirely.
-          // Then add Shiki overrides and our merged className.
-          // This avoids the "two class attributes" issue where both `class`
-          // (HAST) and `className` (React) end up in the output.
-          const properties: Record<string, any> = {}
-          const originalProps = node.properties || {}
+          const properties: Properties = {}
+          const originalProps = node.properties ?? {}
           for (const key of Object.keys(originalProps)) {
             if (key === 'class' || key === 'className') continue
             properties[key] = originalProps[key]
           }
 
           // Add Shiki-specific properties (style, etc.) but skip class/className
-          for (const [key, value] of Object.entries(
-            preElement.properties || {},
-          )) {
+          const shikiProps = preElement.properties ?? {}
+          for (const [key, value] of Object.entries(shikiProps)) {
             if (key === 'class' || key === 'className') continue
             properties[key] = value
           }
@@ -133,25 +151,25 @@ export function satteriRehypeShikiPlugin() {
             properties['data-title'] = parsedMeta.title
           }
 
-          // Return a plain HAST element node — Sätteri will encode it via
-          // compileHastToOpstream which handles standard HAST shapes.
           return {
             type: 'element',
             tagName: 'pre',
             properties,
             children: preElement.children,
-          }
+          } as unknown as Element
         } catch {
-          // Fallback: add shiki-fallback class and return replacement node
-          const properties: Record<string, any> = {}
-          const originalProps = node.properties || {}
+          // Fallback: add shiki-fallback class
+          const properties: Properties = {}
+          const originalProps = node.properties ?? {}
           for (const key of Object.keys(originalProps)) {
             if (key === 'class' || key === 'className') continue
             properties[key] = originalProps[key]
           }
 
           properties.className = [
-            ...(originalProps?.className || originalProps?.class || []),
+            ...(((originalProps?.className ?? originalProps?.class) as
+              | string[]
+              | undefined) ?? []),
             'shiki-fallback',
           ]
           properties['data-highlighted'] = 'false'
@@ -166,7 +184,7 @@ export function satteriRehypeShikiPlugin() {
             tagName: 'pre',
             properties,
             children: node.children,
-          }
+          } as unknown as Element
         }
       },
     },

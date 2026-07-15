@@ -5,33 +5,28 @@ import type { Element } from 'hast'
 /**
  * A rehype transformer function: receives a tree and may return a Promise.
  */
-type RehypeTransformer = (tree: RehypeSyntheticTree) => void | Promise<void>
-
-/**
- * Minimal synthetic HAST root used to wrap a single element node.
- */
-interface RehypeSyntheticTree {
+type RehypeTransformer = (tree: {
   type: 'root'
   children: Element[]
-}
+}) => void | Promise<void>
 
 /**
  * A rehype plugin factory: zero-arg function that returns a transformer.
  */
-type RehypePluginFactory = () => RehypeTransformer
+type RehypePluginFactory = () => RehypeTransformer | void
 
 /**
  * Anything that can be passed as a rehype plugin.
  * - Factory function (most common unified pattern)
  * - Pre-built transformer function
  * - Sätteri HAST plugin definition (passed through as-is)
- * - Unknown object (validated at runtime)
  */
 type RehypePluginLike =
   | RehypePluginFactory
   | RehypeTransformer
   | HastPluginDefinition
-  | Record<string, unknown>
+  | undefined
+  | null
 
 /**
  * Adapter for legacy rehype plugins.
@@ -45,7 +40,7 @@ type RehypePluginLike =
  * - rehype-raw
  */
 export function wrapHastPlugin(
-  rehypePlugin: RehypePluginLike | null | undefined,
+  rehypePlugin: RehypePluginLike,
 ): HastPluginDefinition | null {
   if (!rehypePlugin) return null
 
@@ -61,15 +56,20 @@ export function wrapHastPlugin(
       'style',
       'template',
     ] as const
-    const hastPlugin = rehypePlugin as Record<string, unknown>
-    const hasHastVisitors = visitorKeys.some(
-      (k) => k in hastPlugin && typeof hastPlugin[k] === 'function',
-    )
+    const hasHastVisitors = visitorKeys.some((k) => {
+      const val = (rehypePlugin as unknown as Record<string, unknown>)[k]
+      return (
+        typeof val === 'function' ||
+        (typeof val === 'object' &&
+          val !== null &&
+          'visit' in (val as Record<string, unknown>))
+      )
+    })
     if (hasHastVisitors) return rehypePlugin as HastPluginDefinition
   }
 
   // Factory function pattern — invoke to get the transformer
-  let transformer: RehypeTransformer | unknown
+  let transformer: unknown
   try {
     transformer =
       typeof rehypePlugin === 'function'
@@ -84,7 +84,10 @@ export function wrapHastPlugin(
     return createHastWrapper(transformer as RehypeTransformer)
   }
 
-  const named = transformer as { name?: string } | null
+  const named =
+    typeof transformer === 'object' && transformer !== null
+      ? (transformer as { name?: string })
+      : null
   console.warn(
     `[satteri] Cannot convert rehype plugin "${named?.name ?? 'unknown'}" to Sätteri HAST.`,
   )
@@ -101,10 +104,13 @@ function createHastWrapper(
     name: 'satteri-rehype-adapter',
     element: {
       filter: [],
-      async visit(node: Readonly<Element>, _ctx: HastVisitorContext) {
+      async visit(
+        node: Readonly<Element>,
+        _ctx: HastVisitorContext,
+      ): Promise<Element | void> {
         try {
           // Build a minimal tree with just this element
-          const syntheticTree: RehypeSyntheticTree = {
+          const syntheticTree: { type: 'root'; children: Element[] } = {
             type: 'root',
             children: [node as Element],
           }
@@ -124,7 +130,9 @@ function createHastWrapper(
               return replacement
             }
           }
-        } catch {}
+        } catch {
+          // Silently ignore
+        }
       },
     },
   })

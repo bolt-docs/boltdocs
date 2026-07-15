@@ -288,7 +288,14 @@ export function boltdocsPlugin(
     ),
 
     // Unified MDX plugin (default) — always included, skips if turbo is active
-    ...(!options.turbo ? [boltdocsMdxPlugin(config, getLifecycle)] : []),
+    ...(!options.turbo
+      ? [
+          boltdocsMdxPlugin(
+            config,
+            getLifecycle as () => PluginLifecycleManager,
+          ),
+        ]
+      : []),
 
     // Sätteri MDX plugin (turbo) — lazy-loaded, skips if turbo is off
     ...(options.turbo

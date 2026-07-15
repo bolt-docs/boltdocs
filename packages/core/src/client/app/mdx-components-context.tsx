@@ -2,7 +2,7 @@ import { createContext, use, useMemo, type ComponentType } from 'react'
 import type { BoltdocsMdxComponents } from '../../shared/types'
 
 export type MdxComponentsType = {
-  [key: string]: ComponentType<{ children?: React.ReactNode }>
+  [key: string]: ComponentType<any>
 } & {
   Frontmatter?: Record<string, ComponentType<{ value: unknown }>>
 }
@@ -26,14 +26,11 @@ export function MdxComponentsProvider({
   components,
   children,
 }: {
-  components: Record<string, ComponentType<{ children?: React.ReactNode }>>
+  components: Record<string, ComponentType<any>>
   children: React.ReactNode
 }) {
   const processedComponents = useMemo(() => {
-    const processed: Record<
-      string,
-      ComponentType<{ children?: React.ReactNode }>
-    > = {}
+    const processed: Record<string, ComponentType<any>> = {}
     const frontmatter: Record<
       string,
       React.ComponentType<{ value: unknown }>

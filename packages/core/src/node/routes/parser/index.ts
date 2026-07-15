@@ -13,14 +13,9 @@ import { EncodingSecurityError, PathTraversalError } from '../../errors'
 import type { BoltdocsConfig } from '../../config'
 import type { ParsedDocFile } from '../types'
 
-/**
- * Strongly-typed view of the frontmatter data returned by
- * `parseFrontmatterAsync` / `parseFrontmatterFast`. The base parsers
- * return `Record<string, unknown>` because YAML data is structurally
- * untyped, but downstream consumers like `parseDocFile` access
- * well-known fields by name, so this interface gives the rest of the
- * parser a stable shape without changing the parser's runtime behavior.
- */
+// Typed view of the frontmatter payload. The parsers return
+// `Record<string, unknown>` because YAML is structurally untyped; this
+// view lets the rest of the parser reference known fields by name.
 type FrontmatterData = {
   permalink?: string
   title?: string
@@ -45,14 +40,26 @@ type FrontmatterData = {
   cover?: string
   groupTitle?: string
   groupPosition?: number
-  badge?: string | { text: string; expires?: string }
-} & {
-  // Escape hatch for user-defined frontmatter fields. Known fields above
-  // keep their narrow types; arbitrary keys fall back to `unknown`.
-  [key: string]: unknown
+  badge?: string | { text: string; expires?: string }  } & {
+    // Escape hatch for user-defined frontmatter keys.
+    [key: string]: unknown
+  }
+
+/** Compute the sidebar position for a group index page, preserving 0. */
+function resolveGroupPosition(
+  data: FrontmatterData,
+  resolution: PathResolution,
+): number | undefined {
+  if (data.groupPosition !== undefined) return data.groupPosition
+  if (data.sidebarPosition !== undefined) return data.sidebarPosition
+  if (resolution.remainingParts.length <= 1) return undefined
+  const prefix = extractNumberPrefix(
+    resolution.remainingParts[resolution.remainingParts.length - 2],
+  )
+  return prefix === undefined ? undefined : Number(prefix)
 }
 
-import { resolveRoutePath } from './resolver'
+import { resolveRoutePath, type PathResolution } from './resolver'
 import { extractContentData } from './extractor'
 import { processSeoData, sanitizeFrontmatterStrings } from './metadata'
 
@@ -114,7 +121,7 @@ export async function parseDocFile(
     data.permalink,
   )
 
-  let _lazyContentData: any = null
+  let _lazyContentData: ReturnType<typeof extractContentData> | null = null
   const getContentData = () => {
     if (!_lazyContentData) {
       _lazyContentData = extractContentData(content, data.description)
@@ -162,7 +169,7 @@ export async function parseDocFile(
       icon: data.icon ? String(data.icon) : undefined,
       tab: resolution.inferredTab,
       subRouteGroup: resolution.subRouteGroup,
-      slugParts, // EXPOSE THE NEW SEGMENTS
+      slugParts,
       get _content() {
         return getContentData().plainText
       },
@@ -304,10 +311,8 @@ export async function parseDocFileWithNative(
   const sidebarPosition =
     data.sidebarPosition ?? extractNumberPrefix(rawFileName)
 
-  const relativeDirString = slugParts.join('/')
-
-  // If explicit description is in frontmatter, sanitize it, else use nativeDoc.description
-  const description = data.description
+  const relativeDirString = slugParts.join('/')      // If explicit description is in frontmatter, sanitize it; else use nativeDoc.description
+      const description = data.description
     ? sanitizeHtml(String(data.description)).trim()
     : nativeDoc.description
 

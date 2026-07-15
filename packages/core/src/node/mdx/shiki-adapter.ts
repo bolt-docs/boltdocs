@@ -88,7 +88,7 @@ export class ShikiAdapter {
       rawMeta = meta.__raw || ''
     }
 
-    const options: any = {
+    const options: CodeToHastOptions = {
       lang: lang || DEFAULTS.LANG,
       meta: {
         __raw: rawMeta,
@@ -103,7 +103,7 @@ export class ShikiAdapter {
     }
 
     if (typeof theme === 'object') {
-      options.themes = {
+      ;(options as { themes: { light: string; dark: string } }).themes = {
         light: theme.light,
         dark: theme.dark,
       }

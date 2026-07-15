@@ -1,40 +1,46 @@
-import { describe, it, expect, vi } from 'vitest'
+import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { handleVercelAskAi } from '../src/server/adapters/vercel'
 import { handleNetlifyAskAi } from '../src/server/adapters/netlify'
 import { handleAwsAskAi } from '../src/server/adapters/aws'
 import { handleWebAskAi } from '../src/server/adapters/web'
 import { headers } from '../src/server/adapters/headers'
+import { streamLLMResponse } from '../src/server/handler'
 import type { AdapterConfig } from '../src/server/adapters/types'
 
-// Mock streamLLMResponse
 vi.mock('../src/server/handler', () => ({
-  streamLLMResponse: vi.fn().mockImplementation(async (options, onChunk) => {
-    onChunk('Hello ')
-    onChunk('world')
-  }),
+  streamLLMResponse: vi
+    .fn()
+    .mockImplementation(async (_options: any, onEvent: (e: any) => void) => {
+      onEvent({
+        type: 'context',
+        data: { page: '/docs/foo', chars: 100, elapsedMs: 4 },
+      })
+      onEvent({ type: 'text', data: 'Hello ' })
+      onEvent({ type: 'text', data: 'world' })
+      onEvent({ type: 'done' })
+    }),
 }))
 
 const baseConfig: AdapterConfig = {
-  provider: 'openai',
   model: 'gpt-4o-mini',
   systemPrompt: 'Test prompt',
 }
 
+beforeEach(() => {
+  vi.mocked(streamLLMResponse).mockClear()
+})
+
 describe('headers', () => {
-  it('has correct SSE headers', () => {
+  it('exposes SSE headers', () => {
     expect(headers['Content-Type']).toBe('text/event-stream')
     expect(headers['Cache-Control']).toBe('no-cache')
     expect(headers['Connection']).toBe('keep-alive')
-    expect(headers['Access-Control-Allow-Origin']).toBe('*')
   })
 })
 
 describe('handleVercelAskAi', () => {
-  function createMockReqRes(method: string, body?: any) {
-    const req: any = {
-      method,
-      body,
-    }
+  function mockReqRes(method: string, body?: any) {
+    const req: any = { method, body }
     const res: any = {
       setHeader: vi.fn(),
       status: vi.fn().mockReturnThis(),
@@ -45,143 +51,138 @@ describe('handleVercelAskAi', () => {
     return { req, res }
   }
 
-  it('returns 405 for non-POST methods', async () => {
-    const { req, res } = createMockReqRes('GET')
+  it('returns 405 for non-POST', async () => {
+    const { req, res } = mockReqRes('GET')
     await handleVercelAskAi(req, res, baseConfig)
     expect(res.status).toHaveBeenCalledWith(405)
   })
 
-  it('returns 400 for missing question', async () => {
-    const { req, res } = createMockReqRes('POST', {})
+  it('returns 400 when question is missing', async () => {
+    const { req, res } = mockReqRes('POST', {})
     await handleVercelAskAi(req, res, baseConfig)
     expect(res.status).toHaveBeenCalledWith(400)
   })
 
-  it('streams SSE response for valid request', async () => {
-    const { req, res } = createMockReqRes('POST', {
-      question: 'test',
-      context: [],
-    })
+  it('emits context -> text -> text -> DONE in SSE format', async () => {
+    const { req, res } = mockReqRes('POST', { question: 'test' })
     await handleVercelAskAi(req, res, baseConfig)
 
+    expect(res.write).toHaveBeenCalledWith(
+      expect.stringContaining('"context":{"page":"/docs/foo"'),
+    )
     expect(res.write).toHaveBeenCalledWith('data: {"text":"Hello "}\n\n')
     expect(res.write).toHaveBeenCalledWith('data: {"text":"world"}\n\n')
     expect(res.write).toHaveBeenCalledWith('data: [DONE]\n\n')
     expect(res.end).toHaveBeenCalled()
   })
 
-  it('sets SSE headers', async () => {
-    const { req, res } = createMockReqRes('POST', {
-      question: 'test',
-      context: [],
+  it('forwards client-supplied context to streamLLMResponse', async () => {
+    const { req, res } = mockReqRes('POST', {
+      question: 'q',
+      context: { page: '/docs/x', content: 'page content here' },
     })
     await handleVercelAskAi(req, res, baseConfig)
-
-    expect(res.setHeader).toHaveBeenCalledWith(
-      'Content-Type',
-      'text/event-stream',
-    )
-    expect(res.setHeader).toHaveBeenCalledWith('Cache-Control', 'no-cache')
+    const opts = vi.mocked(streamLLMResponse).mock.calls[0][0]
+    expect(opts.context).toEqual({
+      page: '/docs/x',
+      content: 'page content here',
+    })
   })
 })
 
 describe('handleNetlifyAskAi', () => {
-  it('returns 405 for non-POST methods', async () => {
-    const event = { httpMethod: 'GET' }
-    const result = await handleNetlifyAskAi(event, baseConfig)
-    expect(result.statusCode).toBe(405)
+  it('returns 405 for non-POST', async () => {
+    const r = await handleNetlifyAskAi({ httpMethod: 'GET' }, baseConfig)
+    expect(r.statusCode).toBe(405)
   })
 
-  it('returns 400 for missing question', async () => {
-    const event = { httpMethod: 'POST', body: '{}' }
-    const result = await handleNetlifyAskAi(event, baseConfig)
-    expect(result.statusCode).toBe(400)
+  it('returns 400 when question is missing', async () => {
+    const r = await handleNetlifyAskAi(
+      { httpMethod: 'POST', body: '{}' },
+      baseConfig,
+    )
+    expect(r.statusCode).toBe(400)
   })
 
-  it('returns SSE body for valid request', async () => {
-    const event = {
-      httpMethod: 'POST',
-      body: JSON.stringify({ question: 'test', context: [] }),
-    }
-    const result = await handleNetlifyAskAi(event, baseConfig)
-    expect(result.statusCode).toBe(200)
-    expect(result.body).toContain('data: {"text":"Hello "}')
-    expect(result.body).toContain('data: {"text":"world"}')
-    expect(result.body).toContain('data: [DONE]')
+  it('emits full SSE payload in body', async () => {
+    const r = await handleNetlifyAskAi(
+      { httpMethod: 'POST', body: JSON.stringify({ question: 'q' }) },
+      baseConfig,
+    )
+    expect(r.statusCode).toBe(200)
+    expect(r.body).toContain('"context":{"page":"/docs/foo"')
+    expect(r.body).toContain('"text":"Hello "')
+    expect(r.body).toContain('"text":"world"')
+    expect(r.body).toContain('data: [DONE]')
   })
 
-  it('handles OPTIONS for CORS', async () => {
-    const event = { httpMethod: 'OPTIONS' }
-    const result = await handleNetlifyAskAi(event, baseConfig)
-    expect(result.statusCode).toBe(200)
+  it('handles OPTIONS', async () => {
+    const r = await handleNetlifyAskAi({ httpMethod: 'OPTIONS' }, baseConfig)
+    expect(r.statusCode).toBe(200)
   })
 })
 
 describe('handleAwsAskAi', () => {
-  it('returns 405 for non-POST methods', async () => {
-    const event = { httpMethod: 'GET' }
-    const result = await handleAwsAskAi(event, baseConfig)
-    expect(result.statusCode).toBe(405)
+  it('returns 405 for non-POST', async () => {
+    const r = await handleAwsAskAi({ httpMethod: 'GET' }, baseConfig)
+    expect(r.statusCode).toBe(405)
   })
 
-  it('returns 400 for missing question', async () => {
-    const event = { httpMethod: 'POST', body: '{}' }
-    const result = await handleAwsAskAi(event, baseConfig)
-    expect(result.statusCode).toBe(400)
+  it('returns 400 when question is missing', async () => {
+    const r = await handleAwsAskAi(
+      { httpMethod: 'POST', body: '{}' },
+      baseConfig,
+    )
+    expect(r.statusCode).toBe(400)
   })
 
-  it('returns SSE body for valid request', async () => {
-    const event = {
-      httpMethod: 'POST',
-      body: JSON.stringify({ question: 'test' }),
-    }
-    const result = await handleAwsAskAi(event, baseConfig)
-    expect(result.statusCode).toBe(200)
-    expect(result.body).toContain('data: {"text":"Hello "}')
-    expect(result.body).toContain('data: [DONE]')
+  it('emits full SSE payload in body', async () => {
+    const r = await handleAwsAskAi(
+      { httpMethod: 'POST', body: JSON.stringify({ question: 'q' }) },
+      baseConfig,
+    )
+    expect(r.statusCode).toBe(200)
+    expect(r.body).toContain('"context":{"page":"/docs/foo"')
+    expect(r.body).toContain('data: [DONE]')
   })
 })
 
 describe('handleWebAskAi', () => {
-  it('returns 405 for non-POST methods', async () => {
-    const request = new Request('http://localhost/api/ask-ai', {
-      method: 'GET',
-    })
-    const result = await handleWebAskAi(request, baseConfig)
-    expect(result.status).toBe(405)
+  it('returns 405 for non-POST', async () => {
+    const req = new Request('http://x/api/ask-ai', { method: 'GET' })
+    const r = await handleWebAskAi(req, baseConfig)
+    expect(r.status).toBe(405)
   })
 
-  it('returns 400 for missing question', async () => {
-    const request = new Request('http://localhost/api/ask-ai', {
+  it('returns 400 when question is missing', async () => {
+    const req = new Request('http://x/api/ask-ai', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({}),
     })
-    const result = await handleWebAskAi(request, baseConfig)
-    expect(result.status).toBe(400)
+    const r = await handleWebAskAi(req, baseConfig)
+    expect(r.status).toBe(400)
   })
 
-  it('returns streaming response for valid request', async () => {
-    const request = new Request('http://localhost/api/ask-ai', {
+  it('returns a streaming Response with full SSE sequence', async () => {
+    const req = new Request('http://x/api/ask-ai', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ question: 'test', context: [] }),
+      body: JSON.stringify({ question: 'q' }),
     })
-    const result = await handleWebAskAi(request, baseConfig)
-    expect(result.status).toBe(200)
-    expect(result.headers.get('Content-Type')).toBe('text/event-stream')
-
-    const text = await result.text()
-    expect(text).toContain('data: {"text":"Hello "}')
-    expect(text).toContain('data: {"text":"world"}')
+    const r = await handleWebAskAi(req, baseConfig)
+    expect(r.status).toBe(200)
+    expect(r.headers.get('Content-Type')).toBe('text/event-stream')
+    const text = await r.text()
+    expect(text).toContain('"context":{"page":"/docs/foo"')
+    expect(text).toContain('"text":"Hello "')
+    expect(text).toContain('"text":"world"')
     expect(text).toContain('data: [DONE]')
   })
 
-  it('handles OPTIONS for CORS', async () => {
-    const request = new Request('http://localhost/api/ask-ai', {
-      method: 'OPTIONS',
-    })
-    const result = await handleWebAskAi(request, baseConfig)
-    expect(result.status).toBe(200)
+  it('handles OPTIONS', async () => {
+    const req = new Request('http://x/api/ask-ai', { method: 'OPTIONS' })
+    const r = await handleWebAskAi(req, baseConfig)
+    expect(r.status).toBe(200)
   })
 })

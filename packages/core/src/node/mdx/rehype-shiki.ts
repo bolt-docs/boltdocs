@@ -4,7 +4,8 @@ import { getShikiAdapter } from './shiki-adapter'
 import { DATA_ATTRIBUTES, DEFAULTS, SHIKI_CLASSES } from './constants'
 import { visitNodes, parseMetaString, SKIP } from '../plugins/plugin-utils'
 import { MDX_NODES } from './constants'
-import type { ElementNode, HastNode } from './types'
+import type { ElementNode } from './types'
+import type { HastNode } from './types'
 
 /**
  * Custom rehype plugin to perform syntax highlighting at build time for
@@ -59,16 +60,13 @@ export function rehypeShiki(config?: BoltdocsConfig) {
         }
       } catch (e) {
         logError(`[rehypeShiki] Failed to highlight code block:`, e)
-        preNode.properties = preNode.properties || {}
-        if (!preNode.properties.className) {
-          preNode.properties.className = []
-        }
-        preNode.properties.className = [
-          ...(preNode.properties.className as string[]),
-          SHIKI_CLASSES.FALLBACK,
-        ]
-        preNode.properties[DATA_ATTRIBUTES.HIGHLIGHTED] = 'false'
-        preNode.properties[DATA_ATTRIBUTES.LANG] = lang
+        const props = (preNode.properties ??= {} as Record<string, unknown>)
+        const existingClasses = Array.isArray(props.className)
+          ? (props.className as string[])
+          : []
+        props.className = [...existingClasses, SHIKI_CLASSES.FALLBACK]
+        props[DATA_ATTRIBUTES.HIGHLIGHTED] = 'false'
+        props[DATA_ATTRIBUTES.LANG] = lang
       }
 
       if (parsedMeta.title) {

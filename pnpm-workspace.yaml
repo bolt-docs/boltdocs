@@ -4,7 +4,7 @@ packages:
   - tests/*
 
 catalog:
-  tsdown: ^0.21.7
+  tsdown: ^0.21.10
 
 onlyBuiltDependencies:
   - sharp

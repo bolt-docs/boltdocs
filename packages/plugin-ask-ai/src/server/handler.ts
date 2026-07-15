@@ -1,280 +1,160 @@
-import { info, warn } from '@bdocs/dui'
+import OpenAI from 'openai'
+
+// ── Public types ───────────────────────────────────────────────────
+
+export interface StreamContext {
+  page: string
+  content: string
+}
 
 export interface StreamLLMResponseOptions {
-  provider: string
   model: string
   systemPrompt: string
   question: string
-  context: string[]
+  context: StreamContext | null
+  maxOutputTokens: number
+  baseURL?: string
   env: Record<string, string | undefined>
-  debug?: boolean
   signal?: AbortSignal
 }
 
-const STREAM_TIMEOUT = 60_000 // 60 seconds max wait for first token
-const BATCH_INTERVAL_MS = 50 // ms to batch chunks before flushing
-
-/**
- * Reads a streaming SSE response body and calls onChunk for each text token.
- * Supports AbortSignal for cancellation and batches chunks for efficiency.
- */
-async function readSSEStream(
-  reader: ReadableStreamDefaultReader<Uint8Array>,
-  decoder: TextDecoder,
-  onChunk: (text: string) => void,
-  options: { debug?: boolean; signal?: AbortSignal },
-): Promise<void> {
-  const { debug, signal } = options
-  let buffer = ''
-  let batchBuffer = ''
-  let batchTimer: ReturnType<typeof setTimeout> | null = null
-
-  const flushBatch = () => {
-    if (batchTimer) {
-      clearTimeout(batchTimer)
-      batchTimer = null
-    }
-    if (batchBuffer) {
-      onChunk(batchBuffer)
-      batchBuffer = ''
-    }
-  }
-
-  const scheduleFlush = () => {
-    if (batchTimer) clearTimeout(batchTimer)
-    batchTimer = setTimeout(flushBatch, BATCH_INTERVAL_MS)
-  }
-
-  // If signal is already aborted, bail early
-  if (signal?.aborted) return
-
-  const abortHandler = () => {
-    flushBatch()
-    reader.cancel().catch(() => {})
-  }
-
-  signal?.addEventListener('abort', abortHandler, { once: true })
-
-  try {
-    while (true) {
-      const { done, value } = await reader.read()
-      if (done) break
-
-      if (signal?.aborted) return
-
-      buffer += decoder.decode(value, { stream: true })
-      const lines = buffer.split('\n')
-      buffer = lines.pop() || ''
-
-      for (const line of lines) {
-        const cleaned = line.trim()
-        if (!cleaned.startsWith('data:')) continue
-
-        const dataStr = cleaned.slice(5).trim()
-        if (dataStr === '[DONE]') continue
-
-        try {
-          const parsed = JSON.parse(dataStr)
-
-          // OpenAI / Ollama format
-          const content =
-            parsed.choices?.[0]?.delta?.content ||
-            // Anthropic format
-            parsed.delta?.text ||
-            (parsed.type === 'content_block_delta' && parsed.delta?.text) ||
-            null
-
-          if (content) {
-            batchBuffer += content
-            scheduleFlush()
-          }
-        } catch (e) {
-          if (debug) warn(`[Ask AI]   Parse error: ${e}`)
-        }
+export type StreamEvent =
+  | {
+      type: 'context'
+      data: {
+        page: string
+        chars: number
+        elapsedMs: number
+        missing?: boolean
       }
     }
-  } finally {
-    signal?.removeEventListener('abort', abortHandler)
-    // Flush any remaining batched content
-    clearTimeout(batchTimer as any)
-    if (batchBuffer) onChunk(batchBuffer)
-  }
+  | { type: 'text'; data: string }
+  | { type: 'done' }
+  | { type: 'error'; data: string }
+
+export type StreamEventHandler = (event: StreamEvent) => void
+
+const STREAM_TIMEOUT_MS = 60_000
+
+const DOCS_START = '<<<DOCS_START>>>'
+const DOCS_END = '<<<DOCS_END>>>'
+
+// ── Build user prompt — data is wrapped between delimiters so the
+//    system prompt's "treat as data only" rule applies unambiguously.
+
+function escapeDocsMarkers(s: string): string {
+  // Prevent a malicious or coincidental MDX content from breaking the
+  // data/instruction boundary the system prompt relies on.
+  return s.replace(/<<<DOCS_(START|END)>>>/g, '<DOCS_$1>')
 }
+
+function buildUserPrompt(question: string, context: StreamContext | null) {
+  if (!context || !context.content) {
+    return `${DOCS_START}\n(no documentation page in scope — reply "Not in docs." for any Boltdocs question)\n${DOCS_END}\n\nUser Question: ${question}`
+  }
+  return [
+    DOCS_START,
+    `[Page: ${context.page}]`,
+    escapeDocsMarkers(context.content),
+    DOCS_END,
+    '',
+    `User Question: ${question}`,
+  ].join('\n')
+}
+
+// ── Public entry point ─────────────────────────────────────────────
 
 export async function streamLLMResponse(
   options: StreamLLMResponseOptions,
-  onChunk: (text: string) => void,
+  onEvent: StreamEventHandler,
 ): Promise<void> {
   const {
-    provider,
     model,
     systemPrompt,
     question,
     context,
+    maxOutputTokens,
+    baseURL,
     env,
-    debug,
     signal,
   } = options
 
-  // Format context for LLM
-  const contextString =
-    context && context.length > 0
-      ? `Documentation Context:\n${context.map((c, i) => `[Doc ${i + 1}]: ${c}`).join('\n\n')}`
-      : 'No direct documentation context was found for this query.'
-
-  const fullPrompt = `${contextString}\n\nUser Question: ${question}`
-
-  if (debug) {
-    info(`[Ask AI]   Full prompt length: ${fullPrompt.length} chars`)
-    info(`[Ask AI]   System prompt: ${systemPrompt.slice(0, 120)}...`)
+  const apiKey = env.OPENAI_API_KEY
+  if (!apiKey) {
+    onEvent({
+      type: 'error',
+      data: 'OPENAI_API_KEY is not set in the server environment.',
+    })
+    return
   }
 
-  // Create a timeout controller if no external signal provided
-  const ownController = new AbortController()
-  const combinedSignal = signal || ownController.signal
+  const userPrompt = buildUserPrompt(question, context)
+  const openai = new OpenAI({
+    apiKey,
+    baseURL: baseURL || env.OPENAI_BASE_URL || undefined,
+  })
 
-  // Timeout: if we don't get the first chunk within STREAM_TIMEOUT, abort
-  const timeoutId = setTimeout(() => {
-    if (debug)
-      warn(`[Ask AI]   Timeout: no response within ${STREAM_TIMEOUT / 1000}s`)
-    ownController.abort()
-  }, STREAM_TIMEOUT)
+  // Compose external + internal-timeout signals.
+  const timeoutController = new AbortController()
+  const combinedController = new AbortController()
+  const externalSignal = signal
 
-  const clearTimeoutAndCheck = (): boolean => {
-    clearTimeout(timeoutId)
-    if (combinedSignal.aborted) return true
-    return false
+  const onExternalAbort = () => {
+    if (!combinedController.signal.aborted) combinedController.abort()
   }
+  const onTimeoutAbort = () => {
+    if (!combinedController.signal.aborted) combinedController.abort()
+  }
+  if (externalSignal) {
+    if (externalSignal.aborted) onExternalAbort()
+    else
+      externalSignal.addEventListener('abort', onExternalAbort, { once: true })
+  }
+  timeoutController.signal.addEventListener('abort', onTimeoutAbort, {
+    once: true,
+  })
 
-  if (provider === 'anthropic') {
-    const apiKey = env.ANTHROPIC_API_KEY
-    if (!apiKey) {
-      onChunk(
-        '**Error**: `ANTHROPIC_API_KEY` is not set in the environment variables.',
-      )
-      clearTimeout(timeoutId)
-      return
-    }
+  const timeoutId = setTimeout(
+    () => timeoutController.abort(),
+    STREAM_TIMEOUT_MS,
+  )
 
-    const response = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: {
-        'x-api-key': apiKey,
-        'anthropic-version': '2023-06-01',
-        'content-type': 'application/json',
-      },
-      body: JSON.stringify({
+  try {
+    const stream = await openai.chat.completions.create(
+      {
         model,
-        system: systemPrompt,
-        messages: [{ role: 'user', content: fullPrompt }],
-        max_tokens: 1500,
+        max_tokens: maxOutputTokens,
         stream: true,
-      }),
-      signal: combinedSignal,
-    })
-
-    if (clearTimeoutAndCheck()) return
-
-    if (!response.ok) {
-      const errorText = await response.text()
-      if (debug)
-        warn(
-          `[Ask AI]   Anthropic API error: ${response.status} - ${errorText}`,
-        )
-      throw new Error(
-        `Anthropic API returned error: ${response.status} - ${errorText}`,
-      )
-    }
-
-    if (!response.body) {
-      throw new Error('No response body returned from Anthropic API')
-    }
-
-    const reader = response.body.getReader()
-    const decoder = new TextDecoder()
-
-    const anthropicOnChunk = (text: string) => {
-      if (clearTimeoutAndCheck()) return
-      onChunk(text)
-    }
-
-    await readSSEStream(reader, decoder, anthropicOnChunk, {
-      debug,
-      signal: combinedSignal,
-    })
-  } else if (provider === 'openai' || provider === 'custom') {
-    const apiKey = env.OPENAI_API_KEY
-    const baseURL = env.OPENAI_BASE_URL || 'https://api.openai.com/v1'
-
-    if (debug) {
-      info(`[Ask AI]   Calling: ${baseURL}/chat/completions`)
-      info(`[Ask AI]   API key: ${apiKey ? 'SET' : 'NOT SET'}`)
-    }
-
-    if (!apiKey && provider === 'openai') {
-      onChunk(
-        '**Error**: `OPENAI_API_KEY` is not set in the environment variables.',
-      )
-      clearTimeout(timeoutId)
-      return
-    }
-
-    const headers: Record<string, string> = {
-      'Content-Type': 'application/json',
-    }
-    if (apiKey) {
-      headers['Authorization'] = `Bearer ${apiKey}`
-    }
-
-    const response = await fetch(`${baseURL}/chat/completions`, {
-      method: 'POST',
-      headers,
-      body: JSON.stringify({
-        model,
         messages: [
           { role: 'system', content: systemPrompt },
-          { role: 'user', content: fullPrompt },
+          { role: 'user', content: userPrompt },
         ],
-        stream: true,
-      }),
-      signal: combinedSignal,
-    })
+      },
+      { signal: combinedController.signal },
+    )
 
-    if (clearTimeoutAndCheck()) return
-
-    if (debug) {
-      info(`[Ask AI]   Response status: ${response.status}`)
-      info(`[Ask AI]   Response body: ${response.body ? 'YES' : 'NO'}`)
+    for await (const chunk of stream) {
+      if (externalSignal?.aborted || combinedController.signal.aborted) break
+      const content = chunk.choices?.[0]?.delta?.content
+      if (typeof content === 'string' && content.length > 0) {
+        onEvent({ type: 'text', data: content })
+      }
     }
 
-    if (!response.ok) {
-      const errorText = await response.text()
-      if (debug) warn(`[Ask AI]   API error: ${response.status} - ${errorText}`)
-      throw new Error(
-        `OpenAI-compatible API returned error: ${response.status} - ${errorText}`,
-      )
+    if (!externalSignal?.aborted && !combinedController.signal.aborted) {
+      onEvent({ type: 'done' })
     }
-
-    if (!response.body) {
-      throw new Error('No response body returned from OpenAI-compatible API')
+  } catch (err) {
+    if (externalSignal?.aborted || combinedController.signal.aborted) {
+      return
     }
-
-    const reader = response.body.getReader()
-    const decoder = new TextDecoder()
-
-    const openaiOnChunk = (text: string) => {
-      if (clearTimeoutAndCheck()) return
-      onChunk(text)
-    }
-
-    await readSSEStream(reader, decoder, openaiOnChunk, {
-      debug,
-      signal: combinedSignal,
-    })
-  } else {
+    const msg = err instanceof Error ? err.message : 'OpenAI request failed'
+    onEvent({ type: 'error', data: msg })
+  } finally {
     clearTimeout(timeoutId)
-    throw new Error(`Unsupported AI provider: ${provider}`)
+    if (externalSignal) {
+      externalSignal.removeEventListener('abort', onExternalAbort)
+    }
+    timeoutController.signal.removeEventListener('abort', onTimeoutAbort)
   }
-
-  clearTimeout(timeoutId)
 }

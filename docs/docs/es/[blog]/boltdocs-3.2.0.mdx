@@ -272,12 +272,52 @@ El build ahora reporta el tiempo por pasos:
 
 ---
 
+## Un bundle de Mermaid que ya no viaja al navegador
+
+Si una página tiene diagramas, esperas que tarde. Mermaid.js son ~800 KB de d3, DOMPurify, motores de layout y parsers por diagrama — todo code-split on-demand. En páginas sin diagramas, 2.8.0 ya te ahorraba ~27 KB con un import dinámico. Ayudaba, pero seguía dejando casi todo el costo en las páginas que sí usaban Mermaid.
+
+3.2.0 lo elimina por completo para builds de producción.
+
+La arquitectura:
+
+1. En **build time**, el plugin Remark recorre cada bloque ```` ```mermaid ```` y lo envía a un worker persistente de Node.js (`render-worker.mjs`) que carga el motor headless de Mermaid (vía Playwright + jsdom + DOMPurify) y renderiza **ambas** variantes de tema (claro y oscuro) a SVG.
+2. Esos dos SVGs se adjuntan al componente `<Mermaid />` como props `svgLight` y `svgDark` — viajan en el output SSG como strings planos, sin fetch extra en runtime.
+3. El plugin registra un **alias de Vite** que cambia `@bdocs/plugin-mermaid/client` por `@bdocs/plugin-mermaid/client/static` cada vez que corre `vite build`. El componente estático (`mermaid-static.tsx`, servido vía el pipeline de `render-worker`) nunca referencia `mermaid` — solo hace `dangerouslySetInnerHTML` del SVG pre-renderizado.
+4. En dev el alias no se aplica, así el HMR conserva el renderer del cliente. O puedes optar explícitamente por no participar con `mermaidPlugin({ preRender: false })`.
+
+<Callout type="info">
+  **~800 KB de chunks code-split de Mermaid** — `architectureDiagram`, `sequenceDiagram`, d3, DOMPurify, motores de layout — salen del bundle del cliente por completo. Las páginas renderizan el diagrama como SVG inline: cero round-trip de JS, sin FOUC, sin flash de fallback.
+</Callout>
+
+### Antes vs. después
+
+| Tipo de página | Antes de 3.2.0 | Después de 3.2.0 |
+|----------------|----------------|-------------------|
+| Página **sin** diagramas | ~0 KB de runtime mermaid (import dinámico en `useEffect`) | **~0 KB** — el componente estático nunca referencia `mermaid` |
+| Página **con** diagramas | ~800 KB de chunks mermaid cargados on-demand, luego `mermaid.initialize` + render | **~0 KB** — el SVG ya está en el HTML inicial |
+| Primer paint del diagrama | Después de que el bundle del cliente y el motor inicializan (~depende de la conexión) | **Instantáneo** — el SVG viaja con la página |
+| Cambio de tema | Re-ejecuta `mermaid.initialize` y re-renderiza en cada cambio | **Instantáneo** — intercambia `svgLight` ↔ `svgDark` |
+| Llamadas a `mermaid.initialize()` en el cliente por página | 1 (una por mount) | **0** — los SVGs light/dark van serializados en el HTML |
+
+### Trade-offs
+
+Esto es opt-out, no opt-in — usa el flag `preRender: false`. Tres cosas que saber:
+
+- **Tiempo de build**: cada bloque ```` ```mermaid ```` se renderiza a través del worker de Playwright una sola vez. Para la mayoría de proyectos añade solo unos segundos; para proyectos con miles de diagramas puede costar más (ejecuta tu propio benchmark). El worker es persistente y procesa los diagramas en secuencia, así el contexto de Playwright se mantiene caliente.
+- **Fallos de pre-render**: si Mermaid falla en un diagrama (por ejemplo, error de sintaxis), el componente estático cae al código fuente crudo en el fallback. Verás un `warn` pequeño en build time — sin crash del cliente, sin diagrama faltante.
+- **Diagramas verdaderamente dinámicos**: este camino es para SVGs estáticos. Si necesitas diagramas runtime (por ejemplo, input provisto por el usuario), usa `mermaidPlugin({ preRender: false })` y conservamos el renderer legacy del cliente. El alias retrocede automáticamente.
+
+### Animaciones del fullscreen de Mermaid
+
+Mientras estábamos ahí, el overlay de fullscreen recibió animaciones de entrada/salida — un detalle pequeño que hace que el feel coincida con el resto del sitio.
+
+---
+
 ## Otras mejoras
 
 - **`addParallelSteps()` del Pipeline** — nueva API para ejecutar pasos independientes concurrentemente, con rollback automático en fallo
 - **Skip del server build preservado entre builds** — el output SSR ahora vive bajo `.boltdocs/build/ssr/` y ya no se elimina cuando el código del cliente no ha cambiado
 - **Persistencia del meta del hash** — `hash-meta.json` para validación rápida de caché sin escaneos completos de directorio
-- **Animaciones del fullscreen de Mermaid** — animaciones de entrada/salida para el overlay fullscreen
 - **Corrección del scroll de páginas externas** — removido `overflow: hidden` de `html, body`
 - **Clases Tailwind inválidas corregidas** — `from-bg-main` → `from-main`, `-z-1` → `-z-[1]`
 

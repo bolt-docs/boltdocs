@@ -164,7 +164,7 @@ export function createMdxElement(
 export function visitRemarkHeadings(
   tree: Node,
   callback: (
-    node: any,
+    node: Node,
     index: number,
     parent: Parent,
   ) => void | number | boolean | symbol,
@@ -184,7 +184,7 @@ export function visitRemarkHeadings(
 export function visitRemarkLinks(
   tree: Node,
   callback: (
-    node: any,
+    node: Node,
     index: number,
     parent: Parent,
   ) => void | number | boolean | symbol,

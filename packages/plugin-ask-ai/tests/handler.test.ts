@@ -1,293 +1,244 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import { streamLLMResponse } from '../src/server/handler'
-import type { StreamLLMResponseOptions } from '../src/server/handler'
+import { describe, it, expect, vi, beforeEach } from 'vitest'
 
-function createMockFetchWithChunks(chunks: string[]) {
-  const encoder = new TextEncoder()
-  let chunkIndex = 0
+const mockCreate = vi.hoisted(() => vi.fn())
 
-  return vi.fn().mockResolvedValue({
-    ok: true,
-    status: 200,
-    statusText: 'OK',
-    body: new ReadableStream({
-      start(controller) {
-        const interval = setInterval(() => {
-          if (chunkIndex < chunks.length) {
-            controller.enqueue(encoder.encode(chunks[chunkIndex]))
-            chunkIndex++
-          } else {
-            clearInterval(interval)
-            controller.close()
-          }
-        }, 5)
-      },
-    }),
-  })
+vi.mock('openai', () => ({
+  default: class MockOpenAI {
+    chat = { completions: { create: mockCreate } }
+  },
+}))
+
+const { streamLLMResponse } = await import('../src/server/handler')
+type StreamEvent = Parameters<typeof streamLLMResponse>[1] extends (
+  e: infer E,
+) => void
+  ? E
+  : never
+
+function fakeStream(
+  chunks: Array<{ content: string } | null>,
+): AsyncIterable<any> {
+  return {
+    async *[Symbol.asyncIterator]() {
+      for (const c of chunks) {
+        yield {
+          choices: c === null ? [] : [{ delta: { content: c.content } }],
+        }
+      }
+    },
+  } as AsyncIterable<any>
 }
 
-function createBaseOptions(
-  overrides: Partial<StreamLLMResponseOptions> = {},
-): StreamLLMResponseOptions {
+function baseOptions(
+  overrides: Partial<Parameters<typeof streamLLMResponse>[0]> = {},
+) {
   return {
-    provider: 'openai',
     model: 'gpt-4o-mini',
-    systemPrompt: 'You are a helpful assistant.',
-    question: 'What is Boltdocs?',
-    context: [
-      'Title: Getting Started\nPath: /docs/getting-started\nContent: Boltdocs is a documentation framework.',
-    ],
+    systemPrompt: 'You are a boltdocs assistant.',
+    question: 'How do I configure a plugin?',
+    context: {
+      page: '/docs/guides/plugins',
+      content:
+        'Title: Plugins — Boltdocs plugins extend the framework via lifecycle hooks.',
+    },
+    maxOutputTokens: 600,
     env: { OPENAI_API_KEY: 'test-key' },
     ...overrides,
   }
 }
 
-describe('streamLLMResponse', () => {
-  const originalFetch = global.fetch
-
-  afterEach(() => {
-    global.fetch = originalFetch
+describe('streamLLMResponse (openai SDK)', () => {
+  beforeEach(() => {
+    mockCreate.mockReset()
   })
 
-  it('calls OpenAI API with correct parameters', async () => {
-    const chunks = [
-      'data: {"choices":[{"delta":{"content":"Hello"}}]}\n\n',
-      'data: {"choices":[{"delta":{"content":" world"}}]}\n\n',
-      'data: [DONE]\n\n',
-    ]
-    global.fetch = createMockFetchWithChunks(chunks)
-
-    const receivedChunks: string[] = []
-    await streamLLMResponse(createBaseOptions(), (text) => {
-      receivedChunks.push(text)
-    })
-
-    expect(global.fetch).toHaveBeenCalledTimes(1)
-    const [url, opts] = (global.fetch as any).mock.calls[0]
-    expect(url).toBe('https://api.openai.com/v1/chat/completions')
-    expect(opts.method).toBe('POST')
-    expect(opts.headers).toEqual({
-      'Content-Type': 'application/json',
-      Authorization: 'Bearer test-key',
-    })
-
-    const body = JSON.parse(opts.body)
-    expect(body.model).toBe('gpt-4o-mini')
-    expect(body.messages[0]).toEqual({
-      role: 'system',
-      content: 'You are a helpful assistant.',
-    })
-    expect(body.messages[1].role).toBe('user')
-    expect(body.messages[1].content).toContain('Boltdocs')
-    expect(body.stream).toBe(true)
-
-    expect(receivedChunks.join('')).toBe('Hello world')
+  it('returns error event when OPENAI_API_KEY is missing', async () => {
+    const events: StreamEvent[] = []
+    await streamLLMResponse(baseOptions({ env: {} }), (ev) => events.push(ev))
+    expect(mockCreate).not.toHaveBeenCalled()
+    expect(events.some((e) => e.type === 'error')).toBe(true)
+    expect(events.find((e) => e.type === 'error')?.data).toContain(
+      'OPENAI_API_KEY',
+    )
   })
 
-  it('calls Anthropic API with correct parameters', async () => {
-    const chunks = [
-      'data: {"delta":{"text":"Hi"}}\n\n',
-      'data: {"delta":{"text":" there"}}\n\n',
-      'data: [DONE]\n\n',
-    ]
-    global.fetch = createMockFetchWithChunks(chunks)
-
-    const receivedChunks: string[] = []
-    await streamLLMResponse(
-      createBaseOptions({
-        provider: 'anthropic',
-        env: { ANTHROPIC_API_KEY: 'test-anthropic-key' },
-      }),
-      (text) => {
-        receivedChunks.push(text)
-      },
+  it('streams text deltas from the SDK AsyncIterable', async () => {
+    mockCreate.mockResolvedValue(
+      fakeStream([
+        { content: 'Hello' },
+        { content: ' ' },
+        { content: 'world' },
+      ]),
     )
 
-    expect(global.fetch).toHaveBeenCalledTimes(1)
-    const [url, opts] = (global.fetch as any).mock.calls[0]
-    expect(url).toBe('https://api.anthropic.com/v1/messages')
-    expect(opts.headers).toEqual({
-      'x-api-key': 'test-anthropic-key',
-      'anthropic-version': '2023-06-01',
-      'content-type': 'application/json',
-    })
+    const events: StreamEvent[] = []
+    await streamLLMResponse(baseOptions(), (ev) => events.push(ev))
 
-    expect(receivedChunks.join('')).toBe('Hi there')
+    const texts = events
+      .filter((e) => e.type === 'text')
+      .map((e) => (e as { type: 'text'; data: string }).data)
+      .join('')
+    expect(texts).toBe('Hello world')
+    expect(events.find((e) => e.type === 'done')).toBeDefined()
   })
 
-  it('supports custom base URL (Ollama via custom provider)', async () => {
-    const chunks = [
-      'data: {"choices":[{"delta":{"content":"Response from Ollama"}}]}\n\n',
-      'data: [DONE]\n\n',
-    ]
-    global.fetch = createMockFetchWithChunks(chunks)
+  it('calls openai SDK with correct params (model, stream, max_tokens, messages)', async () => {
+    mockCreate.mockResolvedValue(fakeStream([{ content: 'ok' }]))
 
-    const receivedChunks: string[] = []
     await streamLLMResponse(
-      createBaseOptions({
-        provider: 'custom',
-        env: {
-          OPENAI_BASE_URL: 'http://localhost:11434/v1',
+      baseOptions({ model: 'gpt-4.1-mini', maxOutputTokens: 800 }),
+      () => {},
+    )
+
+    expect(mockCreate).toHaveBeenCalledTimes(1)
+    const [params, opts] = mockCreate.mock.calls[0]
+    expect(params.model).toBe('gpt-4.1-mini')
+    expect(params.stream).toBe(true)
+    expect(params.max_tokens).toBe(800)
+    expect(params.messages[0].role).toBe('system')
+    expect(params.messages[0].content).toBe('You are a boltdocs assistant.')
+    expect(params.messages[1].role).toBe('user')
+    expect(opts).toHaveProperty('signal')
+  })
+
+  it('wraps the page context in DOCS_START/DOCS_END markers', async () => {
+    mockCreate.mockResolvedValue(fakeStream([{ content: 'ok' }]))
+    await streamLLMResponse(baseOptions(), () => {})
+    const userMsg = mockCreate.mock.calls[0][0].messages[1].content
+    expect(userMsg).toContain('<<<DOCS_START>>>')
+    expect(userMsg).toContain('<<<DOCS_END>>>')
+    expect(userMsg).toContain('/docs/guides/plugins')
+    expect(userMsg).toContain('How do I configure a plugin?')
+    // The page content sits between the markers so the system prompt's
+    // "treat as data only" rule has unambiguous boundaries.
+    const start = userMsg.indexOf('<<<DOCS_START>>>')
+    const end = userMsg.indexOf('<<<DOCS_END>>>')
+    expect(start).toBeGreaterThan(-1)
+    expect(end).toBeGreaterThan(start)
+  })
+
+  it('emits no text deltas when stream returns no chunks with content', async () => {
+    mockCreate.mockResolvedValue(fakeStream([null, null]))
+    const events: StreamEvent[] = []
+    await streamLLMResponse(baseOptions(), (ev) => events.push(ev))
+    expect(events.filter((e) => e.type === 'text')).toHaveLength(0)
+  })
+
+  it('catches upstream SDK error and emits error event when not aborted', async () => {
+    mockCreate.mockRejectedValue(new Error('401 Unauthorized'))
+    const events: StreamEvent[] = []
+    await streamLLMResponse(baseOptions(), (ev) => events.push(ev))
+    expect(events.find((e) => e.type === 'error')?.data).toContain('401')
+  })
+
+  it('treats empty context as no-document path', async () => {
+    mockCreate.mockResolvedValue(fakeStream([{ content: 'Not in docs.' }]))
+    await streamLLMResponse(baseOptions({ context: null }), () => {})
+    const userMsg = mockCreate.mock.calls[0][0].messages[1].content
+    expect(userMsg).toContain('<<<DOCS_START>>>')
+    expect(userMsg).toContain('"Not in docs."')
+  })
+
+  it('honors AbortSignal and skips error event on abort', async () => {
+    // Mock honours the SDK option's signal so an abort settles the create() promise.
+    mockCreate.mockImplementation(
+      (_params: any, opts: { signal?: AbortSignal }) =>
+        new Promise((_resolve, reject) => {
+          if (!opts?.signal) {
+            reject(new Error('no signal'))
+            return
+          }
+          if (opts.signal.aborted) {
+            reject(new Error('AbortError'))
+            return
+          }
+          opts.signal.addEventListener(
+            'abort',
+            () => reject(new Error('AbortError')),
+            { once: true },
+          )
+        }),
+    )
+
+    const controller = new AbortController()
+    const events: StreamEvent[] = []
+    const p = streamLLMResponse(
+      baseOptions({ signal: controller.signal }),
+      (ev) => events.push(ev),
+    )
+    // Give create() a tick to register the abort listener.
+    await new Promise((r) => setTimeout(r, 10))
+    controller.abort()
+    await p
+    // Abort path must NOT surface an error event.
+    expect(events.filter((e) => e.type === 'error')).toHaveLength(0)
+  })
+
+  it('does not emit done event when signal aborted mid-stream', async () => {
+    // Mock honours opts.signal: yields one chunk then awaits abort.
+    mockCreate.mockImplementation(
+      (_params: any, opts: { signal?: AbortSignal }) =>
+        Promise.resolve(
+          (async function* () {
+            yield { choices: [{ delta: { content: 'first' } }] }
+            await new Promise<void>((resolve) => {
+              if (opts?.signal?.aborted) resolve()
+              else
+                opts?.signal?.addEventListener('abort', () => resolve(), {
+                  once: true,
+                })
+            })
+          })(),
+        ),
+    )
+
+    const controller = new AbortController()
+    const events: StreamEvent[] = []
+    const p = streamLLMResponse(
+      baseOptions({ signal: controller.signal }),
+      (ev) => events.push(ev),
+    )
+    await new Promise((r) => setTimeout(r, 10))
+    controller.abort()
+    await p
+    expect(events.filter((e) => e.type === 'done')).toHaveLength(0)
+  })
+
+  it('escapes DOCS_START/END markers in page content', async () => {
+    mockCreate.mockResolvedValue(fakeStream([{ content: 'ok' }]))
+    await streamLLMResponse(
+      baseOptions({
+        context: {
+          page: '/docs/x',
+          content:
+            'Example: an author might literally type <<<DOCS_START>>> and <<<DOCS_END>>>\nand it should NOT break the boundary.',
         },
       }),
-      (text) => {
-        receivedChunks.push(text)
-      },
+      () => {},
     )
-
-    expect(global.fetch).toHaveBeenCalledTimes(1)
-    const [url] = (global.fetch as any).mock.calls[0]
-    expect(url).toBe('http://localhost:11434/v1/chat/completions')
-
-    expect(receivedChunks.join('')).toBe('Response from Ollama')
-  })
-
-  it('returns error message when OPENAI_API_KEY is missing', async () => {
-    global.fetch = vi.fn()
-
-    const receivedChunks: string[] = []
-    await streamLLMResponse(
-      createBaseOptions({
-        env: {},
-      }),
-      (text) => {
-        receivedChunks.push(text)
-      },
+    const userMsg = mockCreate.mock.calls[0][0].messages[1].content
+    // The opening `<</<DOCS_START>>>` boundary marker must remain at the
+    // very start of the prompt; the closing `<</<DOCS_END>>>` boundary
+    // must appear before the user question.
+    expect(userMsg.startsWith('<<<DOCS_START>>>')).toBe(true)
+    expect(userMsg.indexOf('<<<DOCS_END>>>')).toBeGreaterThan(0)
+    expect(userMsg.indexOf('<<<DOCS_END>>>')).toBeLessThan(
+      userMsg.indexOf('User Question:'),
     )
-
-    expect(receivedChunks.join('')).toContain('OPENAI_API_KEY')
-    expect(global.fetch).not.toHaveBeenCalled()
+    // Exactly TWO raw `<</<DOCS_(START|END)>>>` markers should remain
+    // in the prompt — the structural boundaries. The content's own literal
+    // markers must have been neutralised to `<DOCS_START>` / `<DOCS_END>`.
+    const rawMarkerCount = (userMsg.match(/<<<DOCS_(START|END)>>>/g) || [])
+      .length
+    expect(rawMarkerCount).toBe(2)
+    // Both neutralised forms should appear in the content position.
+    expect(userMsg).toContain('<DOCS_START>')
+    expect(userMsg).toContain('<DOCS_END>')
   })
 
-  it('returns error message when ANTHROPIC_API_KEY is missing', async () => {
-    global.fetch = vi.fn()
-
-    const receivedChunks: string[] = []
-    await streamLLMResponse(
-      createBaseOptions({
-        provider: 'anthropic',
-        env: {},
-      }),
-      (text) => {
-        receivedChunks.push(text)
-      },
-    )
-
-    expect(receivedChunks.join('')).toContain('ANTHROPIC_API_KEY')
-    expect(global.fetch).not.toHaveBeenCalled()
-  })
-
-  it('throws for unsupported provider', async () => {
-    global.fetch = vi.fn()
-
-    await expect(
-      streamLLMResponse(
-        createBaseOptions({ provider: 'unsupported' as any }),
-        () => {},
-      ),
-    ).rejects.toThrow('Unsupported AI provider')
-  })
-
-  it('handles API errors gracefully', async () => {
-    global.fetch = vi.fn().mockResolvedValue({
-      ok: false,
-      status: 401,
-      statusText: 'Unauthorized',
-      text: () => Promise.resolve('Invalid API key'),
-    })
-
-    await expect(
-      streamLLMResponse(createBaseOptions(), () => {}),
-    ).rejects.toThrow('401')
-  })
-
-  it('handles stream abort via signal', async () => {
-    const controller = new AbortController()
-
-    const encoder = new TextEncoder()
-    let resolveRead: any
-    const readPromise = new Promise<{ value: Uint8Array; done: boolean }>(
-      (resolve) => {
-        resolveRead = resolve
-      },
-    )
-
-    global.fetch = vi.fn().mockResolvedValue({
-      ok: true,
-      status: 200,
-      statusText: 'OK',
-      body: {
-        getReader: () => ({
-          read: () => readPromise,
-          cancel: vi.fn(),
-        }),
-      },
-    })
-
-    const receivedChunks: string[] = []
-    const promise = streamLLMResponse(
-      createBaseOptions({ signal: controller.signal }),
-      (text) => {
-        receivedChunks.push(text)
-      },
-    )
-
-    controller.abort()
-    resolveRead({ value: new Uint8Array(0), done: true })
-
-    await promise
-    expect(receivedChunks).toHaveLength(0)
-  })
-
-  it('batches chunks for efficiency', async () => {
-    const chunks: string[] = []
-    for (let i = 0; i < 10; i++) {
-      chunks.push(`data: {"choices":[{"delta":{"content":"chunk${i}"}}]}\n\n`)
-    }
-    chunks.push('data: [DONE]\n\n')
-
-    global.fetch = createMockFetchWithChunks(chunks)
-
-    const receivedChunks: string[] = []
-    await streamLLMResponse(createBaseOptions(), (text) => {
-      receivedChunks.push(text)
-    })
-
-    expect(receivedChunks.length).toBeLessThanOrEqual(10)
-    expect(receivedChunks.join('')).toBe(
-      'chunk0chunk1chunk2chunk3chunk4chunk5chunk6chunk7chunk8chunk9',
-    )
-  })
-
-  it('formats context correctly in prompt', async () => {
-    const chunks = [
-      'data: {"choices":[{"delta":{"content":"ok"}}]}\n\ndata: [DONE]\n\n',
-    ]
-    global.fetch = createMockFetchWithChunks(chunks)
-
-    await streamLLMResponse(createBaseOptions(), () => {})
-
-    const [, opts] = (global.fetch as any).mock.calls[0]
-    const body = JSON.parse(opts.body)
-    const userMessage = body.messages[1].content
-
-    expect(userMessage).toContain('Documentation Context:')
-    expect(userMessage).toContain('[Doc 1]:')
-    expect(userMessage).toContain('User Question: What is Boltdocs?')
-  })
-
-  it('handles empty context', async () => {
-    const chunks = [
-      'data: {"choices":[{"delta":{"content":"ok"}}]}\n\ndata: [DONE]\n\n',
-    ]
-    global.fetch = createMockFetchWithChunks(chunks)
-
-    await streamLLMResponse(createBaseOptions({ context: [] }), () => {})
-
-    const [, opts] = (global.fetch as any).mock.calls[0]
-    const body = JSON.parse(opts.body)
-    const userMessage = body.messages[1].content
-
-    expect(userMessage).toContain('No direct documentation context')
+  it('respects maxOutputTokens', async () => {
+    mockCreate.mockResolvedValue(fakeStream([{ content: 'x' }]))
+    await streamLLMResponse(baseOptions({ maxOutputTokens: 4000 }), () => {})
+    expect(mockCreate.mock.calls[0][0].max_tokens).toBe(4000)
   })
 })

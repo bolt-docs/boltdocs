@@ -1,4 +1,44 @@
 import { defineMdastPlugin } from 'satteri'
+import type { MdastPluginDefinition, MdastContent } from 'satteri'
+import type { Code } from 'mdast'
+
+/**
+ * Minimal interface matching the parts of `MdastVisitorContext` we use.
+ * `MdastVisitorContext` is a class exported from satteri's dist but not
+ * re-exported from the index, so we define what we need locally.
+ */
+interface MdastVisitorContext {
+  parent(node: Readonly<{ type: string }>): { children: unknown[] } | undefined
+  indexOf(node: Readonly<{ type: string }>): number | undefined
+}
+
+/**
+ * A remark transformer function: receives a tree and may return a value.
+ */
+type RemarkTransformer = (tree: {
+  type: 'root'
+  children: unknown[]
+}) => unknown
+
+/**
+ * A remark plugin factory: `(config?) => transformer`.
+ */
+type RemarkPluginFactory = (
+  config?: Record<string, unknown>,
+) => RemarkTransformer | undefined
+
+/**
+ * Anything that can be passed as a remark plugin.
+ * - Factory function (most common unified pattern)
+ * - Pre-built transformer function
+ * - Sätteri MDAST plugin definition (passed through as-is)
+ */
+type RemarkPluginLike =
+  | RemarkPluginFactory
+  | RemarkTransformer
+  | MdastPluginDefinition
+  | undefined
+  | null
 
 /**
  * Adapter for legacy remark plugins.
@@ -8,11 +48,13 @@ import { defineMdastPlugin } from 'satteri'
  *   (tree) => { visitNodes(tree, nodeType, visitor) }
  * where the visitor can replace nodes in-place.
  */
-export function wrapRemarkPlugin(remarkPlugin: any): any {
+export function wrapRemarkPlugin(
+  remarkPlugin: RemarkPluginLike,
+): MdastPluginDefinition | null {
   if (!remarkPlugin) return null
 
   // If already a Sätteri MDAST plugin (has visitor methods), return as-is
-  if (remarkPlugin.name && typeof remarkPlugin === 'object') {
+  if (typeof remarkPlugin === 'object' && 'name' in remarkPlugin) {
     const visitorKeys = [
       'paragraph',
       'heading',
@@ -30,29 +72,47 @@ export function wrapRemarkPlugin(remarkPlugin: any): any {
       'break',
       'link',
       'image',
-    ]
-    const hasMdastVisitors = Object.keys(remarkPlugin).some(
-      (k) => visitorKeys.includes(k) && typeof remarkPlugin[k] === 'function',
+    ] as const
+    const hasMdastVisitors = visitorKeys.some(
+      (k) =>
+        k in (remarkPlugin as object) &&
+        typeof (remarkPlugin as unknown as Record<string, unknown>)[k] ===
+          'function',
     )
-    if (hasMdastVisitors) return remarkPlugin
+    if (hasMdastVisitors) return remarkPlugin as MdastPluginDefinition
   }
 
   // Factory function pattern — invoke to get the transformer
-  let transformer: any
+  let transformer: unknown
   try {
     transformer =
-      typeof remarkPlugin === 'function' ? remarkPlugin() : remarkPlugin
+      typeof remarkPlugin === 'function'
+        ? (
+            remarkPlugin as (
+              ...args: unknown[]
+            ) => RemarkTransformer | undefined
+          )()
+        : null
   } catch {
-    return null
+    // Factory threw — the original might be a direct transformer
+    // that failed because it was called with undefined tree.
+    transformer = null
   }
 
-  // If it's a function (standard remark transformer), wrap it
+  // If factory returned a transformer function, use it
   if (typeof transformer === 'function') {
-    return createMdastWrapper(transformer)
+    return createMdastWrapper(transformer as RemarkTransformer)
+  }
+
+  // Factory didn't return a function — try using the original directly as transformer.
+  // This handles direct transformer functions like `(tree) => { visit(tree, ...) }`
+  // that are not wrapped in a factory closure.
+  if (typeof remarkPlugin === 'function') {
+    return createMdastWrapper(remarkPlugin as unknown as RemarkTransformer)
   }
 
   console.warn(
-    `[satteri] Cannot convert remark plugin "${transformer?.name || 'unknown'}" to Sätteri MDAST.`,
+    `[satteri] Cannot convert remark plugin "${(remarkPlugin as { name?: string })?.name ?? 'unknown'}" to Sätteri MDAST.`,
   )
   return null
 }
@@ -63,12 +123,13 @@ export function wrapRemarkPlugin(remarkPlugin: any): any {
  * The remark transformer is called with a synthetic tree. We detect mutations
  * (node replacements) by comparing the tree before and after.
  */
-function createMdastWrapper(transformer: Function): any {
+function createMdastWrapper(
+  transformer: RemarkTransformer,
+): MdastPluginDefinition {
   return defineMdastPlugin({
     name: 'satteri-remark-adapter',
-    code(node: any, ctx: any) {
+    code(node: Readonly<Code>, ctx: MdastVisitorContext): MdastContent | void {
       try {
-        // Build a minimal tree with just this code node
         const parent = ctx.parent(node)
         if (!parent) return
 
@@ -76,7 +137,7 @@ function createMdastWrapper(transformer: Function): any {
         if (index === undefined) return
 
         // Create a synthetic tree that the remark transformer can walk
-        const syntheticTree = {
+        const syntheticTree: { type: 'root'; children: unknown[] } = {
           type: 'root',
           children: [node],
         }
@@ -85,18 +146,20 @@ function createMdastWrapper(transformer: Function): any {
         const result = transformer(syntheticTree)
 
         // Handle async transformers (skip for now)
-        if (result && typeof result.then === 'function') {
+        if (result && typeof (result as Promise<unknown>).then === 'function') {
           return
         }
 
-        // Check if the node was replaced (transformer modified syntheticTree.children)
+        // Check if the node was replaced
         if (syntheticTree.children[0] !== node) {
-          const replacement = syntheticTree.children[0]
+          const replacement = syntheticTree.children[0] as
+            | MdastContent
+            | undefined
           if (replacement) {
             return replacement
           }
         }
-      } catch (e) {
+      } catch {
         // Silently ignore — plugin will fall through
       }
     },
@@ -108,18 +171,20 @@ function createMdastWrapper(transformer: Function): any {
  * Used for plugins like mermaid that transform code blocks into JSX elements.
  */
 export function wrapRemarkCodePlugin(
-  remarkPlugin: any,
-  config: Record<string, any>,
+  remarkPlugin: RemarkPluginLike,
+  config: Record<string, unknown>,
   componentName: string,
   language: string,
-): any {
+): MdastPluginDefinition | null {
   if (!remarkPlugin) return null
 
   // Extract the transformer function
-  let transformer: any
+  let transformer: unknown
   try {
     transformer =
-      typeof remarkPlugin === 'function' ? remarkPlugin(config) : remarkPlugin
+      typeof remarkPlugin === 'function'
+        ? (remarkPlugin as RemarkPluginFactory)(config)
+        : null
   } catch {
     return null
   }
@@ -128,7 +193,7 @@ export function wrapRemarkCodePlugin(
 
   return defineMdastPlugin({
     name: `satteri-${language}-adapter`,
-    code(node: any, ctx: any) {
+    code(node: Readonly<Code>, _ctx: MdastVisitorContext): MdastContent | void {
       const nodeLang = node.lang || ''
       if (nodeLang !== language) return
 
@@ -146,7 +211,7 @@ export function wrapRemarkCodePlugin(
           },
         ],
         children: [],
-      }
+      } as unknown as MdastContent
     },
   })
 }

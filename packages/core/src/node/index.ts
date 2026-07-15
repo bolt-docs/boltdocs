@@ -188,27 +188,43 @@ export async function createViteConfig(
       watch: {
         ignored: [
           '**/.boltdocs/**',
-          ...(Array.isArray(config.vite?.server?.watch?.ignored)
-            ? config.vite.server.watch.ignored
-            : config.vite?.server?.watch?.ignored
-              ? [config.vite.server.watch.ignored]
-              : []),
+          ...((Array.isArray(
+            (config.vite as Record<string, unknown> | undefined)?.server
+              ? ((config.vite as Record<string, { server?: { watch?: { ignored?: string | string[] } } } })
+                  .server?.watch?.ignored
+              : undefined,
+          )
+            ? ((config.vite as Record<string, { server?: { watch?: { ignored?: string | string[] } } } })
+                .server?.watch?.ignored as string[])
+            : (((config.vite as Record<string, { server?: { watch?: { ignored?: string | string[] } } } })
+                .server?.watch?.ignored
+                ? [
+                    (config.vite as Record<string, { server?: { watch?: { ignored?: string | string[] } } } })
+                      .server!.watch!.ignored as string,
+                  ]
+                : []) as string[])) as string[]),
         ],
       },
       headers: {
         ...securityHeaders,
-        ...config.vite?.server?.headers,
+        ...((
+          config.vite as Record<string, { server?: { headers?: Record<string, string> } } } | undefined
+        )?.server?.headers),
       },
-      ...(config.vite?.server as Record<string, unknown> | undefined),
-    } as InlineConfig['server'],
+      ...((config.vite as Record<string, { server?: Record<string, unknown> } } | undefined)
+        ?.server as Record<string, unknown> | undefined),
+    } as unknown as InlineConfig['server'],
     preview: {
       headers: {
         ...securityHeaders,
-        ...config.vite?.preview?.headers,
+        ...((
+          config.vite as Record<string, { preview?: { headers?: Record<string, string> } } } | undefined
+        )?.preview?.headers),
       },
-      ...(config.vite?.preview as Record<string, unknown> | undefined),
-    } as InlineConfig['preview'],
-    ...(config.vite as Record<string, unknown> | undefined),
+      ...((config.vite as Record<string, { preview?: Record<string, unknown> } } | undefined)
+        ?.preview as Record<string, unknown> | undefined),
+    } as unknown as InlineConfig['preview'],
+    ...((config.vite as Record<string, unknown> | undefined) ?? {}),
   }
 
   return viteConfig

@@ -1,33 +1,28 @@
-import { useState, useEffect, useRef, useCallback } from 'react'
-import { Index } from 'flexsearch'
-// @ts-expect-error
-import searchData from 'virtual:boltdocs-search'
-// @ts-expect-error
+import { useCallback, useEffect, useRef, useState } from 'react'
+// @ts-expect-error virtual module provided by boltdocs dev server
 import clientConfig from 'virtual:boltdocs-config'
 
-declare const __BOLTDOCS_ASK_AI_DEBUG__: boolean | undefined
-
-let flexSearchIndex: Index | null = null
-
-const IS_DEBUG =
-  typeof __BOLTDOCS_ASK_AI_DEBUG__ !== 'undefined'
-    ? Boolean(__BOLTDOCS_ASK_AI_DEBUG__)
-    : false
-
-const STREAM_TIMEOUT_MS = 90_000
+export type MessageStatus = 'reading' | 'streaming' | 'done' | 'error'
 
 export interface Message {
   role: 'user' | 'assistant'
   content: string
-  readFile?: { path: string; timeMs: number }
+  status?: MessageStatus
+  contextChip?: {
+    page: string
+    chars: number
+    elapsedMs?: number
+    missing?: boolean
+  }
+  errorMessage?: string
 }
 
 export interface UseAskAiOptions {
   endpoint?: string
-  currentLocale?: string
-  currentVersion?: string
   currentPage?: string
 }
+
+const READING_TIMEOUT_MS = 30_000
 
 export function useAskAi(options: UseAskAiOptions = {}) {
   const [messages, setMessages] = useState<Message[]>([])
@@ -35,22 +30,27 @@ export function useAskAi(options: UseAskAiOptions = {}) {
   const [isLoading, setIsLoading] = useState(false)
   const [isOpen, setIsOpen] = useState(false)
 
-  const abortControllerRef = useRef<AbortController | null>(null)
-  const streamTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  // Shared mutable state across the per-submission submit() and the
+  // top-level stopStreaming(). Lifted to refs so both can reach them.
+  const submitAbortRef = useRef<AbortController | null>(null)
+  const pendingTextRef = useRef<{ value: string }>({ value: '' })
+  const pendingRafRef = useRef<number | null>(null)
 
-  if (IS_DEBUG) {
-    console.log('[Ask AI Debug] Hook initialized')
-  }
+  const customEndpoint =
+    options.endpoint ||
+    clientConfig?.plugins?.find(
+      (p: { name?: string; endpoint?: string }) =>
+        p?.name === 'boltdocs-plugin-ask-ai',
+    )?.endpoint ||
+    '/api/ask-ai'
 
   useEffect(() => {
     const handleOpen = () => setIsOpen(true)
     const handleClose = () => setIsOpen(false)
     const handleToggle = () => setIsOpen((prev) => !prev)
-
     window.addEventListener('boltdocs:ask-ai:open', handleOpen)
     window.addEventListener('boltdocs:ask-ai:close', handleClose)
     window.addEventListener('boltdocs:ask-ai:toggle', handleToggle)
-
     return () => {
       window.removeEventListener('boltdocs:ask-ai:open', handleOpen)
       window.removeEventListener('boltdocs:ask-ai:close', handleClose)
@@ -58,349 +58,214 @@ export function useAskAi(options: UseAskAiOptions = {}) {
     }
   }, [])
 
-  const clearStreamTimeout = useCallback(() => {
-    if (streamTimeoutRef.current) {
-      clearTimeout(streamTimeoutRef.current)
-      streamTimeoutRef.current = null
+  // Commit any text still in the pending buffer into the assistant
+  // message, then cancel the queued raf. Safe to call multiple times.
+  const flushPendingText = useCallback(() => {
+    if (pendingRafRef.current !== null) {
+      cancelAnimationFrame(pendingRafRef.current)
+      pendingRafRef.current = null
     }
+    if (!pendingTextRef.current.value) return
+    const chunk = pendingTextRef.current.value
+    pendingTextRef.current.value = ''
+    setMessages((prev) => {
+      const next = [...prev]
+      const last = next[next.length - 1]
+      if (last && last.role === 'assistant') last.content += chunk
+      return next
+    })
   }, [])
 
-  const resetStreamTimeout = useCallback(
-    (onTimeout: () => void) => {
-      clearStreamTimeout()
-      streamTimeoutRef.current = setTimeout(onTimeout, STREAM_TIMEOUT_MS)
+  const scheduleFlush = useCallback(() => {
+    if (pendingRafRef.current !== null) return
+    pendingRafRef.current = requestAnimationFrame(() => {
+      pendingRafRef.current = null
+      flushPendingText()
+    })
+  }, [flushPendingText])
+
+  // Single source of truth for terminal finalization — both UI-initiated
+  // stop, upstream abort, and any other catchable error funnel through
+  // here so the terminal status is consistent: partial content ⇒ 'done',
+  // empty content ⇒ 'error'. Drains the pending buffer first so partial
+  // text is preserved even when the user cancels mid-stream.
+  const finalizeAssistantTerminal = useCallback(
+    (opts: { kind: 'cancel' | 'error'; message?: string }) => {
+      flushPendingText()
+      setMessages((prev) => {
+        const next = [...prev]
+        const last = next[next.length - 1]
+        if (last && last.role === 'assistant' && last.status !== 'done') {
+          last.status = last.content ? 'done' : 'error'
+          if (last.status === 'error' && opts.message) {
+            last.errorMessage = opts.message
+          }
+        }
+        return next
+      })
     },
-    [clearStreamTimeout],
+    [flushPendingText],
   )
 
   const stopStreaming = useCallback(() => {
-    clearStreamTimeout()
-    if (abortControllerRef.current) {
-      abortControllerRef.current.abort()
-      abortControllerRef.current = null
+    if (submitAbortRef.current) {
+      submitAbortRef.current.abort()
+      // The in-flight submitQuestion's catch handler will recognise the
+      // abort and re-apply finalization (idempotently).
     }
     setIsLoading(false)
-  }, [clearStreamTimeout])
+    finalizeAssistantTerminal({ kind: 'cancel' })
+  }, [finalizeAssistantTerminal])
 
   useEffect(() => {
-    if (!isOpen && isLoading) {
-      stopStreaming()
-    }
+    if (!isOpen && isLoading) stopStreaming()
   }, [isOpen, isLoading, stopStreaming])
-
-  const customEndpoint =
-    options.endpoint ||
-    clientConfig?.plugins?.find((p: any) => p.name === 'boltdocs-plugin-ask-ai')
-      ?.endpoint ||
-    '/api/ask-ai'
-
-  const getContextForQuery = useCallback(
-    (query: string): string[] => {
-      if (!Array.isArray(searchData) || searchData.length === 0) {
-        if (IS_DEBUG) {
-          console.log(`[Ask AI Debug] No searchData available`)
-        }
-        return []
-      }
-
-      if (!flexSearchIndex) {
-        flexSearchIndex = new Index({
-          tokenize: 'forward',
-          resolution: 9,
-        })
-
-        for (const doc of searchData) {
-          flexSearchIndex.add(doc.id, `${doc.title} ${doc.content}`)
-        }
-      }
-
-      let results = flexSearchIndex.search(query, { limit: 5 })
-
-      if (results.length === 0) {
-        const words = query
-          .toLowerCase()
-          .split(/\s+/)
-          .filter((w) => w.length > 2)
-        for (const word of words) {
-          const wordResults = flexSearchIndex.search(word, { limit: 5 })
-          for (const id of wordResults) {
-            if (!results.includes(id)) results.push(id)
-          }
-          if (results.length >= 5) break
-        }
-      }
-
-      const documentsMap = new Map<string, any>(
-        searchData.map((d: any) => [d.id, d]),
-      )
-      const context: string[] = []
-
-      for (const id of results) {
-        const doc = documentsMap.get(id as string)
-        if (!doc) continue
-        if (options.currentLocale && doc.locale !== options.currentLocale)
-          continue
-        if (options.currentVersion && doc.version !== options.currentVersion)
-          continue
-        context.push(
-          `Title: ${doc.title}\nPath: ${doc.url}\nContent: ${doc.content?.slice(0, 500)}`,
-        )
-      }
-
-      if (context.length === 0) {
-        for (const doc of searchData.slice(0, 5)) {
-          context.push(
-            `Title: ${doc.title}\nPath: ${doc.url}\nContent: ${doc.content?.slice(0, 500)}`,
-          )
-        }
-      }
-
-      if (IS_DEBUG) {
-        console.log(
-          `[Ask AI Debug] Context: ${context.length} docs for "${query}"`,
-        )
-      }
-
-      return context.slice(0, 5)
-    },
-    [options.currentLocale, options.currentVersion],
-  )
-
-  const submitQuestion = useCallback(
-    async (text: string) => {
-      if (!text.trim() || isLoading) return
-
-      if (IS_DEBUG) {
-        console.log(`[Ask AI Debug] ─── Submit ───`)
-        console.log(`[Ask AI Debug]   Question: "${text.slice(0, 200)}"`)
-      }
-
-      const userMsg: Message = { role: 'user', content: text }
-      const initialAssistantMsg: Message = { role: 'assistant', content: '' }
-
-      setMessages((prev) => [...prev, userMsg, initialAssistantMsg])
-      setInput('')
-      setIsLoading(true)
-
-      abortControllerRef.current = new AbortController()
-      const signal = abortControllerRef.current.signal
-      const requestStartTime = Date.now()
-
-      try {
-        const context = getContextForQuery(text)
-        const currentPage = options.currentPage || window.location.pathname
-
-        if (IS_DEBUG) {
-          console.log(`[Ask AI Debug]   Context docs: ${context.length}`)
-          console.log(`[Ask AI Debug]   Current page: ${currentPage}`)
-        }
-
-        const response = await fetch(customEndpoint, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ question: text, context, currentPage }),
-          signal,
-        })
-
-        if (signal.aborted) return
-
-        if (!response.ok) {
-          throw new Error(
-            `Server returned ${response.status}: ${response.statusText}`,
-          )
-        }
-
-        if (!response.body) {
-          throw new Error('No streaming body returned from endpoint')
-        }
-
-        const reader = response.body.getReader()
-        const decoder = new TextDecoder()
-        let done = false
-        let buffer = ''
-        let chunkCount = 0
-        let pendingContent = ''
-        let rafScheduled = false
-        let hasReceivedChunk = false
-
-        const scheduleUpdate = () => {
-          if (rafScheduled) return
-          rafScheduled = true
-          requestAnimationFrame(() => {
-            rafScheduled = false
-            const content = pendingContent
-            if (content) {
-              pendingContent = ''
-              setMessages((prev) => {
-                const next = [...prev]
-                const last = next[next.length - 1]
-                if (last && last.role === 'assistant') {
-                  last.content += content
-                  if (!last.readFile && hasReceivedChunk) {
-                    const timeMs = Date.now() - requestStartTime
-                    last.readFile = { path: currentPage, timeMs }
-                  }
-                }
-                return next
-              })
-            }
-          })
-        }
-
-        resetStreamTimeout(() => {
-          if (!signal.aborted) {
-            abortControllerRef.current?.abort()
-          }
-        })
-
-        while (!done) {
-          const { value, done: doneReading } = await reader.read()
-          done = doneReading
-
-          if (signal.aborted) return
-
-          if (value) {
-            resetStreamTimeout(() => {
-              if (!signal.aborted) {
-                abortControllerRef.current?.abort()
-              }
-            })
-
-            buffer += decoder.decode(value, { stream: true })
-            const lines = buffer.split('\n')
-            buffer = lines.pop() || ''
-
-            for (const line of lines) {
-              const cleaned = line.trim()
-              if (!cleaned.startsWith('data:')) continue
-
-              const dataStr = cleaned.slice(5).trim()
-              if (dataStr === '[DONE]') continue
-
-              let parsed: any
-              try {
-                parsed = JSON.parse(dataStr)
-              } catch {
-                if (IS_DEBUG) {
-                  console.warn(
-                    `[Ask AI Debug]   Failed to parse SSE data: ${dataStr.slice(0, 100)}`,
-                  )
-                }
-                continue
-              }
-
-              if (parsed.error) {
-                throw new Error(parsed.error)
-              }
-
-              if (parsed.text) {
-                hasReceivedChunk = true
-                chunkCount++
-                if (IS_DEBUG && chunkCount <= 3) {
-                  console.log(
-                    `[Ask AI Debug]   Chunk #${chunkCount}: "${parsed.text.slice(0, 80)}"`,
-                  )
-                }
-                pendingContent += parsed.text
-                scheduleUpdate()
-              }
-            }
-          }
-        }
-
-        clearStreamTimeout()
-
-        if (pendingContent) {
-          setMessages((prev) => {
-            const next = [...prev]
-            const last = next[next.length - 1]
-            if (last && last.role === 'assistant') {
-              last.content += pendingContent
-            }
-            return next
-          })
-        }
-
-        if (!hasReceivedChunk) {
-          setMessages((prev) => {
-            const next = [...prev]
-            const last = next[next.length - 1]
-            if (last && last.role === 'assistant' && !last.content) {
-              last.content =
-                '**Error**: No response received from the AI assistant. Please try again.'
-            }
-            return next
-          })
-        }
-
-        if (IS_DEBUG) {
-          console.log(`[Ask AI Debug]   Total chunks: ${chunkCount}`)
-        }
-      } catch (error) {
-        clearStreamTimeout()
-
-        if (error instanceof DOMException && error.name === 'AbortError') {
-          if (IS_DEBUG) {
-            console.log('[Ask AI Debug]   Streaming cancelled by user')
-          }
-          return
-        }
-
-        if (
-          error instanceof Error &&
-          error.name === 'TimeoutError' &&
-          signal.aborted
-        ) {
-          if (IS_DEBUG) {
-            console.log('[Ask AI Debug]   Stream timed out')
-          }
-          setMessages((prev) => {
-            const next = [...prev]
-            const last = next[next.length - 1]
-            if (last && last.role === 'assistant') {
-              last.content =
-                '**Error**: The AI assistant took too long to respond. Please try again.'
-            }
-            return next
-          })
-          return
-        }
-
-        if (IS_DEBUG) {
-          console.error(`[Ask AI Debug]   Error:`, error)
-        } else {
-          console.error('Failed to get answer from AI assistant:', error)
-        }
-        setMessages((prev) => {
-          const next = [...prev]
-          const last = next[next.length - 1]
-          if (last && last.role === 'assistant') {
-            last.content = `**Error**: ${
-              error instanceof Error
-                ? error.message
-                : 'Failed to retrieve response'
-            }`
-          }
-          return next
-        })
-      } finally {
-        setIsLoading(false)
-        abortControllerRef.current = null
-      }
-    },
-    [
-      customEndpoint,
-      getContextForQuery,
-      isLoading,
-      resetStreamTimeout,
-      clearStreamTimeout,
-    ],
-  )
 
   const clearChat = useCallback(() => {
     stopStreaming()
     setMessages([])
   }, [stopStreaming])
+
+  const submitQuestion = useCallback(
+    async (text: string) => {
+      const trimmed = text.trim()
+      if (!trimmed || isLoading) return
+
+      // Reset per-submission pending state so leftover text/raf from a
+      // prior submit doesn't leak into this one.
+      pendingTextRef.current = { value: '' }
+      pendingRafRef.current = null
+
+      setMessages((prev) => [
+        ...prev,
+        { role: 'user', content: trimmed },
+        { role: 'assistant', content: '', status: 'reading' },
+      ])
+      setInput('')
+      setIsLoading(true)
+
+      const controller = new AbortController()
+      submitAbortRef.current = controller
+
+      try {
+        const currentPage =
+          options.currentPage ||
+          (typeof window !== 'undefined' ? window.location.pathname : '/')
+
+        const response = await fetch(customEndpoint, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ question: trimmed, currentPage }),
+          signal: controller.signal,
+        })
+
+        if (!response.ok) {
+          throw new Error(`Server returned ${response.status}`)
+        }
+        if (!response.body) {
+          throw new Error('No streaming body from endpoint')
+        }
+
+        const reader = response.body.getReader()
+        const decoder = new TextDecoder()
+        let lineBuffer = ''
+        let firstTextSeen = false
+
+        while (true) {
+          const { value, done } = await reader.read()
+          if (done) break
+          lineBuffer += decoder.decode(value, { stream: true })
+          const lines = lineBuffer.split('\n')
+          lineBuffer = lines.pop() || ''
+
+          for (const line of lines) {
+            const cleaned = line.trim()
+            if (!cleaned.startsWith('data:')) continue
+            const dataStr = cleaned.slice(5).trim()
+            if (!dataStr || dataStr === '[DONE]') continue
+
+            let parsed: any
+            try {
+              parsed = JSON.parse(dataStr)
+            } catch {
+              continue
+            }
+
+            if (parsed.context) {
+              setMessages((prev) => {
+                const next = [...prev]
+                const last = next[next.length - 1]
+                if (last && last.role === 'assistant') {
+                  last.contextChip = parsed.context
+                }
+                return next
+              })
+            } else if (typeof parsed.text === 'string') {
+              if (!firstTextSeen) {
+                firstTextSeen = true
+                setMessages((prev) => {
+                  const next = [...prev]
+                  const last = next[next.length - 1]
+                  if (last && last.role === 'assistant') {
+                    last.status = 'streaming'
+                  }
+                  return next
+                })
+              }
+              pendingTextRef.current.value += parsed.text
+              scheduleFlush()
+            } else if (parsed.error) {
+              throw new Error(parsed.error)
+            }
+          }
+        }
+
+        // Successful end-of-stream — drain pending text and decide terminal
+        // status purely from whether content was produced. Use the helper
+        // solely for its drain behaviour; the terminal semantics for a
+        // normal completion is "done with content" or "error: no response".
+        flushPendingText()
+        setMessages((prev) => {
+          const next = [...prev]
+          const last = next[next.length - 1]
+          if (last && last.role === 'assistant') {
+            last.status = last.content ? 'done' : 'error'
+            if (last.status === 'error' && !last.errorMessage) {
+              last.errorMessage = 'No response received.'
+            }
+          }
+          return next
+        })
+      } catch (error) {
+        if (error instanceof DOMException && error.name === 'AbortError') {
+          finalizeAssistantTerminal({
+            kind: 'cancel',
+            message: 'Request cancelled.',
+          })
+        } else {
+          const msg = error instanceof Error ? error.message : 'Unknown error'
+          finalizeAssistantTerminal({ kind: 'error', message: msg })
+          console.error('[Ask AI] failed:', error)
+        }
+      } finally {
+        if (pendingRafRef.current !== null) {
+          cancelAnimationFrame(pendingRafRef.current)
+          pendingRafRef.current = null
+        }
+        if (submitAbortRef.current === controller) {
+          submitAbortRef.current = null
+        }
+        setIsLoading(false)
+      }
+    },
+    [
+      customEndpoint,
+      options.currentPage,
+      isLoading,
+      scheduleFlush,
+      finalizeAssistantTerminal,
+    ],
+  )
 
   return {
     messages,
@@ -412,6 +277,5 @@ export function useAskAi(options: UseAskAiOptions = {}) {
     clearChat,
     isOpen,
     setIsOpen,
-    isDebug: IS_DEBUG,
   }
 }
