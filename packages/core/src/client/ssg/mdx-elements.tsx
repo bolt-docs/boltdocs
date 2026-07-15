@@ -1,3 +1,4 @@
+/// <reference types="vite/client" />
 import { useEffect, useState } from 'react'
 import type { ComponentRoute } from '../types'
 import { MdxPage } from './mdx-page'
@@ -40,7 +41,7 @@ const EagerMdxElement = ({
   }, [moduleLoader])
 
   useEffect(() => {
-    if (!(import.meta as any).hot || !moduleKey) return
+    if (!import.meta.hot || !moduleKey) return
     const handler = (data: { relPath: string }) => {
       const incoming = data.relPath.replace(/\\/g, '/').replace(/^\//, '')
       const routeFile = route.filePath.replace(/\\/g, '/').replace(/^\//, '')
@@ -50,8 +51,8 @@ const EagerMdxElement = ({
         setMod(m as unknown as MdxModule)
       })
     }
-    ;(import.meta as any).hot.on('boltdocs:mdx-update', handler)
-    return () => (import.meta as any).hot?.off('boltdocs:mdx-update', handler)
+    import.meta.hot.on('boltdocs:mdx-update', handler)
+    return () => import.meta.hot?.off('boltdocs:mdx-update', handler)
   }, [moduleKey, route.filePath])
 
   const MDXComponent = (mod?.default ?? mod ?? null) as React.ComponentType<{

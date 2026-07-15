@@ -366,5 +366,5 @@ export const BoltdocsConfigSchema = z.object({
   featureFlags: z
     .record(z.string(), z.union([z.boolean(), z.string()]))
     .optional(),
-  vite: z.record(z.string(), z.unknown()).optional(),
+  vite: z.custom<import('vite').UserConfig>().optional(),
 })
