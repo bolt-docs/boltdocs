@@ -108,7 +108,7 @@ export class FileCache<T> {
     globalBackgroundQueue.add(async () => {
       try {
         await mkdir(path.dirname(target), { recursive: true })
-        let buffer = Buffer.from(content)
+        let buffer: any = Buffer.from(content)
         if (useCompress) {
           buffer = await gzipPromise(buffer)
         }
@@ -206,8 +206,9 @@ export class TransformCache {
     try {
       const data = await readFile(this.indexPath, 'utf-8')
       this.index = new Map(Object.entries(JSON.parse(data)))
-    } catch (e: any) {
-      if (e.code === 'ENOENT') return
+    } catch (e) {
+      if (e instanceof Error && (e as NodeJS.ErrnoException).code === 'ENOENT')
+        return
       // Index might be corrupt, ignore
     }
   }
@@ -251,7 +252,7 @@ export class TransformCache {
           const shardPath = path.resolve(this.shardsDir, `${hash}.gz`)
           try {
             const compressed = await readFile(shardPath)
-            const decompressedBuffer = await gunzipPromise(compressed)
+            const decompressedBuffer = await gunzipPromise(compressed as any)
             const decompressed = decompressedBuffer.toString('utf-8')
             this.memoryCache.set(key, decompressed)
             return { key, val: decompressed }
@@ -282,7 +283,7 @@ export class TransformCache {
     const shardPath = path.resolve(this.shardsDir, `${hash}.gz`)
     try {
       const compressed = await readFile(shardPath)
-      const decompressedBuffer = await gunzipPromise(compressed)
+      const decompressedBuffer = await gunzipPromise(compressed as any)
       const decompressed = decompressedBuffer.toString('utf-8')
       this.memoryCache.set(key, decompressed)
       return decompressed
@@ -314,7 +315,7 @@ export class TransformCache {
         }
         await mkdir(this.shardsDir, { recursive: true })
 
-        const compressed = await gzipPromise(Buffer.from(result))
+        const compressed = await gzipPromise(Buffer.from(result) as any)
         const tempPath = `${shardPath}.${crypto.randomBytes(4).toString('hex')}.tmp`
         await writeFile(tempPath, compressed)
         await rename(tempPath, shardPath)
