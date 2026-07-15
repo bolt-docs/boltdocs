@@ -1,4 +1,5 @@
-import { useRef, useEffect } from 'react'
+import type { FormEvent } from 'react'
+import { useEffect, useRef } from 'react'
 import { useAskAi } from '../use-ask-ai'
 import { MarkdownRenderer } from '../render-markdown'
 
@@ -13,27 +14,28 @@ export function AskAiBubble() {
     clearChat,
     isOpen,
     setIsOpen,
-    isDebug,
   } = useAskAi()
 
   const messagesEndRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
-    if (isOpen) {
-      messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
-    }
+    if (isOpen) messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages, isOpen])
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = (e: FormEvent) => {
     e.preventDefault()
     if (!input.trim()) return
     submitQuestion(input)
   }
 
   return (
+    // The default docs layout keeps both the floating bubble and the right-rail
+    // dialog available across viewports. Users who want only the bubble on xl
+    // (≥ 1280 px) should disable the right-rail via
+    // `askAiPlugin({ slots: { 'right-rail': false } })` — see plugin docs.
     <div className="fixed bottom-6 right-6 z-50 flex flex-col items-end">
       {isOpen && (
-        <div className="mb-4 w-[380px] max-w-[calc(100vw-2rem)] h-[min(500px,calc(100vh-8rem))] bg-main/90 backdrop-blur-md border border-subtle rounded-2xl shadow-xl flex flex-col overflow-hidden animate-in fade-in slide-in-from-bottom-5 duration-200">
+        <div className="mb-4 w-[380px] max-w-[calc(100vw-2rem)] h-[min(520px,calc(100vh-8rem))] bg-main/90 backdrop-blur-md border border-subtle rounded-2xl shadow-xl flex flex-col overflow-hidden animate-in fade-in slide-in-from-bottom-5 duration-200">
           {/* Header */}
           <div className="px-4 py-3 border-b border-subtle flex items-center justify-between bg-surface/50">
             <div className="flex items-center gap-2">
@@ -54,11 +56,6 @@ export function AskAiBubble() {
               <span className="text-sm font-semibold text-body">
                 Ask Assistant
               </span>
-              {isDebug && (
-                <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/30">
-                  Ollama DEV
-                </span>
-              )}
             </div>
             <div className="flex items-center gap-1">
               {messages.length > 0 && (
@@ -111,7 +108,7 @@ export function AskAiBubble() {
 
           {/* Messages area */}
           <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-4">
-            {messages.length === 0 ? (
+            {messages.length === 0 && (
               <div className="flex-1 flex flex-col items-center justify-center text-center p-6">
                 <div className="w-12 h-12 rounded-full bg-primary-500/10 flex items-center justify-center text-primary-500 mb-3">
                   <svg
@@ -132,77 +129,95 @@ export function AskAiBubble() {
                   How can I help you today?
                 </h3>
                 <p className="text-xs text-muted max-w-[240px]">
-                  Ask questions about the documentation. The AI will find and
-                  summarize the answers for you.
+                  Ask questions about the current documentation page. The
+                  assistant only answers using the page you're viewing.
                 </p>
               </div>
-            ) : (
-              messages.map((msg, i) => (
-                <div
-                  key={i}
-                  className={`flex flex-col max-w-[85%] ${
-                    msg.role === 'user'
-                      ? 'align-self-end items-end ml-auto'
-                      : 'align-self-start items-start'
-                  }`}
-                >
-                  {msg.role === 'assistant' && msg.readFile && (
-                    <div className="flex items-center gap-1.5 px-2 py-1 mb-1 text-[11px] text-muted">
-                      <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        width="12"
-                        height="12"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="2"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      >
-                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-                        <polyline points="14 2 14 8 20 8" />
-                      </svg>
-                      <span>
-                        Read{' '}
-                        <code className="px-1 py-0.5 rounded bg-surface text-primary-500 text-[10px] font-mono">
-                          {msg.readFile.path}
-                        </code>
-                      </span>
-                      <span className="text-green-500">✓</span>
-                      <span>{msg.readFile.timeMs}ms</span>
-                    </div>
-                  )}
-                  <div
-                    className={`px-3 py-2 rounded-xl ${
-                      msg.role === 'user'
-                        ? 'bg-primary-500 text-white rounded-br-none'
-                        : 'bg-surface border border-subtle text-body rounded-bl-none'
-                    }`}
-                  >
-                    {msg.role === 'user' ? (
-                      <p className="whitespace-pre-wrap text-sm">
-                        {msg.content}
-                      </p>
-                    ) : (
-                      <MarkdownRenderer content={msg.content} />
-                    )}
-                  </div>
-                </div>
-              ))
             )}
 
-            {/* Typing indicator */}
-            {isLoading &&
-              messages.length > 0 &&
-              messages[messages.length - 1].content === '' && (
-                <div className="align-self-start items-start max-w-[85%]">
-                  <div className="bg-surface border border-subtle px-4 py-3 rounded-xl rounded-bl-none flex gap-1">
-                    <span className="w-2 h-2 rounded-full bg-muted animate-bounce" />
-                    <span className="w-2 h-2 rounded-full bg-muted animate-bounce [animation-delay:0.2s]" />
-                    <span className="w-2 h-2 rounded-full bg-muted animate-bounce [animation-delay:0.4s]" />
+            {messages.map((msg, i) => (
+              <div
+                key={i}
+                className={`flex flex-col max-w-[85%] ${
+                  msg.role === 'user'
+                    ? 'align-self-end items-end ml-auto'
+                    : 'align-self-start items-start'
+                }`}
+              >
+                {/* "Reading X" chip — visible the moment the server confirms the page */}
+                {msg.role === 'assistant' && msg.contextChip && (
+                  <div className="flex items-center gap-1.5 px-2 py-1 mb-1 text-[11px] text-muted">
+                    {msg.contextChip.missing ? (
+                      <span>No docs page in scope</span>
+                    ) : (
+                      <>
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          width="12"
+                          height="12"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="2"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        >
+                          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                          <polyline points="14 2 14 8 20 8" />
+                        </svg>
+                        <span>Reading</span>
+                        <code className="px-1 py-0.5 rounded bg-surface text-primary-500 text-[10px] font-mono">
+                          {msg.contextChip.page}
+                        </code>
+                        <span className="text-muted">·</span>
+                        <span>{msg.contextChip.chars} chars</span>
+                        {typeof msg.contextChip.elapsedMs === 'number' && (
+                          <>
+                            <span className="text-muted">·</span>
+                            <span>{msg.contextChip.elapsedMs}ms</span>
+                          </>
+                        )}
+                      </>
+                    )}
                   </div>
+                )}
+
+                <div
+                  className={`px-3 py-2 rounded-xl ${
+                    msg.role === 'user'
+                      ? 'bg-primary-500 text-white rounded-br-none'
+                      : msg.status === 'error'
+                        ? 'bg-red-500/10 border border-red-500/30 text-red-600 dark:text-red-400 rounded-bl-none'
+                        : 'bg-surface border border-subtle text-body rounded-bl-none'
+                  }`}
+                >
+                  {msg.role === 'user' ? (
+                    <p className="whitespace-pre-wrap text-sm">{msg.content}</p>
+                  ) : msg.status === 'error' ? (
+                    <p className="text-sm">
+                      <strong>Error:</strong>{' '}
+                      {msg.errorMessage || 'Something went wrong.'}
+                    </p>
+                  ) : (
+                    <div className="ask-ai-streamdown">
+                      {msg.content ? (
+                        <MarkdownRenderer content={msg.content} />
+                      ) : msg.status === 'reading' ? (
+                        <span className="inline-flex items-center gap-1.5 text-xs text-muted">
+                          <span className="w-1.5 h-1.5 rounded-full bg-primary-500 animate-pulse" />
+                          <span>Reading page…</span>
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center gap-1.5 text-xs text-muted">
+                          <span className="w-1.5 h-1.5 rounded-full bg-primary-500 animate-pulse" />
+                          <span>Waiting…</span>
+                        </span>
+                      )}
+                    </div>
+                  )}
                 </div>
-              )}
+              </div>
+            ))}
 
             <div ref={messagesEndRef} />
           </div>
@@ -216,7 +231,7 @@ export function AskAiBubble() {
               type="text"
               value={input}
               onChange={(e) => setInput(e.target.value)}
-              placeholder="Ask documentation..."
+              placeholder="Ask about this page…"
               className="flex-1 bg-surface border border-subtle rounded-xl px-3 py-1.5 text-sm outline-none text-body focus-visible:border-primary-500 transition-colors"
               disabled={isLoading}
             />
@@ -226,6 +241,7 @@ export function AskAiBubble() {
                 onClick={stopStreaming}
                 className="px-3 py-1.5 bg-red-500 hover:bg-red-600 text-white text-sm font-semibold rounded-xl flex items-center justify-center transition-colors cursor-pointer select-none"
                 title="Stop generating"
+                aria-label="Stop generating"
               >
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
@@ -242,6 +258,7 @@ export function AskAiBubble() {
                 type="submit"
                 disabled={!input.trim()}
                 className="px-3 py-1.5 bg-primary-500 hover:bg-primary-600 disabled:opacity-50 text-white text-sm font-semibold rounded-xl flex items-center justify-center transition-colors cursor-pointer select-none"
+                aria-label="Send question"
               >
                 <svg
                   xmlns="http://www.w3.org/2000/svg"

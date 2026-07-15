@@ -1,8 +1,7 @@
 {
   "name": "@bdocs/plugin-ask-ai",
-  "private": true,
-  "version": "0.1.0",
-  "description": "Context-aware AI assistant querying plugin for Boltdocs",
+  "version": "0.3.0",
+  "description": "Context-aware AI assistant querying plugin for Boltdocs. OpenAI-powered, page-scoped, streaming. Mounts via the core's declarative slot system (v0.3.0+).",
   "files": [
     "dist"
   ],
@@ -30,9 +29,10 @@
   "license": "MIT",
   "type": "module",
   "dependencies": {
-    "@bdocs/dui": "^0.2.0",
-    "react-markdown": "^10.1.0",
-    "remark-gfm": "4.0.1"
+    "@bdocs/dui": "^0.3.0",
+    "openai": "^4.77.0",
+    "streamdown": "^1.0.0",
+    "zod": "^3.23.0"
   },
   "peerDependencies": {
     "react": "^19.0.0",
@@ -44,7 +44,6 @@
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
     "boltdocs": "workspace:*",
-    "flexsearch": "0.8.212",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "tsdown": "^0.21.7",
