@@ -134,6 +134,10 @@ export async function doctorAction(
       ),
     )
 
+    if (reportFormat === 'pretty') {
+      info(colors.dim('🧪 Running diagnostic checks in parallel...'))
+    }
+
     const ctx: DoctorContext = {
       root,
       docsDir,
@@ -166,7 +170,7 @@ export async function doctorAction(
     const [metadataIssues, linkIssues, i18nIssues, sidebarIssues, ...extra] =
       await Promise.all(checkers)
 
-    const performanceIssues = options.budget ? extra[0] : []
+    const performanceIssues: DoctorIssue[] = options.budget ? extra[0] ?? [] : []
 
     const issues = [
       ...metadataIssues,
@@ -259,7 +263,7 @@ export async function doctorAction(
     if (reportFormat === 'json') {
       console.log(JSON.stringify(reportData, null, 2))
     } else if (reportFormat === 'pretty') {
-      const groupedIssues = issues.reduce(
+      const groupedIssues: Record<string, DoctorIssue[]> = issues.reduce(
         (acc, issue) => {
           if (!acc[issue.file]) acc[issue.file] = []
           acc[issue.file].push(issue)

@@ -23,7 +23,7 @@ export interface SlotRegistry {
  * module is invalidated by HMR.
  */
 export function useSlotRegistry(): SlotRegistry {
-  return RAW_REGISTRY
+  return slotRegistry as unknown as SlotRegistry
 }
 
 /**

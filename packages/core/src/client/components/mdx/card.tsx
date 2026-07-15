@@ -1,4 +1,4 @@
-import { useRef } from 'react'
+import { useRef, type ElementType } from 'react'
 import { cn } from '../../utils/cn'
 
 export interface CardProps extends React.HTMLAttributes<HTMLDivElement> {
@@ -26,7 +26,7 @@ export function Card({
     cardRef.current.style.setProperty('--mouse-y', `${y}px`)
   }
 
-  const Wrapper = href ? 'a' : 'div'
+  const Wrapper: ElementType = href ? 'a' : 'div'
   const spotlightColor = 'var(--color-primary-500, #eb5828)'
 
   return (

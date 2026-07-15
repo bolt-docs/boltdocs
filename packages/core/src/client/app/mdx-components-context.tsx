@@ -1,10 +1,10 @@
-import { createContext, use, useMemo } from 'react'
+import { createContext, use, useMemo, type ComponentType } from 'react'
 import type { BoltdocsMdxComponents } from '../../shared/types'
 
 export type MdxComponentsType = {
-  [key: string]: React.ComponentType<HTMLElement>
+  [key: string]: ComponentType<{ children?: React.ReactNode }>
 } & {
-  Frontmatter?: Record<string, React.ComponentType<{ value: unknown }>>
+  Frontmatter?: Record<string, ComponentType<{ value: unknown }>>
 }
 
 const MDX_COMPONENTS_CONTEXT_SYMBOL = Symbol.for(
@@ -26,11 +26,14 @@ export function MdxComponentsProvider({
   components,
   children,
 }: {
-  components: Record<string, React.ComponentType<HTMLElement>>
+  components: Record<string, ComponentType<{ children?: React.ReactNode }>>
   children: React.ReactNode
 }) {
   const processedComponents = useMemo(() => {
-    const processed: Record<string, React.ComponentType<HTMLElement>> = {}
+    const processed: Record<
+      string,
+      ComponentType<{ children?: React.ReactNode }>
+    > = {}
     const frontmatter: Record<
       string,
       React.ComponentType<{ value: unknown }>
@@ -40,7 +43,7 @@ export function MdxComponentsProvider({
     Object.entries(components).forEach(([key, value]) => {
       if (key.startsWith('Frontmatter_')) {
         const cleanKey = key.slice('Frontmatter_'.length)
-        frontmatter[cleanKey] = value
+        frontmatter[cleanKey] = value as ComponentType<{ value: unknown }>
         hasFrontmatter = true
       } else {
         processed[key] = value

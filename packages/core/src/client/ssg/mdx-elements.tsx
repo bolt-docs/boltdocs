@@ -30,8 +30,8 @@ const EagerMdxElement = ({
   moduleLoader: MdxModule
   moduleKey: string | undefined
   route: ComponentRoute
-  components: Record<string, React.ComponentType<any>>
-  collectionPostComponent?: React.ComponentType<any>
+  components: Record<string, React.ComponentType<{ children?: React.ReactNode }>>
+  collectionPostComponent?: React.ComponentType<{ children?: React.ReactNode }>
 }) => {
   const [mod, setMod] = useState<MdxModule>(moduleLoader)
 
@@ -54,7 +54,9 @@ const EagerMdxElement = ({
     return () => import.meta.hot?.off('boltdocs:mdx-update', handler)
   }, [moduleKey, route.filePath])
 
-  const MDXComponent = mod?.default ?? mod ?? null
+  const MDXComponent = (mod?.default ?? mod ?? null) as React.ComponentType<{
+    components?: Record<string, React.ComponentType<{ children?: React.ReactNode }>>
+  }> | null
   if (!MDXComponent) return <Loading />
   return (
     <MdxPage
@@ -67,7 +69,10 @@ const EagerMdxElement = ({
 
 const NotFoundWrapper = () => {
   const components = useMdxComponents()
-  const ActiveNotFound = components.NotFound || components['404'] || NotFound
+  const ActiveNotFound =
+    (components.NotFound as React.ComponentType | undefined) ||
+    (components['404'] as React.ComponentType | undefined) ||
+    NotFound
   return <ActiveNotFound />
 }
 

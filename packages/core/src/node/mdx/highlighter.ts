@@ -12,8 +12,8 @@ let onigEngine: RegexEngine | null = null
 let highlighter: Promise<HighlighterCore> | null = null
 
 const getOnigEngine = (): RegexEngine => {
-  onigEngine ??= createOnigurumaEngine(import('shiki/wasm'))
-  return onigEngine
+  if (!onigEngine) onigEngine = createOnigurumaEngine(import('shiki/wasm'))
+  return onigEngine as RegexEngine
 }
 
 /**

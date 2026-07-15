@@ -47,7 +47,7 @@ export class SEOValidateStep implements PipelineStep<BuildContext> {
         ogImage = `${base}${path}`
       }
 
-      const enrichedSeo: Record<string, any> = {
+      const enrichedSeo: Record<string, unknown> = {
         ...rawSeo,
       }
 

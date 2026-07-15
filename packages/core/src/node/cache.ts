@@ -23,9 +23,9 @@ const SHARDS_DIR = 'shards'
  * Simple background task queue to prevent blocking the main thread during IO.
  */
 class BackgroundQueue {
-  private activeTasks = new Set<Promise<any>>()
+  private activeTasks = new Set<Promise<void>>()
 
-  add(task: () => Promise<any>) {
+  add(task: () => Promise<void>) {
     const promise = Promise.resolve()
       .then(task)
       .catch(() => {})
@@ -85,8 +85,9 @@ export class FileCache<T> {
       const data = JSON.parse(raw.toString('utf-8'))
       this.entries = new Map(Object.entries(data))
       this.loaded = true
-    } catch (e: any) {
-      if (e.code === 'ENOENT') return
+    } catch (e) {
+      if (e instanceof Error && (e as NodeJS.ErrnoException).code === 'ENOENT')
+        return
       // Fallback: ignore cache errors
     }
   }
@@ -285,8 +286,9 @@ export class TransformCache {
       const decompressed = decompressedBuffer.toString('utf-8')
       this.memoryCache.set(key, decompressed)
       return decompressed
-    } catch (e: any) {
-      if (e.code === 'ENOENT') return null
+    } catch (e) {
+      if (e instanceof Error && (e as NodeJS.ErrnoException).code === 'ENOENT')
+        return null
       return null
     }
   }

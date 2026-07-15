@@ -4,7 +4,7 @@ import { getShikiAdapter } from './shiki-adapter'
 import { DATA_ATTRIBUTES, DEFAULTS, SHIKI_CLASSES } from './constants'
 import { visitNodes, parseMetaString, SKIP } from '../plugins/plugin-utils'
 import { MDX_NODES } from './constants'
-import type { ElementNode } from './types'
+import type { ElementNode, HastNode } from './types'
 
 /**
  * Custom rehype plugin to perform syntax highlighting at build time for
@@ -13,7 +13,7 @@ import type { ElementNode } from './types'
 export function rehypeShiki(config?: BoltdocsConfig) {
   const adapter = getShikiAdapter(config)
 
-  return async (tree: any) => {
+  return async (tree: HastNode) => {
     const highlighter = await adapter.getHighlighter()
 
     visitNodes<ElementNode>(tree, MDX_NODES.ELEMENT, (preNode) => {
@@ -41,24 +41,30 @@ export function rehypeShiki(config?: BoltdocsConfig) {
       const parsedMeta = parseMetaString(metaStr)
       const options = adapter.getOptions(lang, parsedMeta)
 
-      const codeText =
-        (codeNode.children?.[0] as { value?: string })?.value || ''
+      const codeText: string =
+        (codeNode.children?.[0] as { value?: string } | undefined)?.value ?? ''
 
       try {
-        const hast = highlighter.codeToHast(codeText, options)
-        const preElement = hast.type === 'root' ? hast.children[0] : hast
-        preNode.children = preElement.children
-        preNode.properties = {
-          ...preNode.properties,
-          ...preElement.properties,
-          [DATA_ATTRIBUTES.HIGHLIGHTED]: 'true',
-          [DATA_ATTRIBUTES.LANG]: lang,
+        const hast = highlighter.codeToHast(codeText, options) as HastNode
+        const preElement: HastNode =
+          hast.type === 'root' && hast.children ? hast.children[0] : hast
+        if (preElement && preElement.type === 'element') {
+          preNode.children = preElement.children as ElementNode['children']
+          preNode.properties = {
+            ...preNode.properties,
+            ...preElement.properties,
+            [DATA_ATTRIBUTES.HIGHLIGHTED]: 'true',
+            [DATA_ATTRIBUTES.LANG]: lang,
+          }
         }
       } catch (e) {
         logError(`[rehypeShiki] Failed to highlight code block:`, e)
         preNode.properties = preNode.properties || {}
+        if (!preNode.properties.className) {
+          preNode.properties.className = []
+        }
         preNode.properties.className = [
-          ...(preNode.properties.className || []),
+          ...(preNode.properties.className as string[]),
           SHIKI_CLASSES.FALLBACK,
         ]
         preNode.properties[DATA_ATTRIBUTES.HIGHLIGHTED] = 'false'

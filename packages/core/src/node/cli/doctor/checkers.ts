@@ -364,24 +364,25 @@ export async function checkLinks(ctx: DoctorContext): Promise<DoctorIssue[]> {
           return { url, ok: resGet.ok }
         }
         return { url, ok: res.ok }
-      } catch (e: any) {
-        return { url, ok: false, error: e.message }
+      } catch (e) {
+        const message = e instanceof Error ? e.message : String(e)
+        return { url, ok: false, error: message }
       }
     }
 
     const urls = Array.from(urlToFile.keys())
-    const results: any[] = []
+    const results: Array<{ url: string; ok: boolean; error?: string }> = []
     for (let i = 0; i < urls.length; i += concurrency) {
       const batch = urls.slice(i, i + concurrency)
       const batchResults = await Promise.allSettled(batch.map(checkUrl))
       results.push(
         ...batchResults.map((r) =>
           r.status === 'fulfilled'
-            ? (r as any).value
+            ? r.value
             : {
                 url: 'unknown',
                 ok: false,
-                error: (r as PromiseRejectedResult).reason,
+                error: String(r.reason),
               },
         ),
       )
@@ -475,7 +476,7 @@ export async function checkSidebar(ctx: DoctorContext): Promise<DoctorIssue[]> {
   const sidebar = ctx.config.theme.sidebar
 
   for (const [group, items] of Object.entries(sidebar)) {
-    for (const item of items as { text: string; link: string }[]) {
+    for (const item of items as unknown as { text: string; link: string }[]) {
       if (!item.text) {
         const level = getSeverity(ctx, 'invalidFrontmatter', 'warning')
         if (level !== 'off') {
