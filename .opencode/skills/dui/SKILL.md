@@ -1,7 +1,7 @@
 ---
 name: dui
 description: Terminal UI library for Node.js (@bdocs/dui). Use when the project imports from '@bdocs/dui' or when building CLIs with colored output, boxes, tables, spinners, progress bars, interactive prompts, etc.
-version: 0.2.0
+version: 0.3.0
 
 ---
 
@@ -32,7 +32,11 @@ import {
   bullet, ordered, tasks, steps, divider, confirm,
   multiselect, tree, animate, createProgressBar,
   stripAnsi, visibleLength, wrapAnsiWord, renderLine,
-  renderStatic, terminalWidth, formatLog
+  renderStatic, terminalWidth, formatLog,
+  usePlugin, emit, countRenderLines, colorize, parseColor,
+  interpolateColor, applyStyle, toAnsiFg, toAnsiBg, toAnsiFgBg,
+  isColorSupported, setColorSupported, colorMap, dividerLog,
+  double, single, round, createSpinner, lerp
 } from '@bdocs/dui'
 ```
 
@@ -469,7 +473,7 @@ import {
   stripAnsi, visibleLength, terminalWidth,
   padCenter, padRight, fitWidth,
   wrapAnsiWord, tokenizeAnsi,
-  renderLine, renderStatic
+  renderLine, renderStatic, countRenderLines
 } from '@bdocs/dui'
 
 // Strip ANSI codes
@@ -492,6 +496,10 @@ wrapAnsiWord(text, 40)
 // Tokenizer for ANSI (useful for custom wrap)
 tokenizeAnsi(text)
 // → [{ type: 'word' | 'space' | 'ansi' | 'newline', value, width }]
+
+// Count how many terminal rows a line occupies
+countRenderLines('hello')  // → 1
+countRenderLines(longWrappedText)  // → 3
 
 // Inline render (overwrites current line)
 renderLine('Loading...')           // stdout
@@ -620,6 +628,114 @@ The resolution order for a color slot is:
 3. Global color (e.g. `theme.error`)
 4. Slot default (e.g. `logger.error` → red)
 
+## Plugin system
+
+```typescript
+import { usePlugin, emit, type DuiPlugin, type PluginAPI } from '@bdocs/dui'
+
+const myPlugin: DuiPlugin = {
+  name: 'my-plugin',
+  async setup(api) {
+    // Access utilities
+    api.utils.colors
+    api.utils.configure
+    api.utils.getConfig
+    api.utils.terminalWidth
+    api.utils.visibleLength
+    api.utils.stripAnsi
+    api.utils.resolveColor
+    api.utils.countRenderLines
+
+    // Listen to lifecycle events
+    api.on('register', () => {
+      // Fires after setup() completes
+    })
+
+    api.on('configure', (config) => {
+      // Fires when config is updated
+    })
+  }
+}
+
+usePlugin(myPlugin)
+```
+
+## Chart plugin (`@dui-toolkit/plugin-chart`)
+
+```bash
+pnpm add @dui-toolkit/plugin-chart
+```
+
+```typescript
+import { bar, column, line, pie, sparkline, animateChart } from '@dui-toolkit/plugin-chart'
+
+// Horizontal bar chart
+bar([80, 60, 95, 45], {
+  labels: ['A', 'B', 'C', 'D'],
+  title: 'Scores',
+  color: '#ff6600',
+  format: (v) => `${v}%`,
+})
+
+// Vertical column chart
+column([20, 40, 60, 80], {
+  labels: ['Q1', 'Q2', 'Q3', 'Q4'],
+  height: 10,
+})
+
+// Line chart (braille characters or filled area)
+line([10, 25, 18, 30, 22], {
+  labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'],
+  width: 40,
+  height: 8,
+  fill: false,  // true = block element fill
+})
+
+// Pie chart (horizontal bar representation)
+pie([
+  { label: 'Used', value: 65 },
+  { label: 'Free', value: 35 },
+], { width: 40 })
+
+// Sparkline (compact single-line)
+sparkline([10, 25, 18, 30, 22, 15, 28])  // → ▂▅▃▇▅▂▇
+
+// Animate a chart
+const handle = animateChart({
+  duration: 1000,
+  loop: false,
+  easing: 'ease-out',
+  onFrame: (progress) => {
+    bar(data.map(v => v * progress))
+  },
+})
+handle.stop()
+```
+
+## Markdown plugin (`@dui-toolkit/plugin-markdown`)
+
+```bash
+pnpm add @dui-toolkit/plugin-markdown shiki
+```
+
+```typescript
+import { md, mdRender, mdSyntax, tokenize } from '@dui-toolkit/plugin-markdown'
+
+// Render markdown to terminal
+const rendered = await md('# Hello\n\nThis is **bold** and *italic*.\n\n```ts\nconst x = 1\n```')
+console.log(rendered)
+
+// Render directly to console
+await mdRender('# Title\n\n- Item 1\n- Item 2')
+
+// Syntax highlight code
+const highlighted = await mdSyntax('console.log("hello")', 'javascript')
+
+// Tokenize markdown into AST
+const tokens = tokenize('## Heading\n\nParagraph text')
+// → [{ type: 'heading', level: 2, inline: [...] }, { type: 'paragraph', inline: [...] }]
+```
+
 ## Best practices
 
 ### 1. Configure at startup
@@ -705,5 +821,8 @@ pnpm exec biome format --write .
 | `packages/dui/src/multiselect.ts` | Interactive multiselect |
 | `packages/dui/src/tree.ts` | Tree navigation |
 | `packages/dui/src/steps.ts` | Step indicators |
-| `packages/dui/src/utils.ts` | Utilities (wrap, strip, render) |
+| `packages/dui/src/utils.ts` | Utilities (wrap, strip, render, countRenderLines) |
 | `packages/dui/src/divider.ts` | Dividers |
+| `packages/dui/src/plugin.ts` | Plugin system |
+| `packages/dui-chart/` | Chart plugin (bar, column, line, pie, sparkline) |
+| `packages/dui-markdown/` | Markdown plugin (render, syntax highlight) |
