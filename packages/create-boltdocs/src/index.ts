@@ -117,7 +117,7 @@ export async function run() {
 
     stepsList[1].status = 'success'
 
-    let installIndex = stepsList.findIndex(
+    const installIndex = stepsList.findIndex(
       (s) => s.label === 'Installing dependencies',
     )
     if (installIndex !== -1) {
