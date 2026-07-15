@@ -1,6 +1,6 @@
 import { useRef } from 'react'
 import { Code2, Zap, Search, Award } from 'lucide-react'
-import { useGSAPStaggerIn } from './hooks/useGSAPScroll'
+import { useScrollStagger } from './hooks/useScrollAnimation'
 import { getVersion } from './data/version'
 
 const STATS = [
@@ -37,7 +37,7 @@ const STATS = [
 export const StatsSection = () => {
   const statsRef = useRef<HTMLDivElement>(null)
 
-  useGSAPStaggerIn(statsRef, { stagger: 0.1, duration: 0.5, y: 20 })
+  useScrollStagger(statsRef, { stagger: 0.1 })
 
   return (
     <section className="py-16 px-6 border-y border-white/5 bg-surface/10 relative overflow-hidden">

@@ -1,7 +1,6 @@
-import { cn } from 'boltdocs/client'
 import { Link } from 'boltdocs/primitives'
 import { useRef } from 'react'
-import { useGSAPStaggerIn } from '../../src/hooks/useGSAPScroll'
+import { useScrollStagger } from '../../src/hooks/useScrollAnimation'
 import { Github } from '../../src/icons'
 import { NoiseOverlay } from '../../src/noise-overlay'
 import { useTranslations } from '../../src/use-translations'
@@ -10,15 +9,13 @@ export default function AboutPage() {
   const contentRef = useRef<HTMLDivElement>(null)
   const t = useTranslations()
 
-  // Apply a clean, minimalist vertical fade-up stagger on all child paragraphs/headers
-  useGSAPStaggerIn(contentRef, { stagger: 0.04, duration: 0.3, y: 8 })
+  useScrollStagger(contentRef, { stagger: 0.04 })
 
   return (
     <div className="font-sans antialiased min-h-screen bg-main text-body flex flex-col justify-start relative">
       <NoiseOverlay />
       <div className="max-w-2xl mx-auto px-6 py-28 md:py-36 w-full flex-grow">
         <div ref={contentRef} className="flex flex-col gap-10">
-          {/* Header Metadata */}
           <div>
             <span className="font-mono text-xs uppercase tracking-widest text-primary-400 block mb-3">
               {t.aboutLabel}
@@ -29,7 +26,6 @@ export default function AboutPage() {
             <div className="w-full h-px bg-white/10 mt-8" />
           </div>
 
-          {/* Section: Our Mission */}
           <div className="flex flex-col gap-3">
             <h2 className="text-xl md:text-2xl font-bold tracking-tight text-body">
               {t.aboutMissionTitle}
@@ -39,7 +35,6 @@ export default function AboutPage() {
             </p>
           </div>
 
-          {/* Section: Open Source */}
           <div className="flex flex-col gap-3">
             <h2 className="text-xl md:text-2xl font-bold tracking-tight text-body">
               {t.aboutOpenSourceTitle}
@@ -49,7 +44,6 @@ export default function AboutPage() {
             </p>
           </div>
 
-          {/* Section: The Developer */}
           <div className="flex flex-col gap-3">
             <h2 className="text-xl md:text-2xl font-bold tracking-tight text-body">
               {t.aboutDeveloperTitle}

@@ -1,5 +1,5 @@
 import { Fragment, useRef } from 'react'
-import { useGSAPScroll } from './hooks/useGSAPScroll'
+import { useScrollAnimation } from './hooks/useScrollAnimation'
 import { Grainient } from './grainient'
 import { NoiseOverlay } from './noise-overlay'
 import { useTranslations } from './use-translations'
@@ -207,17 +207,12 @@ function FeatureRow({ feature, index }: { feature: Feature; index: number }) {
   const containerRef = useRef<HTMLDivElement>(null)
   const isReversed = index % 2 !== 0
 
-  useGSAPScroll(containerRef, {
-    animation: 'fade-up',
-    delay: feature.delay,
-    duration: 0.6,
-    intensity: 30,
-  })
+  useScrollAnimation(containerRef, 'fade-up')
 
   return (
     <div
       ref={containerRef}
-      className={`flex flex-col ${isReversed ? 'md:flex-row-reverse' : 'md:flex-row'} gap-6 md:gap-10 items-center opacity-0`}
+      className={`flex flex-col ${isReversed ? 'md:flex-row-reverse' : 'md:flex-row'} gap-6 md:gap-10 items-center`}
     >
       {/* Preview */}
       <div className="relative w-full md:w-1/2 h-104 rounded-2xl overflow-hidden border border-white/10 shadow-xl">
@@ -260,12 +255,8 @@ export const FeaturesGrid = () => {
   const subtitleRef = useRef<HTMLParagraphElement>(null)
   const t = useTranslations()
 
-  useGSAPScroll(titleRef, { animation: 'fade-up', delay: 0, duration: 0.6 })
-  useGSAPScroll(subtitleRef, {
-    animation: 'fade-up',
-    delay: 0.1,
-    duration: 0.6,
-  })
+  useScrollAnimation(titleRef, 'fade-up')
+  useScrollAnimation(subtitleRef, 'fade-up')
 
   const featuresWithTranslations = FEATURES.map((feature, i) => ({
     ...feature,
@@ -280,13 +271,13 @@ export const FeaturesGrid = () => {
         <div className="text-center mb-16">
           <h2
             ref={titleRef}
-            className="text-2xl md:text-4xl font-black tracking-tighter border-0 text-body mb-6 opacity-0"
+            className="text-2xl md:text-4xl font-black tracking-tighter border-0 text-body mb-6"
           >
             {t.featuresTitle}
           </h2>
           <p
             ref={subtitleRef}
-            className="max-w-2xl mx-auto text-lg leading-relaxed opacity-0 text-body/70"
+            className="max-w-2xl mx-auto text-lg leading-relaxed text-body/70"
           >
             {t.featuresDescription}
           </p>

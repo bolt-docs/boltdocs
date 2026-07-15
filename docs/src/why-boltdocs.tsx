@@ -1,6 +1,9 @@
 import { useRef } from 'react'
 import { Check, MoveRight } from 'lucide-react'
-import { useGSAPScroll, useGSAPStaggerIn } from './hooks/useGSAPScroll'
+import {
+  useScrollAnimation,
+  useScrollStagger,
+} from './hooks/useScrollAnimation'
 
 const DIFFERENTIATORS = [
   {
@@ -40,13 +43,9 @@ export const WhyBoltdocs = () => {
   const subtitleRef = useRef<HTMLParagraphElement>(null)
   const cardsRef = useRef<HTMLDivElement>(null)
 
-  useGSAPScroll(titleRef, { animation: 'fade-up', delay: 0, duration: 0.6 })
-  useGSAPScroll(subtitleRef, {
-    animation: 'fade-up',
-    delay: 0.1,
-    duration: 0.6,
-  })
-  useGSAPStaggerIn(cardsRef, { stagger: 0.08, duration: 0.5, y: 30 })
+  useScrollAnimation(titleRef, 'fade-up')
+  useScrollAnimation(subtitleRef, 'fade-up')
+  useScrollStagger(cardsRef, { stagger: 0.08 })
 
   return (
     <section className="py-20 px-6">
@@ -54,13 +53,13 @@ export const WhyBoltdocs = () => {
         <div className="text-center mb-16">
           <h2
             ref={titleRef}
-            className="text-2xl md:text-4xl font-black text-text mb-4 opacity-0"
+            className="text-2xl md:text-4xl font-black text-text mb-4"
           >
             Why Boltdocs?
           </h2>
           <p
             ref={subtitleRef}
-            className="text-lg text-on-surface-variant max-w-2xl mx-auto opacity-0"
+            className="text-lg text-on-surface-variant max-w-2xl mx-auto"
           >
             Built for developers who value speed, simplicity, and beautiful
             documentation.

@@ -14,7 +14,10 @@ import {
 } from 'lucide-react'
 import { Link } from 'boltdocs/primitives'
 import { useRef, useState, useEffect, useCallback } from 'react'
-import { useGSAPScroll, useGSAPStaggerIn } from '../../src/hooks/useGSAPScroll'
+import {
+  useScrollAnimation,
+  useScrollStagger,
+} from '../../src/hooks/useScrollAnimation'
 import { Github } from '../../src/icons'
 import { NoiseOverlay } from '../../src/noise-overlay'
 import { useTranslations } from '../../src/use-translations'
@@ -183,18 +186,10 @@ export default function ShowcasePage() {
   const t = useTranslations()
   const showcaseItems = ShowcaseItems()
 
-  useGSAPScroll(titleRef, { animation: 'fade-up', delay: 0, duration: 0.6 })
-  useGSAPScroll(subtitleRef, {
-    animation: 'fade-up',
-    delay: 0.1,
-    duration: 0.6,
-  })
-  useGSAPStaggerIn(cardsRef, { stagger: 0.1, duration: 0.5, y: 25 })
-  useGSAPScroll(carouselRef, {
-    animation: 'fade-up',
-    delay: 0.1,
-    duration: 0.8,
-  })
+  useScrollAnimation(titleRef, 'fade-up')
+  useScrollAnimation(subtitleRef, 'fade-up')
+  useScrollStagger(cardsRef, { stagger: 0.1 })
+  useScrollAnimation(carouselRef, 'fade-up')
 
   return (
     <div className="font-sans antialiased min-h-screen bg-main text-body flex flex-col justify-start relative">
@@ -208,13 +203,13 @@ export default function ShowcasePage() {
         <div className="max-w-4xl mx-auto text-center">
           <h1
             ref={titleRef}
-            className="text-4xl md:text-6xl font-black tracking-tighter text-body mb-6 opacity-0"
+            className="text-4xl md:text-6xl font-black tracking-tighter text-body mb-6"
           >
             {t.showcaseTitle}
           </h1>
           <p
             ref={subtitleRef}
-            className="text-lg md:text-xl text-body/70 max-w-2xl mx-auto leading-relaxed opacity-0"
+            className="text-lg md:text-xl text-body/70 max-w-2xl mx-auto leading-relaxed"
           >
             {t.showcaseDescription}
           </p>
@@ -241,7 +236,7 @@ export default function ShowcasePage() {
                 </div>
 
                 {/* Image Carousel */}
-                <div ref={carouselRef} className="mb-8 opacity-0">
+                <div ref={carouselRef} className="mb-8">
                   <ImageCarousel images={item.images} />
                 </div>
 

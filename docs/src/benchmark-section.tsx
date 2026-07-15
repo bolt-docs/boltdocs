@@ -1,5 +1,5 @@
 import { useRef } from 'react'
-import { useGSAPScroll } from './hooks/useGSAPScroll'
+import { useScrollAnimation } from './hooks/useScrollAnimation'
 import benchmarkData from './data/benchmark-results.json'
 import { BuildSpeedCard } from './benchmark/build-speed-card'
 import { PerformanceTable } from './benchmark/performance-table'
@@ -7,11 +7,7 @@ import { PerformanceTable } from './benchmark/performance-table'
 export const BenchmarkSection = () => {
   const containerRef = useRef<HTMLDivElement>(null)
 
-  useGSAPScroll(containerRef, {
-    animation: 'fade-up',
-    delay: 0.1,
-    duration: 0.8,
-  })
+  useScrollAnimation(containerRef, 'fade-up')
 
   return (
     <section className="py-24 px-6 bg-surface/5">

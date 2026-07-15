@@ -1,5 +1,5 @@
 import { useRef } from 'react'
-import { useGSAPScroll } from './hooks/useGSAPScroll'
+import { useScrollAnimation } from './hooks/useScrollAnimation'
 import { Grainient } from './grainient'
 import { Link } from 'boltdocs/primitives'
 import { Github } from './icons'
@@ -10,12 +10,7 @@ export const CTASection = () => {
   const contentRef = useRef<HTMLDivElement>(null)
   const t = useTranslations()
 
-  useGSAPScroll(contentRef, {
-    animation: 'fade-up',
-    delay: 0.2,
-    duration: 0.8,
-    intensity: 20,
-  })
+  useScrollAnimation(contentRef, 'fade-up')
 
   return (
     <section className="relative overflow-hidden w-full h-[70dvh]">
@@ -45,10 +40,7 @@ export const CTASection = () => {
 
       {/* CTA Content Area */}
       <div className="relative z-10 pt-20 pb-20 px-6 w-full h-full flex items-center">
-        <div
-          ref={contentRef}
-          className="max-w-3xl mx-auto text-center opacity-0"
-        >
+        <div ref={contentRef} className="max-w-3xl mx-auto text-center">
           <div>
             <h2 className="text-3xl md:text-5xl font-black text-white border-0 mb-6 leading-[1.2] tracking-tight">
               {t.ctaTitle} <br className="hidden md:block" />

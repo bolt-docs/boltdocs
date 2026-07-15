@@ -30,3 +30,168 @@ body {
 .animate-marquee {
   animation: marquee 40s linear infinite;
 }
+
+/* ============================== */
+/* CSS Scroll-Driven Animations  */
+/* ============================== */
+
+@keyframes sa-fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(60px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+@keyframes sa-fade-down {
+  from {
+    opacity: 0;
+    transform: translateY(-60px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+@keyframes sa-fade-in {
+  from {
+    opacity: 0;
+    transform: scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+@keyframes sa-scale-up {
+  from {
+    opacity: 0;
+    transform: scale(0.8) rotate(-5deg);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) rotate(0deg);
+  }
+}
+@keyframes sa-scale-down {
+  from {
+    opacity: 0;
+    transform: scale(1.2);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+@keyframes sa-slide-left {
+  from {
+    opacity: 0;
+    transform: translateX(60px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+@keyframes sa-slide-right {
+  from {
+    opacity: 0;
+    transform: translateX(-60px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+@keyframes sa-rotate-up {
+  from {
+    opacity: 0;
+    transform: rotate(10deg) scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: rotate(0deg) scale(1);
+  }
+}
+@keyframes sa-blur-in {
+  from {
+    opacity: 0;
+    filter: blur(20px);
+  }
+  to {
+    opacity: 1;
+    filter: blur(0);
+  }
+}
+@keyframes sa-reveal-clip {
+  from {
+    clip-path: inset(100% 0 0 0);
+  }
+  to {
+    clip-path: inset(0 0 0 0);
+  }
+}
+@keyframes sa-stagger-in {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+    filter: blur(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+    filter: blur(0);
+  }
+}
+
+/* Base class applied via the hook */
+@supports (animation-timeline: view()) {
+  [data-sa] {
+    animation-fill-mode: both;
+    animation-timeline: view();
+    animation-range: entry 0% cover 50%;
+  }
+
+  [data-sa="fade-up"] {
+    animation-name: sa-fade-up;
+  }
+  [data-sa="fade-down"] {
+    animation-name: sa-fade-down;
+  }
+  [data-sa="fade-in"] {
+    animation-name: sa-fade-in;
+  }
+  [data-sa="scale-up"] {
+    animation-name: sa-scale-up;
+  }
+  [data-sa="scale-down"] {
+    animation-name: sa-scale-down;
+  }
+  [data-sa="slide-left"] {
+    animation-name: sa-slide-left;
+  }
+  [data-sa="slide-right"] {
+    animation-name: sa-slide-right;
+  }
+  [data-sa="rotate-up"] {
+    animation-name: sa-rotate-up;
+  }
+  [data-sa="blur-in"] {
+    animation-name: sa-blur-in;
+  }
+  [data-sa="reveal-clip"] {
+    animation-name: sa-reveal-clip;
+  }
+
+  /* Stagger: each child gets its own view timeline with staggered delay */
+  [data-sa="stagger"] > * {
+    opacity: 0;
+    animation-name: sa-stagger-in;
+    animation-fill-mode: both;
+    animation-timeline: view();
+    animation-range: entry 0% cover 50%;
+    animation-delay: calc(var(--sa-index, 0) * 0.08s);
+  }
+}

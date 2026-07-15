@@ -1,5 +1,8 @@
 import { useRef } from 'react'
-import { useGSAPScroll, useGSAPStaggerIn } from '../../src/hooks/useGSAPScroll'
+import {
+  useScrollAnimation,
+  useScrollStagger,
+} from '../../src/hooks/useScrollAnimation'
 import { NoiseOverlay } from '../../src/noise-overlay'
 import benchmarkData from '../../src/data/benchmark-results.json'
 import { BarChart } from '../../src/benchmark/bar-chart'
@@ -70,7 +73,7 @@ function MetricCard({
   return (
     <div
       ref={cardRef}
-      className="p-6 rounded-2xl bg-surface/50 border border-subtle backdrop-blur-xl hover:border-primary-500/20 transition-all duration-300 opacity-0"
+      className="p-6 rounded-2xl bg-surface/50 border border-subtle backdrop-blur-xl hover:border-primary-500/20 transition-all duration-300"
     >
       <div className="flex items-center gap-3 mb-4">
         <div className="p-2 rounded-lg bg-primary-500/10 text-primary-500">
@@ -119,14 +122,10 @@ export default function BenchmarkPage() {
   const statsRef = useRef<HTMLDivElement>(null)
   const cardsRef = useRef<HTMLDivElement>(null)
 
-  useGSAPScroll(titleRef, { animation: 'fade-up', delay: 0, duration: 0.6 })
-  useGSAPScroll(subtitleRef, {
-    animation: 'fade-up',
-    delay: 0.1,
-    duration: 0.6,
-  })
-  useGSAPStaggerIn(statsRef, { stagger: 0.08, duration: 0.5, y: 15 })
-  useGSAPStaggerIn(cardsRef, { stagger: 0.12, duration: 0.6, y: 25 })
+  useScrollAnimation(titleRef, 'fade-up')
+  useScrollAnimation(subtitleRef, 'fade-up')
+  useScrollStagger(statsRef, { stagger: 0.08 })
+  useScrollStagger(cardsRef, { stagger: 0.12 })
 
   const avgRatio =
     metrics
@@ -147,13 +146,13 @@ export default function BenchmarkPage() {
         <div className="max-w-4xl mx-auto text-center">
           <h1
             ref={titleRef}
-            className="text-5xl md:text-7xl lg:text-8xl font-black tracking-tighter text-body mb-6 opacity-0"
+            className="text-5xl md:text-7xl lg:text-8xl font-black tracking-tighter text-body mb-6"
           >
             Performance Benchmarks
           </h1>
           <p
             ref={subtitleRef}
-            className="text-lg md:text-xl text-body/70 max-w-2xl mx-auto leading-relaxed opacity-0"
+            className="text-lg md:text-xl text-body/70 max-w-2xl mx-auto leading-relaxed"
           >
             Build times, dev server startup, and output size across{' '}
             {benchmarkData.pageCount} pages — measured under identical
@@ -168,7 +167,7 @@ export default function BenchmarkPage() {
           ref={statsRef}
           className="max-w-4xl mx-auto grid grid-cols-2 md:grid-cols-4 gap-4"
         >
-          <div className="p-5 rounded-2xl bg-surface/50 border border-subtle backdrop-blur-xl text-center opacity-0">
+          <div className="p-5 rounded-2xl bg-surface/50 border border-subtle backdrop-blur-xl text-center">
             <Zap className="w-5 h-5 text-primary-500 mx-auto mb-2" />
             <div className="text-2xl md:text-3xl font-black text-body">
               {benchmarkData.buildTimeCold.boltdocs}s
@@ -177,7 +176,7 @@ export default function BenchmarkPage() {
               Boltdocs Build Time
             </div>
           </div>
-          <div className="p-5 rounded-2xl bg-surface/50 border border-subtle backdrop-blur-xl text-center opacity-0">
+          <div className="p-5 rounded-2xl bg-surface/50 border border-subtle backdrop-blur-xl text-center">
             <Timer className="w-5 h-5 text-primary-500 mx-auto mb-2" />
             <div className="text-2xl md:text-3xl font-black text-body">
               {benchmarkData.devServerStart.boltdocs}ms
@@ -186,7 +185,7 @@ export default function BenchmarkPage() {
               Dev Server Start
             </div>
           </div>
-          <div className="p-5 rounded-2xl bg-surface/50 border border-subtle backdrop-blur-xl text-center opacity-0">
+          <div className="p-5 rounded-2xl bg-surface/50 border border-subtle backdrop-blur-xl text-center">
             <RotateCcw className="w-5 h-5 text-primary-500 mx-auto mb-2" />
             <div className="text-2xl md:text-3xl font-black text-body">
               {benchmarkData.buildTimeWarm.boltdocs}s
@@ -195,7 +194,7 @@ export default function BenchmarkPage() {
               Warm Rebuild
             </div>
           </div>
-          <div className="p-5 rounded-2xl bg-surface/50 border border-subtle backdrop-blur-xl text-center opacity-0">
+          <div className="p-5 rounded-2xl bg-surface/50 border border-subtle backdrop-blur-xl text-center">
             <HardDrive className="w-5 h-5 text-primary-500 mx-auto mb-2" />
             <div className="text-2xl md:text-3xl font-black text-body">
               {(benchmarkData.bundleSize.boltdocs / 1024).toFixed(1)}MB

@@ -2,6 +2,21 @@ import { useState } from 'react'
 import { useI18n, usePosts } from 'boltdocs/client'
 import { Button, Link } from 'boltdocs/primitives'
 
+const translations = {
+  es: {
+    blogs: 'Blogs',
+    previous: 'Anterior',
+    next: 'Siguiente',
+    pageof: 'Página {page} de {totalPages}',
+  },
+  en: {
+    blogs: 'Blogs',
+    previous: 'Previous',
+    next: 'Next',
+    pageof: 'Page {page} of {totalPages}',
+  },
+}
+
 export default function BlogList() {
   const allPosts = usePosts()
   const { currentLocale } = useI18n()
@@ -10,9 +25,11 @@ export default function BlogList() {
   const posts = allPosts.slice((page - 1) * perPage, page * perPage)
   const totalPages = Math.ceil(allPosts.length / perPage)
 
+  const t = translations[currentLocale] || translations.en
+
   return (
     <div className="py-8 max-w-2xl mx-auto px-4">
-      <h1 className="text-3xl font-bold mb-6">Blogs</h1>
+      <h1 className="text-3xl font-bold mb-6">{t.blogs}</h1>
 
       <ul className="flex flex-col gap-28">
         {posts.map((post) => (
@@ -65,18 +82,20 @@ export default function BlogList() {
               onClick={() => setPage(page - 1)}
               className="text-primary-600 border-subtle rounded-md border px-3 py-1 hover:cursor-pointer"
             >
-              Previous
+              {t.previous}
             </Button>
           )}
           <span>
-            Page {page} of {totalPages}
+            {t.pageof
+              .replace('{page}', page)
+              .replace('{totalPages}', totalPages)}
           </span>
           {page < totalPages && (
             <Button
               className="text-primary-600 border-subtle rounded-md border px-3 py-1 hover:cursor-pointer"
               onClick={() => setPage(page + 1)}
             >
-              Next
+              {t.next}
             </Button>
           )}
         </div>

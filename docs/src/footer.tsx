@@ -1,6 +1,6 @@
 import { useRef } from 'react'
 import { Link } from 'boltdocs/primitives'
-import { useGSAPScroll } from './hooks/useGSAPScroll'
+import { useScrollAnimation } from './hooks/useScrollAnimation'
 import { NoiseOverlay } from './noise-overlay'
 import { useTranslations } from './use-translations'
 
@@ -9,18 +9,8 @@ export const Footer = () => {
   const titleRef = useRef<HTMLHeadingElement>(null)
   const t = useTranslations()
 
-  useGSAPScroll(topRef, {
-    animation: 'fade-up',
-    delay: 0.1,
-    duration: 0.8,
-    intensity: 20,
-  })
-  useGSAPScroll(titleRef, {
-    animation: 'fade-up',
-    delay: 0.05,
-    duration: 0.3,
-    intensity: 200,
-  })
+  useScrollAnimation(topRef, 'fade-up')
+  useScrollAnimation(titleRef, 'fade-up')
 
   return (
     <footer className="w-full bg-main/95 backdrop-blur-2xl text-body px-6 md:px-12 pt-20 pb-10 border-t border-subtle relative overflow-hidden">
@@ -29,7 +19,7 @@ export const Footer = () => {
         {/* Top Section */}
         <div
           ref={topRef}
-          className="flex flex-col md:flex-row justify-between items-start gap-12 mb-20 opacity-0"
+          className="flex flex-col md:flex-row justify-between items-start gap-12 mb-20"
         >
           <span />
           <div className="grid grid-cols-2 gap-x-20 gap-y-3 text-sm font-medium">
@@ -86,7 +76,7 @@ export const Footer = () => {
         <div className="w-full flex justify-center items-center select-none overflow-hidden mb-12">
           <h1
             ref={titleRef}
-            className="text-[15vw] leading-[0.8] font-black tracking-tighter text-body opacity-0"
+            className="text-[15vw] leading-[0.8] font-black tracking-tighter text-body"
           >
             Boltdocs
           </h1>
