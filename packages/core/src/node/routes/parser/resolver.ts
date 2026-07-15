@@ -10,6 +10,7 @@ export interface PathResolution {
   version?: string
   inferredTab?: string
   subRouteGroup?: string
+  collection?: string
 }
 
 export function resolveRoutePath(

@@ -13,6 +13,45 @@ import { EncodingSecurityError, PathTraversalError } from '../../errors'
 import type { BoltdocsConfig } from '../../config'
 import type { ParsedDocFile } from '../types'
 
+/**
+ * Strongly-typed view of the frontmatter data returned by
+ * `parseFrontmatterAsync` / `parseFrontmatterFast`. The base parsers
+ * return `Record<string, unknown>` because YAML data is structurally
+ * untyped, but downstream consumers like `parseDocFile` access
+ * well-known fields by name, so this interface gives the rest of the
+ * parser a stable shape without changing the parser's runtime behavior.
+ */
+type FrontmatterData = {
+  permalink?: string
+  title?: string
+  description?: string
+  sidebarPosition?: number
+  date?: string | Date
+  icon?: string
+  lastUpdated?: string | number | Date
+  category?: string
+  order?: number
+  sidebarLabel?: string
+  sidebarHidden?: boolean
+  hidden?: boolean
+  seo?: Record<string, unknown>
+  tags?: string[]
+  author?:
+    | string
+    | { name: string; avatar?: string; url?: string; image?: string }
+  draft?: boolean
+  excerpt?: string
+  coverImage?: string
+  cover?: string
+  groupTitle?: string
+  groupPosition?: number
+  badge?: string | { text: string; expires?: string }
+} & {
+  // Escape hatch for user-defined frontmatter fields. Known fields above
+  // keep their narrow types; arbitrary keys fall back to `unknown`.
+  [key: string]: unknown
+}
+
 import { resolveRoutePath } from './resolver'
 import { extractContentData } from './extractor'
 import { processSeoData, sanitizeFrontmatterStrings } from './metadata'
@@ -60,7 +99,12 @@ export async function parseDocFile(
     )
   }
 
-  const { data, content } = await parseFrontmatterAsync(file)
+  const result = (await parseFrontmatterAsync(file)) as {
+    data: FrontmatterData
+    content: string
+    rawMatter: string
+  }
+  const { data, content } = result
 
   const resolution = resolveRoutePath(
     absoluteFile,
@@ -152,16 +196,7 @@ export async function parseDocFile(
             (slugParts.length > 0
               ? capitalize(slugParts[slugParts.length - 1])
               : ''),
-          position:
-            data.groupPosition ??
-            data.sidebarPosition ??
-            (resolution.remainingParts.length > 1
-              ? extractNumberPrefix(
-                  resolution.remainingParts[
-                    resolution.remainingParts.length - 2
-                  ],
-                )
-              : undefined),
+          position: resolveGroupPosition(data, resolution),
           icon: data.icon ? String(data.icon) : undefined,
         }
       : undefined,
@@ -242,7 +277,9 @@ export async function parseDocFileWithNative(
   }
 
   // Parse frontmatter from the rawMatter provided by Zig
-  const { data } = parseFrontmatterFast('---\n' + nativeDoc.rawMatter + '\n---')
+  const { data } = parseFrontmatterFast(
+    '---\n' + nativeDoc.rawMatter + '\n---',
+  ) as { data: FrontmatterData; content: string; rawMatter: string }
 
   const resolution = resolveRoutePath(
     absoluteFile,
@@ -325,16 +362,7 @@ export async function parseDocFileWithNative(
             (slugParts.length > 0
               ? capitalize(slugParts[slugParts.length - 1])
               : ''),
-          position:
-            data.groupPosition ??
-            data.sidebarPosition ??
-            (resolution.remainingParts.length > 1
-              ? extractNumberPrefix(
-                  resolution.remainingParts[
-                    resolution.remainingParts.length - 2
-                  ],
-                )
-              : undefined),
+          position: resolveGroupPosition(data, resolution),
           icon: data.icon ? String(data.icon) : undefined,
         }
       : undefined,
