@@ -564,7 +564,6 @@ export type BoltdocsMdxComponents = Boltdocs.Types extends {
   MdxComponents: infer M
 }
   ? TransformMdxComponents<UnpackMdxComponents<M>>
-  : {
-      [key: string]: ComponentType<any>
+  : Omit<Record<string, ComponentType<any>>, 'Frontmatter'> & {
       Frontmatter: Record<string, ComponentType<any>>
     }

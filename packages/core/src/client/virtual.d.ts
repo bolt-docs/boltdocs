@@ -34,7 +34,14 @@ declare module 'virtual:boltdocs-collections' {
 }
 
 declare module 'virtual:boltdocs-mdx-components' {
-  const components: Record<string, React.ComponentType<HTMLElement>>
+  /**
+   * User-overridable MDX component registry. Keys are element names
+   * (e.g. `"a"`, `"pre"`, `"h1"`); values are React components accepting
+   * the standard MDX element props. The runtime generator emits this
+   * module from the user's `mdx-components.{tsx,ts,jsx,js}` file when
+   * present, otherwise an empty object.
+   */
+  const components: Record<string, React.ComponentType<any>>
   export default components
 }
 

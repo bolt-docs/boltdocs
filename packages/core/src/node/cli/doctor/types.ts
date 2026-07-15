@@ -1,4 +1,4 @@
-import type { BoltdocsConfig } from '../config'
+import type { BoltdocsConfig } from '../../config'
 import type { DoctorConfig } from './doctor-config'
 
 export interface LinkTree {

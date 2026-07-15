@@ -1,5 +1,12 @@
 import type * as React from 'react'
-import type { BadgeValue } from '../shared/types'
+import type {
+  BadgeValue,
+  BoltdocsConfig,
+  BoltdocsRoutePath,
+  BoltdocsRoutePathWithFallback,
+} from '../shared/types'
+
+// Re-export so consumers can `import { BoltdocsConfig } from 'boltdocs/client'`.
 export type {
   BoltdocsConfig,
   BoltdocsRoutePath,
@@ -78,6 +85,20 @@ export interface ComponentRoute {
   excerpt?: string
   /** Cover image for blog posts */
   coverImage?: string
+  /** Optional explicit order (alternative to sidebarPosition) */
+  order?: number
+  /** Optional explicit label for the sidebar */
+  sidebarLabel?: string
+  /** Optional category for the page */
+  category?: string
+  /** Whether the page is hidden from the sidebar */
+  sidebarHidden?: boolean
+  /**
+   * Optional nested child routes for sidebar hierarchies that mirror the
+   * server-side `RouteMeta.subRoutes` shape. `sidebar.tsx` walks this
+   * field to render the group → subRoutes → items tree.
+   */
+  routes?: ComponentRoute[]
   /** Raw extensible frontmatter data for custom components and formatters */
   frontmatter?: Record<string, any>
   /** Clean URL segments stripped of locale/version prefixes */
