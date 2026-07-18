@@ -1,5 +1,4 @@
-import fs from 'node:fs'
-import type { BoltdocsPlugin } from 'boltdocs'
+import { createPlugin } from 'boltdocs'
 import { RssPluginOptionsSchema, type RssPluginOptions } from './feed-schema'
 import {
   generateRssXml,
@@ -16,32 +15,25 @@ import {
 
 export type { RssPluginOptions }
 
-export default function rssPlugin(
-  options: RssPluginOptions = {},
-): BoltdocsPlugin {
+export default function rssPlugin(options: RssPluginOptions = {}) {
   const opts = RssPluginOptionsSchema.parse(options)
 
-  return {
+  return createPlugin({
     name: 'boltdocs-plugin-rss',
     version: '0.1.0',
     hooks: {
       async afterBuild(ctx) {
         const siteUrl = ctx.config.siteUrl
         if (!siteUrl) {
-          ctx.logger.warn(
+          ctx.diagnostics.report(
+            'warn',
+            'RSS_MISSING_SITE_URL',
             'RSS feed not generated: siteUrl is not configured in boltdocs.config.ts',
           )
           return
         }
 
         const outDir = ctx.outDir
-        if (!fs.existsSync(outDir)) {
-          ctx.logger.warn(
-            `RSS feed not generated: output directory not found at ${outDir}`,
-          )
-          return
-        }
-
         const filteredRoutes = ctx.routes
           .filter((route) => !route.draft)
           .filter((route) => {
@@ -62,8 +54,12 @@ export default function rssPlugin(
           ? filteredRoutes.slice(0, opts.limit)
           : filteredRoutes
 
-        const siteTitle = getSiteTitle(ctx)
-        const locales = getLocales(ctx)
+        const siteTitle = getSiteTitle(ctx.config)
+        const locales = getLocales(ctx.config)
+
+        // In-memory cache with 30s TTL to avoid regenerating identical
+        // feeds on every HMR-triggered afterBuild call.
+        const cache = ctx.caches.memory<string>('rss', { ttl: 30_000 })
 
         for (const locale of locales) {
           const localeRoutes = limited.filter((r) => {
@@ -71,8 +67,8 @@ export default function rssPlugin(
             return routeLocale === locale
           })
 
-          const title = getLocalizedTitle(ctx, locale, siteTitle)
-          const description = getLocalizedDescription(ctx, locale)
+          const title = getLocalizedTitle(ctx.config, locale, siteTitle)
+          const description = getLocalizedDescription(ctx.config, locale)
 
           const feedConfig: FeedConfig = {
             title,
@@ -83,9 +79,15 @@ export default function rssPlugin(
           }
 
           if (opts.format === 'rss' || opts.format === 'both') {
+            const cacheKey = `rss-${locale}`
+            let xml = cache.get(cacheKey)
+            if (!xml) {
+              xml = generateRssXml(feedConfig, localeRoutes)
+              cache.set(cacheKey, xml)
+            }
             writeFeed({
               filename: `rss/rss-${locale}.xml`,
-              generateXml: () => generateRssXml(feedConfig, localeRoutes),
+              generateXml: () => xml ?? '',
               label: 'RSS',
               logger: ctx.logger.info,
               outDir,
@@ -93,9 +95,15 @@ export default function rssPlugin(
           }
 
           if (opts.format === 'atom' || opts.format === 'both') {
+            const cacheKey = `atom-${locale}`
+            let xml = cache.get(cacheKey)
+            if (!xml) {
+              xml = generateAtomXml(feedConfig, localeRoutes)
+              cache.set(cacheKey, xml)
+            }
             writeFeed({
               filename: `rss/atom-${locale}.xml`,
-              generateXml: () => generateAtomXml(feedConfig, localeRoutes),
+              generateXml: () => xml ?? '',
               label: 'Atom',
               logger: ctx.logger.info,
               outDir,
@@ -103,6 +111,23 @@ export default function rssPlugin(
           }
         }
       },
+
+      transformHtml(ctx, { html, route }) {
+        if (!ctx.config.siteUrl) return { html }
+
+        const locale = route?.locale ?? 'en'
+        const siteUrl = ctx.config.siteUrl.replace(/\/$/, '')
+        const feedType = opts.format === 'atom' ? 'atom' : 'rss'
+        const feedFile =
+          feedType === 'atom' ? `atom-${locale}.xml` : `rss-${locale}.xml`
+        const linkType =
+          feedType === 'atom' ? 'application/atom+xml' : 'application/rss+xml'
+        const linkTag = `  <link rel="alternate" type="${linkType}" title="RSS Feed" href="${siteUrl}/rss/${feedFile}"/>\n</head>`
+
+        return {
+          html: html.replace('</head>', linkTag),
+        }
+      },
     },
-  }
+  })
 }
