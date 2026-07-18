@@ -66,5 +66,16 @@ declare module 'virtual:boltdocs-layout-slots' {
     { route?: import('./types').ComponentRoute } | undefined
   >
   const slotRegistry: Record<string, SlotComponent[]>
+  export const slotConditions: Record<
+    string,
+    Array<{
+      collection?: string
+      path?: string
+      locale?: string
+      tag?: string
+    } | null>
+  >
+  export const slotSsrFlags: Record<string, Array<boolean>>
+  export const slotLazyFlags: Record<string, Array<boolean>>
   export default slotRegistry
 }
