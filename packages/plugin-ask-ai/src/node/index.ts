@@ -107,7 +107,11 @@ const SLOT_FIELDS = ['floating-bottom', 'right-rail'] as const
 
 export const AskAiPluginOptionsSchema = z.object({
   provider: z.enum(PROVIDERS).default('openai'),
-  model: z.string().min(1).max(120).default(PROVIDER_PRESETS.openai.defaultModel),
+  model: z
+    .string()
+    .min(1)
+    .max(120)
+    .default(PROVIDER_PRESETS.openai.defaultModel),
   endpoint: z.string().default('/api/ask-ai'),
   /** @deprecated Use `slots` instead. */
   autoInject: z.boolean().default(true),
@@ -290,11 +294,6 @@ function getClientIp(req: Connect.IncomingMessage): string {
 
 const CLIENT_PACKAGE = '@bdocs/plugin-ask-ai/client'
 
-const SLOT_COMPONENT_MAP: Record<(typeof SLOT_FIELDS)[number], string> = {
-  'floating-bottom': 'AskAiBubble',
-  'right-rail': 'AskAiDialog',
-}
-
 export default function askAiPlugin(
   rawOptions: AskAiPluginOptions = {},
 ): BoltdocsPlugin {
@@ -328,8 +327,7 @@ export default function askAiPlugin(
     ...(customModels ?? []),
   ])
 
-  const effectiveDevMode =
-    devMode || process.env.NODE_ENV !== 'production'
+  const effectiveDevMode = devMode || process.env.NODE_ENV !== 'production'
 
   const denyPatterns = DEFAULT_DENY_PATTERNS
 
@@ -350,14 +348,11 @@ export default function askAiPlugin(
       ? { 'floating-bottom': false, 'right-rail': false }
       : { ...slots }
 
-  const slotDeclarations = SLOT_FIELDS.flatMap((slotId) => {
-    if (!effectiveSlots[slotId]) return []
-    return {
-      id: slotId,
-      modulePath: CLIENT_PACKAGE,
-      component: SLOT_COMPONENT_MAP[slotId],
-    }
-  })
+  const slotDeclarations: Array<{ id: string; export: string }> = []
+  if (effectiveSlots['floating-bottom'])
+    slotDeclarations.push({ id: 'floating-bottom', export: 'AskAiBubble' })
+  if (effectiveSlots['right-rail'])
+    slotDeclarations.push({ id: 'right-rail', export: 'AskAiDialog' })
 
   const middlewareConfig = {
     provider,
@@ -380,6 +375,7 @@ export default function askAiPlugin(
   return {
     name: 'boltdocs-plugin-ask-ai',
     version: '0.3.0',
+    clientEntry: CLIENT_PACKAGE,
     components:
       effectiveSlots['floating-bottom'] || effectiveSlots['right-rail']
         ? {

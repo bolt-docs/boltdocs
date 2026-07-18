@@ -36,11 +36,9 @@ describe('askAiPlugin factory', () => {
       'floating-bottom',
       'right-rail',
     ])
-    expect(
-      plugin.slots?.every(
-        (s) => s.modulePath === '@bdocs/plugin-ask-ai/client',
-      ),
-    ).toBe(true)
+    // modulePath is auto-resolved from clientEntry, not set on the declaration
+    expect(plugin.clientEntry).toBe('@bdocs/plugin-ask-ai/client')
+    expect(plugin.slots?.every((s) => s.modulePath === undefined)).toBe(true)
   })
 
   it('omits slots when both toggles are off', () => {
@@ -56,7 +54,7 @@ describe('askAiPlugin factory', () => {
     })
     expect(plugin.slots).toHaveLength(1)
     expect(plugin.slots?.[0]?.id).toBe('floating-bottom')
-    expect(plugin.slots?.[0]?.component).toBe('AskAiBubble')
+    expect(plugin.slots?.[0]?.export).toBe('AskAiBubble')
   })
 
   it('declares only right-rail slot when floating-bottom is off', () => {
@@ -65,7 +63,7 @@ describe('askAiPlugin factory', () => {
     })
     expect(plugin.slots).toHaveLength(1)
     expect(plugin.slots?.[0]?.id).toBe('right-rail')
-    expect(plugin.slots?.[0]?.component).toBe('AskAiDialog')
+    expect(plugin.slots?.[0]?.export).toBe('AskAiDialog')
   })
 
   it('legacy autoInject: false disables both slots', () => {
