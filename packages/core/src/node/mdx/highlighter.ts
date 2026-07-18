@@ -35,4 +35,55 @@ const highlight = async (
   return highlighter
 }
 
+/**
+ * Highlighter factory function that exposes both legacy and new API methods.
+ * Maintains backward compatibility while enabling new HTML-based rendering.
+ */
+export class ShikiHighlighter {
+  private highlighterPromise: Promise<HighlighterCore>
+
+  constructor() {
+    this.highlighterPromise = highlight()
+  }
+
+  async getHighlighter(): Promise<HighlighterCore> {
+    return this.highlighterPromise
+  }
+
+  /**
+   * Legacy method for backward compatibility.
+   * Uses HAST to generate inline-styled HTML (the old behavior).
+   */
+  async codeToHast(
+    code: string,
+    options: Parameters<HighlighterCore['codeToHast']>[1],
+  ): Promise<Parameters<HighlighterCore['codeToHast']>[1]> {
+    const highlighter = await this.highlighterPromise
+    return highlighter.codeToHast(code, options)
+  }
+  /**
+   * New method for CSS-based HTML generation.
+   * Generates HTML with CSS classes instead of inline styles.
+   */
+  async codeToHtml(
+    code: string,
+    options: Parameters<HighlighterCore['codeToHtml']>[1],
+  ): Promise<string> {
+    const highlighter = await this.highlighterPromise
+    return highlighter.codeToHtml(code, options)
+  }
+}
+
+let _highlighterInstance: ShikiHighlighter | null = null
+
+/**
+ * Export a singleton instance of ShikiHighlighter for use throughout the application.
+ */
+export const highlighter = (): ShikiHighlighter => {
+  if (!_highlighterInstance) {
+    _highlighterInstance = new ShikiHighlighter()
+  }
+  return _highlighterInstance
+}
+
 export { highlight, type Languages }
