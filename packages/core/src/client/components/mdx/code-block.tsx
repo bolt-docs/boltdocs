@@ -174,7 +174,7 @@ export function CodeBlock(props: CodeBlockProps) {
               </>
             )}
           </CodePrimitive.CodeBlockGroup>
-          <div className="flex items-center gap-1">
+          <div className="flex items-center gap-1 bg-(--color-code-bg) pl-2 z-10">
             {showCodeBlockFeedback && (
               <CodeBlockFeedback rated={rated} onRate={handleRate} />
             )}
