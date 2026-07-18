@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { boltdocsMdxPlugin } from '../../src/node/mdx'
 import {
+  MDX_NODES,
   visitNodes,
   visitRehypeElements,
   visitMdxElements,
@@ -12,8 +13,7 @@ import {
   addNodeClass,
   removeNodeClass,
   hasNodeClass,
-} from '../../src/node/plugins/plugin-utils'
-import { MDX_NODES } from '../../src/node/mdx/constants'
+} from '@bdocs/unist-utils'
 import { rehypeShiki } from '../../src/node/mdx/rehype-shiki'
 
 describe('MDX Compiler Plugin', () => {

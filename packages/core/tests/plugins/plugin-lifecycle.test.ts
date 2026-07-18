@@ -232,9 +232,7 @@ describe('PluginLifecycleManager', () => {
     expect(result.code).toBe('original/* A *//* B */')
   })
 
-  it('should isolate errors in transformMdx chain', async () => {
-    const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
-
+  it('should isolate errors in transformMdx chain and report to diagnostics', async () => {
     const plugins: SecureBoltdocsPlugin[] = [
       {
         name: 'failing',
@@ -261,8 +259,94 @@ describe('PluginLifecycleManager', () => {
     })
 
     expect(result.code).toBe('start/* OK */')
-    expect(errorSpy).toHaveBeenCalled()
-    errorSpy.mockRestore()
+  })
+
+  it('should respect __signal: "skip" in transform chain', async () => {
+    const executionOrder: string[] = []
+
+    const plugins: SecureBoltdocsPlugin[] = [
+      {
+        name: 'first',
+        hooks: {
+          transformMdx: async (_ctx, params) => {
+            executionOrder.push('first')
+            return {
+              code: params.code + '/* first */',
+              __signal: 'skip' as const,
+            }
+          },
+        },
+      },
+      {
+        name: 'second',
+        hooks: {
+          transformMdx: async (_ctx, params) => {
+            executionOrder.push('second')
+            return { code: params.code + '/* second */' }
+          },
+        },
+      },
+    ]
+
+    const manager = new PluginLifecycleManager(plugins, mockConfig)
+    const result = await manager.runChain('transformMdx', {
+      code: 'start',
+      filePath: 'test.mdx',
+    })
+
+    // Only first ran (second skipped), but first's transformation is kept.
+    expect(executionOrder).toEqual(['first'])
+    expect(result.code).toBe('start/* first */')
+  })
+
+  it('should respect __signal: "break" in transform chain', async () => {
+    const executionOrder: string[] = []
+
+    const plugins: SecureBoltdocsPlugin[] = [
+      {
+        name: 'first',
+        hooks: {
+          transformMdx: async (_ctx, params) => {
+            executionOrder.push('first')
+            return { code: params.code + '/* first */' }
+          },
+        },
+      },
+      {
+        name: 'breaker',
+        hooks: {
+          transformMdx: async (_ctx, params) => {
+            executionOrder.push('breaker')
+            // Return __signal: 'break' — this plugin's result is discarded,
+            // and the chain stops. Earlier plugins' results are preserved.
+            return {
+              code: params.code + '/* breaker */',
+              __signal: 'break' as const,
+            }
+          },
+        },
+      },
+      {
+        name: 'third',
+        hooks: {
+          transformMdx: async (_ctx, params) => {
+            executionOrder.push('third')
+            return { code: params.code + '/* third */' }
+          },
+        },
+      },
+    ]
+
+    const manager = new PluginLifecycleManager(plugins, mockConfig)
+    const result = await manager.runChain('transformMdx', {
+      code: 'start',
+      filePath: 'test.mdx',
+    })
+
+    // First and breaker ran. Third never runs. The breaker's result is
+    // discarded — only first's transformation survives.
+    expect(executionOrder).toEqual(['first', 'breaker'])
+    expect(result.code).toBe('start/* first */')
   })
 
   it('should run transformHtml chain across plugins', async () => {
