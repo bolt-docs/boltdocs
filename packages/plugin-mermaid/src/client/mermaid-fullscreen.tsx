@@ -54,6 +54,47 @@ export function MermaidFullscreen({ svgStr, onClose }: MermaidFullscreenProps) {
     }
   }, [])
 
+  // Inject scoped styles into `<head>` instead of rendering an in-tree
+  // `<style>` element. See the matching comment in `mermaid.tsx`.
+  useEffect(() => {
+    if (typeof document === 'undefined') return
+    const styleEls: HTMLStyleElement[] = []
+
+    styleEls.push((() => {
+      const s = document.createElement('style')
+      s.setAttribute('data-mermaid-lock-style', instanceId)
+      s.textContent = `
+        .mermaid-lock-scroll,
+        .mermaid-lock-scroll body,
+        .mermaid-lock-scroll .boltdocs-content {
+          overflow: hidden !important;
+        }
+      `
+      return s
+    })())
+
+    styleEls.push((() => {
+      const s = document.createElement('style')
+      s.setAttribute('data-mermaid-fullscreen-style', instanceId)
+      s.textContent = `
+        .mermaid-fullscreen-${instanceId} .mermaid-rendered,
+        .mermaid-fullscreen-${instanceId} .mermaid-rendered * {
+          cursor: ${zoomPan.isDragging ? 'grabbing' : 'grab'} !important;
+        }
+        .mermaid-fullscreen-${instanceId} .mermaid-rendered svg {
+          max-width: 100% !important;
+          max-height: calc(90vh - 4rem) !important;
+        }
+      `
+      return s
+    })())
+
+    for (const s of styleEls) document.head.appendChild(s)
+    return () => {
+      for (const s of styleEls) s.remove()
+    }
+  }, [instanceId, zoomPan.isDragging])
+
   return createPortal(
     <div
       className={cn(
@@ -67,21 +108,6 @@ export function MermaidFullscreen({ svgStr, onClose }: MermaidFullscreenProps) {
       tabIndex={-1}
       onClick={handleClose}
     >
-      <style>{`
-        .mermaid-lock-scroll,
-        .mermaid-lock-scroll body,
-        .mermaid-lock-scroll .boltdocs-content {
-          overflow: hidden !important;
-        }
-        .mermaid-fullscreen-${instanceId} .mermaid-rendered,
-        .mermaid-fullscreen-${instanceId} .mermaid-rendered * {
-          cursor: ${zoomPan.isDragging ? 'grabbing' : 'grab'} !important;
-        }
-        .mermaid-fullscreen-${instanceId} .mermaid-rendered svg {
-          max-width: 100% !important;
-          max-height: calc(90vh - 4rem) !important;
-        }
-      `}</style>
 
       <div
         className={cn(

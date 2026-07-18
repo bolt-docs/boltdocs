@@ -106,6 +106,16 @@ export function useMermaidRender(
           console.error('[Boltdocs] Failed to render Mermaid diagram:', e)
           setError('Failed to render diagram. Check your syntax.')
         }
+      } finally {
+        // Mermaid's `render()` mounts a hidden measurement node directly on
+        // `document.body` to compute SVG dimensions. Newer versions keep
+        // that node in the DOM after rendering and it elongates the body
+        // (visible as a viewport-sized black void below the page-nav
+        // because the docs shell uses a fixed-height inner scroll
+        // container). Detach whichever id Mermaid used, in both success
+        // and error paths.
+        document.getElementById(`d${id}`)?.remove()
+        document.getElementById(id)?.remove()
       }
     }
 

@@ -1,42 +1,46 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import type { MermaidPluginOptions } from '../shared/types'
 import { useTheme } from 'boltdocs/client'
-import { useMermaidRender } from './use-mermaid-render'
 import { useZoomPan } from './use-zoom-pan'
 import { Toolbar } from './toolbar'
 import { MermaidFullscreen } from './mermaid-fullscreen'
 import { cn } from 'boltdocs/client'
 
-export interface MermaidProps {
+export interface MermaidStaticProps {
   chart: string
   svgLight?: string
   svgDark?: string
   config?: MermaidPluginOptions
 }
 
-export function Mermaid({ chart, svgLight, svgDark, config }: MermaidProps) {
+/**
+ * Static Mermaid component — renders pre-rendered SVGs only.
+ *
+ * Unlike the full `Mermaid` component, this does NOT import
+ * `mermaid` for client-side rendering, which eliminates the
+ * ~800KB of code-split mermaid chunks (architectureDiagram,
+ * sequenceDiagram, etc.) from the client bundle.
+ *
+ * When pre-rendered SVGs are not available (e.g. build failure),
+ * it falls back to displaying the raw chart code.
+ */
+export function MermaidStatic({
+  chart,
+  svgLight,
+  svgDark,
+}: MermaidStaticProps) {
   const [isFullscreen, setIsFullscreen] = useState(false)
   const [instanceId] = useState(() =>
     Math.random().toString(36).substring(2, 9),
   )
   const { resolvedTheme } = useTheme()
 
-  // When pre-rendered SVGs are available, select the one matching the current theme
   const hasPreRendered = !!svgLight && !!svgDark
-  const preRenderedSvg = useMemo(
+  const svgStr = useMemo(
     () =>
       hasPreRendered ? (resolvedTheme === 'dark' ? svgDark : svgLight) : null,
     [hasPreRendered, resolvedTheme, svgLight, svgDark],
   )
-
-  // Client-side fallback render (skipped when pre-rendered SVG is available)
-  const { svgStr: clientSvgStr, error } = useMermaidRender(
-    hasPreRendered ? '' : chart,
-    config,
-    hasPreRendered, // skip the client render entirely
-  )
-
-  const svgStr = preRenderedSvg ?? clientSvgStr
 
   const {
     state: zoomPan,
@@ -47,14 +51,11 @@ export function Mermaid({ chart, svgLight, svgDark, config }: MermaidProps) {
   } = useZoomPan({ resetTrigger: chart })
 
   // Inject scoped styles into `<head>` instead of rendering an in-tree
-  // `<style>` element. Inline `<style>` descendants of a flex/grid container
-  // can perturb layout calculations in certain rendering paths, which used
-  // to leave a viewport-sized empty black region at the bottom of pages
-  // that contained Mermaid diagrams.
+  // `<style>` element. See the matching comment in `mermaid.tsx`.
   useEffect(() => {
     if (typeof document === 'undefined') return
     const styleEl = document.createElement('style')
-    styleEl.setAttribute('data-mermaid-inline-style', instanceId)
+    styleEl.setAttribute('data-mermaid-static-style', instanceId)
     styleEl.textContent = `
       .mermaid-inline-${instanceId} .mermaid-rendered,
       .mermaid-inline-${instanceId} .mermaid-rendered * {
@@ -81,14 +82,7 @@ export function Mermaid({ chart, svgLight, svgDark, config }: MermaidProps) {
   const expand = useCallback(() => setIsFullscreen(true), [])
   const close = useCallback(() => setIsFullscreen(false), [])
 
-  if (error) {
-    return (
-      <div className="my-6 flex items-center justify-center rounded-lg border border-red-200 bg-red-500/5 p-4 text-sm text-red-600 dark:border-red-900/30 dark:text-red-400">
-        {error}
-      </div>
-    )
-  }
-
+  // Without pre-rendered SVGs, show the chart code as a fallback
   if (!svgStr) {
     return (
       <div className="not-prose relative my-6 flex min-h-[80px] items-center justify-center overflow-auto rounded-xl border border-subtle bg-surface/30 p-6 backdrop-blur-sm">
