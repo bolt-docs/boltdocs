@@ -437,11 +437,17 @@ export function logSecurityEvent(
  */
 export function getCacheConfig() {
   const isDev = process.env.NODE_ENV !== 'production'
+  // Compression env var wins over the dev default so test setups (and users
+  // who opt into compression in dev) get the behavior they asked for.
+  const compress =
+    process.env.BOLTDOCS_CACHE_COMPRESS !== undefined
+      ? process.env.BOLTDOCS_CACHE_COMPRESS !== '0'
+      : !isDev
   return {
     dir: process.env.BOLTDOCS_CACHE_DIR || '.boltdocs/cache',
     noCache: process.env.BOLTDOCS_NO_CACHE === '1',
     lruLimit: parseInt(process.env.BOLTDOCS_CACHE_LRU_LIMIT || '2000', 10),
     lruTTL: parseInt(process.env.BOLTDOCS_CACHE_LRU_TTL || '14400000', 10), // Default 4 hours
-    compress: isDev ? false : process.env.BOLTDOCS_CACHE_COMPRESS !== '0',
+    compress,
   }
 }
