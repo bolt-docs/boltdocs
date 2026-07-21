@@ -108,7 +108,6 @@ Todas las opciones son opcionales. Pásalas al inicializador `askAiPlugin()` en 
 askAiPlugin({
   model: 'gpt-4o-mini',
   endpoint: '/api/ask-ai',
-  autoInject: true,
   baseURL: undefined,
   systemPrompt: undefined,
   maxInputChars: 2_000,
@@ -124,7 +123,6 @@ askAiPlugin({
 | :--- | :--- | :--- | :--- |
 | **`model`** | `'gpt-4o-mini' \| 'gpt-4.1-mini' \| 'gpt-4.1-nano'` | `'gpt-4o-mini'` | Modelo built-in. Si necesitas otro modelo, listalo en `customModels` y añádelo a la `modelAllowlist`. |
 | **`endpoint`** | `string` | `'/api/ask-ai'` | Ruta del middleware de Vite. Solo POST. Cualquier otro método devuelve 404 por diseño. |
-| **`autoInject`** | `boolean` | `true` | Auto-inyecta `<AskAiBubble />` (siempre) y `<AskAiDialog />` (viewports ≥ `xl`). Ponlo en `false` para componerlos manualmente en un layout personalizado. |
 | **`baseURL`** | `string` (validada como URL) | `undefined` | URL base de la API OpenAI-compatible. Cae al env var `OPENAI_BASE_URL` → OpenAI. |
 | **`systemPrompt`** | `string` | `DEFAULT_SYSTEM_PROMPT` | Override del prompt de seguridad. **Override solo si entiendes el modelo de seguridad** — consulta [Capa 4](#modelo-de-seguridad). Para resetear al predeterminado, pon `systemPrompt: undefined`. |
 | **`maxInputChars`** | `number` (1–20 000) | `2_000` | Cap duro sobre la pregunta del usuario antes de llegar a OpenAI. |
@@ -133,7 +131,6 @@ askAiPlugin({
 | **`rateLimitPerMinute`** | `number` (≥ 0) | `30` | Peticiones por minuto por IP. Pon `0` para desactivar (no recomendado en deployments abiertos). |
 | **`secretKey`** | `string` (≥ 8 caracteres) | `undefined` | Secreto compartido requerido. Los llamantes deben incluir `?secret=<key>` o el header `x-boltdocs-ask-ai-key: <key>`. Cualquier otro origen recibe `UNAUTHORIZED`. |
 | **`customModels`** | `string[]` (≤ 20 entradas, ≤ 120 caracteres cada una) | `[]` | Comodín para usuarios avanzados. Añade nombres de modelos a la allowlist runtime sin tocar el schema. |
-| **`slots`** | `{ 'floating-bottom': boolean, 'right-rail': boolean }` | ambos `true` | [Nuevo] Mount declarativo por slot. Por defecto, monta `<AskAiBubble />` en la esquina inferior derecha y `<AskAiDialog />` en el rail lateral xl. Pon `false` para deshabilitar cualquiera de los dos. |
 
 > Las páginas que excedan `contextChars` se truncan al inicio. Si necesitas usar la última sección de un documento largo, plantéate exponer un punto de anclaje o dividir el contenido en piezas más pequeñas.
 
@@ -292,85 +289,25 @@ export function HelpButton() {
 
 ---
 
-## Slots de Layout Declarativos (0.3.0+)
+## Composición Manual de Componentes
 
-Desde `@bdocs/plugin-ask-ai@0.3.0` y `boltdocs@3.3.0`, el plugin se monta **automáticamente** en el layout por defecto de docs mediante el sistema declarativo de slots de Boltdocs — sin necesidad de composición manual con `<AskAiBubble />`.
+El plugin **no** auto-monta su UI. Compón `<AskAiBubble />` y/o `<AskAiDialog />` directamente en tu `layout.tsx`:
 
-| Slot id | Dónde se renderiza | Componente | Por defecto |
-| :--- | :--- | :--- | :--- |
-| `floating-bottom` | `fixed bottom-6 right-6 z-40` — burbuja bottom-right, oculta en viewports `xl:` donde el right-rail es persistente | `<AskAiBubble />` | ✅ |
-| `right-rail` | `fixed inset-y-0 right-0 z-30 w-rail` — panel persistente en viewports ≥ 1280 px | `<AskAiDialog />` | ✅ |
+```tsx title="src/layout.tsx"
+import { AskAiBubble, AskAiDialog } from '@bdocs/plugin-ask-ai/client'
 
-### Toggles por slot
-
-```ts
-askAiPlugin({
-  // Deshabilita la burbuja flotante, deja el right-rail dialog como única UI.
-  slots: { 'floating-bottom': false, 'right-rail': true },
-})
-
-// Deshabilita el right-rail dialog, deja la burbuja flotante.
-askAiPlugin({
-  slots: { 'floating-bottom': true, 'right-rail': false },
-})
-
-// Deshabilita ambas UIs. El endpoint del middleware sigue funcionando
-// para clientes programáticos (curl, SDK, componente React propio).
-askAiPlugin({
-  slots: { 'floating-bottom': false, 'right-rail': false },
-})
+export default function Layout({ children }) {
+  return (
+    <div className="min-h-screen">
+      {children}
+      <AskAiBubble />   {/* Burbuja flotante — esquina inferior derecha */}
+      <AskAiDialog />   {/* Right rail en viewports xl */}
+    </div>
+  )
+}
 ```
 
-### Overrides a nivel de usuario con `boltdocs.config.ts > slots`
-
-Lleva esto más lejos — el config del usuario puede `disable`, `append`, o `replace` cualquier cosa que el plugin aporte:
-
-```ts title="boltdocs.config.ts"
-import { defineConfig } from 'boltdocs'
-import askAiPlugin from '@bdocs/plugin-ask-ai'
-
-export default defineConfig({
-  plugins: [askAiPlugin()],
-  slots: {
-    // Añade un badge de "privacidad" junto al header de AI Assistant,
-    // sin tocar el código fuente del plugin.
-    'right-rail': { append: '~/components/MyPrivacyBadge.tsx' },
-
-    // Reemplaza la burbuja default con una custom solo en este sitio.
-    'floating-bottom': { replace: '~/components/CustomBubble.tsx' },
-
-    // Apágala por completo en sitios específicos (p. ej. docs de marketing).
-    // 'floating-bottom': { disable: true },
-  },
-})
-```
-
-Precedencia: **el config del usuario gana** sobre las entradas que declara el plugin. Precedencia dentro de `slots`: `replace` tiene prioridad sobre `append`.
-
-### Compatibilidad hacia atrás
-
-El `autoInject: boolean` legacy sigue funcionando. Internamente se mapea a `slots`, así que installs existentes siguen iguales:
-
-| `autoInject` (legacy) | `slots` efectivo |
-| :--- | :--- |
-| `true` (default) | Usa el objeto `slots` tal cual. |
-| `false` | Ambos slots se fuerzan a deshabilitar (preserva el comportamiento anterior de opt-out). |
-
-### Slot ids disponibles
-
-El core de Boltdocs reserva 7 slot ids que cualquier plugin puede usar:
-
-| Id | Posición |
-| :--- | :--- |
-| `floating-bottom` | floater bottom-right |
-| `right-rail` | sidebar derecha (xl+) |
-| `navbar-extra` | dentro de `<Navbar.Right>` |
-| `header-extra` | dentro de `<Header>` de la página, debajo de la descripción |
-| `toc-extra` | al final del árbol de `<OnThisPage>` |
-| `footer-extra` | encima de `<PageNav>` |
-| `body-portal` | renderiza en `document.body` (escape hatch para modals/toasts) |
-
-Los layouts personalizados pueden aceptar además ids privados del plugin — el registry es puramente posicional.
+Monta solo lo que necesites (por ejemplo, solo `<AskAiDialog />` como sidebar dedicado), posiciónalos con tu propio CSS, o elimina los no usados.
 
 ---
 
@@ -471,6 +408,6 @@ El SDK `openai` lanza un `APIError` tipado. El middleware envía el mensaje de e
 
 ## Historial de Versiones
 
-- **0.3.0** — API declarativa de slots. El plugin monta `<AskAiBubble />` en `<DocsLayout.FloatingBottom>` y `<AskAiDialog />` en `<DocsLayout.RightRail>` automáticamente vía `virtual:boltdocs-layout-slots`. Añade la opción opcional `slots: { 'floating-bottom': boolean, 'right-rail': boolean }` para habilitación selectiva. `autoInject` se mapea a `slots` para retro-compatibilidad.
+- **0.3.0** — Eliminado el auto-montaje vía slots. Las componentes `<AskAiBubble />` y `<AskAiDialog />` ahora se montan manualmente desde `layout.tsx`.
 - **0.2.0** — Rewrite con OpenAI SDK. Streamdown en el cliente. Alcance de página mediante delimitadores `<<<DOCS_START>>>` / `<<<DOCS_END>>>` + escape de marcadores literales. System prompt con scope estricto, jerarquía priorizada de 7 reglas. Bucket de tokens por IP, `secretKey` opcional, escape hatch `customModels[]`. Elimina Ollama / modo dev.
 - **0.1.x** — Prototipo previo impulsado por Ollama. Consulta el historial de git.

@@ -3,6 +3,7 @@ title: "@bdocs/plugin-ask-ia"
 sidebarPosition: 6
 description: The @bdocs/plugin-ask-ai plugin adds a context-aware AI assistant to your Boltdocs documentation. Powered by the official OpenAI SDK, page-scoped, streamed SSE, with a hard-scoped system prompt that only answers using the page the user is viewing.
 badge: "0.3.0"
+draft: true
 ---
 
 *The `@bdocs/plugin-ask-ai` plugin adds a floating chat bubble and an inline sidebar companion to your Boltdocs site. The assistant answers **only** using the documentation page the visitor is currently reading — never general knowledge — and refuses questions that aren't grounded in the docs.*
@@ -45,7 +46,7 @@ export default defineConfig({
 })
 ```
 
-After `pnpm boltdocs dev`, a floating chat button appears in the bottom-right of every page. On viewports ≥ `xl` (≥ 1280 px) the assistant also gets a built-in sidebar slot via the `<AskAiDialog />` component.
+After `pnpm boltdocs dev`, the plugin registers `<AskAiBubble />` and `<AskAiDialog />` as MDX components. To display the floating chat button or sidebar, you need to import and render them in your custom `layout.tsx` — see [Layout Integration](#layout-integration) below.
 
 ---
 
@@ -109,7 +110,6 @@ All options are optional. Pass them to the `askAiPlugin()` initializer in `boltd
 askAiPlugin({
   model: 'gpt-4o-mini',
   endpoint: '/api/ask-ai',
-  autoInject: true,
   baseURL: undefined,
   systemPrompt: undefined,
   maxInputChars: 2_000,
@@ -125,7 +125,6 @@ askAiPlugin({
 | :--- | :--- | :--- | :--- |
 | **`model`** | `'gpt-4o-mini' \| 'gpt-4.1-mini' \| 'gpt-4.1-nano'` | `'gpt-4o-mini'` | Built-in model. If you need another model, list it in `customModels` and add it to `modelAllowlist`. |
 | **`endpoint`** | `string` | `'/api/ask-ai'` | Vite middleware path. POST-only. Anything else 404s by design. |
-| **`autoInject`** | `boolean` | `true` | Auto-injects `<AskAiBubble />` (always) and `<AskAiDialog />` (≥ `xl` viewports). Set to `false` to compose them into a custom layout manually. |
 | **`baseURL`** | `string` (URL-validated) | `undefined` | OpenAI-compatible API base URL. Falls back to `OPENAI_BASE_URL` env var → OpenAI. |
 | **`systemPrompt`** | `string` | `DEFAULT_SYSTEM_PROMPT` | Override the safety prompt. **Override only if you understand the security model** — see [Layer 4](#security-model). Resetting to the default is `systemPrompt: undefined`. |
 | **`maxInputChars`** | `number` (1–20 000) | `2_000` | Hard cap on the user question before it reaches OpenAI. |
@@ -246,27 +245,26 @@ askAiPlugin({
 
 Caddy / nginx / Cloudflare / Vercel should set `x-forwarded-for` from a trusted source. Combined with `secretKey`, an attacker can neither bypass the limiter nor supply forged `context` payloads.
 
-### Compose manually (no auto-injection)
+### Compose manually in your layout
 
-```ts title="boltdocs.config.ts"
-askAiPlugin({ autoInject: false })
-```
+The plugin registers `<AskAiBubble />` and `<AskAiDialog />` as MDX components, but does **not** auto-mount them in the layout. You compose them directly in your `layout.tsx`:
 
-Then in your custom layout:
+```tsx title="docs/layout.tsx"
+import { AskAiBubble, AskAiDialog } from '@bdocs/plugin-ask-ai/client'
+import { DocsLayout } from 'boltdocs'
 
-```tsx title="src/layout.tsx"
-import { AskAiBubble } from '@bdocs/plugin-ask-ai/client'
-
-export default function Layout() {
+export default function Layout({ children }) {
   return (
-    <div className="min-h-screen">
-      {/* …your full-bleed nav and content… */}
-      <AskAiBubble />
-      {/* OR <AskAiDialog /> — your call */}
-    </div>
+    <DocsLayout>
+      {children}
+      <AskAiBubble />   {/* Floating bubble — bottom-right */}
+      <AskAiDialog />   {/* Right rail on xl viewports */}
+    </DocsLayout>
   )
 }
 ```
+
+Mount only what you need (e.g. only `<AskAiDialog />` as a dedicated sidebar), position them with your own CSS, and remove unused ones entirely.
 
 ### Drive the chat from a button elsewhere
 
@@ -290,85 +288,92 @@ export function HelpButton() {
 
 ---
 
-## Declarative Layout Slots (0.3.0+)
+## Manual Component Composition
 
-Since `@bdocs/plugin-ask-ai@0.3.0` and `boltdocs@3.3.0`, the plugin mounts **automatically** into the default docs layout via Boltdocs' declarative slot system — no manual `<AskAiBubble />` composition needed.
+The plugin does **not** auto-mount its UI. You compose `<AskAiBubble />` and/or `<AskAiDialog />` directly in your `layout.tsx`:
 
-| Slot id | Where it renders | Component | Default |
-| :--- | :--- | :--- | :--- |
-| `floating-bottom` | `fixed bottom-6 right-6 z-40` — bottom-right bubble, hidden on `xl:` viewports where the right rail is persistent | `<AskAiBubble />` | ✅ |
-| `right-rail` | `fixed inset-y-0 right-0 z-30 w-rail` — persistent panel on viewports ≥ 1280 px | `<AskAiDialog />` | ✅ |
+```tsx title="docs/layout.tsx"
+import { AskAiBubble, AskAiDialog } from '@bdocs/plugin-ask-ai/client'
+import { DocsLayout } from 'boltdocs'
 
-### Per-slot toggles
-
-```ts
-askAiPlugin({
-  // Disable the floating bubble, keep the right-rail dialog as the only UI.
-  slots: { 'floating-bottom': false, 'right-rail': true },
-})
-
-// Disable the right-rail dialog, keep the floating bubble only.
-askAiPlugin({
-  slots: { 'floating-bottom': true, 'right-rail': false },
-})
-
-// Fully disable both UIs. The middleware endpoint still works for
-// programmatic clients (curl, SDK, custom React component).
-askAiPlugin({
-  slots: { 'floating-bottom': false, 'right-rail': false },
-})
+export default function Layout({ children }) {
+  return (
+    <DocsLayout>
+      {children}
+      <AskAiBubble />   {/* Floating bubble — bottom-right */}
+      <AskAiDialog />   {/* Right rail on xl viewports */}
+    </DocsLayout>
+  )
+}
 ```
 
-### User-level overrides via `boltdocs.config.ts > slots`
+Mount only what you need (e.g. only `<AskAiDialog />` as a dedicated sidebar), position them with your own CSS, and remove unused ones entirely.
 
-Take it further — the user's config can `disable`, `append`, or `replace` anything the plugin contributes:
+---
 
-```ts title="boltdocs.config.ts"
-import { defineConfig } from 'boltdocs'
-import askAiPlugin from '@bdocs/plugin-ask-ai'
+## Layout Integration
 
-export default defineConfig({
-  plugins: [askAiPlugin()],
-  slots: {
-    // Add a small "privacy" badge next to the AI Assistant header, without
-    // touching the plugin source.
-    'right-rail': { append: '~/components/MyPrivacyBadge.tsx' },
+The plugin components are available via `@bdocs/plugin-ask-ai/client` but require manual placement in your layout. Here are the recommended patterns:
 
-    // Replace the default bubble with a custom one in this site only.
-    'floating-bottom': { replace: '~/components/CustomBubble.tsx' },
+### Pattern 1: Using DocsLayout (recommended)
 
-    // Turn it off entirely on specific sites (e.g. a marketing-only docs).
-    // 'floating-bottom': { disable: true },
-  },
-})
+```tsx title="docs/layout.tsx"
+import { AskAiBubble, AskAiDialog } from '@bdocs/plugin-ask-ai/client'
+import { DocsLayout } from 'boltdocs'
+
+export default function Layout({ children }) {
+  return (
+    <DocsLayout>
+      {children}
+      <AskAiBubble />
+    </DocsLayout>
+  )
+}
 ```
 
-Precedence: **user `slots` config wins** over plugin-declared entries. Precedence within `slots`: `replace` trumps `append`.
+### Pattern 2: Full control with primitives
 
-### Backward compatibility
+```tsx title="docs/layout.tsx"
+import { AskAiBubble, AskAiDialog } from '@bdocs/plugin-ask-ai/client'
+import { DocsLayout, Navbar, Sidebar, OnThisPage } from 'boltdocs/client'
 
-The legacy `autoInject: boolean` is still honored. Internally it's mapped to `slots` so existing installs keep working:
+export default function Layout({ children }) {
+  return (
+    <DocsLayout>
+      <Navbar />
+      <DocsLayout.Body>
+        <Sidebar routes={[]} config={{}} />
+        <DocsLayout.Content>
+          <DocsLayout.ContentMdx>
+            {children}
+          </DocsLayout.ContentMdx>
+        </DocsLayout.Content>
+        <OnThisPage />
+      </DocsLayout.Body>
+      <DocsLayout.RightRail>
+        <AskAiDialog />
+      </DocsLayout.RightRail>
+      <AskAiBubble />
+    </DocsLayout>
+  )
+}
+```
 
-| `autoInject` (legacy) | Effective `slots` |
-| :--- | :--- |
-| `true` (default) | Uses the `slots` object as-is. |
-| `false` | Both slots force-disabled (preserves prior opt-out behaviour). |
+### Pattern 3: Only the floating bubble
 
-### Available slot ids
+```tsx title="docs/layout.tsx"
+import { AskAiBubble } from '@bdocs/plugin-ask-ai/client'
+import { DocsLayout } from 'boltdocs'
 
-Boltdocs core reserves 7 slot ids any plugin can mount:
-
-| Id | Position |
-| :--- | :--- |
-| `floating-bottom` | bottom-right floater |
-| `right-rail` | right sidebar (xl+) |
-| `navbar-extra` | inside `<Navbar.Right>` |
-| `header-extra` | inside page `<Header>`, below description |
-| `toc-extra` | at the bottom of `<OnThisPage>` |
-| `footer-extra` | above `<PageNav>` |
-| `body-portal` | rendered into `document.body` (modal/toast escape hatch) |
-
-Custom layouts can additionally accept plugin-private ids — the decoration is purely positional.
+export default function Layout({ children }) {
+  return (
+    <DocsLayout>
+      {children}
+      <AskAiBubble />
+    </DocsLayout>
+  )
+}
+```
 
 ---
 
@@ -440,8 +445,9 @@ You exceeded `rateLimitPerMinute` (default 30). Either bump the limit, disable i
 
 ### Bubble doesn't appear
 
-- `autoInject: true` (default) registers `<AskAiBubble />` and `<AskAiDialog />` globally via the plugin `components` registry. If you wrote `<AskAiBubble />` manually in your layout AND set `autoInject: false`, that's fine — otherwise move to `autoInject: false`.
-- Check that your custom layout extends the Boltdocs shell (`<BoltdocsShell />`) or otherwise includes Boltdocs' global component registry.
+- The plugin registers `<AskAiBubble />` and `<AskAiDialog />` via the `components` field in `boltdocs.config.ts`. You must import and render them manually in your `layout.tsx`.
+- Check that your custom `layout.tsx` imports from `@bdocs/plugin-ask-ai/client` and renders the component.
+- Verify the plugin is installed: `pnpm add @bdocs/plugin-ask-ai`.
 
 ### Streaming stops mid-sentence
 
@@ -469,6 +475,6 @@ The `openai` SDK throws a typed `APIError`. The middleware streams the error mes
 
 ## Version History
 
-- **0.3.0** — Declarative slots API. Plugin mounts `<AskAiBubble />` into `<DocsLayout.FloatingBottom>` and `<AskAiDialog />` into `<DocsLayout.RightRail>` automatically via `virtual:boltdocs-layout-slots`. Adds an optional `slots: { 'floating-bottom': boolean, 'right-rail': boolean }` plugin option for selective enabling. `autoInject` is mapped to `slots` for back-compat.
+- **0.3.0** — Removed automatic slot-based mounting. Plugin now ships `<AskAiBubble />` and `<AskAiDialog />` as standalone components for manual composition.
 - **0.2.0** — OpenAI SDK rewrite. Streamdown on the client. Page-scoped via `<<<DOCS_START>>>` / `<<<DOCS_END>>>` delimiters + literal-marker escape. Hard-scoped system prompt with 7-rule priority hierarchy. Per-IP token bucket, optional `secretKey`, `customModels[]` escape hatch. Removes Ollama / dev-mode.
 - **0.1.x** — Earlier Ollama-powered prototype. See git history.

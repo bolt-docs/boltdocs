@@ -6,6 +6,10 @@ description: Layout wrapper to group and align related action buttons.
 
 The `ButtonGroup` primitive allows you to group multiple adjacent buttons into a single horizontal or vertical unit, automatically handling border merging and corner radius clipping.
 
+It's a thin layout primitive — there's no aria, no focus-management, no state. It exists purely to make a row of buttons *look* like a single attached segmented control. Everything else (keyboard navigation, focus rings, disabled propagation) is handled by `Button` underneath.
+
+Reach for it when you have visually related buttons: a tab filter, an alignment toggler, a segmented yes/no/maybe picker. Don't reach for it when buttons are independent — just use a flex container.
+
 ---
 
 ## Import
@@ -70,3 +74,11 @@ The `ButtonGroup` component accepts these layout configuration properties:
 | **`children`** | `ReactNode` | *Required* | The buttons or interactive list nodes to group. |
 | **`className`** | `string` | `undefined` | Custom CSS utility class overrides. |
 | **`style`** | `CSSProperties` | `undefined` | Inline styling overrides. |
+
+---
+
+## Common pitfalls
+
+- **Use `flex` border colors, not arbitrary CSS.** Adding `border` to each child and `divide-x` on the parent is much cleaner than manually clipping radius with `first:rounded-l-* / last:rounded-r-*`.
+- **Don't put non-buttons inside.** Layout primitives in Boltdocs prefer specialized children (`Button`, `Link`, `Tab.Item`) over generic divs. A grouped layout with non-semantic content should be a regular flex container.
+- **Vertical orientation doesn't auto-rotate icons.** If you want the segmented control's icon to rotate (e.g. for a vertical splitter), the parent layout is responsible for that.

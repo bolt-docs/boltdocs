@@ -290,7 +290,7 @@ The type mapping metadata extracted from the frontmatter of your files.
 | :--- | :--- | :--- | :--- |
 | **`title`** | `string` | `''` | Title of the post, pulled from frontmatter `title`. |
 | **`date`** | `string \| Date` | `undefined` | Date of publication, pulled from frontmatter `date`. |
-| **`author`** | `string \| AuthorObject` | `undefined` | Details of the author, supporting plain strings or objects with `name` and `avatar`. |
+| **`author`** | `string \| AuthorObject` | `undefined` | Details of the author, supporting plain strings or objects with `name`, `avatar`, `url`, and `image`. When serialized into the route metadata (`route.author`), the framework coerces the object shape to its `.name` so consumers always see a plain string. |
 | **`excerpt`** | `string` | `''` | Short description or excerpt. |
 | **`lastUpdated`** | `string \| number` | `undefined` | The timestamp of the last git commit (or manual override). |
 | **`frontmatter`** | `Record<string, any>` | `{}` | Extensible object with all custom frontmatter parameters. |

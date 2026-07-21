@@ -23,6 +23,7 @@ Estos componentes se registran automáticamente de forma global y están disponi
 | **`<Field>`** | Filas descriptivas de propiedades API en línea. |
 | **`<Image>`** | Imágenes adaptables al tema, con diseño responsivo y leyendas. |
 | **`<Mermaid>`** | Bloque de renderizado de diagramas (requiere el plugin mermaid). |
+| **`<Timeline>`** | Línea de tiempo vertical con entradas fechadas para changelogs y notas de publicación. |
 
 ---
 
@@ -95,6 +96,28 @@ export function MyLayout({ children, headings }) {
   )
 }
 ```
+
+---
+
+## Una muestra de `<Timeline>`
+
+Changelogs, actualizaciones de estado, notas de publicación — cualquier lista cronológica dentro de MDX:
+
+```mdx
+<Timeline>
+  <Timeline.Item date="2026-07-20" title="Plugin v3.2 API" badge="Major" icon={<Sparkles />}>
+    Nuevos hooks para caches, diagnostics, paths, virtual modules, middleware, server y HMR.
+  </Timeline.Item>
+  <Timeline.Item date="2026-06-01" title="Soporte de i18n" badge={{ text: 'Minor', variant: 'success' }}>
+    Convención de internacionalización por filesystem y rutas conscientes de versión.
+  </Timeline.Item>
+  <Timeline.Item date="2026-05-15" title="Eliminado sistema legacy de slots" badge={{ text: 'Breaking', variant: 'danger' }}>
+    Se eliminó el sistema de slots del lado del plugin — consulta la guía de migración.
+  </Timeline.Item>
+</Timeline>
+```
+
+La referencia completa (props, paleta de variantes, accesibilidad, patrones comunes) está en [`Timeline`](/es/components/mdx/timeline).
 
 ---
 

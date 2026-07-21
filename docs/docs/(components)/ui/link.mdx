@@ -6,6 +6,14 @@ description: Router-integrated localized link anchors.
 
 The `Link` and `NavLink` primitives extend standard HTML anchor links by integrating language locales, base directories, and SPA route navigation.
 
+You almost never need them in MDX content — regular Markdown links work fine there. Reach for `Link` / `NavLink` only inside custom React components where you want:
+
+- SPA-style route transitions (no full page reload).
+- Automatic locale + version prefixing on internal `href`.
+- Active-state styling via the `NavLink`'s render function.
+
+Both render as a normal `<a>` under the hood.
+
 ---
 
 ## Import
@@ -75,3 +83,11 @@ Extends standard `Link` properties:
 | **`end`** | `boolean` | `false` | If set to `true`, the link is only highlighted active when the route paths match exactly. |
 | **`className`** | `string \| ((props: { isActive: boolean }) => string)` | `undefined` | Style class name, supporting conditional logic functions. |
 | **`children`** | `ReactNode \| ((props: { isActive: boolean }) => ReactNode)` | `undefined` | Child nodes, supporting conditional rendering functions. |
+
+---
+
+## Pitfalls
+
+- **`NavLink`'s render function isn't React-stateful.** The `isActive` boolean is evaluated synchronously per render. Don't trigger heavy side-effects in the function body — use it only for class-name computation.
+- **Hard-coding locales in `href` defeats the hook.** If the user is on `/es/docs/guide` and you pass a raw `/docs/guide` href, `useLocalizedTo` re-localizes it. If you want a *non-localized* link, prefix with `https://` or use a plain `<a>`.
+- **`end={true}` matters for index pages.** Without it, `/docs` is "active" when the current path is `/docs/installation`. Use `end` whenever the link points to a section root.

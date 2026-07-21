@@ -29,7 +29,7 @@ export const layout = ({ children }: { children: React.ReactNode }) => {
         className="group text-white dark:text-white transition-colors duration-200"
       >
         <Grainient
-          className="absolute top-0 left-0 -z-[1]"
+          className="absolute top-0 left-0 z-[-1]"
           {...color_active_version}
         />
         {t.bannerNewVersion}{' '}

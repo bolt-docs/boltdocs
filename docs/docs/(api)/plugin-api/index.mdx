@@ -5,11 +5,10 @@ description: Complete reference for the Boltdocs Plugin API — PluginContext, c
 badge: Updated
 ---
 
-The `PluginContext` object passed to every lifecycle hook carries eight
+The `PluginContext` object passed to every lifecycle hook carries seven
 enriched namespaces that give plugins safe, typed access to the core's
 internal machinery: **caches**, **diagnostics**, **paths**,
-**virtual modules**, **slots**, **middleware**, **server**, and
-**hmr**.
+**virtual modules**, **middleware**, **server**, and **hmr**.
 
 This section is the official API reference. Read it alongside the
 [Plugin System overview](/docs/plugins/) for the architecture and
@@ -33,9 +32,6 @@ cards below to navigate.
   </Card>
   <Card title="Virtual Modules" href="/docs/api/plugin-api/virtual-modules">
     Runtime virtual module declarations.
-  </Card>
-  <Card title="Slots" href="/docs/api/plugin-api/slots">
-    Declarative layout slot registration.
   </Card>
   <Card title="Middleware" href="/docs/api/plugin-api/middleware">
     Transform middleware pipeline.
@@ -73,7 +69,6 @@ interface PluginContext {
   readonly diagnostics: PluginDiagnosticsAPI
   readonly paths: PluginPathsAPI
   readonly virtualModules: PluginVirtualModulesAPI
-  readonly slots: PluginSlotsAPI           // Register layout slots
   readonly middleware: PluginMiddlewareAPI  // Register transform middleware
   readonly server: PluginServerAPI         // Register HTTP middleware
   readonly hmr: PluginHmrAPI               // Hook into HMR events
@@ -101,19 +96,9 @@ interface PluginContext {
 | `diagnostics` | [Diagnostics](/docs/api/plugin-api/diagnostics) | Structured diagnostic channel with severity levels. |
 | `paths` | [Paths](/docs/api/plugin-api/paths) | Safe path resolution inside the workspace boundary. |
 | `virtualModules` | [Virtual Modules](/docs/api/plugin-api/virtual-modules) | Declare virtual modules for Vite resolution. |
-| `slots` | [Slots](/docs/api/plugin-api/slots) | Register and query layout slot declarations. |
 | `middleware` | [Middleware](/docs/api/plugin-api/middleware) | Register transform middleware at runtime. |
 | `server` | [Server](/docs/api/plugin-api/server) | Register HTTP middleware and lifecycle callbacks. |
 | `hmr` | [HMR](/docs/api/plugin-api/hmr) | Hook into dev-server file watching and send custom events. |
-
-  </Card>
-  <Card title="Middleware" href="/docs/api/plugin-api/middleware">
-    Transform middleware pipeline.
-  </Card>
-  <Card title="Server" href="/docs/api/plugin-api/server">
-    HTTP middleware & server lifecycle.
-  </Card>
-  <Card title="HMR" href="/docs/api/plugin-api/hmr">
 
 ---
 
@@ -162,7 +147,3 @@ export default createPlugin({
 - [Plugin System overview](/docs/plugins/) — architecture, concepts, quick start
 - [@bdocs/unist-utils](/docs/plugins/unist-utils) — AST utilities for remark/rehype
 - [Boltdocs 3.2.0 changelog](/docs/blog/boltdocs-3.2.0) — release notes
-
-    Dev-server file watching & custom events.
-  </Card>
-</Cards>

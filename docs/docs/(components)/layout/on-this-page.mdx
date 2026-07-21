@@ -6,6 +6,10 @@ description: A table of contents navigation panel that displays and highlights h
 
 The `OnThisPage` component renders a floating navigation panel listing headings from the current document, dynamically highlighting active sections as the user scrolls.
 
+It uses an `IntersectionObserver` under the hood (via `AnchorProvider`) and a small linear-interpolation trick to glide a highlight indicator between the active anchors. The behavior is automatic for the most common cases — usually you pass `headings` and you're done.
+
+For 95% of custom layouts, `<OnThisPage.Tree headings={headings} />` is enough. Reach for the lower-level pieces only when you want full control over the positioning math.
+
 ---
 
 ## Import
@@ -79,6 +83,25 @@ export default function CustomTOC() {
 
 > [!TIP]
 > If you don't want to map items manually, you can use the high-level primitive wrapper `<OnThisPage.Tree headings={headings} />` to automatically mount the observers, indicators, and list links inside an active layout.
+
+---
+
+## When to use `Tree` vs the lower-level provider
+
+| API | What you give up | What you keep |
+| :--- | :--- | :--- |
+| `<OnThisPage.Tree headings={headings} />` | Full control over scroll-math | The simplest possible integration — one prop in. |
+| `<AnchorProvider>` + `<ScrollProvider>` + manual `<Items>` | Nothing | Bespoke observer options and container placement. |
+
+`Tree` is what you want unless you have a strong reason. The internals are eight lines of code total — reach for them only when you're building a sidebar that *isn't* a list of headings.
+
+---
+
+## Pitfalls
+
+- **`headings` must include `id`**. The rehype-slug pipeline assigns IDs to every heading at build time, but if you're rendering on the fly (editor previews, an inline CMS injection), make sure each heading has an anchor ID matching `OnThisPage.Link`'s `href`.
+- **`ScrollProvider` needs a stable ref.** Pass a `containerRef={useRef(null)}` — *don't* create a new ref every render, or the auto-scroll will jump on every update.
+- **`single=true`** switches the scroll-spy to "first matching heading wins" mode. Useful when you have lots of `h3` underneath one `h1` and want the parent — not the child — to highlight.
 
 ---
 

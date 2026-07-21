@@ -6,6 +6,10 @@ description: Composable dropdown and nesting context menus.
 
 The `Menu` primitive is a modular navigation and option selector dropdown component that supports keyboard accessibility, nested sub-menus, search indexing, and selection checkboxes.
 
+It's a thin wrapper around [`react-aria-components` Menu](https://react-spectrum.adobe.com/react-aria/Menu.html), so you keep Roving Tabindex, type-ahead, item roles, and selection-mode handling for free. Boltdocs handles the spacing and focus ring.
+
+Reach for `Menu` when you need: a kebab "..." trigger with actions, a "Sort by" filter dropdown, a "Switch version" picker, or any list of mutually exclusive options. Prefer `Popover` for free-form content (forms, rich widgets) — menus are for *actions*.
+
 ---
 
 ## Import
@@ -104,3 +108,11 @@ Inherits standard React Aria `MenuItemProps` (e.g. `isDisabled`, `onAction`):
 | Property | Type | Default | Description |
 | :--- | :--- | :--- | :--- |
 | **`title`** | `string` | `undefined` | Section label heading text. |
+
+---
+
+## Pitfalls
+
+- **`Menu` is for actions, not navigation.** If clicking an item navigates somewhere, it's clearer to use a `Listbox` or a column of `NavLink`s. Menus imply "select and stay on the page" semantics.
+- **`<Menu.Item onAction>` versus `onPress`.** `onAction` is fired on selection (Enter / click); `onPress` fires on press start. Use `onAction` for committing the choice; use `onPress` for transient feedback like hover-previewing.
+- **Sections need an `aria-label`-equivalent.** When you use `Menu.Section`, set its `title` so screen readers announce the section change.

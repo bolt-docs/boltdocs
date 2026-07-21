@@ -182,6 +182,8 @@ Configures the dynamic collections system — perfect for blogs, release notes, 
 | **`defaultCollection`** | `string` | `'blog'` | The collection ID used by `BlogList` when no collection is explicitly specified. |
 | **`dateFormat`** | `string` | `'MMMM dd, yyyy'` | Date format string for rendering post dates in listing pages. |
 | **`sortBy`** | `'date' \| 'title' \| 'sidebarPosition'` | `'date'` | Field used to sort posts within a collection. |
+| **`labels`** | `Record<string, string \| Record<string, string>>` | — | Per-collection human-readable label. Falls back to the collection id. |
+| **`positions`** | `Record<string, number>` | — | Manual numeric ordering for collection indexes in the sidebar. |
 
 ```ts title="boltdocs.config.ts"
 export default defineConfig({
@@ -190,6 +192,14 @@ export default defineConfig({
     defaultCollection: 'blog',
     dateFormat: 'MMM dd, yyyy',
     sortBy: 'date',
+    labels: {
+      blog: 'Engineering Blog',
+      changelog: 'Release Notes',
+    },
+    positions: {
+      blog: 1,
+      changelog: 2,
+    },
   },
 })
 ```

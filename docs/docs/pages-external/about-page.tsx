@@ -14,7 +14,7 @@ export default function AboutPage() {
   return (
     <div className="font-sans antialiased min-h-screen bg-main text-body flex flex-col justify-start relative">
       <NoiseOverlay />
-      <div className="max-w-2xl mx-auto px-6 py-28 md:py-36 w-full flex-grow">
+      <div className="max-w-2xl mx-auto px-6 py-28 md:py-36 w-full grow">
         <div ref={contentRef} className="flex flex-col gap-10">
           <div>
             <span className="font-mono text-xs uppercase tracking-widest text-primary-400 block mb-3">

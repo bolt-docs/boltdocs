@@ -16,7 +16,7 @@ Boltdocs automatically generates SEO metadata for every page. This includes site
 export default defineConfig({
   siteUrl: 'https://docs.example.com',
   seo: {
-    indexing: 'all', // or 'none', 'noindex'
+    indexing: 'all', // 'all' | 'public' | 'none' — see reference below
     thumbnails: {
       background: '/og-image.webp',
     },
@@ -49,7 +49,7 @@ export default defineConfig({
 
 | Property | Type | Default | Description |
 | :--- | :--- | :--- | :--- |
-| **`indexing`** | `'all' \| 'none' \| 'noindex'` | `'all'` | Controls `<meta name="robots">` tag. |
+| **`indexing`** | `'all' \| 'public' \| 'none' \| string` | `'all'` | Controls `<meta name="robots">` tag. `'all'` and `'public'` emit `index,follow`; `'none'` emits `noindex,nofollow`. Custom strings are emitted verbatim. |
 | **`thumbnails`** | `ThumbnailConfig` | — | Open Graph image settings. |
 | **`defaultImage`** | `string` | — | Fallback OG image for pages without frontmatter. |
 

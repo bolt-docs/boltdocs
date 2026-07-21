@@ -1,0 +1,12 @@
+{
+  "title": "Guías",
+  "icon": "BookOpen",
+  "collapsible": true,
+  "collapsed": false,
+  "pages": [
+    "installation",
+    "configuration",
+    "deployment",
+    "upgrading-3-2"
+  ]
+}

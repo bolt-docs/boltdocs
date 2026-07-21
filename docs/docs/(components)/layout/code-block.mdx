@@ -1,0 +1,110 @@
+---
+title: CodeBlock
+sidebarPosition: 9
+description: The shell around every highlighted code fence.
+---
+
+# CodeBlock
+
+`CodeBlock` is the visual container Boltdocs wraps around every fenced code block (```` ```ts ````, ```` ```tsx ````, ```` ```bash ````, etc.). It handles the rounded border, the header strip with the language label, and the action toolbar (copy button + expand / collapse). You generally won't reach for it directly in `.mdx` content — Boltdocs injects it automatically through MDX — but it's exposed so you can build a *custom* highlighted snippet inside your own components.
+
+---
+
+## Import
+
+```tsx
+import { CodeBlock } from 'boltdocs/primitives'
+```
+
+---
+
+## When to reach for it
+
+Three situations call for using `CodeBlock` directly:
+
+1. **Highlighting a snippet that isn't fenced** — for example, a string returned from a fetch you want to render as code.
+2. **Building a `Tab`-like demo widget** — each panel contains a code sample that should share the same border/header style as the rest of the docs.
+3. **Building a custom `<Playground>` or `<LiveCode>` component** — for editor playgrounds that need to mirror the docs look.
+
+If you're just writing documentation content, don't bother — write a fenced code block instead. Boltdocs wires it up automatically.
+
+---
+
+## Anatomy
+
+A code block has three optional regions:
+
+```tsx
+<CodeBlock>
+  <CodeBlock.Header>
+    <CodeBlock.Group>{/* e.g. language icon + "TypeScript" */}</CodeBlock.Group>
+    {/* e.g. copy button */}
+  </CodeBlock.Header>
+
+  <CodeBlock.Content>
+    <pre>...</pre>
+  </CodeBlock.Content>
+</CodeBlock>
+```
+
+- **`CodeBlock`** (root) — sets the rounded border, background color, and outer padding. Pass `plain` to render without a border, useful inside cards that already have one.
+- **`CodeBlock.Header`** — the strip above the code. Holds the language label on the left and copy/expand buttons on the right.
+- **`CodeBlock.Group`** — horizontal flex container. Use it to group the language logo and label together inside `Header`.
+- **`CodeBlock.Content`** — wraps the `<pre>` (or whatever renderer you choose). Pass `shouldTruncate` to clamp the snippet to 300px and let users expand it.
+
+---
+
+## Putting it together
+
+```tsx
+import { CodeBlock } from 'boltdocs/primitives'
+import { highlight } from 'boltdocs'
+
+export function RawSnippet({ language, code }: { language: string; code: string }) {
+  // `highlight` runs Shiki at build time and returns HTML.
+  const html = highlight(code, language)
+
+  return (
+    <CodeBlock plain>
+      <CodeBlock.Header>
+        <CodeBlock.Group>
+          <span className="text-xs font-mono uppercase">{language}</span>
+        </CodeBlock.Group>
+      </CodeBlock.Header>
+      <CodeBlock.Content>
+        <div dangerouslySetInnerHTML={{ __html: html }} />
+      </CodeBlock.Content>
+    </CodeBlock>
+  )
+}
+```
+
+That's it — the inner HTML is the pre-rendered Shiki output, so it works during SSG with no client-side highlighter shipped to the browser.
+
+---
+
+## Props
+
+| Prop | Type | Default | What it does |
+| :--- | :--- | :--- | :--- |
+| `plain` (root) | `boolean` | `false` | Skip the outer border and padding. Useful inside a parent that already has them. |
+| `shouldTruncate` (content) | `boolean` | `false` | Cap the code at ~300px and add an expand button. |
+| `className` | `string` | — | Extra Tailwind classes. |
+| `children` | `ReactNode` | — | Sub-components. |
+
+Every sub-component inherits the common `children` / `className` / `style` shape.
+
+---
+
+## Pitfalls
+
+- The default Boltdocs `<pre>` block uses [`scroll-into-view-if-needed`](https://www.npmjs.com/package/scroll-into-view-if-needed) internally for code that overflows. Don't override the `<pre>`'s `overflow` style unless you know what you're doing.
+- Highlighting happens at build/dev time, not in the browser. The `highlight()` helper returns pre-rendered HTML. If you ship a heavy RxJS live editor you may need a different runtime highlighter — `CodeBlock` itself is just a shell.
+- The copy button reads from the original `code` text, not the highlighted HTML — so international characters and emojis round-trip cleanly.
+
+---
+
+## See also
+
+- [`DocsLayout`](/docs/components/layout/docs-layout) — uses `CodeBlock` implicitly via MDX rendering.
+- [`Tabs`](/docs/components/ui/tabs) — pair with `CodeBlock` to build multi-language copy tabs.

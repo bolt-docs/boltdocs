@@ -6,6 +6,10 @@ description: Interactive primitive button wrapping React Aria Components.
 
 The `Button` primitive is an unstyled, fully accessible interactive button component that supports keyboard navigation, screen reader accessibility, and hover/focus/press states.
 
+It's a thin re-export of `react-aria-components`' `Button` with the Boltdocs Tailwind class defaults applied. That means you can rely on the underlying React Aria keyboard handling, focus ring, and aria semantics — you only have to apply the visual treatment (`className`).
+
+You'll use it almost everywhere there's a click: nav triggers, search openers, copy buttons, theme toggles, drawer handles. For chip-like toggles that stay pressed, reach for `ToggleButton` from `react-aria-components` instead.
+
 ---
 
 ## Import
@@ -49,3 +53,11 @@ The `Button` component accepts all properties from React Aria's `ButtonProps` pl
 | **`className`** | `string` | `undefined` | Custom CSS utility class overrides. |
 | **`style`** | `CSSProperties` | `undefined` | Inline styling overrides. |
 | **`children`** | `ReactNode` | `undefined` | The label text or graphic elements to render inside the button. |
+
+---
+
+## Pitfalls
+
+- **Don't use `<button>` directly.** React Aria's `Button` handles edge cases you'll discover in audit (e.g. Space-key on non-submit forms). Import from `boltdocs/primitives` for safety.
+- **`onPress` ≠ `onClick`.** `onPress` fires consistently across mouse / keyboard / touch events, while `onClick` is mouse-only. Prefer `onPress` for any handler that's not strictly a mouse follow-up.
+- **`isDisabled` is the prop name** in React Aria (the lower-case `disabled` is a native HTML attribute that does *not* apply the right aria semantics for buttons in compound components).

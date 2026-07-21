@@ -6,6 +6,8 @@ description: "A navigation path indicator showing the user's location in the doc
 
 The `Breadcrumbs` component displays a horizontal chain of breadcrumb links indicating the navigation structure of the current active page.
 
+It's a thin wrapper around `react-aria-components`' `Breadcrumbs`, so it inherits proper `<nav>` semantics, keyboard navigation (Tab moves between crumbs), and screen-reader friendliness for free. Boltdocs fills in the route hierarchy from `useBreadcrumbs()` — you just compose the visual treatment.
+
 ---
 
 ## Import

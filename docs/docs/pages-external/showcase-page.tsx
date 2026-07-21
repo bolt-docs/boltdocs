@@ -3,8 +3,6 @@ import {
   ExternalLink,
   Terminal,
   Palette,
-  Layers,
-  Grip,
   ListChecks,
   TextCursorInput,
   LoaderCircle,

@@ -6,6 +6,10 @@ description: Popup overlay showing supplementary details on element hover.
 
 The `Tooltip` primitive provides accessible, keyboard-aware helper label overlays that appear on mouse hover or element focus.
 
+It's a small accessibility-friendly wrapper that wraps `react-aria-components`'s `Tooltip`. The behavior is automatic: it shows on hover, on focus, after a delay you define, and stays accessible to keyboard users without you writing any aria attributes.
+
+Worth keeping in mind: tooltips are *for help text*. They should not contain interactive content (buttons, links, form fields). If your overlay can be clicked, you want a `Popover` instead — screen readers don't navigate into tooltips.
+
 ---
 
 ## Import
@@ -67,3 +71,11 @@ Inherits standard React Aria `TooltipProps` properties:
 | :--- | :--- | :--- | :--- |
 | **`className`** | `string` | `undefined` | Custom CSS utility class overrides. |
 | **`style`** | `CSSProperties` | `undefined` | Inline styling overrides. |
+
+---
+
+## Pitfalls
+
+- **`delay` defaults to 500ms.** That's the React Aria default. Drop it to 150ms if your triggers are dense (button toolbars) or push it to 800ms if your triggers are sparse and you're worried about flicker.
+- **Don't put links or buttons inside.** The standard advice has a reason: tooltips dismiss on blur, so child controls become unreachable. Reach for `Popover` if you need clickable content.
+- **Long tooltips get cut.** Default max-width is around 200px. If you want wider helpers, override the `Popover`-like styling on `Tooltip.Content`.

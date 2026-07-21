@@ -6,6 +6,10 @@ description: Pulsing loading state placeholder component.
 
 The `Skeleton` primitive renders animated pulsing placeholder shapes to represent content blocks (such as text headings, media cards, or profile pictures) while assets are fetching.
 
+Think of it as a pulse-animated low-fidelity copy of the layout you're loading into. It'll render *before* your data resolves to keep the page from jumping. Pair it with `react-aria-components` `useIsPending` or any standard data-fetching lib.
+
+Worth knowing: most of Boltdocs's content loads synchronously from MDX (the parser runs at build time, not in the browser), so you'll reach for `Skeleton` only in plugin / external-data contexts.
+
 ---
 
 ## Import
@@ -50,3 +54,11 @@ The `Skeleton` component accepts standard HTML `div` properties plus:
 | **`variant`** | `'rect' \| 'circle'` | `'rect'` | Shape structure style. Renders rounded-full for `'circle'` and rounded-md for `'rect'`. |
 | **`className`** | `string` | `undefined` | Custom CSS utility class overrides (e.g. mapping dimensions like `w-full h-8`). |
 | **`style`** | `CSSProperties` | `undefined` | Inline style settings. |
+
+---
+
+## Pitfalls
+
+- **Match the eventual content's dimensions.** If you set `Skeleton w-32 h-4` and your final content is `h-5`, you'll flash on hydration. Pull the dimensions from the same source.
+- **Don't replace the entire page with skeletons.** A user sees a wall of pulse-animated boxes and assumes the page is broken. Leave navbars/sidebars visible and skeleton only the data-bound region.
+- **Prefer `bg-subtle`** (or a similar token from your theme). Hard-coded gray colors interact poorly with dark mode.

@@ -1,0 +1,290 @@
+---
+title: Timeline
+sidebarPosition: 3
+description: A vertical timeline of dated entries with dots, badges, and Markdown body content. Built for changelogs and release notes.
+---
+
+# Timeline
+
+The `Timeline` MDX component renders a vertical timeline of dated entries — perfect for changelogs, release notes, status updates, and audit logs. Each entry has a colored dot on the connector line, an optional date and badge, a title, and a Markdown body.
+
+It joins the family of MDX components (`Callout`, `Card`, `Cards`, `Field`, `Image`, `LastUpdated`) and is auto-registered in every `.mdx` file — you don't `import` it.
+
+---
+
+## Quick start
+
+```mdx
+<Timeline>
+  <Timeline.Item
+    date="2026-07-20"
+    title="Boltdocs 3.2.0"
+    badge="Major"
+    icon={<Sparkles />}
+  >
+    Released **Plugin v3.2 API** — caches, diagnostics, paths, virtual modules,
+    middleware, server, and HMR hooks. See the [migration guide](/docs/blog/boltdocs-3.2.0).
+  </Timeline.Item>
+
+  <Timeline.Item
+    date="2026-06-01"
+    title="Added i18n support"
+    badge={{ text: 'Minor', variant: 'success' }}
+  >
+    New locale filesystem convention, version-aware routes, and SSR-safe URL prefixes.
+  </Timeline.Item>
+</Timeline>
+```
+
+Renders as:
+
+```text
+●  Jul 20, 2026  [MAJOR]
+│  Boltdocs 3.2.0
+│  Released Plugin v3.2 API — caches, diagnostics, paths, virtual modules,
+│  middleware, server, and HMR hooks. See the migration guide.
+│
+●  Jun 1, 2026   [MINOR]
+│  Added i18n support
+│  New locale filesystem convention, version-aware routes, and SSR-safe URL prefixes.
+```
+
+The connector line is a single continuous vertical stroke that reads as one timeline regardless of how many items you stack.
+
+---
+
+## Anatomy
+
+A timeline is a vertical `<ol role="list">` containing `<li>` items. Each item has a small dot strung onto the connector line + a content block beside it:
+
+```text
+    ┌──────── ps-8 ──────────┐
+● ──┤  date · [BADGE]         │   ← dot (ps-0) + content (ps-8)
+    │  Title goes here        │
+    │  Description body …     │
+    └─────────────────────────┘
+            │
+            ●  ← next item's dot
+            │
+            …
+```
+
+| Field | Visual element | Notes |
+| :--- | :--- | :--- |
+| `date` | small monospace header | Auto-formatted via `toLocaleDateString` (e.g. `"Jul 20, 2026"`). Hidden when omitted. |
+| `title` | bold `h3` body | Required. Renders real `<h3>` so screen readers and SEO crawlers see it. |
+| `badge` | pill chip beside the date | Pass a string for primary, or `{ text, variant }` for custom color. |
+| `icon` | glyph rendered inside the dot | Any Lucide icon, or pass `undefined` to fall back to a filled coloured circle. |
+| `variant` | dot + badge accent color | Defaults to `primary`. See [Variant palette](#variant-palette). |
+| `children` | Markdown body | Full MDX support — paragraphs, code, links, Callout, etc. |
+
+---
+
+## Variant palette
+
+Timeline ships two flavors of variants:
+
+- **Semantic** — `primary`, `success`, `info`, `warning`, `danger`. Map to your theme tokens. Use these for non-lifecycle contexts.
+- **Lifecycle** — `major`, `minor`, `patch`, `new`, `deprecated`, `breaking`. Aliases for the semantic variants. Use these in changelogs.
+
+| Variant | Dot color | Badge color | Suggested use |
+| :--- | :--- | :--- | :--- |
+| `primary` | terracotta | terracotta | Generic milestone. |
+| `success` / `minor` | green | green | Additive releases, new features. |
+| `info` / `patch` / `new` | indigo | indigo | Background improvements, tiny tweaks. |
+| `warning` / `deprecated` | amber | amber | Soft-deprecation notices. |
+| `danger` / `breaking` | red | red | Hard deprecations, removals. |
+
+The lifecycle aliases map exactly onto the semantic variants, so `variant="major"` and `variant="primary"` render identically.
+
+---
+
+## Common patterns
+
+### Changelog
+
+The most common use-case. Stack multiple `Timeline.Item`s ordered by date:
+
+```mdx
+<Timeline>
+  <Timeline.Item date="2026-07-20" title="Boltdocs 3.2.0" badge="Major" icon={<Sparkles />}>
+    Hooks the plugin API up to **caches**, **diagnostics**, **paths**, **virtual modules**,
+    **middleware**, **server**, and **HMR**.
+  </Timeline.Item>
+  <Timeline.Item date="2026-06-10" title="Theme tokens" badge={{ text: 'Minor', variant: 'success' }}>
+    Added `oklch` semantic colors and refactored the entire palette onto CSS variables.
+  </Timeline.Item>
+  <Timeline.Item date="2026-05-01" title="Removed legacy slots" badge={{ text: 'Breaking', variant: 'danger' }}>
+    The plugin-side slot system has been deleted entirely. Migration path: drop the
+    `ctx.slots.add(...)` calls and move that logic into a plugin transform instead.
+  </Timeline.Item>
+</Timeline>
+```
+
+### Status / uptime log
+
+When something flaps between OK and DEGRADED, timeline is a clean way to show the chronology:
+
+```mdx
+<Timeline>
+  <Timeline.Item date="2026-07-18T03:14Z" title="All systems operational" variant="success" icon={<CheckCircle />}>
+    Latency recovered to baseline within 4 minutes.
+  </Timeline.Item>
+  <Timeline.Item date="2026-07-18T03:10Z" title="Elevated 5xx on /v1/search" variant="warning">
+    Upstream index provider returned 503 for 90 seconds.
+  </Timeline.Item>
+  <Timeline.Item date="2026-07-18T03:00Z" title="Deploy v3.2.0-rc.2" variant="info">
+    Roll-out completed across 12 regions.
+  </Timeline.Item>
+</Timeline>
+```
+
+### Compact changelog (per-feature blocks)
+
+If you're listing dozens of tiny tweaks inside a single release, drop the `compact` prop on the root to tighten vertical spacing:
+
+```mdx
+<Timeline compact>
+  <Timeline.Item title="Speed up re-hash" badge={{ text: 'Patch', variant: 'info' }}>
+    2× faster invalidation in dev mode.
+  </Timeline.Item>
+  <Timeline.Item title="Fix: dark-mode focus rings" badge={{ text: 'Patch', variant: 'info' }}>
+    Inputs now show a primary-500 ring on dark backgrounds.
+  </Timeline.Item>
+  <Timeline.Item title="Fix: FOUC on first paint" badge={{ text: 'Patch', variant: 'info' }}>
+    Pre-render the theme color before hydration.
+  </Timeline.Item>
+</Timeline>
+```
+
+### Without dates
+
+If the timeline is more of a "what changed" list than a time-ordered log, drop `date` entirely. Items still space correctly along the connector line:
+
+```mdx
+<Timeline>
+  <Timeline.Item title="New: DocSearch integration" badge={{ text: 'Add', variant: 'success' }} icon={<Sparkles />}>
+    Search providers plug into the existing `useSearch()` surface.
+  </Timeline.Item>
+  <Timeline.Item title="Improved: keyboard nav" badge={{ text: 'Improve', variant: 'info' }}>
+    Sidebar expansion moves correctly through nested groups.
+  </Timeline.Item>
+</Timeline>
+```
+
+---
+
+## Localized dates
+
+`<Timeline.Item date="...">` renders via `toLocaleDateString` under a fixed locale so the same markup ships from server and from the browser. By default it's `'en-US'`, which gives `"Jul 20, 2026"`. Pass `locale` to translate every date inside the entry:
+
+```mdx
+<Timeline>
+  <Timeline.Item date="2026-07-20" title="Boltdocs 3.2.0" locale="es-ES" badge="Major">
+    Lanzamiento en español — el navegador ve la fecha en formato local.
+  </Timeline.Item>
+
+  <Timeline.Item date="2026-07-20" title="Boltdocs 3.2.0" locale="ja-JP" badge="Major">
+    リリース — 日本語ロケールで日付がレンダリングされます。
+  </Timeline.Item>
+</Timeline>
+```
+
+The formatted string and the `datetime=` attribute always agree, because the same `Date` object feeds both. If you ship globally and want per-locale dates, the cleanest pattern is to set the locale at the document level (one prop, every item inherits).
+
+---
+
+## Building a Timeline from data
+
+Because each `Timeline.Item` is just a React element, you can compose a Timeline programmatically — for example, when a plugin or frontmatter source feeds you a list of releases:
+
+```mdx
+export const releases = [
+  { date: '2026-07-20', title: 'Plugin v3.2 API', variant: 'major', body: 'Caches, diagnostics, paths, virtual modules, middleware, server, and HMR.' },
+  { date: '2026-06-10', title: 'Theme tokens', variant: 'minor', body: 'OKLCH semantic colors and CSS-variable palette.' },
+  { date: '2026-05-01', title: 'Removed legacy slots', variant: 'breaking', body: 'Drop ctx.slots.add(...) and move the logic into a transform.' },
+]
+
+<Timeline>
+  {releases.map((r) => (
+    <Timeline.Item
+      key={r.date}
+      date={r.date}
+      title={r.title}
+      variant={r.variant}
+      badge={{ text: r.variant, variant: r.variant }}
+    >
+      {r.body}
+    </Timeline.Item>
+  ))}
+</Timeline>
+```
+
+Pair this with a `frontmatter.date` and `frontmatter.changelog` (or a JSON file) to render automatically without re-typing every release.
+
+---
+
+## Dark mode behavior
+
+`<Timeline>` doesn't ship its own dark-mode styles. Every color comes from your theme tokens (`--color-primary-500`, `--color-success-500`, `--color-warning-500`, `--color-info-500`, `--color-danger-500`, plus `bg-surface`, `border-subtle`, `text-body`, `text-paragraph`). When the user's theme switches from light to dark, the Timeline follows automatically:
+
+- The connector line stays `border-subtle` — paler in light mode, deeper charcoal in dark mode.
+- Each dot keeps its semantic accent — terracotta stays terracotta; the danger-red doesn't tint into pink.
+- Card body text uses `text-paragraph` so the prose reflows naturally.
+
+If you hard-code a `text-primary-500` color somewhere in a Timeline body, it stays rust-colored in both modes — that's intentional and matches the rest of the docs.
+
+---
+
+## Component API
+
+### `Timeline` (root)
+
+| Prop | Type | Default | Description |
+| :--- | :--- | :--- | :--- |
+| `compact` | `boolean` | `false` | Tightens vertical padding between items. Use in dense changelogs. |
+| `className` | `string` | — | Extra Tailwind classes. |
+| `children` | `ReactNode` | — | `Timeline.Item` children. |
+
+### `Timeline.Item`
+
+| Prop | Type | Default | Description |
+| :--- | :--- | :--- | :--- |
+| `date` | `string \| number \| Date` | — | Entry date. Renders a localized format (e.g. `"Jul 20, 2026"`) inside a `<time>` tag. |
+| `title` | `ReactNode` | *Required* | Headline. Renders as `<h3>`. |
+| `badge` | `string \| { text, variant? }` | — | Optional accent badge beside the date. |
+| `icon` | `ReactNode` | — | Optional glyph rendered inside the dot. |
+| `variant` | `'primary' \| 'success' \| 'info' \| 'warning' \| 'danger' \| 'major' \| 'minor' \| 'patch' \| 'new' \| 'deprecated' \| 'breaking'` | `'primary'` | Dot and badge accent color. Lifecycle aliases (`major`, `minor`, etc.) map to the semantic variants. |
+| `locale` | `string` | `'en-US'` | BCP-47 locale tag for the rendered date. Pinned to `'en-US'` by default so server and client output match on hydration. Pass `'es'`, `'fr'`, etc. to translate. |
+| `className` | `string` | — | Extra Tailwind classes. |
+| `children` | `ReactNode` | — | Body content. Rendered as Markdown (paragraphs, code, links, inline Callout, etc.). |
+
+---
+
+## Accessibility
+
+- The connector line is rendered as `aria-hidden="true"` — assistive tech doesn't see it as decoration noise.
+- Each item's dot has an `aria-label` composed from the formatted date and the title so screen-reader users get the same context sighted users see.
+- Date strings render inside `<time datetime="…">` so machine readers can parse them.
+- The root timeline is rendered as `<ol role="list">` — list semantics survive the MDX compilation step (some AT modes hide native `<li>` markers).
+- Body content uses the standard prose styling (matches `Callout` and `Card`) so screen readers and keyboard nav get the same experience as the rest of the docs.
+
+---
+
+## Pitfalls
+
+- **Don't put a real `<ol>` inside the body.** The Timeline root is *already* an ordered list — wrapping children in another `<ol>` confuses AT. Use a plain `<p>` or `<Callout>` for sub-bullets.
+- **Title is required.** Each `Timeline.Item` *must* have a `title` prop. Empty titles break the aria-label fallback and produce a headerless `<li>`, which is bad for SEO and a11y.
+- **Date parsing is permissive but lossy.** Accept `string | number | Date`; bad strings degrade silently to `null` (no `<time>` element). Don't rely on validation — pass dates you control.
+- **The lifecycle variants are aliases, not separate colors.** `variant="major"` and `variant="primary"` draw with the same accent. If you ever need new colors (e.g. `urgent`), extend the variant palette in `timeline.tsx`.
+- **Compact mode only tightens spacing.** It doesn't shrink fonts or hide dates. If you want a denser look, consider `compact` + smaller `badge` strings.
+
+---
+
+## See also
+
+- [`Callout`](/docs/components) — for a single inline alert.
+- [`Card`](/docs/components) / [`Cards`](/docs/components) — for grids or feature highlights.
+- [`LastUpdated`](/docs/components) — opposite direction: a single "last updated on …" stamp at the bottom of a page.
+- The [blog index](/docs/blog) — most Boltdocs release posts use `<Timeline>` to render their changelogs.
+- [Building a Timeline from data](#building-a-timeline-from-data) — the data-driven pattern above is the recommended starting point when a plugin or CMS feeds your changelog.

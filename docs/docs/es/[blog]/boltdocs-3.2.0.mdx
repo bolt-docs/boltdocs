@@ -39,14 +39,14 @@ Esto eliminaba todo el directorio de output del build SSR. El check `serverBuild
 | Tipo de build | Antes de 3.2.0 | Después de 3.2.0 | Aceleración |
 |---------------|-----------------|-------------------|-------------|
 | Cold (primer build) | ~82s | ~78s | ~1.05x |
-| Warm (sin cambios) | ~50s | **~10s** | **~5x** |
-| Incremental (1 archivo editado) | ~50s | ~15s | **~3.3x** |
+| Warm (sin cambios) | ~50s | **~10s** | **5x** |
+| Incremental (1 archivo editado) | ~50s | ~15s | **3.3x** |
 
 El cold build apenas cambia porque el server Vite build debe ejecutarse. Pero los warm e incrementales ahora lo saltan por completo — el bundle SSR se reutiliza del build anterior.
 
 ---
 
-## Mtime cache: 5.9x más rápido en llamadas stat
+## Caché mtime: llamadas stat 5.9x más rápidas
 
 Cada `FileCache.get()` ejecutaba `fs.statSync()` para verificar si un archivo había cambiado — incluso cuando el mismo archivo se verificaba milisegundos después. Para 500 archivos en múltiples capas de caché, esto significaba miles de llamadas síncronas bloqueantes por build.
 
@@ -97,9 +97,9 @@ Para un proyecto con 500 archivos, esto reduce las llamadas stat de ~1500 a 500 
 
 ---
 
-## MDX cache: path+mtime para dev
+## Caché MDX: ruta + mtime en dev
 
-La clave del cache MDX anteriormente incluía un hash de contenido (`crypto.createHash('md5').update(code)`), lo que significaba que el cache se invalidaba en cada pulsación de tecla. En modo dev, el cache ahora usa `ruta del archivo + mtime` en su lugar:
+La clave del caché MDX anteriormente incluía un hash de contenido (`crypto.createHash('md5').update(code)`), lo que significaba que el caché se invalidaba en cada pulsación de tecla. En modo dev, el caché ahora usa `ruta del archivo + mtime` en su lugar:
 
 ```typescript
 // Antes: invalidado en cada cambio de contenido
@@ -111,13 +111,13 @@ const cacheKey = isDev
   ? `${cleanId}:${contentHash}:${isProd}:${MDX_PLUGIN_VERSION}`
 ```
 
-Esto significa que el cache de transformación MDX se reutiliza cuando reinicias el servidor de desarrollo sin cambiar ningún archivo — sin recompilar 176 archivos MDX desde cero.
+Esto significa que el caché de transformación MDX se reutiliza cuando reiniciás el servidor de desarrollo sin cambiar ningún archivo — sin recompilar 176 archivos MDX desde cero.
 
 ---
 
 ## Concurrencia acotada para parsing de rutas
 
-El parsing de rutas usaba `Promise.all(files.map(...))` con concurrencia ilimitada — lanzando todos los parsers de archivos simultáneamente. Para proyectos con cientos de archivos, esto causaba presión en memoria y contención de I/O.
+El parsing de rutas usaba `Promise.all(files.map(...))` con concurrencia ilimitada — lanzando todos los parsers simultáneamente. Para proyectos con cientos de archivos, esto causaba presión de memoria y contención de I/O.
 
 Ahora limitado a 32 workers concurrentes:
 
@@ -152,9 +152,6 @@ function getLowerModuleIndex(): Map<string, any> {
   }
   return lowerModuleIndex
 }
-
-// En cambio de archivo:
-mods = getLowerModuleIndex().get(normalized.toLowerCase()) || null
 ```
 
 El índice se invalida cuando el module graph cambia (`onFileChange`), manteniendo los lookups en O(1) y la consistencia.
@@ -163,7 +160,7 @@ El índice se invalida cuando el module graph cambia (`onFileChange`), mantenien
 
 ## docCache: sin lecturas de disco redundantes
 
-`docCache.load()` se ejecutaba en cada invocación de `generateRoutes()` — leyendo toda la caché del disco (potencialmente JSON comprimido) incluso cuando ya estaba cargada en memoria. Ahora un flag `loaded` evita la re-lectura:
+`docCache.load()` se ejecutaba en cada invocación de `generateRoutes()` — leyendo todo el cache del disco (potencialmente JSON comprimido) incluso cuando ya estaba cargado en memoria. Ahora un flag `loaded` evita la re-lectura:
 
 ```typescript
 async load(): Promise<void> {
@@ -182,7 +179,7 @@ invalidateAll(): void {
 
 ## Prewarming con priorización de rutas
 
-Anteriormente, todas las rutas se prewarmeaban en orden arbitrario. Páginas como `/docs/` y `/docs/getting-started` son visitadas primero por la mayoría de usuarios, pero no se les daba prioridad.
+Antes, todas las rutas se prewarmeaban en orden arbitrario. Páginas como `/docs/` y `/docs/getting-started` son visitadas primero por la mayoría de usuarios, pero no se les daba prioridad.
 
 Ahora las rutas se ordenan por prioridad antes de agruparlas:
 
@@ -268,13 +265,13 @@ El build ahora reporta el tiempo por pasos:
 
 ## Modo dev: sin gzip
 
-`TransformCache` estaba comprimiendo cada shard de caché con gzip al escribir — incluso en modo dev. Ahora la compresión se salta cuando `NODE_ENV !== 'production'`.
+`TransformCache` estaba comprimiendo con gzip cada shard del caché al escribir — incluso en modo dev. Ahora la compresión se salta cuando `NODE_ENV !== 'production'`.
 
 ---
 
 ## Un bundle de Mermaid que ya no viaja al navegador
 
-Si una página tiene diagramas, esperas que tarde. Mermaid.js son ~800 KB de d3, DOMPurify, motores de layout y parsers por diagrama — todo code-split on-demand. En páginas sin diagramas, 2.8.0 ya te ahorraba ~27 KB con un import dinámico. Ayudaba, pero seguía dejando casi todo el costo en las páginas que sí usaban Mermaid.
+Si una página tiene diagramas, esperás que tarde. Mermaid.js son ~800 KB de d3, DOMPurify, motores de layout y parsers por diagrama — todo code-split on-demand. En páginas sin diagramas, 2.8.0 ya te ahorraba ~27 KB con un import dinámico. Ayudaba, pero seguía dejando casi todo el costo en las páginas que sí usaban Mermaid.
 
 3.2.0 lo elimina por completo para builds de producción.
 
@@ -283,7 +280,7 @@ La arquitectura:
 1. En **build time**, el plugin Remark recorre cada bloque ```` ```mermaid ```` y lo envía a un worker persistente de Node.js (`render-worker.mjs`) que carga el motor headless de Mermaid (vía Playwright + jsdom + DOMPurify) y renderiza **ambas** variantes de tema (claro y oscuro) a SVG.
 2. Esos dos SVGs se adjuntan al componente `<Mermaid />` como props `svgLight` y `svgDark` — viajan en el output SSG como strings planos, sin fetch extra en runtime.
 3. El plugin registra un **alias de Vite** que cambia `@bdocs/plugin-mermaid/client` por `@bdocs/plugin-mermaid/client/static` cada vez que corre `vite build`. El componente estático (`mermaid-static.tsx`, servido vía el pipeline de `render-worker`) nunca referencia `mermaid` — solo hace `dangerouslySetInnerHTML` del SVG pre-renderizado.
-4. En dev el alias no se aplica, así el HMR conserva el renderer del cliente. O puedes optar explícitamente por no participar con `mermaidPlugin({ preRender: false })`.
+4. En dev el alias no se aplica, así el HMR conserva el renderer del cliente. O podés optar explícitamente por no participar con `mermaidPlugin({ preRender: false })`.
 
 <Callout type="info">
   **~800 KB de chunks code-split de Mermaid** — `architectureDiagram`, `sequenceDiagram`, d3, DOMPurify, motores de layout — salen del bundle del cliente por completo. Las páginas renderizan el diagrama como SVG inline: cero round-trip de JS, sin FOUC, sin flash de fallback.
@@ -293,44 +290,318 @@ La arquitectura:
 
 | Tipo de página | Antes de 3.2.0 | Después de 3.2.0 |
 |----------------|----------------|-------------------|
-| Página **sin** diagramas | ~0 KB de runtime mermaid (import dinámico en `useEffect`) | **~0 KB** — el componente estático nunca referencia `mermaid` |
+| Página **sin** diagramas | ~0 KB runtime mermaid (import dinámico en `useEffect`) | **~0 KB** — el componente estático nunca referencia `mermaid` |
 | Página **con** diagramas | ~800 KB de chunks mermaid cargados on-demand, luego `mermaid.initialize` + render | **~0 KB** — el SVG ya está en el HTML inicial |
-| Primer paint del diagrama | Después de que el bundle del cliente y el motor inicializan (~depende de la conexión) | **Instantáneo** — el SVG viaja con la página |
+| Primer paint del diagrama | Después de que el bundle del cliente y el motor inicializan | **Instantáneo** — el SVG viaja con la página |
 | Cambio de tema | Re-ejecuta `mermaid.initialize` y re-renderiza en cada cambio | **Instantáneo** — intercambia `svgLight` ↔ `svgDark` |
 | Llamadas a `mermaid.initialize()` en el cliente por página | 1 (una por mount) | **0** — los SVGs light/dark van serializados en el HTML |
 
 ### Trade-offs
 
-Esto es opt-out, no opt-in — usa el flag `preRender: false`. Tres cosas que saber:
+Esto es opt-out, no opt-in — usá el flag `preRender: false`. Tres cosas que saber:
 
-- **Tiempo de build**: cada bloque ```` ```mermaid ```` se renderiza a través del worker de Playwright una sola vez. Para la mayoría de proyectos añade solo unos segundos; para proyectos con miles de diagramas puede costar más (ejecuta tu propio benchmark). El worker es persistente y procesa los diagramas en secuencia, así el contexto de Playwright se mantiene caliente.
-- **Fallos de pre-render**: si Mermaid falla en un diagrama (por ejemplo, error de sintaxis), el componente estático cae al código fuente crudo en el fallback. Verás un `warn` pequeño en build time — sin crash del cliente, sin diagrama faltante.
-- **Diagramas verdaderamente dinámicos**: este camino es para SVGs estáticos. Si necesitas diagramas runtime (por ejemplo, input provisto por el usuario), usa `mermaidPlugin({ preRender: false })` y conservamos el renderer legacy del cliente. El alias retrocede automáticamente.
+- **Tiempo de build**: cada bloque ```` ```mermaid ```` se renderiza una sola vez a través del worker de Playwright. Para la mayoría de proyectos añade solo unos segundos; para proyectos con miles de diagramas puede costar más.
+- **Fallos de pre-render**: si Mermaid falla en un diagrama (por ejemplo, error de sintaxis), el componente estático cae al código fuente crudo. Verás un `warn` en build time.
+- **Diagramas verdaderamente dinámicos**: este camino es para SVGs estáticos. Si necesitás diagramas runtime, usá `mermaidPlugin({ preRender: false })`.
 
 ### Animaciones del fullscreen de Mermaid
 
-Mientras estábamos ahí, el overlay de fullscreen recibió animaciones de entrada/salida — un detalle pequeño que hace que el feel coincida con el resto del sitio.
+El overlay de fullscreen recibió animaciones de entrada/salida — un detalle pequeño que hace que el feel coincida con el resto del sitio.
 
 ---
 
 ## Otras mejoras
 
-- **`addParallelSteps()` del Pipeline** — nueva API para ejecutar pasos independientes concurrentemente, con rollback automático en fallo
+- **`addParallelSteps()` del Pipeline** — nueva API para ejecutar pasos independientes concurrentemente
 - **Skip del server build preservado entre builds** — el output SSR ahora vive bajo `.boltdocs/build/ssr/` y ya no se elimina cuando el código del cliente no ha cambiado
-- **Persistencia del meta del hash** — `hash-meta.json` para validación rápida de caché sin escaneos completos de directorio
+- **Persistencia del meta del hash** — `hash-meta.json` para validación rápida de caché
 - **Corrección del scroll de páginas externas** — removido `overflow: hidden` de `html, body`
 - **Clases Tailwind inválidas corregidas** — `from-bg-main` → `from-main`, `-z-1` → `-z-[1]`
 
 ---
 
+## Reducción del peso del paquete
+
+3.2.0 pasa las herramientas más pesadas del framework por la misma triaje que el pipeline de build: inclui en el bundle lo que se ejecuta en cada página, diferí lo que se ejecuta solo a veces, subí a `peer` lo que el consumidor ya tiene. El resultado es un install notablemente más chico, un bundle del cliente code-split, y un `node_modules` más liviano para los sitios que no usan toda la functionality.
+
+### Por qué importa
+
+El `install` de 3.1.x cargaba `react-aria-components` como dependencia dura junto al toolchain completo de pre-render de Mermaid, todos los iconos de lenguajes, y los binarios nativos del image optimizer — incluso para usuarios que nunca renderizaron un diagrama Mermaid, nunca tuvieron un code block y nunca necesitaron `sharp`/`svgo`. 3.2.0 separa el *qué* del *cuándo*.
+
+### Antes vs. después
+
+Dos categorías de "tamaño" — **bundle del cliente** (bytes que viajan al navegador) y **footprint de `node_modules`** (bytes desempaquetados en disco por install del consumidor) — medidas por separado para que puedas leer la tabla de arriba a abajo sin confusión.
+
+**Bundle del cliente — bytes que viajan al navegador (por cold load)**
+
+| Superficie | Antes de 3.2.0 | Después de 3.2.0 | Notas |
+|------------|----------------|------------------|-------|
+| `client/index.js` (puerta de entrada) | 108 KB | **108 KB** | Sin cambios en la entrada; el ahorro vive en los chunks diferidos. |
+| `icons-dev.tsx` (blob de iconos de lenguajes) en el chunk inicial | **44 KB en cada página** | **0 KB** en páginas sin code blocks; **~17 KB** en páginas que los renderizan | Los iconos de lenguajes se movieron a `lang-icons.tsx` y se cargan vía `import('./lang-icons')` dentro de `useCodeBlock`. Aparecen como un chunk separado `lang-icons-*.js`. |
+| Iconos sociales/nav en el bundle del navbar | mezclados con todo | **~1 KB aislados** en `icons-prod.tsx` | `Github`, `Discord`, `XSocial`, `Bluesky` están namespaced aparte para que layouts que no los necesiten puedan sobreescribirlos sin arrastrar el set de lenguajes. |
+
+**Footprint de `node_modules` — bytes desempaquetados (por `pnpm install`)**
+
+| Superficie | Antes de 3.2.0 | Después de 3.2.0 | Notas |
+|------------|----------------|------------------|-------|
+| `react-aria-components` (desempaquetado) | ~1 MB transitivo en `node_modules` | **0 KB** en core | Ahora un **peer requerido** — el consumidor lo instala una vez junto a React. Sin doble-bundling. |
+| Binarios nativos `sharp` + `svgo` | **~35 MB desempaquetados** en cada install del sitio | **0 KB** en core; instala solo si usás `@bdocs/plugin-image-optimizer` | Movidos a `peerDependenciesMeta.optional` del plugin de imágenes. Usuarios de Alpine ARM, musl libc o glibc viejo ya no rompen el postinstall de `sharp`. |
+| `shiki` + `@shikijs/engine-oniguruma` + `@mdx-js/rollup` | Igual que 3.1.x | Igual que 3.1.x | Quedan en `dependencies` — el CLI los importa incondicionalmente cuando corre `npx boltdocs build`. Nunca llegan al bundle del cliente. |
+| Sección `optionalDependencies` | presente (vacía) | **removida por completo** | Se elimina la "trampa del silent-install" de `optionalDependencies`. |
+| Pregunta: "¿mi sitio instala 35 MB de binarios nativos para renderizar docs?" | Sí | No — solo si optás por el image optimizer | La mayoría de los sitios dicen "no, gracias" y se ahorran el costo nativo. |
+
+### Qué cambió (semver-wise: minor)
+
+Esta release cae cómodamente en el bin **semver-minor** porque los contratos de la API pública siguen estrictos. Esta es la auditoría:
+
+1. **`react-aria-components`** — promovida de `dependencies` a peer **requerido**. Si ya usás Boltdocs, instalá una vez junto a React. Si no, el próximo `pnpm install` mostrará un peer-warning que podés ignorar si tu wrapper de framework provee React Aria, o satisfacer con `pnpm add react-aria-components`. El peer *no* está marcado como `optional`, así que un peer faltante es un install-time warning duro — pero el runtime ya lo importaba antes, así que el comportamiento binario no cambió.
+
+2. **`sharp` y `svgo`** — se movieron *fuera* de core por completo. Antes se instalaban transitivamente a través de boltdocs; ahora son peer de `@bdocs/plugin-image-optimizer` con `peerDependenciesMeta.optional: true`. Si tu sitio no usa el image optimizer, ahorrás ~35 MB de binarios nativos desempaquetados. Si lo usás, obtenés los mismos binarios — pnpm los hoistea vía las peer declarations del plugin.
+
+3. **Iconos de lenguajes en code blocks MDX** — los doce iconos de lenguajes (TypeScript, JavaScript, React, JSON, CSS, HTML, Markdown, Shell, YAML, Rust, TOML, CSV) siempre estuvieron bundleados eager en `icons-dev.tsx`. Ahora están en un módulo separado `lang-icons.tsx` cargado vía `React.lazy` dentro del hook `useCodeBlock`. Las páginas sin code blocks envían cero bytes de estos iconos; las páginas con code blocks los cargan en el primer render. Durante el SSR y la breve ventana de hidratación, se muestra el ícono genérico `File` — sin flash visual más allá de un swap de sub-frame de gris a color.
+
+4. **Iconos sociales/nav** — `Github`, `Discord`, `XSocial`, `Bluesky` se movieron a un nuevo archivo `icons-prod.tsx` que se bundlea eager con el navbar. Están tipados aparte (`IconProps`) y se exportan de su propio entry para que layouts custom puedan sobreescribirlos sin tocar el set de lenguajes.
+
+5. **Shape test** — un nuevo `packages/core/tests/package-shape.test.ts` fija el contrato de dependencias: aserta que `react-aria-components` es peer duro, `shiki`/`@shikijs/engine-oniguruma`/`@mdx-js/rollup` permanecen en `dependencies`, `sharp`/`svgo` no están en core, y `peerDependenciesMeta` está ausente por completo. Esto significa que cualquier PR futuro que re-infle el bundle falla CI antes de review.
+
+6. **Subpath exports del cliente preservados** — `'boltdocs/client'`, `'boltdocs/primitives'`, `'boltdocs/mdx'`, `'boltdocs/server'` siguen separados para que las apps puedan importar selectivamente sin sobre-bundlear.
+
+### Migración en un paste
+
+```jsonc
+// package.json
+{
+  "dependencies": {
+    // ...existentes...
+    "boltdocs": "^3.2.0",
+    // AGREGÁ esta línea (o aceptá el peer warning):
+    "react-aria-components": "^1.16.0"  // antes transitivo; ahora explícito
+  }
+}
+```
+
+Sin cambios de código. Sin cambios de configuración. El manejo de peer de plugin/image-optimizer no cambia si ya lo tenías instalado.
+
+#### Setups de CI / lockfile estrictos
+
+Los equipos que rompen builds con peer warnings (Husky pre-commit, políticas de Renovate, monorepos con `pnpm install --frozen-lockfile --strict-peer-dependencies`) necesitan una sola línea en `.npmrc` para silenciar solo este peer warning sin ocultar roturas reales:
+
+<Callout type="warn">
+  **Elegí uno, no ambos.** Usá **`.npmrc` O `.pnpmrc`**, no los dos. Elegir los dos puede duplicar el hoist o caer en una quirk de parsing de pnpm (`public-hoist-pattern[]` es sintaxis de array estilo npm; pnpm lee `.pnpmrc` como una línea por setting). La mayoría de los equipos solo necesita uno de los dos.
+</Callout>
+
+```ini
+# .npmrc
+# Permite solo el peer advisory documentado de boltdocs@3.2 → react-aria-components.
+# NO desactives globalmente los peer checks con legacy-peer-deps.
+public-hoist-pattern[]=*react-aria-components*
+```
+
+O, equivalentemente en `.pnpmrc` (sintaxis pnpm-nativa — sin corchetes):
+
+```ini
+# .pnpmrc
+# Hacés que react-aria-components sea un peer explícito y transparente en el lockfile.
+# `.pnpmrc` NO usa la sintaxis `[]` de array — la forma nativa de pnpm es sin corchetes por línea.
+public-hoist-pattern=*react-aria-components*
+peerDependencyRules.allowedVersions.react-aria-components=^1.16.0
+```
+
+**No** uses `legacy-peer-deps=true`. Eso silencia cada peer warning en todo el árbol y va a enmascarar futuras roturas reales.
+
+Leé la auditoría completa en **[Actualizar a 3.2.0 → Cambios semi-breaking](/es/guides/upgrading-3-2)**.
+
+---
+
+## Nuevo paquete `@bdocs/unist-utils`
+
+Boltdocs 3.2.0 extrae las utilidades compartidas de AST en un **paquete npm independiente**:
+`@bdocs/unist-utils`. Antes de esta release los mismos helpers (`visitNodes`,
+`createMdxElement`, `setNodeProperty`, `parseMetaString`, etc.) vivían en dos
+lugares dentro del monorepo con tipados sutilmente diferentes; ahora tienen una
+única fuente de verdad.
+
+```sh
+pnpm add @bdocs/unist-utils
+```
+
+**Por qué esto importa para autores de plugins:**
+
+- **100% del surface tipado.** Sin `any`, sin `unknown` en los límites. `Node`, `Parent`, `ElementNode`, `MdxJsxElement` están todos declarados en el paquete para que los autores de plugins puedan escribir código completamente tipado.
+- **Desacoplado de los internos de boltdocs.** Los plugins externos ya no necesitan meterse en el barrel interno de Boltdocs o escribir sus propios helpers de AST con tipos más laxos.
+- **Re-exportado por `boltdocs` para back-compat.** El código viejo que importa desde `'boltdocs'` sigue funcionando. Los proyectos nuevos deberían preferir `import ... from '@bdocs/unist-utils'`.
+
+El paquete incluye: visitors (`visitNodes`, `visitRehypeElements`, `visitMdxElements`), builders (`createMdxAttribute`, `createMdxElement`, `createRehypeElement`), helpers de h-properties, mutación de class-list (`addNodeClass`, `removeNodeClass`, `hasNodeClass`), parseo de meta strings (`parseMetaString`), y type guards.
+
+<Callout type="info">
+  Consultá la [doc completa de `@bdocs/unist-utils`](/es/plugins/unist-utils) para la referencia de API, guía de migración y ejemplos.
+</Callout>
+
+---
+
+## Plugin API enriquecida
+
+Cada hook de lifecycle de plugin ahora recibe un `PluginContext` más rico con siete namespaces enriquecidos. El subsistema de slots (`ctx.slots` / `BoltdocsPlugin.slots` / `virtual:boltdocs-layout-slots` / diagnósticos con prefijo `slots-`) se removió por completo. Los namespaces restantes — caches, diagnostics, paths, virtual modules, middleware, server, hmr — funcionan exactamente como antes:
+
+### `ctx.caches` — PluginCachesAPI
+
+Tres tipos de caché, cada uno con un scope namespaced para que los plugins nunca colisionen:
+
+```ts
+// Transform cache (sharded, hash-keyed, async)
+const cache = ctx.caches.transform('my-plugin')
+await cache.get('key')  // → string | null
+cache.set('key', value)
+
+// Routes cache (read/write/invalidate por file path)
+const route = ctx.caches.routes.get('/abs/path/page.mdx')
+ctx.caches.routes.invalidate('/abs/path/page.mdx')
+
+// In-memory FIFO cache (Map-backed, sin dependencias externas)
+const mem = ctx.caches.memory<MyType>('my-plugin', { max: 50, ttl: 60_000 })
+mem.set('key', value)
+mem.get('key')
+```
+
+### `ctx.diagnostics` — PluginDiagnosticsAPI
+
+Canal estructurado de diagnósticos en lugar de spam al logger. Los registros se acumulan en una cola FIFO capada (256 entradas) que herramientas downstream pueden drenar:
+
+```ts
+ctx.diagnostics.report(
+  'warn',
+  'MY_PLUGIN_SLOW',
+  'Transformation took 3.2s',
+  { filePath: '/abs/path/page.mdx' },
+)
+const allRecords = ctx.diagnostics.list()
+ctx.diagnostics.clear()
+```
+
+### `ctx.paths` — PluginPathsAPI
+
+Resolución segura de paths con validación anti-traversal. Cada resultado está garantizado a quedar dentro del límite del workspace, rechazando escapes `..` e inyección de paths absolutos:
+
+```ts
+const mdxFile = ctx.paths.resolveDocs('guides', 'start.mdx')
+const asset = ctx.paths.resolveAsset('public', 'logo.webp')
+const url = ctx.paths.safeFileURL('/abs/path/diagram.svg')
+
+// Throws — el path escapa del workspace
+ctx.paths.resolveDocs('../../etc/passwd')
+```
+
+### `ctx.virtualModules` — PluginVirtualModulesAPI
+
+Declará módulos virtuales que Vite resuelve y carga sin tocar el sistema de archivos. Las registrations ocurren dentro de `beforeBuild` / `beforeDev` y se flushean ante cambios de configuración:
+
+```ts
+ctx.virtualModules.add(
+  'virtual:my-plugin/theme.css',
+  () => `:root { --primary: #6366f1; }`,
+)
+```
+
+Reglas: ids duplicados lanzan error, el prefijo `virtual:boltdocs-*` está reservado, y el flag `eager` existe para futura auto-inyección.
+
+<Callout type="info">
+  Consultá la [Plugin API Reference](/es/api/plugin-api) completa. La API se separó en páginas dedicadas — [Caches](/es/api/plugin-api/caches), [Diagnostics](/es/api/plugin-api/diagnostics), [Paths](/es/api/plugin-api/paths), [Virtual Modules](/es/api/plugin-api/virtual-modules), [Middleware](/es/api/plugin-api/middleware), [Server](/es/api/plugin-api/server), y [HMR](/es/api/plugin-api/hmr).
+</Callout>
+
+---
+
+## API de Transform Middleware
+
+Los plugins ahora pueden registrar middleware de transform standalone — funciones más pequeñas y enfocadas que transforman source, MDX, o HTML en un pipeline.
+
+A diferencia de los lifecycle hooks, el middleware puede declararse estáticamente vía `BoltdocsPlugin.middleware` o registrarse programáticamente desde cualquier hook via `ctx.middleware.add()`. Cada middleware soporta orden por `enforce` y control de cadena con señales (`__signal: 'skip'` / `__signal: 'break'`):
+
+```ts
+const plugin = {
+  name: 'my-plugin',
+  middleware: [{
+    name: 'inject-copyright',
+    transformHtml: async (_ctx, { html, path }) => ({
+      html: html.replace('</body>', '<footer>© 2026</footer></body>'),
+    }),
+  }],
+}
+```
+
+Consultá la [Middleware API docs](/es/api/plugin-api#ctxmiddleware--pluginmiddlewareapi) para la referencia completa.
+
+---
+
+## Nuevo componente MDX `<Timeline>`
+
+3.2.0 trae un nuevo componente MDX de timeline vertical pensado para changelogs, notas de release, actualizaciones de estado y bitácoras de auditoría. Cada entrada tiene un punto de color enganchado a la línea conectora, una fecha y etiqueta opcionales, un título y un cuerpo en Markdown.
+
+```mdx
+<Timeline>
+  <Timeline.Item
+    date="2026-07-20"
+    title="Boltdocs 3.2.0"
+    badge="Major"
+    icon={<Sparkles />}
+  >
+    Lanzamiento de la **Plugin v3.2 API** — caches, diagnostics, paths, virtual
+    modules, middleware, server y hooks HMR. Consultá la [guía de migración](/es/blog/boltdocs-3.2.0).
+  </Timeline.Item>
+
+  <Timeline.Item
+    date="2026-06-01"
+    title="Soporte de i18n"
+    badge={{ text: 'Minor', variant: 'success' }}
+  >
+    Convención de internacionalización por filesystem, rutas conscientes de versión y prefijos SSR-safe.
+  </Timeline.Item>
+</Timeline>
+```
+
+Se renderiza como:
+
+```text
+●  20 jul 2026  [MAJOR]
+│  Boltdocs 3.2.0
+│  Lanzamiento de la Plugin v3.2 API — caches, diagnostics, paths, virtual
+│  modules, middleware, server y hooks HMR. Consultá la guía de migración.
+│
+●  1 jun 2026   [MINOR]
+│  Soporte de i18n
+│  Convención de internacionalización por filesystem, rutas conscientes de versión y prefijos SSR-safe.
+```
+
+### Qué trae
+
+- **Auto-registrado** — escribí `<Timeline>` en cualquier archivo `.mdx`. Sin import.
+- **Dos familias de variantes** — semánticas (`primary`, `success`, `info`, `warning`, `danger`) más aliases de ciclo de vida (`major`, `minor`, `patch`, `new`, `deprecated`, `breaking`).
+- **Fechas localizadas con hidratación segura** — la prop `date` se renderiza via `toLocaleDateString` con una locale fija (`'en-US'` por defecto).
+- **El cuerpo acepta Markdown completo** — párrafos, código, enlaces, `<Callout>` inline, listas.
+- **Modo compact** — `<Timeline compact>` para listas densas de cambios chicos.
+- **Generación desde datos** — cada `Timeline.Item` es un elemento React normal, así podés hacer `.map()` sobre un array JSON de releases.
+
+<Callout type="info">
+  Consultá la [doc completa de Timeline](/es/components/mdx/timeline) para ver la API completa, notas de accesibilidad y el patrón de changelog guiado por datos.
+</Callout>
+
+---
+
 ## Actualización
 
-Sin breaking changes. Actualiza y listo:
+Para la mayoría de teams, es un install de una línea:
 
 ```bash
 pnpm add boltdocs@latest
 ```
 
-Los warm builds ahora son automáticamente más rápidos — no necesitas cambios de configuración.
+Un subset pequeño de installs verá un `peerDependencies` warning de npm/pnpm:
 
-Revisa la [documentación completa](/docs/) para explorar todo lo nuevo.
+```
+boltdocs@3.2.0 requiere react-aria-components@^1.16.0 como peer
+```
+
+Satísfacélo con `pnpm add react-aria-components` (o fijá una versión menor si tu vendor de React Aria ya lo provee). Los sitios que usan `@bdocs/plugin-image-optimizer` no se ven afectados — las peer declarations del optimizer ya funcionan, y `sharp`/`svgo` se instalan via `peerDependenciesMeta.optional: true` del optimizer.
+
+Consultá **[Actualizar a 3.2.0 → Cambios semi-breaking](/es/guides/upgrading-3-2)** para la auditoría completa, snippets de `package.json` antes/después y notas por plataforma.
+
+Revisá la [documentación completa](/docs/) para explorar todo lo nuevo.

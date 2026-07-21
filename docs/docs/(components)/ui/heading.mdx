@@ -6,6 +6,10 @@ description: Accessible document title headings with automated slug anchors.
 
 The `Heading` primitive is a wrapper element that renders HTML title headers (`<h1>` to `<h6>`) and automatically appends clipboard anchor links when provided with an `id`.
 
+It maps onto a real `<h1>` through `<h6>` element (with `level` controlling which), so screen readers and SEO crawlers treat it as a real heading. The bonus is the auto-generated anchor link that copies a deep-link URL to the clipboard on click.
+
+You'll normally only use it inside MDX content where you need to inject a custom-styled heading — Boltdocs automatically generates `<Heading>` instances from `##` and `###` markdown. Reach for the primitive when you're writing a layout component or want to override heading styles.
+
 ---
 
 ## Import
@@ -70,3 +74,11 @@ The `Heading` component accepts standard HTML heading attributes plus:
 | **`anchorClassName`** | `string` | `undefined` | Custom styling overrides for the anchor anchor wrapping link element. |
 | **`className`** | `string` | `undefined` | CSS class style override for heading. |
 | **`style`** | `CSSProperties` | `undefined` | Inline style settings. |
+
+---
+
+## Pitfalls
+
+- **`level` is required.** Don't pass a non-existent level (`7+`) — React will warn at runtime. Use the right level for the semantic meaning, not because it looks pretty.
+- **`id` matters more than styling.** Even if you don't show the anchor link, an explicit `id` keeps deep links working for users reading the page in a renderer that hides anchors.
+- **`anchorIcon` is meant to be replaced.** The default is `Link` from `lucide-react`. If your theme uses a different visual identity (e.g. `#`), pass it through.

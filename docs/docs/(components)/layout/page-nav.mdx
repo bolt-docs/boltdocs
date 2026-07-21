@@ -6,13 +6,18 @@ description: Previous/next page navigation buttons rendered at the bottom of pag
 
 The `PageNav` component displays navigation controls at the bottom of pages, pointing readers to the logically preceding or following chapters.
 
+It walks the sidebar `routes` tree to find the previous and next sibling — same logic that powers most docs sites — and hands them to your layout via the `usePageNav()` hook. You decide what they look like: pill buttons, full-width cards with descriptions, or just plain chevrons.
+
 ---
 
 ## Import
 
 ```tsx
 import { PageNav } from 'boltdocs/primitives'
+import { usePageNav } from 'boltdocs/client'
 ```
+
+The `usePageNav` hook resolves the previous and next routes relative to `currentRoute` in the sidebar tree. Note the field names: the hook returns `{ prev, next }`, not `{ prevPage, nextPage }` — older docs sometimes carry the longer name, double-check if you're copy-pasting.
 
 ---
 
@@ -27,16 +32,16 @@ import { PageNav } from 'boltdocs/primitives'
 import { usePageNav } from 'boltdocs/client'
 
 export default function CustomFooterNav() {
-  const { prevPage, nextPage } = usePageNav()
+  const { prev, next } = usePageNav()
 
-  if (!prevPage && !nextPage) return null
+  if (!prev && !next) return null
 
   return (
     <PageNav.Root className="border-t border-subtle pt-8 mt-12 grid grid-cols-2 gap-4">
       {/* 1. Previous Page Direction */}
-      {prevPage ? (
+      {prev ? (
         <PageNav.Link
-          to={prevPage.path}
+          to={prev.path}
           direction="prev"
           className="group p-4 rounded-xl border border-zinc-200 dark:border-zinc-800 hover:border-primary-500 transition-colors"
         >
@@ -44,7 +49,7 @@ export default function CustomFooterNav() {
             Previous Chapter
           </PageNav.Title>
           <PageNav.Description className="text-sm font-semibold text-zinc-800 dark:text-zinc-200 mt-1">
-            {prevPage.title}
+            {prev.title}
           </PageNav.Description>
         </PageNav.Link>
       ) : (
@@ -52,9 +57,9 @@ export default function CustomFooterNav() {
       )}
 
       {/* 2. Next Page Direction */}
-      {nextPage ? (
+      {next ? (
         <PageNav.Link
-          to={nextPage.path}
+          to={next.path}
           direction="next"
           className="group p-4 rounded-xl border border-zinc-200 dark:border-zinc-800 hover:border-primary-500 transition-colors text-right"
         >
@@ -62,7 +67,7 @@ export default function CustomFooterNav() {
             Next Chapter
           </PageNav.Title>
           <PageNav.Description className="text-sm font-semibold text-zinc-800 dark:text-zinc-200 mt-1">
-            {nextPage.title}
+            {next.title}
           </PageNav.Description>
         </PageNav.Link>
       ) : (
@@ -72,6 +77,14 @@ export default function CustomFooterNav() {
   )
 }
 ```
+
+---
+
+## Common pitfalls
+
+- **`usePageNav` is route-aware**, not block-aware. It does not match by `frontmatter.tags` or any other field — strictly the order in the sidebar tree. If you need richer "related pages" behaviour, build it manually with `useRoutes()` + `currentRoute.frontmatter.tags`.
+- **`prevPage` / `nextPage` are nullable** at the boundaries of the route graph. Don't render a `<PageNav.Link>` for a missing direction — render an empty `<div />` (as in the example) so the surviving link doesn't lose its grid column.
+- **The dispatch event is SPA, not hard navigation.** Boltdocs routes the click through React Router — clicking next-page works without a full reload.
 
 ---
 

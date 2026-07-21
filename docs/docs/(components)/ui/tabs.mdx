@@ -6,6 +6,10 @@ description: Composable layout tabs container for toggling between views.
 
 The `Tabs` primitive provides a modular, keyboard-navigable component structure for organizing content into discrete pane directories.
 
+It's built on `react-aria-components` `Tabs`, so you keep roving tabindex, arrow-key navigation, focus management, and the right aria roles for free. Boltdocs wires Tailwind classes that match the design system — you bring the structure.
+
+Reach for `Tabs` when you want a small set of mutually exclusive views. For 2–6 short pieces of related content, `Tabs` is usually right; for navigation between full pages, use [Sidebar](/docs/components/layout/sidebar) + [OnThisPage](/docs/components/layout/on-this-page) instead.
+
 ---
 
 ## Import
@@ -98,3 +102,11 @@ The `Tabs` primitive provides the following namespaces for layout customisation:
 | Property | Type | Default | Description |
 | :--- | :--- | :--- | :--- |
 | **`style`** | `CSSProperties` | `undefined` | Dynamic coordinates mapping styles (e.g. `transform`, `width`). |
+
+---
+
+## Pitfalls
+
+- **`Tabs.Item` is `selected`, not `isSelected`.** React Aria's lower-level API uses `isSelected`; this primitive aliases it to `selected` for the common controlled-state flow.
+- **Keyboard navigation is automatic.** You don't need to wire arrow-key handlers. If you have to, you're probably fighting the primitive — switch to `Tabs` from `react-aria-components` directly.
+- **Each `Tabs.Item` needs an id.** The id matches a `<Tabs.Panel id="...">` for the accessible label association; the example above uses `activeTab` state to drive the panel manually because the layout decoupled panels from tabs.

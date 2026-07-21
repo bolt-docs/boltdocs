@@ -1,106 +1,134 @@
 ---
 title: Components
 sidebarPosition: 1
-description: Complete reference for Boltdocs components — MDX content components and layout primitives.
+description: Every component Boltdocs ships, organized by purpose — from MDX content helpers to layout primitives.
 ---
 
-Boltdocs provides three categories of components:
+# Components
 
-1. **MDX Components** — Available inside `.mdx` content files.
-2. **Layout Primitives** — Structural components for composing custom documentation page layouts.
-3. **UI Primitives** — Modular, fully accessible interface controls.
+Boltdocs ships a small, deliberate set of components you can use straight out of the box or pull apart to build whatever you want on top of it. There are three flavors:
+
+- **MDX components** — drop them into any `.mdx` file. They render prose, cards, callouts, and diagrams.
+- **Layout primitives** — unstyled building blocks for assembling a custom docs page. Designed for composition.
+- **UI primitives** — accessible, themeable controls (button, tabs, menu, popover, tooltip, etc.) for use in custom components.
+
+If you only ever import `DocsLayout` from `'boltdocs/primitives'`, you'll get a fully styled layout for free. If you want to take the wheel, every visual primitive is also exported plain so you can wrap your own theme around it.
 
 ---
 
-## MDX Components
+## MDX components
 
-These components are automatically registered globally and available in every `.mdx` file:
+These are auto-registered globally. Import them in any `.mdx` file — no `import` needed:
 
-| Component | Description |
+| Component | What it does |
 | :--- | :--- |
-| **`<Callout>`** | Alert boxes with variants: note, info, tip, warning, danger. |
-| **`<Card>` / `<Cards>`** | Grid of clickable cards for dashboard navigation. |
-| **`<Field>`** | Inline API property descriptor rows. |
-| **`<Image>`** | Theme-aware layout-friendly images with legends. |
-| **`<Mermaid>`** | Diagram rendering block (requires mermaid plugin). |
-
----
-
-## Layout Primitives
-
-Structural components exported from `'boltdocs/primitives'` used to construct custom documentation layouts:
-
-| Component | Description |
-| :--- | :--- |
-| **`DocsLayout`** | Main shell container for the docs page grid. |
-| **`Navbar`** | Top header navigation bar with tabs and triggers. |
-| **`Sidebar`** | Left sidebar directory navigation list. |
-| **`SearchDialog`** | Accessible overlay search dialog modal. |
-| **`OnThisPage`** | Right column table of contents scroll-spy tracker. |
-| **`Breadcrumbs`** | Inline path tracker breadcrumb bar. |
-| **`PageNav`** | Pager navigation links for adjacent pages. |
-| **`ErrorBoundary`** | Interactive React runtime error boundary. |
-
----
-
-## UI Primitives
-
-Generic accessible user interface components exported from `'boltdocs/primitives'`:
-
-| Component | Description |
-| :--- | :--- |
-| **`Button`** | Accessible press trigger wrapping React Aria. |
-| **`ButtonGroup`** | Layout container grouping adjacent buttons. |
-| **`Tabs`** | Composable tabbed panel switcher. |
-| **`Popover`** | Floating contextual overlay dialog. |
-| **`Tooltip`** | Hover/focus popup helper label bubble. |
-| **`Link`** | Localized SPA routing anchor tag. |
-| **`Heading`** | Renders HTML headings with automated anchor links. |
-| **`Menu`** | Dropdown option action and nesting selection menus. |
-| **`Skeleton`** | Pulsing loading state placeholder. |
-
----
-
-## Quick Start
-
-### Using MDX Components
+| **`<Callout>`** | Alert boxes with `note`, `info`, `tip`, `warning`, `danger` variants. |
+| **`<Card>` / `<Cards>`** | Grid of clickable navigation cards for dashboards and section indexes. |
+| **`<Field>`** | Inline API property descriptor rows (used in plugin API docs). |
+| **`<Image>`** | Theme-aware images with optional legends and captions. |
+| **`<Mermaid>`** | Renders Mermaid diagrams (requires the `@bdocs/plugin-mermaid` plugin). |
+| **`<Timeline>`** | A vertical timeline of dated entries for changelogs, release notes, and status logs. |
 
 ```mdx
-<Callout variant="tip" title="Pro Tip">
-  Use Cards to link to related pages!
+<Callout type="tip" title="Heads up">
+  Combine `<Cards>` with hyperlinks to build a section index page that reads
+  like a table of contents.
 </Callout>
 
 <Cards>
   <Card title="Installation" href="/docs/guides/getting-started/installation">
-    Get started in 2 minutes
+    Get going in two minutes.
+  </Card>
+  <Card title="Configuration" href="/docs/guides/getting-started/configuration">
+    Tune Boltdocs to your project.
   </Card>
 </Cards>
+
+## A taste of `<Timeline>`
+
+Changelogs, status updates, release notes — any chronological list inside MDX:
+
+```mdx
+<Timeline>
+  <Timeline.Item date="2026-07-20" title="Plugin v3.2 API" badge="Major" icon={<Sparkles />}>
+    New hooks for caches, diagnostics, paths, virtual modules, middleware, server, and HMR.
+  </Timeline.Item>
+  <Timeline.Item date="2026-06-01" title="i18n support" badge={{ text: 'Minor', variant: 'success' }}>
+    Locale filesystem convention and version-aware routes.
+  </Timeline.Item>
+  <Timeline.Item date="2026-05-15" title="Removed legacy slots" badge={{ text: 'Breaking', variant: 'danger' }}>
+    Plugin-side slot system deleted — see the migration guide.
+  </Timeline.Item>
+</Timeline>
 ```
 
-### Using Primitives
-
-```tsx
-import { Navbar, Sidebar, OnThisPage } from 'boltdocs/primitives'
-
-export function MyLayout({ children, headings }) {
-  return (
-    <div>
-      <Navbar />
-      <div className="flex">
-        <Sidebar />
-        <main>{children}</main>
-        <OnThisPage headings={headings} />
-      </div>
-    </div>
-  )
-}
+Full reference (props, variant palette, accessibility, common patterns) lives at [`Timeline`](/docs/components/mdx/timeline).
 ```
 
 ---
 
-## Related Sections
+## Layout primitives
 
-- [MDX Components](/docs/components/mdx/callout) — Callout, Card, Field, Image, and Mermaid component references.
-- [Layout Primitives](/docs/components/layout/docs-layout) — Core structural components like Navbar, Sidebar, and DocsLayout.
-- [UI Primitives](/docs/components/ui/button) — Generic accessible primitives like Button, Tabs, Menu, and Popover.
-- [Custom Layouts](/docs/guides/advanced/custom-layout) — Build your own docs layout from scratch.
+These live in `'boltdocs/primitives'`. Each is a *small, unstyled React component* — the default `DocsLayout` uses them, and so can you:
+
+| Component | Purpose |
+| :--- | :--- |
+| **[`DocsLayout`](/docs/components/layout/docs-layout)** | The page shell. Wires navbar + sidebar + content + ToC + footer. |
+| **[`Navbar`](/docs/components/layout/navbar)** | Top header — branding, links, search trigger, theme toggles. |
+| **[`Sidebar`](/docs/components/layout/sidebar)** | Left directory navigation with grouping and collapsible sub-trees. |
+| **[`SearchDialog`](/docs/components/layout/search-dialog)** | Cmd+K command palette overlay (built on React Aria). |
+| **[`OnThisPage`](/docs/components/layout/on-this-page)** | Right-rail scroll-spy table of contents. |
+| **[`Breadcrumbs`](/docs/components/layout/breadcrumbs)** | Hierarchical location indicator above the page title. |
+| **[`PageNav`](/docs/components/layout/page-nav)** | Previous / next page links rendered below content. |
+| **[`CodeBlock`](/docs/components/layout/code-block)** | The shell around every highlighted code fence. |
+| **[`ErrorBoundary`](/docs/components/layout/error-boundary)** | Catches render errors and shows your custom fallback. |
+
+The default layout composes these in a sensible way so you can ship in minutes. To build something custom, copy the example from the [custom layout guide](/docs/guides/advanced/custom-layout) and substitute your own pieces.
+
+---
+
+## UI primitives
+
+These are reusable building blocks. They sit below layout-level concerns — use them inside MDX, in plugin components, or in your custom UI:
+
+| Component | Purpose |
+| :--- | :--- |
+| **[`Button`](/docs/components/ui/button)** | Accessible press trigger with proper keyboard, focus, and aria semantics. |
+| **[`ButtonGroup`](/docs/components/ui/button-group)** | Lays out a row or column of buttons with consistent spacing. |
+| **[`Tabs`](/docs/components/ui/tabs)** | Keyboard-navigable panel switcher. |
+| **[`Menu`](/docs/components/ui/menu)** | Dropdown menu with sections, nested sub-menus, and checkboxes. |
+| **[`Popover`](/docs/components/ui/popover)** | Floating contextual overlay positioned to a trigger. |
+| **[`Tooltip`](/docs/components/ui/tooltip)** | Hover/focus popup for helper labels. |
+| **[`Link`](/docs/components/ui/link)** | Localized SPA router `Link` (works with `useLocalizedTo`). |
+| **[`Heading`](/docs/components/ui/heading)** | Renders HTML headings with optional anchor links. |
+| **[`Skeleton`](/docs/components/ui/skeleton)** | Pulsing placeholder for loading states. |
+
+---
+
+## How the pieces fit together
+
+A Boltdocs page is basically: **MDX content rendered into a layout built from primitives.** That's the whole pipeline:
+
+```text
+┌─ DocsLayout ───────────────────────────────────────────┐
+│  ┌─ Navbar ─────────────────────────────────────────┐  │
+│  └──────────────────────────────────────────────────┘  │
+│  ┌─ Sidebar ─┐  ┌─ Content ──────────┐  ┌─ OnThisPage ┐ │
+│  │  items    │  │  Breadcrumbs       │  │   scroll    │ │
+│  │  groups   │  │  Heading           │  │   spy       │ │
+│  │  badges   │  │  MDX components    │  │             │ │
+│  │           │  │  PageNav           │  │             │ │
+│  └───────────┘  └────────────────────┘  └─────────────┘ │
+└────────────────────────────────────────────────────────┘
+```
+
+Every piece on the right side of the diagram is itself a tiny component. If you don't like our defaults, swap any of them in your [`layout.tsx`](/docs/guides/advanced/custom-layout).
+
+---
+
+## Where to next
+
+- **Quick start** — read the [MDX Components](/docs/components/mdx/callout) reference for prose helpers.
+- **Theming** — see [Theme & Styling](/docs/guides/styling) to learn how Boltdocs wires Tailwind tokens.
+- **Custom layout** — see [Custom Layouts](/docs/guides/advanced/custom-layout) when you're ready to stop using the default `DocsLayout` and assemble your own.
+- **API reference** — [`/docs/api`](/docs/api) covers hooks, utilities, and the config schema.

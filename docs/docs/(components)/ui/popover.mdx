@@ -6,6 +6,10 @@ description: Overlay container primitive displaying contextual popups.
 
 The `Popover` primitive is an overlay container used to render custom menus, tooltips, selection forms, or contextual popup widgets triggered by anchor buttons.
 
+It's the *free-form* sibling of `Menu` — pick this when your popover content isn't a list of choices (e.g. a settings form, an inline editor, a color picker). The `Menu` primitive gives you list semantics for free; `Popover` doesn't, but neither does it lock you into one.
+
+Use `Popover` when you want: an editor popovers anchored to a button, a colour picker palette, an inline `+ New` widget, or any other content that doesn't fit the menu listbox model.
+
 ---
 
 ## Import
@@ -57,3 +61,11 @@ The `Popover` component wraps React Aria's `Popover` properties:
 | **`children`** | `ReactNode` | *Required* | Child elements to render inside the popover overlay content frame. |
 | **`className`** | `string` | `undefined` | Custom CSS utility class overrides. |
 | **`style`** | `CSSProperties` | `undefined` | Inline styling overrides. |
+
+---
+
+## Pitfalls
+
+- **Popovers render inside a React portal.** `position: fixed` works as expected; `transform: translate(...)` doesn't compose with React Aria's positioning math — use the `placement` / `offset` props instead.
+- **Focus trap** is on by default. Use `DialogTrigger` (already in the example) — `Popover` alone is *not* a dialog and won't lock focus, so for interactive long-form content prefer `<Dialog>`.
+- **Clicks outside close the popover.** Set `isDismissable={false}` if you want explicit close behaviour — but then `Escape` *still* closes it. React Aria consistency wins.

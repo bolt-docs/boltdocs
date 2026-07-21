@@ -6,6 +6,10 @@ description: Error boundary container for catching rendering errors in documenta
 
 The `ErrorBoundary` component catches unexpected JavaScript exceptions in its descendant components and displays a clean, user-friendly fallback view rather than crashing the entire page.
 
+It's backed by [`react-error-boundary`](https://github.com/bvaughn/react-error-boundary) under the hood — you get the API a hundred tutorials already document, plus Boltdocs' default `ErrorBoundaryFallback` that already looks reasonable.
+
+Use it around: heavy plugin widgets, third-party `<Mermaid>` blocks, any future MDX content you don't 100% trust, and the article body inside `DocsLayout.ContentMdx`.
+
 ---
 
 ## Import

@@ -39,8 +39,8 @@ This deleted the entire SSR build output directory. The next build's `serverBuil
 | Build type | Before 3.2.0 | After 3.2.0 | Speedup |
 |------------|--------------|-------------|---------|
 | Cold (first build) | ~82s | ~78s | ~1.05x |
-| Warm (no changes) | ~50s | **~10s** | **~5x** |
-| Incremental (1 file edit) | ~50s | ~15s | **~3.3x** |
+| Warm (no changes) | ~50s | **~10s** | **5x faster** |
+| Incremental (1 file edit) | ~50s | ~15s | **3.3x faster** |
 
 The cold build barely changes because the server Vite build must run. But warm and incremental builds now skip it entirely — the server bundle is reused from the previous build.
 
@@ -199,9 +199,35 @@ The delay was also increased from 0ms to 150ms, giving the first page request a 
 
 ---
 
-## Shiki WASM engine
+## Shiki: highlight at build time, zero client cost
 
-Syntax highlighting now uses the WASM-based Oniguruma engine instead of the JavaScript regex engine:
+Syntax highlighting never ships Shiki to the browser. The highlighter runs only during MDX transform (dev and production build). Tokens are baked into the page as real HTML elements — the client just paints spans.
+
+Here's the architecture:
+
+1. At **build time**, the rehype plugin walks every ```` ```lang ```` fence (except Mermaid), resolves light/dark themes from `theme.codeTheme`, and runs Shiki's `codeToHast`.
+2. The highlighted HAST tree is **injected into the document tree** — children and properties of the `<pre>` are replaced in place. There is no giant `data-highlighted-html` string attribute and no client-side re-tokenization.
+3. **Dual themes** (`light` + `dark`) are encoded on each token via CSS variables, so theme switches are pure CSS — no re-highlight, no second copy of the highlighter.
+4. The client `CodeBlock` component wraps that pre-rendered markup (copy button, expand, feedback). It never imports `shiki`, Oniguruma, or language grammars.
+
+<Callout type="info">
+  **Shiki stays on the server.** Grammars, themes, and the Oniguruma WASM engine load only in Node during transform. The browser receives static HTML with token colors already applied — same idea as Mermaid pre-render, for every code block.
+</Callout>
+
+### Before vs. after (client payload)
+
+| Concern | Client-side highlighter | Boltdocs (build-time Shiki) |
+|---------|-------------------------|-----------------------------|
+| Shiki + WASM + grammars in the bundle | Hundreds of KB–MB | **0 KB** — never imported on the client |
+| First paint of a code block | After JS loads and tokenizes | **Instant** — spans ship with the page |
+| Light/dark switch | Re-highlight or ship two full trees | **CSS variables** on each token |
+| Runtime `createHighlighter` / `codeToHtml` | Per page or lazy chunk | **0** — only runs in the MDX pipeline |
+
+Trade-off: the **HTML grows** (one styled span per token), but the **JS bundle does not include Shiki**. That is the intentional swap for docs sites where code blocks are static content.
+
+### WASM Oniguruma engine
+
+Build-time highlighting also got faster: the engine is now WASM Oniguruma instead of the JavaScript regex engine:
 
 ```typescript
 // Before
@@ -323,14 +349,309 @@ While we were in there, the fullscreen overlay picked up entrance/exit animation
 
 ---
 
+## Package weight reduction
+
+3.2.0 passes the heaviest tools in the framework through the same triage as the build pipeline: bundle what runs every page, defer what runs only sometimes, hoist to peers what the consumer already needs anyway. The result is a noticeably smaller install, a code-split client bundle, and a leaner `node_modules` for sites that don't use every feature.
+
+### Why this matters
+
+The 3.1.x `install` carried `react-aria-components` as a hard dependency alongside the entire Mermaid pre-render toolchain, language icons, and the image optimizer native binaries — even for users who never rendered a Mermaid diagram, never had a code block, and never felt a need for sharp/svgo. 3.2.0 separates the *what* from the *when*.
+
+### Before vs. after
+
+Two categories of "size" — **client bundle** (bytes shipped to every browser) and **`node_modules` footprint** (bytes unpacked on disk per consumer install) — measured separately so you can read the table top-to-bottom without confusion.
+
+**Client bundle — bytes shipped to browsers (per cold-load)**
+
+| Surface | Before 3.2.0 | After 3.2.0 | Notes |
+|---------|--------------|-------------|-------|
+| `client/index.js` (front door) | 108 KB | **108 KB** | Unchanged at the entry; savings are in deferred chunks. |
+| `icons-dev.tsx` language icon blob in the initial chunk | **44 KB on every page** | **0 KB** on pages without code blocks; **~17 KB** on pages that render them | Lang icons moved to `lang-icons.tsx` and loaded via `import('./lang-icons')` inside `useCodeBlock`. Appears as a separate `lang-icons-*.js` chunk in the build output. |
+| Social/nav icons in the navbar bundle | bundled with everything | **~1 KB isolated** in `icons-prod.tsx` | `Github`, `Discord`, `XSocial`, `Bluesky` are namespaced separately so layouts that don't need them can override without dragging the language set along. |
+
+**`node_modules` footprint — bytes unpacked on disk (per `pnpm install`)**
+
+| Surface | Before 3.2.0 | After 3.2.0 | Notes |
+|---------|--------------|-------------|-------|
+| `react-aria-components` (unpacked) | ~1 MB transitively in `node_modules` | **0 KB** in core | Now a **required peer** — consumers install it once alongside React. No double-bundling. |
+| `sharp` + `svgo` native binaries | **~35 MB unpacked** for every site install | **0 KB** in core; install only if you use `@bdocs/plugin-image-optimizer` | Moved out of core into the image plugin's `peerDependenciesMeta.optional`. Alpine ARM, musl libc, and old glibc users no longer hit hard `sharp` postinstall failures during `boltdocs` install. |
+| `shiki` + `@shikijs/engine-oniguruma` + `@mdx-js/rollup` | Same as 3.1.x | Same as 3.1.x | Stayed in `dependencies` — the CLI unconditionally imports them when `npx boltdocs build` runs. They never reach the client bundle. |
+| `optionalDependencies` section | present (empty) | **removed entirely** | The "silent-install trap" of `optionalDependencies` is gone. |
+| Question: "does my site install 35 MB of native binaries to render docs?" | Yes | No — only if you opt into the image optimizer | Most sites just say "no thanks" and skip the native cost. |
+
+### What changed (semver-wise: minor)
+
+This release sits comfortably in the documented **semver-minor** bin because the public API contracts remain strict. Here's the audit:
+
+1. **`react-aria-components`** — promoted from `dependencies` to a **required** peer. If you already use Boltdocs, install it once alongside React. If you don't, the next `pnpm install` will surface a peer-warning that you can ignore if your framework wrapper provides React Aria, or satisfy with `pnpm add react-aria-components`. The peer is *not* marked `optional`, so a missing peer is a hard install-time warning — but the *runtime* was already importing it before, so the binary behavior is unchanged.
+
+2. **`sharp` and `svgo`** — they moved *out* of core entirely. They used to be transitively installed through boltdocs; now they're a peer of `@bdocs/plugin-image-optimizer` with `peerDependenciesMeta.optional: true`. If your site doesn't use the image optimizer, you save ~35 MB of unpacked native binaries. If you do use it, you get the same binaries — pnpm hoists them via the plugin's own peer declarations.
+
+3. **Lang icons in MDX code blocks** — twelve language icons (TypeScript, JavaScript, React, JSON, CSS, HTML, Markdown, Shell, YAML, Rust, TOML, CSV) were always eagerly bundled in `icons-dev.tsx`. They are now in a separate `lang-icons.tsx` module loaded via `React.lazy` inside the `useCodeBlock` hook. Pages without code blocks ship zero bytes of these icons; pages with code blocks load them on first render. During SSR and the brief hydration window, the generic `File` icon is rendered — same as before, no visual flash beyond a sub-frame swap from gray to colored icons.
+
+4. **Social/nav icons** — `Github`, `Discord`, `XSocial`, `Bluesky` moved into a new `icons-prod.tsx` file that's eagerly bundled with the navbar. They're separately typed (`IconProps`) and exported from their own entry so end-user custom layouts can override them without touching the language icon set.
+
+5. **Shape test** — a new `packages/core/tests/package-shape.test.ts` pins the dependency contract: it asserts `react-aria-components` is a hard peer, `shiki`/`@shikijs/engine-oniguruma`/`@mdx-js/rollup` remain in `dependencies`, `sharp`/`svgo` are not in core, and `peerDependenciesMeta` is absent entirely. This means any future PR that re-bloats the surface area fails CI before review.
+
+6. **Client subpath exports preserved** — `'boltdocs/client'`, `'boltdocs/primitives'`, `'boltdocs/mdx'`, `'boltdocs/server'` remain split so apps can selectively import what they need without over-bundling.
+
+### Migration in one paste
+
+```jsonc
+// package.json
+{
+  "dependencies": {
+    // ...existing...
+    "boltdocs": "^3.2.0",
+    // ADD this one line (or accept the peer warning):
+    "react-aria-components": "^1.16.0"  // was transitive; now needed explicitly
+  }
+}
+```
+
+No code changes. No config changes. Plugin/image-optimizer peer handling is unchanged if you already had it installed.
+
+#### CI / lockfile-strict setups
+
+Teams that hard-fail builds on peer warnings (Husky pre-commit, Renovate policies, monorepos with `pnpm install --frozen-lockfile --strict-peer-dependencies`) need a single line in `.npmrc` to silence only this peer warning without hiding real breakage:
+
+<Callout type="warn">
+  **Pick one, not both.** Use **either** `.npmrc` OR `.pnpmrc`, not both. Picking both can double-hoist or hit a pnpm parsing quirk (`public-hoist-pattern[]` is npm-style array syntax; pnpm reads `.pnpmrc` as bracket-less per-line). Most teams only need one of the two.
+</Callout>
+
+```ini
+# .npmrc
+# Allow the documented boltdocs@3.2 → react-aria-components peer advisory only.
+# Do NOT blanket-disable peer checks with legacy-peer-deps.
+public-hoist-pattern[]=*react-aria-components*
+```
+
+Or, equivalently in `.pnpmrc` (pnpm-native syntax — no brackets):
+
+```ini
+# .pnpmrc
+# Make react-aria-components an explicit, transparent peer in your lockfile.
+# `.pnpmrc` does NOT use the `[]` array syntax — pnpm-native is comma-less per-line.
+public-hoist-pattern=*react-aria-components*
+peerDependencyRules.allowedVersions.react-aria-components=^1.16.0
+```
+
+**Don't** use `legacy-peer-deps=true`. That silences every peer warning across the tree and will mask future real breakages.
+
+Read the full audit in **[Upgrading to 3.2.0 → Semi-breaking changes](/docs/guides/upgrading-3-2)**.
+
+---
+
+## New `@bdocs/unist-utils` Package
+
+Boltdocs 3.2.0 extracts the shared AST utilities into a **standalone npm package**:
+`@bdocs/unist-utils`. Before this release the same helpers (`visitNodes`,
+`createMdxElement`, `setNodeProperty`, `parseMetaString`, etc.) lived in two
+places inside the monorepo with subtly different typings; now they have a single
+source of truth.
+
+```sh
+pnpm add @bdocs/unist-utils
+```
+
+**Why this matters for plugin authors:**
+
+- **100% typed surface.** No `any`, no `unknown` at the boundaries. `Node`, `Parent`, `ElementNode`, `MdxJsxElement` are all declared in the package so plugin authors can write fully typed code.
+- **Decoupled from boltdocs internals.** External plugins no longer need to reach into Boltdocs' internal barrel or write their own AST helpers with looser types.
+- **Re-exported by `boltdocs` for back-compat.** Old code importing from `'boltdocs'` keeps working. New projects should prefer `import ... from '@bdocs/unist-utils'`.
+
+The package includes: visitors (`visitNodes`, `visitRehypeElements`, `visitMdxElements`), builders (`createMdxAttribute`, `createMdxElement`, `createRehypeElement`), h-properties helpers, class-list mutation (`addNodeClass`, `removeNodeClass`, `hasNodeClass`), meta string parsing (`parseMetaString`), and type guards.
+
+<Callout type="info">
+  See the [full `@bdocs/unist-utils` docs](/docs/plugins/unist-utils) for API reference, migration guide, and examples.
+</Callout>
+
+---
+
+## Enriched Plugin API
+
+Every plugin lifecycle hook now receives a richer `PluginContext` with seven
+enriched namespaces. The slot subsystem (`ctx.slots` / `BoltdocsPlugin.slots` /
+`virtual:boltdocs-layout-slots` / `slots`-prefixed diagnostics) has been
+removed entirely. The remaining namespaces — caches, diagnostics, paths,
+virtual modules, middleware, server, hmr — work exactly as before:
+
+### `ctx.caches` — PluginCachesAPI
+
+Three cache types, each bound to a namespaced scope so plugins never collide:
+
+```ts
+// Transform cache (sharded, hash-keyed, async)
+const cache = ctx.caches.transform('my-plugin')
+await cache.get('key')  // → string | null
+cache.set('key', value)
+
+// Routes cache (read/write/invalidate by file path)
+const route = ctx.caches.routes.get('/abs/path/page.mdx')
+ctx.caches.routes.invalidate('/abs/path/page.mdx')
+
+// In-memory FIFO cache (Map-backed, no external deps)
+const mem = ctx.caches.memory<MyType>('my-plugin', { max: 50, ttl: 60_000 })
+mem.set('key', value)
+mem.get('key')
+```
+
+### `ctx.diagnostics` — PluginDiagnosticsAPI
+
+Structured diagnostics channel instead of logger spam. Records accumulate in a
+FIFO-capped queue (256 entries) that downstream tools can drain:
+
+```ts
+ctx.diagnostics.report(
+  'warn',
+  'MY_PLUGIN_SLOW',
+  'Transformation took 3.2s',
+  { filePath: '/abs/path/page.mdx' },
+)
+const allRecords = ctx.diagnostics.list()
+ctx.diagnostics.clear()
+```
+
+### `ctx.paths` — PluginPathsAPI
+
+Safe path resolution with anti-traversal validation. Every result is guaranteed
+to stay inside the workspace boundary, rejecting `..` escapes and absolute path
+injection:
+
+```ts
+const mdxFile = ctx.paths.resolveDocs('guides', 'start.mdx')
+const asset = ctx.paths.resolveAsset('public', 'logo.webp')
+const url = ctx.paths.safeFileURL('/abs/path/diagram.svg')
+
+// Throws — path escapes the workspace
+ctx.paths.resolveDocs('../../etc/passwd')
+```
+
+### `ctx.virtualModules` — PluginVirtualModulesAPI
+
+Declare virtual modules that Vite resolves and loads without touching the file
+system. Registrations happen inside `beforeBuild` / `beforeDev` and are flushed
+on config change:
+
+```ts
+ctx.virtualModules.add(
+  'virtual:my-plugin/theme.css',
+  () => `:root { --primary: #6366f1; }`,
+)
+```
+
+Registration rules: duplicate ids throw, `virtual:boltdocs-*` prefix is
+reserved, and the `eager` flag exists for future auto-injection.
+
+<Callout type="info">
+  See the [Plugin API Reference](/docs/api/plugin-api) for the complete
+  reference with all method signatures and a worked example. The API
+  is now split into dedicated pages — [Caches](/docs/api/plugin-api/caches),
+  [Diagnostics](/docs/api/plugin-api/diagnostics), [Paths](/docs/api/plugin-api/paths),
+  [Virtual Modules](/docs/api/plugin-api/virtual-modules),
+  [Middleware](/docs/api/plugin-api/middleware), [Server](/docs/api/plugin-api/server),
+  and [HMR](/docs/api/plugin-api/hmr).
+</Callout>
+
+---
+
+## Transform Middleware API
+
+Plugins can now register standalone transform middleware — smaller, focused
+functions that transform source, MDX, or HTML content in a pipeline.
+
+Unlike lifecycle hooks, middleware can be declared statically via
+`BoltdocsPlugin.middleware` or registered programmatically from any hook
+via `ctx.middleware.add()`. Each middleware supports `enforce` ordering
+and signal-based chain control (`__signal: 'skip'` / `__signal: 'break'`):
+
+```ts
+const plugin = {
+  name: 'my-plugin',
+  middleware: [{
+    name: 'inject-copyright',
+    transformHtml: async (_ctx, { html, path }) => ({
+      html: html.replace('</body>', '<footer>© 2026</footer></body>'),
+    }),
+  }],
+}
+```
+
+See the [Middleware API docs](/docs/api/plugin-api#ctxmiddleware--pluginmiddlewareapi)
+for the full reference.
+
+---
+
+## New `<Timeline>` MDX component
+
+3.2.0 ships a vertical-timeline MDX component built for changelogs, release notes, status updates, and audit logs. Each entry has a colored dot strung onto the connector line, an optional date and badge, a title, and a Markdown body.
+
+```mdx
+<Timeline>
+  <Timeline.Item
+    date="2026-07-20"
+    title="Boltdocs 3.2.0"
+    badge="Major"
+    icon={<Sparkles />}
+  >
+    Released **Plugin v3.2 API** — caches, diagnostics, paths, virtual modules,
+    middleware, server, and HMR hooks. See the [migration guide](/docs/blog/boltdocs-3.2.0).
+  </Timeline.Item>
+
+  <Timeline.Item
+    date="2026-06-01"
+    title="Added i18n support"
+    badge={{ text: 'Minor', variant: 'success' }}
+  >
+    New locale filesystem convention, version-aware routes, and SSR-safe URL prefixes.
+  </Timeline.Item>
+</Timeline>
+```
+
+Renders as:
+
+```text
+●  Jul 20, 2026  [MAJOR]
+│  Boltdocs 3.2.0
+│  Released Plugin v3.2 API — caches, diagnostics, paths, virtual modules,
+│  middleware, server, and HMR hooks. See the migration guide.
+│
+●  Jun 1, 2026   [MINOR]
+│  Added i18n support
+│  Locale filesystem convention, version-aware routes, and SSR-safe URL prefixes.
+```
+
+### What's in the box
+
+- **Auto-registered** — write `<Timeline>` in any `.mdx` file. No import needed.
+- **Two variant families** — semantic (`primary`, `success`, `info`, `warning`, `danger`) plus lifecycle aliases (`major`, `minor`, `patch`, `new`, `deprecated`, `breaking`) so changelogs can colour by release type without retyping hex codes.
+- **Hydration-safe localized dates** — the `date` prop renders via `toLocaleDateString` pinned to a stable locale (`'en-US'` by default) so server output and client output always agree.
+- **Body accepts full Markdown** — paragraphs, code, links, inline `<Callout>`, lists. Whatever fits in an MDX paragraph fits inside an item.
+- **Compact mode** — `<Timeline compact>` for dense lists of small tweaks.
+- **Data-driven** generation — every `Timeline.Item` is a normal React element, so you can `.map()` over a JSON array of releases to render an entire changelog without retyping each release block by hand.
+
+<Callout type="info">
+  See the [full Timeline docs](/docs/components/mdx/timeline) for the complete component API, accessibility notes, and the data-driven changelog pattern.
+</Callout>
+
+---
+
 ## Upgrading
 
-No breaking changes. Update and you're done:
+For most teams, this is a one-line install:
 
 ```bash
 pnpm add boltdocs@latest
 ```
 
-Warm builds are now automatically faster — no config changes needed.
+A small subset of installs will see a `peerDependencies` warning from npm/pnpm:
+
+```
+boltdocs@3.2.0 requires react-aria-components@^1.16.0 as a peer
+```
+
+Satisfy it with `pnpm add react-aria-components` (or pin a lower version if your React Aria vendor already provides it). Sites that use `@bdocs/plugin-image-optimizer` are unaffected — the optimizer's own peer declarations still work, and `sharp`/`svgo` install via the optimizer's `peerDependenciesMeta.optional: true`.
+
+See **[Upgrading to 3.2.0 → Semi-breaking changes](/docs/guides/upgrading-3-2)** for the full audit, before/after `package.json` snippets, and platform-specific notes.
 
 Check the [full docs](/docs/) to explore everything new.
