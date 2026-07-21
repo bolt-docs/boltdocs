@@ -1,8 +1,7 @@
 {
   "name": "@bdocs/plugin-mermaid",
-  "version": "0.3.1",
+  "version": "0.4.0",
   "description": "Mermaid diagram plugin for Boltdocs",
-
   "publishConfig": {
     "access": "public"
   },

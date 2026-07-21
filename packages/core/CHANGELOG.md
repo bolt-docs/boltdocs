@@ -1,5 +1,257 @@
 # boltdocs
 
+## 3.2.0
+
+### Minor Changes
+
+- [`6904710`](https://github.com/bolt-docs/boltdocs/commit/6904710df233ff29193adcbb746c4d16011255d3) Thanks [@jesusalcaladev](https://github.com/jesusalcaladev)! - feat(ask-ai): multi-provider support, dev-mode token chip, `useConfig`-driven client config.
+
+  **Provider preset table** — 12 providers wired up via `provider: '<name>'` option:
+
+  | `provider`   | Default `baseURL`                | Default model                    | Env var                |
+  | ------------ | -------------------------------- | -------------------------------- | ---------------------- |
+  | `openai`     | `https://api.openai.com/v1`      | `gpt-4o-mini`                    | `OPENAI_API_KEY`       |
+  | `anthropic`¹ | _(unset, see note)_              | `claude-3-5-haiku-latest`        | `ANTHROPIC_API_KEY`    |
+  | `gemini`¹    | _(unset, see note)_              | `gemini-2.0-flash-exp`           | `GEMINI_API_KEY`       |
+  | `mistral`    | `https://api.mistral.ai/v1`      | `mistral-small-latest`           | `MISTRAL_API_KEY`      |
+  | `cohere`     | `https://api.cohere.ai/v1`       | `command-r-plus`                 | `COHERE_API_KEY`       |
+  | `deepseek`   | `https://api.deepseek.com/v1`    | `deepseek-chat`                  | `DEEPSEEK_API_KEY`     |
+  | `groq`       | `https://api.groq.com/openai/v1` | `llama-3.1-8b-instant`           | `GROQ_API_KEY`         |
+  | `openrouter` | `https://openrouter.ai/api/v1`   | `openai/gpt-4o-mini`             | `OPENROUTER_API_KEY`   |
+  | `together`   | `https://api.together.xyz/v1`    | `meta-llama/Llama-3-70b-chat-hf` | `TOGETHER_API_KEY`     |
+  | `ollama`     | `http://localhost:11434/v1`      | `llama3.2`                       | `OLLAMA_API_KEY`       |
+  | `azure`¹     | _(required)_                     | `gpt-4o-mini`                    | `AZURE_OPENAI_API_KEY` |
+  | `custom`¹    | _(required)_                     | `gpt-4o-mini`                    | `OPENAI_API_KEY`       |
+
+  ¹ Anthropic, Gemini, Azure, and Custom providers require a user-supplied `baseURL` (e.g. OpenRouter, LiteLLM, Cloudflare AI Gateway as an OpenAI-compatible proxy). The plugin only speaks the OpenAI Chat Completions wire format.
+
+  **New options:**
+  - `provider` — provider preset name (default `'openai'`).
+  - `systemPrompts` — per-provider system-prompt override map. Matching provider key wins over global `systemPrompt`.
+  - `devMode` — when `true`, the chat UI renders a token-consumption chip (`provider/model`, prompt/completion/total tokens, elapsed ms) below each assistant response. Auto-enabled when `process.env.NODE_ENV !== 'production'`.
+
+  **Client config refactor:** `useAskAi` now reads runtime options via the `useConfig()` hook and the new plugin `metadata` field, replacing the previous `virtual:boltdocs-config` import. The `metadata?: Record<string, unknown>` field was added to both `BoltdocsPlugin` and `SecureBoltdocsPlugin` in core to make this type-safe.
+
+  **Security:** `SECURITY.md` rewritten to document all 12 providers, the dev-mode chip, and the new `metadata` exposure contract.
+
+  **Other fixes:**
+  - `handler.ts`: API key lookup now uses `providerEnvKey` instead of hardcoded `OPENAI_API_KEY`.
+  - `ServerResponse` import moved from `vite` to `node:http`.
+  - Adapter `eventToSse` switches now have a default case (TS2366).
+  - Middleware narrows `question` to `string` via local `safeQuestion` (TS2322 fix).
+
+- [`2bc1045`](https://github.com/bolt-docs/boltdocs/commit/2bc104567acf2788465fdeb84f0e37d9ad18bd4a) Thanks [@jesusalcaladev](https://github.com/jesusalcaladev)! - Reduce package weight for downstream consumers.
+
+  `icons-dev.tsx` is split into `icons-prod.tsx` (eager social/nav icons) and `mdx/lang-icons.tsx` (lazy-loaded chunk for MDX code blocks) — pages without code blocks now ship zero bytes of language icons. `react-aria-components` was promoted from `dependencies` to a **required** peer; `sharp` and `svgo` are removed from core (already peers of `@bdocs/plugin-image-optimizer`).
+
+  Public API surface is unchanged — all exports from `'boltdocs'`, `'boltdocs/client'`, `'boltdocs/server'`, `'boltdocs/primitives'`, and `'boltdocs/mdx'` resolve to the same symbols as 3.1.x.
+
+  Sites without `@bdocs/plugin-image-optimizer` save ~35 MB of unpacked native binaries. Sites that use it are unaffected.
+
+  **CI / lockfile-strict setup:** if your CI hard-fails on the `react-aria-components` peer advisory, use `either` `.npmrc` `or` `.pnpmrc` (not both) to whitelist the documented peer — never blanket-disable with `legacy-peer-deps=true`. Full recipes in the [upgrade guide](https://boltdocs.com/docs/guides/upgrading-3-2).
+
+  The dependency contract is pinned by a new `packages/core/tests/package-shape.test.ts` (8 assertions) so future PRs can't silently re-bloat.
+
+- [`46e288d`](https://github.com/bolt-docs/boltdocs/commit/46e288d485bf50ae226a3b3c70c0a93040b8ae0c) Thanks [@jesusalcaladev](https://github.com/jesusalcaladev)! - Boltdocs 3.2.0 — Nitro Phase 1 performance optimizations
+
+  ### Cache & Build Performance
+  - **SSR output consolidated**: Moved from `.vite-react-ssg-temp/` to `.boltdocs/build/ssr/` — all build artifacts now live under a single `.boltdocs/` directory
+  - **Server build skip preserved**: SSR output no longer deleted when client code hasn't changed, making warm builds skip the expensive SSR Vite bundle (~40s saved)
+  - **Mtime cache in memory**: `getFileMtime()` now uses an in-memory TTL cache (2s) instead of `fs.statSync()` on every call — 5.9x faster for repeated stat calls
+  - **Client hash single stat**: `computeClientCodeHash()` reduced from 3 stat calls per file to 1 — 66% fewer syscalls
+  - **Hash meta persistence**: `hash-meta.json` stores file count + last mtime for fast cache validation without full directory scans
+  - **Dev gzip skipped**: `TransformCache` no longer gzips cache shards in dev mode
+
+  ### MDX & Routes
+  - **MDX cache key for dev**: Uses file path + mtime instead of content hash in dev mode — cache survives restarts when files haven't changed
+  - **Bounded route parsing**: `Promise.all` replaced with `runWithConcurrency(32)` to prevent memory pressure and I/O contention
+  - **docCache loaded flag**: `docCache.load()` skips disk read when already in memory
+
+  ### Dev Server & HMR
+  - **HMR O(1) module graph lookup**: Pre-built lowercase index replaces brute-force O(N) scan for faster content edits
+  - **Prewarming with route priority**: Index pages and getting-started are prewarmed first; 150ms delay to avoid CPU contention with first page request
+
+  ### Pipeline & Syntax Highlighting
+  - **Pipeline parallel steps**: SEO validation and type generation run concurrently via `addParallelSteps()`
+  - **Pipeline timing logs**: Per-step timing reported after build completion
+  - **Critical CSS concurrency**: Beasties processor runs at `concurrency: min(cpus, 4)` instead of 1
+  - **Shiki WASM engine**: Oniguruma WASM engine replaces JavaScript regex — 13% faster syntax highlighting
+
+- [`2bc1045`](https://github.com/bolt-docs/boltdocs/commit/2bc104567acf2788465fdeb84f0e37d9ad18bd4a) Thanks [@jesusalcaladev](https://github.com/jesusalcaladev)! - Phase 1 of the new plugin API. The unist/mdast/hast utilities that used to
+  live in `boltdocs/node/plugins/plugin-utils` (visit helpers, builders,
+  h-properties, class-list helpers) and the shiki-internal `parseMetaString`
+  move into a new public package: **`@bdocs/unist-utils`**.
+
+  For `boltdocs` core (no public-API impact): internal code now imports
+  directly from `@bdocs/unist-utils`. The old paths
+  (`boltdocs/node/plugins/plugin-utils` through barrel,
+  `packages/core/src/node/mdx/types`) keep working as a back-compat shim.
+
+  `parseMetaString` and the `ParsedMeta` interface also moved; shiki-adapter
+  re-imports them from the new package and the `__raw` field is now typed
+  as `string | undefined`.
+
+  The new package is `sideEffects: false`, ships with strict types end-to-end
+  and is published under the standard Boltdocs organisation namespace so
+  external plugin authors can adopt it directly. Migration notes for plugin
+  authors live in `packages/unist-utils/README.md`.
+
+- [`2bc1045`](https://github.com/bolt-docs/boltdocs/commit/2bc104567acf2788465fdeb84f0e37d9ad18bd4a) Thanks [@jesusalcaladev](https://github.com/jesusalcaladev)! - Phase 2 of the new plugin API: enrich `PluginContext` with four
+  new APIs every lifecycle hook receives:
+
+  | New ctx field    | Type                      | What it does                                                                                                                                     |
+  | ---------------- | ------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
+  | `caches`         | `PluginCachesAPI`         | Functional wrappers around the core's `TransformCache`, `FileCache`, and a fresh per-namespace LRU. Never leaks implementation.                  |
+  | `diagnostics`    | `PluginDiagnosticsAPI`    | Structured `report()` channel — drain via `list()` from reporters/dev-server overlay/CI.                                                         |
+  | `paths`          | `PluginPathsAPI`          | `resolveDocs`, `resolveAsset`, `safeFileURL` — all reject paths that escape the workspace boundary.                                              |
+  | `virtualModules` | `PluginVirtualModulesAPI` | Plugins declare `virtual:<plugin>/<id>` modules without authoring a full Vite plugin. The core Vite plugin loads them in a single dispatch path. |
+
+  ### Migration for plugin authors
+
+  ```ts
+  // Cache something without reaching into core internals
+  ctx.caches
+    .transform('my-plugin-rewrites')
+    .set('foo', 'bar')
+
+  // Surface a structured warning the dev server can render in an overlay
+  ctx.diagnostics.report(
+    'warn',
+    'MY_PLUGIN_CONFIG',
+    'config.foo is missing — using the default',
+    { filePath: ctx.docsDir + '/config.ts' },
+  )
+
+  // Avoid hand-rolled path joins
+  const link = ctx.paths.resolveDocs('assets', 'banner.png')
+
+  // Expose a custom virtual module to clients
+  ctx.virtualModules.add(
+    'virtual:@my-plugin/runtime-config',
+    () => `export default ${JSON.stringify({ ... })};`,
+  )
+  ```
+
+  Plugin authors do NOT need any extra dependency — `ctx.*` is enriched
+  inside Boltdocs core.
+
+  ### Internal changes (no public surface for users)
+  - `packages/core/src/node/plugins/plugin-context.ts` — new module
+    implementing the four APIs.
+  - `PluginLifecycleManager.createContext()` — extended to inject them.
+  - `packages/core/src/node/plugin/virtual-modules.ts` — `resolveId` and
+    `load` branches for plugin-declared virtuals. Two public exports
+    added: `invalidatePluginVirtualModules()` (re-export of
+    `invalidateVirtualModulesCache`).
+  - New `__resetPluginContextStateForTests()` test helper is exported
+    from `plugin-context.ts` to clear diagnostic queue and
+    plugin-virtual-map between test runs.
+
+  ### Reserved namespace
+
+  Plugin virtual modules registered under the `virtual:boltdocs-` prefix
+  are rejected at registration time — the prefix is reserved for core.
+  Plugin authors should prefix their ids with the plugin name
+  (`virtual:@my-plugin/...` or `virtual:my-plugin-...`).
+
+  ### Out of scope (called out, parked for a later phase)
+  - The `eager` flag on `add()` is accepted but not yet wired into the
+    generated `boltdocs-entry.tsx`. Phase 7 (MDX transformer API) or a
+    later Phase will pick it up to auto-inject plugin virtual imports.
+  - The diagnostics queue is process-local. For multi-instance
+    deployments front it with a remote sink (file/process-tracker/
+    OTEL). The interface stays stable across sinks.
+
+- [`2bc1045`](https://github.com/bolt-docs/boltdocs/commit/2bc104567acf2788465fdeb84f0e37d9ad18bd4a) Thanks [@jesusalcaladev](https://github.com/jesusalcaladev)! - Phase 7 of the new plugin API: transform middleware pipeline and lazy slot
+  loading.
+
+  ### Transform Middleware API
+
+  Plugins can now register standalone transform middleware via
+  `BoltdocsPlugin.middleware` or programmatically via `ctx.middleware.add()`.
+
+  Each middleware has its own `name` and optional `enforce` ordering (`pre` |
+  `post`). Middleware transform functions receive the same enriched params as
+  lifecycle hooks and support `__signal: 'skip'` / `__signal: 'break'`:
+
+  ```ts
+  const plugin: BoltdocsPlugin = {
+    name: "my-plugin",
+    middleware: [
+      {
+        name: "my-plugin:html",
+        transformHtml: async (_ctx, { html, path }) => {
+          return { html: html.replace(/foo/g, "bar") };
+        },
+      },
+    ],
+  };
+  ```
+
+  The `runMiddlewareChain()` method on `PluginLifecycleManager` collects
+  both statically-declared and programmatically-registered middleware, sorts
+  by `enforce`, and runs them in sequence. Each middleware gets a generic
+  `PluginContext` with all standard APIs (caches, diagnostics, paths, slots,
+  virtualModules).
+
+  ### Slot Lazy Loading
+
+  Slot declarations now accept `lazy?: boolean`. When `true`, the slot
+  component is wrapped in `<Suspense>` with a pulse-animated fallback
+  placeholder. The `slotLazyFlags` parallel map is emitted alongside
+  `slotRegistry`, `slotConditions`, and `slotSsrFlags`:
+
+  ```ts
+  const plugin: BoltdocsPlugin = {
+    name: "my-plugin",
+    clientEntry: "@scope/plugin/client",
+    slots: [{ id: "right-rail", export: "HeavyWidget", lazy: true }],
+  };
+  ```
+
+  Lazy components are rendered inside `<Suspense fallback={<SlotFallback />}>`
+  in the default layout. The `SlotWithSSR` interface now carries a `lazy`
+  boolean field.
+
+  ### Internal changes
+  - `packages/core/src/shared/types.ts` — `PluginTransformMiddleware`,
+    `PluginMiddlewareAPI`, `lazy?: boolean` on `SlotDeclaration`,
+    `middleware` field on `BoltdocsPlugin`, `middleware` field on
+    `PluginContext`
+  - `packages/core/src/node/plugins/plugin-types.ts` — `middleware` on
+    `SecureBoltdocsPlugin`
+  - `packages/core/src/node/plugins/plugin-context.ts` —
+    `middlewareRegistry`, `createPluginMiddlewareAPI()`,
+    `invalidateMiddlewareCache()`, reset helper updated
+  - `packages/core/src/node/plugins/plugin-lifecycle.ts` —
+    `runMiddlewareChain()`, `createGenericContext()`, `middleware` wired
+    into context factories
+  - `packages/core/src/node/plugin/layout-slots.ts` — `lazy` in
+    `SlotDeclarationSchema`, emits `slotLazyFlags` parallel map
+  - `packages/core/src/node/schema/config.ts` — `lazy` and `middleware`
+    added to config schemas
+  - `packages/core/src/client/hooks/use-slot-registry.ts` —
+    `slotLazyFlags` import, `lazy` field on `SlotWithSSR`
+  - `packages/core/src/client/components/docs-layout-default.tsx` —
+    `<Suspense>` wrapping for lazy slot items, `SlotFallback` component
+  - `packages/core/src/client/virtual.d.ts` — `slotLazyFlags` declaration
+  - `packages/core/tests/slots/layout-slots-generator.test.ts` — 3 new lazy
+    flag tests
+
+### Patch Changes
+
+- [`64fe83a`](https://github.com/bolt-docs/boltdocs/commit/64fe83a2fc1b241f39ac7032bb38c7439041508c) Thanks [@jesusalcaladev](https://github.com/jesusalcaladev)! - Fix mermaid pages having extra scroll space at the bottom
+  - Fix body scroll bug: changed `min-height: 100%` to `height: 100%; overflow: hidden` on html/body in reset.css to prevent the browser scrollbar from appearing on all pages
+  - Mermaid SVG cleaning now uses DOMParser to only strip sizing attributes from the root `<svg>` element, preserving inner element styles (transforms, font-size) that mermaid uses for node positioning
+  - Added `not-prose` class to mermaid wrapper to prevent Tailwind typography plugin from adding margins to the SVG
+  - Added `margin: 0 !important` to mermaid SVG CSS as additional safety
+  - Added `overflow: hidden` to the root SVG element via cleanSvg
+  - Moved `<style>` tag inside the mermaid container div to avoid prose layout interference
+
+- Updated dependencies [[`46e288d`](https://github.com/bolt-docs/boltdocs/commit/46e288d485bf50ae226a3b3c70c0a93040b8ae0c), [`2bc1045`](https://github.com/bolt-docs/boltdocs/commit/2bc104567acf2788465fdeb84f0e37d9ad18bd4a)]:
+  - @bdocs/ssg@0.3.0
+  - @bdocs/unist-utils@0.2.0
+
 ## 3.1.0
 
 ### Minor Changes

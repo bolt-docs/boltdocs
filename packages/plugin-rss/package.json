@@ -1,8 +1,7 @@
 {
   "name": "@bdocs/plugin-rss",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "description": "RSS/Atom feed generator plugin for Boltdocs",
-
   "publishConfig": {
     "access": "public"
   },

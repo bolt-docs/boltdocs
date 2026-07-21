@@ -1,7 +1,7 @@
 {
   "name": "@bdocs/ssg",
   "type": "module",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "packageManager": "pnpm@10.30.0",
   "description": "A Vite plugin for static site generation (SSG) with React.",
   "license": "MIT",
