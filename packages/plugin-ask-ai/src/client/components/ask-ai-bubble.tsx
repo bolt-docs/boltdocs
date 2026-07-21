@@ -152,9 +152,14 @@ export function AskAiBubble() {
                     </span>
                     <span className="text-muted">·</span>
                     <span title="Prompt tokens">{msg.usage.promptTokens}↑</span>
-                    <span title="Completion tokens">{msg.usage.completionTokens}↓</span>
+                    <span title="Completion tokens">
+                      {msg.usage.completionTokens}↓
+                    </span>
                     <span className="text-muted">·</span>
-                    <span title="Total tokens" className="text-primary-500 font-semibold">
+                    <span
+                      title="Total tokens"
+                      className="text-primary-500 font-semibold"
+                    >
                       {msg.usage.totalTokens} tok
                     </span>
                     <span className="text-muted">·</span>
@@ -162,8 +167,8 @@ export function AskAiBubble() {
                   </div>
                 )}
 
-            {msg.role === 'assistant' && msg.contextChip && (
-              <div className="flex items-center gap-1.5 px-2 py-1 mb-1 text-[11px] text-muted">
+                {msg.role === 'assistant' && msg.contextChip && (
+                  <div className="flex items-center gap-1.5 px-2 py-1 mb-1 text-[11px] text-muted">
                     {msg.contextChip.missing ? (
                       <span>No docs page in scope</span>
                     ) : (

@@ -103,8 +103,6 @@ export const PROVIDER_PRESETS: Record<
   },
 }
 
-const SLOT_FIELDS = ['floating-bottom', 'right-rail'] as const
-
 export const AskAiPluginOptionsSchema = z.object({
   provider: z.enum(PROVIDERS).default('openai'),
   model: z
@@ -113,14 +111,6 @@ export const AskAiPluginOptionsSchema = z.object({
     .max(120)
     .default(PROVIDER_PRESETS.openai.defaultModel),
   endpoint: z.string().default('/api/ask-ai'),
-  /** @deprecated Use `slots` instead. */
-  autoInject: z.boolean().default(true),
-  slots: z
-    .object({
-      'floating-bottom': z.boolean().default(true),
-      'right-rail': z.boolean().default(true),
-    })
-    .default({ 'floating-bottom': true, 'right-rail': true }),
   baseURL: z.string().url().optional(),
   systemPrompt: z.string().optional(),
   /**
@@ -302,8 +292,6 @@ export default function askAiPlugin(
     provider,
     model,
     endpoint,
-    autoInject,
-    slots,
     baseURL,
     systemPrompt,
     systemPrompts,
@@ -341,19 +329,6 @@ export default function askAiPlugin(
     )
   }
 
-  // `slots` always wins. `autoInject: false` is the explicit kill-switch
-  // and applies last so it overrides per-slot choices.
-  const effectiveSlots: Record<(typeof SLOT_FIELDS)[number], boolean> =
-    autoInject === false
-      ? { 'floating-bottom': false, 'right-rail': false }
-      : { ...slots }
-
-  const slotDeclarations: Array<{ id: string; export: string }> = []
-  if (effectiveSlots['floating-bottom'])
-    slotDeclarations.push({ id: 'floating-bottom', export: 'AskAiBubble' })
-  if (effectiveSlots['right-rail'])
-    slotDeclarations.push({ id: 'right-rail', export: 'AskAiDialog' })
-
   const middlewareConfig = {
     provider,
     model,
@@ -375,15 +350,10 @@ export default function askAiPlugin(
   return {
     name: 'boltdocs-plugin-ask-ai',
     version: '0.3.0',
-    clientEntry: CLIENT_PACKAGE,
-    components:
-      effectiveSlots['floating-bottom'] || effectiveSlots['right-rail']
-        ? {
-            AskAiBubble: CLIENT_PACKAGE,
-            AskAiDialog: CLIENT_PACKAGE,
-          }
-        : {},
-    slots: slotDeclarations,
+    components: {
+      AskAiBubble: CLIENT_PACKAGE,
+      AskAiDialog: CLIENT_PACKAGE,
+    },
     metadata: {
       provider,
       model,

@@ -161,7 +161,11 @@ export async function streamLLMResponse(
       if (typeof content === 'string' && content.length > 0) {
         onEvent({ type: 'text', data: content })
       }
-      const usage = (chunk as { usage?: { prompt_tokens?: number; completion_tokens?: number } }).usage
+      const usage = (
+        chunk as {
+          usage?: { prompt_tokens?: number; completion_tokens?: number }
+        }
+      ).usage
       if (usage) {
         promptTokens = usage.prompt_tokens ?? promptTokens
         completionTokens = usage.completion_tokens ?? completionTokens

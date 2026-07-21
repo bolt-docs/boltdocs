@@ -145,7 +145,9 @@ export function AskAiDialog() {
                 <span className="px-1 py-0.5 rounded bg-amber-500/10 text-amber-600 dark:text-amber-400 text-[10px] font-bold uppercase tracking-wide">
                   DEV
                 </span>
-                <span>{msg.usage.provider}/{msg.usage.model}</span>
+                <span>
+                  {msg.usage.provider}/{msg.usage.model}
+                </span>
                 <span>·</span>
                 <span>{msg.usage.promptTokens}↑</span>
                 <span>{msg.usage.completionTokens}↓</span>
