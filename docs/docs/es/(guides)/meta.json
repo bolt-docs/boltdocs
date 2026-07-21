@@ -3,10 +3,5 @@
   "icon": "BookOpen",
   "collapsible": true,
   "collapsed": false,
-  "pages": [
-    "installation",
-    "configuration",
-    "deployment",
-    "upgrading-3-2"
-  ]
+  "pages": ["installation", "configuration", "deployment", "upgrading-3-2"]
 }
