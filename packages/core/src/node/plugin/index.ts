@@ -31,6 +31,10 @@ import {
   createFeedbackMiddleware,
   createStaticHtmlMiddleware,
 } from './middlewares'
+import {
+  applyPluginServerMiddleware,
+  runPluginServerStartCallbacks,
+} from '../plugins/plugin-context'
 
 export * from './types'
 
@@ -150,16 +154,43 @@ export function boltdocsPlugin(
 
         if (isBuild) await lifecycle.runHook('beforeBuild')
 
-        return {
-          ssgOptions: {
-            entry: 'boltdocs/entry',
-            htmlEntry: 'index.html',
-            dirStyle: 'flat',
-            includeAllRoutes: true,
-            mock: true,
-            script: 'async',
-            beastiesOptions: false,
+        // Build the ssgOptions. We add `onPageRendered` so the SSG page
+        // renderer calls `transformHtml` lifecycle hooks on every generated
+        // page. The callback is a no-op when lifecycle is unavailable.
+        const ssgOptions: Record<string, unknown> = {
+          entry: 'boltdocs/entry',
+          htmlEntry: 'index.html',
+          dirStyle: 'flat',
+          includeAllRoutes: true,
+          mock: true,
+          script: 'async',
+          beastiesOptions: false,
+          onPageRendered: async (
+            path: string,
+            renderedHTML: string,
+          ): Promise<string> => {
+            if (!lifecycle) return renderedHTML
+            try {
+              const result = await lifecycle.runChain('transformHtml', {
+                html: renderedHTML,
+                path,
+              })
+              let html = result.html
+              // Run middleware chain after lifecycle hooks
+              const middlewareResult = await lifecycle.runMiddlewareChain(
+                'transformHtml',
+                { html, path },
+              )
+              html = middlewareResult.html
+              return html
+            } catch {
+              return renderedHTML
+            }
           },
+        }
+
+        return {
+          ssgOptions,
           build: { ssrManifest: isBuild },
           optimizeDeps: {
             include: [
@@ -275,6 +306,10 @@ export function boltdocsPlugin(
         // Acoplamos los middlewares limpios importados
         server.middlewares.use(createFeedbackMiddleware(getConfig))
         server.middlewares.use(createStaticHtmlMiddleware(getViteConfig))
+
+        // Apply plugin-registered server middleware on preview too
+        applyPluginServerMiddleware(server)
+        runPluginServerStartCallbacks().catch(() => {})
       },
     },
 

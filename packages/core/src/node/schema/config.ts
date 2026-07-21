@@ -23,33 +23,6 @@ export const MdxConfigSchema = z.object({
 })
 
 /**
- * Zod schema for a single slot declaration emitted by a plugin.
- */
-export const SlotDeclarationSchema = z.object({
-  id: z.string().min(1).max(80),
-  modulePath: z.string().min(1).max(500),
-  component: z.string().min(1).max(120).optional(),
-})
-
-/**
- * Zod schema for a user-level `boltdocs.config.ts > slots` override per slot.
- * Bare strings are shorthand for `{ replace: <modulePath> }`.
- */
-export const SlotsEntrySchema = z.union([
-  z.string().min(1).max(500),
-  z.object({
-    replace: z.string().min(1).max(500).optional(),
-    append: z.string().min(1).max(500).optional(),
-    disable: z.literal(true).optional(),
-  }),
-])
-
-/**
- * Zod schema for the top-level `slots` config block.
- */
-export const SlotsConfigSchema = z.record(z.string(), SlotsEntrySchema)
-
-/**
  * Zod schema for a Boltdocs plugin.
  */
 export const BoltdocsPluginSchema = z.object({
@@ -57,11 +30,22 @@ export const BoltdocsPluginSchema = z.object({
   enforce: z.enum(['pre', 'post']).optional(),
   version: z.string().optional(),
   boltdocsVersion: z.string().optional(),
+  clientEntry: z.string().optional(),
   remarkPlugins: z.array(z.unknown()).optional(),
   rehypePlugins: z.array(z.unknown()).optional(),
   vitePlugins: z.array(z.unknown()).optional(),
   components: z.record(z.string(), z.string()).optional(),
-  slots: z.array(SlotDeclarationSchema).optional(),
+  metadata: z.record(z.string(), z.unknown()).optional(),
+  middleware: z
+    .array(
+      z
+        .object({
+          name: z.string().optional(),
+          enforce: z.enum(['pre', 'post']).optional(),
+        })
+        .passthrough(),
+    )
+    .optional(),
   hooks: z.record(z.string(), z.unknown()).optional(),
 })
 
@@ -357,7 +341,6 @@ export const BoltdocsConfigSchema = z.object({
   versions: VersionsConfigSchema.optional(),
   mdx: MdxConfigSchema.optional(),
   plugins: z.array(BoltdocsPluginSchema).optional(),
-  slots: SlotsConfigSchema.optional(),
   robots: RobotsConfigSchema.optional(),
   security: SecurityConfigSchema.optional(),
   seo: BoltdocsSeoConfigSchema.optional(),

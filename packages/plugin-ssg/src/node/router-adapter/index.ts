@@ -1,4 +1,4 @@
-import type { ViteReactSSGContext } from '~/types'
+import type { ViteReactSSGContext } from '../../types'
 import { RemixAdapter } from './remix'
 
 export function getAdapter(context: ViteReactSSGContext) {

@@ -3,10 +3,10 @@ import { generateRoutes } from '../routes'
 import { adaptRoutesForSSG } from '../routes/route-adapter'
 import { normalizePath } from '../utils'
 import { generateSearchData } from '../search'
+import { virtualModuleRegistry } from '../plugins/plugin-context'
 import type { BoltdocsConfig } from '../config'
 import type { BoltdocsPluginOptions } from './types'
 import { generateEntryCode } from './entry'
-import { generateLayoutSlotsCode } from './layout-slots'
 import path from 'node:path'
 import fs from 'node:fs'
 
@@ -14,7 +14,6 @@ let _directoryMetaCache: Record<string, unknown> | null = null
 let _searchDataCache: string | null = null
 let _routesCache: string | null = null
 let _collectionsCache: string | null = null
-let _layoutSlotsCache: string | null = null
 
 /**
  * Called by the dev-server watcher whenever a file is added or removed
@@ -25,15 +24,6 @@ export function invalidateDirectoryMetaCache(): void {
   _searchDataCache = null
   _routesCache = null
   _collectionsCache = null
-  _layoutSlotsCache = null
-}
-
-/**
- * Invalidates only the layout-slots virtual module cache (used on
- * `boltdocs.config.ts` change or plugin add/remove).
- */
-export function invalidateLayoutSlotsCache(): void {
-  _layoutSlotsCache = null
 }
 
 /**
@@ -70,6 +60,25 @@ export function createVirtualModulesPlugin(
         return normalizePath(path.resolve(root, 'boltdocs-client.mjs'))
       }
 
+      // Plugin-registered virtual modules resolve to the Vite-internal
+      // marker so Vite hands them to the `load` hook below without touching
+      // the file system. We accept both the bare id and the `\0`-prefixed
+      // form (Vite sometimes passes the resolved id back through resolveId).
+      if (id.startsWith('\0')) {
+        const cleanId = id.slice(1)
+        if (
+          !cleanId.startsWith('virtual:boltdocs-') &&
+          virtualModuleRegistry.has(cleanId)
+        ) {
+          return id
+        }
+      } else if (
+        !id.startsWith('virtual:boltdocs-') &&
+        virtualModuleRegistry.has(id)
+      ) {
+        return '\0' + id
+      }
+
       if (id.startsWith('virtual:boltdocs-')) {
         return '\0' + id
       }
@@ -82,6 +91,36 @@ export function createVirtualModulesPlugin(
 
     async load(id) {
       const config = getConfig()
+
+      // Plugin-declared virtual modules take priority over the core
+      // hard-coded list so plugins can shadow a specific `virtual:foo`
+      // if they need to (only if their id does *not* start with
+      // `virtual:boltdocs-`, which is reserved).
+      const cleanId = id.startsWith('\0') ? id.slice(1) : id
+      if (
+        !cleanId.includes('boltdocs-entry.tsx') &&
+        !cleanId.includes('boltdocs-client.mjs') &&
+        !cleanId.startsWith('virtual:boltdocs-') &&
+        virtualModuleRegistry.has(cleanId)
+      ) {
+        const entry = virtualModuleRegistry.get(cleanId)
+        if (!entry) return null
+        try {
+          const code = await entry.loader()
+          if (typeof code !== 'string') {
+            throw new Error(
+              `[boltdocs] Plugin virtual module '${cleanId}' loader must return a string source code, got ${typeof code}.`,
+            )
+          }
+          return code
+        } catch (err) {
+          throw new Error(
+            `[boltdocs] Plugin virtual module '${cleanId}' failed to load: ${
+              err instanceof Error ? err.message : String(err)
+            }`,
+          )
+        }
+      }
 
       if (
         id.includes('boltdocs-entry.tsx') ||
@@ -255,22 +294,6 @@ export default UserLayout;`
           _searchDataCache = `export default ${JSON.stringify(searchData, null, 2)};`
         }
         return _searchDataCache
-      }
-
-      if (name === 'layout-slots') {
-        if (!_layoutSlotsCache) {
-          const pluginDeclarations = (config.plugins ?? []).flatMap((p) =>
-            (p.slots ?? []).map((declaration) => ({
-              pluginName: p.name,
-              declaration,
-            })),
-          )
-          _layoutSlotsCache = generateLayoutSlotsCode({
-            pluginDeclarations,
-            userConfig: config.slots,
-          })
-        }
-        return _layoutSlotsCache
       }
 
       if (name === 'client') {

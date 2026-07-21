@@ -50,12 +50,15 @@ function resolveMeta(config: BoltdocsConfig): ResolvedMeta {
     }
   }
 
+  const indexingValue = (
+    config.seo as { indexing?: 'all' | 'public' | 'none' | string } | undefined
+  )?.indexing
   const robotsContent =
-    config.seo?.indexing === 'none'
+    indexingValue === 'none'
       ? 'noindex, nofollow'
-      : config.seo?.indexing === 'all'
+      : indexingValue === 'all'
         ? undefined
-        : config.seo?.indexing
+        : indexingValue
 
   const globalMetatags = config.seo?.metatags || {}
   const customMetaTags = Object.entries(globalMetatags).map(([key, value]) => {

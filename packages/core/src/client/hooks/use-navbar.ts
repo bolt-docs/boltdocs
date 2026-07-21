@@ -36,6 +36,7 @@ export function useNavbar() {
           if (
             config.i18n?.locales &&
             parts[i] &&
+            !Array.isArray(config.i18n.locales) &&
             config.i18n.locales[parts[i]]
           ) {
             i++

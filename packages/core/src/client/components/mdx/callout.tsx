@@ -80,7 +80,7 @@ export function Callout({
       {...props}
     >
       <div className={cn('shrink-0 pt-0.5', styles.iconColor)}>
-        <Icon className="w-5 h-5 stroke-[2]" />
+        <Icon className="w-5 h-5 stroke-2" />
       </div>
       <div className="flex-1 text-[0.875rem] leading-[1.6]">
         <div className={cn('font-bold text-sm mb-1', styles.titleText)}>

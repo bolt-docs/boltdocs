@@ -31,7 +31,10 @@ const EagerMdxElement = ({
   moduleLoader: MdxModule
   moduleKey: string | undefined
   route: ComponentRoute
-  components: Record<string, React.ComponentType<{ children?: React.ReactNode }>>
+  components: Record<
+    string,
+    React.ComponentType<{ children?: React.ReactNode }>
+  >
   collectionPostComponent?: React.ComponentType<{ children?: React.ReactNode }>
 }) => {
   const [mod, setMod] = useState<MdxModule>(moduleLoader)
@@ -56,13 +59,25 @@ const EagerMdxElement = ({
   }, [moduleKey, route.filePath])
 
   const MDXComponent = (mod?.default ?? mod ?? null) as React.ComponentType<{
-    components?: Record<string, React.ComponentType<{ children?: React.ReactNode }>>
+    components?: Record<
+      string,
+      React.ComponentType<{ children?: React.ReactNode }>
+    >
   }> | null
   if (!MDXComponent) return <Loading />
   return (
     <MdxPage
-      MDXComponent={MDXComponent}
-      mdxComponents={components}
+      MDXComponent={
+        MDXComponent as unknown as React.ComponentType<{
+          children?: React.ReactNode
+        }>
+      }
+      mdxComponents={
+        (components ?? {}) as unknown as Record<
+          string,
+          React.ComponentType<HTMLElement>
+        >
+      }
       collectionPostComponent={collectionPostComponent}
     />
   )

@@ -57,9 +57,12 @@ export class ShikiAdapter {
    */
   getTheme(): ShikiTheme | { light: ShikiTheme; dark: ShikiTheme } {
     return (
-      this.config?.theme?.codeTheme || {
-        light: DEFAULT_THEMES.LIGHT,
-        dark: DEFAULT_THEMES.DARK,
+      (this.config?.theme?.codeTheme as
+        | ShikiTheme
+        | { light: ShikiTheme; dark: ShikiTheme }
+        | undefined) || {
+        light: DEFAULT_THEMES.LIGHT as ShikiTheme,
+        dark: DEFAULT_THEMES.DARK as ShikiTheme,
       }
     )
   }
@@ -88,7 +91,7 @@ export class ShikiAdapter {
       rawMeta = meta.__raw || ''
     }
 
-    const options: CodeToHastOptions = {
+    const options = {
       lang: lang || DEFAULTS.LANG,
       meta: {
         __raw: rawMeta,
@@ -100,15 +103,15 @@ export class ShikiAdapter {
         addTitleProperty(),
         addLanguageProperty(),
       ],
-    }
+    } as CodeToHastOptions
 
     if (typeof theme === 'object') {
-      ;(options as { themes: { light: string; dark: string } }).themes = {
+      ;(options as unknown as { themes?: unknown }).themes = {
         light: theme.light,
         dark: theme.dark,
       }
     } else {
-      options.theme = theme
+      ;(options as unknown as { theme?: unknown }).theme = theme
     }
 
     return options

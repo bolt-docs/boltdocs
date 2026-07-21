@@ -31,10 +31,6 @@ export default defineConfig({
         __dirname,
         './tests/mocks/virtual-layout.ts',
       ),
-      'virtual:boltdocs-layout-slots': path.resolve(
-        __dirname,
-        './tests/mocks/virtual-layout-slots.ts',
-      ),
     },
   },
 })

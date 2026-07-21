@@ -1,6 +1,10 @@
 import type { RouteRecord } from '@bdocs/ssg'
 import type { ComponentRoute, BoltdocsConfig } from '../types'
-import { EagerMdxElement, resolveModuleLoader } from './mdx-elements'
+import {
+  EagerMdxElement,
+  resolveModuleLoader,
+  type MdxModule,
+} from './mdx-elements'
 import { buildModuleMap, withBase } from './create-routes.utils'
 
 function buildDocRoutes(options: {
@@ -89,16 +93,20 @@ function buildDocRoutes(options: {
 
     if (isLazy && moduleLoader) {
       routeRecord.lazy = async () => {
-        const mod = await resolveModuleLoader(moduleLoader)
+        const mod: MdxModule = (await resolveModuleLoader(
+          moduleLoader as unknown as MdxModule,
+        )) as MdxModule
         return {
           Component: function LoadedMdxRoute() {
             return (
               <EagerMdxElement
                 key={moduleKey || path}
                 moduleKey={moduleKey}
-                moduleLoader={mod}
+                moduleLoader={mod as unknown as MdxModule}
                 route={route}
-                components={components}
+                components={
+                  (components ?? {}) as Record<string, React.ComponentType>
+                }
               />
             )
           },
@@ -109,9 +117,9 @@ function buildDocRoutes(options: {
         <EagerMdxElement
           key={moduleKey || path}
           moduleKey={moduleKey}
-          moduleLoader={moduleLoader as any}
+          moduleLoader={(moduleLoader ?? {}) as unknown as MdxModule}
           route={route}
-          components={components}
+          components={(components ?? {}) as Record<string, React.ComponentType>}
         />
       )
     }

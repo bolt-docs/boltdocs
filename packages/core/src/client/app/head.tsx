@@ -88,8 +88,8 @@ export function Head({ siteTitle, siteDescription, routes }: HeadProps) {
       <meta property="og:description" content={pageDescription} />
       <meta property="og:type" content="article" />
       {/* Canonical URL for both <link> and og:url */}
-      {canonicalUrl && <link rel="canonical" href={canonicalUrl} />}
-      {ogUrl && <meta property="og:url" content={ogUrl} />}
+      {canonicalUrl && <link rel="canonical" href={canonicalUrl as string} />}
+      {ogUrl && <meta property="og:url" content={ogUrl as string} />}
 
       {/* Default Twitter Card */}
       <meta
@@ -142,10 +142,11 @@ export function Head({ siteTitle, siteDescription, routes }: HeadProps) {
           key.startsWith('article:') ||
           key.startsWith('book:') ||
           key.startsWith('profile:')
+        const strVal: string = String(value ?? '')
         return isProperty ? (
-          <meta key={key} property={key} content={String(value) as string} />
+          <meta key={key} property={key} content={strVal} />
         ) : (
-          <meta key={key} name={key} content={String(value) as string} />
+          <meta key={key} name={key} content={strVal} />
         )
       })}
 
@@ -154,7 +155,13 @@ export function Head({ siteTitle, siteDescription, routes }: HeadProps) {
         if (key === 'noindex' && value === true)
           return <meta key="noindex" name="robots" content="noindex" />
         if (key === 'robots')
-          return <meta key="robots" name="robots" content={String(value) as string} />
+          return (
+            <meta
+              key="robots"
+              name="robots"
+              content={String(value) as string}
+            />
+          )
         if (
           key === 'canonical' ||
           key === 'og:url' ||
@@ -170,10 +177,11 @@ export function Head({ siteTitle, siteDescription, routes }: HeadProps) {
           key.startsWith('article:') ||
           key.startsWith('book:') ||
           key.startsWith('profile:')
+        const strVal: string = String(value ?? '')
         return isProperty ? (
-          <meta key={key} property={key} content={String(value) as string} />
+          <meta key={key} property={key} content={strVal} />
         ) : (
-          <meta key={key} name={key} content={String(value) as string} />
+          <meta key={key} name={key} content={strVal} />
         )
       })}
     </Helmet>

@@ -80,7 +80,11 @@ export class FileCache<T> {
     try {
       let raw = await readFile(this.cachePath)
       if (this.cachePath.endsWith('.gz')) {
-        raw = await gunzipPromise(raw)
+        raw = await gunzipPromise(
+          new Uint8Array(raw as Buffer) as unknown as Parameters<
+            typeof gunzipPromise
+          >[0],
+        )
       }
       const data = JSON.parse(raw.toString('utf-8'))
       this.entries = new Map(Object.entries(data))
@@ -252,7 +256,11 @@ export class TransformCache {
           const shardPath = path.resolve(this.shardsDir, `${hash}.gz`)
           try {
             const compressed = await readFile(shardPath)
-            const decompressedBuffer = await gunzipPromise(compressed as any)
+            const decompressedBuffer = await gunzipPromise(
+              new Uint8Array(compressed as Buffer) as unknown as Parameters<
+                typeof gunzipPromise
+              >[0],
+            )
             const decompressed = decompressedBuffer.toString('utf-8')
             this.memoryCache.set(key, decompressed)
             return { key, val: decompressed }
@@ -315,9 +323,18 @@ export class TransformCache {
         }
         await mkdir(this.shardsDir, { recursive: true })
 
-        const compressed = await gzipPromise(Buffer.from(result) as any)
+        const compressed = await gzipPromise(
+          new Uint8Array(Buffer.from(result)) as unknown as Parameters<
+            typeof gzipPromise
+          >[0],
+        )
         const tempPath = `${shardPath}.${crypto.randomBytes(4).toString('hex')}.tmp`
-        await writeFile(tempPath, compressed)
+        await writeFile(
+          tempPath,
+          new Uint8Array(compressed as Buffer) as unknown as Parameters<
+            typeof writeFile
+          >[1],
+        )
         await rename(tempPath, shardPath)
       } catch (e) {
         // Ignore shard write errors

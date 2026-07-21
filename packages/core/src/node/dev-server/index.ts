@@ -7,6 +7,11 @@ import { setupMiddlewares } from './middleware'
 import { setupPrewarming } from './prewarm'
 import { configureWatcher } from './watcher'
 import { setupHmr, createHotUpdateHandler } from './hmr-handler'
+import {
+  setHmrSender,
+  applyPluginServerMiddleware,
+  runPluginServerStartCallbacks,
+} from '../plugins/plugin-context'
 
 export function createDevServerPlugin(
   docsDir: string,
@@ -31,6 +36,17 @@ export function createDevServerPlugin(
       setupMiddlewares(server, docsDir, getConfig)
       configureWatcher(server, docsDir)
       setupHmr(server, docsDir, normalizedDocsDir, getConfig)
+
+      // Wire plugin HMR sender (ctx.hmr.send())
+      setHmrSender((event, data) => {
+        server.ws.send(event, data)
+      })
+
+      // Apply plugin-registered server middleware (ctx.server.use())
+      applyPluginServerMiddleware(server)
+
+      // Fire plugin server start callbacks (ctx.server.onStart())
+      await runPluginServerStartCallbacks()
 
       await lifecycle?.runHook('afterDev')
     },

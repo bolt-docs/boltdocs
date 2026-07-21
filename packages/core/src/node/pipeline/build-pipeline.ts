@@ -9,6 +9,9 @@ import { SEOWriteStep } from './steps/seo-write'
 
 /**
  * Creates the build pipeline for a Boltdocs site.
+ *
+ * The pipeline runs config resolution, route generation, parallel
+ * SEO + type validation, SSG, and SEO output writing in order.
  */
 export function createBuildPipeline(): Pipeline<BuildContext> {
   return new Pipeline<BuildContext>()

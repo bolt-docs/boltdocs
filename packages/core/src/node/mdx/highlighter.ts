@@ -9,11 +9,13 @@ import { LANG_BUILD, type Languages } from './shiki-langs'
 import type { ShikiTheme } from '../../shared/types'
 
 let onigEngine: RegexEngine | null = null
-let highlighter: Promise<HighlighterCore> | null = null
+let highlighterPromise: Promise<HighlighterCore> | null = null
 
-const getOnigEngine = (): RegexEngine => {
-  if (!onigEngine) onigEngine = createOnigurumaEngine(import('shiki/wasm'))
-  return onigEngine as RegexEngine
+async function getOnigEngineImpl(): Promise<RegexEngine> {
+  const wasm = await import('shiki/wasm')
+  return createOnigurumaEngine(
+    wasm as unknown as Parameters<typeof createOnigurumaEngine>[0],
+  ) as unknown as RegexEngine
 }
 
 /**
@@ -24,15 +26,18 @@ const getOnigEngine = (): RegexEngine => {
 const highlight = async (
   _codeTheme?: ShikiTheme | { light: ShikiTheme; dark: ShikiTheme },
 ): Promise<HighlighterCore> => {
-  if (highlighter) return highlighter
+  if (highlighterPromise) return highlighterPromise
 
-  highlighter = createHighlighterCore({
-    themes: THEMES_BUILD,
-    langs: LANG_BUILD,
-    engine: getOnigEngine(),
-  })
+  highlighterPromise = (async () => {
+    const engine = await getOnigEngineImpl()
+    return createHighlighterCore({
+      themes: THEMES_BUILD,
+      langs: LANG_BUILD,
+      engine,
+    })
+  })()
 
-  return highlighter
+  return highlighterPromise
 }
 
 /**
@@ -57,9 +62,12 @@ export class ShikiHighlighter {
   async codeToHast(
     code: string,
     options: Parameters<HighlighterCore['codeToHast']>[1],
-  ): Promise<Parameters<HighlighterCore['codeToHast']>[1]> {
+  ): Promise<unknown> {
     const highlighter = await this.highlighterPromise
-    return highlighter.codeToHast(code, options)
+    return highlighter.codeToHast(
+      code,
+      options as unknown as Parameters<HighlighterCore['codeToHast']>[1],
+    ) as unknown
   }
   /**
    * New method for CSS-based HTML generation.

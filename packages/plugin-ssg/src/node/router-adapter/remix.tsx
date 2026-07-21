@@ -4,7 +4,7 @@ import type { LoaderFunction, LoaderFunctionArgs } from 'react-router-dom'
 import type { StaticHandlerContext } from 'react-router-dom'
 import type { Connect } from 'vite'
 import type { IRouterAdapter } from './interface'
-import type { ViteReactSSGContext } from '~/types'
+import type { ViteReactSSGContext } from '../../types'
 // Use the HelmetProvider from helmet-compat.tsx's globalThis bridge to ensure
 // the same React context as the bundled ESM react-helmet-async instance.
 // Without this, require('react-helmet-async') loads a separate CJS module with
@@ -28,9 +28,9 @@ import {
   fromNodeRequest,
   stripDataParam,
   toNodeRequest,
-} from '~/polyfill/node-adapter'
-import { withLeadingSlash } from '~/utils/path'
-import { convertRoutesToDataRoutes } from '~/utils/remix-router'
+} from '../../polyfill/node-adapter'
+import { withLeadingSlash } from '../../utils/path'
+import { convertRoutesToDataRoutes } from '../../utils/remix-router'
 import { renderStaticApp } from '../serverRenderer'
 import { extractHelmet } from './utils'
 

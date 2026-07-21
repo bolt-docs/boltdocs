@@ -4,6 +4,7 @@ import { useRoutes } from '../hooks/use-routes'
 import { CollectionsContext } from '../collections/collections-context'
 import type { CollectionsData } from '../collections/collections-context'
 import { InternalErrorBoundary as ErrorBoundary } from '../components/internal/error-boundary'
+import { DocRouteProvider } from './doc-route-context'
 
 export function DocsLayout({
   collectionsData,
@@ -13,11 +14,13 @@ export function DocsLayout({
   const { currentRoute } = useRoutes()
 
   const content = (
-    <ErrorBoundary>
-      <UserLayout route={currentRoute}>
-        <Outlet />
-      </UserLayout>
-    </ErrorBoundary>
+    <DocRouteProvider value={currentRoute}>
+      <ErrorBoundary>
+        <UserLayout route={currentRoute}>
+          <Outlet />
+        </UserLayout>
+      </ErrorBoundary>
+    </DocRouteProvider>
   )
 
   if (collectionsData) {

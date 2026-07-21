@@ -12,7 +12,9 @@ import { DocsLayout } from '../app/docs-layout'
 function DefaultCollectionList() {
   const location = useLocation()
   const config = useConfig()
-  const postsPerPage = config.collections?.postsPerPage ?? 10
+  const postsPerPage =
+    (config.collections as { postsPerPage?: number } | undefined)
+      ?.postsPerPage ?? 10
 
   const segments = location.pathname.split('/').filter(Boolean)
   const isLocalePrefixed =
@@ -113,7 +115,10 @@ function buildCollectionRoutes(options: {
     components,
   } = options
   const postsPerPage =
-    options.postsPerPage ?? config.collections?.postsPerPage ?? 10
+    options.postsPerPage ??
+    (config.collections as { postsPerPage?: number } | undefined)
+      ?.postsPerPage ??
+    10
 
   const children: RouteRecord[] = []
   const metadata: ComponentRoute[] = []
@@ -205,8 +210,8 @@ function buildCollectionRoutes(options: {
             moduleKey={moduleKey}
             moduleLoader={moduleLoader as any}
             route={route}
-          components={components as any}
-          collectionPostComponent={postComponent}
+            components={components as any}
+            collectionPostComponent={postComponent}
           />
         )
       }
@@ -265,7 +270,11 @@ function buildCollectionRoutes(options: {
     const CollectionLayout = CustomLayout || DocsLayout
     const blogLayoutRoute: RouteRecord = {
       path: colBase,
-      element: <CollectionLayout {...({ collectionsData: collectionsData || {} } as any)} />,
+      element: (
+        <CollectionLayout
+          {...({ collectionsData: collectionsData || {} } as any)}
+        />
+      ),
       children: colChildren,
     }
 

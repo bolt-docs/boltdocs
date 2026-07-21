@@ -20,9 +20,7 @@ const SUBPATHS = [
   'react-dom/client',
 ]
 
-export function getBaseRequire(
-  defaultReq: NodeRequire = req,
-): NodeRequire {
+export function getBaseRequire(defaultReq: NodeRequire = req): NodeRequire {
   try {
     const pkgJsonPath = path.join(
       process.cwd(),

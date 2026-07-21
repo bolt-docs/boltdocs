@@ -58,11 +58,13 @@ function Content({ children, className, style }: SlotProps) {
 function ContentMdx({ children, className, style }: SlotProps) {
   return (
     <div
-      className={cn('boltdocs-page mx-auto pt-4 pb-20 px-4 sm:px-8', className)}
+      className={cn('boltdocs-page w-full pt-4 pb-20 px-4 sm:px-8', className)}
       style={style}
     >
       <SearchHighlight />
-      {children}
+      <div className="mx-auto w-full max-w-3xl sm:max-w-4xl lg:max-w-5xl">
+        {children}
+      </div>
     </div>
   )
 }
@@ -83,68 +85,12 @@ function Footer({ children, className, style }: SlotProps) {
   )
 }
 
-function FloatingBottom({ children, className, style }: SlotProps) {
-  return (
-    <div
-      className={cn(
-        'fixed bottom-6 right-6 z-40 flex flex-col items-end gap-2',
-        className,
-      )}
-      style={style}
-    >
-      {children}
-    </div>
-  )
-}
-
-function RightRail({ children, className, style }: SlotProps) {
-  return (
-    <aside
-      className={cn(
-        'hidden xl:flex fixed inset-y-0 right-0 z-30 w-[320px] flex-col border-l border-subtle bg-main pointer-events-auto',
-        className,
-      )}
-      style={style}
-    >
-      {children}
-    </aside>
-  )
-}
-
-function NavbarExtras({ children }: SlotProps) {
-  return <>{children}</>
-}
-
-function HeaderExtras({ children }: SlotProps) {
-  return <>{children}</>
-}
-
-function TocExtras({ children }: SlotProps) {
-  return <>{children}</>
-}
-
-function FooterExtras({ children }: SlotProps) {
-  return <>{children}</>
-}
-
-function BodyPortal({ children }: SlotProps) {
-  if (typeof document === 'undefined') return <>{children}</>
-  return createPortal(children, document.body)
-}
-
 interface DocsLayoutComponent extends FC<SlotProps> {
   Body: typeof Body
   Content: typeof Content
   ContentMdx: typeof ContentMdx
   Header: typeof Header
   Footer: typeof Footer
-  FloatingBottom: typeof FloatingBottom
-  RightRail: typeof RightRail
-  NavbarExtras: typeof NavbarExtras
-  HeaderExtras: typeof HeaderExtras
-  TocExtras: typeof TocExtras
-  FooterExtras: typeof FooterExtras
-  BodyPortal: typeof BodyPortal
 }
 
 export const DocsLayout = Object.assign(DocsLayoutRoot, {
@@ -153,11 +99,4 @@ export const DocsLayout = Object.assign(DocsLayoutRoot, {
   ContentMdx,
   Header,
   Footer,
-  FloatingBottom,
-  RightRail,
-  NavbarExtras,
-  HeaderExtras,
-  TocExtras,
-  FooterExtras,
-  BodyPortal,
 }) as DocsLayoutComponent

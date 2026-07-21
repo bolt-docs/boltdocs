@@ -35,7 +35,10 @@ export function getSeverity(
   type: string,
   defaultLevel: 'high' | 'warning' | 'low',
 ): 'high' | 'warning' | 'low' | 'off' {
-  return (ctx.doctorConfig.severity[type] as 'high' | 'warning' | 'low' | 'off') || defaultLevel
+  return (
+    (ctx.doctorConfig.severity[type] as 'high' | 'warning' | 'low' | 'off') ||
+    defaultLevel
+  )
 }
 
 export async function backupFile(filePath: string, backupDir: string) {

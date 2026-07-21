@@ -1,4 +1,4 @@
-import { visitNodes, setNodeProperty } from '../plugins/plugin-utils'
+import { visitNodes, setNodeProperty } from '@bdocs/unist-utils'
 import { MDX_NODES } from './constants'
 import type { CodeNode } from './types'
 
@@ -11,7 +11,11 @@ export function remarkMetaPlugin() {
   return (tree: any) => {
     visitNodes<CodeNode>(tree, MDX_NODES.CODE, (node) => {
       if (node.meta) {
-        setNodeProperty(node, 'metastring', node.meta)
+        setNodeProperty(
+          node as unknown as Parameters<typeof setNodeProperty>[0],
+          'metastring',
+          node.meta,
+        )
       }
     })
   }

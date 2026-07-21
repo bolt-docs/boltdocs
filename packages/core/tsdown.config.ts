@@ -44,8 +44,6 @@ export default defineConfig([
         'virtual:boltdocs-entry.tsx',
         'virtual:boltdocs-search',
         'virtual:boltdocs-search.ts',
-        'virtual:boltdocs-layout-slots',
-        'virtual:boltdocs-layout-slots.ts',
       ],
     },
     async onSuccess() {
@@ -99,8 +97,6 @@ export default defineConfig([
         'virtual:boltdocs-entry.tsx',
         'virtual:boltdocs-search',
         'virtual:boltdocs-search.ts',
-        'virtual:boltdocs-layout-slots',
-        'virtual:boltdocs-layout-slots.ts',
       ],
     },
   },

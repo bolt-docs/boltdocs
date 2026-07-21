@@ -172,7 +172,9 @@ export async function createViteConfig(
           'react-dom',
           'react-fast-compare',
           'invariant',
-          ...(config.vite?.ssr?.optimizeDeps?.include || [] as string[]),
+          ...((((config.vite as any)?.ssr?.optimizeDeps?.include as
+            | string[]
+            | undefined) ?? []) as string[]),
         ],
       },
       noExternal: [
@@ -188,23 +190,21 @@ export async function createViteConfig(
       watch: {
         ignored: [
           '**/.boltdocs/**',
-          ...((([].concat(
-            (config.vite as any)?.server?.watch?.ignored || [],
-          ) as string[]))),
+          ...(((config.vite as any)?.server?.watch?.ignored ?? []) as string[]),
         ],
       },
       headers: {
         ...securityHeaders,
-        ...((config.vite as any)?.server?.headers),
+        ...(config.vite as any)?.server?.headers,
       },
-      ...((config.vite as any)?.server),
+      ...(config.vite as any)?.server,
     } as any,
     preview: {
       headers: {
         ...securityHeaders,
-        ...((config.vite as any)?.preview?.headers),
+        ...(config.vite as any)?.preview?.headers,
       },
-      ...((config.vite as any)?.preview),
+      ...(config.vite as any)?.preview,
     } as any,
     ...((config.vite as any) ?? {}),
   }

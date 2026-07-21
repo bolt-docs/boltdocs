@@ -36,7 +36,7 @@ export async function checkMetadata(
           if (level !== 'off') {
             issues.push({
               file: relPath,
-              level,
+              level: level as 'high' | 'warning' | 'low',
               message: 'Malformed frontmatter (YAML parsing failed).',
               suggestion:
                 'Check your YAML syntax for indentation or unquoted special characters.',
@@ -52,7 +52,7 @@ export async function checkMetadata(
           for (const error of validation.error.issues) {
             issues.push({
               file: relPath,
-              level,
+              level: level as 'high' | 'warning' | 'low',
               message: `Invalid frontmatter field "${error.path.join('.')}": ${error.message}`,
               suggestion: 'Ensure the field follows the correct type.',
             })
@@ -69,7 +69,7 @@ export async function checkMetadata(
           if (level !== 'off') {
             issues.push({
               file: relPath,
-              level,
+              level: level as 'high' | 'warning' | 'low',
               message: `Missing required frontmatter field: "${field}".`,
               suggestion: `Add the "${field}" field to your frontmatter.`,
             })
@@ -91,7 +91,7 @@ export async function checkMetadata(
             if (level !== 'off') {
               issues.push({
                 file: relPath,
-                level,
+                level: level as 'high' | 'warning' | 'low',
                 message: `Invalid date format in field "${field}": "${data[field]}".`,
                 suggestion: 'Use a valid ISO date format (e.g., YYYY-MM-DD).',
               })
@@ -107,7 +107,7 @@ export async function checkMetadata(
           if (level !== 'off') {
             issues.push({
               file: relPath,
-              level,
+              level: level as 'high' | 'warning' | 'low',
               message: `Title is too short (${title.length} chars).`,
               suggestion: `Titles should be at least ${titleMin} characters for better SEO.`,
             })
@@ -117,7 +117,7 @@ export async function checkMetadata(
           if (level !== 'off') {
             issues.push({
               file: relPath,
-              level,
+              level: level as 'high' | 'warning' | 'low',
               message: `Title is too long (${title.length} chars).`,
               suggestion: `Titles should be under ${titleMax} characters.`,
             })
@@ -136,7 +136,7 @@ export async function checkMetadata(
           if (level !== 'off') {
             issues.push({
               file: relPath,
-              level,
+              level: level as 'high' | 'warning' | 'low',
               message: 'Description is very short.',
               suggestion: `Descriptions should ideally be at least ${descriptionMin} characters.`,
             })
@@ -149,7 +149,7 @@ export async function checkMetadata(
         if (level !== 'off') {
           issues.push({
             file: relPath,
-            level,
+            level: level as 'high' | 'warning' | 'low',
             message: `Malformed frontmatter (YAML error): ${e.message}`,
             suggestion:
               'Check your YAML syntax for indentation or unquoted special characters.',
@@ -166,7 +166,7 @@ export async function checkMetadata(
         for (const file of files) {
           issues.push({
             file,
-            level,
+            level: level as 'high' | 'warning' | 'low',
             message: `Duplicate title found: "${title}"`,
             suggestion: `Ensure each page has a unique title. Also used in: ${files.filter((f) => f !== file).join(', ')}`,
           })
@@ -302,7 +302,7 @@ export async function checkLinks(ctx: DoctorContext): Promise<DoctorIssue[]> {
         if (level !== 'off') {
           issues.push({
             file: relPath,
-            level,
+            level: level as 'high' | 'warning' | 'low',
             message: `Broken internal link: "${originalLink}"`,
             suggestion: showSuggestion
               ? `Did you mean "${bestMatch}"?`
@@ -396,7 +396,7 @@ export async function checkLinks(ctx: DoctorContext): Promise<DoctorIssue[]> {
           for (const file of files) {
             issues.push({
               file: normalizePath(path.relative(ctx.docsDir, file)),
-              level,
+              level: level as 'high' | 'warning' | 'low',
               message: `Broken external link: "${res.url}"`,
               suggestion: `Verify the URL or update it if it's permanently down. Error: ${res.error || 'Status >= 400'}`,
             })
@@ -432,7 +432,7 @@ export async function checkI18n(ctx: DoctorContext): Promise<DoctorIssue[]> {
           if (level !== 'off') {
             issues.push({
               file: relPath,
-              level,
+              level: level as 'high' | 'warning' | 'low',
               message: `Missing translation for locale "${targetLocale}"`,
               suggestion: `Create a version at "${targetLocale}/${pathAfterLocale}".`,
               fix: async () => {
@@ -453,7 +453,7 @@ export async function checkI18n(ctx: DoctorContext): Promise<DoctorIssue[]> {
         if (level !== 'off') {
           issues.push({
             file: relPath,
-            level,
+            level: level as 'high' | 'warning' | 'low',
             message: `Orphaned translation (source missing in "${defaultLocale}")`,
             suggestion: `Remove this file or create the source at "${defaultLocale}/${pathAfterLocale}".`,
             fix: async () => {
@@ -470,7 +470,7 @@ export async function checkI18n(ctx: DoctorContext): Promise<DoctorIssue[]> {
 // Check sidebar configuration for broken links and orphaned pages
 export async function checkSidebar(ctx: DoctorContext): Promise<DoctorIssue[]> {
   const issues: DoctorIssue[] = []
-  if (!ctx.config.theme.sidebar) return issues
+  if (!ctx.config.theme?.sidebar) return issues
 
   const linkedRoutes = new Set<string>()
   const sidebar = ctx.config.theme.sidebar
@@ -482,7 +482,7 @@ export async function checkSidebar(ctx: DoctorContext): Promise<DoctorIssue[]> {
         if (level !== 'off') {
           issues.push({
             file: 'boltdocs.config.ts',
-            level,
+            level: level as 'high' | 'warning' | 'low',
             message: `Sidebar item in group "${group}" is missing a label.`,
             suggestion: 'Add a "text" property to the sidebar item.',
           })
@@ -501,7 +501,7 @@ export async function checkSidebar(ctx: DoctorContext): Promise<DoctorIssue[]> {
           if (level !== 'off') {
             issues.push({
               file: 'boltdocs.config.ts',
-              level,
+              level: level as 'high' | 'warning' | 'low',
               message: `Broken sidebar link: "${item.link}"`,
               suggestion: showSuggestion
                 ? `Did you mean "${bestMatch}"?`
@@ -520,7 +520,7 @@ export async function checkSidebar(ctx: DoctorContext): Promise<DoctorIssue[]> {
       if (level !== 'off') {
         issues.push({
           file: 'Sidebar',
-          level,
+          level: level as 'high' | 'warning' | 'low',
           message: `Orphaned page found: "${route}" is not linked in the sidebar.`,
           suggestion:
             'Consider adding it to the sidebar for better discoverability.',
@@ -560,7 +560,11 @@ export async function checkPerformance(
   if (!fs.existsSync(metricsPath)) {
     issues.push({
       file: '(build)',
-      level: getSeverity(ctx, 'budgetExceeded', 'warning'),
+      level:
+        (getSeverity(ctx, 'budgetExceeded', 'warning') as
+          | 'high'
+          | 'warning'
+          | 'low') ?? 'warning',
       message: 'Performance metrics not found. Run `boltdocs build` first.',
     })
     return issues
@@ -572,7 +576,11 @@ export async function checkPerformance(
   } catch {
     issues.push({
       file: '(build)',
-      level: getSeverity(ctx, 'budgetExceeded', 'warning'),
+      level:
+        (getSeverity(ctx, 'budgetExceeded', 'warning') as
+          | 'high'
+          | 'warning'
+          | 'low') ?? 'warning',
       message: 'Failed to parse performance metrics file.',
     })
     return issues
@@ -593,7 +601,7 @@ export async function checkPerformance(
     const expected = (jsLimit / 1024).toFixed(0)
     issues.push({
       file: '(build)',
-      level,
+      level: level as 'high' | 'warning' | 'low',
       message: `JS bundle size exceeds budget: ${actual}kb > ${expected}kb`,
       suggestion:
         'Code-split large dependencies or lazy-load route components.',
@@ -605,7 +613,7 @@ export async function checkPerformance(
     const expected = (cssLimit / 1024).toFixed(0)
     issues.push({
       file: '(build)',
-      level,
+      level: level as 'high' | 'warning' | 'low',
       message: `CSS bundle size exceeds budget: ${actual}kb > ${expected}kb`,
       suggestion: 'Remove unused styles or split CSS by route.',
     })
@@ -618,7 +626,7 @@ export async function checkPerformance(
         const expected = (htmlLimit / 1024).toFixed(0)
         issues.push({
           file: page.route,
-          level,
+          level: level as 'high' | 'warning' | 'low',
           message: `Page HTML size exceeds budget: ${actual}kb > ${expected}kb`,
           suggestion:
             'Reduce the amount of inline content or split into sub-pages.',
@@ -635,7 +643,7 @@ export async function checkPerformance(
     const actual = (metrics.totalImagesSize / 1024).toFixed(0)
     issues.push({
       file: '(build)',
-      level,
+      level: level as 'high' | 'warning' | 'low',
       message: `Image assets exceed budget: ${actual}kb > ${imageLimitKB}kb`,
       suggestion:
         'Optimize images with lossy compression or use next-gen formats (webp/avif).',
@@ -647,7 +655,7 @@ export async function checkPerformance(
     const expected = (buildTimeLimit / 1000).toFixed(1)
     issues.push({
       file: '(build)',
-      level,
+      level: level as 'high' | 'warning' | 'low',
       message: `Build time exceeds budget: ${actual}s > ${expected}s`,
       suggestion:
         'Check for large unoptimized assets or increase `concurrency` in SSG options.',
@@ -657,7 +665,7 @@ export async function checkPerformance(
   if (fontLimit !== Infinity && metrics.fontCount > fontLimit) {
     issues.push({
       file: '(build)',
-      level,
+      level: level as 'high' | 'warning' | 'low',
       message: `Font files exceed budget: ${metrics.fontCount} > ${fontLimit}`,
       suggestion: 'Reduce the number of font families or use variable fonts.',
     })

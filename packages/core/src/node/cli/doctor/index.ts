@@ -64,7 +64,12 @@ export async function doctorInit(root: string) {
  */
 export async function doctorAction(
   root: string = process.cwd(),
-  options: { fix?: boolean; checkExternal?: boolean; init?: boolean; budget?: boolean } = {},
+  options: {
+    fix?: boolean
+    checkExternal?: boolean
+    init?: boolean
+    budget?: boolean
+  } = {},
 ) {
   if (options.init) {
     await doctorInit(root)
@@ -170,7 +175,9 @@ export async function doctorAction(
     const [metadataIssues, linkIssues, i18nIssues, sidebarIssues, ...extra] =
       await Promise.all(checkers)
 
-    const performanceIssues: DoctorIssue[] = options.budget ? extra[0] ?? [] : []
+    const performanceIssues: DoctorIssue[] = options.budget
+      ? (extra[0] ?? [])
+      : []
 
     const issues = [
       ...metadataIssues,

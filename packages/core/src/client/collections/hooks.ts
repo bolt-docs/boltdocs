@@ -71,21 +71,22 @@ export function usePost(
   if (ctx && !slug) {
     const { route } = ctx
     return useMemo(
-      () => ({
-        path: route.path,
-        title: route.title,
-        date: route.date,
-        excerpt: route.excerpt,
-        tags: route.tags,
-        author: route.author,
-        coverImage: route.coverImage,
-        filePath: route.filePath,
-        locale: route.locale,
-        version: route.version,
-        frontmatter: route.frontmatter,
-        lastUpdated: route.lastUpdated,
-        headings: route.headings,
-      }) as CollectionPost,
+      () =>
+        ({
+          path: route.path,
+          title: route.title,
+          date: route.date,
+          excerpt: route.excerpt,
+          tags: route.tags,
+          author: route.author,
+          coverImage: route.coverImage,
+          filePath: route.filePath,
+          locale: route.locale,
+          version: route.version,
+          frontmatter: route.frontmatter,
+          lastUpdated: route.lastUpdated,
+          headings: route.headings,
+        }) as CollectionPost,
       [route],
     )
   }

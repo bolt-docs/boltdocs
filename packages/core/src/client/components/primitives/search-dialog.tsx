@@ -38,12 +38,19 @@ function SearchDialogContent({ className, ...props }: RAC.ModalOverlayProps) {
 /**
  * Pure, unstyled SearchDialog Dialog (maps to RAC.Dialog)
  */
-function SearchDialogDialog({ className, ...props }: RAC.DialogProps) {
+function SearchDialogDialog({
+  children,
+  className,
+  ...props
+}: RAC.DialogProps) {
   return (
     <RAC.Dialog
       className={cn('flex flex-col focus:outline-none', className)}
       {...props}
-    />
+    >
+      {children}
+      {/* Plugin slot: search-dialog — content injected INSIDE the dialog body */}
+    </RAC.Dialog>
   )
 }
 

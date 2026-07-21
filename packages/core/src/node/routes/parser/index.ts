@@ -40,10 +40,11 @@ type FrontmatterData = {
   cover?: string
   groupTitle?: string
   groupPosition?: number
-  badge?: string | { text: string; expires?: string }  } & {
-    // Escape hatch for user-defined frontmatter keys.
-    [key: string]: unknown
-  }
+  badge?: string | { text: string; expires?: string }
+} & {
+  // Escape hatch for user-defined frontmatter keys.
+  [key: string]: unknown
+}
 
 /** Compute the sidebar position for a group index page, preserving 0. */
 function resolveGroupPosition(
@@ -106,7 +107,7 @@ export async function parseDocFile(
     )
   }
 
-  const result = (await parseFrontmatterAsync(file)) as {
+  const result = (await parseFrontmatterAsync(file)) as unknown as {
     data: FrontmatterData
     content: string
     rawMatter: string
@@ -184,7 +185,7 @@ export async function parseDocFile(
       frontmatter: data,
       collection: resolution.collection,
       tags: data.tags,
-      author: data.author,
+      author: typeof data.author === 'string' ? data.author : data.author?.name,
       draft: data.draft,
       excerpt: data.excerpt,
       coverImage: data.coverImage || data.cover,
@@ -311,8 +312,8 @@ export async function parseDocFileWithNative(
   const sidebarPosition =
     data.sidebarPosition ?? extractNumberPrefix(rawFileName)
 
-  const relativeDirString = slugParts.join('/')      // If explicit description is in frontmatter, sanitize it; else use nativeDoc.description
-      const description = data.description
+  const relativeDirString = slugParts.join('/') // If explicit description is in frontmatter, sanitize it; else use nativeDoc.description
+  const description = data.description
     ? sanitizeHtml(String(data.description)).trim()
     : nativeDoc.description
 
@@ -348,7 +349,7 @@ export async function parseDocFileWithNative(
       frontmatter: data,
       collection: resolution.collection,
       tags: data.tags,
-      author: data.author,
+      author: typeof data.author === 'string' ? data.author : data.author?.name,
       draft: data.draft,
       excerpt: data.excerpt,
       coverImage: data.coverImage || data.cover,

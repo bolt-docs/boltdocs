@@ -1,5 +1,5 @@
 import { Button } from 'react-aria-components'
-import { Copy, Check, File } from '../ui-base/icons'
+import { Copy, Check } from '../ui-base/icons'
 import { cn } from '../../utils/cn'
 import { useCodeBlock } from './use-code-block'
 import * as CodePrimitive from '../primitives/code-block'
@@ -35,10 +35,12 @@ const CopyButton = ({
     <Tooltip content={copied ? 'Copied!' : 'Copy code'}>
       <Button
         onPress={handleCopy as any}
-        className={cn(
-          'grid place-items-center size-8 bg-transparent outline-none cursor-pointer transition-all duration-200 hover:scale-110 active:scale-95 [&>svg]:size-4 [&>svg]:stroke-2 z-10',
-          copied ? 'text-emerald-400' : 'text-muted hover:text-body',
-        ) as any}
+        className={
+          cn(
+            'grid place-items-center size-8 bg-transparent outline-none cursor-pointer transition-all duration-200 hover:scale-110 active:scale-95 [&>svg]:size-4 [&>svg]:stroke-2 z-10',
+            copied ? 'text-emerald-400' : 'text-muted hover:text-body',
+          ) as any
+        }
         aria-label="Copy code"
       >
         {copied ? <Check size={20} /> : <Copy size={20} />}
@@ -59,15 +61,17 @@ const CodeBlockFeedback = ({
       <Tooltip content={rated === 'up' ? 'Helpful!' : 'This code is helpful'}>
         <Button
           onPress={(() => onRate('up')) as any}
-          disabled={rated !== null}
-          className={cn(
-            'grid place-items-center size-8 bg-transparent outline-none cursor-pointer transition-all duration-200 hover:scale-110 active:scale-95 [&>svg]:size-4 [&>svg]:stroke-2 z-10',
-            rated === 'up'
-              ? 'text-emerald-500 dark:text-emerald-400'
-              : rated === 'down'
-                ? 'opacity-30 cursor-not-allowed text-muted'
-                : 'text-muted hover:text-body',
-          ) as any}
+          isDisabled={rated !== null}
+          className={
+            cn(
+              'grid place-items-center size-8 bg-transparent outline-none cursor-pointer transition-all duration-200 hover:scale-110 active:scale-95 [&>svg]:size-4 [&>svg]:stroke-2 z-10',
+              rated === 'up'
+                ? 'text-emerald-500 dark:text-emerald-400'
+                : rated === 'down'
+                  ? 'opacity-30 cursor-not-allowed text-muted'
+                  : 'text-muted hover:text-body',
+            ) as any
+          }
           aria-label="Mark as helpful"
         >
           <svg
@@ -89,15 +93,17 @@ const CodeBlockFeedback = ({
       >
         <Button
           onPress={(() => onRate('down')) as any}
-          disabled={rated !== null}
-          className={cn(
-            'grid place-items-center size-8 bg-transparent outline-none cursor-pointer transition-all duration-200 hover:scale-110 active:scale-95 [&>svg]:size-4 [&>svg]:stroke-2 z-10',
-            rated === 'down'
-              ? 'text-rose-500 dark:text-rose-400'
-              : rated === 'up'
-                ? 'opacity-30 cursor-not-allowed text-muted'
-                : 'text-muted hover:text-body',
-          ) as any}
+          isDisabled={rated !== null}
+          className={
+            cn(
+              'grid place-items-center size-8 bg-transparent outline-none cursor-pointer transition-all duration-200 hover:scale-110 active:scale-95 [&>svg]:size-4 [&>svg]:stroke-2 z-10',
+              rated === 'down'
+                ? 'text-rose-500 dark:text-rose-400'
+                : rated === 'up'
+                  ? 'opacity-30 cursor-not-allowed text-muted'
+                  : 'text-muted hover:text-body',
+            ) as any
+          }
           aria-label="Mark as unhelpful"
         >
           <svg
@@ -151,7 +157,6 @@ export function CodeBlock(props: CodeBlockProps) {
     showCodeBlockFeedback,
     rated,
     handleRate,
-    LangIcon,
   } = useCodeBlock(props)
 
   return (
@@ -163,16 +168,7 @@ export function CodeBlock(props: CodeBlockProps) {
           })}
         >
           <CodePrimitive.CodeBlockGroup>
-            {effectiveTitle && (
-              <>
-                {LangIcon ? (
-                  <LangIcon size={14} />
-                ) : (
-                  <File size={14} className="opacity-60" />
-                )}
-                <span>{effectiveTitle}</span>
-              </>
-            )}
+            {effectiveTitle && <span>{effectiveTitle}</span>}
           </CodePrimitive.CodeBlockGroup>
           <div className="flex items-center gap-1 bg-(--color-code-bg) pl-2 z-10">
             {showCodeBlockFeedback && (

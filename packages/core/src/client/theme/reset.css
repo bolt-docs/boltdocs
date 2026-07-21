@@ -22,6 +22,30 @@
     line-height: 1.7;
   }
 
+  /*
+   * ═══ Mermaid anti-scroll guard ═══
+   * Mermaid can leave behind measurement nodes and iframe sandboxes
+   * directly attached to <body>. If they are not cleaned up they can
+   * create a viewport-sized scrollable region below the docs page-nav.
+   * These selectors only target Mermaid-internal artifacts (which are
+   * direct children of <body> or iframes) and deliberately avoid the
+   * rendered SVG, which lives inside .boltdocs-content.
+   */
+  body > [id^="mermaid-"],
+  body > [id^="dmermaid-"],
+  body > [id^="mermaid-svg-"],
+  [id^="imermaid-"] {
+    position: fixed !important;
+    top: -9999px !important;
+    left: -9999px !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    overflow: hidden !important;
+    pointer-events: none !important;
+    visibility: hidden !important;
+    opacity: 0 !important;
+  }
+
   a {
     text-decoration: none;
   }

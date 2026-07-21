@@ -1,7 +1,8 @@
 import { useRef, type ElementType } from 'react'
 import { cn } from '../../utils/cn'
 
-export interface CardProps extends React.HTMLAttributes<HTMLDivElement> {
+export interface CardProps
+  extends Omit<React.HTMLAttributes<HTMLDivElement>, 'title'> {
   title?: React.ReactNode
   icon?: React.ReactNode
   href?: string
@@ -15,9 +16,11 @@ export function Card({
   children,
   ...props
 }: CardProps) {
-  const cardRef = useRef<HTMLDivElement>(null)
+  const cardRef = useRef<HTMLDivElement | HTMLAnchorElement>(null)
 
-  const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+  const handleMouseMove = (
+    e: React.MouseEvent<HTMLDivElement | HTMLAnchorElement>,
+  ) => {
     if (!cardRef.current) return
     const rect = cardRef.current.getBoundingClientRect()
     const x = e.clientX - rect.left
@@ -31,9 +34,10 @@ export function Card({
 
   return (
     <Wrapper
-      ref={cardRef as any}
+      // @ts-ignore
+      ref={cardRef}
       href={href}
-      onMouseMove={handleMouseMove as any}
+      onMouseMove={handleMouseMove}
       className={cn(
         'group relative flex flex-col gap-3 rounded-2xl border p-6 overflow-hidden',
         'transition-[box-shadow,transform] duration-300',
@@ -42,7 +46,7 @@ export function Card({
         href && 'cursor-pointer',
         className,
       )}
-      {...(props as React.HTMLAttributes<HTMLDivElement>)}
+      {...(props as unknown as Record<string, unknown>)}
     >
       {/* Background Spotlight */}
       <div
@@ -69,7 +73,7 @@ export function Card({
         {icon && (
           <div
             className={cn(
-              'shrink-0 transition-transform duration-500 group-hover:rotate-[15deg] group-hover:scale-110 flex items-center justify-center text-muted group-hover:text-primary-500',
+              'shrink-0 transition-transform duration-500 group-hover:rotate-15 group-hover:scale-110 flex items-center justify-center text-muted group-hover:text-primary-500',
               '[&>svg]:w-6 [&>svg]:h-6 [&>svg]:stroke-[1.5]',
             )}
           >
@@ -83,7 +87,6 @@ export function Card({
         )}
       </div>
 
-      {/* Body Content */}
       <div className="relative z-10 text-[0.875rem] leading-[1.6] opacity-90 prose prose-neutral dark:prose-invert max-w-none [&>p]:m-0 [&>p+p]:mt-2">
         {children}
       </div>

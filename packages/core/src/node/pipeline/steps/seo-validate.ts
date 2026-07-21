@@ -25,7 +25,7 @@ export class SEOValidateStep implements PipelineStep<BuildContext> {
       throw new Error('Routes or Config not initialized.')
     }
 
-    const siteUrl = ctx.config.siteUrl
+    const siteUrl = ctx.config?.siteUrl
 
     // Shallow/Deep copy elements to prevent context corruption
     ctx.routes = ctx.routes.map((route) => {
@@ -37,7 +37,8 @@ export class SEOValidateStep implements PipelineStep<BuildContext> {
         (siteUrl ? `${siteUrl.replace(/\/$/, '')}${route.path}` : undefined)
       const ogUrl = rawSeo['og:url'] || canonical || undefined
 
-      const defaultOgImage = ctx.config.seo?.thumbnails?.background
+      const defaultOgImage = (ctx.config?.seo?.thumbnails?.background ??
+        undefined) as string | undefined
       const rawOgImage =
         rawSeo['og:image'] || route.coverImage || defaultOgImage
       let ogImage = rawOgImage
@@ -55,18 +56,17 @@ export class SEOValidateStep implements PipelineStep<BuildContext> {
       if (ogUrl) enrichedSeo['og:url'] = ogUrl
       if (ogImage) enrichedSeo['og:image'] = ogImage
       if (!enrichedSeo['og:title'] && route.title) {
-        enrichedSeo['og:title'] = route.title
+        enrichedSeo['og:title'] = String(route.title)
       }
       if (!enrichedSeo['og:description'] && route.description) {
-        enrichedSeo['og:description'] = route.description
+        enrichedSeo['og:description'] = String(route.description)
       }
 
       // Zod Validation
       const result = RouteSeoSchema.safeParse(enrichedSeo)
       if (!result.success) {
         warn(
-          `[SEOValidate] Validation issues on route "${route.path}":`,
-          result.error.message,
+          `[SEOValidate] Validation issues on route "${route.path}": ${result.error.message}`,
         )
       }
 

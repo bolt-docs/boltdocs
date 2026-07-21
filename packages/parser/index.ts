@@ -108,7 +108,13 @@ async function runWasmParser(
 ): Promise<Record<string, ParsedDoc>> {
   const { WASI } = await import('node:wasi')
 
-  const tempDir = path.resolve(docsDir, '.boltdocs/cache')
+  // Place the WASM stdout temp file at the project root (process.cwd()),
+  // NOT inside `docsDir` — a previous version resolved against `docsDir`
+  // and created a stray `<docsDir>/.boltdocs/cache/` directory that
+  // polluted the documentation source tree and was caught by route
+  // scanners. `process.cwd()` matches what `AssetCache` and
+  // `routes/parser/cache.ts` already use.
+  const tempDir = path.resolve(process.cwd(), '.boltdocs/cache')
   if (!fs.existsSync(tempDir)) {
     fs.mkdirSync(tempDir, { recursive: true })
   }

@@ -19,7 +19,7 @@ export function OnThisPage({
         On this page
       </OTP.Header>
 
-      <OTP.Tree headings={headings} />
+      <OTP.Tree className="max-h-[300px]" headings={headings} />
 
       {(editLink || communityHelp) && (
         <div className="mt-8 pt-8 border-t border-subtle space-y-4">

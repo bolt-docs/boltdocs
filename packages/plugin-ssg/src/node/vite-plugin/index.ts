@@ -4,7 +4,7 @@ import type { ViteReactSSGContext, ViteReactSSGOptions } from '../../types'
 import type { CreateRootFactory } from '../build'
 import { error } from '@bdocs/dui'
 import { send } from 'vite'
-import { joinUrlSegments, stripBase } from '~/utils/path'
+import { joinUrlSegments, stripBase } from '../../utils/path'
 import { createLink, renderHTML } from '../html'
 import { getAdapter } from '../router-adapter'
 
@@ -14,6 +14,53 @@ export interface Options<Context = ViteReactSSGContext>
   ssrEntry: string
   entry: string
   rootContainerId: string
+}
+
+/**
+ * URL-normalization middleware for the SSG dev server.
+ *
+ * The browser sends paths with percent-encoded UTF-8 chars (e.g.
+ * `/blog/Jes%C3%BAs%20Alcal%C3%A1`). Vite's HTML-proxy module
+ * resolver looks the module id up against the raw UTF-8 string that
+ * the React Router `path` field carries, so encoded URLs miss and
+ * produce:
+ *   [vite] (client) Pre-transform error: No matching HTML proxy
+ *   module found from /blog/...?html-proxy&index=0.js
+ *
+ * We decode the path component with `decodeURI` (preserves `%2F`
+ * reserved slash so segment boundaries stay intact) and leave the
+ * query string verbatim. Mirrors the `decodeURIComponent` pattern
+ * from `packages/core/src/node/dev-server/hmr-handler.ts:45`.
+ *
+ * Exported so the unit test in `tests/url-normalize.test.ts` can
+ * import this same implementation rather than re-implementing — that
+ * way a future change to the canonicalisation logic cannot drift
+ * away from what the test covers.
+ */
+export function normalizeUrl(
+  req: { url?: string; originalUrl?: string },
+  _res: unknown,
+  next: () => void,
+): void {
+  if (req.url) {
+    try {
+      const url = req.url
+      const qIdx = url.indexOf('?')
+      const pathPart = qIdx >= 0 ? url.slice(0, qIdx) : url
+      const queryPart = qIdx >= 0 ? url.slice(qIdx) : ''
+      if (/%[0-9A-Fa-f]{2}/.test(pathPart)) {
+        const decoded = decodeURI(pathPart)
+        if (decoded !== pathPart) {
+          const newUrl = decoded + queryPart
+          req.url = newUrl
+          if (req.originalUrl) req.originalUrl = newUrl
+        }
+      }
+    } catch {
+      // Malformed URI sequence — leave unchanged.
+    }
+  }
+  next()
 }
 
 export interface HandlerCreaterOptions<Context> extends Options<Context> {
@@ -131,6 +178,21 @@ export function ssrServerPlugin({
           res.end(e.stack)
         }
       }
+
+      // Prepend a URL-normalization middleware BEFORE Vite's internal
+      // `htmlFallbackMiddleware` + HTML-proxy module resolver. The browser
+      // sends paths with percent-encoded UTF-8 chars (e.g.
+      // `/blog/Jes%C3%BAs%20Alcal%C3%A1`). Vite's HTML-proxy looks the
+      // module id up against the raw UTF-8 string that the React Router
+      // `path` field carries, so encoded URLs miss and produce:
+      //   [vite] (client) Pre-transform error: No matching HTML proxy
+      //   module found from /blog/...?html-proxy&index=0.js
+      // Decoding here (synchronously, before Vite finalizes its
+      // middleware stack) makes every downstream handler — Vite's
+      // transform layer, our `renderMiddleware`, React Router SSR
+      // resolution — see the canonical UTF-8 form, mirroring the
+      // decodeURIComponent pattern from `hmr-handler.ts:45`.
+      server.middlewares.use(normalizeUrl)
 
       return () => {
         server.middlewares.use(renderMiddleware)

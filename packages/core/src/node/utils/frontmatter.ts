@@ -147,7 +147,10 @@ function parseMultilineValue(
           items.push(itemObj)
         } else {
           // Simple item
-          items.push(itemContent)
+          const itemRecord: Record<string, unknown> = {
+            value: itemContent,
+          }
+          items.push(itemRecord)
         }
       } else if (indent > baseIndent && items.length > 0) {
         // Continuation of last item: key: value on new line
