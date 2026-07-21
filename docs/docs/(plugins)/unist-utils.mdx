@@ -1,0 +1,248 @@
+---
+title: '@bdocs/unist-utils'
+sidebarPosition: 10
+description: Strictly-typed AST utilities for unist/mdast/hast used by Boltdocs core, every official @bdocs/* plugin, and the Sätteri MDX processor. Single source of truth for visitor helpers, AST builders, h-properties helpers, class-list mutation, and meta string parsing.
+badge: "New"
+---
+
+`@bdocs/unist-utils` is a standalone npm package that exposes the
+**strictly-typed AST utilities** shared by `boltdocs` core, every
+official `@bdocs/*` plugin, and the Sätteri MDX processor. Before this
+package existed, the same helpers lived in two places inside the
+monorepo with subtly different typings; it is now the single source of
+truth.
+
+This page is the official reference. Use it whenever you need to walk
+or mutate the MDAST/HAST tree of an MDX file — inside a custom remark
+plugin, a build-time transformer, or a runtime component that wants
+statically verifiable shapes.
+
+<Callout variant="info" title="100% typed, end to end">
+  Every public export is fully typed. No `any`, no `unknown` at the
+  boundaries — `Node`, `Parent`, `ElementNode`, `MdxJsxElement`, etc.
+  are all declared in this package so plugin authors can build
+  typed-only code with confidence.
+</Callout>
+
+---
+
+## Installation
+
+The package is part of the `@bdocs/*` organisation namespace. Add it
+to your plugin or app:
+
+```sh
+pnpm add @bdocs/unist-utils
+```
+
+It is also a dependency of the official Boltdocs plugins
+(`@bdocs/plugin-mermaid`, `@bdocs/plugin-rss`, etc.), so you usually do
+not need to declare it explicitly when extending those.
+
+**Peer / runtime deps** — `@bdocs/unist-utils` depends on `unist-util-visit@^5`.
+You do **not** need to install `unist` itself: the package inlines
+structural copies of `Node`/`Parent` so plugin authors are not forced
+to add the upstream type package.
+
+---
+
+## Why it exists
+
+Three reasons:
+
+1. **Single source of truth.** Before, `visitNodes`, `createMdxElement`,
+   `setNodeProperty`, `parseMetaString` etc. were duplicated between
+   `packages/core/src/node/plugins/plugin-utils.ts` and the Sätteri
+   plugin's adapters. Now they live in one place, with one signature.
+2. **Public surface for plugin authors.** External plugins were forced
+   to either reach into `boltdocs`'s internal barrel or write their own
+   AST helpers with looser types. `@bdocs/unist-utils` gives them a
+   typed surface and decouples them from boltdocs internals.
+3. **Sets the stage for richer plugin APIs.** Subsequent boltdocs
+   phases (better lifecycle, granular component injection, in-place
+   middleware, MDX transformer API) all build on top of this package
+   rather than on top of boltdocs itself.
+
+---
+
+## Public surface
+
+| Group | Exports |
+| --- | --- |
+| Node-type constants | `MDX_NODES`, `MdxNodeType`, re-exports `SKIP`, `EXIT` from `unist-util-visit@5` |
+| Generic unist types | `Node`, `Parent` |
+| MDAST | `MdxJsxAttribute`, `MdxJsxAttributeValueExpression`, `MdxJsxElement`, `MdxJsxChild`, `CodeNode`, `PlainTextNode` |
+| HAST | `ElementNode`, `HastNode`, `HastChild` |
+| Helpers | `NodeWithHProperties` |
+| Type guards | `isMdxJsxElement`, `isMdxJsxTextElement`, `isMdxJsxLike`, `isElementNode`, `isTextNode` |
+| Visitors | `visitNodes`, `visitRehypeElements`, `visitMdxElements`, `visitRemarkHeadings`, `visitRemarkLinks` |
+| Builders | `createMdxAttribute`, `createMdxElement`, `createRehypeElement` |
+| Properties | `setNodeProperty`, `getNodeProperty` |
+| Class list | `addNodeClass`, `removeNodeClass`, `hasNodeClass` |
+| Meta parser | `parseMetaString`, `ParsedMeta` |
+
+Every export is also re-exported by `boltdocs` core for back-compat so
+existing plugin code keeps working without change.
+
+### Behavioural contract — `SKIP` / `EXIT`
+
+`unist-util-visit@5` exports `SKIP` and `EXIT` as the **string**
+`'skip'` and the **boolean** `false` respectively — not as `Symbol`s
+as in earlier versions. The package pins this contract and exposes
+tests so plugin authors can rely on it.
+
+---
+
+## Examples
+
+### Walking MDAST code blocks (mermaid-style)
+
+```ts title="my-plugin.ts"
+import { MDX_NODES, type CodeNode, type Node, type Parent } from '@bdocs/unist-utils'
+
+export function remarkCodeFences() {
+  return (tree: Node) => {
+    const collected: Array<{ node: CodeNode; parent: Parent; index: number }> = []
+    visitNodes(tree, MDX_NODES.CODE, (node, index, parent) => {
+      if (node.lang === 'mermaid') {
+        collected.push({ node, parent, index })
+      }
+    })
+    for (const { node, parent, index } of collected) {
+      parent.children[index] = { type: 'mdxJsxFlowElement', name: 'Mermaid' } as Node
+    }
+  }
+}
+```
+
+### Building MDX JSX (typed)
+
+```ts title="my-plugin.ts"
+import {
+  createMdxElement,
+  createMdxAttribute,
+  type MdxJsxChild,
+} from '@bdocs/unist-utils'
+
+const children: MdxJsxChild[] = []
+
+const el = createMdxElement('MyChart', {
+  chart: 'graph TD',
+  config: createMdxAttribute('config', { theme: 'dark' }),
+})
+```
+
+### Manipulating class names
+
+```ts
+import { addNodeClass, removeNodeClass, hasNodeClass } from '@bdocs/unist-utils'
+
+addNodeClass(node, 'shiki-fallback')
+if (hasNodeClass(node, 'shiki')) removeNodeClass(node, 'shiki')
+```
+
+### Parsing code-fence meta strings
+
+```ts
+import { parseMetaString } from '@bdocs/unist-utils'
+
+const meta = parseMetaString('title="My Example" lineNumbers')
+// → { title: 'My Example', lineNumbers: true }
+```
+
+`parseMetaString` populates `title`, `lineNumbers`, and `wordWrap`. The
+`__raw` field on `ParsedMeta` is **not** set by `parseMetaString` —
+callers attach it themselves before handing the meta to a downstream
+consumer (e.g. shiki-adapter in Boltdocs core populates it before
+passing meta to the highlighter so the original unparsed string is
+recoverable).
+
+### Type guards as narrowing predicates
+
+```ts
+import { isMdxJsxElement, isElementNode } from '@bdocs/unist-utils'
+
+function visit(tree: unknown) {
+  if (Array.isArray(tree)) {
+    tree.forEach((child) => {
+      if (isMdxJsxElement(child)) {
+        // child is narrowed to MdxJsxElement
+      } else if (isElementNode(child)) {
+        // child is narrowed to ElementNode
+      }
+    })
+  }
+}
+```
+
+---
+
+## Migration from `boltdocs`
+
+Old code (still works as a back-compat shim):
+
+```ts
+import { visitNodes, createMdxAttribute } from 'boltdocs'
+```
+
+New code (preferred for new plugins):
+
+```ts
+import { visitNodes, createMdxAttribute } from '@bdocs/unist-utils'
+```
+
+Both paths are equal in functionality today. The old one forwards to
+the new package via a thin shim. New code should import from
+`@bdocs/unist-utils` directly so the dependency surfaces cleanly in
+your bundle output and you avoid the back-compat shim's slight runtime
+overhead.
+
+### Strictness
+
+`MdxJsxElement.children` is typed as `MdxJsxChild[]` rather than `any[]`,
+and `ElementNode.properties` is typed as `Record<string, unknown>`
+rather than `Record<string, any>`. Plugin authors who read these
+fields will need to narrow with the provided `isX` guards or a custom
+predicate.
+
+### Behavioural caveat — `createMdxAttribute` with objects
+
+`createMdxAttribute(name, objectValue)` keeps the object verbatim
+under `value`. For object values that you want to embed as a JS
+expression in compiled MDX, stringify explicitly:
+
+```ts
+import { createMdxAttribute } from '@bdocs/unist-utils'
+
+const attr = createMdxAttribute(
+  'config',
+  `{ theme: 'dark', animations: true }`,
+)
+```
+
+A stricter builder that always wraps object values into a real
+`mdxJsxAttributeValueExpression` will land in a future boltdocs
+Phase. Until then, prefer the manual stringification above.
+
+---
+
+## Edge cases & constraints
+
+- **Reserved prefix.** If you call `createMdxAttribute` (or any other
+  helper) with a malicious-looking argument, the helpers **do not
+  sanitise HTML**. They are designed to be run on already-trusted
+  in-memory tree representations. Escape user-supplied content
+  **before** it lands in the MDAST.
+- **AST node validity.** The visitors do not validate sibling/parent
+  invariants. If you mutate `parent.children[index]`, ensure you
+  replace with a structurally valid node (use the builder helpers to
+  guarantee this).
+- **Tree boundary.** `visit*` does **not** walk across multiple trees.
+  Each tree needs its own `visit` call.
+
+---
+
+## License
+
+Released under the [MIT License](https://opensource.org/licenses/MIT),
+matching the rest of the Boltdocs monorepo.

@@ -1,0 +1,41 @@
+---
+title: Virtual Modules
+sidebarPosition: 4
+description: PluginVirtualModulesAPI — declara módulos virtuales que Vite resuelve en runtime sin tocar el sistema de archivos.
+---
+
+# `ctx.virtualModules` — PluginVirtualModulesAPI
+
+Declara módulos virtuales que Vite resuelve y carga sin tocar el
+sistema de archivos. Cada plugin llama a `add()` desde `beforeBuild`
+o `beforeDev`.
+
+```ts
+ctx.virtualModules.add(
+  'virtual:mi-plugin/theme.css',
+  () => `:root { --primary: #6366f1; }`,
+)
+
+ctx.virtualModules.has('virtual:mi-plugin/theme.css')
+// → boolean
+
+const todos: readonly RegisteredVirtualModule[] = ctx.virtualModules.list()
+```
+
+---
+
+## Reglas de registro
+
+| Regla | Detalle |
+| :--- | :------ |
+| **Ids duplicados lanzan error** | Dos plugins no pueden registrar el mismo id virtual. Prefija con el nombre de tu plugin. |
+| **Prefijo `virtual:boltdocs-` reservado** | Los virtuales del core (routes, config, search, etc.) mantienen el namespace `virtual:boltdocs-`. |
+| **Flag `eager`** | Se acepta en registro pero no se consulta en carga — reservado para futura auto-inyección. |
+
+---
+
+## Ver también
+
+- [PluginContext](/docs/es/api/plugin-api) — objeto de contexto base
+- [Slots](/docs/es/api/plugin-api/slots) — registro declarativo de slots de layout
+- [HMR](/docs/es/api/plugin-api/hmr) — observación de archivos y eventos personalizados del dev server

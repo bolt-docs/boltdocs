@@ -1,0 +1,84 @@
+---
+title: Caches
+sidebarPosition: 1
+description: PluginCachesAPI — caché de transformación, caché de rutas y caché FIFO en memoria para plugins de Boltdocs.
+---
+
+# `ctx.caches` — PluginCachesAPI
+
+Tres tipos de caché, cada uno vinculado a un scope namespaced para
+evitar colisiones entre plugins.
+
+---
+
+## `caches.transform(namespace)`
+
+Caché sharded con clave hash, respaldada por el `TransformCache` del
+core. Se recomienda un namespace por plugin.
+
+```ts
+const cache = ctx.caches.transform('mi-plugin')
+
+const cached = await cache.get('una-clave-unica')
+// → string | null
+
+cache.set('una-clave-unica', `<transformado>...</transformado>`)
+
+await cache.flush()
+```
+
+---
+
+## `caches.routes`
+
+Wrapper sobre el caché de documentos parseados. Los plugins pueden
+leer, escribir e invalidar rutas individuales por ruta absoluta.
+
+```ts
+const route = ctx.caches.routes.get('/ruta/absoluta/pagina.mdx')
+// → RouteMeta | null
+
+ctx.caches.routes.set('/ruta/absoluta/pagina.mdx', {
+  title: 'Mi Página',
+  path: '/docs/guias/mi-pagina',
+} as RouteMeta)
+
+ctx.caches.routes.invalidate('/ruta/absoluta/pagina.mdx')
+ctx.caches.routes.invalidateAll()
+```
+
+<Callout variant="warning" title="Contrato del caché de rutas">
+  `set()` escribe un **registro parcial**. La capa de parsing **siempre
+  gana** en el próximo refresh — las entradas escritas por plugins se
+  sobrescriben en el siguiente tick del watcher de archivos.
+</Callout>
+
+---
+
+## `caches.memory<V>(namespace, opts?)`
+
+Caché FIFO en proceso que vive durante toda la vida del dev server /
+build. Respaldado por un `Map` nativo — sin dependencias externas.
+
+```ts
+const cache = ctx.caches.memory<MiResultado>('mi-plugin', { max: 50, ttl: 60_000 })
+
+cache.set('clave', { procesado: true })
+const val = cache.get('clave')   // → MiResultado | undefined
+cache.has('clave')               // → boolean
+```
+
+### Opciones
+
+| Opción | Tipo | Predeterminado | Descripción |
+| :--- | :--- | :--- | :--- |
+| `max` | `number` | `100` | Número máximo de entradas antes de eliminar las más antiguas. |
+| `ttl` | `number` | `0` | Tiempo de vida en milisegundos. `0` significa sin expiración. |
+
+---
+
+## Ver también
+
+- [PluginContext](/docs/es/api/plugin-api) — objeto de contexto base
+- [Diagnostics](/docs/es/api/plugin-api/diagnostics) — reporte estructurado de diagnósticos
+- [Virtual Modules](/docs/es/api/plugin-api/virtual-modules) — declaraciones de módulos virtuales en runtime

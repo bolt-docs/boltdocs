@@ -1,0 +1,171 @@
+---
+title: '@bdocs/unist-utils'
+sidebarPosition: 10
+description: Utilidades AST estrictamente tipadas para unist/mdast/hast usadas por el core de Boltdocs, todos los plugins oficiales @bdocs/* y el procesador MDX Sätteri. Única fuente de verdad para helpers de visita, builders de AST, helpers de h-properties, mutación de class-list y parsing de meta strings.
+badge: 0.1.0
+---
+
+`@bdocs/unist-utils` es un paquete npm independiente que expone las
+**utilidades AST estrictamente tipadas** que comparten el core de
+`boltdocs`, todos los plugins oficiales `@bdocs/*` y el procesador MDX
+Sätteri. Antes de este paquete, los mismos helpers vivían duplicados
+en dos lugares del monorepo con tipados sutilmente distintos; ahora
+son una sola fuente de verdad.
+
+Esta página es la referencia oficial. Úsala cuando necesites recorrer
+o mutar el árbol MDAST/HAST de un archivo MDX — desde un plugin de
+remark personalizado, un transformer en tiempo de build, hasta un
+componente en runtime que quiera formas estáticamente verificables.
+
+<Callout variant="info" title="100% tipado, de extremo a extremo">
+  Cada export público está completamente tipado. Sin `any`, sin
+  `unknown` en los bordes — `Node`, `Parent`, `ElementNode`,
+  `MdxJsxElement`, etc. están todos declarados en el paquete para
+  que los autores de plugins puedan escribir código tipado-only con
+  confianza.
+</Callout>
+
+---
+
+## Instalación
+
+El paquete forma parte del namespace `@bdocs/*`. Añádelo a tu plugin
+o aplicación:
+
+```sh
+pnpm add @bdocs/unist-utils
+```
+
+También es dependencia de los plugins oficiales de Boltdocs
+(`@bdocs/plugin-mermaid`, `@bdocs/plugin-rss`, etc.), así que
+normalmente no necesitarás declararlo explícitamente cuando los
+extiendas.
+
+**Dependencias (peer/runtime)** — `@bdocs/unist-utils` depende de
+`unist-util-visit@^5`. **No** necesitas instalar `unist` mismo: el
+paquete inline-a copias estructurales de `Node`/`Parent` para que los
+autores de plugins no se vean forzados a añadir el paquete de tipos
+upstream.
+
+---
+
+## Por qué existe
+
+Tres razones:
+
+1. **Única fuente de verdad.** Antes, `visitNodes`, `createMdxElement`,
+   `setNodeProperty`, `parseMetaString`, etc. estaban duplicados
+   entre `packages/core/src/node/plugins/plugin-utils.ts` y los
+   adaptadores del plugin Sätteri. Ahora viven en un sitio, con una
+   firma.
+2. **Superficie pública para autores de plugins.** Los plugins
+   externos se veían forzados a alcanzar el barrel interno de
+   `boltdocs` o a escribir sus propios helpers AST con tipados más
+   flojos. `@bdocs/unist-utils` les da una superficie tipada y los
+   desacopla de los internos de boltdocs.
+3. **Prepara el terreno para APIs de plugin más ricas.** Las
+   siguientes fases se construyen sobre este paquete en lugar de
+   sobre boltdocs mismo.
+
+---
+
+## Superficie pública
+
+| Grupo | Exports |
+| --- | --- |
+| Constantes de tipo de nodo | `MDX_NODES`, `MdxNodeType`, re-exports `SKIP`, `EXIT` desde `unist-util-visit@5` |
+| Tipos unist genéricos | `Node`, `Parent` |
+| MDAST | `MdxJsxAttribute`, `MdxJsxAttributeValueExpression`, `MdxJsxElement`, `MdxJsxChild`, `CodeNode`, `PlainTextNode` |
+| HAST | `ElementNode`, `HastNode`, `HastChild` |
+| Helpers | `NodeWithHProperties` |
+| Type guards | `isMdxJsxElement`, `isMdxJsxTextElement`, `isMdxJsxLike`, `isElementNode`, `isTextNode` |
+| Visitores | `visitNodes`, `visitRehypeElements`, `visitMdxElements`, `visitRemarkHeadings`, `visitRemarkLinks` |
+| Builders | `createMdxAttribute`, `createMdxElement`, `createRehypeElement` |
+| Propiedades | `setNodeProperty`, `getNodeProperty` |
+| Class list | `addNodeClass`, `removeNodeClass`, `hasNodeClass` |
+| Parser de meta | `parseMetaString`, `ParsedMeta` |
+
+Cada export también se re-exporta desde el core de `boltdocs` para
+compatibilidad hacia atrás.
+
+### Contrato de comportamiento — `SKIP` / `EXIT`
+
+`unist-util-visit@5` exporta `SKIP` y `EXIT` como el **string**
+`'skip'` y el **booleano** `false` respectivamente — no como `Symbol`s.
+
+---
+
+## Ejemplos
+
+### Recorrer bloques de código MDAST
+
+```ts
+import { MDX_NODES, type CodeNode, type Node, type Parent } from '@bdocs/unist-utils'
+
+export function remarkCodeFences() {
+  return (tree: Node) => {
+    const collected: Array<{ node: CodeNode; parent: Parent; index: number }> = []
+    visitNodes(tree, MDX_NODES.CODE, (node, index, parent) => {
+      if (node.lang === 'mermaid') {
+        collected.push({ node, parent, index })
+      }
+    })
+    for (const { node, parent, index } of collected) {
+      parent.children[index] = { type: 'mdxJsxFlowElement', name: 'Mermaid' } as Node
+    }
+  }
+}
+```
+
+### Construir JSX de MDX
+
+```ts
+import { createMdxElement, createMdxAttribute, type MdxJsxChild } from '@bdocs/unist-utils'
+
+const children: MdxJsxChild[] = []
+const el = createMdxElement('MyChart', {
+  chart: 'graph TD',
+  config: createMdxAttribute('config', { theme: 'dark' }),
+})
+```
+
+### Manipular class lists
+
+```ts
+import { addNodeClass, removeNodeClass, hasNodeClass } from '@bdocs/unist-utils'
+
+addNodeClass(node, 'shiki-fallback')
+if (hasNodeClass(node, 'shiki')) removeNodeClass(node, 'shiki')
+```
+
+### Parsear meta strings
+
+```ts
+import { parseMetaString } from '@bdocs/unist-utils'
+
+const meta = parseMetaString('title="Mi Ejemplo" lineNumbers')
+// → { title: 'Mi Ejemplo', lineNumbers: true }
+```
+
+---
+
+## Migración desde `boltdocs`
+
+Código antiguo (todavía funciona como shim):
+
+```ts
+import { visitNodes, createMdxAttribute } from 'boltdocs'
+```
+
+Código nuevo (preferido):
+
+```ts
+import { visitNodes, createMdxAttribute } from '@bdocs/unist-utils'
+```
+
+---
+
+## Licencia
+
+Publicado bajo la [MIT License](https://opensource.org/licenses/MIT),
+igual que el resto del monorepo de Boltdocs.

@@ -1,0 +1,190 @@
+---
+title: Slots
+sidebarPosition: 5
+description: PluginSlotsAPI y configuración de slots para usuarios — registro declarativo de slots de layout para plugins y usuarios finales de Boltdocs. Cubre las 7 posiciones predefinidas, condiciones, flags SSR y anulaciones de usuario.
+badge: Actualizado
+---
+
+# `ctx.slots` — PluginSlotsAPI
+
+Los slots de layout son posiciones con nombre en el layout de
+documentación predeterminado donde los plugins (y los usuarios) pueden
+inyectar componentes React de forma declarativa — sin necesidad de
+composición manual.
+
+---
+
+## Las 7 posiciones predefinidas
+
+El `DocsLayout` predeterminado expone estos contenedores de slot:
+
+| ID del Slot | Ubicación | Contexto Visual |
+| :--- | :--- | :--- |
+| `floating-bottom` | `fixed bottom-6 right-6 z-40` | Burbuja flotante en la parte inferior derecha, oculta en viewports `xl:` donde el panel lateral es persistente |
+| `right-rail` | `fixed inset-y-0 right-0 z-30 w-rail` | Panel lateral persistente en viewports ≥ 1280px |
+| `navbar-extra` | Dentro del componente `<Navbar>` | Controles o indicadores adicionales junto a los enlaces de navegación |
+| `header-extra` | Área del encabezado de página (debajo del título/descripción) | Contenido suplementario antes del cuerpo MDX principal |
+| `toc-extra` | Área "En esta página" del lado derecho | Widgets adicionales debajo de la tabla de contenidos |
+| `footer-extra` | Área del pie de página | Contenido renderizado debajo de la navegación de página |
+| `body-portal` | Portal a `document.body` | Escape hatch para modales, notificaciones o superposiciones |
+
+
+---
+
+## Para usuarios finales: `boltdocs.config.ts > slots`
+
+Los usuarios pueden anular, añadir o deshabilitar cualquier slot
+contribuido por los plugins directamente desde su archivo de
+configuración — sin modificar el código fuente del plugin.
+
+```ts title="boltdocs.config.ts"
+import { defineConfig } from 'boltdocs'
+import askAiPlugin from '@bdocs/plugin-ask-ai'
+
+export default defineConfig({
+  plugins: [askAiPlugin()],
+  slots: {
+    // Añade un componente después de los componentes del plugin
+    'right-rail': { append: '~/components/MiBadgePrivacidad.tsx' },
+
+    // Reemplaza el componente del plugin por completo
+    'floating-bottom': { replace: '~/components/BurbujaPersonalizada.tsx' },
+
+    // Deshabilita un slot por completo (sin impacto en JS)
+    // 'floating-bottom': { disable: true },
+  },
+})
+```
+
+### Entrada de slot de usuario
+
+| Campo | Tipo | Descripción |
+| :--- | :--- | :--- |
+| `replace` | `string` | Ruta de módulo a un componente que reemplaza los del plugin. |
+| `append` | `string` | Ruta de módulo a un componente añadido después de los del plugin. |
+| `disable` | `true` | Elimina el slot por completo — no se genera JS para él. |
+
+Los strings simples son abreviaturas para `{ replace: <modulePath> }`:
+
+```ts
+slots: {
+
+---
+
+## Para desarrolladores de plugins: `BoltdocsPlugin.slots`
+
+Los plugins declaran slots estáticamente mediante el array `slots` en
+el objeto del plugin:
+
+```ts
+import { createPlugin } from 'boltdocs'
+
+export default createPlugin({
+  name: 'mi-plugin',
+  slots: [
+    {
+      id: 'floating-bottom',
+      modulePath: '@scope/plugin/client',
+      export: 'Bubble',
+      ssr: true,
+      lazy: false,
+      if: { path: '/docs/guias/.*' },
+    },
+  ],
+})
+```
+
+### Auto-resolución con `clientEntry`
+
+Cuando un `BoltdocsPlugin` define `clientEntry`, las declaraciones de
+slot pueden omitir `modulePath`:
+
+```ts
+const plugin: BoltdocsPlugin = {
+  name: 'mi-plugin',
+  clientEntry: '@scope/plugin/client',
+  slots: [
+    { id: 'floating-bottom', export: 'Bubble' },
+    { id: 'right-rail', export: 'Dialog' },
+  ],
+}
+```
+
+---
+
+## API en Runtime: `PluginSlotsAPI`
+
+
+---
+
+## Campos de SlotDeclaration
+
+| Campo | Tipo | Predeterminado | Descripción |
+| :--- | :--- | :--- | :--- |
+| `id` | `string` | (Requerido) | Identificador único del slot que coincide con una posición del layout. |
+| `modulePath` | `string` | `undefined` | Especificador de módulo para el componente. Se auto-resuelve desde `clientEntry` cuando se omite. |
+| `export` | `string` | `undefined` | Export nombrado a importar desde el módulo. Usa en lugar de `component`. |
+| `component` | `string` | `undefined` | Alias legacy para `export`. Prefiere `export`. |
+| `ssr` | `boolean` | `true` | Cuando es `false`, el componente es solo-cliente (envuelto en `<ClientOnly>`). |
+| `lazy` | `boolean` | `false` | Cuando es `true`, el componente se carga de forma diferida vía `<Suspense>`. |
+| `if` | `object` | `undefined` | Reglas de renderizado condicional (ver abajo). |
+
+### Condiciones `if`
+
+| Campo | Tipo | Descripción |
+| :--- | :--- | :--- |
+| `collection` | `string` | Renderiza solo en páginas de esta colección (ej. `blog`). |
+| `path` | `string` | Renderiza solo en páginas cuya ruta coincida con este patrón regex. |
+| `locale` | `string` | Renderiza solo en páginas en este locale (ej. `es`). |
+| `tag` | `string` | Renderiza solo en páginas que tengan este tag en su frontmatter. |
+
+---
+
+## Precedencia
+
+**La configuración de `slots` del usuario gana sobre las entradas
+declaradas por los plugins.** Dentro de una posición de slot:
+
+1. `disable: true` — elimina el slot por completo
+2. `replace` — reemplaza los componentes del plugin
+3. `append` — conserva los componentes del plugin y añade uno del usuario después
+
+**Precedencia entre `replace` y `append`:** `replace` prevalece sobre
+`append`. Si ambos se establecen en el mismo slot, solo se aplica
+`replace`.
+
+```text
+Config del usuario →  disable | replace | append
+Plugin declarado   →  { id, modulePath, export, ssr, lazy, if }
+     ↓
+Código de slot generado →  slotRegistry[slotId] = [...componentes]
+```
+
+---
+
+## Ver también
+
+- [PluginContext](/docs/es/api/plugin-api) — objeto de contexto base
+- [Server](/docs/es/api/plugin-api/server) — middleware HTTP y ciclo de vida del servidor
+- [@bdocs/plugin-ask-ai](/docs/es/plugins/plugin-ask-ai) — ejemplo de uso real de slots
+
+Registra, consulta y elimina declaraciones de slots en tiempo de
+ejecución desde dentro de los hooks del lifecycle. Las registraciones
+se fusionan con las entradas declaradas estáticamente en
+`BoltdocsPlugin.slots` antes de generar el código.
+
+```ts
+ctx.slots.add('floating-bottom', {
+  id: 'floating-bottom',
+  modulePath: '@bdocs/plugin-ask-ai/client',
+  export: 'AskAiBubble',
+})
+
+ctx.slots.has('floating-bottom')  // → boolean
+ctx.slots.list()                  // → SlotDeclaration[]
+ctx.slots.remove('right-rail')
+```
+
+  'floating-bottom': '~/components/BurbujaPersonalizada.tsx',
+}
+```

@@ -1,0 +1,47 @@
+---
+title: Middleware
+sidebarPosition: 6
+description: PluginMiddlewareAPI — registra y consulta middleware de transformación en runtime para plugins de Boltdocs.
+---
+
+# `ctx.middleware` — PluginMiddlewareAPI
+
+Registra entradas de middleware transform. El campo `name` es opcional
+— cuando se omite, se usa el nombre del plugin como contexto.
+
+```ts
+ctx.middleware.add({
+  name: 'mi-plugin:html',
+  transformHtml: async (_ctx, { html, path }) => ({
+    html: html.replace('</body>', '<footer>© 2026</footer></body>'),
+  }),
+})
+
+ctx.middleware.has('mi-plugin:html')  // → boolean
+ctx.middleware.list()                 // → readonly PluginTransformMiddleware[]
+ctx.middleware.remove('mi-plugin:html')
+```
+
+---
+
+## Hooks de transformación
+
+Cada entrada de middleware puede implementar uno o más hooks de
+transformación:
+
+| Hook | Firma | Cuándo se ejecuta |
+| :--- | :--- | :--- |
+| `transformSource` | `(ctx, { code, filePath }) => { code }` | Antes de la compilación MDX |
+| `transformMdx` | `(ctx, { code, filePath }) => { code }` | Después de la compilación MDX |
+| `transformHtml` | `(ctx, { html, path }) => { html }` | Después del renderizado HTML |
+
+Los middlewares se ejecutan en orden de registro. Cada hook es una
+cadena — la salida de un middleware alimenta la entrada del siguiente.
+
+---
+
+## Ver también
+
+- [PluginContext](/docs/es/api/plugin-api) — objeto de contexto base
+- [Server](/docs/es/api/plugin-api/server) — middleware HTTP y ciclo de vida del servidor
+- [HMR](/docs/es/api/plugin-api/hmr) — observación de archivos y eventos personalizados del dev server

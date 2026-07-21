@@ -1,0 +1,55 @@
+---
+title: Diagnostics
+sidebarPosition: 2
+description: PluginDiagnosticsAPI — canal estructurado de diagnósticos para plugins de Boltdocs con niveles de severidad, cola FIFO y códigos legibles por máquina.
+---
+
+# `ctx.diagnostics` — PluginDiagnosticsAPI
+
+Canal estructurado de diagnósticos. Los plugins envían registros en
+lugar de spamear el logger; las herramientas downstream (dev-server
+overlay, reportes CI, plugins de IDE) drenan la cola vía `list()`.
+
+```ts
+ctx.diagnostics.report(
+  'warn',
+  'MI_PLUGIN_TRANSFORM_LENTO',
+  'La transformación tomó 3.2s — considera cachear el resultado',
+  { filePath: '/ruta/absoluta/pagina.mdx' },
+)
+
+const todos: readonly DiagnosticRecord[] = ctx.diagnostics.list()
+
+ctx.diagnostics.clear()
+```
+
+---
+
+## Forma de DiagnosticRecord
+
+```ts
+interface DiagnosticRecord {
+  readonly id: number
+  readonly severity: 'info' | 'warn' | 'error'
+  readonly code: string
+  readonly message: string
+  readonly pluginName: string
+  readonly filePath?: string
+  readonly routePath?: string
+  readonly time: Date
+}
+```
+
+### Límite FIFO
+
+La cola está limitada a **256 registros**. Cuando un plugin emite más
+rápido de lo que la overlay del dev-server drena, los registros más
+antiguos se eliminan silenciosamente.
+
+---
+
+## Ver también
+
+- [PluginContext](/docs/es/api/plugin-api) — objeto de contexto base
+- [Caches](/docs/es/api/plugin-api/caches) — cachés de transformación, rutas y memoria
+- [Server](/docs/es/api/plugin-api/server) — middleware HTTP y ciclo de vida del servidor

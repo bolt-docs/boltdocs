@@ -4,7 +4,7 @@ sidebarPosition: 1
 description: Referencia completa de la API de Boltdocs — hooks de React, componentes de diseño y asistentes de configuración.
 ---
 
-import { Settings, Search, Palette, Layers, Map, ChevronsRight, ArrowRight, Globe, GitBranch, FolderOpen, Compass, Link, Terminal } from 'lucide-react'
+import { Settings, Search, Palette, Layers, Map, ChevronsRight, ArrowRight, Globe, GitBranch, FolderOpen, Compass, Link, Terminal, Puzzle } from 'lucide-react'
 
 Esta sección ofrece documentación de referencia para todas las API públicas exportadas por los paquetes del framework `boltdocs`.
 
@@ -98,6 +98,42 @@ Boltdocs incluye comandos de CLI para construir, previsualizar, depurar y auto-r
 <Cards cols={1}>
   <Card title="Referencia del CLI" icon={<Terminal />} href="/docs/api/cli">
     Conoce los comandos principales del flujo de trabajo (dev, build, preview), diagnósticos de salud (doctor) y el generador de changelog.
+  </Card>
+</Cards>
+
+---
+
+## Desarrollo de Plugins
+
+Referencias para autores que construyen plugins de Boltdocs — la forma del `PluginContext`, los hooks del lifecycle y cada namespace enriquecido (caches, diagnostics, paths, virtual modules, slots, middleware, server, hmr) expuesto al código de los plugins.
+
+<Cards cols={2}>
+  <Card title="PluginContext" icon={<Puzzle />} href="/docs/es/api/plugin-api">
+    Objeto de contexto base, campos base y descripción general de namespaces.
+  </Card>
+  <Card title="Caches" icon={<Puzzle />} href="/docs/es/api/plugin-api/caches">
+    Caché de transformación, caché de rutas y caché FIFO en memoria.
+  </Card>
+  <Card title="Diagnostics" icon={<Puzzle />} href="/docs/es/api/plugin-api/diagnostics">
+    Reporte estructurado de diagnósticos con niveles de severidad.
+  </Card>
+  <Card title="Paths" icon={<Puzzle />} href="/docs/es/api/plugin-api/paths">
+    Resolución segura de rutas con protección contra directory traversal.
+  </Card>
+  <Card title="Virtual Modules" icon={<Puzzle />} href="/docs/es/api/plugin-api/virtual-modules">
+    Declaraciones de módulos virtuales en runtime para Vite.
+  </Card>
+  <Card title="Slots" icon={<Puzzle />} href="/docs/es/api/plugin-api/slots">
+    Registro declarativo de slots de layout con 7 posiciones predefinidas.
+  </Card>
+  <Card title="Middleware" icon={<Puzzle />} href="/docs/es/api/plugin-api/middleware">
+    Pipeline de middleware de transformación (source, MDX, HTML).
+  </Card>
+  <Card title="Server" icon={<Puzzle />} href="/docs/es/api/plugin-api/server">
+    Middleware HTTP y hooks del ciclo de vida del servidor.
+  </Card>
+  <Card title="HMR" icon={<Puzzle />} href="/docs/es/api/plugin-api/hmr">
+    Observación de archivos y eventos HMR personalizados.
   </Card>
 </Cards>
 

@@ -1,0 +1,55 @@
+---
+title: Server
+sidebarPosition: 7
+description: PluginServerAPI — registra middleware HTTP y hooks de ciclo de vida del servidor para plugins de Boltdocs sin escribir un plugin de Vite.
+---
+
+# `ctx.server` — PluginServerAPI
+
+Registra middleware HTTP y hooks de ciclo de vida del servidor sin
+necesidad de escribir un plugin de Vite. Esta es la API formal para
+lo que plugins como `@bdocs/plugin-ask-ai` hacían manualmente con
+`vitePlugins: [{ configureServer }]`.
+
+```ts
+// Registra un middleware estilo Connect (se ejecuta en cada solicitud)
+ctx.server.use((req, res, next) => {
+  const start = Date.now()
+  res.on('finish', () => {
+    ctx.logger.info(`${req.method} ${req.url} — ${Date.now() - start}ms`)
+  })
+  next()
+})
+
+// Registra un middleware con alcance a un prefijo de ruta específico
+ctx.server.useAt('/api/mi-plugin', (req, res, next) => {
+  if (req.method !== 'POST') {
+    res.statusCode = 405
+    res.end('Método No Permitido')
+    return
+  }
+  res.end(JSON.stringify({ ok: true }))
+})
+
+// Callbacks del ciclo de vida
+ctx.server.onStart(() => {
+  ctx.logger.info('Servidor de mi plugin iniciado')
+})
+
+ctx.server.onEnd(() => {
+  ctx.logger.info('Servidor de mi plugin deteniéndose')
+})
+```
+
+El middleware registrado vía `ctx.server.use()` se ejecuta tanto en el
+**dev server** como en el **preview server**. El callback `onStart` se
+dispara una vez por proceso cuando el servidor se inicializa; `onEnd`
+se dispara al apagar o reiniciar (úsalo para limpieza).
+
+---
+
+## Ver también
+
+- [PluginContext](/docs/es/api/plugin-api) — objeto de contexto base
+- [Middleware](/docs/es/api/plugin-api/middleware) — pipeline de middleware de transformación
+- [HMR](/docs/es/api/plugin-api/hmr) — observación de archivos y eventos personalizados del dev server

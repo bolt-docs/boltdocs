@@ -1,0 +1,55 @@
+---
+title: HMR
+sidebarPosition: 8
+description: PluginHmrAPI — hook into dev-server file watching and send custom HMR events to connected clients.
+---
+
+# `ctx.hmr` — PluginHmrAPI
+
+Hook into the dev-server file-watching pipeline and send custom events
+to connected browser clients.
+
+```ts
+// Listen for file changes inside docs/
+ctx.hmr.onFileChange(async (filePath) => {
+  ctx.logger.info(`File modified: ${filePath}`)
+})
+
+// Listen for new files
+ctx.hmr.onFileAdd((filePath) => {
+  ctx.logger.info(`New document: ${filePath}`)
+})
+
+// Listen for file deletions
+ctx.hmr.onFileUnlink((filePath) => {
+  ctx.logger.info(`Document removed: ${filePath}`)
+})
+
+// Send a custom HMR event to all connected browser clients
+ctx.hmr.send('my-plugin:update', { reason: 'regenerated' })
+// Clients listen with: import.meta.hot.on('boltdocs:plugin:my-plugin:update', ...)
+```
+
+---
+
+## Event types
+
+| Method | Event type | When it fires |
+| :--- | :--- | :--- |
+| `onFileAdd` | `'add'` | New file created inside `docs/` |
+| `onFileChange` | `'change'` | Existing file modified |
+| `onFileUnlink` | `'unlink'` | File deleted from `docs/` |
+| `onFileEvent(type, fn)` | any | Low-level — listen to a specific event type |
+
+All handlers receive the **normalized absolute file path** and run after
+the core's own HMR processing. Errors in plugin handlers are caught and
+logged — they never crash the dev server.
+
+---
+
+## See also
+
+- [PluginContext](/docs/api/plugin-api) — base context object
+- [Server](/docs/api/plugin-api/server) — HTTP middleware & server lifecycle
+- [Middleware](/docs/api/plugin-api/middleware) — transform middleware pipeline
+- [Lifecycle Hooks](/docs/api/plugin-api/lifecycle-hooks) — build/dev hooks, transform chains, and chain signals

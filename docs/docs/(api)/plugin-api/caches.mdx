@@ -1,0 +1,96 @@
+---
+title: Caches
+sidebarPosition: 1
+description: PluginCachesAPI — transform cache, routes cache, and in-memory FIFO cache for Boltdocs plugins.
+---
+
+# `ctx.caches` — PluginCachesAPI
+
+Three cache types, each bound to a namespaced scope so plugins never
+collide.
+
+---
+
+## `caches.transform(namespace)`
+
+Sharded, hash-keyed cache backed by the core's `TransformCache`. One
+namespace per plugin is recommended.
+
+```ts
+const cache = ctx.caches.transform('my-plugin')
+
+// Async read — first call may warm from disk
+const cached = await cache.get('some-unique-key')
+// → string | null
+
+// Synchronous write — batches a background disk flush
+cache.set('some-unique-key', `<transformed>...</transformed>`)
+
+// Force-flush background writes (call before measuring disk state)
+await cache.flush()
+```
+
+---
+
+## `caches.routes`
+
+Wrapper around the parsed-document cache. Plugins can read, write, and
+invalidate individual routes by absolute file path.
+
+```ts
+// Read a route by absolute file path
+const route = ctx.caches.routes.get('/abs/path/to/page.mdx')
+// → RouteMeta | null
+
+// Write a route entry (partial — only `route` is persisted)
+ctx.caches.routes.set('/abs/path/to/page.mdx', {
+  title: 'My Page',
+  path: '/docs/guides/my-page',
+} as RouteMeta)
+
+// Invalidate one route
+ctx.caches.routes.invalidate('/abs/path/to/page.mdx')
+
+// Clear every cached route (use when the directory layout changes)
+ctx.caches.routes.invalidateAll()
+```
+
+<Callout variant="warning" title="Routes cache contract">
+  `set()` writes a **partial** record. The internal `docCache` stores
+  the full `ParsedDocFile` (with `_content`, headings, sidebar,
+  frontmatter, etc). When you call `set()`, only the `route` field is
+  overwritten — the parser **always wins** on the next refresh. Route
+  entries written by plugins are overwritten on the next file-watcher
+  tick.
+</Callout>
+
+---
+
+## `caches.memory<V>(namespace, opts?)`
+
+In-process FIFO cache that lives for the entire dev-server / build
+lifetime. Backed by a native `Map` — zero external dependencies.
+
+```ts
+const cache = ctx.caches.memory<MyResult>('my-plugin', { max: 50, ttl: 60_000 })
+
+cache.set('key', { processed: true })
+const val = cache.get('key')   // → MyResult | undefined
+cache.has('key')               // → boolean
+```
+
+### Options
+
+| Option | Type | Default | Description |
+| :--- | :--- | :--- | :--- |
+| `max` | `number` | `100` | Maximum number of entries before the oldest are evicted. |
+| `ttl` | `number` | `0` | Time-to-live in milliseconds. `0` means no expiry. |
+
+---
+
+## See also
+
+- [PluginContext](/docs/api/plugin-api) — base context object
+- [Diagnostics](/docs/api/plugin-api/diagnostics) — structured diagnostic reporting
+- [Virtual Modules](/docs/api/plugin-api/virtual-modules) — runtime virtual module declarations
+- [Lifecycle Hooks](/docs/api/plugin-api/lifecycle-hooks) — build/dev hooks, transform chains, and chain signals

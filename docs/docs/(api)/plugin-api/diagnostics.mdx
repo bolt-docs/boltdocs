@@ -1,0 +1,60 @@
+---
+title: Diagnostics
+sidebarPosition: 2
+description: PluginDiagnosticsAPI — structured diagnostic channel for Boltdocs plugins with severity levels, FIFO queue, and machine-readable codes.
+---
+
+# `ctx.diagnostics` — PluginDiagnosticsAPI
+
+Structured diagnostics channel. Plugins push records instead of spamming
+the logger; downstream tools (dev-server overlay, CI reporters, IDE
+plugins) drain the queue via `list()`.
+
+```ts
+type DiagnosticSeverity = 'info' | 'warn' | 'error'
+
+// Report a diagnostic
+ctx.diagnostics.report(
+  'warn',
+  'MY_PLUGIN_SLOW_TRANSFORM',
+  'Transformation took 3.2s — consider caching the result',
+  { filePath: '/abs/path/to/page.mdx' },
+)
+
+// Read all pending diagnostics (snapshot, not a live stream)
+const allDiagnostics: readonly DiagnosticRecord[] = ctx.diagnostics.list()
+
+// Clear the queue
+ctx.diagnostics.clear()
+```
+
+---
+
+## DiagnosticRecord shape
+
+```ts
+interface DiagnosticRecord {
+  readonly id: number
+  readonly severity: 'info' | 'warn' | 'error'
+  readonly code: string            // Machine-readable error code
+  readonly message: string         // Human-readable description
+  readonly pluginName: string      // Set automatically from the plugin's name
+  readonly filePath?: string
+  readonly routePath?: string
+  readonly time: Date
+}
+```
+
+### FIFO cap
+
+The queue is capped at **256 records**. When a plugin emits faster than
+the dev-server overlay drains, the oldest records are silently evicted.
+
+---
+
+## See also
+
+- [PluginContext](/docs/api/plugin-api) — base context object
+- [Caches](/docs/api/plugin-api/caches) — transform, routes, and memory caches
+- [Server](/docs/api/plugin-api/server) — HTTP middleware & server lifecycle
+- [Lifecycle Hooks](/docs/api/plugin-api/lifecycle-hooks) — build/dev hooks, transform chains, and chain signals

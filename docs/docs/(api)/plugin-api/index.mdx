@@ -1,0 +1,168 @@
+---
+title: Plugin API Reference
+sidebarPosition: 3
+description: Complete reference for the Boltdocs Plugin API — PluginContext, caches, diagnostics, path resolution, and virtual modules. Covers every field and method exposed to plugin lifecycle hooks.
+badge: Updated
+---
+
+The `PluginContext` object passed to every lifecycle hook carries eight
+enriched namespaces that give plugins safe, typed access to the core's
+internal machinery: **caches**, **diagnostics**, **paths**,
+**virtual modules**, **slots**, **middleware**, **server**, and
+**hmr**.
+
+This section is the official API reference. Read it alongside the
+[Plugin System overview](/docs/plugins/) for the architecture and
+examples.
+
+Each namespace has its own dedicated page — use the sidebar or the
+cards below to navigate.
+
+<Cards cols={2}>
+  <Card title="PluginContext" href="/docs/api/plugin-api">
+    Base context object passed to every lifecycle hook.
+  </Card>
+  <Card title="Caches" href="/docs/api/plugin-api/caches">
+    Transform, routes, and memory caches.
+  </Card>
+  <Card title="Diagnostics" href="/docs/api/plugin-api/diagnostics">
+    Structured diagnostic reporting.
+  </Card>
+  <Card title="Paths" href="/docs/api/plugin-api/paths">
+    Safe workspace path resolution.
+  </Card>
+  <Card title="Virtual Modules" href="/docs/api/plugin-api/virtual-modules">
+    Runtime virtual module declarations.
+  </Card>
+  <Card title="Slots" href="/docs/api/plugin-api/slots">
+    Declarative layout slot registration.
+  </Card>
+  <Card title="Middleware" href="/docs/api/plugin-api/middleware">
+    Transform middleware pipeline.
+  </Card>
+  <Card title="Server" href="/docs/api/plugin-api/server">
+    HTTP middleware & server lifecycle.
+  </Card>
+  <Card title="HMR" href="/docs/api/plugin-api/hmr">
+    Dev-server file watching & custom events.
+  </Card>
+  <Card title="Lifecycle Hooks" href="/docs/api/plugin-api/lifecycle-hooks">
+    Build/dev hooks, transform chains, and chain signals.
+  </Card>
+</Cards>
+
+---
+
+## PluginContext
+
+Every lifecycle hook receives a `PluginContext` as its first argument:
+
+```ts
+interface PluginContext {
+  readonly config: BoltdocsConfig      // Read-only resolved config
+  readonly logger: PluginLogger        // info / warn / error / debug
+  readonly store: PluginStore          // Namespaced key-value store
+  readonly meta: PluginMeta            // Current plugin identity
+  readonly docsDir: string             // Absolute path to docs/
+  readonly rootDir: string             // Absolute path to project root
+  readonly outDir: string              // Build output (e.g. 'dist/')
+  readonly routes: RouteMeta[]         // All generated routes
+
+  // --- Enriched in 3.2.0 ---
+  readonly caches: PluginCachesAPI         // Transform, routes, memory
+  readonly diagnostics: PluginDiagnosticsAPI
+  readonly paths: PluginPathsAPI
+  readonly virtualModules: PluginVirtualModulesAPI
+  readonly slots: PluginSlotsAPI           // Register layout slots
+  readonly middleware: PluginMiddlewareAPI  // Register transform middleware
+  readonly server: PluginServerAPI         // Register HTTP middleware
+  readonly hmr: PluginHmrAPI               // Hook into HMR events
+}
+```
+
+### Base fields
+
+| Field | Type | Description |
+| :--- | :--- | :--- |
+| `config` | `BoltdocsConfig` | Read-only resolved configuration object. |
+| `logger` | `PluginLogger` | Structured logging — `info()`, `warn()`, `error()`, `debug()`. |
+| `store` | `PluginStore` | Namespaced key-value store for inter-plugin communication. |
+| `meta` | `PluginMeta` | Current plugin identity (`name`, `version`, `boltdocsVersion`). |
+| `docsDir` | `string` | Absolute path to the `docs/` directory. |
+| `rootDir` | `string` | Absolute path to the project root. |
+| `outDir` | `string` | Build output directory (e.g. `dist/`). |
+| `routes` | `RouteMeta[]` | All generated documentation routes. |
+
+### Enriched namespaces (3.2.0+)
+
+| Field | Page | Description |
+| :--- | :--- | :--- |
+| `caches` | [Caches](/docs/api/plugin-api/caches) | Transform cache, routes cache, and in-memory FIFO cache. |
+| `diagnostics` | [Diagnostics](/docs/api/plugin-api/diagnostics) | Structured diagnostic channel with severity levels. |
+| `paths` | [Paths](/docs/api/plugin-api/paths) | Safe path resolution inside the workspace boundary. |
+| `virtualModules` | [Virtual Modules](/docs/api/plugin-api/virtual-modules) | Declare virtual modules for Vite resolution. |
+| `slots` | [Slots](/docs/api/plugin-api/slots) | Register and query layout slot declarations. |
+| `middleware` | [Middleware](/docs/api/plugin-api/middleware) | Register transform middleware at runtime. |
+| `server` | [Server](/docs/api/plugin-api/server) | Register HTTP middleware and lifecycle callbacks. |
+| `hmr` | [HMR](/docs/api/plugin-api/hmr) | Hook into dev-server file watching and send custom events. |
+
+  </Card>
+  <Card title="Middleware" href="/docs/api/plugin-api/middleware">
+    Transform middleware pipeline.
+  </Card>
+  <Card title="Server" href="/docs/api/plugin-api/server">
+    HTTP middleware & server lifecycle.
+  </Card>
+  <Card title="HMR" href="/docs/api/plugin-api/hmr">
+
+---
+
+## Putting it all together
+
+A real-world plugin that caches an expensive transform, reports progress,
+resolves a path, and registers a virtual module:
+
+```ts
+import { createPlugin } from 'boltdocs'
+
+export default createPlugin({
+  name: 'my-smart-plugin',
+  hooks: {
+    async beforeBuild(ctx) {
+      // Register a virtual module for runtime
+      ctx.virtualModules.add('virtual:my-smart-plugin/config', () =>
+        JSON.stringify({ mode: 'production' }),
+      )
+    },
+    async transformMdx(ctx, { code, filePath }) {
+      const cache = ctx.caches.memory<string>('my-smart-plugin', { max: 200 })
+
+      const cached = cache.get(filePath)
+      if (cached) return { code: cached }
+
+      ctx.diagnostics.report('info', 'TRANSFORM_START', `Transforming ${filePath}`)
+
+      const transformed = code.replace(/foo/g, 'bar')
+
+      cache.set(filePath, transformed)
+      return { code: transformed }
+    },
+    afterBuild(ctx) {
+      const diagPath = ctx.paths.resolveDocs('diagnostics.json')
+      ctx.logger.info(`Diagnostics snapshot at: ${diagPath}`)
+    },
+  },
+})
+```
+
+---
+
+## See also
+
+- [Plugin System overview](/docs/plugins/) — architecture, concepts, quick start
+- [@bdocs/unist-utils](/docs/plugins/unist-utils) — AST utilities for remark/rehype
+- [Boltdocs 3.2.0 changelog](/docs/blog/boltdocs-3.2.0) — release notes
+
+    Dev-server file watching & custom events.
+  </Card>
+</Cards>

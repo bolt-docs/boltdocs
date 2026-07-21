@@ -1,0 +1,44 @@
+---
+title: HMR
+sidebarPosition: 8
+description: PluginHmrAPI — conéctate al pipeline de file-watching del dev server y envía eventos personalizados a los clientes conectados.
+---
+
+# `ctx.hmr` — PluginHmrAPI
+
+Conéctate al pipeline de file-watching del dev server y envía eventos
+personalizados a los clientes conectados.
+
+```ts
+ctx.hmr.onFileChange(async (filePath) => {
+  ctx.logger.info(`Archivo modificado: ${filePath}`)
+})
+ctx.hmr.onFileAdd((filePath) => {
+  ctx.logger.info(`Nuevo documento: ${filePath}`)
+})
+ctx.hmr.send('mi-plugin:update', { reason: 'regenerado' })
+```
+
+---
+
+## Tipos de eventos
+
+| Método | Tipo de evento | Cuándo se dispara |
+| :--- | :--- | :--- |
+| `onFileAdd` | `'add'` | Nuevo archivo creado dentro de `docs/` |
+| `onFileChange` | `'change'` | Archivo existente modificado |
+| `onFileUnlink` | `'unlink'` | Archivo eliminado de `docs/` |
+| `onFileEvent(type, fn)` | any | Bajo nivel — escucha un tipo de evento específico |
+
+Todos los handlers reciben la **ruta absoluta normalizada** y se
+ejecutan después del procesamiento HMR del core. Los errores en los
+handlers de plugins son capturados y registrados — nunca detienen el
+dev server.
+
+---
+
+## Ver también
+
+- [PluginContext](/docs/es/api/plugin-api) — objeto de contexto base
+- [Server](/docs/es/api/plugin-api/server) — middleware HTTP y ciclo de vida del servidor
+- [Middleware](/docs/es/api/plugin-api/middleware) — pipeline de middleware de transformación

@@ -1,0 +1,33 @@
+---
+title: Paths
+sidebarPosition: 3
+description: PluginPathsAPI — resolución segura de rutas en el workspace para plugins de Boltdocs con protección contra directory traversal.
+---
+
+# `ctx.paths` — PluginPathsAPI
+
+Helpers de resolución de rutas que validan que cada resultado
+permanezca dentro del workspace. Tanto `resolveDocs` como
+`resolveAsset` rechazan rutas que escapen del directorio base.
+
+```ts
+const mdxFile = ctx.paths.resolveDocs('guias', 'primeros-pasos', 'instalacion.mdx')
+const image = ctx.paths.resolveAsset('public', 'logo.webp')
+const fileUrl = ctx.paths.safeFileURL('/ruta/absoluta/diagrama.svg')
+```
+
+Lanzan un `Error` cuando la ruta resuelta queda fuera del workspace:
+
+```ts
+// Lanza: Path '../../etc/passwd' resolves to '/etc/passwd' which is
+// outside the workspace boundary...
+ctx.paths.resolveDocs('../../etc/passwd')
+```
+
+---
+
+## Ver también
+
+- [PluginContext](/docs/es/api/plugin-api) — objeto de contexto base
+- [Virtual Modules](/docs/es/api/plugin-api/virtual-modules) — declaraciones de módulos virtuales en runtime
+- [Middleware](/docs/es/api/plugin-api/middleware) — pipeline de middleware de transformación

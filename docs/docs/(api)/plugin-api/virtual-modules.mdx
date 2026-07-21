@@ -1,0 +1,56 @@
+---
+title: Virtual Modules
+sidebarPosition: 4
+description: PluginVirtualModulesAPI — declare virtual modules that Vite resolves at runtime without touching the file system.
+---
+
+# `ctx.virtualModules` — PluginVirtualModulesAPI
+
+Declare virtual modules that Vite resolves and loads without touching
+the file system. Each plugin calls `add()` from inside `beforeBuild`
+or `beforeDev` — the registrations are flushed when the config changes
+and re-registered on the next hook pass.
+
+```ts
+type VirtualModuleLoader = () => string | Promise<string>
+
+// Register a virtual module
+ctx.virtualModules.add(
+  'virtual:my-plugin/theme.css',
+  () => `:root { --primary: #6366f1; }`,
+)
+
+// Check if a virtual module is already registered
+ctx.virtualModules.has('virtual:my-plugin/theme.css')
+// → boolean
+
+// List all registered virtual modules
+const all: readonly RegisteredVirtualModule[] = ctx.virtualModules.list()
+```
+
+---
+
+## Registration rules
+
+| Rule | Detail |
+| :--- | :------ |
+| **Duplicate ids throw** | Two plugins cannot register the same virtual id. Prefix with your plugin name to avoid collisions. |
+| **`virtual:boltdocs-*` prefix is reserved** | Core-owned virtuals (routes, config, search, etc.) own the `virtual:boltdocs-` namespace. Plugins that attempt to register under this prefix receive an explicit error. |
+| **`eager` flag** | Accepted on registration but currently not consulted on load — reserved for future auto-injection. |
+
+```ts
+ctx.virtualModules.add(
+  'virtual:my-plugin/config',
+  () => JSON.stringify({ mode: 'production' }),
+  { eager: true },
+)
+```
+
+---
+
+## See also
+
+- [PluginContext](/docs/api/plugin-api) — base context object
+- [Slots](/docs/api/plugin-api/slots) — declarative layout slot registration
+- [HMR](/docs/api/plugin-api/hmr) — dev-server file watching & custom events
+- [Lifecycle Hooks](/docs/api/plugin-api/lifecycle-hooks) — build/dev hooks, transform chains, and chain signals

@@ -1,0 +1,168 @@
+---
+title: Lifecycle Hooks
+sidebarPosition: 9
+description: PluginLifecycleHooks — build and dev lifecycle hooks, transform chains, and chain signals for Boltdocs plugins.
+badge: Updated
+---
+
+# `hooks` — PluginLifecycleHooks
+
+Lifecycle hooks are the primary way plugins inject behaviour into the
+Boltdocs pipeline. Each hook receives a `PluginContext` as its first
+argument and can be synchronous or async.
+
+---
+
+## Build lifecycle hooks
+
+| Hook | Signature | When it runs |
+| :--- | :--- | :--- |
+| `beforeBuild` | `(ctx: PluginContext) => void \| Promise<void>` | Right before static site generation (SSG) starts |
+| `afterBuild` | `(ctx: PluginContext) => void \| Promise<void>` | Immediately after a production build succeeds |
+| `buildEnd` | `(ctx: PluginContext) => void \| Promise<void>` | At process completion — runs on both success and error |
+
+```ts
+const plugin: BoltdocsPlugin = {
+  name: 'my-build-plugin',
+  hooks: {
+    beforeBuild(ctx) {
+      ctx.logger.info('Starting build...')
+    },
+    afterBuild(ctx) {
+      ctx.logger.info(`Build complete! ${ctx.routes.length} routes generated.`)
+    },
+    buildEnd(ctx) {
+      ctx.logger.info('Process finished — cleaning up...')
+    },
+  },
+}
+```
+
+### When to use each hook
+
+| Hook | Use case |
+| :--- | :------- |
+| `beforeBuild` | Register virtual modules, warm caches, validate configuration |
+| `afterBuild` | Generate post-build reports, copy assets, upload to CDN |
+| `buildEnd` | Cleanup temporary files, flush remaining diagnostics |
+
+---
+
+## Dev lifecycle hooks
+
+| Hook | Signature | When it runs |
+| :--- | :--- | :--- |
+| `beforeDev` | `(ctx: PluginContext) => void \| Promise<void>` | Before the dev server starts listening |
+| `afterDev` | `(ctx: PluginContext) => void \| Promise<void>` | After the dev server is fully initialized |
+
+```ts
+const plugin: BoltdocsPlugin = {
+  name: 'my-dev-plugin',
+  hooks: {
+    beforeDev(ctx) {
+      ctx.logger.info('Starting dev server...')
+    },
+    afterDev(ctx) {
+      ctx.logger.info('Dev server ready! Open http://localhost:5173')
+    },
+  },
+}
+```
+
+---
+
+## Transform chain hooks
+
+These hooks form a **chain** — the output of one plugin feeds the
+input of the next. They are executed in `enforce` order (`pre` →
+normal → `post`) within each phase.
+
+| Hook | Signature | When it runs |
+| :--- | :--- | :--- |
+| `transformSource` | `(ctx, { code, filePath, frontmatter? }) => { code, __signal? }` | On raw MDX source **before** MDX compilation |
+| `transformMdx` | `(ctx, { code, filePath, frontmatter? }) => { code, __signal? }` | On compiled MDX JavaScript **after** MDX compilation |
+| `transformHtml` | `(ctx, { html, path, route? }) => { html, __signal? }` | On rendered HTML during SSG generation |
+
+### TransformSourceParams
+
+```ts
+interface TransformSourceParams {
+  /** The raw or compiled code */
+  code: string
+  /** Absolute file path of the source document */
+  filePath: string
+  /** Parsed frontmatter, if available (undefined in early pipeline) */
+  frontmatter?: Record<string, unknown>
+}
+```
+
+### TransformHtmlParams
+
+```ts
+interface TransformHtmlParams {
+  /** The rendered HTML string for this page */
+  html: string
+  /** The route path (e.g. /docs/guides/start) */
+  path: string
+  /** The route metadata for the page, if available */
+  route?: RouteMeta
+}
+```
+
+### Transform result & ChainSignal
+
+```ts
+type ChainSignal = 'skip' | 'break'
+
+type TransformResult<T> = T & { __signal?: ChainSignal }
+```
+
+| Signal | Behaviour |
+| :--- | :------- |
+| `__signal: 'skip'` | The output of this hook is **discarded**; original params pass to the next plugin |
+| `__signal: 'break'` | The chain stops immediately — no further plugins run |
+
+```ts
+const plugin: BoltdocsPlugin = {
+  name: 'my-transform-plugin',
+  hooks: {
+    async transformSource(ctx, { code, filePath }) {
+      // Replace math delimiters before the MDX parser sees them
+      const transformed = code
+        .replace(/\$\$(.+?)\$\$/gs, '<BlockMath>$1</BlockMath>')
+        .replace(/\$(.+?)\$/g, '<Math>$1</Math>')
+
+      return { code: transformed }
+    },
+    async transformHtml(ctx, { html, path, route }) {
+      // Inject a footer into every generated HTML page
+      return {
+        html: html.replace('</body>', '<footer>© 2026 My Docs</footer></body>'),
+      }
+    },
+  },
+}
+```
+
+---
+
+## Execution order
+
+```text
+beforeBuild / beforeDev
+  → transformSource (chain: pre → normal → post)
+    → MDX compilation
+      → transformMdx (chain: pre → normal → post)
+        → HTML rendering (SSG only)
+          → transformHtml (chain: pre → normal → post)
+afterBuild / afterDev
+buildEnd
+```
+
+---
+
+## See also
+
+- [PluginContext](/docs/api/plugin-api) — base context object
+- [Middleware](/docs/api/plugin-api/middleware) — transform middleware pipeline (alternative to chain hooks)
+- [Plugin System overview](/docs/plugins/) — architecture, concepts, quick start

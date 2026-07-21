@@ -1,0 +1,42 @@
+---
+title: Paths
+sidebarPosition: 3
+description: PluginPathsAPI — safe workspace path resolution for Boltdocs plugins with directory traversal protection.
+---
+
+# `ctx.paths` — PluginPathsAPI
+
+Safe path-resolution helpers that validate every result stays inside
+the workspace boundary. Both `resolveDocs` and `resolveAsset` reject
+paths that escape the base directory (directory traversal) or attempt
+to use an absolute path that lies outside the workspace.
+
+```ts
+// Resolve a path relative to the docs directory
+const mdxFile = ctx.paths.resolveDocs('guides', 'getting-started', 'installation.mdx')
+
+// Resolve a path relative to the project root (for assets, images, etc.)
+const image = ctx.paths.resolveAsset('public', 'logo.webp')
+
+// Build a file:// URL from an absolute workspace path
+const fileUrl = ctx.paths.safeFileURL('/abs/path/to/diagram.svg')
+// → 'file:///abs/path/to/diagram.svg'
+```
+
+These methods throw an `Error` when the resolved path falls outside
+the workspace boundary:
+
+```ts
+// Throws: Path '../../etc/passwd' resolves to '/etc/passwd' which is
+// outside the workspace boundary...
+ctx.paths.resolveDocs('../../etc/passwd')
+```
+
+---
+
+## See also
+
+- [PluginContext](/docs/api/plugin-api) — base context object
+- [Virtual Modules](/docs/api/plugin-api/virtual-modules) — runtime virtual module declarations
+- [Middleware](/docs/api/plugin-api/middleware) — transform middleware pipeline
+- [Lifecycle Hooks](/docs/api/plugin-api/lifecycle-hooks) — build/dev hooks, transform chains, and chain signals

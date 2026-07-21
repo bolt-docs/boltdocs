@@ -4,7 +4,7 @@ sidebarPosition: 1
 description: Complete API reference for Boltdocs — React hooks, layout components, and configuration helpers.
 ---
 
-import { Settings, Search, Palette, Layers, Map, ChevronsRight, ArrowRight, Globe, GitBranch, FolderOpen, Compass, Link, Terminal } from 'lucide-react'
+import { Settings, Search, Palette, Layers, Map, ChevronsRight, ArrowRight, Globe, GitBranch, FolderOpen, Compass, Link, Terminal, Puzzle } from 'lucide-react'
 
 This section provides reference documentation for all public APIs exported by the `boltdocs` framework packages.
 
@@ -98,6 +98,42 @@ Boltdocs includes CLI commands to build, preview, debug, and auto-fix documentat
 <Cards cols={1}>
   <Card title="CLI Reference" icon={<Terminal />} href="/docs/api/cli">
     Learn about core workflow commands (dev, build, preview), health diagnostics (doctor), and the changelog generator.
+  </Card>
+</Cards>
+
+---
+
+## Plugin Development
+
+References for authors building Boltdocs plugins — the `PluginContext` shape, the lifecycle hooks, and every enriched namespace (caches, diagnostics, paths, virtual modules, slots, middleware, server, hmr) exposed to plugin code.
+
+<Cards cols={2}>
+  <Card title="PluginContext" icon={<Puzzle />} href="/docs/api/plugin-api">
+    Base context object, base fields, and enriched namespaces overview.
+  </Card>
+  <Card title="Caches" icon={<Puzzle />} href="/docs/api/plugin-api/caches">
+    Transform cache, routes cache, and in-memory FIFO cache.
+  </Card>
+  <Card title="Diagnostics" icon={<Puzzle />} href="/docs/api/plugin-api/diagnostics">
+    Structured diagnostic reporting with severity levels.
+  </Card>
+  <Card title="Paths" icon={<Puzzle />} href="/docs/api/plugin-api/paths">
+    Safe workspace path resolution with traversal protection.
+  </Card>
+  <Card title="Virtual Modules" icon={<Puzzle />} href="/docs/api/plugin-api/virtual-modules">
+    Runtime virtual module declarations for Vite.
+  </Card>
+  <Card title="Slots" icon={<Puzzle />} href="/docs/api/plugin-api/slots">
+    Declarative layout slot registration with 7 predefined positions.
+  </Card>
+  <Card title="Middleware" icon={<Puzzle />} href="/docs/api/plugin-api/middleware">
+    Transform middleware pipeline (source, MDX, HTML).
+  </Card>
+  <Card title="Server" icon={<Puzzle />} href="/docs/api/plugin-api/server">
+    HTTP middleware & server lifecycle hooks.
+  </Card>
+  <Card title="HMR" icon={<Puzzle />} href="/docs/api/plugin-api/hmr">
+    Dev-server file watching & custom HMR events.
   </Card>
 </Cards>
 

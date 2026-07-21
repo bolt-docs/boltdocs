@@ -1,0 +1,57 @@
+---
+title: Server
+sidebarPosition: 7
+description: PluginServerAPI — register HTTP middleware and server lifecycle hooks for Boltdocs plugins without writing a Vite plugin.
+---
+
+# `ctx.server` — PluginServerAPI
+
+Register HTTP middleware and server lifecycle hooks without authoring
+a Vite plugin. This is the formal API for what plugins like
+`@bdocs/plugin-ask-ai` previously did by hand with
+`vitePlugins: [{ configureServer }]`.
+
+```ts
+// Register a Connect-style middleware (runs on every request)
+ctx.server.use((req, res, next) => {
+  const start = Date.now()
+  res.on('finish', () => {
+    ctx.logger.info(`${req.method} ${req.url} — ${Date.now() - start}ms`)
+  })
+  next()
+})
+
+// Register a middleware scoped to a specific path prefix
+ctx.server.useAt('/api/my-plugin', (req, res, next) => {
+  if (req.method !== 'POST') {
+    res.statusCode = 405
+    res.end('Method Not Allowed')
+    return
+  }
+  // Handle the request...
+  res.end(JSON.stringify({ ok: true }))
+})
+
+// Lifecycle callbacks
+ctx.server.onStart(() => {
+  ctx.logger.info('My plugin server started')
+})
+
+ctx.server.onEnd(() => {
+  ctx.logger.info('My plugin server shutting down')
+})
+```
+
+Middleware registered via `ctx.server.use()` runs on both the **dev
+server** and **preview server**. The `onStart` callback fires once per
+process when the server initialises; `onEnd` fires on shutdown or
+restart (use it for cleanup).
+
+---
+
+## See also
+
+- [PluginContext](/docs/api/plugin-api) — base context object
+- [Middleware](/docs/api/plugin-api/middleware) — transform middleware pipeline
+- [HMR](/docs/api/plugin-api/hmr) — dev-server file watching & custom events
+- [Lifecycle Hooks](/docs/api/plugin-api/lifecycle-hooks) — build/dev hooks, transform chains, and chain signals
