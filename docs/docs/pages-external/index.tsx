@@ -30,7 +30,7 @@ export const layout = ({ children }: { children: React.ReactNode }) => {
         />
         {t.bannerNewVersion}{' '}
         <Link
-          href="site:/blog/boltdocs-3.1.0"
+          href="site:/blog/boltdocs-3.2.0"
           className="underline underline-offset-4 text-white dark:text-white"
         >
           {t.bannerReadPost}
