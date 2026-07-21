@@ -3,8 +3,11 @@ export * from './plugin-errors'
 export * from './plugin-store'
 export * from './plugin-validator'
 export * from './plugin-lifecycle'
-export * from './plugin-utils'
-export { MDX_NODES } from '../mdx/constants'
+
+// Re-export the AST utilities from the public @bdocs/unist-utils package.
+// The local `./plugin-utils` file remains as a thin re-export shim for
+// in-monorepo consumers that have not migrated yet.
+export * from '@bdocs/unist-utils'
 
 import type { SecureBoltdocsPlugin } from './plugin-types'
 

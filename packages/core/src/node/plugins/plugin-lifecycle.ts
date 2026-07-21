@@ -10,6 +10,17 @@ import type {
 import { BoltdocsPluginStore } from './plugin-store'
 import { Pipeline, type PipelineStep } from '../pipeline'
 import * as dui from '@bdocs/dui'
+import {
+  createPluginCachesAPI,
+  createPluginDiagnosticsAPI,
+  createPluginHmrAPI,
+  createPluginMiddlewareAPI,
+  createPluginPathsAPI,
+  createPluginServerAPI,
+  createPluginVirtualModulesAPI,
+  middlewareRegistry,
+} from './plugin-context'
+import type { PluginTransformMiddleware } from '../../shared/types'
 
 export class PluginLifecycleManager {
   private plugins: SecureBoltdocsPlugin[]
@@ -53,7 +64,7 @@ export class PluginLifecycleManager {
     await pipeline.run({})
   }
 
-  public async runChain<TParams>(
+  public async runChain<TParams extends Record<string, unknown>>(
     hookName: keyof PluginLifecycleHooks,
     initialParams: TParams,
   ): Promise<TParams> {
@@ -68,6 +79,21 @@ export class PluginLifecycleManager {
         const hookFn = plugin.hooks[hookName] as Function
         const result = await hookFn(context, params)
         if (result !== undefined) {
+          // Check for chain control signals (backwards-compatible — hooks
+          // that don't set __signal behave exactly as before).
+          const signal: string | undefined = (result as any).__signal
+          if (signal === 'break') {
+            // Stop the chain immediately, discard the final plugin's
+            // result so transformations from earlier plugins are kept.
+            break
+          }
+          if (signal === 'skip') {
+            // The hook signals that no more plugins should process
+            // this item. The current plugin's result is kept.
+            params = result as TParams
+            break
+          }
+          // Normal pass-through: update params and continue.
           params = result as TParams
         }
       } catch (error) {
@@ -77,6 +103,68 @@ export class PluginLifecycleManager {
           error instanceof Error ? error : new Error(String(error)),
         )
         context.logger.error(hookError)
+        // Report to diagnostics too so dev-server overlays can show it.
+        context.diagnostics.report(
+          'error',
+          `PLUGIN_HOOK_ERROR`,
+          hookError.message,
+        )
+      }
+    }
+
+    return params
+  }
+
+  /**
+   * Run registered transform middleware in `enforce` order over a chain of
+   * params. Middleware registered via `ctx.middleware.add()` from lifecycle
+   * hooks or declared statically via `BoltdocsPlugin.middleware` are all
+   * collected. Execution respects `__signal: 'skip'` and `__signal: 'break'`.
+   */
+  public async runMiddlewareChain<TParams extends Record<string, unknown>>(
+    hookName: 'transformSource' | 'transformMdx' | 'transformHtml',
+    initialParams: TParams,
+  ): Promise<TParams> {
+    // Collect middleware: static declarations + programmatic registrations.
+    const staticMiddleware = this.plugins.flatMap((p) => p.middleware ?? [])
+    const programmaticMiddleware = [...middlewareRegistry.values()]
+    const all = [...staticMiddleware, ...programmaticMiddleware]
+
+    // Sort by enforce: pre → normal → post
+    const sorted = [
+      ...all.filter((m) => m.enforce === 'pre'),
+      ...all.filter((m) => !m.enforce),
+      ...all.filter((m) => m.enforce === 'post'),
+    ]
+
+    let params = initialParams
+    for (const mw of sorted) {
+      const hookFn = mw[hookName] as Function | undefined
+      if (!hookFn) continue
+
+      // Create a minimal context for the middleware. Middleware context
+      // doesn't have a single owning plugin, so we use a generic context.
+      const context = this.createGenericContext()
+      try {
+        const result = await hookFn(context, params)
+        if (result !== undefined) {
+          const signal: string | undefined = (result as any).__signal
+          if (signal === 'break') break
+          if (signal === 'skip') {
+            params = result as TParams
+            break
+          }
+          params = result as TParams
+        }
+      } catch (error) {
+        const mwName = mw.name ?? '<unnamed>'
+        context.diagnostics.report(
+          'error',
+          `MIDDLEWARE_ERROR`,
+          `Middleware '${mwName}' threw: ${
+            error instanceof Error ? error.message : String(error)
+          }`,
+        )
       }
     }
 
@@ -143,6 +231,38 @@ export class PluginLifecycleManager {
         has: (p, k) => this.store.has(p, k),
       },
       logger: this.createLogger(plugin.name),
+      caches: createPluginCachesAPI(),
+      diagnostics: createPluginDiagnosticsAPI(plugin.name),
+      paths: createPluginPathsAPI(this.docsDir, this.rootDir),
+      virtualModules: createPluginVirtualModulesAPI(),
+      middleware: createPluginMiddlewareAPI(),
+      hmr: createPluginHmrAPI(),
+      server: createPluginServerAPI(),
+    }
+  }
+
+  private createGenericContext(): PluginContext {
+    const name = '<middleware>'
+    return {
+      config: Object.freeze({ ...this.config }),
+      docsDir: this.docsDir,
+      rootDir: this.rootDir,
+      outDir: this.outDir,
+      routes: this.routes,
+      meta: { name },
+      store: {
+        get: (p, k) => this.store.get(p, k),
+        set: (p, k, v) => this.store.set(p, k, v),
+        has: (p, k) => this.store.has(p, k),
+      },
+      logger: this.createLogger(name),
+      caches: createPluginCachesAPI(),
+      diagnostics: createPluginDiagnosticsAPI(name),
+      paths: createPluginPathsAPI(this.docsDir, this.rootDir),
+      virtualModules: createPluginVirtualModulesAPI(),
+      middleware: createPluginMiddlewareAPI(),
+      hmr: createPluginHmrAPI(),
+      server: createPluginServerAPI(),
     }
   }
 
