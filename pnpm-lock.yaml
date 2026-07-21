@@ -234,6 +234,9 @@ importers:
       scroll-into-view-if-needed:
         specifier: 3.1.0
         version: 3.1.0
+      semver:
+        specifier: ^7.7.4
+        version: 7.8.5
       shiki:
         specifier: 3.23.0
         version: 3.23.0
@@ -12614,7 +12617,7 @@ snapshots:
       escalade: 3.2.0
       jsonc-parser: 3.3.1
       package-manager-detector: 1.6.0
-      semver: 7.7.4
+      semver: 7.8.5
       tinyexec: 1.1.1
       tinyglobby: 0.2.16
       yaml: 2.8.3
@@ -16236,7 +16239,7 @@ snapshots:
     dependencies:
       '@img/colour': 1.1.0
       detect-libc: 2.1.2
-      semver: 7.7.4
+      semver: 7.8.5
     optionalDependencies:
       '@img/sharp-darwin-arm64': 0.34.5
       '@img/sharp-darwin-x64': 0.34.5
@@ -16678,7 +16681,7 @@ snapshots:
       picomatch: 4.0.4
       rolldown: 1.0.0-rc.12(@emnapi/core@1.11.1)(@emnapi/runtime@1.11.1)
       rolldown-plugin-dts: 0.23.2(rolldown@1.0.0-rc.12(@emnapi/core@1.11.1)(@emnapi/runtime@1.11.1))(typescript@5.9.3)
-      semver: 7.7.4
+      semver: 7.8.5
       tinyexec: 1.1.1
       tinyglobby: 0.2.16
       tree-kill: 1.2.2
@@ -16707,7 +16710,7 @@ snapshots:
       picomatch: 4.0.4
       rolldown: 1.0.0-rc.16
       rolldown-plugin-dts: 0.23.2(rolldown@1.0.0-rc.16)(typescript@5.9.3)
-      semver: 7.7.4
+      semver: 7.8.5
       tinyexec: 1.1.1
       tinyglobby: 0.2.16
       tree-kill: 1.2.2
