@@ -17,6 +17,12 @@ body {
   max-width: 100vw;
 }
 
+/* Prevent any orphan Mermaid sandbox/measurement node from creating
+   a phantom scroll region inside the docs content area. */
+.boltdocs-content {
+  overflow-x: hidden;
+}
+
 @keyframes marquee {
   0% {
     transform: translateX(0);

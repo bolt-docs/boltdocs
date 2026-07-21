@@ -12,7 +12,7 @@ import { Menu } from './menu'
 import { Popover } from './popover'
 import { cn } from '../../utils/cn'
 import { Sun, Moon, ExternalLink, MoreVertical, X } from '../ui-base/icons'
-import * as IconsSocials from '../icons-dev'
+import * as IconsSocials from '../icons-prod'
 import type { ComponentBase } from './types'
 import type {
   BoltdocsSocialLink,

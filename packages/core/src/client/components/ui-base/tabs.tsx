@@ -62,9 +62,11 @@ export function Tabs({
             <Link
               key={tab.id}
               href={linkTo}
-              ref={(el: HTMLAnchorElement | null) => {
-                tabRefs.current[index] = el
-              }}
+              {...({
+                ref: (el: HTMLAnchorElement | null) => {
+                  tabRefs.current[index] = el
+                },
+              } as React.AnchorHTMLAttributes<HTMLAnchorElement>)}
               className={`relative flex items-center gap-2 px-4 py-3.5 text-sm font-semibold transition-colors duration-300 outline-none whitespace-nowrap ${
                 isActive ? 'text-primary-500' : 'text-muted hover:text-body'
               }`}

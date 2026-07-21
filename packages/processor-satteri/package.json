@@ -3,9 +3,6 @@
   "version": "0.1.0",
   "description": "Sätteri MDX processor for Boltdocs (Rust-based)",
   "type": "module",
-  "main": "dist/node/index.js",
-  "module": "dist/node/index.mjs",
-  "types": "dist/node/index.d.ts",
   "publishConfig": {
     "access": "public"
   },
@@ -31,7 +28,12 @@
     "satteri": "^0.9.2"
   },
   "devDependencies": {
-    "@bdocs/unist-utils": "workspace:*"
+    "@bdocs/unist-utils": "workspace:*",
+    "@types/hast": "^3.0.4",
+    "@types/mdast": "^4.0.4",
+    "tsdown": "^0.21.7",
+    "typescript": "^5.9.3",
+    "vitest": "^3.2.4"
   },
   "peerDependencies": {
     "vite": "^7.0.0 || ^8.0.0"
@@ -40,12 +42,5 @@
     "vite": {
       "optional": true
     }
-  },
-  "devDependencies": {
-    "@types/hast": "^3.0.4",
-    "@types/mdast": "^4.0.4",
-    "tsdown": "^0.21.7",
-    "typescript": "^5.9.3",
-    "vitest": "^3.2.4"
   }
 }

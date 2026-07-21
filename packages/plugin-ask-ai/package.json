@@ -1,7 +1,7 @@
 {
   "name": "@bdocs/plugin-ask-ai",
-  "version": "0.3.0",
-  "description": "Context-aware AI assistant querying plugin for Boltdocs. OpenAI-powered, page-scoped, streaming. Mounts via the core's declarative slot system (v0.3.0+).",
+  "version": "0.3.0-beta.1",
+  "description": "Context-aware AI assistant querying plugin for Boltdocs. OpenAI-powered, page-scoped, streaming. Ships the `<AskAiBubble />` and `<AskAiDialog />` client components for manual composition in custom layouts.",
   "files": [
     "dist"
   ],

@@ -1,51 +1,16 @@
 import { copyToClipboard } from '../../utils/copy-clipboard'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useConfig } from '../../app/config-context'
-import { File } from '../ui-base/icons'
-import {
-  TypeScript,
-  JavaScript,
-  React as ReactIcon,
-  Json,
-  Css,
-  BracketsOrange,
-  Markdown,
-  Shell,
-  Yaml,
-  Rust,
-  BracketsRed,
-  Csv,
-} from '../icons-dev'
 import type { CodeBlockProps } from './code-block'
-
-const langIconMap: Record<string, React.ComponentType<{ size?: number }>> = {
-  ts: TypeScript,
-  tsx: ReactIcon,
-  js: JavaScript,
-  jsx: ReactIcon,
-  json: Json,
-  css: Css,
-  html: BracketsOrange,
-  md: Markdown,
-  mdx: Markdown,
-  bash: Shell,
-  sh: Shell,
-  yaml: Yaml,
-  yml: Yaml,
-  rs: Rust,
-  rust: Rust,
-  toml: BracketsRed,
-  csv: Csv,
-}
 
 export function useCodeBlock(props: CodeBlockProps) {
   const [copied, setCopied] = useState(false)
   const [isExpanded, setIsExpanded] = useState(false)
   const [isExpandable, setIsExpandable] = useState(false)
+  const [rated, setRated] = useState<'up' | 'down' | null>(null)
   const preRef = useRef<HTMLPreElement | HTMLDivElement>(null)
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
-  const [rated, setRated] = useState<'up' | 'down' | null>(null)
   const config = useConfig()
   const customConfig = config.integrations?.feedback?.custom
   const showCodeBlockFeedback = !!(customConfig?.enabled && !props.plain)
@@ -125,8 +90,6 @@ export function useCodeBlock(props: CodeBlockProps) {
     setIsExpandable(lines > 6)
   }, [props.children, props.highlightedHtml])
 
-  const LangIcon = langIconMap[lang] || File
-
   return {
     copied,
     isExpanded,
@@ -142,6 +105,5 @@ export function useCodeBlock(props: CodeBlockProps) {
     showCodeBlockFeedback,
     rated,
     handleRate,
-    LangIcon,
   }
 }

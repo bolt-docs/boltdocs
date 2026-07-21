@@ -2,9 +2,6 @@
   "name": "@bdocs/plugin-math",
   "version": "3.0.0",
   "description": "KaTeX math plugin for Boltdocs",
-  "main": "dist/node/index.js",
-  "module": "dist/node/index.mjs",
-  "types": "dist/node/index.d.ts",
   "publishConfig": {
     "access": "public"
   },
@@ -23,7 +20,7 @@
     "./style.css": "./dist/client/index.css"
   },
   "scripts": {
-    "build": "tsdown --config-loader unrun && node -e \"require('fs').cpSync('src/client/index.css', 'dist/client/index.css')\"",
+    "build": "tsdown --config-loader unrun && node --input-type=module -e \"import fs from 'node:fs'; fs.mkdirSync('dist/client', { recursive: true }); fs.cpSync('src/client/index.css', 'dist/client/index.css');\"",
     "dev": "tsdown --watch --config-loader unrun",
     "test": "vitest run"
   },
