@@ -1,5 +1,6 @@
 import type { RouteRecord } from '@bdocs/ssg'
 import type { ComponentRoute, BoltdocsConfig } from '../types'
+import { ExternalPageWrapper } from './external-page-wrapper'
 
 function buildExternalRoutes(options: {
   externalPages?: Record<string, React.ComponentType>
@@ -29,15 +30,18 @@ function buildExternalRoutes(options: {
             ? 'Home'
             : rawPath.replace(/^\//, '').split('/').pop() || 'Page',
         filePath: '',
+        componentPath: '',
         headings: [],
-      } as ComponentRoute)
+      } as unknown as ComponentRoute)
 
       children.push({
         path,
         element: (
-          <EffectiveExternalLayout>
-            <ExtComponent />
-          </EffectiveExternalLayout>
+          <ExternalPageWrapper>
+            <EffectiveExternalLayout>
+              <ExtComponent />
+            </EffectiveExternalLayout>
+          </ExternalPageWrapper>
         ),
         loader: async () => ({
           path,
@@ -54,15 +58,18 @@ function buildExternalRoutes(options: {
             locale,
             title: rawPath,
             filePath: '',
+            componentPath: '',
             headings: [],
-          } as ComponentRoute)
+          } as unknown as ComponentRoute)
 
           children.push({
             path: localePath,
             element: (
-              <EffectiveExternalLayout>
-                <ExtComponent />
-              </EffectiveExternalLayout>
+              <ExternalPageWrapper>
+                <EffectiveExternalLayout>
+                  <ExtComponent />
+                </EffectiveExternalLayout>
+              </ExternalPageWrapper>
             ),
             loader: async () => ({
               path: localePath,

@@ -8,6 +8,7 @@ import { DocsLayout } from '../app/docs-layout'
 import { buildDocRoutes } from './create-routes.doc'
 import { buildExternalRoutes } from './create-routes.external'
 import { buildCollectionRoutes } from './create-routes.collection'
+import { ExternalPageWrapper } from './external-page-wrapper'
 
 interface CreateRoutesOptions {
   routesData: ComponentRoute[]
@@ -47,9 +48,11 @@ export function createRoutes(options: CreateRoutesOptions): RouteRecord[] {
     {
       path: '*',
       element: (
-        <EffectiveExternalLayout>
-          <NotFoundWrapper />
-        </EffectiveExternalLayout>
+        <ExternalPageWrapper>
+          <EffectiveExternalLayout>
+            <NotFoundWrapper />
+          </EffectiveExternalLayout>
+        </ExternalPageWrapper>
       ),
     },
   ]

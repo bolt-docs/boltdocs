@@ -13,6 +13,7 @@ export function ScrollHandler() {
   const handleScroll = (behavior: ScrollBehavior = 'auto') => {
     const container =
       document.querySelector('.boltdocs-content') ||
+      document.querySelector('.boltdocs-external-content') ||
       document.querySelector('.boltdocs-shell-content') ||
       window
 
