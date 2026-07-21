@@ -39,13 +39,25 @@ describe('MDX Compiler Plugin', () => {
     expect(result.code).toContain('import')
   })
 
-  it('should extract frontmatter metadata correctly during compile', async () => {
+  it('should strip YAML frontmatter and compile the body', async () => {
     const plugin = boltdocsMdxPlugin()
-    const code = '---\ntitle: Document Title\n---\n# Document Title'
+    const code = '---\ntitle: Document Title\n---\n# H'
     const id = 'test.mdx'
 
     const result = await (plugin as any).transform(code, id)
-    expect(result.code).toContain('Document Title')
+    // `remark-frontmatter` strips the YAML — it never reaches the JS
+    // output. Frontmatter is consumed separately by Boltdocs' routes
+    // pipeline; the MDX plugin only emits the body. Assert the
+    // pipeline produced an MDX-compiled JS bundle and the YAML
+    // delimiter / frontmatter keys are absent from the output.
+    expect(result).toBeDefined()
+    expect(typeof result.code).toBe('string')
+    // MDX compilation always emits an `import {jsx} from "react/jsx-runtime"`
+    // statement for the compiled body.
+    expect(result.code).toMatch(/jsx-runtime|jsxs? as _jsx/)
+    // YAML `key: value` frontmatter must not appear in compiled JS.
+    expect(result.code).not.toContain('title:')
+    expect(result.code).not.toMatch(/^---$|^\u2014\u2014\u2014$/m)
   })
 
   it('should support MDX compilation cache', async () => {
