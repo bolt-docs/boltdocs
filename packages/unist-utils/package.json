@@ -1,6 +1,6 @@
 {
   "name": "@bdocs/unist-utils",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Strictly-typed AST utilities for unist/mdast/hast used by Boltdocs core and official plugins.",
   "type": "module",
   "main": "./dist/index.js",

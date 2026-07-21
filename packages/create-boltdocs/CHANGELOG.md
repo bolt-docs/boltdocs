@@ -1,5 +1,11 @@
 # create-boltdocs
 
+## 0.4.3
+
+### Patch Changes
+
+- [`ab2ea31`](https://github.com/bolt-docs/boltdocs/commit/ab2ea31230eed4828dc2bdcd88a39e17344387cc) Thanks [@jesusalcaladev](https://github.com/jesusalcaladev)! - Update scaffolded `package.json` — add `react-aria-components` as dependency (now a required peer of `boltdocs`) and remove `sharp` from `onlyBuiltDependencies` (core no longer depends on it).
+
 ## 0.4.2
 
 ### Patch Changes
