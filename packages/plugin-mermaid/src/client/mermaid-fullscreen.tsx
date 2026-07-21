@@ -60,23 +60,26 @@ export function MermaidFullscreen({ svgStr, onClose }: MermaidFullscreenProps) {
     if (typeof document === 'undefined') return
     const styleEls: HTMLStyleElement[] = []
 
-    styleEls.push((() => {
-      const s = document.createElement('style')
-      s.setAttribute('data-mermaid-lock-style', instanceId)
-      s.textContent = `
+    styleEls.push(
+      (() => {
+        const s = document.createElement('style')
+        s.setAttribute('data-mermaid-lock-style', instanceId)
+        s.textContent = `
         .mermaid-lock-scroll,
         .mermaid-lock-scroll body,
         .mermaid-lock-scroll .boltdocs-content {
           overflow: hidden !important;
         }
       `
-      return s
-    })())
+        return s
+      })(),
+    )
 
-    styleEls.push((() => {
-      const s = document.createElement('style')
-      s.setAttribute('data-mermaid-fullscreen-style', instanceId)
-      s.textContent = `
+    styleEls.push(
+      (() => {
+        const s = document.createElement('style')
+        s.setAttribute('data-mermaid-fullscreen-style', instanceId)
+        s.textContent = `
         .mermaid-fullscreen-${instanceId} .mermaid-rendered,
         .mermaid-fullscreen-${instanceId} .mermaid-rendered * {
           cursor: ${zoomPan.isDragging ? 'grabbing' : 'grab'} !important;
@@ -86,8 +89,9 @@ export function MermaidFullscreen({ svgStr, onClose }: MermaidFullscreenProps) {
           max-height: calc(90vh - 4rem) !important;
         }
       `
-      return s
-    })())
+        return s
+      })(),
+    )
 
     for (const s of styleEls) document.head.appendChild(s)
     return () => {
@@ -108,7 +112,6 @@ export function MermaidFullscreen({ svgStr, onClose }: MermaidFullscreenProps) {
       tabIndex={-1}
       onClick={handleClose}
     >
-
       <div
         className={cn(
           'relative flex w-full bg-main p-2 max-w-7xl flex-col rounded-xl border border-subtle shadow-2xl overflow-hidden transition-all duration-200 ease-out',

@@ -188,14 +188,11 @@ export function useZoomPan({ resetTrigger }: UseZoomPanOptions = {}) {
     posStart.current = { x: posXRef.current, y: posYRef.current }
   }, [])
 
-  const handleMouseMove = useCallback(
-    (e: React.MouseEvent) => {
-      if (!isDraggingRef.current) return
-      setPosX(posStart.current.x + (e.clientX - dragStart.current.x))
-      setPosY(posStart.current.y + (e.clientY - dragStart.current.y))
-    },
-    [],
-  )
+  const handleMouseMove = useCallback((e: React.MouseEvent) => {
+    if (!isDraggingRef.current) return
+    setPosX(posStart.current.x + (e.clientX - dragStart.current.x))
+    setPosY(posStart.current.y + (e.clientY - dragStart.current.y))
+  }, [])
 
   const handleMouseUp = useCallback(() => {
     setIsDragging(false)
@@ -223,7 +220,10 @@ export function useZoomPan({ resetTrigger }: UseZoomPanOptions = {}) {
 
   const interactiveProps = {
     ref: callbackRef,
-    style: { touchAction: 'pan-y pinch-zoom', cursor: isDragging ? 'grabbing' : 'grab' } as React.CSSProperties,
+    style: {
+      touchAction: 'pan-y pinch-zoom',
+      cursor: isDragging ? 'grabbing' : 'grab',
+    } as React.CSSProperties,
     onMouseDown: handleMouseDown,
     onMouseMove: handleMouseMove,
     onMouseUp: handleMouseUp,

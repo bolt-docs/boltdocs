@@ -25,7 +25,7 @@ function cleanSvg(svg: string): string {
     root.removeAttribute('style')
     root.style.width = '100%'
     root.style.height = 'auto'
-    root.style.overflow = 'visible'
+    root.style.overflow = 'hidden'
 
     return new XMLSerializer().serializeToString(root)
   } catch {
@@ -75,6 +75,25 @@ export function useMermaidRender(
     let abort = false
     const id = `mermaid-${Math.random().toString(36).substring(2, 11)}`
 
+    // Sandbox attached to <body> but removed from normal layout. We make it
+    // viewport-sized so Mermaid can read real metrics; the element is out of
+    // view and hidden with opacity, so it never produces scroll. The final
+    // SVG is then constrained by CSS in the component.
+    const renderContainer = document.createElement('div')
+    renderContainer.style.cssText =
+      'position:fixed;top:-9999px;left:-9999px;' +
+      'width:1200px;height:1200px;overflow:hidden;' +
+      'visibility:hidden;pointer-events:none;'
+    document.body.appendChild(renderContainer)
+
+    const cleanupMermaidArtifacts = () => {
+      if (typeof document === 'undefined') return
+      renderContainer.remove()
+      for (const cleanupId of [id, `d${id}`, `i${id}`]) {
+        document.getElementById(cleanupId)?.remove()
+      }
+    }
+
     const renderDiagram = async () => {
       try {
         const isDark = resolvedTheme === 'dark'
@@ -95,7 +114,7 @@ export function useMermaidRender(
           },
         })
 
-        const { svg } = await mermaid.render(id, chart)
+        const { svg } = await mermaid.render(id, chart, renderContainer)
         if (isMounted) {
           const cleaned = cleanSvg(svg)
           setSvgStr(cleaned)
@@ -107,15 +126,7 @@ export function useMermaidRender(
           setError('Failed to render diagram. Check your syntax.')
         }
       } finally {
-        // Mermaid's `render()` mounts a hidden measurement node directly on
-        // `document.body` to compute SVG dimensions. Newer versions keep
-        // that node in the DOM after rendering and it elongates the body
-        // (visible as a viewport-sized black void below the page-nav
-        // because the docs shell uses a fixed-height inner scroll
-        // container). Detach whichever id Mermaid used, in both success
-        // and error paths.
-        document.getElementById(`d${id}`)?.remove()
-        document.getElementById(id)?.remove()
+        cleanupMermaidArtifacts()
       }
     }
 
@@ -123,6 +134,7 @@ export function useMermaidRender(
     return () => {
       isMounted = false
       abort = true
+      cleanupMermaidArtifacts()
     }
   }, [chart, resolvedTheme, themeKey, skip])
 

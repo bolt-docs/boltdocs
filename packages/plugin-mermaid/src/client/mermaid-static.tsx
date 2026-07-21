@@ -69,7 +69,7 @@ export function MermaidStatic({
         width: 100% !important;
         height: auto !important;
         max-width: 100% !important;
-        max-height: calc(65vh - 3rem) !important;
+        max-height: 240px !important;
         margin: 0 !important;
       }
     `
@@ -97,7 +97,7 @@ export function MermaidStatic({
     <>
       <div
         className={cn(
-          'not-prose mermaid-inline relative my-6 w-full max-h-[65vh] overflow-hidden rounded-xl border border-subtle bg-surface/30 backdrop-blur-sm',
+          'not-prose mermaid-inline relative my-6 w-full max-h-[300px] overflow-hidden rounded-xl border border-subtle bg-surface/30 backdrop-blur-sm',
           `mermaid-inline-${instanceId}`,
           {
             'cursor-grabbing': zoomPan.isDragging,
@@ -118,8 +118,8 @@ export function MermaidStatic({
           />
         </div>
 
-        {/* SVG — scrollable, constrained height */}
-        <div className="relative flex max-h-[65vh] w-full items-center justify-center overflow-hidden p-6">
+        {/* SVG — small preview, click to expand to fullscreen */}
+        <div className="relative flex h-[300px] w-full items-center justify-center overflow-hidden p-6">
           <div
             className="mermaid-rendered"
             style={{
