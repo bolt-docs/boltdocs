@@ -26,7 +26,7 @@ export function greet(name: string): string {
 Boltdocs supports custom parameters in the code block's header line to configure titles, line numbers, and word wrapping dynamically.
 
 ### 1. Title Banner
-Add `title="file_name.extension"` to display a styled header containing the filename and a matching language icon:
+Add `title="file_name.extension"` to display a styled header containing the filename. A generic file icon is rendered next to the title to indicate the code block boundary:
 
 ````markdown
 ```tsx title="components/Button.tsx"
@@ -143,7 +143,6 @@ export function CustomCodeBlock(props) {
     handleCopy,
     effectiveTitle,
     effectiveHighlightedHtml,
-    LangIcon,
     isExpandable,
     isExpanded,
     setIsExpanded,
@@ -155,7 +154,6 @@ export function CustomCodeBlock(props) {
       {effectiveTitle && (
         <CodeBlock.Header>
           <CodeBlock.Group>
-            {LangIcon && <LangIcon size={14} />}
             <span>{effectiveTitle}</span>
           </CodeBlock.Group>
           
@@ -206,5 +204,4 @@ The `useCodeBlock` hook accepts the standard code block properties (passed from 
 | **`showCodeBlockFeedback`** | `boolean` | `true` if code block feedback forms are enabled in `boltdocs.config.ts` and the block is not in plain mode. |
 | **`rated`** | `'up' \| 'down' \| null` | The current feedback rating submitted by the user. |
 | **`handleRate`** | `(type: 'up' \| 'down') => Promise<void>` | Callback function to submit feedback rating to the serverless endpoint. |
-| **`LangIcon`** | `ComponentType<{ size?: number }>` | The resolved React icon component matching the parsed code block language. |
 

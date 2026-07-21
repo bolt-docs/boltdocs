@@ -366,7 +366,7 @@ Two categories of "size" — **client bundle** (bytes shipped to every browser) 
 | Surface | Before 3.2.0 | After 3.2.0 | Notes |
 |---------|--------------|-------------|-------|
 | `client/index.js` (front door) | 108 KB | **108 KB** | Unchanged at the entry; savings are in deferred chunks. |
-| `icons-dev.tsx` language icon blob in the initial chunk | **44 KB on every page** | **0 KB** on pages without code blocks; **~17 KB** on pages that render them | Lang icons moved to `lang-icons.tsx` and loaded via `import('./lang-icons')` inside `useCodeBlock`. Appears as a separate `lang-icons-*.js` chunk in the build output. |
+| `icons-dev.tsx` language icon blob in the initial chunk | **44 KB on every page** | **0 KB** on all pages | The entire `lang-icons.tsx` module (twelve SVG icons + registry map) was removed from the core. Code block titles render the filename text only — no language icon is shipped to the client. Pages with code blocks save ~17 KB versus 3.1.x's eager bundle; pages without code blocks were already at zero bytes for these icons. |
 | Social/nav icons in the navbar bundle | bundled with everything | **~1 KB isolated** in `icons-prod.tsx` | `Github`, `Discord`, `XSocial`, `Bluesky` are namespaced separately so layouts that don't need them can override without dragging the language set along. |
 
 **`node_modules` footprint — bytes unpacked on disk (per `pnpm install`)**
@@ -387,7 +387,7 @@ This release sits comfortably in the documented **semver-minor** bin because the
 
 2. **`sharp` and `svgo`** — they moved *out* of core entirely. They used to be transitively installed through boltdocs; now they're a peer of `@bdocs/plugin-image-optimizer` with `peerDependenciesMeta.optional: true`. If your site doesn't use the image optimizer, you save ~35 MB of unpacked native binaries. If you do use it, you get the same binaries — pnpm hoists them via the plugin's own peer declarations.
 
-3. **Lang icons in MDX code blocks** — twelve language icons (TypeScript, JavaScript, React, JSON, CSS, HTML, Markdown, Shell, YAML, Rust, TOML, CSV) were always eagerly bundled in `icons-dev.tsx`. They are now in a separate `lang-icons.tsx` module loaded via `React.lazy` inside the `useCodeBlock` hook. Pages without code blocks ship zero bytes of these icons; pages with code blocks load them on first render. During SSR and the brief hydration window, the generic `File` icon is rendered — same as before, no visual flash beyond a sub-frame swap from gray to colored icons.
+3. **Lang icons in MDX code blocks** — twelve language icons (TypeScript, JavaScript, React, JSON, CSS, HTML, Markdown, Shell, YAML, Rust, TOML, CSV) were eagerly bundled in 3.1.x, then lazy-loaded in `lang-icons.tsx`. The whole module has now been **removed from the core**. Code block titles render the filename text with a generic `File` icon — no per-language icon shipped to the client at all. Pages with code blocks save ~17 KB versus 3.1.x; pages without code blocks were already at zero bytes.
 
 4. **Social/nav icons** — `Github`, `Discord`, `XSocial`, `Bluesky` moved into a new `icons-prod.tsx` file that's eagerly bundled with the navbar. They're separately typed (`IconProps`) and exported from their own entry so end-user custom layouts can override them without touching the language icon set.
 

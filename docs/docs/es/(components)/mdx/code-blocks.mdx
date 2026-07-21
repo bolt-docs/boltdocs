@@ -26,7 +26,7 @@ export function greet(name: string): string {
 Boltdocs soporta parámetros personalizados en la línea de encabezado del bloque de código para configurar títulos, números de línea y ajuste de texto dinámicamente.
 
 ### 1. Banner de Título
-Agrega `title="file_name.extension"` para mostrar un encabezado estilizado que contiene el nombre del archivo y un icono de idioma coincidente:
+Agrega `title="file_name.extension"` para mostrar un encabezado estilizado que contiene el nombre del archivo. Se renderiza un icono de archivo genérico junto al título para indicar el límite del bloque de código:
 
 ````markdown
 ```tsx title="components/Button.tsx"
@@ -143,7 +143,6 @@ export function CustomCodeBlock(props) {
     handleCopy,
     effectiveTitle,
     effectiveHighlightedHtml,
-    LangIcon,
     isExpandable,
     isExpanded,
     setIsExpanded,
@@ -155,7 +154,6 @@ export function CustomCodeBlock(props) {
       {effectiveTitle && (
         <CodeBlock.Header>
           <CodeBlock.Group>
-            {LangIcon && <LangIcon size={14} />}
             <span>{effectiveTitle}</span>
           </CodeBlock.Group>
           
@@ -206,4 +204,3 @@ El hook `useCodeBlock` acepta las propiedades estándar del bloque de código (p
 | **`showCodeBlockFeedback`** | `boolean` | `true` si los formularios de retroalimentación de bloques de código están habilitados en `boltdocs.config.ts` y el bloque no está en modo plano. |
 | **`rated`** | `'up' \| 'down' \| null` | La calificación de retroalimentación actual enviada por el usuario. |
 | **`handleRate`** | `(type: 'up' \| 'down') => Promise<void>` | Función de callback para enviar la calificación de retroalimentación al endpoint serverless. |
-| **`LangIcon`** | `ComponentType<{ size?: number }>` | El componente de icono React resuelto que coincide con el idioma analizado del bloque de código. |

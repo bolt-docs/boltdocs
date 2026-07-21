@@ -22,7 +22,7 @@ badge: Migración
 | `react-aria-components` | Promovida de `dependencies` a un `peerDependencies` **requerido** | Todo consumidor de Boltdocs | Agregá `react-aria-components: ^1.16.0` a tus `dependencies` (o aceptá el peer warning si tu wrapper de framework lo provee) |
 | `sharp` | Removido de core; ahora `peerDependenciesMeta.optional` de `@bdocs/plugin-image-optimizer` | Solo si no usás `@bdocs/plugin-image-optimizer`: victoria pura (ahorrás ~30 MB desempaquetados) | Si dependías de `sharp` como transitivo de `boltdocs`, instalá `sharp` explícitamente o agregá el plugin optimizer |
 | `svgo` | Igual que `sharp` (movido fuera de core) | Solo si no usás el image optimizer: victoria pura (~5 MB desempaquetados) | Igual que `sharp` |
-| Iconos de lenguajes en code blocks MDX | `icons-dev.tsx` renombrado a `lang-icons.tsx` y lazy-loaded dentro de `useCodeBlock` | Usuarios finales (sin acción) | Ninguna — páginas sin code blocks ahora envían cero bytes de estos iconos; páginas con code blocks siguen recibiendo los mismos iconos |
+| Iconos de lenguajes en code blocks MDX | `lang-icons.tsx` eliminado por completo del bundle del core | Usuarios finales (sin acción) | Ninguna — los títulos de los code blocks ya no renderizan ningún icono de lenguaje; las páginas envían cero bytes para el set de iconos sin importar si contienen code blocks |
 | Iconos sociales/nav | Nuevo entry `icons-prod.tsx`; `Github`, `Discord`, `XSocial`, `Bluesky` extraídos del set de lenguajes | Autores de plugins que importaban desde `'../icons-dev'` | Actualizá los import paths a `'../icons-prod'` (solo interno — no es un cambio de API pública) |
 | Subpath exports del cliente | `'boltdocs/primitives'`, `'boltdocs/mdx'`, `'boltdocs/server'` ya estaban separados (3.1.0) — ahora en el mapa `exports` | Usuarios finales que importan desde estos subpaths | Ninguna — retrocompatible |
 | Campo `optionalDependencies` | Removido por completo del `package.json` | Pipelines de CI que escanean `optionalDependencies` | Ninguna — el campo simplemente no está más |
@@ -77,11 +77,13 @@ import { Github, Cs } from '../icons-dev'
 // ✅ Después de 3.2.0 — íconos prod/nav
 import { Github } from 'boltdocs/client/icons-prod'    // (planeado; path actual: 'boltdocs/client')
 
-// ✅ Después de 3.2.0 — íconos de lenguajes
-import { langIconsMap } from 'boltdocs/client/mdx/lang-icons'  // lazy
+// ✅ Después de 3.2.0 — íconos de lenguajes eliminados
+// `lang-icons.tsx` ya no existe en la API pública. Renderizá tu propio
+// ícono junto al título a través del valor `effectiveTitle` del hook
+// `useCodeBlock`, o simplemente mostrá el texto del título sin ícono.
 ```
 
-Si solo importabas los iconos de lenguajes, preferí el `langIconsMap` público desde `'@bdocs/parser/mdx/lang-icons'` (lazy `import()` desde dentro de tu hook equivalente a `useCodeBlock`). Para los iconos sociales, usá los exports nuevos de `icons-prod.tsx`.
+Para los iconos sociales, usá los exports nuevos de `icons-prod.tsx`.
 
 ### 2d. Lockfiles versionados
 
@@ -145,11 +147,11 @@ Para los usuarios que se saltean el snippet de migración, el runtime es **idén
 
 - **Los imports no cambiaron.** Todos los exports públicos desde `'boltdocs'`, `'boltdocs/client'`, `'boltdocs/server'`, `'boltdocs/primitives'`, `'boltdocs/mdx'` resuelven a los mismos símbolos que 3.1.x.
 - **Los componentes `DocsLayout`, `Navbar`, `Sidebar`, `OnThisPage`, `SearchDialog`, `Breadcrumbs`, `PageNav` funcionan igual.** Los íconos que renderizan se ven idénticos.
-- **Los code blocks MDX renderizan los mismos íconos de lenguajes.** Los íconos se cargan lazy en 3.2.0, pero en document complete se ven idénticos a 3.1.x.
+- **Los code blocks MDX renderizan solo el título.** Los títulos de los code blocks muestran el texto del nombre del archivo sin ningún icono de lenguaje — se renderiza un icono de archivo genérico de forma incondicional para balance visual. Este es un cambio visual respecto a 3.1.x.
 - **`fetch` a los endpoints de API feedback / GitHub discussions / Giscus funcionan igual.** Sin cambios de transporte.
 - **Las integraciones de plugins Vite**, `@bdocs/plugin-mermaid`, `@bdocs/plugin-math`, `@bdocs/plugin-rss`, `@bdocs/plugin-ask-ai` siguen sin cambios — mantienen sus propios dep trees.
 
-Lo único que *visiblemente* cambia es el flash de color del ícono durante la breve ventana de hidratación en páginas con code blocks MDX: SSR/hidratación inicial renderiza el ícono `File` gris, después en sub-frame sucede el swap al ícono de lenguaje coloreado. Mismo visual que 3.1.x en el render asentado.
+No hay flash en tiempo de hidratación: el ícono `File` genérico es lo único que se renderiza, y viaja con la página en el primer paint.
 
 ---
 
@@ -188,17 +190,13 @@ pnpm add sharp svgo
 
 Vuelven a tu árbol (si realmente los querés), sin que boltdocs los declare.
 
-### "¿Puedo desactivar el lazy-load de los íconos de lenguajes?"
-
-No — el lazy load es un `import('./lang-icons')` de una sola línea dentro de `useCodeBlock`. No hay flag; las páginas sin code blocks se saltean la carga del chunk simplemente no haciendo nada. Si necesitás un bundle de una sola página que incluya todos los íconos, armá un layout custom: importá los íconos directamente desde `@bdocs/parser/mdx/lang-icons` y reemplazá el slot `LangIcon` de `useCodeBlock`.
-
 ### "¿Sigue siendo `@bdocs/ssg` independiente?"
 
 Sí. `@bdocs/ssg` es un paquete separado del workspace y tiene sus propios `peerDependencies` (`react`, `react-dom`, `react-router-dom`). No queda afectado por la reconfiguración de peers de boltdocs 3.2.0.
 
 ### "¿Va a crecer el tamaño de mi bundle `boltdocs/client` después del upgrade?"
 
-No. De hecho, en páginas sin code blocks MDX, el bundle **baja** ~17 KB (los íconos de lenguajes nunca se cargan). Las páginas con code blocks siguen cargando los mismos íconos — simplemente viven en un chunk `lang-icons-*.js` en lugar de inline. Consultá la [sección de peso del paquete en el blog](/es/blog/boltdocs-3.2.0#reducción-del-peso-del-paquete) para la tabla completa de antes/después.
+No. De hecho, en páginas con code blocks MDX, el bundle **baja** ~17 KB (el módulo completo `lang-icons.tsx` fue eliminado del core). Las páginas sin code blocks ya estaban en cero bytes para estos íconos desde el lazy-load de 3.2.0. Consultá la [sección de peso del paquete en el blog](/es/blog/boltdocs-3.2.0#reducción-del-peso-del-paquete) para la tabla completa de antes/después.
 
 ---
 

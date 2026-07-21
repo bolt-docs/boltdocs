@@ -157,7 +157,11 @@ components/
 │   └── error-boundary.tsx
 ├── mdx/                # MDX-specific components
 │   └── use-code-block.tsx
-├── icons-dev.tsx       # Dev-only icon components
+├── icons-prod.tsx      # Eager-bundled social/nav icons (Github, Discord, XSocial, Bluesky) — used by navbar/sidebar. Re-exports `IconProps`.
+│   └── (used by components/primitives/navbar.tsx + components/ui-base/{navbar,github-stars}.tsx)
+│
+└── mdx/lang-icons.tsx  # Lazy-loaded language icons for MDX code blocks (TypeScript, JavaScript, React, JSON, CSS, HTML, Markdown, Shell, YAML, Rust, TOML, CSV).
+    └── Imported via `const langIconsPromise = import('./lang-icons')` in `mdx/use-code-block.ts` and stored in `useState<map | null>(null)`. Falls back to the generic `File` icon during SSR and the brief hydration window before the dynamic import resolves. Pages without code blocks ship zero bytes of these icons.
 └── docs-layout-default.tsx  # Default layout composition
 ```
 

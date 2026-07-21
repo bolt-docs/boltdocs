@@ -337,7 +337,7 @@ Dos categorías de "tamaño" — **bundle del cliente** (bytes que viajan al nav
 | Superficie | Antes de 3.2.0 | Después de 3.2.0 | Notas |
 |------------|----------------|------------------|-------|
 | `client/index.js` (puerta de entrada) | 108 KB | **108 KB** | Sin cambios en la entrada; el ahorro vive en los chunks diferidos. |
-| `icons-dev.tsx` (blob de iconos de lenguajes) en el chunk inicial | **44 KB en cada página** | **0 KB** en páginas sin code blocks; **~17 KB** en páginas que los renderizan | Los iconos de lenguajes se movieron a `lang-icons.tsx` y se cargan vía `import('./lang-icons')` dentro de `useCodeBlock`. Aparecen como un chunk separado `lang-icons-*.js`. |
+| `icons-dev.tsx` (blob de iconos de lenguajes) en el chunk inicial | **44 KB en cada página** | **0 KB** en todas las páginas | El módulo completo `lang-icons.tsx` (doce iconos SVG + mapa del registry) fue eliminado del core. Los títulos de los code blocks renderizan solo el texto del nombre del archivo — no se envía ningún ícono de lenguaje al cliente. Las páginas con code blocks ahorran ~17 KB versus el bundle eager de 3.1.x; las páginas sin code blocks ya estaban en cero bytes para estos íconos. |
 | Iconos sociales/nav en el bundle del navbar | mezclados con todo | **~1 KB aislados** en `icons-prod.tsx` | `Github`, `Discord`, `XSocial`, `Bluesky` están namespaced aparte para que layouts que no los necesiten puedan sobreescribirlos sin arrastrar el set de lenguajes. |
 
 **Footprint de `node_modules` — bytes desempaquetados (por `pnpm install`)**
@@ -358,7 +358,7 @@ Esta release cae cómodamente en el bin **semver-minor** porque los contratos de
 
 2. **`sharp` y `svgo`** — se movieron *fuera* de core por completo. Antes se instalaban transitivamente a través de boltdocs; ahora son peer de `@bdocs/plugin-image-optimizer` con `peerDependenciesMeta.optional: true`. Si tu sitio no usa el image optimizer, ahorrás ~35 MB de binarios nativos desempaquetados. Si lo usás, obtenés los mismos binarios — pnpm los hoistea vía las peer declarations del plugin.
 
-3. **Iconos de lenguajes en code blocks MDX** — los doce iconos de lenguajes (TypeScript, JavaScript, React, JSON, CSS, HTML, Markdown, Shell, YAML, Rust, TOML, CSV) siempre estuvieron bundleados eager en `icons-dev.tsx`. Ahora están en un módulo separado `lang-icons.tsx` cargado vía `React.lazy` dentro del hook `useCodeBlock`. Las páginas sin code blocks envían cero bytes de estos iconos; las páginas con code blocks los cargan en el primer render. Durante el SSR y la breve ventana de hidratación, se muestra el ícono genérico `File` — sin flash visual más allá de un swap de sub-frame de gris a color.
+3. **Iconos de lenguajes en code blocks MDX** — los doce iconos de lenguajes (TypeScript, JavaScript, React, JSON, CSS, HTML, Markdown, Shell, YAML, Rust, TOML, CSV) estuvieron bundleados eager en 3.1.x, luego lazy-loaded en `lang-icons.tsx`. El módulo completo fue ahora **eliminado del core**. Los títulos de los code blocks renderizan el texto del nombre del archivo con un ícono `File` genérico — no se envía al cliente ningún ícono por idioma. Las páginas con code blocks ahorran ~17 KB versus 3.1.x; las páginas sin code blocks ya estaban en cero bytes.
 
 4. **Iconos sociales/nav** — `Github`, `Discord`, `XSocial`, `Bluesky` se movieron a un nuevo archivo `icons-prod.tsx` que se bundlea eager con el navbar. Están tipados aparte (`IconProps`) y se exportan de su propio entry para que layouts custom puedan sobreescribirlos sin tocar el set de lenguajes.
 
