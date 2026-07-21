@@ -23,7 +23,7 @@ export const BarChart = ({ items }: BarChartProps) => {
           </div>
           <div className="h-3 w-full bg-soft rounded-full overflow-hidden border border-subtle">
             <div
-              className={`h-full rounded-full transition-all duration-1000 ${item.color}`}
+              className={`h-full rounded-full ${item.color}`}
               style={{ width: `${item.width}%` }}
             />
           </div>

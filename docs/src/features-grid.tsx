@@ -1,5 +1,4 @@
-import { Fragment, useRef } from 'react'
-import { useScrollAnimation } from './hooks/useScrollAnimation'
+import { Fragment } from 'react'
 import { Grainient } from './grainient'
 import { NoiseOverlay } from './noise-overlay'
 import { useTranslations } from './use-translations'
@@ -204,14 +203,10 @@ const FEATURES: Feature[] = [
 ]
 
 function FeatureRow({ feature, index }: { feature: Feature; index: number }) {
-  const containerRef = useRef<HTMLDivElement>(null)
   const isReversed = index % 2 !== 0
-
-  useScrollAnimation(containerRef, 'fade-up')
 
   return (
     <div
-      ref={containerRef}
       className={`flex flex-col ${isReversed ? 'md:flex-row-reverse' : 'md:flex-row'} gap-6 md:gap-10 items-center`}
     >
       {/* Preview */}
@@ -251,12 +246,7 @@ function FeatureRow({ feature, index }: { feature: Feature; index: number }) {
 }
 
 export const FeaturesGrid = () => {
-  const titleRef = useRef<HTMLHeadingElement>(null)
-  const subtitleRef = useRef<HTMLParagraphElement>(null)
   const t = useTranslations()
-
-  useScrollAnimation(titleRef, 'fade-up')
-  useScrollAnimation(subtitleRef, 'fade-up')
 
   const featuresWithTranslations = FEATURES.map((feature, i) => ({
     ...feature,
@@ -269,16 +259,10 @@ export const FeaturesGrid = () => {
       <NoiseOverlay />
       <div className="max-w-5xl mx-auto">
         <div className="text-center mb-16">
-          <h2
-            ref={titleRef}
-            className="text-2xl md:text-4xl font-black tracking-tighter border-0 text-body mb-6"
-          >
+          <h2 className="text-2xl md:text-4xl font-black tracking-tighter border-0 text-body mb-6">
             {t.featuresTitle}
           </h2>
-          <p
-            ref={subtitleRef}
-            className="max-w-2xl mx-auto text-lg leading-relaxed text-body/70"
-          >
+          <p className="max-w-2xl mx-auto text-lg leading-relaxed text-body/70">
             {t.featuresDescription}
           </p>
         </div>

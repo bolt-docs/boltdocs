@@ -1,5 +1,3 @@
-import { useRef } from 'react'
-import { useScrollAnimation } from './hooks/useScrollAnimation'
 import { Grainient } from './grainient'
 import { Link } from 'boltdocs/primitives'
 import { Github } from './icons'
@@ -7,16 +5,14 @@ import { useTranslations } from './use-translations'
 import { color_active_version } from './color'
 
 export const CTASection = () => {
-  const contentRef = useRef<HTMLDivElement>(null)
   const t = useTranslations()
-
-  useScrollAnimation(contentRef, 'fade-up')
 
   return (
     <section className="relative overflow-hidden w-full h-[70dvh]">
       <Grainient
         className="-z-10"
         {...color_active_version}
+        animated={false}
         timeSpeed={0.25}
         colorBalance={0}
         warpStrength={1}
@@ -40,7 +36,7 @@ export const CTASection = () => {
 
       {/* CTA Content Area */}
       <div className="relative z-10 pt-20 pb-20 px-6 w-full h-full flex items-center">
-        <div ref={contentRef} className="max-w-3xl mx-auto text-center">
+        <div className="max-w-3xl mx-auto text-center">
           <div>
             <h2 className="text-3xl md:text-5xl font-black text-white border-0 mb-6 leading-[1.2] tracking-tight">
               {t.ctaTitle} <br className="hidden md:block" />
@@ -54,13 +50,13 @@ export const CTASection = () => {
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mt-8">
               <Link
                 href="/docs/guides"
-                className="px-8 py-4 bg-white text-black font-bold rounded-full hover:scale-105 hover:shadow-[0_0_30px_rgba(255,255,255,0.4)] transition-all duration-300 flex items-center justify-center border-0"
+                className="px-8 py-4 bg-white text-black font-bold rounded-full flex items-center justify-center border-0"
               >
                 {t.ctaGetStarted}
               </Link>
               <Link
                 href="https://github.com/jesusalcaladev/boltdocs"
-                className="px-8 py-4 bg-white/5 backdrop-blur-md text-white font-bold rounded-full border border-white/20 hover:bg-white/10 hover:scale-105 transition-all duration-300 flex items-center justify-center gap-2"
+                className="px-8 py-4 bg-white/5 backdrop-blur-md text-white font-bold rounded-full border border-white/20 flex items-center justify-center gap-2"
               >
                 <Github /> GitHub
               </Link>

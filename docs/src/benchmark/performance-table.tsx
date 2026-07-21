@@ -71,7 +71,7 @@ export const PerformanceTable = ({ data }: PerformanceTableProps) => {
   const tableRows = rows(data)
 
   return (
-    <div className="mt-16 p-8 rounded-3xl bg-surface/50 border border-subtle backdrop-blur-xl hover:border-primary-500/20 transition-all duration-300">
+    <div className="mt-16 p-8 rounded-3xl bg-surface/50 border border-subtle backdrop-blur-xl">
       <h3 className="text-xl font-bold text-body mb-6 flex items-center gap-2">
         <Settings className="w-5 h-5 text-primary-500" />
         Detailed Performance Metrics
@@ -90,10 +90,7 @@ export const PerformanceTable = ({ data }: PerformanceTableProps) => {
           </thead>
           <tbody className="divide-y divide-subtle text-sm text-body/80">
             {tableRows.map((row, i) => (
-              <tr
-                key={i}
-                className="hover:bg-surface/50 transition-colors duration-200"
-              >
+              <tr key={i}>
                 <td className="py-4 px-4 font-medium text-body">
                   {row.metric}
                 </td>

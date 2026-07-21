@@ -23,11 +23,7 @@ export const layout = ({ children }: { children: React.ReactNode }) => {
   const t = useTranslations()
   return (
     <div className="pb-0">
-      <Banner
-        id="banner-1"
-        dismissible
-        className="group text-white dark:text-white transition-colors duration-200"
-      >
+      <Banner id="banner-1" dismissible className="text-white dark:text-white">
         <Grainient
           className="absolute top-0 left-0 z-[-1]"
           {...color_active_version}
@@ -39,7 +35,7 @@ export const layout = ({ children }: { children: React.ReactNode }) => {
         >
           {t.bannerReadPost}
         </Link>
-        <span className="group-hover:translate-x-1 transition-transform duration-300">
+        <span>
           <ArrowRight className="size-4" />
         </span>
       </Banner>

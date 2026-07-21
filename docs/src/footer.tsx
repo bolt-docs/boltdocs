@@ -15,7 +15,7 @@ export const Footer = () => {
   return (
     <footer className="w-full bg-main/95 backdrop-blur-2xl text-body px-6 md:px-12 pt-20 pb-10 border-t border-subtle relative overflow-hidden">
       <NoiseOverlay />
-      <div className="max-w-[1400px] mx-auto w-full">
+      <div className="max-w-350 mx-auto w-full">
         {/* Top Section */}
         <div
           ref={topRef}

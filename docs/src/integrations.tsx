@@ -42,19 +42,16 @@ export const Integrations = () => {
         <h2 className="text-center text-3xl font-bold mt-2 text-body">
           {t.integrationsTitle}
         </h2>
-      </div>
-
+      </div>{' '}
       <div className="relative flex overflow-hidden">
-        <div className="flex animate-marquee whitespace-nowrap gap-6 items-center py-4">
-          {[...INTEGRATIONS, ...INTEGRATIONS].map((item, i) => (
+        <div className="flex flex-wrap justify-center gap-6 items-center py-4">
+          {INTEGRATIONS.map((item) => (
             <div
-              key={`${item.name}-${i}`}
-              className="flex items-center gap-3 px-5 py-3 opacity-80 hover:opacity-100 hover:scale-105 transition-all duration-300 group cursor-default bg-surface border border-subtle rounded-full shadow-xs"
+              key={item.name}
+              className="flex items-center gap-3 px-5 py-3 opacity-80 bg-surface border border-subtle rounded-full shadow-xs"
             >
-              <div className="text-muted group-hover:text-primary-500 transition-colors">
-                {item.icon}
-              </div>
-              <span className="text-sm font-medium text-paragraph group-hover:text-body transition-colors">
+              <div className="text-muted">{item.icon}</div>
+              <span className="text-sm font-medium text-paragraph">
                 {item.name}
               </span>
             </div>

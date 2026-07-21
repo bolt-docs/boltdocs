@@ -12,6 +12,7 @@ export const Hero = () => {
       <Grainient
         className="-z-10 inset-0"
         {...color_active_version}
+        animated={false}
         blendAngle={45}
         blendSoftness={0.15}
         noiseScale={3}
@@ -23,14 +24,14 @@ export const Hero = () => {
       <div className="max-w-4xl mx-auto text-center relative z-10 w-full">
         <Link
           href="site:/blog/boltdocs-3.1.0"
-          className="inline-flex items-center gap-3 p-1 pr-4 rounded-full bg-neutral-950/70 border border-neutral-700 hover:border-primary-400/30 transition-all cursor-pointer group mb-10 backdrop-blur-sm"
+          className="inline-flex items-center gap-3 p-1 pr-4 rounded-full bg-neutral-950/70 border border-neutral-700 cursor-pointer mb-10 backdrop-blur-sm"
         >
           <span className="px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest text-black bg-white">
             v{getVersion()}
           </span>
-          <span className="text-sm font-bold text-white/70 group-hover:text-white transition-colors flex items-center gap-2">
+          <span className="text-sm font-bold text-white/70 flex items-center gap-2">
             {t.heroAvailable}
-            <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />
+            <ArrowRight className="w-3.5 h-3.5" />
           </span>
         </Link>
 
@@ -48,13 +49,13 @@ export const Hero = () => {
         <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
           <Link
             href="/docs/guides"
-            className="px-8 py-4 bg-white text-black font-bold rounded-full hover:scale-105 hover:shadow-[0_0_30px_rgba(255,255,255,0.3)] transition-all duration-300 flex items-center justify-center border-0"
+            className="px-8 py-4 bg-white text-black font-bold rounded-full flex items-center justify-center border-0"
           >
             {t.heroGetStarted} <ArrowRight className="w-5 h-5 ml-2" />
           </Link>
           <Link
             href="/docs/api"
-            className="px-8 py-4 bg-white/10 backdrop-blur-md text-white font-bold rounded-full border border-white/20 hover:bg-white/20 hover:scale-105 transition-all duration-300 flex items-center justify-center"
+            className="px-8 py-4 bg-white/10 backdrop-blur-md text-white font-bold rounded-full border border-white/20 flex items-center justify-center"
           >
             {t.heroReadApi}
           </Link>
