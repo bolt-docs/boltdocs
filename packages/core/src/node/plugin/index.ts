@@ -230,6 +230,7 @@ export function boltdocsPlugin(
               'react-dom',
               'react-helmet-async',
               '@bdocs/ssg',
+              'invariant',
               ...getExternalAbsolutePaths(req),
             ],
             optimizeDeps: { include: ['react-fast-compare'] },
