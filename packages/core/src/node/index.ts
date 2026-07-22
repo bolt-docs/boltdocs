@@ -163,6 +163,7 @@ export async function createViteConfig(
         'react-dom',
         'react-helmet-async',
         '@bdocs/ssg',
+        'invariant',
         ...getExternalAbsolutePaths(),
       ],
       optimizeDeps: {
@@ -176,8 +177,6 @@ export async function createViteConfig(
         ],
       },
       noExternal: [
-        'boltdocs',
-        /@bdocs\/(?!ssg).*/,
         'react-aria-components',
         '@react-aria/collections',
         '@react-aria/utils',
