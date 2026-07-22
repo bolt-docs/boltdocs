@@ -164,6 +164,7 @@ export async function createViteConfig(
         'react',
         'react-dom',
         'react-helmet-async',
+        'react-router-dom',
         '@bdocs/ssg',
         'jsdom',
         ...getExternalAbsolutePaths(),
@@ -178,11 +179,11 @@ export async function createViteConfig(
             | undefined) ?? []) as string[]),
         ],
       },
-      // Only react-router-dom needs to be bundled for SSR; everything else
-      // can be resolved at runtime by Node.js. Including react-aria-components
-      // and its transitive dependencies in noExternal caused __dirname to be
-      // bundled in CI (CJS packages converted to ESM without polyfills).
-      noExternal: ['react-router-dom'],
+      // Keep empty: externalize all framework/runtime packages so they use a
+      // single shared instance from node_modules. Bundling react-router-dom
+      // while @bdocs/ssg is external created duplicate router contexts and
+      // caused "useLocation() may be used only in the context of a <Router>".
+      noExternal: [],
     },
     server: {
       watch: {
