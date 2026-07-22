@@ -4,7 +4,7 @@ import { useRoutes } from './use-routes'
 import { useConfig } from '../app/config-context'
 import type { ComponentRoute } from '../types'
 // @ts-expect-error
-import searchData from 'virtual:boltdocs-search'
+import defaultSearchData from 'virtual:boltdocs-search'
 import { useNavigate } from 'react-router-dom'
 
 interface SearchDataItem {
@@ -26,7 +26,32 @@ export function useSearch(routes: ComponentRoute[]) {
   const [query, setQuery] = useState('')
   const [index, setIndex] = useState<Index | null>(null)
   const [algoliaResults, setAlgoliaResults] = useState<[]>([])
+  const [searchData, setSearchData] =
+    useState<SearchDataItem[]>(defaultSearchData)
   const navigate = useNavigate()
+
+  useEffect(() => {
+    if (!import.meta.hot) return
+    const handler = (payload: {
+      search: { updated: SearchDataItem[]; deleted: string[] }
+    }) => {
+      setSearchData((prev) => {
+        const map = new Map(prev.map((d) => [d.id, d]))
+        for (const doc of payload.search.updated) {
+          map.set(doc.id, doc)
+        }
+        for (const id of payload.search.deleted) {
+          map.delete(id)
+        }
+        return Array.from(map.values())
+      })
+      setIndex(null)
+    }
+    import.meta.hot.on('boltdocs:frontmatter-update', handler)
+    return () => {
+      import.meta.hot?.off?.('boltdocs:frontmatter-update', handler)
+    }
+  }, [])
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -179,7 +204,7 @@ export function useSearch(routes: ComponentRoute[]) {
       map.set(doc.id, doc)
     }
     return map
-  }, [])
+  }, [searchData])
 
   const list = useMemo(() => {
     if (!query) {

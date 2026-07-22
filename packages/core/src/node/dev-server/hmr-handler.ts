@@ -3,7 +3,10 @@ import { invalidateRouteCache, invalidateFile } from '../routes'
 import { type BoltdocsConfig, CONFIG_FILES } from '../config'
 import { generateProjectTypes } from '../types-generator'
 import { normalizePath, isDocFile } from '../utils'
-import { invalidateDirectoryMetaCache } from '../plugin/virtual-modules'
+import {
+  computeFrontmatterDelta,
+  invalidateDirectoryMetaCache,
+} from '../plugin/virtual-modules'
 import {
   invalidateVirtualModulesCache,
   runPluginHmrHandlers,
@@ -177,11 +180,59 @@ export function setupHmr(
             invalidateFile(file)
 
             if (prevHash !== undefined && prevHash !== newHash) {
-              invalidateDirectoryMetaCache()
               invalidateVirtualModule(server, 'routes')
               invalidateVirtualModule(server, 'search')
               invalidateVirtualModule(server, 'collections')
-              server.ws.send({ type: 'full-reload' })
+
+              const currentConfig = getConfig()
+
+              try {
+                const delta = await computeFrontmatterDelta(
+                  docsDir,
+                  currentConfig,
+                )
+                // Structural changes (route deletions) still require a full
+                // reload because React Router's route tree is built from the
+                // static virtual module entry point.
+                if (delta.routes.deleted.length > 0) {
+                  server.ws.send({ type: 'full-reload' })
+                  return
+                }
+
+                server.ws.send({
+                  type: 'custom',
+                  event: 'boltdocs:frontmatter-update',
+                  data: delta,
+                })
+              } catch (e) {
+                error('Failed to compute frontmatter delta:', e)
+                server.ws.send({ type: 'full-reload' })
+                return
+              }
+
+              // Frontmatter-only changes may also include body edits; send the
+              // same content HMR event so the page module re-renders without
+              // requiring a separate save cycle.
+              const relative = path.relative(docsDir, file)
+              const relPath = normalizePath(relative)
+
+              let mods = server.moduleGraph.getModulesByFile(normalized)
+              if (!mods || mods.size === 0) {
+                mods =
+                  getLowerModuleIndex().get(normalized.toLowerCase()) || null
+              }
+
+              if (mods && mods.size > 0) {
+                for (const mod of mods) {
+                  server.moduleGraph.invalidateModule(mod)
+                }
+              }
+
+              server.ws.send({
+                type: 'custom',
+                event: 'boltdocs:mdx-update',
+                data: { file: normalized, relPath },
+              })
               return
             }
 

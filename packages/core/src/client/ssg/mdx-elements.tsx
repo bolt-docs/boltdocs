@@ -54,8 +54,9 @@ const EagerMdxElement = ({
         setMod(m as unknown as MdxModule)
       })
     }
-    import.meta.hot.on('boltdocs:mdx-update', handler)
-    return () => import.meta.hot?.off('boltdocs:mdx-update', handler)
+    const hot = import.meta.hot
+    hot.on('boltdocs:mdx-update', handler)
+    return () => hot.off?.('boltdocs:mdx-update', handler)
   }, [moduleKey, route.filePath])
 
   const MDXComponent = (mod?.default ?? mod ?? null) as React.ComponentType<{

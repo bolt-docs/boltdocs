@@ -24,6 +24,10 @@ import {
 import { serializeState } from '../utils/state'
 import { collectAssets } from './assets'
 import { getBeasties, getZigCritters } from './critical'
+import {
+  computeRouteClientAssetHash,
+  createManifestIndexes,
+} from './client-dep-map'
 import crypto from 'node:crypto'
 import { detectEntry, renderHTML, SCRIPT_COMMENT_PLACEHOLDER } from './html'
 import { renderPreloadLinks, renderPreloadLinksString } from './preload-links'
@@ -205,12 +209,19 @@ export type SSRManifest = Record<string, string[]>
 export interface ManifestItem {
   css?: string[]
   file: string
+  imports?: string[]
   dynamicImports?: string[]
-  src: string
+  src?: string
   assets?: string[]
 }
 
 export type Manifest = Record<string, ManifestItem>
+
+export interface SsgCacheItem {
+  mtime: number
+  loaderDataFilePath?: string
+  assetHash?: string
+}
 
 export type StaticLoaderDataManifest = Record<string, string>
 
@@ -595,6 +606,36 @@ export async function build(
   const manifest: Manifest = JSON.parse(
     await fs.readFile(join(out, ...dotVitedir, 'manifest.json'), 'utf-8'),
   )
+
+  // Build a per-route client dependency hash from the Vite manifests.
+  // This lets the SSG per-route cache skip routes whose source file is
+  // unchanged but whose client assets did not change, while re-rendering
+  // routes whose dependency tree changed (e.g. shared components).
+  const manifestIndexes = createManifestIndexes(manifest)
+  const routeToAssetHash: Record<string, string> = {}
+  await Promise.all(
+    Object.entries(routeToSourceFileMap).map(
+      async ([routePath, sourceFile]) => {
+        routeToAssetHash[routePath] = await computeRouteClientAssetHash({
+          outDir: out,
+          indexes: manifestIndexes,
+          ssrManifest,
+          routeSourceFile: sourceFile,
+          root,
+          clientHash: currentClientHash,
+        })
+      },
+    ),
+  )
+
+  // Routes without a known source file (e.g. external pages) fall back to the
+  // global client hash so global client changes still invalidate them.
+  for (const routePath of routesPaths) {
+    if (!routeToAssetHash[routePath]) {
+      routeToAssetHash[routePath] = currentClientHash
+    }
+  }
+
   let indexHTML = await fs.readFile(join(out, htmlEntry), 'utf-8')
   fs.rmSync(join(out, htmlEntry))
   indexHTML = rewriteScripts(indexHTML, script)
@@ -620,8 +661,7 @@ export async function build(
   const cachePath = join(finalCacheDir, 'ssg-cache.json')
   const ssgPagesDir = join(finalCacheDir, 'ssg-pages')
 
-  let ssgCache: Record<string, { mtime: number; loaderDataFilePath?: string }> =
-    {}
+  let ssgCache: Record<string, SsgCacheItem> = {}
   if (!turbo) {
     try {
       if (fs.existsSync(cachePath)) {
@@ -631,10 +671,7 @@ export async function build(
       // Ignore cache errors
     }
   }
-  const newSsgCache: Record<
-    string,
-    { mtime: number; loaderDataFilePath?: string }
-  > = { ...ssgCache }
+  const newSsgCache: Record<string, SsgCacheItem> = { ...ssgCache }
 
   // Pre-create all output directories to avoid ensureDir per page
   const outputDirs = new Set<string>()
@@ -683,8 +720,13 @@ export async function build(
         sourceMtime = Math.round(fs.statSync(sourceFile).mtimeMs)
         if (fs.existsSync(cachedHtmlFile)) {
           const cachedItem = ssgCache[normalizedKey] || ssgCache[path]
+          const routeAssetHash = routeToAssetHash[path] ?? currentClientHash
           if (cachedItem && Math.round(cachedItem.mtime) === sourceMtime) {
-            isCached = true
+            // Old cache entries without an asset hash should be regenerated
+            // once so the dependency map can be stored alongside them.
+            if (cachedItem.assetHash === routeAssetHash) {
+              isCached = true
+            }
           }
         }
       } catch (e) {
@@ -916,10 +958,12 @@ export async function build(
             newSsgCache[normalizedKey] = {
               mtime: mtimeRounded,
               loaderDataFilePath: writtenLoaderDataPath,
+              assetHash: routeToAssetHash[path],
             }
           } else {
             newSsgCache[normalizedKey] = {
               mtime: mtimeRounded,
+              assetHash: routeToAssetHash[path],
             }
           }
         }
