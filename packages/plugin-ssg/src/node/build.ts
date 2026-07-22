@@ -247,6 +247,56 @@ function getLoaderDataFilePath(routePath: string, hash: string): string {
   return `static-loader-data${withLeadingSlash(normalized)}.${hash}.json`
 }
 
+function isChunkFile(file: string): boolean {
+  const ext = file.slice(file.lastIndexOf('.')).toLowerCase()
+  return ext === '.js' || ext === '.mjs' || ext === '.css'
+}
+
+function collectChunkFiles(manifest: Manifest): string[] {
+  const files = new Set<string>()
+  for (const item of Object.values(manifest)) {
+    if (isChunkFile(item.file)) files.add(item.file)
+    for (const css of item.css || []) {
+      if (isChunkFile(css)) files.add(css)
+    }
+    for (const imported of item.imports || []) {
+      if (isChunkFile(imported)) files.add(imported)
+    }
+    for (const dyn of item.dynamicImports || []) {
+      if (isChunkFile(dyn)) files.add(dyn)
+    }
+  }
+  return [...files]
+}
+
+async function computeChunkHashes(
+  outDir: string,
+  manifest: Manifest,
+): Promise<Map<string, string>> {
+  const chunkFiles = collectChunkFiles(manifest)
+  const hashes = new Map<string, string>()
+  if (chunkFiles.length === 0) return hashes
+
+  const hasherFor = (buffer: Buffer) =>
+    crypto
+      .createHash('md5')
+      .update(buffer as Uint8Array)
+      .digest('hex')
+
+  await Promise.all(
+    chunkFiles.map(async (file) => {
+      try {
+        const buffer = await fs.readFile(join(outDir, file))
+        hashes.set(file, hasherFor(buffer))
+      } catch {
+        // Ignore files that cannot be read
+      }
+    }),
+  )
+
+  return hashes
+}
+
 function getNormalizedPathKey(routePath: string, base: string = '/'): string {
   const leading = withLeadingSlash(routePath)
   let full = leading
@@ -612,6 +662,12 @@ export async function build(
   // unchanged but whose client assets did not change, while re-rendering
   // routes whose dependency tree changed (e.g. shared components).
   const manifestIndexes = createManifestIndexes(manifest)
+
+  // Pre-compute hashes for all client chunks once. Each route's dependency
+  // hash is then built by combining these pre-computed hashes, avoiding
+  // reading the same chunk file repeatedly for every route.
+  const chunkHashes = await computeChunkHashes(out, manifest)
+
   const routeToAssetHash: Record<string, string> = {}
   await Promise.all(
     Object.entries(routeToSourceFileMap).map(
@@ -623,6 +679,7 @@ export async function build(
           routeSourceFile: sourceFile,
           root,
           clientHash: currentClientHash,
+          assetHashes: chunkHashes,
         })
       },
     ),

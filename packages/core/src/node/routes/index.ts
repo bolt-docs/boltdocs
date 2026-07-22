@@ -92,13 +92,14 @@ export async function generateRoutes(
     // Load persistent cache
     await docCache.load()
 
-    // Clear path computation cache between generations
-    localizedPathCache.clear()
-
     let files: string[]
     if (!forceScan && cachedFileList) {
       files = cachedFileList
     } else {
+      // Only clear the localized path cache when we are rebuilding the route
+      // list from scratch. In cached (warm) calls, the locale-to-path mappings
+      // are still valid and clearing them forces expensive re-computation.
+      localizedPathCache.clear()
       const api = new fdir()
         .withFullPaths()
         .filter((p) => {

@@ -17,6 +17,8 @@ export interface RouteClientHashOptions {
   root: string
   /** Global client hash to use when a route-specific chunk cannot be found. */
   clientHash?: string
+  /** Pre-computed chunk hashes to avoid reading the same file many times. */
+  assetHashes?: Map<string, string>
 }
 
 const chunkExts = new Set(['.js', '.mjs', '.css'])
@@ -60,7 +62,20 @@ function collectAssets(
 async function hashAssetContents(
   outDir: string,
   files: string[],
+  assetHashes?: Map<string, string>,
 ): Promise<string> {
+  // If a pre-computed hash map is available, combine those hashes in a
+  // deterministic order. This avoids reading the same chunk file once per
+  // route, which was a major hot spot during the SSG render phase.
+  if (assetHashes) {
+    const hasher = crypto.createHash('md5')
+    for (const file of files) {
+      const hash = assetHashes.get(file)
+      if (hash) hasher.update(hash)
+    }
+    return hasher.digest('hex')
+  }
+
   const contents = new Map<string, Buffer>()
   await Promise.all(
     files.map(async (file) => {
@@ -94,6 +109,7 @@ export async function computeRouteClientAssetHash(
     routeSourceFile,
     root,
     clientHash,
+    assetHashes,
   } = options
 
   let resolvedIndexes = indexes
@@ -141,5 +157,5 @@ export async function computeRouteClientAssetHash(
     return clientHash
   }
 
-  return hashAssetContents(outDir, Array.from(assets).sort())
+  return hashAssetContents(outDir, Array.from(assets).sort(), assetHashes)
 }
