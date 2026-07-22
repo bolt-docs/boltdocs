@@ -157,7 +157,7 @@ export async function createViteConfig(
           ),
         },
       ],
-      dedupe: ['react', 'react-dom'],
+      dedupe: ['react', 'react-dom', 'react-router-dom'],
     },
     ssr: {
       external: [
