@@ -4,6 +4,18 @@ import fs from 'node:fs'
 import path from 'node:path'
 import os from 'node:os'
 
+function fileCacheDir(root: string, name: string) {
+  return path.join(root, '.boltdocs', 'cache', `file-${name}`)
+}
+
+function fileCacheIndex(root: string, name: string) {
+  return path.join(fileCacheDir(root, name), 'index.json')
+}
+
+function fileCacheShardDir(root: string, name: string) {
+  return path.join(fileCacheDir(root, name), 'shards')
+}
+
 describe('cache system', () => {
   let tempDir: string
 
@@ -84,7 +96,7 @@ describe('cache system', () => {
 
       // After flush, file should exist
       await cache.flush()
-      expect(fs.existsSync(cacheFile)).toBe(true)
+      expect(fs.existsSync(fileCacheIndex(tempDir, 'queue-test'))).toBe(true)
     })
 
     it('should handle multiple concurrent saves', async () => {
@@ -99,11 +111,8 @@ describe('cache system', () => {
 
       await flushCache()
 
-      const file1 = path.join(tempDir, '.boltdocs', 'cache', 'multi1.json.gz')
-      const file2 = path.join(tempDir, '.boltdocs', 'cache', 'multi2.json.gz')
-
-      expect(fs.existsSync(file1)).toBe(true)
-      expect(fs.existsSync(file2)).toBe(true)
+      expect(fs.existsSync(fileCacheIndex(tempDir, 'multi1'))).toBe(true)
+      expect(fs.existsSync(fileCacheIndex(tempDir, 'multi2'))).toBe(true)
     })
   })
 
@@ -117,6 +126,9 @@ describe('cache system', () => {
 
       cache.save()
       await cache.flush()
+
+      expect(fs.existsSync(fileCacheIndex(tempDir, 'test'))).toBe(true)
+      expect(fs.existsSync(fileCacheShardDir(tempDir, 'test'))).toBe(true)
 
       const cache2 = new FileCache<string>({ name: 'test', root: tempDir })
       await cache2.load()
@@ -206,22 +218,87 @@ describe('cache system', () => {
       cache.save()
       await cache.flush()
 
-      const cacheFile = path.join(
-        tempDir,
-        '.boltdocs',
-        'cache',
-        'uncompressed.json',
+      expect(fs.existsSync(fileCacheIndex(tempDir, 'uncompressed'))).toBe(true)
+      const shardFile = fs.readdirSync(
+        fileCacheShardDir(tempDir, 'uncompressed'),
       )
-      expect(fs.existsSync(cacheFile)).toBe(true)
+      expect(shardFile.length).toBeGreaterThan(0)
+      expect(shardFile[0]).toMatch(/\.json$/)
     })
 
     it('should handle corrupted cache files gracefully', async () => {
-      const cacheDir = path.join(tempDir, '.boltdocs', 'cache')
-      fs.mkdirSync(cacheDir, { recursive: true })
-      fs.writeFileSync(path.join(cacheDir, 'corrupt.json'), 'invalid json')
+      const indexFile = fileCacheIndex(tempDir, 'corrupt')
+      fs.mkdirSync(path.dirname(indexFile), { recursive: true })
+      fs.writeFileSync(indexFile, 'invalid json')
 
       const cache = new FileCache<string>({ name: 'corrupt', root: tempDir })
       await cache.load()
+    })
+
+    it('should round-trip data through sharded cache', async () => {
+      const cache = new FileCache<string>({ name: 'roundtrip', root: tempDir })
+      cache.set('file1.md', 'data1')
+      cache.set('file2.md', 'data2')
+
+      vi.spyOn(fs, 'statSync').mockReturnValue({ mtimeMs: 1000 } as any)
+
+      cache.save()
+      await cache.flush()
+
+      const cache2 = new FileCache<string>({ name: 'roundtrip', root: tempDir })
+      await cache2.load()
+
+      expect(cache2.get('file1.md')).toBe('data1')
+      expect(cache2.get('file2.md')).toBe('data2')
+      expect(cache2.get('missing.md')).toBeNull()
+    })
+
+    it('should handle interleaved saves on the same cache instance', async () => {
+      vi.spyOn(fs, 'statSync').mockReturnValue({ mtimeMs: 1000 } as any)
+
+      const cache = new FileCache<string>({
+        name: 'interleaved',
+        root: tempDir,
+      })
+      cache.set('a.md', 'alpha')
+      cache.save()
+
+      cache.set('b.md', 'beta')
+      cache.save()
+
+      await flushCache()
+
+      const loaded = new FileCache<string>({
+        name: 'interleaved',
+        root: tempDir,
+      })
+      await loaded.load()
+
+      expect(loaded.get('a.md')).toBe('alpha')
+      expect(loaded.get('b.md')).toBe('beta')
+    })
+
+    it('should prune orphan shards on save', async () => {
+      const cache = new FileCache<string>({ name: 'orphans', root: tempDir })
+      cache.set('stale.md', 'stale')
+      cache.save()
+      await cache.flush()
+
+      const shardCountBefore = fs.readdirSync(
+        fileCacheShardDir(tempDir, 'orphans'),
+      ).length
+      expect(shardCountBefore).toBeGreaterThan(0)
+
+      cache.invalidate('stale.md')
+      cache.set('new.md', 'new')
+      cache.save()
+      await cache.flush()
+
+      const shardCountAfter = fs.readdirSync(
+        fileCacheShardDir(tempDir, 'orphans'),
+      ).length
+      expect(shardCountAfter).toBeLessThanOrEqual(shardCountBefore)
+      expect(cache.get('new.md')).toBe('new')
     })
   })
 
@@ -357,13 +434,7 @@ describe('cache system', () => {
       await flushCache()
 
       // After flush, file should be written
-      const cacheFile = path.join(
-        tempDir,
-        '.boltdocs',
-        'cache',
-        'flush-test.json.gz',
-      )
-      expect(fs.existsSync(cacheFile)).toBe(true)
+      expect(fs.existsSync(fileCacheIndex(tempDir, 'flush-test'))).toBe(true)
     })
   })
 })
