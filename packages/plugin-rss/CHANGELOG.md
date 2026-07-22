@@ -1,5 +1,12 @@
 # @bdocs/plugin-rss
 
+## 2.0.1
+
+### Patch Changes
+
+- Updated dependencies [[`4a94958`](https://github.com/bolt-docs/boltdocs/commit/4a94958e480398346001a66d866ecce33d69c5e9)]:
+  - boltdocs@3.2.1
+
 ## 2.0.0
 
 ### Patch Changes
