@@ -2,6 +2,7 @@ import type { Plugin, InlineConfig } from 'vite'
 import type { BoltdocsConfig } from './config'
 import type { BoltdocsPluginOptions } from './plugin/index'
 import path from 'node:path'
+import { ssrDirnamePolyfillPlugin } from './plugins/ssr-dirname-polyfill'
 export { generateEntryCode } from './plugin/entry'
 
 export default async function boltdocs(
@@ -119,6 +120,7 @@ export async function createViteConfig(
     },
     build: {},
     plugins: [
+      ssrDirnamePolyfillPlugin(),
       react(),
       tailwindcss(),
       ...boltdocsPlugin(
