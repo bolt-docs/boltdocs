@@ -12,6 +12,7 @@ const EXTERNALS = [
   'react-router-dom',
   'react-helmet-async',
   '@bdocs/ssg',
+  'jsdom',
 ]
 const SUBPATHS = [
   'react/jsx-runtime',
