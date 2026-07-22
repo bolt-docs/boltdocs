@@ -3,6 +3,7 @@ import path from 'node:path'
 import os from 'node:os'
 import { fileURLToPath } from 'node:url'
 import { spawn } from 'node:child_process'
+import { randomUUID } from 'node:crypto'
 import { generateHtmlReport } from './utils/report-generator'
 import type {
   BenchmarkConfig,
@@ -193,12 +194,19 @@ function printSuiteResult(suite: SuiteDefinition, result: SuiteResult): void {
   )
 }
 
+const DEFAULT_CHILD_TIMEOUT_MS = 10 * 60 * 1000 // 10 minutes
+const CHILD_KILL_GRACE_MS = 5_000 // 5 seconds
+
 function runSuiteInChildProcess(
   suiteKey: string,
   config: BenchmarkConfig,
 ): Promise<SuiteResult | null> {
   return new Promise((resolve, reject) => {
     const runnerPath = path.join(__dirname, 'run-suite.ts')
+    const resultFile = path.join(
+      os.tmpdir(),
+      `boltdocs-benchmark-${suiteKey}-${randomUUID()}.json`,
+    )
     const args = [
       '--import',
       'tsx',
@@ -207,33 +215,39 @@ function runSuiteInChildProcess(
       suiteKey,
       '--config',
       JSON.stringify(config),
+      '--result-file',
+      resultFile,
     ]
 
     const child = spawn(process.execPath, args, {
       cwd: WORKSPACE_ROOT,
-      stdio: ['ignore', 'pipe', 'pipe'],
+      stdio: ['ignore', 'ignore', 'pipe'],
     })
 
-    let stdout = ''
     let stderr = ''
+    let timeoutId: ReturnType<typeof setTimeout> | undefined
+    let killTimeoutId: ReturnType<typeof setTimeout> | undefined
 
-    child.stdout.setEncoding('utf8')
     child.stderr.setEncoding('utf8')
-
-    child.stdout.on('data', (chunk: string) => {
-      stdout += chunk
-    })
-
     child.stderr.on('data', (chunk: string) => {
       stderr += chunk
     })
 
+    function clearTimers(): void {
+      clearTimeout(timeoutId)
+      clearTimeout(killTimeoutId)
+    }
+
     child.on('error', (err) => {
+      clearTimers()
+      cleanupResultFile(resultFile)
       reject(err)
     })
 
     child.on('close', (code) => {
+      clearTimers()
       if (code !== 0) {
+        cleanupResultFile(resultFile)
         reject(
           new Error(stderr || `Suite ${suiteKey} exited with code ${code}`),
         )
@@ -241,17 +255,49 @@ function runSuiteInChildProcess(
       }
 
       try {
-        const result = JSON.parse(stdout) as SuiteResult
+        const result = readResultFile(resultFile, suiteKey)
         resolve(result)
       } catch (err) {
-        reject(
-          new Error(
-            `Failed to parse suite ${suiteKey} result: ${err instanceof Error ? err.message : String(err)}\nstdout: ${stdout}`,
-          ),
-        )
+        reject(err)
       }
     })
+
+    timeoutId = setTimeout(() => {
+      cleanupResultFile(resultFile)
+      child.kill('SIGTERM')
+      killTimeoutId = setTimeout(() => {
+        child.kill('SIGKILL')
+      }, CHILD_KILL_GRACE_MS)
+      reject(
+        new Error(
+          `Suite ${suiteKey} timed out after ${DEFAULT_CHILD_TIMEOUT_MS / 1000 / 60} minutes`,
+        ),
+      )
+    }, DEFAULT_CHILD_TIMEOUT_MS)
   })
+}
+
+function cleanupResultFile(resultFile: string): void {
+  try {
+    if (fs.existsSync(resultFile)) {
+      fs.unlinkSync(resultFile)
+    }
+  } catch {
+    // Ignore cleanup errors
+  }
+}
+
+function readResultFile(resultFile: string, suiteKey: string): SuiteResult {
+  try {
+    const data = fs.readFileSync(resultFile, 'utf8')
+    cleanupResultFile(resultFile)
+    return JSON.parse(data) as SuiteResult
+  } catch (err) {
+    cleanupResultFile(resultFile)
+    throw new Error(
+      `Failed to read suite ${suiteKey} result file ${resultFile}: ${err instanceof Error ? err.message : String(err)}`,
+    )
+  }
 }
 
 async function runSuite(

@@ -1,30 +1,47 @@
+import fs from 'node:fs'
 import type { BenchmarkConfig, SuiteResult } from './utils/types'
 
-interface SuiteModule {
-  runBuildPipelineSuite?: (config: BenchmarkConfig) => Promise<SuiteResult>
-  runSSGRenderingSuite?: (config: BenchmarkConfig) => Promise<SuiteResult>
-  runViteBuildSuite?: (config: BenchmarkConfig) => Promise<SuiteResult>
-  runParserSuite?: (config: BenchmarkConfig) => Promise<SuiteResult>
-  runMdxTransformSuite?: (config: BenchmarkConfig) => Promise<SuiteResult>
+interface SuiteRunner {
+  name: string
+  run: (config: BenchmarkConfig) => Promise<SuiteResult>
 }
 
-const SUITES: Record<string, () => Promise<SuiteModule>> = {
-  pipeline: () => import('./build-pipeline.ts'),
-  ssg: () => import('./ssg-rendering.ts'),
-  vite: () => import('./vite-builds.ts'),
-  parser: () => import('./parser-speed.ts'),
-  mdx: () => import('./mdx-transforms.ts'),
-}
-
-const RUNNERS: Record<
-  string,
-  (mod: SuiteModule, config: BenchmarkConfig) => Promise<SuiteResult>
-> = {
-  pipeline: (mod, config) => mod.runBuildPipelineSuite!(config),
-  ssg: (mod, config) => mod.runSSGRenderingSuite!(config),
-  vite: (mod, config) => mod.runViteBuildSuite!(config),
-  parser: (mod, config) => mod.runParserSuite!(config),
-  mdx: (mod, config) => mod.runMdxTransformSuite!(config),
+const SUITES: Record<string, () => Promise<SuiteRunner>> = {
+  pipeline: async () => {
+    const mod = await import('./build-pipeline.ts')
+    return {
+      name: 'Build Pipeline',
+      run: (config: BenchmarkConfig) => mod.runBuildPipelineSuite(config),
+    }
+  },
+  ssg: async () => {
+    const mod = await import('./ssg-rendering.ts')
+    return {
+      name: 'SSG Rendering',
+      run: (config: BenchmarkConfig) => mod.runSSGRenderingSuite(config),
+    }
+  },
+  vite: async () => {
+    const mod = await import('./vite-builds.ts')
+    return {
+      name: 'Vite Build',
+      run: (config: BenchmarkConfig) => mod.runViteBuildSuite(config),
+    }
+  },
+  parser: async () => {
+    const mod = await import('./parser-speed.ts')
+    return {
+      name: 'Parser',
+      run: (config: BenchmarkConfig) => mod.runParserSuite(config),
+    }
+  },
+  mdx: async () => {
+    const mod = await import('./mdx-transforms.ts')
+    return {
+      name: 'MDX Transforms',
+      run: (config: BenchmarkConfig) => mod.runMdxTransformSuite(config),
+    }
+  },
 }
 
 function getArg(name: string): string | undefined {
@@ -34,9 +51,19 @@ function getArg(name: string): string | undefined {
     : undefined
 }
 
+function writeResult(result: SuiteResult, resultFile: string): void {
+  const output = JSON.stringify(result)
+  if (resultFile) {
+    fs.writeFileSync(resultFile, output)
+  } else {
+    process.stdout.write(output)
+  }
+}
+
 async function main(): Promise<void> {
   const suiteName = getArg('--suite')
   const configRaw = getArg('--config')
+  const resultFile = getArg('--result-file')
 
   if (!suiteName) {
     process.stderr.write(JSON.stringify({ error: 'Missing --suite argument' }))
@@ -45,7 +72,8 @@ async function main(): Promise<void> {
 
   const config: BenchmarkConfig = configRaw ? JSON.parse(configRaw) : {}
 
-  if (!SUITES[suiteName]) {
+  const suiteLoader = SUITES[suiteName]
+  if (!suiteLoader) {
     process.stderr.write(
       JSON.stringify({
         error: `Unknown suite: ${suiteName}. Available: ${Object.keys(SUITES).join(', ')}`,
@@ -54,19 +82,9 @@ async function main(): Promise<void> {
     process.exit(1)
   }
 
-  const mod = await SUITES[suiteName]()
-  const runner = RUNNERS[suiteName]
-  if (!runner) {
-    process.stderr.write(
-      JSON.stringify({
-        error: `No runner registered for suite: ${suiteName}`,
-      }),
-    )
-    process.exit(1)
-  }
-
-  const result = await runner(mod, config)
-  process.stdout.write(JSON.stringify(result))
+  const runner = await suiteLoader()
+  const result = await runner.run(config)
+  writeResult(result, resultFile)
 }
 
 main().catch((err) => {
