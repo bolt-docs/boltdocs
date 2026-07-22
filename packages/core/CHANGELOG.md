@@ -1,5 +1,11 @@
 # boltdocs
 
+## 3.2.1
+
+### Patch Changes
+
+- [`4a94958`](https://github.com/bolt-docs/boltdocs/commit/4a94958e480398346001a66d866ecce33d69c5e9) Thanks [@jesusalcaladev](https://github.com/jesusalcaladev)! - Fix SSR build errors by externalizing react-router-dom during server-side rendering. Framework aliases for react-router-dom, react-helmet-async, and @bdocs/ssg are now applied only to client builds, preventing duplicate router contexts when @bdocs/ssg provides the Router while BoltdocsShell consumes it.
+
 ## 3.2.0
 
 ### Minor Changes
