@@ -1,6 +1,6 @@
 import type { Plugin } from 'vite'
 import type { BoltdocsConfig } from '../config'
-import type { PluginLifecycleManager } from '../plugins'
+import type { IPluginLifecycleManager } from '../../shared/types'
 import { generateLinkTree } from '../cli/doctor'
 import { error } from '@bdocs/dui'
 import { setupMiddlewares } from './middleware'
@@ -18,7 +18,7 @@ export function createDevServerPlugin(
   normalizedDocsDir: string,
   getConfig: () => BoltdocsConfig,
   _setConfig: (c: BoltdocsConfig) => void,
-  getLifecycle: () => PluginLifecycleManager | undefined,
+  getLifecycle: () => IPluginLifecycleManager | undefined,
 ): Plugin {
   return {
     name: 'vite-plugin-boltdocs-dev-server',

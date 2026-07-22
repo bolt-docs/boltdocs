@@ -581,6 +581,29 @@ export type PluginServerMiddleware = (
 ) => void | Promise<void>
 
 /**
+ * Public API surface of the core plugin lifecycle manager.
+ *
+ * This is exposed as an interface so that plugin authors and internal
+ * subsystems can receive a reference to the lifecycle manager without
+ * pulling in the concrete class (which has private members and is not
+ * stable across source/dist boundaries during development).
+ */
+export interface IPluginLifecycleManager {
+  runHook(
+    hookName: keyof PluginLifecycleHooks,
+    ...args: unknown[]
+  ): Promise<void>
+  runChain<TParams extends Record<string, unknown>>(
+    hookName: keyof PluginLifecycleHooks,
+    initialParams: TParams,
+  ): Promise<TParams>
+  runMiddlewareChain<TParams extends Record<string, unknown>>(
+    hookName: 'transformSource' | 'transformMdx' | 'transformHtml',
+    initialParams: TParams,
+  ): Promise<TParams>
+}
+
+/**
  * Plugin lifecycle hooks with full type safety.
  */
 export interface PluginLifecycleHooks {

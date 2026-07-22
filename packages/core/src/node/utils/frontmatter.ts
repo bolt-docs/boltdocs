@@ -116,7 +116,7 @@ function parseMultilineValue(
 
   // Array with objects
   if (firstTrimmed.startsWith('-')) {
-    const items: Record<string, unknown>[] = []
+    const items: unknown[] = []
     let j = 0
 
     while (j < lines.length) {
@@ -147,15 +147,16 @@ function parseMultilineValue(
           items.push(itemObj)
         } else {
           // Simple item
-          const itemRecord: Record<string, unknown> = {
-            value: itemContent,
-          }
-          items.push(itemRecord)
+          items.push(parseValue(itemContent))
         }
       } else if (indent > baseIndent && items.length > 0) {
         // Continuation of last item: key: value on new line
         const lastItem = items[items.length - 1]
-        if (typeof lastItem === 'object' && lastItem !== null) {
+        if (
+          typeof lastItem === 'object' &&
+          lastItem !== null &&
+          !Array.isArray(lastItem)
+        ) {
           const obj = lastItem as Record<string, unknown>
           const colonIdx = trimmed.indexOf(':')
           if (colonIdx !== -1) {

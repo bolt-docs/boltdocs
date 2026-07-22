@@ -11,15 +11,18 @@ import { mdxCache, MDX_PLUGIN_VERSION } from './cache'
 import { getFileMtime } from '../utils'
 import { rehypeShiki } from './rehype-shiki'
 import { remarkMetaPlugin } from './remark-meta-plugin'
-import type { PluginLifecycleManager } from '../plugins'
+import { warn } from '@bdocs/dui'
+import type { IPluginLifecycleManager } from '../../shared/types'
+import { MdxWorkerPool } from './worker-pool'
 
 let mdxCacheLoaded = false
 
 export function boltdocsMdxPlugin(
   config?: BoltdocsConfig,
-  getLifecycle?: () => PluginLifecycleManager | undefined,
+  getLifecycle?: () => IPluginLifecycleManager | undefined,
   compiler = mdxPlugin,
 ): Plugin {
+  const workerPool = new MdxWorkerPool()
   const extraRemarkPlugins =
     config?.plugins?.flatMap((p) => p.remarkPlugins || []) || []
   const extraRehypePlugins =
@@ -100,36 +103,62 @@ export function boltdocsMdxPlugin(
         return { code: cached, map: null }
       }
 
-      // @ts-expect-error
-      const result = await baseMdxPlugin.transform.call(
-        this,
-        code,
-        cleanId,
-        options,
-      )
+      let finalCode: string
 
-      if (result && typeof result === 'object' && result.code) {
-        let finalCode = result.code
+      // Offload the heavy MDX compilation to worker threads. This frees the
+      // Vite main thread to keep serving modules while multiple files are
+      // compiled in parallel on other CPU cores.
+      try {
+        const mode =
+          process.env.NODE_ENV === 'production' ? 'production' : 'development'
+        finalCode = await workerPool.transform({
+          code,
+          id: cleanId,
+          docsDir: config?.docsDir || process.cwd(),
+          root: process.cwd(),
+          command: mode === 'production' ? 'build' : 'serve',
+          mode,
+        })
+      } catch (workerErr) {
+        // Worker failed (e.g. a plugin cannot be loaded in a worker context).
+        // Fall back to the in-process transform so the build still completes.
+        warn(
+          `[mdx-worker] MDX worker transform failed for "${cleanId}", falling back to in-process transform: ${
+            workerErr instanceof Error ? workerErr.message : String(workerErr)
+          }`,
+        )
+        // @ts-expect-error
+        const result = await baseMdxPlugin.transform.call(
+          this,
+          code,
+          cleanId,
+          options,
+        )
 
-        const lifecycle = getLifecycle?.()
-        if (lifecycle) {
-          const transformed = await lifecycle.runChain('transformMdx', {
-            code: finalCode,
-            filePath: cleanId,
-          })
-          finalCode = transformed.code
+        if (result && typeof result === 'object' && result.code) {
+          finalCode = result.code
+        } else {
+          return result
         }
-
-        mdxCache.set(cacheKey, finalCode)
-        return { code: finalCode, map: null }
       }
 
-      return result
+      const lifecycle = getLifecycle?.()
+      if (lifecycle) {
+        const transformed = await lifecycle.runChain('transformMdx', {
+          code: finalCode,
+          filePath: cleanId,
+        })
+        finalCode = transformed.code
+      }
+
+      mdxCache.set(cacheKey, finalCode)
+      return { code: finalCode, map: null }
     },
 
     async buildEnd() {
       mdxCache.save()
       await mdxCache.flush()
+      await workerPool.terminate()
       if (baseMdxPlugin.buildEnd) {
         // @ts-expect-error
         await baseMdxPlugin.buildEnd.call(this)
