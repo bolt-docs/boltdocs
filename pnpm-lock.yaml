@@ -103,6 +103,9 @@ importers:
       '@bdocs/plugin-rss':
         specifier: workspace:*
         version: link:../packages/plugin-rss
+      jsdom:
+        specifier: ^24.1.3
+        version: 24.1.3
       lucide-react:
         specifier: ^1.7.0
         version: 1.8.0(react@19.2.5)
