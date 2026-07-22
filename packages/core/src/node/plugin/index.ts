@@ -205,17 +205,19 @@ export function boltdocsPlugin(
             exclude: ['boltdocs', 'boltdocs/client'],
           },
           resolve: {
-            alias: [
-              {
-                find: 'react-router-dom',
-                replacement: resolveEsm('react-router-dom'),
-              },
-              {
-                find: 'react-helmet-async',
-                replacement: resolveEsm('react-helmet-async'),
-              },
-              { find: '@bdocs/ssg', replacement: resolveEsm('@bdocs/ssg') },
-            ],
+            alias: isSsr
+              ? []
+              : [
+                  {
+                    find: 'react-router-dom',
+                    replacement: resolveEsm('react-router-dom'),
+                  },
+                  {
+                    find: 'react-helmet-async',
+                    replacement: resolveEsm('react-helmet-async'),
+                  },
+                  { find: '@bdocs/ssg', replacement: resolveEsm('@bdocs/ssg') },
+                ],
             dedupe: [
               'react',
               'react-dom',

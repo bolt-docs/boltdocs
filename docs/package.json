@@ -18,7 +18,9 @@
     "lucide-react": "^1.7.0",
     "ogl": "^1.0.11",
     "react": "^19.2.5",
-    "react-dom": "^19.2.5"
+    "react-dom": "^19.2.5",
+    "react-helmet-async": "^2.0.1",
+    "react-router-dom": "^7.0.0"
   },
   "devDependencies": {
     "@tailwindcss/vite": "^4.3.0",
