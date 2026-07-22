@@ -163,7 +163,6 @@ export async function createViteConfig(
         'react-dom',
         'react-helmet-async',
         '@bdocs/ssg',
-        'invariant',
         ...getExternalAbsolutePaths(),
       ],
       optimizeDeps: {
@@ -171,7 +170,6 @@ export async function createViteConfig(
           'react',
           'react-dom',
           'react-fast-compare',
-          'invariant',
           ...((((config.vite as any)?.ssr?.optimizeDeps?.include as
             | string[]
             | undefined) ?? []) as string[]),
