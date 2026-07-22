@@ -175,12 +175,11 @@ export async function createViteConfig(
             | undefined) ?? []) as string[]),
         ],
       },
-      noExternal: [
-        'react-aria-components',
-        '@react-aria/collections',
-        '@react-aria/utils',
-        'react-router-dom',
-      ],
+      // Only react-router-dom needs to be bundled for SSR; everything else
+      // can be resolved at runtime by Node.js. Including react-aria-components
+      // and its transitive dependencies in noExternal caused __dirname to be
+      // bundled in CI (CJS packages converted to ESM without polyfills).
+      noExternal: ['react-router-dom'],
     },
     server: {
       watch: {
