@@ -556,18 +556,25 @@ export async function build(
 
   routesPaths = Array.from(new Set(routesPaths))
 
+  let zigCritters: import('./critical').ZigCritters | undefined
+  if (turbo) {
+    zigCritters = await getZigCritters()
+    if (!zigCritters) {
+      warn(
+        '[zig-critters] WASM unavailable; falling back to beasties for critical CSS',
+      )
+    }
+  }
+
+  // Prefer zig-critters in turbo mode; fall back to beasties if WASM is missing
+  // or turbo is off. Skip entirely when beastiesOptions === false.
   const beasties =
-    beastiesOptions !== false && !turbo
+    beastiesOptions !== false && !zigCritters
       ? await getBeasties(outDir, {
           publicPath: configBase,
           ...beastiesOptions,
         })
       : undefined
-
-  let zigCritters: import('./critical').ZigCritters | undefined
-  if (turbo) {
-    zigCritters = await getZigCritters()
-  }
 
   // Cache CSS content for zig-critters (read once, not per page)
   let cachedAllCss = ''

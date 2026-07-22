@@ -76,6 +76,7 @@ export interface ViteReactSSGOptions<Context = ViteReactSSGContext> {
   beastiesOptions?: BeastiesOptions | false
   /**
    * Enable turbo mode: use zig-critters WASM instead of beasties JS for critical CSS.
+   * Falls back to beasties if the WASM binary is unavailable.
    *
    * @default false
    */
