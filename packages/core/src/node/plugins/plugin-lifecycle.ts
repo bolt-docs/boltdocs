@@ -20,9 +20,12 @@ import {
   createPluginVirtualModulesAPI,
   middlewareRegistry,
 } from './plugin-context'
-import type { PluginTransformMiddleware } from '../../shared/types'
+import type {
+  PluginTransformMiddleware,
+  IPluginLifecycleManager,
+} from '../../shared/types'
 
-export class PluginLifecycleManager {
+export class PluginLifecycleManager implements IPluginLifecycleManager {
   private plugins: SecureBoltdocsPlugin[]
   private config: BoltdocsConfig
   private store: BoltdocsPluginStore

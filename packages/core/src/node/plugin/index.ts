@@ -10,11 +10,9 @@ import { resolveConfig, type BoltdocsConfig } from '../config'
 import { generateProjectTypes, writeLinkTree } from '../types-generator'
 import { normalizePath } from '../utils'
 import { injectHtmlMeta } from './html'
-import {
-  PluginLifecycleManager,
-  validatePlugins,
-  type SecureBoltdocsPlugin,
-} from '../plugins'
+import { validatePlugins, type SecureBoltdocsPlugin } from '../plugins'
+import { PluginLifecycleManager } from '../plugins/plugin-lifecycle'
+import type { IPluginLifecycleManager } from '../../shared/types'
 import { createVirtualModulesPlugin } from './virtual-modules'
 import { createDevServerPlugin } from '../dev-server/index'
 import { boltdocsMdxPlugin } from '../mdx/index'
@@ -87,7 +85,7 @@ export function boltdocsPlugin(
     config = c
   }
   const getViteConfig = () => viteConfig
-  const getLifecycle = (): PluginLifecycleManager | undefined => lifecycle
+  const getLifecycle = (): IPluginLifecycleManager | undefined => lifecycle
 
   return [
     {

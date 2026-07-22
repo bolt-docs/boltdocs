@@ -12,7 +12,7 @@ import type { ComponentRoute } from '../types'
 import { UIProvider } from '../app/ui-context'
 import { Head } from '../app/head'
 import { InternalErrorBoundary as ErrorBoundary } from '../components/internal/error-boundary'
-import { CollectionsContext } from '../collections/collections-context'
+import { CollectionsProvider } from '../collections/collections-context'
 import type { CollectionsData } from '../collections/collections-context'
 
 import virtualCustomComponents from 'virtual:boltdocs-mdx-components'
@@ -123,7 +123,7 @@ export function BoltdocsShell({
         <UIProvider>
           <MdxComponentsProvider components={allComponents}>
             <ConfigContext.Provider value={config}>
-              <CollectionsContext.Provider value={collectionsData || {}}>
+              <CollectionsProvider collectionsData={collectionsData || {}}>
                 <ScrollHandler />
                 <BoltdocsProvider
                   initialLocale={initialData.initLocale}
@@ -142,7 +142,7 @@ export function BoltdocsShell({
                     </div>
                   </ErrorBoundary>
                 </BoltdocsProvider>
-              </CollectionsContext.Provider>
+              </CollectionsProvider>
             </ConfigContext.Provider>
           </MdxComponentsProvider>
         </UIProvider>

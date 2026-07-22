@@ -1,19 +1,62 @@
 import type { Plugin, ResolvedConfig } from 'vite'
 import { generateRoutes } from '../routes'
-import { adaptRoutesForSSG } from '../routes/route-adapter'
+import { adaptRoutesForSSG, type SSGRouteData } from '../routes/route-adapter'
 import { normalizePath } from '../utils'
-import { generateSearchData } from '../search'
+import { generateSearchData, type SearchDocument } from '../search'
 import { virtualModuleRegistry } from '../plugins/plugin-context'
 import type { BoltdocsConfig } from '../config'
 import type { BoltdocsPluginOptions } from './types'
 import { generateEntryCode } from './entry'
 import path from 'node:path'
 import fs from 'node:fs'
-
 let _directoryMetaCache: Record<string, unknown> | null = null
-let _searchDataCache: string | null = null
-let _routesCache: string | null = null
-let _collectionsCache: string | null = null
+
+/** Minimal mirror of the client-side CollectionPost type to avoid importing from the client package on the server. */
+interface CollectionPost {
+  path: string
+  title: string
+  date?: string | Date
+  excerpt?: string
+  tags?: string[]
+  author?: string
+  coverImage?: string
+  filePath: string
+  locale?: string
+  version?: string
+  frontmatter?: Record<string, any>
+  lastUpdated?: string | number | Date
+  headings?: { level: number; text: string; id: string }[]
+  draft?: boolean
+  collection: string
+}
+
+// Per-route / per-item in-memory caches for virtual module data. These keep
+// the generated values keyed so the dev server can compute delta patches for
+// HMR instead of regenerating monolithic modules every time.
+const _routesDataMap = new Map<string, SSGRouteData>()
+const _collectionsDataMap = new Map<string, CollectionPost>()
+const _searchDataMap = new Map<string, SearchDocument>()
+
+export interface RouteDeltaPayload {
+  updated: SSGRouteData[]
+  deleted: string[]
+}
+
+export interface CollectionsDeltaPayload {
+  updated: CollectionPost[]
+  deleted: string[]
+}
+
+export interface SearchDeltaPayload {
+  updated: SearchDocument[]
+  deleted: string[]
+}
+
+export interface FrontmatterDeltaPayload {
+  routes: RouteDeltaPayload
+  collections: CollectionsDeltaPayload
+  search: SearchDeltaPayload
+}
 
 /**
  * Called by the dev-server watcher whenever a file is added or removed
@@ -21,15 +64,158 @@ let _collectionsCache: string | null = null
  */
 export function invalidateDirectoryMetaCache(): void {
   _directoryMetaCache = null
-  _searchDataCache = null
-  _routesCache = null
-  _collectionsCache = null
+  _routesDataMap.clear()
+  _collectionsDataMap.clear()
+  _searchDataMap.clear()
+}
+
+function clearVirtualData(): void {
+  _routesDataMap.clear()
+  _collectionsDataMap.clear()
+  _searchDataMap.clear()
+}
+
+async function regenerateRouteData(
+  docsDir: string,
+  config: BoltdocsConfig,
+): Promise<void> {
+  const routes = await generateRoutes(docsDir, config)
+  const ssgRoutes = adaptRoutesForSSG(routes)
+
+  _routesDataMap.clear()
+  for (const route of ssgRoutes) {
+    _routesDataMap.set(route.path, route)
+  }
+
+  regenerateSearchAndCollections()
+}
+
+function regenerateSearchAndCollections(): void {
+  const routes = Array.from(_routesDataMap.values())
+
+  const searchData = generateSearchData(routes as any)
+  _searchDataMap.clear()
+  for (const doc of searchData) {
+    _searchDataMap.set(doc.id, doc)
+  }
+
+  _collectionsDataMap.clear()
+  for (const route of routes) {
+    if (route.collection) {
+      const post: CollectionPost = {
+        path: route.path,
+        title: route.title,
+        date: route.date,
+        excerpt: route.excerpt,
+        tags: route.tags,
+        author: route.author,
+        coverImage: route.coverImage,
+        filePath: route.filePath,
+        locale: route.locale,
+        version: route.version,
+        frontmatter: route.frontmatter,
+        draft: route.frontmatter?.draft,
+        collection: route.collection,
+      }
+      _collectionsDataMap.set(route.filePath, post)
+    }
+  }
+}
+
+async function ensureRoutesGenerated(
+  docsDir: string,
+  config: BoltdocsConfig,
+): Promise<void> {
+  if (_routesDataMap.size === 0) {
+    await regenerateRouteData(docsDir, config)
+  }
+}
+
+function getCollectionsRecord(): Record<string, CollectionPost[]> {
+  const record: Record<string, CollectionPost[]> = {}
+  for (const post of _collectionsDataMap.values()) {
+    const collection = post.collection
+    if (!collection) continue
+    if (!record[collection]) record[collection] = []
+    record[collection].push(post)
+  }
+  return record
+}
+
+function serializeMapToExport<T>(map: Map<string, T>): string {
+  return `export default ${JSON.stringify(Array.from(map.values()), null, 2)};`
+}
+
+function serializeCollectionsToExport(
+  record: Record<string, CollectionPost[]>,
+): string {
+  return `export default ${JSON.stringify(record, null, 2)};`
+}
+
+/**
+ * Regenerates all route data, compares it with the previous cached state, and
+ * returns a delta payload suitable for sending over HMR. The cache is updated
+ * in-place so subsequent virtual module loads returns the new data.
+ */
+export async function computeFrontmatterDelta(
+  docsDir: string,
+  config: BoltdocsConfig,
+): Promise<FrontmatterDeltaPayload> {
+  const oldRoutes = new Map(_routesDataMap)
+  const oldCollections = new Map(_collectionsDataMap)
+  const oldSearch = new Map(_searchDataMap)
+
+  await regenerateRouteData(docsDir, config)
+
+  const delta: FrontmatterDeltaPayload = {
+    routes: { updated: [], deleted: [] },
+    collections: { updated: [], deleted: [] },
+    search: { updated: [], deleted: [] },
+  }
+
+  for (const [routePath, route] of _routesDataMap) {
+    const previous = oldRoutes.get(routePath)
+    if (!previous || JSON.stringify(previous) !== JSON.stringify(route)) {
+      delta.routes.updated.push(route)
+    }
+  }
+  for (const routePath of oldRoutes.keys()) {
+    if (!_routesDataMap.has(routePath)) {
+      delta.routes.deleted.push(routePath)
+    }
+  }
+
+  for (const [filePath, post] of _collectionsDataMap) {
+    const previous = oldCollections.get(filePath)
+    if (!previous || JSON.stringify(previous) !== JSON.stringify(post)) {
+      delta.collections.updated.push(post)
+    }
+  }
+  for (const filePath of oldCollections.keys()) {
+    if (!_collectionsDataMap.has(filePath)) {
+      delta.collections.deleted.push(filePath)
+    }
+  }
+
+  for (const [id, doc] of _searchDataMap) {
+    const previous = oldSearch.get(id)
+    if (!previous || JSON.stringify(previous) !== JSON.stringify(doc)) {
+      delta.search.updated.push(doc)
+    }
+  }
+  for (const id of oldSearch.keys()) {
+    if (!_searchDataMap.has(id)) {
+      delta.search.deleted.push(id)
+    }
+  }
+
+  return delta
 }
 
 /**
  * Creates the Vite plugin responsible for resolving and loading all
  * `virtual:boltdocs-*` modules. These virtual modules provide route data,
- * configuration, MDX components, layouts, and search data to the client.
+ * configuration, MDX components, layouts, icons, and search data to the client.
  */
 export function createVirtualModulesPlugin(
   options: BoltdocsPluginOptions,
@@ -163,40 +349,13 @@ export function createVirtualModulesPlugin(
       const name = nameWithExt.replace(/\.tsx?$/, '')
 
       if (name === 'routes') {
-        if (!_routesCache) {
-          const routes = await generateRoutes(docsDir, config)
-          const ssgRoutes = adaptRoutesForSSG(routes)
-          _routesCache = `export default ${JSON.stringify(ssgRoutes, null, 2)};`
-        }
-        return _routesCache
+        await ensureRoutesGenerated(docsDir, config)
+        return serializeMapToExport(_routesDataMap)
       }
       if (name === 'collections') {
-        if (!_collectionsCache) {
-          const routes = await generateRoutes(docsDir, config)
-          const ssgRoutes = adaptRoutesForSSG(routes)
-          const collections: Record<string, unknown[]> = {}
-          for (const r of ssgRoutes) {
-            if (r.collection) {
-              if (!collections[r.collection]) collections[r.collection] = []
-              collections[r.collection].push({
-                path: r.path,
-                title: r.title,
-                date: r.date,
-                excerpt: r.excerpt,
-                tags: r.tags,
-                author: r.author,
-                coverImage: r.coverImage,
-                filePath: r.filePath,
-                locale: r.locale,
-                version: r.version,
-                frontmatter: r.frontmatter,
-                draft: r.frontmatter?.draft,
-              })
-            }
-          }
-          _collectionsCache = `export default ${JSON.stringify(collections, null, 2)};`
-        }
-        return _collectionsCache
+        await ensureRoutesGenerated(docsDir, config)
+        const record = getCollectionsRecord()
+        return serializeCollectionsToExport(record)
       }
       if (name === 'config') {
         // Use cached directory meta to avoid a full fdir crawl on every request.
@@ -288,12 +447,8 @@ export default UserLayout;`
       }
 
       if (name === 'search') {
-        if (!_searchDataCache) {
-          const routes = await generateRoutes(docsDir, config)
-          const searchData = generateSearchData(routes)
-          _searchDataCache = `export default ${JSON.stringify(searchData, null, 2)};`
-        }
-        return _searchDataCache
+        await ensureRoutesGenerated(docsDir, config)
+        return serializeMapToExport(_searchDataMap)
       }
 
       if (name === 'client') {

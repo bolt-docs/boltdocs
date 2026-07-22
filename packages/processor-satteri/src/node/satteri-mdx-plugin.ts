@@ -1,6 +1,6 @@
 import type { Plugin } from 'vite'
 import fs from 'node:fs'
-import type { BoltdocsConfig, PluginLifecycleManager } from 'boltdocs'
+import type { BoltdocsConfig, IPluginLifecycleManager } from 'boltdocs'
 import { createSatteriProcessorPlugin } from './index'
 import { collectUserPlugins } from './user-plugins'
 import { MdxCompiler } from './compiler'
@@ -20,7 +20,7 @@ function looksCompiled(code: string): boolean {
 
 export function createSatteriMdxPlugin(
   config: BoltdocsConfig,
-  getLifecycle: () => PluginLifecycleManager | undefined,
+  getLifecycle: () => IPluginLifecycleManager | undefined,
 ): Plugin {
   const processor = createSatteriProcessorPlugin()
   const mdastPlugins = processor.mdastPlugins ?? []

@@ -2,11 +2,7 @@ import fs from 'node:fs'
 import path from 'node:path'
 import os from 'node:os'
 import { fileURLToPath } from 'node:url'
-import { runBuildPipelineSuite } from './build-pipeline'
-import { runSSGRenderingSuite } from './ssg-rendering'
-import { runViteBuildSuite } from './vite-builds'
-import { runParserSuite } from './parser-speed'
-import { runMdxTransformSuite } from './mdx-transforms'
+import { spawn } from 'node:child_process'
 import { generateHtmlReport } from './utils/report-generator'
 import type {
   BenchmarkConfig,
@@ -20,14 +16,43 @@ const __dirname = path.dirname(__filename)
 const WORKSPACE_ROOT = path.resolve(__dirname, '..', '..')
 const BENCHMARKS_DIR = path.join(WORKSPACE_ROOT, '.boltdocs', 'benchmarks')
 
-type SuiteRunner = (config: BenchmarkConfig) => Promise<SuiteResult>
+interface SuiteDefinition {
+  key: string
+  name: string
+  description: string
+}
 
-const ALL_SUITES: Record<string, { name: string; run: SuiteRunner }> = {
-  pipeline: { name: 'Build Pipeline', run: runBuildPipelineSuite },
-  ssg: { name: 'SSG Rendering', run: runSSGRenderingSuite },
-  vite: { name: 'Vite Build', run: runViteBuildSuite },
-  parser: { name: 'Parser', run: runParserSuite },
-  mdx: { name: 'MDX Transforms', run: runMdxTransformSuite },
+const ALL_SUITES: Record<string, SuiteDefinition> = {
+  pipeline: {
+    key: 'pipeline',
+    name: 'Build Pipeline',
+    description:
+      'Benchmarks individual pipeline steps: route generation, SEO validation, type generation',
+  },
+  ssg: {
+    key: 'ssg',
+    name: 'SSG Rendering',
+    description:
+      'Benchmarks page rendering: JSDOM parsing, script injection, HTML manipulation',
+  },
+  vite: {
+    key: 'vite',
+    name: 'Vite Build',
+    description:
+      'Benchmarks Vite build phases: file hashing, manifest parsing, config resolution',
+  },
+  parser: {
+    key: 'parser',
+    name: 'Parser',
+    description:
+      'Benchmarks markdown parsing: frontmatter extraction, heading extraction, content parsing',
+  },
+  mdx: {
+    key: 'mdx',
+    name: 'MDX Transforms',
+    description:
+      'Benchmarks MDX compilation: frontmatter parsing, remark/rehype chains, syntax highlighting',
+  },
 }
 
 const DEFAULT_CONFIG: BenchmarkConfig = {
@@ -40,12 +65,18 @@ const DEFAULT_CONFIG: BenchmarkConfig = {
 function parseArgs(): BenchmarkConfig & {
   suiteNames: string[]
   help: boolean
+  parallel: boolean
 } {
   const args = process.argv.slice(2)
-  const config: BenchmarkConfig & { suiteNames: string[]; help: boolean } = {
+  const config: BenchmarkConfig & {
+    suiteNames: string[]
+    help: boolean
+    parallel: boolean
+  } = {
     ...DEFAULT_CONFIG,
     suiteNames: ['all'],
     help: false,
+    parallel: false,
   }
 
   for (let i = 0; i < args.length; i++) {
@@ -75,6 +106,10 @@ function parseArgs(): BenchmarkConfig & {
       case '-o':
         config.outputFile = args[++i]
         break
+      case '--parallel':
+      case '-p':
+        config.parallel = true
+        break
     }
   }
 
@@ -86,7 +121,7 @@ function printHelp(): void {
 Boltdocs Benchmark Suite
 ========================
 
-Usage: tsx scripts/benchmark-suite.ts [options]
+Usage: tsx scripts/benchmarks/run.ts [options]
 
 Options:
   -s, --suite <name>     Run specific suite: all, pipeline, ssg, vite, parser, mdx (default: all)
@@ -94,13 +129,14 @@ Options:
   -i, --iterations <n>   Minimum iterations per task (default: 100)
   -w, --warmup <n>       Warmup iterations (default: 10)
   -o, --output <dir>     Output directory for reports (default: .boltdocs/benchmarks)
+  -p, --parallel         Run suites in parallel child processes (default: sequential)
   -h, --help             Show this help
 
 Examples:
-  tsx scripts/benchmark-suite.ts
-  tsx scripts/benchmark-suite.ts --suite pipeline
-  tsx scripts/benchmark-suite.ts --suite vite --time 2000
-  tsx scripts/benchmark-suite.ts --suite parser --iterations 200
+  tsx scripts/benchmarks/run.ts
+  tsx scripts/benchmarks/run.ts --suite pipeline
+  tsx scripts/benchmarks/run.ts --suite vite --time 2000
+  tsx scripts/benchmarks/run.ts --suite parser --iterations 200
 `)
 }
 
@@ -139,6 +175,85 @@ function printTaskResult(task: {
   )
 }
 
+function printSuiteResult(suite: SuiteDefinition, result: SuiteResult): void {
+  console.log(`\n  Suite completed in ${formatDuration(result.duration)}\n`)
+  console.log(
+    `  ${'Task'.padEnd(45)} │ ${'Latency'.padStart(10)} │ ${'RME'.padStart(7)} │ ${'Throughput'.padStart(10)}`,
+  )
+  console.log(
+    `  ${'─'.repeat(45)}─┼─${'─'.repeat(10)}─┼─${'─'.repeat(7)}─┼─${'─'.repeat(10)}`,
+  )
+
+  for (const task of result.tasks) {
+    printTaskResult(task)
+  }
+
+  console.log(
+    `\n  ${'─'.repeat(45)}─┴─${'─'.repeat(10)}─┴─${'─'.repeat(7)}─┴─${'─'.repeat(10)}`,
+  )
+}
+
+function runSuiteInChildProcess(
+  suiteKey: string,
+  config: BenchmarkConfig,
+): Promise<SuiteResult | null> {
+  return new Promise((resolve, reject) => {
+    const runnerPath = path.join(__dirname, 'run-suite.ts')
+    const args = [
+      '--import',
+      'tsx',
+      runnerPath,
+      '--suite',
+      suiteKey,
+      '--config',
+      JSON.stringify(config),
+    ]
+
+    const child = spawn(process.execPath, args, {
+      cwd: WORKSPACE_ROOT,
+      stdio: ['ignore', 'pipe', 'pipe'],
+    })
+
+    let stdout = ''
+    let stderr = ''
+
+    child.stdout.setEncoding('utf8')
+    child.stderr.setEncoding('utf8')
+
+    child.stdout.on('data', (chunk: string) => {
+      stdout += chunk
+    })
+
+    child.stderr.on('data', (chunk: string) => {
+      stderr += chunk
+    })
+
+    child.on('error', (err) => {
+      reject(err)
+    })
+
+    child.on('close', (code) => {
+      if (code !== 0) {
+        reject(
+          new Error(stderr || `Suite ${suiteKey} exited with code ${code}`),
+        )
+        return
+      }
+
+      try {
+        const result = JSON.parse(stdout) as SuiteResult
+        resolve(result)
+      } catch (err) {
+        reject(
+          new Error(
+            `Failed to parse suite ${suiteKey} result: ${err instanceof Error ? err.message : String(err)}\nstdout: ${stdout}`,
+          ),
+        )
+      }
+    })
+  })
+}
+
 async function runSuite(
   suiteKey: string,
   config: BenchmarkConfig,
@@ -149,48 +264,49 @@ async function runSuite(
     return null
   }
 
-  printSuiteHeader(suite.name, getSuiteDescription(suiteKey))
-
-  console.log(
-    `\n  Running with: ${config.time}ms/task, ${config.iterations} min iterations, ${config.warmupIterations} warmup\n`,
-  )
-  console.log(
-    `  ${'Task'.padEnd(45)} │ ${'Latency'.padStart(10)} │ ${'RME'.padStart(7)} │ ${'Throughput'.padStart(10)}`,
-  )
-  console.log(
-    `  ${'─'.repeat(45)}─┼─${'─'.repeat(10)}─┼─${'─'.repeat(7)}─┼─${'─'.repeat(10)}`,
-  )
+  printSuiteHeader(suite.name, suite.description)
+  console.log(`  Spawning child process for ${suite.name}...\n`)
 
   try {
-    const result = await suite.run(config)
-
-    console.log(
-      `\n  ${'─'.repeat(45)}─┴─${'─'.repeat(10)}─┴─${'─'.repeat(7)}─┴─${'─'.repeat(10)}`,
-    )
-
-    for (const task of result.tasks) {
-      printTaskResult(task)
-    }
-
-    console.log(`\n  Suite completed in ${formatDuration(result.duration)}`)
+    const result = await runSuiteInChildProcess(suiteKey, config)
+    printSuiteResult(suite, result)
     return result
   } catch (err) {
-    console.error(`  ERROR running suite "${suite.name}":`, err)
+    console.error(
+      `  ERROR running suite "${suite.name}":`,
+      err instanceof Error ? err.message : String(err),
+    )
     return null
   }
 }
 
-function getSuiteDescription(key: string): string {
-  const descriptions: Record<string, string> = {
-    pipeline:
-      'Benchmarks individual pipeline steps: route generation, SEO validation, type generation',
-    ssg: 'Benchmarks page rendering: JSDOM parsing, script injection, HTML manipulation',
-    vite: 'Benchmarks Vite build phases: file hashing, manifest parsing, config resolution',
-    parser:
-      'Benchmarks markdown parsing: frontmatter extraction, heading extraction, content parsing',
-    mdx: 'Benchmarks MDX compilation: frontmatter parsing, remark/rehype chains, syntax highlighting',
+async function runAllSuites(
+  suiteKeys: string[],
+  config: BenchmarkConfig,
+  parallel: boolean,
+): Promise<SuiteResult[]> {
+  if (parallel) {
+    const results = await Promise.all(
+      suiteKeys.map((key) =>
+        runSuite(key, config).catch((err) => {
+          console.error(
+            `Suite ${key} failed: ${err instanceof Error ? err.message : String(err)}`,
+          )
+          return null
+        }),
+      ),
+    )
+    return results.filter((r): r is SuiteResult => r !== null)
   }
-  return descriptions[key] || ''
+
+  const suiteResults: SuiteResult[] = []
+  for (const key of suiteKeys) {
+    const result = await runSuite(key, config)
+    if (result) {
+      suiteResults.push(result)
+    }
+  }
+  return suiteResults
 }
 
 async function main(): Promise<void> {
@@ -221,20 +337,15 @@ async function main(): Promise<void> {
 ║           Boltdocs Benchmark Suite                       ║
 ╠══════════════════════════════════════════════════════════╣
 ║  Suites: ${suiteNames.padEnd(47)}║
+║  Mode:  ${config.parallel ? 'parallel (child processes)'.padEnd(47) : 'sequential (child processes)'.padEnd(47)}║
 ║  Config: ${config.time}ms/task, ${config.iterations} min iterations${' '.repeat(Math.max(0, 32 - String(config.time).length - String(config.iterations).length))}║
 ╚══════════════════════════════════════════════════════════╝
 `)
 
   const environment = getEnvironmentInfo()
-  const suiteResults: SuiteResult[] = []
   const totalStart = performance.now()
 
-  for (const key of suiteKeys) {
-    const result = await runSuite(key, config)
-    if (result) {
-      suiteResults.push(result)
-    }
-  }
+  const suiteResults = await runAllSuites(suiteKeys, config, config.parallel)
 
   const totalDuration = performance.now() - totalStart
 

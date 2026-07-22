@@ -220,6 +220,7 @@ export type {
 } from './config'
 export { defineConfig } from '../shared/config-utils'
 export * from './plugins'
+export type { IPluginLifecycleManager } from '../shared/types'
 export * from './feedback/adapters'
 export type { BoltdocsPluginOptions }
 export { handleFeedback } from './feedback/handler'

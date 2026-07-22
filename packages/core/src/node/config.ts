@@ -57,6 +57,8 @@ interface RawUserConfig
 export async function resolveConfig(
   docsDir: string,
   root: string = process.cwd(),
+  command: string = 'serve',
+  mode: string = 'development',
 ): Promise<BoltdocsConfig> {
   const projectRoot = root
 
@@ -85,7 +87,7 @@ export async function resolveConfig(
       try {
         const { loadConfigFromFile } = await import('vite')
         const loaded = await loadConfigFromFile(
-          { command: 'serve', mode: 'development' },
+          { command: command as 'build' | 'serve', mode },
           configPath,
           projectRoot,
         )

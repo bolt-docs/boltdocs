@@ -320,11 +320,16 @@ function generateSuiteSections(result: BenchmarkRunResult): string {
           <tr>
             <th>Task</th>
             <th>Latency (mean)</th>
+            <th>Latency (min)</th>
+            <th>Latency (max)</th>
             <th>Latency (p50)</th>
+            <th>Latency (p995)</th>
             <th>Latency (p99)</th>
+            <th>Latency (p999)</th>
             <th>Throughput (ops/s)</th>
             <th>Samples</th>
             <th>RME</th>
+            <th>CV</th>
           </tr>
         </thead>
         <tbody>
@@ -334,11 +339,16 @@ function generateSuiteSections(result: BenchmarkRunResult): string {
             <tr>
               <td>${task.task}</td>
               <td class="latency">${formatDuration(task.latency.mean)}</td>
+              <td class="latency">${formatDuration(task.latency.min)}</td>
+              <td class="latency">${formatDuration(task.latency.max)}</td>
               <td class="latency">${formatDuration(task.latency.median)}</td>
+              <td class="latency">${formatDuration(task.latency.p995)}</td>
               <td class="latency">${formatDuration(task.latency.p99)}</td>
+              <td class="latency">${formatDuration(task.latency.p999)}</td>
               <td class="throughput">${formatNumber(task.throughput.mean)} ops/s</td>
               <td>${task.samples}</td>
               <td class="rme">±${task.latency.rme.toFixed(2)}%</td>
+              <td class="rme">${task.latency.cv.toFixed(2)}%</td>
             </tr>
           `,
             )
