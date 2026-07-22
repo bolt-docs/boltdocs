@@ -229,12 +229,15 @@ export function boltdocsPlugin(
               'react',
               'react-dom',
               'react-helmet-async',
+              'react-router-dom',
               '@bdocs/ssg',
               'jsdom',
               ...getExternalAbsolutePaths(req),
             ],
             optimizeDeps: { include: ['react-fast-compare'] },
-            noExternal: ['react-router-dom'],
+            // Externalize all framework packages so @bdocs/ssg and the docs
+            // app share a single react-router-dom instance/context.
+            noExternal: [],
           },
         }
       },
