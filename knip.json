@@ -1,0 +1,142 @@
+{
+  "$schema": "https://unpkg.com/knip@5/schema.json",
+  "ignore": [
+    "**/dist/**",
+    "**/.boltdocs/**",
+    "**/templates/**",
+    "docs/dist/**",
+    "packages/parser/**",
+    "packages/zig-critters/**",
+    "packages/tsdown-config/**"
+  ],
+  "ignoreDependencies": [
+    "@bdocs/dui",
+    "turbo",
+    "typescript",
+    "vite",
+    "vitest",
+    "tsdown",
+    "beasties",
+    "prettier",
+    "styled-components",
+    "react-aria-components",
+    "sharp",
+    "svgo"
+  ],
+  "ignoreBinaries": ["zig", "boltdocs"],
+  "workspaces": {
+    ".": {
+      "entry": [
+        "scripts/**/*.{ts,mjs,js}",
+        "playwright.config.ts",
+        "vitest.config.ts"
+      ],
+      "project": [
+        "scripts/**/*.{ts,mjs,js}",
+        "tests/**/*.{ts,tsx}",
+        "playwright.config.ts",
+        "vitest.config.ts"
+      ]
+    },
+    "packages/core": {
+      "entry": [
+        "src/node/cli-entry.ts!",
+        "src/node/index.ts!",
+        "src/client/index.ts!",
+        "src/server/index.ts!",
+        "bin/boltdocs.js",
+        "tests/**/*.{ts,tsx}",
+        "vitest.config.ts",
+        "tsdown.config.ts"
+      ],
+      "project": ["src/**/*.{ts,tsx}", "tests/**/*.{ts,tsx}"]
+    },
+    "packages/plugin-ssg": {
+      "entry": [
+        "src/index.ts!",
+        "src/node.ts!",
+        "src/client/single-page.ts!",
+        "src/style-collectors/styled-components.ts!",
+        "bin/vite-react-ssg.js",
+        "tests/**/*.ts",
+        "vitest.config.ts",
+        "tsdown.config.ts"
+      ],
+      "project": ["src/**/*.{ts,tsx}", "tests/**/*.ts"]
+    },
+    "packages/create-boltdocs": {
+      "entry": ["src/index.ts!", "bin.js", "tests/**/*.ts", "tsdown.config.ts"],
+      "project": ["src/**/*.ts", "tests/**/*.ts"]
+    },
+    "packages/plugin-ask-ai": {
+      "entry": [
+        "src/node/index.ts!",
+        "src/client/index.ts!",
+        "tests/**/*.ts",
+        "vitest.config.ts",
+        "tsdown.config.ts"
+      ],
+      "project": ["src/**/*.{ts,tsx}", "tests/**/*.ts"]
+    },
+    "packages/plugin-image-optimizer": {
+      "entry": ["src/index.ts!", "tsdown.config.ts"],
+      "project": ["src/**/*.ts"]
+    },
+    "packages/plugin-math": {
+      "entry": [
+        "src/node/index.ts!",
+        "src/client/index.ts!",
+        "tests/**/*.ts",
+        "tsdown.config.ts"
+      ],
+      "project": ["src/**/*.{ts,tsx}", "tests/**/*.ts"]
+    },
+    "packages/plugin-mermaid": {
+      "entry": [
+        "src/node/index.ts!",
+        "src/client/index.ts!",
+        "tests/**/*.ts",
+        "vitest.config.ts",
+        "tsdown.config.ts"
+      ],
+      "project": ["src/**/*.{ts,tsx}", "tests/**/*.ts"]
+    },
+    "packages/plugin-rss": {
+      "entry": ["src/node/index.ts!", "tsdown.config.ts"],
+      "project": ["src/**/*.ts"]
+    },
+    "packages/processor-satteri": {
+      "entry": [
+        "src/node/index.ts!",
+        "src/**/index.ts!",
+        "vitest.config.ts",
+        "tsdown.config.ts"
+      ],
+      "project": ["src/**/*.ts"]
+    },
+    "packages/unist-utils": {
+      "entry": [
+        "src/index.ts!",
+        "tests/**/*.ts",
+        "vitest.config.ts",
+        "tsdown.config.ts"
+      ],
+      "project": ["src/**/*.ts", "tests/**/*.ts"]
+    },
+    "docs": {
+      "entry": [
+        "boltdocs.config.ts!",
+        "docs/layout.tsx!",
+        "docs/pages-external/**/*.{ts,tsx}!",
+        "src/**/*.{ts,tsx}!",
+        "api/**/*.{ts,tsx}!"
+      ],
+      "project": [
+        "boltdocs.config.ts",
+        "docs/**/*.{ts,tsx,mdx}",
+        "src/**/*.{ts,tsx}",
+        "api/**/*.{ts,tsx}"
+      ]
+    }
+  }
+}

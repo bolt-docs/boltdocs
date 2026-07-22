@@ -163,7 +163,6 @@ export async function createViteConfig(
         'react-dom',
         'react-helmet-async',
         '@bdocs/ssg',
-        'invariant',
         ...getExternalAbsolutePaths(),
       ],
       optimizeDeps: {
