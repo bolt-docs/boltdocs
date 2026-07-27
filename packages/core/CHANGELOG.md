@@ -1,5 +1,12 @@
 # boltdocs
 
+## 3.2.2
+
+### Patch Changes
+
+- Updated dependencies [[`9c570fe`](https://github.com/bolt-docs/boltdocs/commit/9c570fe616da29fde6591359e9543de79b9454e9)]:
+  - @bdocs/ssg@0.3.1
+
 ## 3.2.1
 
 ### Patch Changes
