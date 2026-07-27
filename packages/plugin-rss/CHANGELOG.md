@@ -1,5 +1,12 @@
 # @bdocs/plugin-rss
 
+## 2.0.2
+
+### Patch Changes
+
+- Updated dependencies []:
+  - boltdocs@3.2.2
+
 ## 2.0.1
 
 ### Patch Changes

@@ -1,5 +1,11 @@
 # @bdocs/ssg
 
+## 0.3.1
+
+### Patch Changes
+
+- [`9c570fe`](https://github.com/bolt-docs/boltdocs/commit/9c570fe616da29fde6591359e9543de79b9454e9) Thanks [@jesusalcaladev](https://github.com/jesusalcaladev)! - Make `@bdocs/zig-critters` an optional dependency so installations do not fail when the local workspace package is unavailable.
+
 ## 0.3.0
 
 ### Minor Changes

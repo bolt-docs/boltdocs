@@ -1,5 +1,12 @@
 # @bdocs/plugin-math
 
+## 4.0.2
+
+### Patch Changes
+
+- Updated dependencies []:
+  - boltdocs@3.2.2
+
 ## 4.0.1
 
 ### Patch Changes
