@@ -805,11 +805,10 @@ export function createSatteriMdxPlugin(
             ' pages combined',
         )
         chunkLines.push('')
-        // P2-20.4: Import shared deps once instead of inlining all imports
-        if (mergedImportLines.length > 0) {
-          chunkLines.push("import '/.boltdocs/compiled/pages/_shared.mjs';")
-          chunkLines.push('')
+        for (const imp of mergedImportLines) {
+          chunkLines.push(imp)
         }
+        chunkLines.push('')
         chunkLines.push('var __pages = {};')
         chunkLines.push('')
 
