@@ -398,15 +398,49 @@ export function createVirtualModulesPlugin(
           }
         }
 
+        // Aggregate components registered by plugins (e.g. Mermaid, Math, AskAI)
+        const pluginComponents: Record<string, string> = {}
+        if (config?.plugins) {
+          for (const plugin of config.plugins) {
+            if (plugin.components) {
+              Object.assign(pluginComponents, plugin.components)
+            }
+          }
+        }
+
+        const pluginEntries = Object.entries(pluginComponents)
+        const pluginImports = pluginEntries
+          .map(
+            ([_, compPath], idx) =>
+              `import _pluginComp_${idx} from '${compPath}';`,
+          )
+          .join('\n')
+
+        const pluginMapEntries = pluginEntries
+          .map(
+            ([compName], idx) =>
+              `${JSON.stringify(compName)}: _pluginComp_${idx}`,
+          )
+          .join(',\n  ')
+
         if (userMdxPath) {
           const normalizedPath = normalizePath(userMdxPath)
-          return `import * as components from '${normalizedPath}';
-const mdxComponents = components.default || components;
+          return `${pluginImports}
+import * as components from '${normalizedPath}';
+const userMdxComponents = components.default || components;
+const mdxComponents = {
+  ${pluginMapEntries}${pluginMapEntries ? ',' : ''}
+  ...userMdxComponents,
+};
 export default mdxComponents;
 export * from '${normalizedPath}';`
         }
 
-        return `export default {};`
+        return `${pluginImports}
+const mdxComponents = {
+  ${pluginMapEntries}
+};
+export default mdxComponents;`
       }
       if (name === 'layout') {
         const extensions = ['tsx', 'jsx']

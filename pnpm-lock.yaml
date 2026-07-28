@@ -106,6 +106,9 @@ importers:
       '@bdocs/plugin-rss':
         specifier: workspace:*
         version: link:../packages/plugin-rss
+      '@bdocs/plugin-tailwindcss':
+        specifier: workspace:*
+        version: link:../packages/plugin-tailwindcss
       '@bdocs/unist-utils':
         specifier: workspace:*
         version: link:../packages/unist-utils
@@ -653,7 +656,7 @@ importers:
     dependencies:
       unocss:
         specifier: ^0.65.0
-        version: 0.65.4(postcss@8.5.9)(rollup@4.60.1)(vite@8.0.0(@emnapi/core@1.11.2)(@emnapi/runtime@1.11.2)(@types/node@22.0.0)(esbuild@0.25.12)(jiti@2.7.0)(sass-embedded@1.100.0)(sass@1.100.0)(terser@5.46.1)(tsx@4.21.0)(yaml@2.8.3))(vue@3.5.40(typescript@5.9.3))
+        version: 0.65.4(postcss@8.5.24)(rollup@4.60.1)(vite@8.0.0(@emnapi/core@1.11.2)(@emnapi/runtime@1.11.2)(@types/node@22.0.0)(esbuild@0.25.12)(jiti@2.7.0)(sass-embedded@1.100.0)(sass@1.100.0)(terser@5.46.1)(tsx@4.21.0)(yaml@2.8.3))(vue@3.5.40(typescript@5.9.3))
       vite:
         specifier: ^7.0.0 || ^8.0.0
         version: 8.0.0(@emnapi/core@1.11.2)(@emnapi/runtime@1.11.2)(@types/node@22.0.0)(esbuild@0.25.12)(jiti@2.7.0)(sass-embedded@1.100.0)(sass@1.100.0)(terser@5.46.1)(tsx@4.21.0)(yaml@2.8.3)
@@ -11666,13 +11669,13 @@ snapshots:
     transitivePeerDependencies:
       - vue
 
-  '@unocss/postcss@0.65.4(postcss@8.5.9)':
+  '@unocss/postcss@0.65.4(postcss@8.5.24)':
     dependencies:
       '@unocss/config': 0.65.4
       '@unocss/core': 0.65.4
       '@unocss/rule-utils': 0.65.4
       css-tree: 3.2.1
-      postcss: 8.5.9
+      postcss: 8.5.24
       tinyglobby: 0.2.17
     transitivePeerDependencies:
       - supports-color
@@ -15708,12 +15711,12 @@ snapshots:
 
   universalify@2.0.1: {}
 
-  unocss@0.65.4(postcss@8.5.9)(rollup@4.60.1)(vite@8.0.0(@emnapi/core@1.11.2)(@emnapi/runtime@1.11.2)(@types/node@22.0.0)(esbuild@0.25.12)(jiti@2.7.0)(sass-embedded@1.100.0)(sass@1.100.0)(terser@5.46.1)(tsx@4.21.0)(yaml@2.8.3))(vue@3.5.40(typescript@5.9.3)):
+  unocss@0.65.4(postcss@8.5.24)(rollup@4.60.1)(vite@8.0.0(@emnapi/core@1.11.2)(@emnapi/runtime@1.11.2)(@types/node@22.0.0)(esbuild@0.25.12)(jiti@2.7.0)(sass-embedded@1.100.0)(sass@1.100.0)(terser@5.46.1)(tsx@4.21.0)(yaml@2.8.3))(vue@3.5.40(typescript@5.9.3)):
     dependencies:
       '@unocss/astro': 0.65.4(rollup@4.60.1)(vite@8.0.0(@emnapi/core@1.11.2)(@emnapi/runtime@1.11.2)(@types/node@22.0.0)(esbuild@0.25.12)(jiti@2.7.0)(sass-embedded@1.100.0)(sass@1.100.0)(terser@5.46.1)(tsx@4.21.0)(yaml@2.8.3))(vue@3.5.40(typescript@5.9.3))
       '@unocss/cli': 0.65.4(rollup@4.60.1)
       '@unocss/core': 0.65.4
-      '@unocss/postcss': 0.65.4(postcss@8.5.9)
+      '@unocss/postcss': 0.65.4(postcss@8.5.24)
       '@unocss/preset-attributify': 0.65.4
       '@unocss/preset-icons': 0.65.4
       '@unocss/preset-mini': 0.65.4
