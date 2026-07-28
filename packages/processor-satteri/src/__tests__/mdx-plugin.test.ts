@@ -50,7 +50,10 @@ vi.mock('satteri', () => ({
   defineHastPlugin: (def: unknown) => def,
 }))
 
-import { createSatteriMdxPlugin } from '../node/satteri-mdx-plugin'
+import {
+  createSatteriMdxPlugin,
+  resetMdxRuntimeCaches,
+} from '../node/satteri-mdx-plugin'
 import { MdxCompiler } from '../node/compiler'
 import fs from 'node:fs'
 
@@ -61,6 +64,7 @@ describe('createSatteriMdxPlugin', () => {
 
   beforeEach(() => {
     vi.clearAllMocks()
+    resetMdxRuntimeCaches()
     mockGetLifecycle.mockReturnValue(undefined)
     plugin = createSatteriMdxPlugin(mockConfig, mockGetLifecycle)
   })

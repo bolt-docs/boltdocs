@@ -283,7 +283,10 @@ export async function resolveConfig(
         }
       } catch (e) {
         if (e instanceof Error) {
-          warn(`Failed to load config from ${filename}: ${e}`)
+          console.error(
+            `\x1b[31m[boltdocs] ✖ Failed to load config from ${filename}: ${e.message}\x1b[0m`,
+          )
+          warn(`Failed to load config from ${filename}: ${e.message}`)
         }
       }
     }

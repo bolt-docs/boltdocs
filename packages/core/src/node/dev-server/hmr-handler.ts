@@ -20,6 +20,7 @@ import {
 import { generateLinkTree } from '../cli/doctor'
 import path from 'node:path'
 import { error } from '@bdocs/dui'
+import { invalidateMdxFileCache } from '@bdocs/processor-satteri/node'
 
 const DEBOUNCE_MS = 150
 const MDX_COMP_EXTENSIONS = ['tsx', 'ts', 'jsx', 'js']
@@ -55,6 +56,35 @@ export function setupHmr(
   server.watcher.on('all', () => {
     lowerModuleIndex = null
   })
+
+  function invalidateMdxModules(normalized: string): boolean {
+    let mods = server.moduleGraph.getModulesByFile(normalized)
+    if (!mods || mods.size === 0) {
+      mods = getLowerModuleIndex().get(normalized.toLowerCase()) || null
+    }
+    if (mods && mods.size > 0) {
+      for (const mod of mods) {
+        server.moduleGraph.invalidateModule(mod)
+      }
+      return true
+    }
+    return false
+  }
+
+  function sendMdxContentUpdate(file: string, normalized: string): void {
+    const relative = path.relative(docsDir, file)
+    const relPath = normalizePath(relative)
+    const found = invalidateMdxModules(normalized)
+    if (found) {
+      server.ws.send({
+        type: 'custom',
+        event: 'boltdocs:mdx-update',
+        data: { file: normalized, relPath },
+      })
+    } else {
+      server.ws.send({ type: 'full-reload' })
+    }
+  }
 
   const handleFileEvent = async (
     file: string,
@@ -178,6 +208,7 @@ export function setupHmr(
             setFrontmatterHash(file, newHash)
 
             invalidateFile(file)
+            invalidateMdxFileCache(file)
 
             if (prevHash !== undefined && prevHash !== newHash) {
               invalidateVirtualModule(server, 'routes')
@@ -213,52 +244,11 @@ export function setupHmr(
               // Frontmatter-only changes may also include body edits; send the
               // same content HMR event so the page module re-renders without
               // requiring a separate save cycle.
-              const relative = path.relative(docsDir, file)
-              const relPath = normalizePath(relative)
-
-              let mods = server.moduleGraph.getModulesByFile(normalized)
-              if (!mods || mods.size === 0) {
-                mods =
-                  getLowerModuleIndex().get(normalized.toLowerCase()) || null
-              }
-
-              if (mods && mods.size > 0) {
-                for (const mod of mods) {
-                  server.moduleGraph.invalidateModule(mod)
-                }
-              }
-
-              server.ws.send({
-                type: 'custom',
-                event: 'boltdocs:mdx-update',
-                data: { file: normalized, relPath },
-              })
+              sendMdxContentUpdate(file, normalized)
               return
             }
 
-            const relative = path.relative(docsDir, file)
-            const relPath = normalizePath(relative)
-
-            let mods = server.moduleGraph.getModulesByFile(normalized)
-            if (!mods || mods.size === 0) {
-              // O(1) lookup via pre-built lowercase index instead of O(N) scan
-              mods = getLowerModuleIndex().get(normalized.toLowerCase()) || null
-            }
-
-            if (mods && mods.size > 0) {
-              for (const mod of mods) {
-                server.moduleGraph.invalidateModule(mod)
-              }
-            } else {
-              server.ws.send({ type: 'full-reload' })
-              return
-            }
-
-            server.ws.send({
-              type: 'custom',
-              event: 'boltdocs:mdx-update',
-              data: { file: normalized, relPath },
-            })
+            sendMdxContentUpdate(file, normalized)
           } catch (e) {
             error('HMR error processing content change:', e)
           }

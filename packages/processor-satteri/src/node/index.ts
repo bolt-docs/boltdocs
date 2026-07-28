@@ -30,7 +30,11 @@ export function createSatteriProcessorPlugin(): SatteriProcessorPlugin {
 }
 
 // Named export for core dynamic import
-export { createSatteriMdxPlugin } from './satteri-mdx-plugin'
+export {
+  createSatteriMdxPlugin,
+  invalidateMdxFileCache,
+  resetMdxRuntimeCaches,
+} from './satteri-mdx-plugin'
 
 // P2-22: Compile pool for parallel MDX compilation
 export { CompilePool } from './compile-pool'

@@ -18,56 +18,129 @@ asíncrono.
 
 | Hook | Firma | Cuándo se ejecuta |
 | :--- | :--- | :--- |
-| `beforeBuild` | `(ctx: PluginContext) => void \| Promise<void>` | Justo antes de que comience la generación de sitio estático (SSG) |
-| `afterBuild` | `(ctx: PluginContext) => void \| Promise<void>` | Inmediatamente después de que un build de producción sea exitoso |
-| `buildEnd` | `(ctx: PluginContext) => void \| Promise<void>` | Al completar el proceso — se ejecuta tanto en éxito como en error |
+| `build:before` | `(ctx: PluginContext) => void \| Promise<void>` | Justo antes de que comience la generación de sitio estático (SSG) |
+| `build:after` | `(ctx: PluginContext) => void \| Promise<void>` | Inmediatamente después de que un build de producción sea exitoso |
+| `build:end` | `(ctx: PluginContext) => void \| Promise<void>` | Al completar el proceso — se ejecuta tanto en éxito como en error |
+| `build:generate` | `(ctx: PluginContext, { routes, outDir, siteUrl? }) => void \| Promise<void>` | Hook post-SSG para generar assets estáticos (sitemaps, RSS, robots.txt, imágenes OG) |
 
 ```ts
-const plugin: BoltdocsPlugin = {
+import { definePlugin } from 'boltdocs'
+
+export default definePlugin({
   name: 'mi-plugin-build',
   hooks: {
-    beforeBuild(ctx) {
+    'build:before'(ctx) {
       ctx.logger.info('Iniciando build...')
     },
-    afterBuild(ctx) {
+    'build:generate'(ctx, { routes, outDir }) {
+      ctx.logger.info(`Generando assets estáticos para ${routes.length} rutas en ${outDir}`)
+    },
+    'build:after'(ctx) {
       ctx.logger.info(`Build completo! ${ctx.routes.length} rutas generadas.`)
     },
-    buildEnd(ctx) {
+    'build:end'(ctx) {
       ctx.logger.info('Proceso finalizado — limpiando...')
     },
   },
-}
+})
 ```
-
-### Cuándo usar cada hook
-
-| Hook | Caso de uso |
-| :--- | :---------- |
-| `beforeBuild` | Registrar módulos virtuales, calentar cachés, validar configuración |
-| `afterBuild` | Generar reportes post-build, copiar assets, subir a CDN |
-| `buildEnd` | Limpiar archivos temporales, vaciar diagnósticos restantes |
 
 ---
 
-## Hooks del ciclo de vida de dev
+## Hooks del Pipeline de Frontmatter & Rutas
+
+| Hook | Firma | Descripción |
+| :--- | :--- | :--- |
+| `frontmatter:transform` | `(ctx, { frontmatter, filePath, rawContent }) => Record<string, unknown> \| void` | Intercepta y enriquece el frontmatter (tiempo de lectura, fecha de actualización, autores, metadata custom). |
+| `routes:resolved` | `(ctx, { routes }) => RouteMeta[] \| void` | Se ejecuta después de escanear, normalizar y ordenar todas las rutas de la documentación. |
+
+```ts
+import { definePlugin } from 'boltdocs'
+
+export default definePlugin({
+  name: 'mi-plugin-metadata',
+  hooks: {
+    'frontmatter:transform'(ctx, { frontmatter, rawContent }) {
+      const words = rawContent.split(/\s+/).length
+      return {
+        ...frontmatter,
+        readingTime: Math.ceil(words / 200),
+        wordCount: words,
+      }
+    },
+    'routes:resolved'(ctx, { routes }) {
+      ctx.logger.info(`Resueltas ${routes.length} rutas en total.`)
+    },
+  },
+})
+```
+
+---
+
+## Hook Contrato de Búsqueda (`search:index`)
+
+| Hook | Firma | Descripción |
+| :--- | :--- | :--- |
+| `search:index` | `(ctx, { documents, routes }) => unknown \| Promise<unknown>` | Hook de índice de búsqueda estandarizado. Recibe `SearchDocument[]` para generar índices de búsqueda (FlexSearch, Pagefind, Algolia, Meilisearch). |
+
+### Interfaz SearchDocument
+
+```ts
+interface SearchDocument {
+  id: string
+  path: string
+  title: string
+  content: string
+  headings: Array<{ level: number; text: string; id: string }>
+  frontmatter: Record<string, unknown>
+  locale?: string
+  version?: string
+}
+```
+
+```ts
+import { definePlugin } from 'boltdocs'
+
+export default definePlugin({
+  name: 'mi-plugin-busqueda',
+  hooks: {
+    'search:index'(ctx, { documents }) {
+      ctx.logger.info(`Indexando ${documents.length} documentos para búsqueda...`)
+      // Compilar índice...
+    },
+  },
+})
+```
+
+---
+
+## Hooks del ciclo de vida de Dev y Servidor
 
 | Hook | Firma | Cuándo se ejecuta |
 | :--- | :--- | :--- |
-| `beforeDev` | `(ctx: PluginContext) => void \| Promise<void>` | Antes de que el dev server comience a escuchar |
-| `afterDev` | `(ctx: PluginContext) => void \| Promise<void>` | Después de que el dev server esté completamente inicializado |
+| `dev:before` | `(ctx: PluginContext) => void \| Promise<void>` | Antes de que el dev server comience a escuchar |
+| `dev:after` | `(ctx: PluginContext) => void \| Promise<void>` | Después de que el dev server esté completamente inicializado |
+| `server:configure` | `(ctx: PluginContext, { server, middleware }) => void \| Promise<void>` | Configura middlewares HTTP y endpoints API en dev y preview |
 
 ```ts
-const plugin: BoltdocsPlugin = {
+import { definePlugin } from 'boltdocs'
+
+export default definePlugin({
   name: 'mi-plugin-dev',
   hooks: {
-    beforeDev(ctx) {
+    'dev:before'(ctx) {
       ctx.logger.info('Iniciando dev server...')
     },
-    afterDev(ctx) {
-      ctx.logger.info('Dev server listo! Abre http://localhost:5173')
+    'server:configure'(ctx, { middleware }) {
+      middleware.useAt('/api/feedback', (req, res) => {
+        res.end(JSON.stringify({ status: 'ok' }))
+      })
+    },
+    'dev:after'(ctx) {
+      ctx.logger.info('Dev server listo!')
     },
   },
-}
+})
 ```
 
 ---
@@ -80,9 +153,9 @@ entrada del siguiente. Se ejecutan en orden `enforce` (`pre` → normal
 
 | Hook | Firma | Cuándo se ejecuta |
 | :--- | :--- | :--- |
-| `transformSource` | `(ctx, { code, filePath, frontmatter? }) => { code, __signal? }` | En el fuente MDX **antes** de la compilación MDX |
-| `transformMdx` | `(ctx, { code, filePath, frontmatter? }) => { code, __signal? }` | En el JavaScript MDX compilado **después** de la compilación |
-| `transformHtml` | `(ctx, { html, path, route? }) => { html, __signal? }` | En el HTML renderizado durante la generación SSG |
+| `transform:source` | `(ctx, { code, filePath, frontmatter? }) => { code, __signal? }` | En el fuente MDX **antes** de la compilación MDX |
+| `transform:mdx` | `(ctx, { code, filePath, frontmatter? }) => { code, __signal? }` | En el JavaScript MDX compilado **después** de la compilación |
+| `transform:html` | `(ctx, { html, path, route? }) => { html, __signal? }` | En el HTML renderizado durante la generación SSG |
 
 ### TransformSourceParams
 
@@ -118,22 +191,24 @@ type TransformResult<T> = T & { __signal?: ChainSignal }
 | `__signal: 'break'` | La cadena se detiene inmediatamente — ningún plugin adicional se ejecuta |
 
 ```ts
-const plugin: BoltdocsPlugin = {
+import { definePlugin } from 'boltdocs'
+
+export default definePlugin({
   name: 'mi-plugin-transform',
   hooks: {
-    async transformSource(ctx, { code, filePath }) {
+    async transformSource(ctx, { code }) {
       const transformed = code
         .replace(/\$\$(.+?)\$\$/gs, '<BlockMath>$1</BlockMath>')
         .replace(/\$(.+?)\$/g, '<Math>$1</Math>')
       return { code: transformed }
     },
-    async transformHtml(ctx, { html, path, route }) {
+    async transformHtml(ctx, { html }) {
       return {
         html: html.replace('</body>', '<footer>© 2026 Mis Docs</footer></body>'),
       }
     },
   },
-}
+})
 ```
 
 ---
@@ -142,11 +217,15 @@ const plugin: BoltdocsPlugin = {
 
 ```text
 beforeBuild / beforeDev
-  → transformSource (cadena: pre → normal → post)
-    → Compilación MDX
-      → transformMdx (cadena: pre → normal → post)
-        → Renderizado HTML (solo SSG)
-          → transformHtml (cadena: pre → normal → post)
+  → frontmatter:transform
+    → routes:resolved
+      → transformSource (cadena: pre → normal → post)
+        → Compilación MDX
+          → transformMdx (cadena: pre → normal → post)
+            → Renderizado HTML (SSG)
+              → transformHtml (cadena: pre → normal → post)
+                → search:index
+                  → build:generate
 afterBuild / afterDev
 buildEnd
 ```
@@ -156,5 +235,7 @@ buildEnd
 ## Ver también
 
 - [PluginContext](/docs/es/api/plugin-api) — objeto de contexto base
+- [definePlugin y Slots de UI](/docs/es/api/plugin-api/#defineplugin--slots-de-ui-del-cliente) — definición de plugins e inyección de slots
 - [Middleware](/docs/es/api/plugin-api/middleware) — pipeline de middleware de transformación
 - [Descripción general del Sistema de Plugins](/docs/es/plugins/) — arquitectura, conceptos, inicio rápido
+

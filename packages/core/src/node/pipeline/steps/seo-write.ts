@@ -22,5 +22,25 @@ export class SEOWriteStep implements PipelineStep<BuildContext> {
 
     const robots = generateRobotsTxt(ctx.config)
     fs.writeFileSync(path.join(targetOutDir, 'robots.txt'), robots, 'utf-8')
+
+    // Execute 'build:generate' asset generation hook across plugins
+    if (ctx.config.plugins && ctx.config.plugins.length > 0) {
+      const { PluginLifecycleManager } = await import(
+        '../../plugins/plugin-lifecycle'
+      )
+      const manager = new PluginLifecycleManager(
+        ctx.config.plugins,
+        ctx.config,
+        ctx.docsDir,
+        ctx.root,
+        ctx.ssgRoutes,
+        targetOutDir,
+      )
+      await manager.runHook('build:generate', {
+        routes: ctx.ssgRoutes,
+        outDir: targetOutDir,
+        siteUrl: ctx.config.siteUrl,
+      })
+    }
   }
 }

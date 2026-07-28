@@ -41,16 +41,10 @@ cli
     return devAction(...args)
   })
 
-cli
-  .command('build [root]', 'Build for production')
-  .option(
-    '--turbo',
-    'Enable experimental turbo mode (faster parser, critical CSS, and more)',
-  )
-  .action(async (...args) => {
-    const { buildAction } = await import('./cli/build')
-    return buildAction(...args)
-  })
+cli.command('build [root]', 'Build for production').action(async (...args) => {
+  const { buildAction } = await import('./cli/build')
+  return buildAction(...args)
+})
 
 cli
   .command('preview [root]', 'Preview production build')

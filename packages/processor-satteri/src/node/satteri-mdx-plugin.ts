@@ -14,6 +14,8 @@ import { MdxCompiler, MDX_PLUGIN_VERSION } from './compiler'
 import type { PoolMetrics } from './compile-pool'
 
 const PRE_COMPILED_CACHE = new Map<string, string>()
+/** Source file mtime when an entry was stored — used to skip stale dev cache. */
+const PRE_COMPILED_SOURCE_MTIME = new Map<string, number>()
 const _precompiledIds = new Set<string>()
 
 /**
@@ -36,6 +38,49 @@ let _activePrecompilePromise: Promise<void> | null = null
 export function resetPrecompileCompleted(): void {
   _precompileCompleted = false
   _activePrecompilePromise = null
+}
+
+function resolveMdxCacheKey(filePath: string): string {
+  return path.resolve(filePath)
+}
+
+function setPrecompiledCache(filePath: string, code: string): void {
+  const key = resolveMdxCacheKey(filePath)
+  PRE_COMPILED_CACHE.set(key, code)
+  try {
+    PRE_COMPILED_SOURCE_MTIME.set(key, fs.statSync(key).mtimeMs)
+  } catch {
+    PRE_COMPILED_SOURCE_MTIME.delete(key)
+  }
+}
+
+function isDevSourceStale(filePath: string): boolean {
+  if (process.env.NODE_ENV === 'production' || process.env.CI) return false
+  const key = resolveMdxCacheKey(filePath)
+  const cachedMtime = PRE_COMPILED_SOURCE_MTIME.get(key)
+  if (cachedMtime === undefined) return false
+  try {
+    return fs.statSync(key).mtimeMs !== cachedMtime
+  } catch {
+    return true
+  }
+}
+
+/** Drop in-memory compiled MDX for a file so the next Vite load recompiles. */
+export function invalidateMdxFileCache(filePath: string): void {
+  const key = resolveMdxCacheKey(filePath)
+  PRE_COMPILED_CACHE.delete(key)
+  PRE_COMPILED_SOURCE_MTIME.delete(key)
+  MANIFEST_CACHE.delete(key)
+  _precompiledIds.delete(key)
+}
+
+/** Clears all in-process MDX compile caches (for tests and dev server restarts). */
+export function resetMdxRuntimeCaches(): void {
+  PRE_COMPILED_CACHE.clear()
+  PRE_COMPILED_SOURCE_MTIME.clear()
+  MANIFEST_CACHE.clear()
+  _precompiledIds.clear()
 }
 
 interface PrecompileManifest {
@@ -522,7 +567,7 @@ export function createSatteriMdxPlugin(
           }
 
           if (compiled) {
-            PRE_COMPILED_CACHE.set(file, compiled)
+            setPrecompiledCache(file, compiled)
           }
         } catch {
           // Pre-compile failed, will compile on-the-fly
@@ -748,7 +793,15 @@ export function createSatteriMdxPlugin(
     // from N (202) to K (8). Each chunk replaces ~25 individual dynamic
     // imports with 1, saving ~4-5s in client build time.
     // For ≤25 pages, keep individual imports (small site, negligible diff).
-    const PAGES_PER_CHUNK = 25
+    const totalFiles = mdxFiles.length
+    const PAGES_PER_CHUNK =
+      totalFiles <= 50
+        ? 25
+        : totalFiles <= 200
+          ? 30
+          : totalFiles <= 500
+            ? 50
+            : 100
 
     // Remove any old chunk files from previous builds
     // (also cleans up files from the old 500-page threshold)
@@ -1019,24 +1072,47 @@ export function createSatteriMdxPlugin(
 
       // 1. Check PRE_COMPILED_CACHE first (fastest — from a previous
       //    on-demand load within the same process).
-      const cached = PRE_COMPILED_CACHE.get(cleanId)
-      if (cached) {
-        _precompiledIds.add(cleanId)
+      const cacheKey = resolveMdxCacheKey(cleanId)
+      const cached = PRE_COMPILED_CACHE.get(cacheKey)
+      if (cached && !isDevSourceStale(cleanId)) {
+        _precompiledIds.add(cacheKey)
         return cached
+      }
+      if (cached) {
+        invalidateMdxFileCache(cleanId)
       }
 
       // 2. PR-03: Lazy-load from MANIFEST_CACHE (avoids pre-populating all
       //    202+ files at once).  Reads the cached outFile on-demand and
       //    stores it in PRE_COMPILED_CACHE for subsequent requests.
-      const manifestEntry = MANIFEST_CACHE.get(cleanId)
+      const manifestEntry = MANIFEST_CACHE.get(cacheKey)
       if (manifestEntry && fs.existsSync(manifestEntry.outFile)) {
-        try {
-          const content = fs.readFileSync(manifestEntry.outFile, 'utf-8')
-          PRE_COMPILED_CACHE.set(cleanId, content)
-          _precompiledIds.add(cleanId)
-          return content
-        } catch {
-          // File vanished between existsSync and readFileSync — fall through
+        let manifestFresh = true
+        if (!(process.env.NODE_ENV === 'production' || process.env.CI)) {
+          try {
+            const sourceMtime = fs.statSync(cleanId).mtimeMs
+            const root = viteResolvedConfig?.root || process.cwd()
+            const diskManifest = readManifest(root, LAST_GLOBAL_KEY)
+            const diskEntry = diskManifest?.[cacheKey]
+            manifestFresh =
+              !!diskEntry &&
+              diskEntry.mtime === sourceMtime &&
+              fs.existsSync(diskEntry.outFile)
+          } catch {
+            manifestFresh = false
+          }
+        }
+        if (manifestFresh) {
+          try {
+            const content = fs.readFileSync(manifestEntry.outFile, 'utf-8')
+            setPrecompiledCache(cleanId, content)
+            _precompiledIds.add(cacheKey)
+            return content
+          } catch {
+            // File vanished between existsSync and readFileSync — fall through
+          }
+        } else {
+          invalidateMdxFileCache(cleanId)
         }
       }
 
@@ -1070,7 +1146,8 @@ export function createSatteriMdxPlugin(
           `[satteri-mdx] Failed to compile ${cleanId}: compiler returned no output`,
         )
       }
-      _precompiledIds.add(cleanId)
+      _precompiledIds.add(resolveMdxCacheKey(cleanId))
+      setPrecompiledCache(cleanId, compiled)
       return compiled
     },
 
@@ -1081,8 +1158,9 @@ export function createSatteriMdxPlugin(
       // where raw MDX reaches transform() is for files NOT in the docs dir
       // (e.g. dynamic imports, virtual modules). Those get compiled here.
       const cleanId = id.split('?')[0]
+      const cacheKey = resolveMdxCacheKey(cleanId)
       let finalCode = code as string
-      if (!_precompiledIds.has(cleanId) && !looksCompiled(finalCode)) {
+      if (!_precompiledIds.has(cacheKey) && !looksCompiled(finalCode)) {
         finalCode = await compiler.compile(finalCode, cleanId)
       }
 
@@ -1120,12 +1198,16 @@ export function createSatteriMdxPlugin(
           if (!manifest) {
             // globalKey mismatch or no manifest — clear everything
             PRE_COMPILED_CACHE.clear()
+            PRE_COMPILED_SOURCE_MTIME.clear()
             MANIFEST_CACHE.clear()
           } else {
             // Same globalKey — only remove entries for files that no longer
             // exist in the manifest (e.g. deleted pages).
             for (const key of PRE_COMPILED_CACHE.keys()) {
-              if (!manifest[key]) PRE_COMPILED_CACHE.delete(key)
+              if (!manifest[key]) {
+                PRE_COMPILED_CACHE.delete(key)
+                PRE_COMPILED_SOURCE_MTIME.delete(key)
+              }
             }
             for (const key of MANIFEST_CACHE.keys()) {
               if (!manifest[key]) MANIFEST_CACHE.delete(key)

@@ -1,6 +1,7 @@
 import { defineConfig } from 'boltdocs'
 import mermaidPlugin from '@bdocs/plugin-mermaid'
 import mathPlugin from '@bdocs/plugin-math'
+import llmsTextPlugin from '@bdocs/plugin-llms-text'
 import rssPlugin from '@bdocs/plugin-rss'
 import tailwindcssPlugin from '@bdocs/plugin-tailwindcss'
 
@@ -16,6 +17,7 @@ export default defineConfig({
   plugins: [
     tailwindcssPlugin(),
     mathPlugin(),
+    llmsTextPlugin(),
     rssPlugin(),
     mermaidPlugin({
       themes: {

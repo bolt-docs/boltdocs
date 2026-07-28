@@ -84,7 +84,7 @@ export function generateEntryCode(
   const prefetchCode = isSSR
     ? ''
     : [
-        "if (typeof window !== 'undefined') {",
+        "if (typeof window !== 'undefined' && import.meta.env.PROD) {",
         '  const prefetchAll = () => {',
         '    const getters = Object.values(mdxModules)',
         '    if (getters.length === 0) return',

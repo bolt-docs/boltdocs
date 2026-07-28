@@ -109,32 +109,33 @@ Un plugin real que cachea una transformación costosa, reporta progreso,
 resuelve una ruta y registra un módulo virtual:
 
 ```ts
-import { createPlugin } from 'boltdocs'
+import { definePlugin } from 'boltdocs'
 
-export default createPlugin({
+export default definePlugin<MisOpciones>((options) => ({
   name: 'mi-plugin-inteligente',
+  client: {
+    slots: {
+      'header:right': './components/HeaderActions.tsx',
+      'search:dialog': './components/SearchModal.tsx',
+    },
+    providers: ['./providers/SearchProvider.tsx'],
+    mdxComponents: { Callout: './components/Callout.tsx' },
+  },
   hooks: {
-    async beforeBuild(ctx) {
-      ctx.virtualModules.add('virtual:mi-plugin/config', () =>
-        JSON.stringify({ mode: 'production' }),
-      )
+    'frontmatter:transform'(ctx, { frontmatter, rawContent }) {
+      return {
+        ...frontmatter,
+        readingTime: Math.ceil(rawContent.split(/\s+/).length / 200),
+      }
     },
-    async transformMdx(ctx, { code, filePath }) {
-      const cache = ctx.caches.memory<string>('mi-plugin', { max: 200 })
-      const cached = cache.get(filePath)
-      if (cached) return { code: cached }
-
-      ctx.diagnostics.report('info', 'TRANSFORM_START', `Transformando ${filePath}`)
-      const transformed = code.replace(/foo/g, 'bar')
-      cache.set(filePath, transformed)
-      return { code: transformed }
+    'search:index'(ctx, { documents }) {
+      ctx.logger.info(`Indexados ${documents.length} documentos de búsqueda.`)
     },
-    afterBuild(ctx) {
-      const diagPath = ctx.paths.resolveDocs('diagnostics.json')
-      ctx.logger.info(`Snapshot de diagnósticos en: ${diagPath}`)
+    'build:generate'(ctx, { routes, outDir }) {
+      ctx.logger.info(`Assets generados para ${routes.length} rutas en ${outDir}.`)
     },
   },
-})
+}))
 ```
 
 ---

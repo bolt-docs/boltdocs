@@ -1,0 +1,424 @@
+---
+title: "Llms-Text"
+sidebarPosition: 7
+description: Genera un archivo `llms.txt` para tu sitio de documentación — un índice estandarizado en texto plano optimizado para LLMs y agentes de IA, construido automáticamente a partir de tus rutas.
+badge: "New"
+---
+
+*El plugin `@bdocs/plugin-llms-text` genera automáticamente un archivo `/llms.txt` para tu sitio de documentación, siguiendo la [especificación llms.txt](https://llmstxt.org). Este índice Markdown estandarizado ayuda a los LLMs y agentes de IA a descubrir y entender tu estructura de documentación de manera eficiente — como un `robots.txt` para asistentes de IA.*
+
+---
+
+## Inicio Rápido
+
+### 1. Instala el paquete
+
+```sh
+pnpm add @bdocs/plugin-llms-text
+```
+
+### 2. Registra el plugin
+
+Añade el plugin al arreglo `plugins` en tu archivo de configuración:
+
+```ts title="boltdocs.config.ts"
+import { defineConfig } from 'boltdocs'
+import llmsTextPlugin from '@bdocs/plugin-llms-text'
+
+export default defineConfig({
+  siteUrl: 'https://my-docs.com',
+  theme: {
+    title: 'Mi Documentación',
+    description: 'Guías completas y referencias de API.',
+  },
+  plugins: [llmsTextPlugin()],
+})
+```
+
+### 3. Compila y accede a tu llms.txt
+
+Después de compilar tu sitio, el archivo está disponible automáticamente:
+
+```sh
+pnpm boltdocs build
+```
+
+```
+# Salida: dist/llms.txt
+```
+
+Accede a él en: `https://my-docs.com/llms.txt`
+
+---
+
+## Conceptos y Arquitectura
+
+### ¿Qué es llms.txt?
+
+La [especificación llms.txt](https://llmstxt.org) (propuesta por Jeremy Howard y Answer.AI) define un archivo Markdown estandarizado en texto plano colocado en la raíz de un sitio web que proporciona un índice curado y legible por máquina de las páginas de documentación. A diferencia de las páginas HTML completas (que son pesadas con navegación, JavaScript y marcado), `llms.txt` es un archivo de texto ligero que los LLMs pueden ingerir eficientemente en su ventana de contexto.
+
+### Cómo Funciona
+
+1. **Recolección de Rutas:** Después de que la compilación SSG se completa, el plugin lee todas las rutas generadas del `PluginContext` — las mismas rutas usadas para generar las páginas de tu sitio.
+
+2. **Agrupación en Secciones:** Las rutas se agrupan en secciones H2 basadas en prefijos de ruta. Por defecto:
+   - Las rutas de documentación principal van bajo `## Documentation`
+   - Las rutas de colección (`/blog/`, `/changelog/`, `/news/`) van bajo `## Optional`
+   - Puedes definir cualquier número de secciones personalizadas
+
+3. **Generación de Enlaces:** Para cada ruta, el plugin genera un enlace Markdown con el título de la página y una breve descripción (de `excerpt` o `description` en el frontmatter):
+   ```
+   - [Título de Página](https://site.com/docs/page): Breve descripción
+   ```
+
+4. **Salida:** El archivo se escribe en el directorio de compilación como `llms.txt`, accesible en `<siteUrl>/llms.txt`.
+
+5. **Descubrimiento:** El plugin inyecta automáticamente una etiqueta `<link rel="llms-txt">` en el `<head>` de tu HTML, haciendo que el archivo sea descubrible por herramientas automatizadas.
+
+### ¿Cuándo se Ejecuta?
+
+| Entorno | Comportamiento |
+| :--- | :--- |
+| **Compilación de producción** (`boltdocs build`) | `llms.txt` siempre se genera |
+| **Desarrollo** (`boltdocs dev`) | `llms.txt` NO se genera (la etiqueta link aún se inyecta) |
+| **CI/CD** | `llms.txt` se genera automáticamente |
+
+Para generar durante el desarrollo, activa `devMode: true`.
+
+---
+
+## Configuración
+
+### Configuración Mínima
+
+El plugin funciona con configuración cero. Lee automáticamente de tu configuración existente:
+
+| Fuente | Usado Para |
+| :--- | :--- |
+| `siteUrl` | URL base para enlaces absolutos en `llms.txt` (requerido — el plugin advierte si falta) |
+| `theme.title` | Título del encabezado H1 (soporta i18n `Record<string, string>`) |
+| `theme.description` | Resumen en blockquote |
+
+### Opciones del Plugin
+
+Todas las opciones son opcionales. Pásalas a la función `llmsTextPlugin()`:
+
+```ts
+llmsTextPlugin({
+  title: 'Mi Proyecto',
+  description: 'Un framework de documentación moderno.',
+  bodyText: 'Patrones clave: React Server Components, Streaming SSR.',
+  sortBy: 'path',
+  sections: [
+    { title: 'Primeros Pasos', pathPrefix: '/docs/getting-started' },
+    { title: 'Referencia API', pathPrefix: '/docs/api', optional: true },
+  ],
+  includePaths: ['/docs', '/blog'],
+  excludePaths: ['/blog/experimental'],
+  maxLinksPerSection: 50,
+  includeDrafts: false,
+  devMode: false,
+  addLinkTag: true,
+  baseUrl: 'https://custom-domain.com',
+})
+```
+
+---
+
+## Referencia de API
+
+### Opciones del Plugin
+
+| Propiedad | Tipo | Por Defecto | Descripción |
+| :--- | :--- | :--- | :--- |
+| **`title`** | `string` | título del sitio | Encabezado H1 para el archivo `llms.txt`. Usa `theme.title` de tu configuración. |
+| **`description`** | `string` | descripción del sitio | Resumen blockquote colocado justo después del H1. |
+| **`bodyText`** | `string` (máx 2000 chars) | `undefined` | Texto Markdown adicional insertado después del blockquote y antes de las secciones H2. Úsalo para instrucciones específicas para LLMs, notas de arquitectura o patrones comunes. |
+| **`sortBy`** | `'path' \| 'title' \| 'sidebarPosition'` | `'sidebarPosition'` | Cómo se ordenan los enlaces dentro de cada sección. |
+| **`sections`** | [`Section[]`](#opciones-de-sección) | auto-generado | Secciones H2 personalizadas. Reemplaza la estructura de secciones por defecto. |
+| **`includePaths`** | `string[]` | todas las rutas | Solo incluye rutas que coincidan con estos prefijos. |
+| **`excludePaths`** | `string[]` | ninguna | Excluye rutas que coincidan con estos prefijos. Se aplica **después** de `includePaths`. |
+| **`maxLinksPerSection`** | `number` (1–500) | ilimitado | Máximo de enlaces por sección. |
+| **`includeDrafts`** | `boolean` | `false` | Si incluir rutas borrador. |
+| **`devMode`** | `boolean` | `false` | Si es `true`, genera `llms.txt` durante `boltdocs dev`. |
+| **`addLinkTag`** | `boolean` | `true` | Si inyectar `<link rel="llms-txt">` en el `<head>` del HTML. |
+| **`baseUrl`** | `string` (URL) | `siteUrl` | URL base alternativa para los enlaces. Útil cuando `siteUrl` difiere de la URL de despliegue. |
+
+### Opciones de Sección
+
+Cada sección en el arreglo `sections` tiene las siguientes propiedades:
+
+| Propiedad | Tipo | Por Defecto | Descripción |
+| :--- | :--- | :--- | :--- |
+| **`title`** | `string` | (requerido) | La etiqueta del encabezado H2 (ej. `'Primeros Pasos'`). |
+| **`pathPrefix`** | `string` | (requerido) | Las rutas que comiencen con este prefijo se incluyen en esta sección (ej. `'/docs/getting-started'`). |
+| **`description`** | `string` (máx 500) | `undefined` | Párrafo opcional colocado justo después del encabezado H2. |
+| **`maxLinks`** | `number` (1–500) | `maxLinksPerSection` | Límite de enlaces por sección. Sobrescribe el `maxLinksPerSection` global. |
+| **`optional`** | `boolean` | `false` | Si es `true`, los enlaces aparecen bajo el encabezado `## Optional`. Las herramientas pueden saltar esta sección para ahorrar espacio en la ventana de contexto. |
+
+### Archivo Generado
+
+El plugin escribe un único archivo en el directorio de compilación:
+
+| Archivo | Ubicación | Descripción |
+| :--- | :--- | :--- |
+| `llms.txt` | `dist/llms.txt` | Índice Markdown estandarizado siguiendo la especificación llms.txt |
+
+### Etiqueta HTML Generada
+
+Cuando `addLinkTag` está activado (por defecto), el plugin inyecta:
+
+```html
+<link rel="llms-txt" href="https://my-docs.com/llms.txt"/>
+```
+
+Esta etiqueta permite que herramientas automatizadas y rastreadores descubran el archivo `llms.txt` programáticamente.
+
+---
+
+## Ejemplos de Uso
+
+### Configuración Básica
+
+```ts
+import { defineConfig } from 'boltdocs'
+import llmsTextPlugin from '@bdocs/plugin-llms-text'
+
+export default defineConfig({
+  siteUrl: 'https://docs.example.com',
+  plugins: [llmsTextPlugin()],
+})
+```
+
+Genera:
+
+```markdown
+# Docs Example
+> Documentación completa para Example Project.
+
+## Documentation
+- [Instalación](https://docs.example.com/docs/installation): Comienza con la instalación.
+- [Configuración](https://docs.example.com/docs/configuration): Configura tu proyecto.
+- [Referencia API](https://docs.example.com/docs/api): Documentación completa de la API.
+```
+
+### Secciones Personalizadas con Optional
+
+Organiza tu documentación en secciones temáticas:
+
+```ts
+llmsTextPlugin({
+  sections: [
+    {
+      title: 'Primeros Pasos',
+      pathPrefix: '/docs/getting-started',
+      description: 'Guías de inicio rápido y tutoriales.',
+    },
+    {
+      title: 'Guías',
+      pathPrefix: '/docs/guides',
+      description: 'Guías detalladas y mejores prácticas.',
+    },
+    {
+      title: 'Referencia API',
+      pathPrefix: '/docs/api',
+    },
+    {
+      title: 'Blog',
+      pathPrefix: '/blog/',
+      description: 'Actualizaciones y anuncios del producto.',
+      optional: true,
+    },
+  ],
+})
+```
+
+### Incluyendo Instrucciones para LLMs
+
+```ts
+llmsTextPlugin({
+  bodyText: `Este proyecto usa React 19 y Vite 7.
+
+Patrones clave:
+- Server Components para obtención de datos
+- Streaming SSR para renderizado progresivo
+- Tailwind CSS v4 para estilos
+
+Al responder preguntas sobre este proyecto, prefiere el patrón \`use()\`
+en lugar de \`useEffect()\` para carga de datos.`,
+})
+```
+
+El `bodyText` aparece después del blockquote y antes de las secciones H2, dándote un área dedicada para instrucciones específicas para LLMs.
+
+### Filtrando Rutas
+
+Incluye solo secciones específicas de tu documentación:
+
+```ts
+llmsTextPlugin({
+  includePaths: ['/docs', '/guides'],
+  excludePaths: ['/docs/experimental', '/guides/legacy'],
+})
+```
+
+### Modo de Desarrollo
+
+```ts
+llmsTextPlugin({
+  devMode: true, // También genera durante `boltdocs dev`
+})
+```
+
+### URL Base Personalizada
+
+```ts
+llmsTextPlugin({
+  baseUrl: 'https://docs.example.com', // Sobrescribe siteUrl para los enlaces de llms.txt
+})
+```
+
+### Límites de Enlaces por Sección
+
+```ts
+llmsTextPlugin({
+  maxLinksPerSection: 20,
+  sections: [
+    {
+      title: 'Core',
+      pathPrefix: '/docs/core',
+      maxLinks: 5, // Sobrescribe el límite global para esta sección
+    },
+    {
+      title: 'Extras',
+      pathPrefix: '/docs/extras',
+      optional: true,
+    },
+  ],
+})
+```
+
+---
+
+## Especificación llms.txt
+
+El archivo generado sigue estrictamente la especificación llms.txt:
+
+```markdown
+# Título del Proyecto
+> Resumen conciso del proyecto.
+
+Instrucciones y contexto opcional para LLMs.
+
+## Nombre de Sección
+- [Título de Página](https://site.com/ruta): Breve descripción.
+- [Otra Página](https://site.com/ruta): Breve descripción.
+
+## Optional
+- [Página Suplementaria](https://site.com/ruta): Notas.
+```
+
+### Reglas de Estructura
+
+| Elemento | Reglas |
+| :--- | :--- |
+| **H1** | Encabezado `#` único — nombre del proyecto. Requerido. |
+| **Blockquote** | `>` — resumen de una línea. Requerido. |
+| **Texto del cuerpo** | Párrafos after blockquote. Opcional. |
+| **Secciones H2** | `##` — etiquetas de sección. Al menos una recomendada. |
+| **Enlaces** | `- [Título](URL): Descripción` — un enlace por línea. |
+| **Optional** | `## Optional` — enlaces suplementarios al final. Las herramientas pueden saltarlos. |
+
+### Mejores Prácticas para Contenido Optimizado para LLMs
+
+1. **Mantén las descripciones concisas** — los LLMs usan las descripciones para decidir si solicitar más contexto. Las descripciones cortas y densas en información ayudan a ahorrar tokens.
+2. **Usa prefijos de ruta consistentes** — agrupa páginas relacionadas para una mejor organización de secciones.
+3. **Añade instrucciones específicas para LLMs en `bodyText`** — informa a la IA sobre convenciones de código, patrones arquitectónicos o errores comunes.
+4. **Coloca contenido suplementario bajo Optional** — páginas secundarias que pueden omitirse cuando la ventana de contexto es limitada.
+5. **Usa `excerpt` en el frontmatter** — `excerpt` tiene prioridad sobre `description` en la línea del enlace, permitiéndote escribir resúmenes optimizados para LLMs separados de la descripción de tu página.
+
+---
+
+## Control de Posición en el Sidebar
+
+Esta página de documentación aparece en la sección de Plugins del sidebar. Puedes controlar su posición cambiando el valor de `sidebarPosition` en el frontmatter de este archivo:
+
+```yaml
+---
+title: "@bdocs/plugin-llms-text"
+sidebarPosition: 7
+---
+```
+
+- **Valores más bajos** mueven la página hacia arriba en el sidebar (aparece antes)
+- **Valores más altos** la mueven hacia abajo (aparece después)
+- La posición por defecto es `999` si no se especifica
+- Los empates se resuelven alfabéticamente por título
+
+Si deseas que la página aparezca en una sección diferente, puedes mover este archivo a otro directorio dentro de `docs/docs/es/`. Por ejemplo, moverlo a `docs/docs/es/(guides)/css/llms-text.mdx` lo colocaría en la sección de guías CSS en lugar de Plugins.
+
+---
+
+## Solución de Problemas
+
+### llms.txt no se genera
+
+- **Verifica `siteUrl`:** El plugin requiere que `siteUrl` esté configurado. Sin él, el plugin registra una advertencia y omite la generación.
+- **Verifica la compilación:** Asegúrate de que la compilación se haya completado con éxito. El hook `afterBuild` solo se ejecuta en compilaciones exitosas.
+- **Verifica el entorno:** Por defecto, el plugin solo genera en producción (`boltdocs build`). Activa `devMode: true` para generar durante el desarrollo.
+
+### La etiqueta link no se inyecta
+
+- **Verifica `addLinkTag`:** Asegúrate de no haber establecido `addLinkTag: false` en las opciones del plugin.
+- **Verifica `siteUrl` o `baseUrl`:** La etiqueta link requiere al menos una fuente de URL. Si ninguna está configurada, la etiqueta se omite.
+
+### Faltan enlaces en las secciones
+
+- **Verifica `includePaths`/`excludePaths`:** Si estableciste filtros, asegúrate de que tus rutas coincidan con los criterios. `excludePaths` se aplica **después** de `includePaths`.
+- **Verifica `maxLinksPerSection`:** Si tu sección tiene un límite de enlaces, algunas rutas pueden omitirse.
+- **Verifica los prefijos de ruta:** Las rutas deben coincidir con el `pathPrefix` de al menos una sección para aparecer.
+
+### Título o descripción incorrectos
+
+El plugin lee de tu configuración en este orden de prioridad:
+
+**Título:** `options.title` → `theme.title` (localizado) → `'Documentation'`
+
+**Descripción:** `options.description` → `theme.description` (localizado) → `''`
+
+Si `theme.title` es un objeto i18n (`{ en: 'Docs', es: 'Documentación' }`), se usa el primer valor del locale.
+
+### Rutas duplicadas entre secciones
+
+Por defecto, el helper `buildDefaultSections()` coloca las rutas de colección (`/blog/`, `/changelog/`, etc.) bajo `## Optional` y todo lo demás bajo `## Documentation`. Las rutas que coinciden con múltiples prefijos de sección pueden aparecer en múltiples secciones. Para evitar duplicados, define secciones personalizadas con valores de `pathPrefix` que no se superpongan.
+
+---
+
+## Referencia de Formato de Archivo
+
+### Ejemplo Completo de Salida
+
+```markdown
+# Boltdocs
+> Un framework de documentación para React/Vite — ligero, rápido y extensible.
+
+Este proyecto usa React 19, Vite 7 y Tailwind CSS v4.
+
+Patrones clave:
+- Server Components para obtención de datos
+- Streaming SSR para renderizado progresivo
+
+## Documentation
+- [Instalación](https://boltdocs.vercel.app/docs/installation): Comienza con Boltdocs.
+- [Configuración](https://boltdocs.vercel.app/docs/configuration): Configura tu proyecto.
+- [Referencia API](https://boltdocs.vercel.app/docs/api): Documentación completa de la API.
+
+## Guides
+- [Theming](https://boltdocs.vercel.app/docs/guides/theming): Personaliza la apariencia de tu sitio.
+- [i18n](https://boltdocs.vercel.app/docs/guides/i18n): Guía de internacionalización.
+- [Deployment](https://boltdocs.vercel.app/docs/guides/deployment): Despliega tu documentación.
+
+## Optional
+- [Anunciando v3](https://boltdocs.vercel.app/blog/v3): Gran actualización con nuevas funciones.
+- [Consejos](https://boltdocs.vercel.app/blog/tips): Patrones de uso avanzados.
+```

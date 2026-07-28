@@ -19,7 +19,7 @@ export const FooterConfigSchema = z.object({
  * Zod schema for MDX configuration.
  */
 export const MdxConfigSchema = z.object({
-  processor: z.enum(['unified', 'satteri']).default('satteri'),
+  processor: z.enum(['satteri']).default('satteri'),
 })
 
 /**
@@ -355,7 +355,7 @@ export const DraftsConfigSchema = z.object({
  * Root Zod schema for Boltdocs project configuration.
  */
 export const BoltdocsConfigSchema = z.object({
-  turbo: z.boolean().default(true),
+  turbo: z.boolean().optional(),
   siteUrl: z.string().url().optional(),
   docsDir: z.string().optional(),
   base: z.string().optional(),

@@ -611,14 +611,124 @@ export interface IPluginLifecycleManager {
 }
 
 /**
+ * Standardized Search Document contract passed to search plugins.
+ */
+export interface SearchDocument {
+  id: string
+  path: string
+  title: string
+  content: string
+  headings: Array<{ level: number; text: string; id: string }>
+  frontmatter: Record<string, unknown>
+  locale?: string
+  version?: string
+}
+
+/**
+ * Agnostic UI slots for component injection.
+ */
+export type BoltdocsUiSlot =
+  | 'search:dialog'
+  | 'header:left'
+  | 'header:right'
+  | 'sidebar:top'
+  | 'sidebar:bottom'
+  | 'page:before'
+  | 'page:after'
+  | 'footer:top'
+  | 'footer:bottom'
+  | (string & {})
+
+export interface PluginHeadEntry {
+  tag: 'script' | 'link' | 'meta' | 'style'
+  attrs?: Record<string, string | boolean>
+  content?: string
+}
+
+/**
+ * Client-side configuration and UI slot injections for plugins.
+ */
+export interface PluginClientConfig {
+  /** Dynamic UI slot registrations (mapped to component file paths) */
+  slots?: Record<string, string>
+  /** Top-level React provider component file paths */
+  providers?: string[]
+  /** MDX component overrides & additions */
+  mdxComponents?: Record<string, string>
+  /** Head elements to inject into rendered HTML */
+  head?: PluginHeadEntry[]
+}
+
+/**
  * Plugin lifecycle hooks with full type safety.
  */
 export interface PluginLifecycleHooks {
+  /** Build hooks (Astro-style) */
+  'build:before'?: (ctx: PluginContext) => Promise<void> | void
+  'build:after'?: (ctx: PluginContext) => Promise<void> | void
+  'build:end'?: (ctx: PluginContext) => Promise<void> | void
+  'build:generate'?: (
+    ctx: PluginContext,
+    params: { routes: RouteMeta[]; outDir: string; siteUrl?: string },
+  ) => void | Promise<void>
+
+  /** Dev hooks (Astro-style) */
+  'dev:before'?: (ctx: PluginContext) => Promise<void> | void
+  'dev:after'?: (ctx: PluginContext) => Promise<void> | void
+
+  /** Transform hooks (Astro-style) */
+  'transform:source'?: (
+    ctx: PluginContext,
+    params: TransformSourceParams,
+  ) =>
+    | TransformResult<{ code: string }>
+    | Promise<TransformResult<{ code: string }>>
+  'transform:mdx'?: (
+    ctx: PluginContext,
+    params: TransformSourceParams,
+  ) =>
+    | TransformResult<{ code: string }>
+    | Promise<TransformResult<{ code: string }>>
+  'transform:html'?: (
+    ctx: PluginContext,
+    params: TransformHtmlParams,
+  ) =>
+    | TransformResult<{ html: string }>
+    | Promise<TransformResult<{ html: string }>>
+
+  /** Dynamic frontmatter transformation hook */
+  'frontmatter:transform'?: (
+    ctx: PluginContext,
+    params: {
+      frontmatter: Record<string, unknown>
+      filePath: string
+      rawContent: string
+    },
+  ) => Record<string, unknown> | Promise<Record<string, unknown>> | void
+
+  /** Fired after routes are crawled, normalized, and resolved */
+  'routes:resolved'?: (
+    ctx: PluginContext,
+    params: { routes: RouteMeta[] },
+  ) => RouteMeta[] | Promise<RouteMeta[]> | void
+
+  /** Agnostic search index hook: core passes SearchDocument[], plugin returns index payload */
+  'search:index'?: (
+    ctx: PluginContext,
+    params: { documents: SearchDocument[]; routes: RouteMeta[] },
+  ) => unknown | Promise<unknown>
+
+  'server:configure'?: (
+    ctx: PluginContext,
+    params: { server: unknown; middleware: PluginServerAPI },
+  ) => void | Promise<void>
+
+  /** Legacy alias hooks for backwards compatibility */
   beforeBuild?: (ctx: PluginContext) => Promise<void> | void
   afterBuild?: (ctx: PluginContext) => Promise<void> | void
+  buildEnd?: (ctx: PluginContext) => Promise<void> | void
   beforeDev?: (ctx: PluginContext) => Promise<void> | void
   afterDev?: (ctx: PluginContext) => Promise<void> | void
-  buildEnd?: (ctx: PluginContext) => Promise<void> | void
   transformSource?: (
     ctx: PluginContext,
     params: TransformSourceParams,
@@ -644,14 +754,14 @@ export interface PluginLifecycleHooks {
  * When `processor` is set to 'satteri', the Sätteri Rust-based compiler is used.
  */
 export interface BoltdocsMdxConfig {
-  processor?: 'unified' | 'satteri'
+  processor?: 'satteri'
 }
 
 /**
  * Defines a Boltdocs plugin.
  *
- * Use the `createPlugin()` helper from the node API for full type safety and
- * access to lifecycle hooks.
+ * Use the `definePlugin()` or `createPlugin()` helper from the node API for full
+ * type safety and access to lifecycle hooks.
  */
 export interface PluginCssConfig {
   cssFiles?: string[]
@@ -669,6 +779,7 @@ export interface BoltdocsPlugin {
   rehypePlugins?: unknown[]
   vitePlugins?: VitePlugin[]
   components?: Record<string, string>
+  client?: PluginClientConfig
   metadata?: Record<string, unknown>
   css?: PluginCssConfig
   middleware?: PluginTransformMiddleware[]

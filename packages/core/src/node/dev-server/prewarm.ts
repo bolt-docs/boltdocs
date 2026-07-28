@@ -33,6 +33,7 @@ export function setupPrewarming(
         .filter((r) => r.filePath)
         .map((r) => r.filePath)
         .sort((a, b) => getRoutePriority(a) - getRoutePriority(b))
+        .slice(0, 20)
 
       for (let i = 0; i < files.length; i += BATCH_SIZE) {
         const batch = files.slice(i, i + BATCH_SIZE)

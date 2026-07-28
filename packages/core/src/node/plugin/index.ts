@@ -309,7 +309,7 @@ export function boltdocsPlugin(
           )
         }
 
-        if (isBuild) await lifecycle?.runHook('beforeBuild')
+        if (isBuild) await lifecycle?.runHook('build:before')
 
         // Build the ssgOptions once and cache it.  The `onPageRendered`
         // callback references the same lifecycle instance for the entire
@@ -587,8 +587,8 @@ export function boltdocsPlugin(
 
       async closeBundle() {
         if (!isBuild || viteConfig?.build?.ssr) return
-        await lifecycle?.runHook('afterBuild')
-        await lifecycle?.runHook('buildEnd')
+        await lifecycle?.runHook('build:after')
+        await lifecycle?.runHook('build:end')
       },
 
       configurePreviewServer(server) {

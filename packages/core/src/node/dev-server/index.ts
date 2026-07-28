@@ -26,8 +26,8 @@ export function createDevServerPlugin(
 
     configureServer(server) {
       const lifecycle = getLifecycle()
-      lifecycle?.runHook('beforeDev').catch((e) => {
-        error('beforeDev hook failed:', e)
+      lifecycle?.runHook('dev:before').catch((e) => {
+        error('dev:before hook failed:', e)
       })
 
       generateLinkTree(docsDir, process.cwd(), getConfig()).catch((e) => {
@@ -49,7 +49,7 @@ export function createDevServerPlugin(
 
       // Fire plugin server start callbacks asynchronously
       runPluginServerStartCallbacks().catch(() => {})
-      lifecycle?.runHook('afterDev').catch(() => {})
+      lifecycle?.runHook('dev:after').catch(() => {})
     },
 
     hotUpdate: createHotUpdateHandler(normalizedDocsDir),

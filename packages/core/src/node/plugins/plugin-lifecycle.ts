@@ -25,6 +25,40 @@ import type {
   IPluginLifecycleManager,
 } from '../../shared/types'
 
+const HOOK_ALIASES: Record<string, string> = {
+  'build:before': 'beforeBuild',
+  'build:after': 'afterBuild',
+  'build:end': 'buildEnd',
+  'dev:before': 'beforeDev',
+  'dev:after': 'afterDev',
+  'transform:source': 'transformSource',
+  'transform:mdx': 'transformMdx',
+  'transform:html': 'transformHtml',
+  beforeBuild: 'build:before',
+  afterBuild: 'build:after',
+  buildEnd: 'build:end',
+  beforeDev: 'dev:before',
+  afterDev: 'dev:after',
+  transformSource: 'transform:source',
+  transformMdx: 'transform:mdx',
+  transformHtml: 'transform:html',
+}
+
+export function resolvePluginHook(
+  plugin: BoltdocsPlugin,
+  hookName: keyof PluginLifecycleHooks | string,
+): Function | undefined {
+  if (!plugin.hooks) return undefined
+  const direct = plugin.hooks[hookName as keyof PluginLifecycleHooks]
+  if (typeof direct === 'function') return direct as Function
+  const alias = HOOK_ALIASES[hookName]
+  if (alias) {
+    const aliasFn = plugin.hooks[alias as keyof PluginLifecycleHooks]
+    if (typeof aliasFn === 'function') return aliasFn as Function
+  }
+  return undefined
+}
+
 export class PluginLifecycleManager implements IPluginLifecycleManager {
   private plugins: BoltdocsPlugin[]
   private config: BoltdocsConfig
@@ -59,7 +93,7 @@ export class PluginLifecycleManager implements IPluginLifecycleManager {
     const pipeline = new Pipeline<Record<string, unknown>>()
 
     for (const plugin of sortedPlugins) {
-      if (!plugin.hooks?.[hookName]) continue
+      if (!resolvePluginHook(plugin, hookName)) continue
 
       pipeline.addStep(this.createStep(plugin, hookName, args))
     }
@@ -75,11 +109,11 @@ export class PluginLifecycleManager implements IPluginLifecycleManager {
     let params = initialParams
 
     for (const plugin of sortedPlugins) {
-      if (!plugin.hooks?.[hookName]) continue
+      const hookFn = resolvePluginHook(plugin, hookName)
+      if (!hookFn) continue
 
       const context = this.createContext(plugin)
       try {
-        const hookFn = plugin.hooks[hookName] as Function
         const result = await hookFn(context, params)
         if (result !== undefined) {
           // Check for chain control signals (backwards-compatible — hooks
@@ -132,11 +166,7 @@ export class PluginLifecycleManager implements IPluginLifecycleManager {
       | 'transformHtml',
   ): boolean {
     // Lifecycle hooks
-    if (
-      this.plugins.some(
-        (p) => p.hooks?.[hookName as keyof PluginLifecycleHooks],
-      )
-    ) {
+    if (this.plugins.some((p) => resolvePluginHook(p, hookName))) {
       return true
     }
 
@@ -234,8 +264,10 @@ export class PluginLifecycleManager implements IPluginLifecycleManager {
       execute: async () => {
         const context = this.createContext(plugin)
         try {
-          const hookFn = plugin.hooks![hookName] as Function
-          await hookFn(context, ...args)
+          const hookFn = resolvePluginHook(plugin, hookName)
+          if (hookFn) {
+            await hookFn(context, ...args)
+          }
         } catch (error) {
           const hookError = new PluginHookError(
             plugin.name,
@@ -246,7 +278,7 @@ export class PluginLifecycleManager implements IPluginLifecycleManager {
         }
       },
       rollback: async () => {
-        const rollbackHook = plugin.hooks?.buildEnd
+        const rollbackHook = resolvePluginHook(plugin, 'build:end')
         if (rollbackHook) {
           const context = this.createContext(plugin)
           try {

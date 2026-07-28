@@ -1,10 +1,8 @@
 ---
-title: UnoCSS Plugin
+title: UnoCSS
 description: Official UnoCSS atomic CSS engine integration plugin for Boltdocs.
-sidebar_position: 4
+sidebarPosition: 4
 ---
-
-# UnoCSS Plugin (`@bdocs/plugin-unocss`)
 
 The `@bdocs/plugin-unocss` plugin provides official integration for **UnoCSS** in Boltdocs, powered by `@unocss/vite`.
 
@@ -35,7 +33,7 @@ export default defineConfig({
 
 Create `uno.config.ts` in your project root:
 
-```ts
+```ts title="boltdocs.config.ts"
 import { defineConfig, presetUno, presetAttributify } from 'unocss'
 
 export default defineConfig({

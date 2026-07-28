@@ -59,6 +59,50 @@ Before 3.3.0, core had hardcoded Tailwind CSS checks. In 3.3.0, **Boltdocs is 10
 
 ---
 
+## 🔌 Next-Gen Decoupled Plugin API (`definePlugin`)
+
+Boltdocs 3.3.0 introduces the **Next-Generation Plugin API**, inspired by Astro's clean integration model. The new API makes creating plugins incredibly intuitive and paves the way for modularizing all core features (Search, Analytics, Feedback, SEO/Sitemaps, UI Primitives) into standalone packages.
+
+### Key Highlights of the New Plugin API:
+
+- 🛠️ **`definePlugin`**: A fluent, type-safe helper with complete TypeScript inference for options and lifecycle hooks.
+- 🎨 **Client UI Slots (`client.slots`)**: Plugins can inject React components into dynamic slots (`'header:right'`, `'search:dialog'`, `'page:after'`, `'footer:bottom'`) without tight coupling to layout packages.
+- ⚛️ **App Providers (`client.providers`)**: Plugins can wrap the root React tree with context providers (`SearchProvider`, `AnalyticsProvider`).
+- 📝 **Frontmatter Transformation (`frontmatter:transform`)**: Intercept and compute custom metadata (`readingTime`, `lastUpdated`, custom author tags) before MDX compilation.
+- 🔎 **Agnostic Search Contract (`search:index`)**: Core passes a standard `SearchDocument[]` array to search plugins, decoupling the core from specific search engines.
+- 📦 **Post-SSG Asset Generation (`build:generate`)**: Post-build hook for sitemaps, RSS feeds, robots.txt, and OG images.
+
+```ts
+import { definePlugin } from 'boltdocs'
+
+export default definePlugin<MyOptions>((options) => ({
+  name: 'my-custom-plugin',
+  client: {
+    slots: {
+      'header:right': './components/HeaderActions.tsx',
+      'search:dialog': './components/SearchModal.tsx',
+    },
+    providers: ['./providers/SearchProvider.tsx'],
+  },
+  hooks: {
+    'frontmatter:transform'(ctx, { frontmatter, rawContent }) {
+      return {
+        ...frontmatter,
+        readingTime: Math.ceil(rawContent.split(/\s+/).length / 200),
+      }
+    },
+    'search:index'(ctx, { documents }) {
+      ctx.logger.info(`Indexed ${documents.length} search documents.`)
+    },
+    'build:generate'(ctx, { routes, outDir }) {
+      ctx.logger.info(`Generated assets for ${routes.length} routes in ${outDir}.`)
+    },
+  },
+}))
+```
+
+---
+
 ## Upgrading to 3.3.0
 
 Upgrade all packages in your monorepo or project:

@@ -1,19 +1,17 @@
 ---
 title: Vanilla CSS
 description: Soporte nativo para Vanilla CSS sin configuración en Boltdocs.
-sidebar_position: 1
+sidebarPosition: 1
 ---
-
-# Vanilla CSS en Boltdocs
 
 Boltdocs es **100% Agnóstico a Frameworks de CSS** por diseño. El núcleo soporta de forma nativa archivos **Vanilla CSS** y **CSS Modules** sin necesidad de configuración ni plugins externos.
 
 ## Características
 
-- 🎨 **Vanilla CSS Sin Configuración**: Importa cualquier archivo `.css` en tus componentes o layout.
-- 📦 **CSS Modules**: Soporte completo para estilos encapsulados `[nombre].module.css`.
-- 🌙 **Tokens de Tema Nativos**: Variables `:root` y tokens de tema oscuro `[data-theme='dark']` / `.dark` incluidos en `base-theme.css`.
-- ⚡ **Extremadamente Rápido**: Potenciado por la empaquetación nativa de CSS de Vite y PostCSS.
+- **Vanilla CSS Sin Configuración**: Importa cualquier archivo `.css` en tus componentes o layout.
+- **CSS Modules**: Soporte completo para estilos encapsulados `[nombre].module.css`.
+- **Tokens de Tema Nativos**: Variables `:root` y tokens de tema oscuro `[data-theme='dark']` / `.dark` incluidos en `base-theme.css`.
+- **Extremadamente Rápido**: Potenciado por la empaquetación nativa de CSS de Vite y PostCSS.
 
 ---
 
@@ -21,8 +19,7 @@ Boltdocs es **100% Agnóstico a Frameworks de CSS** por diseño. El núcleo sopo
 
 Importa tu archivo CSS en tu layout personalizado (`docs/layout.tsx`) o componentes:
 
-```tsx
-// docs/layout.tsx
+```tsx title="docs/layout.tsx"
 import './style.css'
 
 export default function Layout({ children }: { children: React.ReactNode }) {
@@ -32,8 +29,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
 
 ### Ejemplo de CSS Modules
 
-```css
-/* boton.module.css */
+```css title="button.module.css"
 .primaryButton {
   background-color: var(--bdocs-primary);
   color: #ffffff;
@@ -49,9 +45,8 @@ export default function Layout({ children }: { children: React.ReactNode }) {
 }
 ```
 
-```tsx
-// CustomButton.tsx
-import styles from './boton.module.css'
+```tsx title="CustomButton.tsx"
+import styles from './button.module.css'
 
 export function CustomButton({ children }: { children: React.ReactNode }) {
   return <button className={styles.primaryButton}>{children}</button>

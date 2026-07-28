@@ -97,6 +97,9 @@ importers:
 
   docs:
     dependencies:
+      '@bdocs/plugin-llms-text':
+        specifier: workspace:*
+        version: link:../packages/plugin-llms-text
       '@bdocs/plugin-math':
         specifier: workspace:*
         version: link:../packages/plugin-math
@@ -414,6 +417,28 @@ importers:
       vite:
         specifier: ^7.0.0 || ^8.0.0
         version: 8.0.0(@emnapi/core@1.11.2)(@emnapi/runtime@1.11.2)(@types/node@22.0.0)(esbuild@0.25.12)(jiti@2.7.0)(sass-embedded@1.100.0)(sass@1.100.0)(terser@5.46.1)(tsx@4.21.0)(yaml@2.8.3)
+
+  packages/plugin-llms-text:
+    dependencies:
+      zod:
+        specifier: ^4.3.6
+        version: 4.3.6
+    devDependencies:
+      '@types/node':
+        specifier: ^22.0.0
+        version: 22.0.0
+      boltdocs:
+        specifier: workspace:*
+        version: link:../core
+      tsdown:
+        specifier: ^0.21.7
+        version: 0.21.10(oxc-resolver@11.24.2)(synckit@0.11.12)(typescript@5.9.3)
+      typescript:
+        specifier: ^5.9.3
+        version: 5.9.3
+      vitest:
+        specifier: ^3.2.4
+        version: 3.2.4(@edge-runtime/vm@3.2.0)(@types/debug@4.1.13)(@types/node@22.0.0)(@vitest/ui@3.2.4)(jiti@2.7.0)(jsdom@29.0.2)(lightningcss@1.32.0)(sass-embedded@1.100.0)(sass@1.100.0)(terser@5.46.1)(tsx@4.21.0)(yaml@2.8.3)
 
   packages/plugin-math:
     dependencies:

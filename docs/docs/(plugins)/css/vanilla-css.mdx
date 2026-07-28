@@ -1,19 +1,17 @@
 ---
 title: Vanilla CSS
 description: Native, zero-config Vanilla CSS support in Boltdocs core.
-sidebar_position: 1
+sidebarPosition: 1
 ---
-
-# Vanilla CSS in Boltdocs
 
 Boltdocs is **100% CSS-Framework Agnostic** by design. Out of the box, core natively supports standard **Vanilla CSS** files and **CSS Modules** with zero configuration or external plugins required.
 
 ## Features
 
-- 🎨 **Zero-Config Vanilla CSS**: Import any `.css` file in your custom components or layout.
-- 📦 **CSS Modules**: Full support for `[name].module.css` scoped styling.
-- 🌙 **Native Theme Tokens**: Built-in `:root` variables and `[data-theme='dark']` / `.dark` tokens in `base-theme.css`.
-- ⚡ **Lightning Fast**: Powered by Vite's native CSS bundling and PostCSS engine.
+- **Zero-Config Vanilla CSS**: Import any `.css` file in your custom components or layout.
+- **CSS Modules**: Full support for `[name].module.css` scoped styling.
+- **Native Theme Tokens**: Built-in `:root` variables and `[data-theme='dark']` / `.dark` tokens in `base-theme.css`.
+- **Lightning Fast**: Powered by Vite's native CSS bundling and PostCSS engine.
 
 ---
 
@@ -21,8 +19,7 @@ Boltdocs is **100% CSS-Framework Agnostic** by design. Out of the box, core nati
 
 Simply import your CSS file into your custom layout (`docs/layout.tsx`) or custom components:
 
-```tsx
-// docs/layout.tsx
+```tsx title="docs/layout.tsx"
 import './style.css'
 
 export default function Layout({ children }: { children: React.ReactNode }) {
@@ -32,8 +29,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
 
 ### CSS Modules Example
 
-```css
-/* button.module.css */
+```css title="button.module.css"
 .primaryButton {
   background-color: var(--bdocs-primary);
   color: #ffffff;
@@ -49,8 +45,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
 }
 ```
 
-```tsx
-// CustomButton.tsx
+```tsx title="CustomButton.tsx"
 import styles from './button.module.css'
 
 export function CustomButton({ children }: { children: React.ReactNode }) {

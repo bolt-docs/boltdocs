@@ -31,7 +31,6 @@ function createViteConfigCacheKey(
         routeCount: options.routes?.length ?? 0,
         skipTypes: options.skipTypes ?? false,
         skipLinkTree: options.skipLinkTree ?? false,
-        turbo: options.turbo ?? false,
         hasPreResolved: !!preResolvedConfig,
       }),
     )
@@ -46,8 +45,6 @@ export interface CreateViteConfigOptions {
   skipTypes?: boolean
   /** Skip writing the link tree (it was already written elsewhere). */
   skipLinkTree?: boolean
-  /** Enable turbo mode flags. */
-  turbo?: boolean
 }
 
 export default async function boltdocs(

@@ -44,7 +44,6 @@ export class ConfigResolveStep implements PipelineStep<BuildContext> {
       'production',
       ctx.config,
       {
-        turbo: ctx.turbo,
         routes,
         skipTypes: true,
         skipLinkTree: true,

@@ -1,10 +1,8 @@
 ---
-title: Plugin SASS / SCSS
-description: Plugin oficial de preprocesamiento SASS y SCSS para Boltdocs.
-sidebar_position: 3
+title: SASS / SCSS
+description: Plugin de preprocesamiento SASS.
+sidebarPosition: 3
 ---
-
-# Plugin SASS (`@bdocs/plugin-sass`)
 
 El plugin `@bdocs/plugin-sass` añade soporte oficial para archivos `.scss` y `.sass` en Boltdocs mediante la configuración del preprocesador en Vite.
 
@@ -22,7 +20,7 @@ pnpm add -D @bdocs/plugin-sass sass-embedded
 
 Añade el plugin a tu `boltdocs.config.ts`:
 
-```ts
+```ts title="boltdocs.config.ts"
 import { defineConfig } from 'boltdocs'
 import sassPlugin from '@bdocs/plugin-sass'
 
@@ -49,8 +47,7 @@ export default defineConfig({
 
 ## Ejemplo de Componente SCSS
 
-```scss
-// styles/card.module.scss
+```css title="styles/card.module.scss"
 .card {
   background: var(--bdocs-bg-secondary);
   border: 1px solid var(--bdocs-border);

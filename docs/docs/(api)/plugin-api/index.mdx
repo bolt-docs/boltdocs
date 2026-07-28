@@ -108,36 +108,33 @@ A real-world plugin that caches an expensive transform, reports progress,
 resolves a path, and registers a virtual module:
 
 ```ts
-import { createPlugin } from 'boltdocs'
+import { definePlugin } from 'boltdocs'
 
-export default createPlugin({
+export default definePlugin<MyOptions>((options) => ({
   name: 'my-smart-plugin',
+  client: {
+    slots: {
+      'header:right': './components/HeaderActions.tsx',
+      'search:dialog': './components/SearchModal.tsx',
+    },
+    providers: ['./providers/SearchProvider.tsx'],
+    mdxComponents: { Callout: './components/Callout.tsx' },
+  },
   hooks: {
-    async beforeBuild(ctx) {
-      // Register a virtual module for runtime
-      ctx.virtualModules.add('virtual:my-smart-plugin/config', () =>
-        JSON.stringify({ mode: 'production' }),
-      )
+    'frontmatter:transform'(ctx, { frontmatter, rawContent }) {
+      return {
+        ...frontmatter,
+        readingTime: Math.ceil(rawContent.split(/\s+/).length / 200),
+      }
     },
-    async transformMdx(ctx, { code, filePath }) {
-      const cache = ctx.caches.memory<string>('my-smart-plugin', { max: 200 })
-
-      const cached = cache.get(filePath)
-      if (cached) return { code: cached }
-
-      ctx.diagnostics.report('info', 'TRANSFORM_START', `Transforming ${filePath}`)
-
-      const transformed = code.replace(/foo/g, 'bar')
-
-      cache.set(filePath, transformed)
-      return { code: transformed }
+    'search:index'(ctx, { documents }) {
+      ctx.logger.info(`Indexed ${documents.length} search documents.`)
     },
-    afterBuild(ctx) {
-      const diagPath = ctx.paths.resolveDocs('diagnostics.json')
-      ctx.logger.info(`Diagnostics snapshot at: ${diagPath}`)
+    'build:generate'(ctx, { routes, outDir }) {
+      ctx.logger.info(`Generated assets for ${routes.length} routes in ${outDir}.`)
     },
   },
-})
+}))
 ```
 
 ---

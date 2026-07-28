@@ -1,0 +1,39 @@
+{
+  "name": "@bdocs/plugin-llms-text",
+  "version": "0.1.0",
+  "description": "llms.txt generator plugin for Boltdocs — provides AI-optimized documentation indexes for LLMs and AI agents",
+  "publishConfig": {
+    "access": "public"
+  },
+  "files": [
+    "dist"
+  ],
+  "exports": {
+    ".": {
+      "types": "./dist/node/index.d.mts",
+      "import": "./dist/node/index.mjs"
+    }
+  },
+  "scripts": {
+    "build": "tsdown --config-loader unrun",
+    "dev": "tsdown --watch --config-loader unrun",
+    "test": "vitest run"
+  },
+  "packageManager": "pnpm@10.30.2",
+  "author": "Jesus Alcala",
+  "license": "MIT",
+  "type": "module",
+  "dependencies": {
+    "zod": "^4.3.6"
+  },
+  "peerDependencies": {
+    "boltdocs": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "boltdocs": "workspace:*",
+    "tsdown": "^0.21.7",
+    "typescript": "^5.9.3",
+    "vitest": "^3.2.4"
+  }
+}
