@@ -24,9 +24,11 @@ export function createDevServerPlugin(
     name: 'vite-plugin-boltdocs-dev-server',
     apply: 'serve',
 
-    async configureServer(server) {
+    configureServer(server) {
       const lifecycle = getLifecycle()
-      await lifecycle?.runHook('beforeDev')
+      lifecycle?.runHook('beforeDev').catch((e) => {
+        error('beforeDev hook failed:', e)
+      })
 
       generateLinkTree(docsDir, process.cwd(), getConfig()).catch((e) => {
         error('Failed to generate initial link tree:', e)
@@ -45,10 +47,9 @@ export function createDevServerPlugin(
       // Apply plugin-registered server middleware (ctx.server.use())
       applyPluginServerMiddleware(server)
 
-      // Fire plugin server start callbacks (ctx.server.onStart())
-      await runPluginServerStartCallbacks()
-
-      await lifecycle?.runHook('afterDev')
+      // Fire plugin server start callbacks asynchronously
+      runPluginServerStartCallbacks().catch(() => {})
+      lifecycle?.runHook('afterDev').catch(() => {})
     },
 
     hotUpdate: createHotUpdateHandler(normalizedDocsDir),

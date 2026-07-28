@@ -6,11 +6,19 @@ import {
   PluginValidationError,
   PluginCompatibilityError,
 } from './plugin-errors'
-import type { SecureBoltdocsPlugin } from './plugin-types'
+import type { BoltdocsPlugin } from './plugin-types'
 
-const SecurePluginSchema = BoltdocsPluginSchema.extend({
+const PluginValidationSchema = BoltdocsPluginSchema.extend({
   version: z.string().optional(),
   boltdocsVersion: z.string().optional(),
+  css: z
+    .object({
+      cssFiles: z.array(z.string()).optional(),
+      headStyles: z.array(z.string()).optional(),
+      postcssPlugins: z.array(z.any()).optional(),
+      preprocessorOptions: z.record(z.any()).optional(),
+    })
+    .optional(),
   hooks: z
     .object({
       beforeBuild: z.function().optional(),
@@ -28,12 +36,12 @@ const SecurePluginSchema = BoltdocsPluginSchema.extend({
 export function validatePlugins(
   plugins: any[],
   boltdocsVersion: string,
-): SecureBoltdocsPlugin[] {
-  const validatedPlugins: SecureBoltdocsPlugin[] = []
+): BoltdocsPlugin[] {
+  const validatedPlugins: BoltdocsPlugin[] = []
   const pluginNames = new Set<string>()
 
   for (const rawPlugin of plugins) {
-    const result = SecurePluginSchema.safeParse(rawPlugin)
+    const result = PluginValidationSchema.safeParse(rawPlugin)
     if (!result.success) {
       throw new PluginValidationError(
         rawPlugin.name || 'unknown',
@@ -43,7 +51,7 @@ export function validatePlugins(
       )
     }
 
-    const plugin = result.data as SecureBoltdocsPlugin
+    const plugin = result.data as BoltdocsPlugin
 
     if (pluginNames.has(plugin.name)) {
       throw new PluginValidationError(

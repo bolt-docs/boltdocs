@@ -1,0 +1,59 @@
+---
+title: UnoCSS Plugin
+description: Official UnoCSS atomic CSS engine integration plugin for Boltdocs.
+sidebar_position: 4
+---
+
+# UnoCSS Plugin (`@bdocs/plugin-unocss`)
+
+The `@bdocs/plugin-unocss` plugin provides official integration for **UnoCSS** in Boltdocs, powered by `@unocss/vite`.
+
+## Installation
+
+Install `@bdocs/plugin-unocss` and `unocss`:
+
+```bash
+pnpm add -D @bdocs/plugin-unocss unocss
+```
+
+---
+
+## Configuration
+
+Add the plugin to your `boltdocs.config.ts`:
+
+```ts
+import { defineConfig } from 'boltdocs'
+import unocssPlugin from '@bdocs/plugin-unocss'
+
+export default defineConfig({
+  plugins: [
+    unocssPlugin(),
+  ],
+})
+```
+
+Create `uno.config.ts` in your project root:
+
+```ts
+import { defineConfig, presetUno, presetAttributify } from 'unocss'
+
+export default defineConfig({
+  presets: [
+    presetUno(),
+    presetAttributify(),
+  ],
+})
+```
+
+---
+
+## Usage
+
+Import `virtual:uno.css` in your custom layout or style file:
+
+```tsx
+import 'virtual:uno.css'
+```
+
+Now all UnoCSS utility classes and attributify attributes are generated instantly on-demand!

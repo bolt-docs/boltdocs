@@ -1,0 +1,78 @@
+/**
+ * Boltdocs Base Vanilla CSS Theme
+ * Natively provides root color tokens, typography, glassmorphism, and dark mode
+ * support out-of-the-box for Vanilla CSS projects without requiring external frameworks.
+ */
+
+:root {
+  --bdocs-font-family:
+    -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu,
+    Cantarell, "Open Sans", "Helvetica Neue", sans-serif;
+  --bdocs-font-mono:
+    ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono",
+    "Courier New", monospace;
+
+  /* Light Theme Tokens */
+  --bdocs-bg: #ffffff;
+  --bdocs-bg-secondary: #f8fafc;
+  --bdocs-bg-elevated: #f1f5f9;
+  --bdocs-text: #0f172a;
+  --bdocs-text-muted: #64748b;
+  --bdocs-border: #e2e8f0;
+  --bdocs-primary: #2563eb;
+  --bdocs-primary-hover: #1d4ed8;
+  --bdocs-primary-bg: #eff6ff;
+  --bdocs-accent: #0284c7;
+
+  /* Glassmorphism */
+  --bdocs-glass-bg: rgba(255, 255, 255, 0.8);
+  --bdocs-glass-border: rgba(226, 232, 240, 0.6);
+  --bdocs-glass-blur: blur(12px);
+
+  /* Layout Dimensions */
+  --bdocs-navbar-height: 3.5rem;
+  --bdocs-sidebar-width: 16.5rem;
+  --bdocs-toc-width: 14rem;
+}
+
+[data-theme="dark"],
+.dark {
+  /* Dark Theme Tokens */
+  --bdocs-bg: #0b0f19;
+  --bdocs-bg-secondary: #111827;
+  --bdocs-bg-elevated: #1f2937;
+  --bdocs-text: #f8fafc;
+  --bdocs-text-muted: #94a3b8;
+  --bdocs-border: #1e293b;
+  --bdocs-primary: #3b82f6;
+  --bdocs-primary-hover: #60a5fa;
+  --bdocs-primary-bg: rgba(59, 130, 246, 0.1);
+  --bdocs-accent: #38bdf8;
+
+  /* Glassmorphism Dark */
+  --bdocs-glass-bg: rgba(11, 15, 25, 0.8);
+  --bdocs-glass-border: rgba(30, 41, 59, 0.6);
+}
+
+/* Base Body Styles */
+body {
+  font-family: var(--bdocs-font-family);
+  background-color: var(--bdocs-bg);
+  color: var(--bdocs-text);
+  margin: 0;
+  padding: 0;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Standard Code Block Styles */
+code,
+pre {
+  font-family: var(--bdocs-font-mono);
+}
+
+/* Selection */
+::selection {
+  background-color: var(--bdocs-primary-bg);
+  color: var(--bdocs-primary);
+}

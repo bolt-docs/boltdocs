@@ -10,9 +10,18 @@ const WORKSPACE_ROOT = path.resolve(__dirname, '..', '..')
 const TEMP_ROOT = path.resolve(WORKSPACE_ROOT, '.benchmark-temp')
 const BOLTDOCS_DIR = path.resolve(TEMP_ROOT, 'boltdocs')
 const DOCUSAURUS_DIR = path.resolve(TEMP_ROOT, 'docusaurus')
-// P2-00: Add --quick flag for fast iteration (skip install if node_modules exists)
-const IS_QUICK = process.argv.includes('--quick')
-const PAGE_COUNT = Number(process.env.PAGE_COUNT) || 10000
+const args = process.argv.slice(2)
+function getArgValue(flag: string): string | null {
+  const index = args.indexOf(flag)
+  return index !== -1 && args[index + 1] ? args[index + 1] : null
+}
+const pagesArg = getArgValue('--pages')
+const PAGE_COUNT = pagesArg
+  ? Number(pagesArg)
+  : Number(process.env.PAGE_COUNT) || 100
+const IS_COMPLEX =
+  args.includes('--complex') || process.env.COMPLEX_MDX === 'true'
+const IS_QUICK = args.includes('--quick')
 
 // Pack local boltdocs packages into tarballs so the sandbox can use them
 function packLocalBoltdocs(): string {
@@ -21,10 +30,11 @@ function packLocalBoltdocs(): string {
     fs.mkdirSync(packDir, { recursive: true })
   }
 
-  // Pack core + ssg + unist-utils (the minimum set boltdocs needs)
+  // Pack core + ssg + processor-satteri + unist-utils
   const packages = [
     { dir: 'packages/core', name: 'boltdocs' },
     { dir: 'packages/plugin-ssg', name: '@bdocs-ssg' },
+    { dir: 'packages/processor-satteri', name: '@bdocs-processor-satteri' },
     { dir: 'packages/unist-utils', name: '@bdocs-unist-utils' },
   ]
 
@@ -97,16 +107,24 @@ function setupSandbox() {
   fs.mkdirSync(DOCUSAURUS_DIR, { recursive: true })
 }
 
-// Generate identical markdown files for both
+// Generate test markdown pages
 function generateMarkdownPages() {
-  console.log(`Generating ${PAGE_COUNT} Markdown pages...`)
+  console.log(
+    `Generating ${PAGE_COUNT} Markdown pages (Complex Mode: ${IS_COMPLEX})...`,
+  )
+
   const boltdocsDocs = path.join(BOLTDOCS_DIR, 'docs')
   const docusaurusDocs = path.join(DOCUSAURUS_DIR, 'docs')
+
+  if (fs.existsSync(boltdocsDocs))
+    fs.rmSync(boltdocsDocs, { recursive: true, force: true })
+  if (fs.existsSync(docusaurusDocs))
+    fs.rmSync(docusaurusDocs, { recursive: true, force: true })
 
   fs.mkdirSync(boltdocsDocs, { recursive: true })
   fs.mkdirSync(docusaurusDocs, { recursive: true })
 
-  // Write index.md
+  // Write homepage
   const indexContent = `---
 title: Welcome
 sidebar_label: Welcome
@@ -120,7 +138,155 @@ This is the homepage of the benchmarking docs site.
 
   // Write pages
   for (let i = 1; i <= PAGE_COUNT; i++) {
-    const content = `---
+    const ext = 'md'
+    let content = ''
+
+    if (IS_COMPLEX) {
+      content = `---
+title: "Hard Benchmark Page ${i} - Architecture & Deep Systems Analysis"
+sidebar_label: "Page ${i}"
+tags:
+  - benchmark
+  - performance
+  - mdx-complex
+  - stress-test
+summary: "Heavy synthetic MDX test page ${i} with multi-language code blocks, tables, math equations, and AST structures."
+author: "Antigravity Engineering"
+date: "2026-07-28"
+sidebar_position: ${i}
+---
+
+# Hard Benchmark Page ${i}: Distributed Systems & AST Pipeline Architecture
+
+Welcome to **Page ${i}**. This is an advanced synthetic MDX test page engineered to stress-test MDX compilation, syntax highlighting, AST parsing, and HTML rendering throughput across monorepo engines.
+
+## 1. Executive Summary
+
+- **Target Identifier:** Page-${i}
+- **Complexity Tier:** Hard / Multi-Language AST
+- **Evaluation Criteria:** Cold Build, Incremental HMR, Worker Pool Distribution
+
+> "High-performance documentation engines must maintain sub-second incremental rebuilds and memory efficiency regardless of document size or AST depth."
+
+---
+
+## 2. Advanced Technical Benchmarks & Data Table
+
+| Feature Set | Specification | Measured Latency | Throughput Limit | Status |
+| :--- | :--- | :--- | :--- | :--- |
+| Sätteri Precompile | Rust/WASM AST Pipeline | < 1.2 ms/file | > 800 files/sec | **OPTIMIZED** |
+| SSG Worker Pool | Piscina Multi-threading | < 15 ms/page | > 60 pages/sec | **ACTIVE** |
+| Client Hydration | React 19 Streaming | < 45 ms TTL | 120 FPS | **VERIFIED** |
+| MDX AST Parsing | Oxc Parser & Codegen | ~0.8 ms | 1200 ops/sec | **PASSED** |
+
+---
+
+## 3. Polyglot Code Implementation Samples
+
+### 3.1 Rust Engine Architecture
+\`\`\`rust
+use std::sync::Arc;
+use tokio::sync::Mutex;
+
+#[derive(Debug, Clone)]
+pub struct BenchmarkNode<T> {
+    pub id: u64,
+    pub payload: T,
+    pub checksum: String,
+}
+
+impl<T> BenchmarkNode<T> {
+    pub fn new(id: u64, payload: T) -> Self {
+        let checksum = format!("sha256-node-{}-{}", id, std::mem::size_of::<T>());
+        Self { id, payload, checksum }
+    }
+
+    pub async fn process_async(&self) -> Result<(), String> {
+        tokio::time::sleep(tokio::time::Duration::from_micros(50)).await;
+        Ok(())
+    }
+}
+\`\`\`
+
+### 3.2 TypeScript / React Integration
+\`\`\`tsx
+import React, { useState, useEffect, useTransition } from 'react'
+
+export interface PageProps {
+  id: number
+  title: string
+  tags: string[]
+}
+
+export const BenchmarkComponent: React.FC<PageProps> = ({ id, title, tags }) => {
+  const [isPending, startTransition] = useTransition()
+  const [count, setCount] = useState<number>(id * 42)
+
+  useEffect(() => {
+    startTransition(() => {
+      setCount((prev) => prev + 1)
+    })
+  }, [id])
+
+  return (
+    <div className="benchmark-card border p-4 rounded-lg shadow-md">
+      <h3 className="text-xl font-bold">Synthetic Card Page ${i}</h3>
+      <p className="text-sm text-gray-500">Node ID: ${i} | State: Active</p>
+    </div>
+  )
+}
+\`\`\`
+
+### 3.3 Python Data Science Pipeline
+\`\`\`python
+import math
+import numpy as np
+
+def calculate_benchmark_matrix(size: int = 1000) -> dict:
+    matrix = np.random.rand(size, size)
+    eigenvalues = np.linalg.eigvals(matrix[:100, :100])
+    return {
+        "mean": float(np.mean(matrix)),
+        "std": float(np.std(matrix)),
+        "max_eigen": float(np.max(np.abs(eigenvalues)))
+    }
+
+if __name__ == "__main__":
+    results = calculate_benchmark_matrix(${i})
+    print(f"Page ${i} Benchmark Result: {results}")
+\`\`\`
+
+---
+
+## 4. Mathematical Formulations & Theoretical Limits
+
+The theoretical render latency T_render for a documentation site with N pages and W worker threads is modeled by:
+
+T_render(N, W) = T_init + (N / W) * (T_AST + T_React + T_HTML)
+
+Where the Gaussian distribution of AST parsing latency follows:
+
+f(x) = (1 / (sigma * sqrt(2 * pi))) * exp(-0.5 * ((x - mu) / sigma)^2)
+
+---
+
+## 5. Structural Markup & Deep AST Hierarchies
+
+<details>
+  <summary>Click to view raw AST Metadata and System Flags for Page ${i}</summary>
+  <div className="p-4 bg-gray-900 text-green-400 font-mono text-xs rounded">
+    Page metadata node ID: ${i} | Benchmark Tier: Heavy AST
+  </div>
+</details>
+
+- Item ${i}.1: Core parser initialized
+  - Sub-item ${i}.1.1: Tokenizer completed
+    - Leaf ${i}.1.1.1: Syntax tree validated
+- Item ${i}.2: Virtual module resolved
+- Item ${i}.3: Static Site Generation complete
+`
+    } else {
+      content = `---
 title: Benchmarking Page ${i}
 sidebar_label: Page ${i}
 tags:
@@ -178,10 +344,14 @@ Some additional paragraph text to increase content size and AST depth.
 - [Vite](https://vitejs.dev)
 - [Boltdocs](https://boltdocs.vercel.app)
 `
-    fs.writeFileSync(path.join(boltdocsDocs, `page-${i}.md`), content)
-    fs.writeFileSync(path.join(docusaurusDocs, `page-${i}.md`), content)
+    }
+
+    fs.writeFileSync(path.join(boltdocsDocs, `page-${i}.${ext}`), content)
+    fs.writeFileSync(path.join(docusaurusDocs, `page-${i}.${ext}`), content)
   }
-  console.log('✅ Pages generated successfully.')
+  console.log(
+    `✅ ${PAGE_COUNT} ${IS_COMPLEX ? 'Complex MDX' : 'Standard MD'} pages generated successfully.`,
+  )
 }
 
 // Set up minimal configuration files

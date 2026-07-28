@@ -1,0 +1,91 @@
+---
+title: Vanilla CSS
+description: Native, zero-config Vanilla CSS support in Boltdocs core.
+sidebar_position: 1
+---
+
+# Vanilla CSS in Boltdocs
+
+Boltdocs is **100% CSS-Framework Agnostic** by design. Out of the box, core natively supports standard **Vanilla CSS** files and **CSS Modules** with zero configuration or external plugins required.
+
+## Features
+
+- 🎨 **Zero-Config Vanilla CSS**: Import any `.css` file in your custom components or layout.
+- 📦 **CSS Modules**: Full support for `[name].module.css` scoped styling.
+- 🌙 **Native Theme Tokens**: Built-in `:root` variables and `[data-theme='dark']` / `.dark` tokens in `base-theme.css`.
+- ⚡ **Lightning Fast**: Powered by Vite's native CSS bundling and PostCSS engine.
+
+---
+
+## Basic Usage
+
+Simply import your CSS file into your custom layout (`docs/layout.tsx`) or custom components:
+
+```tsx
+// docs/layout.tsx
+import './style.css'
+
+export default function Layout({ children }: { children: React.ReactNode }) {
+  return <div className="custom-container">{children}</div>
+}
+```
+
+### CSS Modules Example
+
+```css
+/* button.module.css */
+.primaryButton {
+  background-color: var(--bdocs-primary);
+  color: #ffffff;
+  padding: 0.5rem 1rem;
+  border-radius: 0.375rem;
+  border: none;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.primaryButton:hover {
+  background-color: var(--bdocs-primary-hover);
+}
+```
+
+```tsx
+// CustomButton.tsx
+import styles from './button.module.css'
+
+export function CustomButton({ children }: { children: React.ReactNode }) {
+  return <button className={styles.primaryButton}>{children}</button>
+}
+```
+
+---
+
+## Core CSS Custom Properties
+
+Boltdocs provides standard CSS custom properties out of the box in `base-theme.css`:
+
+```css
+:root {
+  --bdocs-font-family: system-ui, sans-serif;
+  --bdocs-font-mono: ui-monospace, monospace;
+
+  --bdocs-bg: #ffffff;
+  --bdocs-bg-secondary: #f8fafc;
+  --bdocs-text: #0f172a;
+  --bdocs-text-muted: #64748b;
+  --bdocs-border: #e2e8f0;
+  --bdocs-primary: #2563eb;
+  --bdocs-primary-hover: #1d4ed8;
+}
+
+[data-theme='dark'],
+.dark {
+  --bdocs-bg: #0b0f19;
+  --bdocs-bg-secondary: #111827;
+  --bdocs-text: #f8fafc;
+  --bdocs-text-muted: #94a3b8;
+  --bdocs-border: #1e293b;
+  --bdocs-primary: #3b82f6;
+  --bdocs-primary-hover: #60a5fa;
+}
+```

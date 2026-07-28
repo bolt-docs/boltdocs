@@ -1,0 +1,50 @@
+---
+title: Plugin Tailwind CSS
+description: Plugin oficial de integración de Tailwind CSS v4 para Boltdocs.
+sidebar_position: 2
+---
+
+# Plugin Tailwind CSS (`@bdocs/plugin-tailwindcss`)
+
+El plugin `@bdocs/plugin-tailwindcss` ofrece integración oficial para **Tailwind CSS v4** en Boltdocs mediante `@tailwindcss/vite`.
+
+## Instalación
+
+Instala `@bdocs/plugin-tailwindcss` y `tailwindcss`:
+
+```bash
+pnpm add -D @bdocs/plugin-tailwindcss tailwindcss
+```
+
+---
+
+## Configuración
+
+Añade el plugin a tu `boltdocs.config.ts`:
+
+```ts
+import { defineConfig } from 'boltdocs'
+import tailwindcssPlugin from '@bdocs/plugin-tailwindcss'
+
+export default defineConfig({
+  plugins: [
+    tailwindcssPlugin(),
+  ],
+})
+```
+
+---
+
+## Uso en CSS
+
+En tu archivo CSS (por ejemplo, `docs/index.css`), añade la directiva de Tailwind v4:
+
+```css
+@import "tailwindcss";
+
+@theme {
+  --color-brand: #2563eb;
+}
+```
+
+¡Ahora las clases de utilidad como `bg-brand`, `text-slate-900`, `dark:bg-slate-950`, `flex` y `grid` están listas para usarse en tus páginas MDX y componentes!

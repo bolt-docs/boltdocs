@@ -10,7 +10,7 @@ import { resolveConfig, type BoltdocsConfig } from '../config'
 import { generateProjectTypes, writeLinkTree } from '../types-generator'
 import { normalizePath } from '../utils'
 import { injectHtmlMeta } from './html'
-import { validatePlugins, type SecureBoltdocsPlugin } from '../plugins'
+import { validatePlugins, type BoltdocsPlugin } from '../plugins'
 import { PluginLifecycleManager } from '../plugins/plugin-lifecycle'
 import type { IPluginLifecycleManager } from '../../shared/types'
 import { createVirtualModulesPlugin } from './virtual-modules'
@@ -133,7 +133,7 @@ function _getBoltdocsVersion(): string {
 // this avoids duplicating the ~500ms validation work.
 const _pluginValidationCache = new Map<
   string,
-  { validated: SecureBoltdocsPlugin[] }
+  { validated: BoltdocsPlugin[] }
 >()
 
 // Cache for SSR external resolution — pre-resolves once, serves per-import cache hits
@@ -292,7 +292,7 @@ export function boltdocsPlugin(
         if (!lifecycle) {
           const { version } = await import('../../../package.json')
           const validated = validatePlugins(
-            config.plugins || ([] as SecureBoltdocsPlugin[]),
+            config.plugins || ([] as BoltdocsPlugin[]),
             version,
           )
           config.plugins = validated as any

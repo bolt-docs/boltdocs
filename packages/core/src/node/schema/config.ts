@@ -36,6 +36,14 @@ export const BoltdocsPluginSchema = z.object({
   vitePlugins: z.array(z.unknown()).optional(),
   components: z.record(z.string(), z.string()).optional(),
   metadata: z.record(z.string(), z.unknown()).optional(),
+  css: z
+    .object({
+      cssFiles: z.array(z.string()).optional(),
+      headStyles: z.array(z.string()).optional(),
+      postcssPlugins: z.array(z.unknown()).optional(),
+      preprocessorOptions: z.record(z.string(), z.unknown()).optional(),
+    })
+    .optional(),
   middleware: z
     .array(
       z

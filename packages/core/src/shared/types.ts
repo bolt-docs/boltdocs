@@ -653,6 +653,13 @@ export interface BoltdocsMdxConfig {
  * Use the `createPlugin()` helper from the node API for full type safety and
  * access to lifecycle hooks.
  */
+export interface PluginCssConfig {
+  cssFiles?: string[]
+  headStyles?: string[]
+  postcssPlugins?: unknown[]
+  preprocessorOptions?: Record<string, unknown>
+}
+
 export interface BoltdocsPlugin {
   name: string
   enforce?: 'pre' | 'post'
@@ -662,11 +669,9 @@ export interface BoltdocsPlugin {
   rehypePlugins?: unknown[]
   vitePlugins?: VitePlugin[]
   components?: Record<string, string>
-  /** Optional runtime metadata exposed to client via useConfig().plugins[].metadata */
   metadata?: Record<string, unknown>
-  /** Declarative transform middleware entries. */
+  css?: PluginCssConfig
   middleware?: PluginTransformMiddleware[]
-  /** Lifecycle hooks with full type safety */
   hooks?: PluginLifecycleHooks
 }
 

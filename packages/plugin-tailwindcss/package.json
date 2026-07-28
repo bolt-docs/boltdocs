@@ -1,0 +1,35 @@
+{
+  "name": "@bdocs/plugin-tailwindcss",
+  "version": "1.0.0",
+  "description": "Tailwind CSS v4 plugin for Boltdocs",
+  "main": "./dist/node/index.mjs",
+  "module": "./dist/node/index.mjs",
+  "types": "./dist/node/index.d.mts",
+  "exports": {
+    ".": {
+      "types": "./dist/node/index.d.mts",
+      "import": "./dist/node/index.mjs"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsdown --config-loader unrun",
+    "dev": "tsdown --watch --config-loader unrun"
+  },
+  "dependencies": {
+    "@tailwindcss/vite": "^4.0.0",
+    "tailwindcss": "^4.0.0"
+  },
+  "peerDependencies": {
+    "boltdocs": "workspace:*",
+    "vite": "^7.0.0 || ^8.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "boltdocs": "workspace:*",
+    "tsdown": "^0.21.7",
+    "typescript": "^5.9.3"
+  }
+}

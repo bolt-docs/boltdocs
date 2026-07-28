@@ -117,43 +117,13 @@ export async function createViteConfig(
   // cold call, since @vitejs/plugin-react pulls in Babel and
   // @tailwindcss/vite pulls in the Tailwind CSS engine).
   let _reactPlugin: any = null
-  let _tailwindPlugin: any = null
   let _boltdocsPlugin: any = null
   let _getExternalAbsolutePaths: any = null
   let _SECURITY_HEADERS: Record<string, string> | null = null
   let _normalizePath: any = null
-  let _usesTailwind = false
 
   async function ensureImports() {
     if (_normalizePath) return
-    _usesTailwind = (function checkUsesTailwind() {
-      try {
-        const cssCandidates = [
-          path.join(root, 'index.css'),
-          path.join(root, 'docs', 'index.css'),
-          path.join(root, 'src', 'index.css'),
-        ]
-        for (const file of cssCandidates) {
-          if (fs.existsSync(file)) {
-            const content = fs.readFileSync(file, 'utf-8')
-            if (
-              content.includes('tailwindcss') ||
-              content.includes('@import "tailwindcss"') ||
-              content.includes('@tailwind')
-            ) {
-              return true
-            }
-          }
-        }
-        if (
-          fs.existsSync(path.join(root, 'tailwind.config.js')) ||
-          fs.existsSync(path.join(root, 'tailwind.config.ts'))
-        ) {
-          return true
-        }
-      } catch {}
-      return false
-    })()
 
     const importPromises: Promise<any>[] = [
       import('@vitejs/plugin-react'),
@@ -162,19 +132,12 @@ export async function createViteConfig(
       import('vite').then((m) => ({ normalizePath: m.normalizePath })),
     ]
 
-    if (_usesTailwind) {
-      importPromises.push(import('@tailwindcss/vite'))
-    }
-
     const results = await Promise.all(importPromises)
     _reactPlugin = results[0].default
     _boltdocsPlugin = results[1].boltdocsPlugin
     _getExternalAbsolutePaths = results[1].getExternalAbsolutePaths
     _SECURITY_HEADERS = results[2].SECURITY_HEADERS
     _normalizePath = results[3].normalizePath
-    if (_usesTailwind) {
-      _tailwindPlugin = results[4].default
-    }
   }
 
   // Start heavy plugin imports immediately so they run in parallel with
@@ -237,11 +200,22 @@ export async function createViteConfig(
   }
   const securityHeaders = await securityHeadersPromise
 
-  // PR-01: Ensure heavy imports happen HERE (before building the ViteConfig
-  // object literal), not scattered at the top of createViteConfig.  Callers
-  // that hit the in-memory cache never pay for @vitejs/plugin-react or
-  // @tailwindcss/vite imports (~500ms saved on first cold call).
   await ensureImports()
+
+  // Collect PostCSS plugins and preprocessor options registered by CSS plugins
+  const postcssPlugins: any[] = []
+  const preprocessorOptions: Record<string, any> = {}
+
+  if (config.plugins) {
+    for (const p of config.plugins) {
+      if (p.css?.postcssPlugins) {
+        postcssPlugins.push(...p.css.postcssPlugins)
+      }
+      if (p.css?.preprocessorOptions) {
+        Object.assign(preprocessorOptions, p.css.preprocessorOptions)
+      }
+    }
+  }
 
   const viteConfig: InlineConfig = {
     root,
@@ -266,11 +240,23 @@ export async function createViteConfig(
         'use-sync-external-store/shim',
       ],
     },
+    css:
+      postcssPlugins.length > 0 || Object.keys(preprocessorOptions).length > 0
+        ? {
+            postcss:
+              postcssPlugins.length > 0
+                ? { plugins: postcssPlugins }
+                : undefined,
+            preprocessorOptions:
+              Object.keys(preprocessorOptions).length > 0
+                ? preprocessorOptions
+                : undefined,
+          }
+        : undefined,
     build: {},
     plugins: [
       ssrDirnamePolyfillPlugin(),
       _reactPlugin(),
-      ...(_usesTailwind && _tailwindPlugin ? [_tailwindPlugin()] : []),
       ..._boltdocsPlugin(
         { docsDir: 'docs', root, routes } as BoltdocsPluginOptions,
         config,
@@ -370,7 +356,6 @@ export type { RouteMeta } from './routes'
 export type {
   BoltdocsConfig,
   BoltdocsThemeConfig,
-  BoltdocsPlugin,
 } from './config'
 export { defineConfig } from '../shared/config-utils'
 export * from './plugins'

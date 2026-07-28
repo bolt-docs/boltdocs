@@ -1,0 +1,72 @@
+---
+title: Plugin SASS / SCSS
+description: Plugin oficial de preprocesamiento SASS y SCSS para Boltdocs.
+sidebar_position: 3
+---
+
+# Plugin SASS (`@bdocs/plugin-sass`)
+
+El plugin `@bdocs/plugin-sass` añade soporte oficial para archivos `.scss` y `.sass` en Boltdocs mediante la configuración del preprocesador en Vite.
+
+## Instalación
+
+Instala `@bdocs/plugin-sass` y `sass-embedded`:
+
+```bash
+pnpm add -D @bdocs/plugin-sass sass-embedded
+```
+
+---
+
+## Configuración
+
+Añade el plugin a tu `boltdocs.config.ts`:
+
+```ts
+import { defineConfig } from 'boltdocs'
+import sassPlugin from '@bdocs/plugin-sass'
+
+export default defineConfig({
+  plugins: [
+    sassPlugin({
+      additionalData: `@use "@/styles/variables.scss" as *;`,
+    }),
+  ],
+})
+```
+
+---
+
+## Opciones del Plugin
+
+| Opción | Tipo | Descripción |
+| :--- | :--- | :--- |
+| `additionalData` | `string` | SASS/SCSS añadido al inicio de cada bloque de código CSS (ideal para variables/mixins globales). |
+| `api` | `'modern' \| 'legacy'` | Modo de la API de SASS (por defecto: `'modern'`). |
+| `includePaths` | `string[]` | Directorios adicionales para resolución de `@use` y `@import`. |
+
+---
+
+## Ejemplo de Componente SCSS
+
+```scss
+// styles/card.module.scss
+.card {
+  background: var(--bdocs-bg-secondary);
+  border: 1px solid var(--bdocs-border);
+  border-radius: 0.5rem;
+  padding: 1.5rem;
+
+  &:hover {
+    border-color: var(--bdocs-primary);
+  }
+}
+```
+
+```tsx
+import styles from './card.module.scss'
+
+export function Card({ children }: { children: React.ReactNode }) {
+  return <div className={styles.card}>{children}</div>
+}
+```

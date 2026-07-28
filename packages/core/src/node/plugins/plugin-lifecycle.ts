@@ -3,7 +3,7 @@ import type { RouteMeta } from '../routes/types'
 import { PluginHookError } from './plugin-errors'
 import type {
   PluginLifecycleHooks,
-  SecureBoltdocsPlugin,
+  BoltdocsPlugin,
   PluginContext,
   PluginLogger,
 } from './plugin-types'
@@ -26,7 +26,7 @@ import type {
 } from '../../shared/types'
 
 export class PluginLifecycleManager implements IPluginLifecycleManager {
-  private plugins: SecureBoltdocsPlugin[]
+  private plugins: BoltdocsPlugin[]
   private config: BoltdocsConfig
   private store: BoltdocsPluginStore
   private docsDir: string
@@ -35,7 +35,7 @@ export class PluginLifecycleManager implements IPluginLifecycleManager {
   private outDir: string
 
   constructor(
-    plugins: SecureBoltdocsPlugin[],
+    plugins: BoltdocsPlugin[],
     config: BoltdocsConfig,
     docsDir?: string,
     rootDir?: string,
@@ -217,7 +217,7 @@ export class PluginLifecycleManager implements IPluginLifecycleManager {
     return params
   }
 
-  private getSortedPlugins(): SecureBoltdocsPlugin[] {
+  private getSortedPlugins(): BoltdocsPlugin[] {
     const pre = this.plugins.filter((p) => p.enforce === 'pre')
     const normal = this.plugins.filter((p) => !p.enforce)
     const post = this.plugins.filter((p) => p.enforce === 'post')
@@ -225,7 +225,7 @@ export class PluginLifecycleManager implements IPluginLifecycleManager {
   }
 
   private createStep(
-    plugin: SecureBoltdocsPlugin,
+    plugin: BoltdocsPlugin,
     hookName: keyof PluginLifecycleHooks,
     args: unknown[],
   ): PipelineStep {
@@ -259,7 +259,7 @@ export class PluginLifecycleManager implements IPluginLifecycleManager {
     }
   }
 
-  private createContext(plugin: SecureBoltdocsPlugin): PluginContext {
+  private createContext(plugin: BoltdocsPlugin): PluginContext {
     return {
       config: Object.freeze({ ...this.config }),
       docsDir: this.docsDir,

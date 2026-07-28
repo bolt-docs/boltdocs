@@ -1004,12 +1004,8 @@ export async function build(
     try {
       if (fs.existsSync(srcPath)) {
         const stat = fs.statSync(srcPath)
-        const buf = fs.readFileSync(srcPath)
         sourceMetaCache.set(srcPath, {
-          hash: crypto
-            .createHash('md5')
-            .update(buf as Uint8Array)
-            .digest('hex'),
+          hash: `${stat.mtimeMs}:${stat.size}`,
           mtimeMs: stat.mtimeMs,
         })
       }

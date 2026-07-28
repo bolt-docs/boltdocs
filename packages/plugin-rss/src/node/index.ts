@@ -1,4 +1,4 @@
-import { createPlugin } from 'boltdocs'
+import { createPlugin, type BoltdocsPlugin } from 'boltdocs'
 import { RssPluginOptionsSchema, type RssPluginOptions } from './feed-schema'
 import {
   generateRssXml,
