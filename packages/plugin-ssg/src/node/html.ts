@@ -25,32 +25,19 @@ export async function renderHTML({
     : ''
 
   const scriptPlaceHolder = `\n<script>${SCRIPT_COMMENT_PLACEHOLDER}</script>`
-
-  // add head
-  const headStartTag = '<head>'
   const metaTags = metaAttributes.join('')
-  indexHTML = indexHTML.replace(headStartTag, headStartTag + metaTags)
-
-  // add body attributes
-  const bodyStartTag = '<body'
-  indexHTML = indexHTML.replace(
-    bodyStartTag,
-    `${bodyStartTag} ${bodyAttributes}`,
-  )
-
-  // add html attributes
-  const htmlStartTag = '<html'
-  indexHTML = indexHTML.replace(
-    htmlStartTag,
-    `${htmlStartTag} ${htmlAttributes}`,
-  )
-
   const container = `<div id="${rootContainerId}"></div>`
+
+  // Single-pass HTML injection
   if (indexHTML.includes(container)) {
-    return indexHTML.replace(
-      container,
-      `<div id="${rootContainerId}" data-server-rendered="true">${appHTML}</div>${stateScript}${scriptPlaceHolder}`,
-    )
+    return indexHTML
+      .replace('<head>', `<head>${metaTags}`)
+      .replace('<body', bodyAttributes ? `<body ${bodyAttributes}` : '<body')
+      .replace('<html', htmlAttributes ? `<html ${htmlAttributes}` : '<html')
+      .replace(
+        container,
+        `<div id="${rootContainerId}" data-server-rendered="true">${appHTML}</div>${stateScript}${scriptPlaceHolder}`,
+      )
   }
 
   const html5Parser = await import('html5parser')
