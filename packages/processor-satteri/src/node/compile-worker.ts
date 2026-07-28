@@ -37,7 +37,19 @@ export default async function compileTask(msg: {
       features: { gfm: true, frontmatter: true },
     })
 
-    const compiledCode = result?.code ?? ''
+    let compiledCode = result?.code ?? ''
+    if (compiledCode.includes('<')) {
+      try {
+        const transformed = transformSync(compiledCode, {
+          loader: 'jsx',
+          jsx: 'automatic',
+          jsxImportSource: 'react',
+        })
+        if (transformed?.code) {
+          compiledCode = transformed.code
+        }
+      } catch {}
+    }
 
     return {
       compiledCode,

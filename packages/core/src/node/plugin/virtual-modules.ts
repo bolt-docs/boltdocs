@@ -421,7 +421,7 @@ export function createVirtualModulesPlugin(
             ([compName], idx) =>
               `${JSON.stringify(compName)}: _pluginCompMod_${idx}[${JSON.stringify(
                 compName,
-              )}] || _pluginCompMod_${idx}.default || _pluginCompMod_${idx}`,
+              )}] || _pluginCompMod_${idx}["default"] || _pluginCompMod_${idx}`,
           )
           .join(',\n  ')
 

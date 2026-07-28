@@ -3,7 +3,7 @@ import type { MdastPluginDefinition, HastPluginDefinition } from 'satteri'
 import { transformSync } from 'esbuild'
 import crypto from 'node:crypto'
 
-export const MDX_PLUGIN_VERSION = 'v7-satteri-only'
+export const MDX_PLUGIN_VERSION = 'v9-transpile-jsx'
 
 /** Minimal interface for TransformCache from boltdocs/node/cache. */
 interface TransformCache {
@@ -90,7 +90,19 @@ export class MdxCompiler {
       )
     }
 
-    const compiledCode = result.code
+    let compiledCode = result.code
+    if (compiledCode.includes('<')) {
+      try {
+        const transformed = transformSync(compiledCode, {
+          loader: 'jsx',
+          jsx: 'automatic',
+          jsxImportSource: 'react',
+        })
+        if (transformed?.code) {
+          compiledCode = transformed.code
+        }
+      } catch {}
+    }
 
     // Store in cache
     try {
