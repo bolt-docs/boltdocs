@@ -412,14 +412,16 @@ export function createVirtualModulesPlugin(
         const pluginImports = pluginEntries
           .map(
             ([_, compPath], idx) =>
-              `import _pluginComp_${idx} from '${compPath}';`,
+              `import * as _pluginCompMod_${idx} from '${compPath}';`,
           )
           .join('\n')
 
         const pluginMapEntries = pluginEntries
           .map(
             ([compName], idx) =>
-              `${JSON.stringify(compName)}: _pluginComp_${idx}`,
+              `${JSON.stringify(compName)}: _pluginCompMod_${idx}[${JSON.stringify(
+                compName,
+              )}] || _pluginCompMod_${idx}.default || _pluginCompMod_${idx}`,
           )
           .join(',\n  ')
 
