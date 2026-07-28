@@ -603,7 +603,12 @@ export async function build(
         mergeConfig(viteConfig, {
           logLevel: 'warn',
           build: {
-            ssr: !canSkipSsrImport ? ssrEntry : entry,
+            ssr:
+              entry.includes('boltdocs') || entry.startsWith('virtual:')
+                ? 'virtual:boltdocs-entry'
+                : !canSkipSsrImport && ssrEntry
+                  ? ssrEntry
+                  : entry,
             manifest: true,
             outDir: ssgOut,
             reportCompressedSize: false,

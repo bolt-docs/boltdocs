@@ -1,8 +1,8 @@
 import { useRef } from 'react'
 import { Link } from 'boltdocs/primitives'
-import { useScrollAnimation } from './hooks/useScrollAnimation'
-import { NoiseOverlay } from './noise-overlay'
-import { useTranslations } from './use-translations'
+import { useScrollAnimation } from '../../hooks/useScrollAnimation'
+import { NoiseOverlay } from '../ui/noise-overlay'
+import { useTranslations } from '../../i18n/index'
 
 export const Footer = () => {
   const topRef = useRef<HTMLDivElement>(null)

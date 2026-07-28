@@ -3,9 +3,9 @@ import {
   useScrollAnimation,
   useScrollStagger,
 } from '../../src/hooks/useScrollAnimation'
-import { NoiseOverlay } from '../../src/noise-overlay'
+import { NoiseOverlay } from '../../src/components/ui/noise-overlay'
 import benchmarkData from '../../src/data/benchmark-results.json'
-import { BarChart } from '../../src/benchmark/bar-chart'
+import { BarChart } from '../../src/components/benchmark/bar-chart'
 import { Zap, Timer, RotateCcw, HardDrive } from 'lucide-react'
 
 const metrics = [

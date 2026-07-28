@@ -21,6 +21,16 @@ const DEFAULT_HAST_PLUGINS = [
   satteriRehypeShikiPlugin(),
 ]
 
+// Eagerly pre-warm Sätteri + Shiki engine at worker instantiation
+mdxToJs('# Prewarm', {
+  jsxRuntime: 'automatic',
+  jsxImportSource: 'react',
+  outputFormat: 'program',
+  mdastPlugins: [...DEFAULT_MDAST_PLUGINS],
+  hastPlugins: [...DEFAULT_HAST_PLUGINS],
+  features: { gfm: true, frontmatter: true },
+}).catch(() => {})
+
 export default async function compileTask(msg: {
   sourceCode: string
   filePath: string

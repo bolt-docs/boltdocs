@@ -30,8 +30,14 @@ export function createDevServerPlugin(
         error('dev:before hook failed:', e)
       })
 
-      generateLinkTree(docsDir, process.cwd(), getConfig()).catch((e) => {
-        error('Failed to generate initial link tree:', e)
+      import('../routes').then(({ generateRoutes }) => {
+        import('../types-generator').then(({ writeLinkTree }) => {
+          generateRoutes(docsDir, getConfig())
+            .then((routes) => {
+              writeLinkTree(routes.map((r) => r.path))
+            })
+            .catch(() => {})
+        })
       })
 
       setupPrewarming(server, docsDir, getConfig)

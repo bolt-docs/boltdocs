@@ -1,8 +1,8 @@
 import { Fragment } from 'react'
-import { Grainient } from './grainient'
-import { NoiseOverlay } from './noise-overlay'
-import { useTranslations } from './use-translations'
-import { color_active_version } from './color'
+import { Grainient } from '../ui/grainient'
+import { NoiseOverlay } from '../ui/noise-overlay'
+import { useTranslations } from '../../i18n/index'
+import { color_active_version } from '../../color'
 
 interface Feature {
   title: string

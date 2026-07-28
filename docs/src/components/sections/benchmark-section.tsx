@@ -1,8 +1,8 @@
 import { useRef } from 'react'
-import { useScrollAnimation } from './hooks/useScrollAnimation'
-import benchmarkData from './data/benchmark-results.json'
-import { BuildSpeedCard } from './benchmark/build-speed-card'
-import { PerformanceTable } from './benchmark/performance-table'
+import { useScrollAnimation } from '../../hooks/useScrollAnimation'
+import benchmarkData from '../../data/benchmark-results.json'
+import { BuildSpeedCard } from '../benchmark/build-speed-card'
+import { PerformanceTable } from '../benchmark/performance-table'
 
 export const BenchmarkSection = () => {
   const containerRef = useRef<HTMLDivElement>(null)

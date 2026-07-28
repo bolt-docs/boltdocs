@@ -1,8 +1,8 @@
-import { Grainient } from './grainient'
+import { Grainient } from '../ui/grainient'
 import { Link } from 'boltdocs/primitives'
-import { Github } from './icons'
-import { useTranslations } from './use-translations'
-import { color_active_version } from './color'
+import { Github } from '../ui/icons'
+import { useTranslations } from '../../i18n/index'
+import { color_active_version } from '../../color'
 
 export const CTASection = () => {
   const t = useTranslations()

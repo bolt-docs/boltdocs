@@ -1,9 +1,9 @@
 import { Link } from 'boltdocs/primitives'
 import { ArrowRight } from 'lucide-react'
-import { Grainient } from './grainient'
-import { getVersion } from './data/version'
-import { useTranslations } from './use-translations'
-import { color_active_version } from './color'
+import { Grainient } from '../ui/grainient'
+import { getVersion } from '../../data/version'
+import { useTranslations } from '../../i18n/index'
+import { color_active_version } from '../../color'
 
 export const Hero = () => {
   const t = useTranslations()

@@ -1,5 +1,5 @@
 import { useI18n } from 'boltdocs/client'
-import { translations } from './i18n-translations'
+import { translations } from './translations'
 
 export function useTranslations() {
   const { currentLocale } = useI18n()

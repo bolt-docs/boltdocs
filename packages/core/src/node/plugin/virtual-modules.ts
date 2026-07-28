@@ -235,20 +235,23 @@ export function createVirtualModulesPlugin(
       const viteConfig = getViteConfig()
       const root = viteConfig?.root || process.cwd()
       if (
-        id.includes('boltdocs-entry.tsx') ||
+        id.includes('boltdocs-entry') ||
         id === 'virtual:boltdocs-entry' ||
+        id === 'boltdocs/entry' ||
         id === 'boltdocs-entry' ||
-        id === '\0virtual:boltdocs-entry'
+        id === '\0virtual:boltdocs-entry' ||
+        id === '\0virtual:boltdocs-entry.tsx'
       ) {
-        return normalizePath(path.resolve(root, 'boltdocs-entry.tsx'))
+        return '\0virtual:boltdocs-entry.tsx'
       }
       if (
-        id.includes('boltdocs-client.mjs') ||
+        id.includes('boltdocs-client') ||
         id === 'virtual:boltdocs-client' ||
+        id === 'boltdocs/client' ||
         id === 'boltdocs-client' ||
-        id === '\0virtual:boltdocs-client.ts'
+        id === '\0virtual:boltdocs-client.mjs'
       ) {
-        return normalizePath(path.resolve(root, 'boltdocs-client.mjs'))
+        return '\0virtual:boltdocs-client.mjs'
       }
 
       // Plugin-registered virtual modules resolve to the Vite-internal

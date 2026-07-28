@@ -12,8 +12,8 @@ import {
   BarChart3,
   Zap,
 } from 'lucide-react'
-import { NoiseOverlay } from './noise-overlay'
-import { useTranslations } from './use-translations'
+import { NoiseOverlay } from '../ui/noise-overlay'
+import { useTranslations } from '../../i18n/index'
 
 const INTEGRATIONS = [
   { name: 'React / MDX', icon: <Code2 className="w-5 h-5" /> },

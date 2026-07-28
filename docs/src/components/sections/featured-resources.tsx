@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom'
 import { useRecentPosts } from 'boltdocs/client'
-import { useTranslations } from './use-translations'
+import { useTranslations } from '../../i18n/index'
 
 export function FeaturedResources() {
   const recentPosts = useRecentPosts('blog', 3)
@@ -46,7 +46,7 @@ export function FeaturedResources() {
                 </div>
                 <div className="flex flex-col p-6">
                   <div className="text-[10px] font-mono tracking-widest text-body/50 uppercase mb-3">
-                    // UPDATES
+                    {'// UPDATES'}
                   </div>
                   <h3 className="text-xl font-bold tracking-tight text-body line-clamp-2">
                     {title as string}
