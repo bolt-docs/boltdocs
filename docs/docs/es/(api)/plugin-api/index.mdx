@@ -65,7 +65,7 @@ interface PluginContext {
   readonly outDir: string
   readonly routes: RouteMeta[]
 
-  // --- Nuevo en 3.2.0 ---
+  // --- Nuevo en 3.3.0 ---
   readonly caches: PluginCachesAPI
   readonly diagnostics: PluginDiagnosticsAPI
   readonly paths: PluginPathsAPI
@@ -89,7 +89,7 @@ interface PluginContext {
 | `outDir` | `string` | Directorio de salida del build (ej. `dist/`). |
 | `routes` | `RouteMeta[]` | Todas las rutas de documentación generadas. |
 
-### Namespaces enriquecidos (3.2.0+)
+### Namespaces enriquecidos (3.3.0+)
 
 | Campo | Página | Descripción |
 | :--- | :--- | :--- |
@@ -144,4 +144,4 @@ export default definePlugin<MisOpciones>((options) => ({
 
 - [Descripción general del Sistema de Plugins](/docs/es/plugins/) — arquitectura, conceptos, inicio rápido
 - [@bdocs/unist-utils](/docs/es/plugins/unist-utils) — Utilidades AST para remark/rehype
-- [Boltdocs 3.2.0 changelog](/docs/es/blog/boltdocs-3.2.0) — notas de la versión
+- [Boltdocs 3.3.0 changelog](/docs/es/blog/boltdocs-3.3.0) — notas de la versión
