@@ -7,6 +7,43 @@ on:
   workflow_dispatch:
 
 jobs:
+  test-napi:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Zig
+        uses: mlugg/setup-zig@v1
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build N-API shared library
+        run: |
+          cd packages/parser && \
+          zig build-lib src/napi.zig \
+            -dynamic -fPIC \
+            --name bdocs_parser_napi \
+            -fno-strip \
+            -OReleaseFast -lc
+
+      - name: Run Zig tests
+        run: cd packages/parser && zig build test
+
+      - name: Run N-API binding tests
+        run: cd packages/parser && pnpm exec tsx tests/run-napi-tests.ts
+
   build:
     strategy:
       matrix:
@@ -14,18 +51,23 @@ jobs:
           - target: x86_64-linux-gnu
             os: ubuntu-latest
             binary: parser-linux-x64
+            napi_lib: libbdocs_parser_napi.so
           - target: aarch64-linux-gnu
             os: ubuntu-latest
             binary: parser-linux-arm64
+            napi_lib: libbdocs_parser_napi.so
           - target: x86_64-macos-none
             os: macos-latest
             binary: parser-darwin-x64
+            napi_lib: libbdocs_parser_napi.dylib
           - target: aarch64-macos-none
             os: macos-latest
             binary: parser-darwin-arm64
+            napi_lib: libbdocs_parser_napi.dylib
           - target: x86_64-windows-gnu
             os: windows-latest
-            binary: parser-win-x64.exe
+            binary: parser-win-x64-dll
+            napi_lib: bdocs_parser_napi.dll
 
     runs-on: ${{ matrix.os }}
     steps:
@@ -34,17 +76,33 @@ jobs:
       - name: Setup Zig
         uses: mlugg/setup-zig@v1
 
-      - name: Build binary
+      - name: Build CLI binary
         run: zig build -Dtarget=${{ matrix.target }} -Doptimize=ReleaseFast
 
-      - name: Upload binary as artifact
+      - name: Build N-API shared library
+        run: |
+          cd packages/parser && \
+          zig build-lib src/napi.zig \
+            -dynamic ${{ contains(matrix.target, 'windows') && '' || '-fPIC' }} \
+            --name bdocs_parser_napi \
+            -fno-strip \
+            -OReleaseFast -lc \
+            -target ${{ matrix.target }}
+
+      - name: Upload CLI binary as artifact
         uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.binary }}
           path: zig-out/bin/bdocs-parser${{ matrix.target == 'x86_64-windows-gnu' && '.exe' || '' }}
 
+      - name: Upload N-API library as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: napi-${{ matrix.binary }}
+          path: packages/parser/${{ matrix.napi_lib }}
+
   release:
-    needs: build
+    needs: [build, test-napi]
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -63,19 +121,27 @@ jobs:
           tag_name: ${{ github.ref_name }}
           name: Parser Binaries ${{ github.ref_name }}
           body: |
-            Native parser binaries for @bdocs/parser.
-            
+            Native parser binaries + N-API shared libraries for @bdocs/parser.
+
+            ## CLI Binaries
             Download the binary for your platform and place it in:
             ```
             node_modules/.cache/@bdocs/parser/
             ```
-            
-            Or run `npm install @bdocs/parser` and the postinstall script will download it automatically.
+
+            ## N-API Shared Libraries
+            The N-API shared libraries are loaded automatically by the parser
+            when available. No manual setup needed.
           files: |
             artifacts/parser-linux-x64/bdocs-parser
             artifacts/parser-linux-arm64/bdocs-parser
             artifacts/parser-darwin-x64/bdocs-parser
             artifacts/parser-darwin-arm64/bdocs-parser
             artifacts/parser-win-x64.exe/bdocs-parser.exe
+            artifacts/napi-parser-linux-x64/libbdocs_parser_napi.so
+            artifacts/napi-parser-linux-arm64/libbdocs_parser_napi.so
+            artifacts/napi-parser-darwin-x64/libbdocs_parser_napi.dylib
+            artifacts/napi-parser-darwin-arm64/libbdocs_parser_napi.dylib
+            artifacts/napi-parser-win-x64-dll/bdocs_parser_napi.dll
           draft: false
           prerelease: false

@@ -3,9 +3,8 @@ import { Index } from 'flexsearch'
 import { useRoutes } from './use-routes'
 import { useConfig } from '../app/config-context'
 import type { ComponentRoute } from '../types'
-// @ts-expect-error
-import defaultSearchData from 'virtual:boltdocs-search'
 import { useNavigate } from 'react-router-dom'
+import fetchSearchData from 'virtual:boltdocs-search'
 
 interface SearchDataItem {
   id: string
@@ -26,9 +25,45 @@ export function useSearch(routes: ComponentRoute[]) {
   const [query, setQuery] = useState('')
   const [index, setIndex] = useState<Index | null>(null)
   const [algoliaResults, setAlgoliaResults] = useState<[]>([])
-  const [searchData, setSearchData] =
-    useState<SearchDataItem[]>(defaultSearchData)
+  const [searchData, setSearchData] = useState<SearchDataItem[]>([])
+  const [searchDataLoading, setSearchDataLoading] = useState(false)
+  const [searchDataError, setSearchDataError] = useState<Error | null>(null)
   const navigate = useNavigate()
+
+  // Fetch the search index lazily when the dialog opens and we are not
+  // using Algolia. Keeping the index out of the JS bundle significantly
+  // reduces initial bundle size and build time.
+  useEffect(() => {
+    if (algoliaConfig || !isOpen) return
+
+    // Use cached data if already loaded.
+    if (searchData.length > 0) return
+
+    // Reset stale loading/error state on open so a previously cancelled
+    // or failed fetch does not block a new one.
+    if (searchDataLoading) setSearchDataLoading(false)
+    if (searchDataError) setSearchDataError(null)
+
+    setSearchDataLoading(true)
+    let active = true
+
+    fetchSearchData()
+      .then((data: SearchDataItem[]) => {
+        if (!active) return
+        setSearchData(data || [])
+        setSearchDataLoading(false)
+      })
+      .catch((err: Error) => {
+        if (!active) return
+        console.error('[boltdocs] Failed to load search index:', err)
+        setSearchDataError(err)
+        setSearchDataLoading(false)
+      })
+
+    return () => {
+      active = false
+    }
+  }, [isOpen, algoliaConfig])
 
   useEffect(() => {
     if (!import.meta.hot) return
@@ -88,10 +123,11 @@ export function useSearch(routes: ComponentRoute[]) {
     [navigate, query],
   )
 
-  // Initialize FlexSearch index once (only if Algolia is NOT configured)
+  // Initialize FlexSearch index once search data has been loaded
+  // (only if Algolia is NOT configured).
   useEffect(() => {
     if (algoliaConfig) return
-    if (!isOpen || index) return
+    if (!isOpen || searchData.length === 0 || index) return
 
     const newIndex = new Index({
       preset: 'match',
@@ -106,7 +142,7 @@ export function useSearch(routes: ComponentRoute[]) {
     }
 
     setIndex(newIndex)
-  }, [isOpen, index, algoliaConfig])
+  }, [isOpen, index, algoliaConfig, searchData])
 
   // Asynchronous Algolia search effect with debounce
   useEffect(() => {
@@ -284,6 +320,8 @@ export function useSearch(routes: ComponentRoute[]) {
     query,
     setQuery,
     list,
+    searchDataLoading,
+    searchDataError,
     handleSelect,
     input: {
       value: query,

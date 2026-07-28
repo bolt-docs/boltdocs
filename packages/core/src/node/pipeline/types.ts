@@ -12,9 +12,14 @@ export interface BuildContext {
   paths?: string[]
   outDir?: string
   timing: Record<string, number>
-  turbo?: boolean
   stepDetails?: Record<string, string>
   ssgSubSteps?: StepResult[]
+  /** Turbo mode flag; passed through from CLI / environment. */
+  turbo?: boolean
+  /** Set by ConfigResolveStep when project types/link-tree have been generated. */
+  typesGenerated?: boolean
+  /** PR-01: Set when all routes are cached (warm build); skips security inspection. */
+  allCached?: boolean
 }
 
 export interface StepResult {

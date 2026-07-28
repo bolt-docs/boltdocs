@@ -81,7 +81,6 @@ export async function generateRoutes(
   config?: BoltdocsConfig,
   basePath?: string,
   forceScan: boolean = false,
-  turbo: boolean = false,
 ): Promise<RouteMeta[]> {
   if (activeGenerationPromise) {
     return activeGenerationPromise
@@ -167,7 +166,7 @@ export async function generateRoutes(
       if (!isTest && !_cachedNativeDocs) {
         try {
           const { runParser } = await import('@bdocs/parser')
-          _cachedNativeDocs = await runParser(docsDir, turbo)
+          _cachedNativeDocs = await runParser(docsDir, true) // Sätteri always active
         } catch (e) {
           // Native parser not available or failed
         }

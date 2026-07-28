@@ -3,9 +3,9 @@
   "version": "0.2.0",
   "description": "Strictly-typed AST utilities for unist/mdast/hast used by Boltdocs core and official plugins.",
   "type": "module",
-  "main": "./dist/index.js",
+  "main": "./dist/index.mjs",
   "module": "./dist/index.mjs",
-  "types": "./dist/index.d.ts",
+  "types": "./dist/index.d.mts",
   "publishConfig": {
     "access": "public"
   },
@@ -15,8 +15,9 @@
   ],
   "exports": {
     ".": {
-      "types": "./dist/index.d.ts",
-      "import": "./dist/index.mjs"
+      "types": "./dist/index.d.mts",
+      "import": "./dist/index.mjs",
+      "default": "./dist/index.mjs"
     }
   },
   "sideEffects": false,

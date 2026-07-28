@@ -24,12 +24,20 @@
     "build": "tsdown index.ts && (cp zig-out/bin/bdocs-parser.wasm dist/ || true)",
     "build:wasm": "zig build -Dtarget=wasm32-wasi -Doptimize=ReleaseFast",
     "build:native": "zig build -Doptimize=ReleaseFast",
+    "build:napi": "zig build-lib src/napi.zig -dynamic -fPIC --name bdocs_parser_napi -fno-strip -OReleaseFast -lc",
     "build:all-platforms": "node scripts/build-all.mjs",
-    "test": "zig build test"
+    "test": "zig build test",
+    "test:ts": "vitest run",
+    "test:ts:watch": "vitest",
+    "pretest:ts": "pnpm build:napi"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",
     "tsdown": "^0.21.7",
-    "typescript": "^5.9.3"
+    "typescript": "^5.9.3",
+    "vitest": "^4.1.10"
+  },
+  "dependencies": {
+    "koffi": "^3.1.2"
   }
 }

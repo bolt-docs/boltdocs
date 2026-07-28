@@ -99,8 +99,14 @@ function remarkMermaid(config: {
         let svgLight: string | undefined
         let svgDark: string | undefined
 
+        // CI skips pre-render by default to avoid Playwright/Chrome overhead,
+        // unless the user explicitly opts in with preRender: true.
+        const skipMermaid =
+          process.env.BOLTDOCS_SKIP_MERMAID === 'true' ||
+          (process.env.CI === 'true' && config.preRender === undefined)
         const shouldPreRender =
-          config.preRender ?? process.env.NODE_ENV === 'production'
+          !skipMermaid &&
+          (config.preRender ?? process.env.NODE_ENV === 'production')
         if (shouldPreRender) {
           const result = await renderMermaidBothThemes(
             rawCode,

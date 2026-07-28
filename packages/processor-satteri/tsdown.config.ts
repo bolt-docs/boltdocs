@@ -3,6 +3,7 @@ import { defineConfig } from 'tsdown'
 export default defineConfig({
   entry: {
     'node/index': 'src/node/index.ts',
+    'node/compile-worker': 'src/node/compile-worker.ts',
   },
   format: ['esm'],
   dts: true,

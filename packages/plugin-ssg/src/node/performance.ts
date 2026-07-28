@@ -1,7 +1,7 @@
 import fs from 'node:fs'
 import path from 'node:path'
 import { join } from 'node:path'
-import type { Manifest, ManifestItem } from './build'
+import type { Manifest, ManifestItem } from './types'
 
 export interface PageMetric {
   route: string
@@ -39,10 +39,55 @@ function getFileSize(filePath: string): number {
   }
 }
 
+/**
+ * PR-05: Cache performance metrics so warm builds don't re-read all dist
+ * files.  The metrics are stored in the cache directory as a JSON file and
+ * re-read on subsequent builds (the buildTime is updated to reflect the
+ * current build).
+ */
+const CACHED_METRICS_FILENAME = 'boltdocs-metrics.json'
+
+function readCachedMetrics(cacheDir?: string): PerformanceMetrics | null {
+  if (!cacheDir) return null
+  try {
+    const cachedPath = join(cacheDir, CACHED_METRICS_FILENAME)
+    if (!fs.existsSync(cachedPath)) return null
+    return JSON.parse(fs.readFileSync(cachedPath, 'utf-8'))
+  } catch {
+    return null
+  }
+}
+
+function writeCachedMetrics(
+  cacheDir: string,
+  metrics: PerformanceMetrics,
+): void {
+  try {
+    const reportsDir = path.resolve(cacheDir, '..', 'reports')
+    if (!fs.existsSync(reportsDir)) {
+      fs.mkdirSync(reportsDir, { recursive: true })
+    }
+    fs.writeFileSync(
+      join(cacheDir, CACHED_METRICS_FILENAME),
+      JSON.stringify(metrics),
+    )
+  } catch {
+    // Non-critical, ignore
+  }
+}
+
 export async function collectPerformanceMetrics(
   outDir: string,
   buildTime: number,
+  cacheDir?: string,
 ): Promise<PerformanceMetrics> {
+  // Check for cached metrics on warm builds
+  const cached = readCachedMetrics(cacheDir)
+  if (cached) {
+    cached.buildTime = buildTime
+    return cached
+  }
+
   const dotViteDir = join(outDir, '.vite')
   const assetsDir = join(outDir, 'assets')
 
@@ -112,7 +157,7 @@ export async function collectPerformanceMetrics(
     // recursive readdir may fail on some Node versions; skip per-page
   }
 
-  return {
+  const metrics: PerformanceMetrics = {
     buildTime,
     totalJSBundleSize,
     totalCSSBundleSize,
@@ -121,6 +166,13 @@ export async function collectPerformanceMetrics(
     fontCount,
     pages,
   }
+
+  // Cache for next warm build
+  if (cacheDir) {
+    writeCachedMetrics(cacheDir, metrics)
+  }
+
+  return metrics
 }
 
 export function writePerformanceMetrics(

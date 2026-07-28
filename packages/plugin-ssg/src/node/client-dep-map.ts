@@ -1,7 +1,7 @@
 import crypto from 'node:crypto'
 import { readFile } from 'node:fs/promises'
 import path from 'node:path'
-import type { Manifest, SSRManifest, ManifestItem } from './build'
+import type { Manifest, SSRManifest, ManifestItem } from './types'
 
 export interface ManifestIndexes {
   byFile: Map<string, ManifestItem>

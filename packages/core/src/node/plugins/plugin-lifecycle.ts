@@ -124,6 +124,49 @@ export class PluginLifecycleManager implements IPluginLifecycleManager {
    * hooks or declared statically via `BoltdocsPlugin.middleware` are all
    * collected. Execution respects `__signal: 'skip'` and `__signal: 'break'`.
    */
+  public hasHook(
+    hookName:
+      | keyof PluginLifecycleHooks
+      | 'transformSource'
+      | 'transformMdx'
+      | 'transformHtml',
+  ): boolean {
+    // Lifecycle hooks
+    if (
+      this.plugins.some(
+        (p) => p.hooks?.[hookName as keyof PluginLifecycleHooks],
+      )
+    ) {
+      return true
+    }
+
+    // Static middleware declarations
+    const staticMiddleware = this.plugins.flatMap((p) => p.middleware ?? [])
+    if (
+      staticMiddleware.some(
+        (m) =>
+          m[hookName as 'transformSource' | 'transformMdx' | 'transformHtml'],
+      )
+    ) {
+      return true
+    }
+
+    // Programmatic middleware registrations
+    if (
+      (hookName === 'transformSource' ||
+        hookName === 'transformMdx' ||
+        hookName === 'transformHtml') &&
+      [...middlewareRegistry.values()].some(
+        (m) =>
+          m[hookName as 'transformSource' | 'transformMdx' | 'transformHtml'],
+      )
+    ) {
+      return true
+    }
+
+    return false
+  }
+
   public async runMiddlewareChain<TParams extends Record<string, unknown>>(
     hookName: 'transformSource' | 'transformMdx' | 'transformHtml',
     initialParams: TParams,

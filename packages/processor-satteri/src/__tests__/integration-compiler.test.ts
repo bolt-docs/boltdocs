@@ -25,15 +25,9 @@ vi.mock('boltdocs/node/cache', () => ({
   TransformCache: vi.fn(() => mockCacheInstance),
 }))
 
-const mockFallbackCompiler = { transform: vi.fn() }
-vi.mock('@mdx-js/rollup', () => ({
-  default: vi.fn(() => mockFallbackCompiler),
-}))
-vi.mock('remark-gfm', () => ({ default: 'remark-gfm-plugin' }))
-vi.mock('remark-frontmatter', () => ({ default: 'remark-frontmatter-plugin' }))
-vi.mock('rehype-slug', () => ({ default: 'rehype-slug-plugin' }))
 vi.mock('satteri', () => ({
-  defineMdastPlugin: (d: unknown) => d,
+  defineMdastPlugin: (def: unknown) => def,
+  defineHastPlugin: (def: unknown) => def,
   mdxToJs: vi.fn(),
 }))
 
@@ -58,11 +52,14 @@ describe('MdxCompiler — integration scenarios', () => {
           name: 'satteri-rehype-slug',
           element: { filter: ['h1', 'h2'], visit: () => {} },
         } as never,
+        {
+          name: 'satteri-rehype-shiki',
+          element: { filter: ['pre'], visit: () => {} },
+        } as never,
       ],
     )
     mockCacheInstance.getAsync.mockReset()
     mockCacheInstance.set.mockReset()
-    mockFallbackCompiler.transform.mockReset()
     vi.mocked(satteriMdxToJs).mockReset()
   })
 
@@ -74,7 +71,6 @@ describe('MdxCompiler — integration scenarios', () => {
         frontmatter: null,
         data: {},
       } as never)
-      mockFallbackCompiler.transform.mockResolvedValue(null as never)
 
       const result = await compiler.compile('# Hello World', 'test.mdx')
       expect(result).toContain('MDXContent')
@@ -87,6 +83,7 @@ describe('MdxCompiler — integration scenarios', () => {
           ],
           hastPlugins: [
             expect.objectContaining({ name: 'satteri-rehype-slug' }),
+            expect.objectContaining({ name: 'satteri-rehype-shiki' }),
           ],
         }),
       )
@@ -113,7 +110,7 @@ describe('MdxCompiler — integration scenarios', () => {
       expect(satteriMdxToJs).toHaveBeenCalledTimes(1)
     })
 
-    it('falls back when satteri returns null code', async () => {
+    it('throws when satteri returns empty code', async () => {
       mockCacheInstance.getAsync.mockResolvedValue(null)
       vi.mocked(satteriMdxToJs).mockResolvedValue({
         code: '',
@@ -121,32 +118,20 @@ describe('MdxCompiler — integration scenarios', () => {
         data: {},
       } as never)
 
-      const result = await compiler.compile('# Hello', 'test.mdx')
-      expect(result).toBeNull()
+      await expect(compiler.compile('# Hello', 'test.mdx')).rejects.toThrow(
+        'Sätteri compilation returned no output for test.mdx',
+      )
     })
   })
 
-  describe('fallback scenarios', () => {
-    it('handles satteri failure and falls back', async () => {
+  describe('error scenarios', () => {
+    it('throws when satteri fails', async () => {
       mockCacheInstance.getAsync.mockResolvedValue(null)
       vi.mocked(satteriMdxToJs).mockRejectedValue(new Error('satteri crash'))
-      mockFallbackCompiler.transform.mockResolvedValue({
-        code: 'fallback output',
-      })
 
-      const result = await compiler.compile('# Hello', 'test.mdx')
-      expect(result).toBe('fallback output')
-    })
-
-    it('returns null when both satteri and fallback fail', async () => {
-      mockCacheInstance.getAsync.mockResolvedValue(null)
-      vi.mocked(satteriMdxToJs).mockRejectedValue(new Error('satteri crash'))
-      mockFallbackCompiler.transform.mockRejectedValue(
-        new Error('fallback crash'),
+      await expect(compiler.compile('# Hello', 'test.mdx')).rejects.toThrow(
+        'satteri crash',
       )
-
-      const result = await compiler.compile('# Hello', 'test.mdx')
-      expect(result).toBeNull()
     })
   })
 })

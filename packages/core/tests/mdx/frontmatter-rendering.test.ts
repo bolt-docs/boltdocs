@@ -11,7 +11,7 @@ const mdxComponents = {}
 vi.mock('../../docs/docs/mdx-components', () => ({ default: mdxComponents }))
 
 vi.mock('virtual:boltdocs-search', () => ({
-  default: [],
+  default: async () => [],
 }))
 
 vi.mock('virtual:boltdocs-icons', () => ({

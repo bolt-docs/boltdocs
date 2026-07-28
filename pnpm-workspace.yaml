@@ -1,6 +1,7 @@
 packages:
   - packages/*
   - docs
+  - scripts/benchmarks/fixture-site
   - tests/*
 
 catalog:

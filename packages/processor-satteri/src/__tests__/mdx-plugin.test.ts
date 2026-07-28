@@ -138,15 +138,14 @@ describe('createSatteriMdxPlugin', () => {
       })
     })
 
-    it('falls back to raw source when compile returns null', async () => {
+    it('throws when compile returns null', async () => {
       vi.mocked(fs.readFileSync).mockReturnValue('# Hello World')
       const mockCompile = vi.mocked(MdxCompiler).mock.results[0]?.value?.compile
       mockCompile.mockResolvedValue(null)
 
-      const result = await (
-        plugin as { load: (id: string) => Promise<unknown> }
-      ).load('test.mdx')
-      expect(result).toBe('# Hello World')
+      await expect(
+        (plugin as { load: (id: string) => Promise<unknown> }).load('test.mdx'),
+      ).rejects.toThrow('Failed to compile test.mdx')
     })
 
     it('handles lifecycle runChain error gracefully in load hook', async () => {
@@ -156,16 +155,16 @@ describe('createSatteriMdxPlugin', () => {
       }
       mockGetLifecycle.mockReturnValue(lifecycleMock)
       const mockCompile = vi.mocked(MdxCompiler).mock.results[0]?.value?.compile
-      mockCompile.mockResolvedValue(null)
+      mockCompile.mockResolvedValue('export default function MDXContent() {}')
 
       const result = await (
         plugin as { load: (id: string) => Promise<unknown> }
       ).load('test.mdx')
-      // Should fall through to raw source without propagating the error
-      expect(result).toBe('# Hello World')
+      // Should still compile the raw source when lifecycle transform fails
+      expect(result).toContain('MDXContent')
     })
 
-    it('falls back to lifecycle-modified source when compile returns null', async () => {
+    it('throws when compile returns null even after lifecycle transform', async () => {
       vi.mocked(fs.readFileSync).mockReturnValue('# Hello World')
       const lifecycleMock = {
         runChain: vi.fn().mockResolvedValue({ code: '# modified content' }),
@@ -174,11 +173,9 @@ describe('createSatteriMdxPlugin', () => {
       const mockCompile = vi.mocked(MdxCompiler).mock.results[0]?.value?.compile
       mockCompile.mockResolvedValue(null)
 
-      const result = await (
-        plugin as { load: (id: string) => Promise<unknown> }
-      ).load('test.mdx')
-      // When compile fails, the plugin returns sourceCode (which was modified by lifecycle)
-      expect(result).toBe('# modified content')
+      await expect(
+        (plugin as { load: (id: string) => Promise<unknown> }).load('test.mdx'),
+      ).rejects.toThrow('Failed to compile test.mdx')
     })
   })
 

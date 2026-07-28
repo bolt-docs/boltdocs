@@ -146,6 +146,11 @@ function serializeMapToExport<T>(map: Map<string, T>): string {
   return `export default ${JSON.stringify(Array.from(map.values()), null, 2)};`
 }
 
+/** Export the current search document cache as a plain array. */
+export function getSearchDataExport(): SearchDocument[] {
+  return Array.from(_searchDataMap.values())
+}
+
 function serializeCollectionsToExport(
   record: Record<string, CollectionPost[]>,
 ): string {
@@ -448,7 +453,15 @@ export default UserLayout;`
 
       if (name === 'search') {
         await ensureRoutesGenerated(docsDir, config)
-        return serializeMapToExport(_searchDataMap)
+        // Serve search data as a runtime-fetched JSON asset so the large
+        // document array is not embedded in the client JS bundle.
+        return `export default async function fetchSearchData() {
+  const base = import.meta.env.BASE_URL || '/';
+  const url = new URL('search.json', base).toString();
+  const res = await fetch(url);
+  if (!res.ok) throw new Error('Failed to fetch search index');
+  return res.json();
+}`
       }
 
       if (name === 'client') {

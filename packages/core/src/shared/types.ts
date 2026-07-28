@@ -601,6 +601,13 @@ export interface IPluginLifecycleManager {
     hookName: 'transformSource' | 'transformMdx' | 'transformHtml',
     initialParams: TParams,
   ): Promise<TParams>
+  hasHook(
+    hookName:
+      | keyof PluginLifecycleHooks
+      | 'transformSource'
+      | 'transformMdx'
+      | 'transformHtml',
+  ): boolean
 }
 
 /**

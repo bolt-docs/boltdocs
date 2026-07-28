@@ -14,7 +14,7 @@ applyFsPatch()
 
 import { configure } from '@bdocs/dui'
 import cac from 'cac'
-import { devAction, buildAction, previewAction, auditAction } from './cli/index'
+// Command handlers are imported dynamically
 
 configure({
   prefix: 'boltdocs',
@@ -27,13 +27,19 @@ cli
   .option('--port <port>', 'Port to listen on')
   .option('--host [host]', 'Host to bind to')
   .option('--force', 'Force Vite to re-optimize dependencies')
-  .action(devAction)
+  .action(async (...args) => {
+    const { devAction } = await import('./cli/dev')
+    return devAction(...args)
+  })
 cli
   .command('[root]', 'Start development server')
   .option('--port <port>', 'Port to listen on')
   .option('--host [host]', 'Host to bind to')
   .option('--force', 'Force Vite to re-optimize dependencies')
-  .action(devAction)
+  .action(async (...args) => {
+    const { devAction } = await import('./cli/dev')
+    return devAction(...args)
+  })
 
 cli
   .command('build [root]', 'Build for production')
@@ -41,17 +47,26 @@ cli
     '--turbo',
     'Enable experimental turbo mode (faster parser, critical CSS, and more)',
   )
-  .action(buildAction)
+  .action(async (...args) => {
+    const { buildAction } = await import('./cli/build')
+    return buildAction(...args)
+  })
 
 cli
   .command('preview [root]', 'Preview production build')
   .option('--port <port>', 'Port to listen on')
   .option('--host [host]', 'Host to bind to')
-  .action(previewAction)
+  .action(async (...args) => {
+    const { previewAction } = await import('./cli/build')
+    return previewAction(...args)
+  })
 
 cli
   .command('audit [root]', 'Audit configured plugins for security warnings')
-  .action(auditAction)
+  .action(async (...args) => {
+    const { auditAction } = await import('./cli/audit')
+    return auditAction(...args)
+  })
 
 cli
   .command('doctor [root]', 'Check the health of your documentation')

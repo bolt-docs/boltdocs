@@ -19,6 +19,9 @@ export default defineConfig([
     entry: {
       index: 'src/index.ts',
       node: 'src/node/index.ts',
+      // Worker entry — compiled as a separate file so it can be loaded
+      // via new Worker('./ssg-worker.mjs', { workerData })
+      'ssg-worker': 'src/node/ssg-worker.ts',
     },
     platform: 'node',
     clean: true,

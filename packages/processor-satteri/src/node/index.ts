@@ -31,3 +31,17 @@ export function createSatteriProcessorPlugin(): SatteriProcessorPlugin {
 
 // Named export for core dynamic import
 export { createSatteriMdxPlugin } from './satteri-mdx-plugin'
+
+// P2-22: Compile pool for parallel MDX compilation
+export { CompilePool } from './compile-pool'
+export type { CompileRequest, CompileResult, PoolMetrics } from './compile-pool'
+
+// P2-21: Precompile bridge for early pipeline precompile
+export {
+  setPrecompilePromise,
+  getPrecompilePromise,
+  isPrecompileStarted,
+  resetPrecompileBridge,
+  signalEarlyPrecompile,
+  wasEarlyPrecompileSignaled,
+} from './precompile-bridge'

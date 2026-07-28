@@ -19,7 +19,7 @@ export const FooterConfigSchema = z.object({
  * Zod schema for MDX configuration.
  */
 export const MdxConfigSchema = z.object({
-  processor: z.enum(['unified', 'satteri']).optional(),
+  processor: z.enum(['unified', 'satteri']).default('satteri'),
 })
 
 /**
@@ -322,6 +322,20 @@ export const IntegrationsConfigSchema = z.object({
 })
 
 /**
+ * Zod schema for SSG-specific configuration.
+ */
+export const SsgConfigSchema = z.object({
+  /**
+   * Critical CSS processing strategy.
+   * - `'zig-critters'` (default): Use zig-critters WASM for fast critical CSS.
+   * - `'beasties'`: Use beasties JS-based critical CSS (opt-in, slower).
+   * - `'none'`: Skip critical CSS entirely.
+   * @default 'zig-critters'
+   */
+  criticalCss: z.enum(['zig-critters', 'beasties', 'none']).optional(),
+})
+
+/**
  * Zod schema for drafts configuration.
  */
 export const DraftsConfigSchema = z.object({
@@ -333,6 +347,7 @@ export const DraftsConfigSchema = z.object({
  * Root Zod schema for Boltdocs project configuration.
  */
 export const BoltdocsConfigSchema = z.object({
+  turbo: z.boolean().default(true),
   siteUrl: z.string().url().optional(),
   docsDir: z.string().optional(),
   base: z.string().optional(),
@@ -340,6 +355,7 @@ export const BoltdocsConfigSchema = z.object({
   i18n: I18nConfigSchema.optional(),
   versions: VersionsConfigSchema.optional(),
   mdx: MdxConfigSchema.optional(),
+  ssg: SsgConfigSchema.optional(),
   plugins: z.array(BoltdocsPluginSchema).optional(),
   robots: RobotsConfigSchema.optional(),
   security: SecurityConfigSchema.optional(),

@@ -75,10 +75,22 @@ export interface ViteReactSSGOptions<Context = ViteReactSSGContext> {
    */
   beastiesOptions?: BeastiesOptions | false
   /**
+   * Critical CSS processing strategy.
+   *
+   * - `'zig-critters'` (default): Use zig-critters WASM for fast critical CSS inlining.
+   *   Falls back to **no critical CSS** if WASM is unavailable (no beasties fallback).
+   * - `'beasties'`: Use beasties (JS-based) for critical CSS. Slower but always available.
+   * - `false`: Skip critical CSS entirely.
+   *
+   * @default 'zig-critters'
+   */
+  criticalCss?: 'zig-critters' | 'beasties' | false
+  /**
    * Enable turbo mode: use zig-critters WASM instead of beasties JS for critical CSS.
    * Falls back to beasties if the WASM binary is unavailable.
    *
    * @default false
+   * @deprecated Use `criticalCss` instead. `turbo=true` is equivalent to `criticalCss: 'zig-critters'`.
    */
   turbo?: boolean
   /**

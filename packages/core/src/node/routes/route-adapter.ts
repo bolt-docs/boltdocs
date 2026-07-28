@@ -13,8 +13,8 @@ export interface SSGRouteData {
   badge?: string | { text: string; expires?: string }
   icon?: string
   headings: Array<{ level: number; text: string; id: string }>
-  _content: string
   _rawContent?: string
+  frontmatter?: Record<string, any>
   locale?: string
   version?: string
   tab?: string
@@ -36,7 +36,6 @@ export interface SSGRouteData {
   order?: number
   sidebarLabel?: string
   sidebarHidden?: boolean
-  frontmatter?: Record<string, any>
   slugParts?: string[]
 }
 
@@ -56,8 +55,8 @@ export function adaptRoutesForSSG(routes: RouteMeta[]): SSGRouteData[] {
     badge: route.badge,
     icon: route.icon,
     headings: route.headings || [],
-    _content: route._content || '',
     _rawContent: route._rawContent || '',
+    frontmatter: route.frontmatter,
     locale: route.locale,
     version: route.version,
     tab: route.tab,
@@ -79,7 +78,6 @@ export function adaptRoutesForSSG(routes: RouteMeta[]): SSGRouteData[] {
     order: route.order,
     sidebarLabel: route.sidebarLabel,
     sidebarHidden: route.sidebarHidden,
-    frontmatter: route.frontmatter,
     slugParts: route.slugParts,
   }))
 }

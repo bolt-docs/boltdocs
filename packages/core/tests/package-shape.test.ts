@@ -37,7 +37,8 @@ describe('packages/core/package.json shape', () => {
     // These are imported by src/node/cli-entry.ts when `npx boltdocs build` runs.
     expect(deps.dependencies.shiki).toBe('3.23.0')
     expect(deps.dependencies['@shikijs/engine-oniguruma']).toBe('3.23.0')
-    expect(deps.dependencies['@mdx-js/rollup']).toBe('3.1.1')
+    // @mdx-js/rollup was replaced by the Sätteri processor in 3.2.x
+    expect(deps.dependencies['@bdocs/processor-satteri']).toBe('workspace:*')
   })
 
   it('does NOT ship sharp/svgo from core (they belong to plugin-image-optimizer)', () => {

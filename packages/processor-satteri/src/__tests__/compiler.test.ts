@@ -13,7 +13,7 @@ vi.mock('node:crypto', () => {
   }
 })
 
-// Mock dynamic imports for cache and fallback
+// Mock dynamic imports for cache
 const mockCacheInstance = {
   load: vi.fn().mockResolvedValue(undefined),
   save: vi.fn(),
@@ -26,19 +26,6 @@ vi.mock('boltdocs/node/cache', () => ({
   TransformCache: vi.fn(() => mockCacheInstance),
 }))
 
-const mockFallbackCompiler = {
-  transform: vi.fn(),
-}
-
-vi.mock('@mdx-js/rollup', () => ({
-  default: vi.fn(() => mockFallbackCompiler),
-}))
-
-vi.mock('remark-gfm', () => ({ default: 'remark-gfm-plugin' }))
-vi.mock('remark-frontmatter', () => ({ default: 'remark-frontmatter-plugin' }))
-vi.mock('rehype-slug', () => ({ default: 'rehype-slug-plugin' }))
-
-// Mock satteri
 vi.mock('satteri', () => ({
   defineMdastPlugin: (def: unknown) => def,
   mdxToJs: vi.fn(),
@@ -57,14 +44,13 @@ describe('MdxCompiler', () => {
     mockCacheInstance.set.mockReset()
     mockCacheInstance.save.mockReset()
     mockCacheInstance.flush.mockReset()
-    mockFallbackCompiler.transform.mockReset()
     vi.mocked(satteriMdxToJs).mockReset()
   })
 
-  describe('satteriCompile', () => {
+  describe('compile', () => {
     it('returns cached result when available', async () => {
       mockCacheInstance.getAsync.mockResolvedValue('cached-code')
-      const result = await compiler.satteriCompile('# Hello', 'test.mdx')
+      const result = await compiler.compile('# Hello', 'test.mdx')
       expect(result).toBe('cached-code')
       expect(satteriMdxToJs).not.toHaveBeenCalled()
     })
@@ -75,7 +61,7 @@ describe('MdxCompiler', () => {
         code: 'export default function MDXContent() { return null }',
       } as never)
 
-      const result = await compiler.satteriCompile('# Hello', 'test.mdx')
+      const result = await compiler.compile('# Hello', 'test.mdx')
       expect(result).toContain('MDXContent')
       expect(satteriMdxToJs).toHaveBeenCalledWith('# Hello', {
         jsxRuntime: 'automatic',
@@ -93,71 +79,43 @@ describe('MdxCompiler', () => {
         code: 'export default function MDXContent() {}',
       } as never)
 
-      await compiler.satteriCompile('# Hello', 'test.mdx')
+      await compiler.compile('# Hello', 'test.mdx')
       expect(mockCacheInstance.set).toHaveBeenCalled()
     })
 
-    it('returns null when satteri compilation fails', async () => {
+    it('throws when satteri compilation fails', async () => {
       mockCacheInstance.getAsync.mockResolvedValue(null)
       vi.mocked(satteriMdxToJs).mockRejectedValue(new Error('compile error'))
 
-      const result = await compiler.satteriCompile('# Hello', 'test.mdx')
-      expect(result).toBeNull()
-    })
-  })
-
-  describe('fallbackCompile', () => {
-    it('falls back to @mdx-js/rollup when fallback is available', async () => {
-      mockFallbackCompiler.transform.mockResolvedValue({
-        code: 'export default function FallbackContent() {}',
-      })
-
-      // First call loads the fallback compiler async
-      const result = await compiler.fallbackCompile('# Hello', 'test.mdx')
-      expect(result).toContain('FallbackContent')
-    })
-
-    it('returns null when fallback transform fails', async () => {
-      mockFallbackCompiler.transform.mockRejectedValue(
-        new Error('transform error'),
+      await expect(compiler.compile('# Hello', 'test.mdx')).rejects.toThrow(
+        'compile error',
       )
-      const result = await compiler.fallbackCompile('# Hello', 'test.mdx')
-      expect(result).toBeNull()
-    })
-  })
-
-  describe('compile', () => {
-    it('returns satteri result when satteri succeeds', async () => {
-      mockCacheInstance.getAsync.mockResolvedValue(null)
-      vi.mocked(satteriMdxToJs).mockResolvedValue({
-        code: 'export default function MDXContent() {}',
-      } as never)
-
-      const result = await compiler.compile('# Hello', 'test.mdx')
-      expect(result).toContain('MDXContent')
     })
 
-    it('returns null when both compilers fail', async () => {
+    it('throws when satteri returns no code', async () => {
       mockCacheInstance.getAsync.mockResolvedValue(null)
-      vi.mocked(satteriMdxToJs).mockRejectedValue(new Error('satteri fail'))
+      vi.mocked(satteriMdxToJs).mockResolvedValue({ code: '' } as never)
 
-      const result = await compiler.compile('# Hello', 'test.mdx')
-      expect(result).toBeNull()
+      await expect(compiler.compile('# Hello', 'test.mdx')).rejects.toThrow(
+        'Sätteri compilation returned no output for test.mdx',
+      )
     })
   })
 
   describe('flushCache', () => {
-    it('saves and flushes cache when initialized', async () => {
+    it('persists cache to disk (P2-22: flush ensures cross-process persistence)', async () => {
       mockCacheInstance.getAsync.mockResolvedValue(null)
       vi.mocked(satteriMdxToJs).mockResolvedValue({
         code: 'export default function MDXContent() {}',
       } as never)
 
-      await compiler.satteriCompile('# Hello', 'test.mdx')
+      await compiler.compile('# Hello', 'test.mdx')
       await compiler.flushCache()
 
       expect(mockCacheInstance.save).toHaveBeenCalled()
-      expect(mockCacheInstance.flush).toHaveBeenCalled()
+      // P2-22: flush is now called to persist the cache between processes.
+      // Without it, cold-dist builds lose all cached entries (~1-2s penalty).
+      expect(mockCacheInstance.flush).toHaveBeenCalledTimes(1)
     })
 
     it('handles flush when cache was never initialized', async () => {

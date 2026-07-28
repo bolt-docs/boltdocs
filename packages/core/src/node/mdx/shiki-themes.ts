@@ -1,22 +1,17 @@
 import githubLight from '@shikijs/themes/github-light'
 import githubDark from '@shikijs/themes/github-dark'
-import tokyoNight from '@shikijs/themes/tokyo-night'
-import dracula from '@shikijs/themes/dracula'
-import nord from '@shikijs/themes/nord'
-import oneDarkPro from '@shikijs/themes/one-dark-pro'
-import oneLight from '@shikijs/themes/one-light'
 
 /**
  * Collection of bundled Shiki themes.
+ * Reduced to only the 2 default themes (github-light, github-dark) to save
+ * ~300KB from the app bundle. Users who need additional themes can configure
+ * them via the `theme.codeTheme` option, which currently supports:
+ * github-dark, github-light, tokyo-night, dracula, nord, one-dark-pro, one-light.
+ * To add more themes, re-import them here and add to THEMES_BUILD.
  */
 export const THEMES_BUILD: any[] = [
   (githubLight as any).default || githubLight,
   (githubDark as any).default || githubDark,
-  (tokyoNight as any).default || tokyoNight,
-  (dracula as any).default || dracula,
-  (nord as any).default || nord,
-  (oneDarkPro as any).default || oneDarkPro,
-  (oneLight as any).default || oneLight,
 ]
 
 export const THEMES_DEFAULT = {

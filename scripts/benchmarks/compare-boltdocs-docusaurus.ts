@@ -10,7 +10,64 @@ const WORKSPACE_ROOT = path.resolve(__dirname, '..', '..')
 const TEMP_ROOT = path.resolve(WORKSPACE_ROOT, '.benchmark-temp')
 const BOLTDOCS_DIR = path.resolve(TEMP_ROOT, 'boltdocs')
 const DOCUSAURUS_DIR = path.resolve(TEMP_ROOT, 'docusaurus')
+// P2-00: Add --quick flag for fast iteration (skip install if node_modules exists)
+const IS_QUICK = process.argv.includes('--quick')
 const PAGE_COUNT = Number(process.env.PAGE_COUNT) || 10000
+
+// Pack local boltdocs packages into tarballs so the sandbox can use them
+function packLocalBoltdocs(): string {
+  const packDir = path.join(TEMP_ROOT, 'local-pack')
+  if (!fs.existsSync(packDir)) {
+    fs.mkdirSync(packDir, { recursive: true })
+  }
+
+  // Pack core + ssg + unist-utils (the minimum set boltdocs needs)
+  const packages = [
+    { dir: 'packages/core', name: 'boltdocs' },
+    { dir: 'packages/plugin-ssg', name: '@bdocs-ssg' },
+    { dir: 'packages/unist-utils', name: '@bdocs-unist-utils' },
+  ]
+
+  let boltdocsTgz = ''
+  for (const pkg of packages) {
+    const pkgDir = path.join(WORKSPACE_ROOT, pkg.dir)
+    console.log(`  Packing ${pkg.name} from ${pkg.dir}...`)
+    try {
+      const result = child_process.execSync(
+        'pnpm pack --pack-destination ' + packDir,
+        {
+          cwd: pkgDir,
+          encoding: 'utf-8',
+        },
+      )
+      const tgzName = result.trim().split('\n').pop()?.trim() || ''
+      if (tgzName && tgzName.endsWith('.tgz')) {
+        if (pkg.name === 'boltdocs') {
+          boltdocsTgz = path.isAbsolute(tgzName)
+            ? tgzName
+            : path.join(packDir, tgzName)
+        }
+        console.log(
+          `    → ${path.isAbsolute(tgzName) ? tgzName : path.join(packDir, tgzName)}`,
+        )
+      }
+    } catch (err) {
+      console.error(`    Failed to pack ${pkg.name}:`, err)
+    }
+  }
+
+  // Fallback: look for any boltdocs tgz in the pack dir
+  if (!boltdocsTgz || !fs.existsSync(boltdocsTgz)) {
+    const files = fs
+      .readdirSync(packDir)
+      .filter((f) => f.startsWith('boltdocs') && f.endsWith('.tgz'))
+    if (files.length > 0) {
+      boltdocsTgz = path.join(packDir, files[0])
+    }
+  }
+
+  return boltdocsTgz
+}
 
 // Helper to calculate directory size recursively in bytes
 function getDirSize(dirPath: string): number {
@@ -146,25 +203,93 @@ function writeConfigs() {
   )
   fs.writeFileSync(path.join(BOLTDOCS_DIR, 'index.css'), '') // empty stylesheet
 
-  // Boltdocs package.json to set type: module and avoid ESM reparsing warning/overhead
-  const boltdocsPkg = {
+  // Pack local boltdocs and write sandbox package.json
+  const boltdocsTgz = packLocalBoltdocs()
+  console.log(
+    `Using local boltdocs pack: ${boltdocsTgz || '(not found, will fall back to npm)'}`,
+  )
+
+  // Pack ALL workspace dependencies that boltdocs core needs
+  const allWorkspaceDeps = [
+    { dir: 'packages/core', name: 'boltdocs' },
+    { dir: 'packages/plugin-ssg', name: '@bdocs/ssg' },
+    { dir: 'packages/parser', name: '@bdocs/parser' },
+    { dir: 'packages/unist-utils', name: '@bdocs/unist-utils' },
+    { dir: 'packages/zig-critters', name: '@bdocs/zig-critters' },
+    { dir: 'packages/processor-satteri', name: '@bdocs/processor-satteri' },
+    {
+      dir: 'packages/plugin-image-optimizer',
+      name: '@bdocs/plugin-image-optimizer',
+    },
+  ]
+
+  const packDir = path.join(TEMP_ROOT, 'local-pack')
+  if (!fs.existsSync(packDir)) {
+    fs.mkdirSync(packDir, { recursive: true })
+  }
+
+  const depOverrides: Record<string, string> = {
+    react: '19.2.5',
+    'react-dom': '19.2.5',
+  }
+  const boltdocsPkg: Record<string, unknown> = {
     name: 'benchmark-boltdocs',
     private: true,
     type: 'module',
     dependencies: {
-      boltdocs: '3.1.0',
-      '@bdocs/zig-critters':
-        'file:/tmp/boltdocs-pack/bdocs-zig-critters-0.2.0.tgz',
-      react: '^19.0.0',
-      'react-dom': '^19.0.0',
-    },
-    pnpm: {
-      overrides: {
-        '@bdocs/zig-critters':
-          'file:/tmp/boltdocs-pack/bdocs-zig-critters-0.2.0.tgz',
-      },
+      react: '19.2.5',
+      'react-dom': '19.2.5',
     },
   }
+
+  // Pack each workspace dep and collect tarball paths
+  for (const wsDep of allWorkspaceDeps) {
+    const pkgDir = path.join(WORKSPACE_ROOT, wsDep.dir)
+    if (!fs.existsSync(pkgDir)) {
+      console.log(`  Skipping ${wsDep.name} (${wsDep.dir} not found)`)
+      continue
+    }
+    console.log(`  Packing ${wsDep.name} from ${wsDep.dir}...`)
+    try {
+      const result = child_process.execSync(
+        'pnpm pack --pack-destination ' + packDir,
+        {
+          cwd: pkgDir,
+          encoding: 'utf-8',
+        },
+      )
+      const lines = result.trim().split('\n').filter(Boolean)
+      const tgzName = lines[lines.length - 1]?.trim() || ''
+      if (tgzName && tgzName.endsWith('.tgz')) {
+        const fullPath = path.isAbsolute(tgzName)
+          ? tgzName
+          : path.join(packDir, tgzName)
+        if (wsDep.name === 'boltdocs') {
+          ;(boltdocsPkg.dependencies as Record<string, string>).boltdocs =
+            `file:${fullPath}`
+        } else {
+          depOverrides[wsDep.name] = `file:${fullPath}`
+        }
+        console.log(`    → ${fullPath}`)
+      }
+    } catch (err) {
+      console.error(`    Failed to pack ${wsDep.name}:`)
+    }
+  }
+
+  // Add pnpm overrides for workspace deps so they don't resolve from npm
+  if (Object.keys(depOverrides).length > 0) {
+    boltdocsPkg.pnpm = {
+      overrides: depOverrides,
+    }
+  }
+
+  // Fallback: if we couldn't pack boltdocs, use npm
+  if (!(boltdocsPkg.dependencies as Record<string, string>).boltdocs) {
+    ;(boltdocsPkg.dependencies as Record<string, string>).boltdocs = '3.1.0'
+    console.log('  Using npm version 3.1.0 as fallback')
+  }
+
   fs.writeFileSync(
     path.join(BOLTDOCS_DIR, 'package.json'),
     JSON.stringify(boltdocsPkg, null, 2),
@@ -262,6 +387,16 @@ export default function Layout({ children }: { children: React.ReactNode }) {
 
 // Runs package installations
 function runInstallation() {
+  // P2-00: --quick mode skips install if node_modules already exist
+  if (IS_QUICK) {
+    const boltdocsModules = path.join(BOLTDOCS_DIR, 'node_modules')
+    const docusaurusModules = path.join(DOCUSAURUS_DIR, 'node_modules')
+    if (fs.existsSync(boltdocsModules) && fs.existsSync(docusaurusModules)) {
+      console.log('  --quick: node_modules exist, skipping installation')
+      return
+    }
+  }
+
   console.log('Installing dependencies for Docusaurus benchmark...')
   try {
     child_process.execSync(
@@ -313,6 +448,25 @@ function runInstallation() {
     } catch (npmErr) {
       console.error('Failed both pnpm and npm installs for Boltdocs:', npmErr)
       throw npmErr
+    }
+  }
+
+  // P2-00: After install, verify boltdocs binary exists
+  const boltdocsCLI = path.resolve(BOLTDOCS_DIR, 'node_modules/.bin/boltdocs')
+  if (fs.existsSync(boltdocsCLI)) {
+    console.log(`  ✅ boltdocs CLI found at ${boltdocsCLI}`)
+  } else {
+    console.warn(`  ⚠️  boltdocs CLI not found at ${boltdocsCLI}`)
+    // Fallback: look for it elsewhere
+    const altPaths = [
+      path.resolve(BOLTDOCS_DIR, 'node_modules/boltdocs/bin/boltdocs.js'),
+      path.resolve(BOLTDOCS_DIR, 'node_modules/boltdocs/bin/boltdocs.mjs'),
+    ]
+    for (const altPath of altPaths) {
+      if (fs.existsSync(altPath)) {
+        console.log(`  ✅ Found at ${altPath}`)
+        break
+      }
     }
   }
 }

@@ -4,7 +4,7 @@ import type { ComponentRoute } from '../../src/client/types'
 import type * as React from 'react'
 
 vi.mock('virtual:boltdocs-search', () => ({
-  default: [],
+  default: async () => [],
 }))
 
 vi.mock('virtual:boltdocs-icons', () => ({

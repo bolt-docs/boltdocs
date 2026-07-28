@@ -7,7 +7,6 @@ import {
   logSecurityEvent,
   sanitizeHtml,
 } from '../../utils'
-import { parseFrontmatterFast } from '../../utils/frontmatter'
 import { MAX_PATH_LENGTH, ALLOWED_PATH_CHARS } from '../../security/constants'
 import { EncodingSecurityError, PathTraversalError } from '../../errors'
 import type { BoltdocsConfig } from '../../config'
@@ -247,6 +246,7 @@ export async function parseDocFileWithNative(
     headings: { level: number; text: string; id: string }[]
     plainText: string
     description: string
+    frontmatter?: Record<string, unknown>
   },
   docsDir: string,
   basePath: string,
@@ -284,10 +284,8 @@ export async function parseDocFileWithNative(
     )
   }
 
-  // Parse frontmatter from the rawMatter provided by Zig
-  const { data } = parseFrontmatterFast(
-    '---\n' + nativeDoc.rawMatter + '\n---',
-  ) as { data: FrontmatterData; content: string; rawMatter: string }
+  // Use the parsed frontmatter provided by the native parser when available.
+  const data = (nativeDoc.frontmatter ?? {}) as FrontmatterData
 
   const resolution = resolveRoutePath(
     absoluteFile,

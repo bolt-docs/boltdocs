@@ -4,7 +4,7 @@ import type { LoaderFunction, LoaderFunctionArgs } from 'react-router-dom'
 import type { StaticHandlerContext } from 'react-router-dom'
 import type { Connect } from 'vite'
 import type { IRouterAdapter } from './interface'
-import type { ViteReactSSGContext } from '../../types'
+import type { ViteReactSSGContext, RouteRecord } from '../../types'
 // Use the HelmetProvider from helmet-compat.tsx's globalThis bridge to ensure
 // the same React context as the bundled ESM react-helmet-async instance.
 // Without this, require('react-helmet-async') loads a separate CJS module with
@@ -44,13 +44,57 @@ async function getReactRouterDom() {
   return _reactRouterDom
 }
 
+// The data routes and static handler are deterministic for a given base,
+// route tree, and router future flags. Creating the static handler is
+// expensive; the original adapter created a fresh handler per page. Cache
+// them so all pages in the same build reuse the same handler.
+interface CachedHandler {
+  dataRoutes: ReturnType<typeof convertRoutesToDataRoutes>
+  staticHandler: { query: (request: Request) => Promise<unknown> }
+}
+const _staticHandlerCache = new Map<string, CachedHandler>()
+const _staticHandlerPromise = new Map<string, Promise<CachedHandler>>()
+
+function makeHandlerKey(
+  base: string,
+  routes: Readonly<RouteRecord[]>,
+  future: unknown,
+) {
+  // Stable key from base + route ids/paths + a hash of future flags.
+  const futureKey =
+    typeof future === 'object' && future !== null
+      ? JSON.stringify(future)
+      : String(future)
+  const routeKey = routes
+    .map((r: any) => (r.id ?? r.path ?? '').toString())
+    .join('|')
+  return `${base}:${routeKey}:${futureKey}`
+}
+
+async function getCachedHandler(
+  base: string,
+  routes: Readonly<RouteRecord[]>,
+  future: unknown,
+  create: () => Promise<CachedHandler>,
+): Promise<CachedHandler> {
+  const key = makeHandlerKey(base, routes, future)
+  const cached = _staticHandlerCache.get(key)
+  if (cached) return cached
+
+  const inFlight = _staticHandlerPromise.get(key)
+  if (inFlight) return inFlight
+
+  const promise = create().then((handler) => {
+    _staticHandlerCache.set(key, handler)
+    _staticHandlerPromise.delete(key)
+    return handler
+  })
+  _staticHandlerPromise.set(key, promise)
+  return promise
+}
+
 export class RemixAdapter implements IRouterAdapter<ViteReactSSGContext> {
   context: ViteReactSSGContext<true>
-  private _dataRoutes: ReturnType<typeof convertRoutesToDataRoutes> | null =
-    null
-  private _staticHandler: {
-    query: (request: Request) => Promise<unknown>
-  } | null = null
   constructor(context: ViteReactSSGContext) {
     this.context = context
   }
@@ -72,12 +116,23 @@ export class RemixAdapter implements IRouterAdapter<ViteReactSSGContext> {
     let routerContext: StaticHandlerContext | null = null
     const { StaticRouterProvider, createStaticHandler, createStaticRouter } =
       await getReactRouterDom()
-    const dataRoutes = (this._dataRoutes ??= convertRoutesToDataRoutes(
-      [...routes],
-      (route) => route,
-    ))
-    this._staticHandler ??= createStaticHandler(dataRoutes, { basename: base })
-    const { query } = this._staticHandler
+
+    const { dataRoutes, staticHandler } = await getCachedHandler(
+      base,
+      routes,
+      routerOptions.future,
+      async () => {
+        const dataRoutes = convertRoutesToDataRoutes(
+          [...routes],
+          (route) => route,
+        )
+        const staticHandler = createStaticHandler(dataRoutes, {
+          basename: base,
+        })
+        return { dataRoutes, staticHandler }
+      },
+    )
+    const { query } = staticHandler
     let _context = await query(request)
 
     // Follow redirects (e.g., /docs -> /docs/guides) during SSR

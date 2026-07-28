@@ -1,29 +1,10 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import { renderHook, act } from '@testing-library/react'
+import { renderHook, act, waitFor } from '@testing-library/react'
 import { useSearch } from '../../src/client/hooks/use-search'
 import { useConfig } from '../../src/client/app/config-context'
 import { useRoutes } from '../../src/client/hooks/use-routes'
 
-vi.mock('virtual:boltdocs-search', () => ({
-  default: [
-    {
-      id: '/docs/intro',
-      title: 'Introduction',
-      content: 'This is the introduction content and setup.',
-      url: '/docs/intro',
-      display: 'Getting Started > Introduction',
-      locale: 'en',
-    },
-    {
-      id: '/docs/advanced',
-      title: 'Advanced Config',
-      content: 'This details configuration options.',
-      url: '/docs/advanced',
-      display: 'Guides > Advanced Config',
-      locale: 'en',
-    },
-  ],
-}))
+// virtual:boltdocs-search is aliased to tests/mocks/virtual-search.ts
 
 vi.mock('../../src/client/app/config-context', () => ({
   useConfig: vi.fn(),
@@ -61,7 +42,6 @@ describe('useSearch hook', () => {
 
   beforeEach(() => {
     vi.clearAllMocks()
-    vi.useFakeTimers()
     vi.mocked(useRoutes).mockReturnValue({
       currentLocale: 'en',
       currentVersion: undefined,
@@ -70,7 +50,6 @@ describe('useSearch hook', () => {
 
   afterEach(() => {
     vi.restoreAllMocks()
-    vi.useRealTimers()
   })
 
   describe('FlexSearch (Fallback Mode)', () => {
@@ -112,19 +91,28 @@ describe('useSearch hook', () => {
       })
     })
 
-    it('should perform local search using FlexSearch when query is populated', () => {
+    it('should perform local search using FlexSearch when query is populated', async () => {
       const { result } = renderHook(() => useSearch(mockRoutes as any))
 
-      // Trigger index creation
+      // Trigger index creation (and lazy search data fetch)
       act(() => {
         result.current.setIsOpen(true)
+      })
+
+      // Wait for the lazy search data fetch and FlexSearch index build.
+      await waitFor(() => {
+        expect(result.current.searchDataLoading).toBe(false)
       })
 
       act(() => {
         result.current.setQuery('advanced')
       })
 
-      expect(result.current.list).toHaveLength(1)
+      // Wait for the search result.
+      await waitFor(() => {
+        expect(result.current.list).toHaveLength(1)
+      })
+
       expect(result.current.list[0]).toMatchObject({
         id: '/docs/advanced',
         title: 'Advanced Config',
@@ -141,6 +129,7 @@ describe('useSearch hook', () => {
     }
 
     beforeEach(() => {
+      vi.useFakeTimers()
       vi.mocked(useConfig).mockReturnValue({
         integrations: {
           search: {
@@ -148,6 +137,10 @@ describe('useSearch hook', () => {
           },
         },
       })
+    })
+
+    afterEach(() => {
+      vi.useRealTimers()
     })
 
     it('should not initialize FlexSearch index in Algolia mode', () => {

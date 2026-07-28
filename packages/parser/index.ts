@@ -3,6 +3,7 @@ import { promisify } from 'node:util'
 import path from 'node:path'
 import fs from 'node:fs'
 import { fileURLToPath } from 'node:url'
+import { tryLoadNapi, parseWithNapi } from './src/napi-binding'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const execFilePromise = promisify(execFile)
@@ -166,18 +167,75 @@ async function runWasmParser(
 }
 
 /**
- * Run the parser with cross-platform native binaries.
+ * Read all MD/MDX files from a directory and build a files record.
+ */
+function readDocsDir(docsDir: string): Record<string, string> {
+  const files: Record<string, string> = {}
+
+  function walk(dir: string) {
+    let entries: fs.Dirent[]
+    try {
+      entries = fs.readdirSync(dir, { withFileTypes: true })
+    } catch {
+      return
+    }
+
+    for (const entry of entries) {
+      const fullPath = path.join(dir, entry.name)
+      if (entry.isDirectory()) {
+        // Skip hidden directories
+        if (!entry.name.startsWith('_')) {
+          walk(fullPath)
+        }
+      } else if (entry.isFile() && /\.(md|mdx)$/i.test(entry.name)) {
+        try {
+          const content = fs.readFileSync(fullPath, 'utf8')
+          const absolutePath = fullPath.replace(/\\/g, '/')
+          files[absolutePath] = content
+        } catch {
+          // Skip unreadable files
+        }
+      }
+    }
+  }
+
+  walk(docsDir)
+  return files
+}
+
+/**
+ * Run the parser with cross-platform strategies.
  *
- * Strategy: Native binary first (multi-threaded, 5-10x faster), WASM fallback.
- * - Native binary downloaded from GitHub Releases via postinstall
- * - WASM binary shipped in dist/bdocs-parser.wasm
- * - Set FORCE_WASM=true to skip native binary and use WASM directly
+ * Strategy hierarchy (fastest first):
+ * 1. N-API shared library (direct FFI, no fork/exec)
+ * 2. Native binary (multi-threaded, 5-10x faster than WASM)
+ * 3. WASM (embedded fallback)
+ *
+ * - N-API: built via `pnpm build:napi`, produces .so/.dylib/.dll
+ * - Native binary: downloaded from GitHub Releases via postinstall
+ * - WASM binary: shipped in dist/bdocs-parser.wasm
+ * - Set FORCE_WASM=true or FORCE_EXEC=true to skip faster paths
  */
 export async function runParser(
   docsDir: string,
   turbo: boolean = false,
 ): Promise<Record<string, ParsedDoc>> {
-  // 1. Try native binary
+  // 1. Try N-API shared library (fastest — direct FFI, no fork/exec)
+  if (process.env.FORCE_WASM !== 'true' && process.env.FORCE_EXEC !== 'true') {
+    if (tryLoadNapi()) {
+      try {
+        const files = readDocsDir(docsDir)
+        if (Object.keys(files).length === 0) {
+          return {}
+        }
+        return parseWithNapi(files, turbo)
+      } catch {
+        // Fall through to native binary
+      }
+    }
+  }
+
+  // 2. Try native binary
   if (process.env.FORCE_WASM !== 'true') {
     const nativePath = getNativeBinaryPath()
     if (nativePath) {
@@ -189,6 +247,6 @@ export async function runParser(
     }
   }
 
-  // 2. Fallback to WASM (embedded as base64)
+  // 3. Fallback to WASM
   return await runWasmParser(docsDir, turbo)
 }

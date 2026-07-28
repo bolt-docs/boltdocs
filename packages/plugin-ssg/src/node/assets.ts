@@ -1,5 +1,5 @@
 import type { RouteRecord } from '../types'
-import type { Manifest, SSRManifest } from './build'
+import type { Manifest, SSRManifest } from './types'
 
 export const DYNAMIC_IMPORT_REGEX = /import\("([^)]+)"\)/g
 export enum AssetType {

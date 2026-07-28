@@ -13,6 +13,10 @@ const EXTERNALS = [
   'react-helmet-async',
   '@bdocs/ssg',
   'jsdom',
+  'lucide-react',
+  'react-fast-compare',
+  'invariant',
+  'scheduler',
 ]
 const SUBPATHS = [
   'react/jsx-runtime',

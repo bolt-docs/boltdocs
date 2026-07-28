@@ -5,6 +5,7 @@ import { devServer } from '../ui-utils'
 import { notifyUpdateAvailable } from '../update-check'
 import { resolveConfig } from '../config'
 import { inspectPluginsSecurity } from '../security/inspect'
+import { generateRoutes } from '../routes'
 import path from 'node:path'
 
 let devServerStarted = false
@@ -24,6 +25,7 @@ export async function devAction(
 
   notifyUpdateAvailable()
   let config: any = undefined
+  let devRoutes: any = undefined
   try {
     config = await resolveConfig(path.resolve(root, 'docs'), root)
     inspectPluginsSecurity(config, root)
@@ -32,7 +34,11 @@ export async function devAction(
   }
 
   try {
-    const viteConfig = await createViteConfig(root, 'development', config)
+    const viteConfig = await createViteConfig(root, 'development', config, {
+      routes: devRoutes,
+      skipTypes: true,
+      skipLinkTree: true,
+    })
     viteConfig.logLevel = 'warn'
     viteConfig.clearScreen = false
 
@@ -51,6 +57,12 @@ export async function devAction(
 
     const server = await createServer(viteConfig)
     await server.listen()
+
+    // Start generating routes in the background
+    generateRoutes('docs', config).catch((err) => {
+      error('Background route generation failed:', err)
+    })
+
     const urls = server.resolvedUrls
     console.log(
       devServer(

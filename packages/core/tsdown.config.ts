@@ -15,7 +15,6 @@ export default defineConfig([
       'node/index': 'src/node/index.ts',
       'node/cli-entry': 'src/node/cli-entry.ts',
       'node/cache': 'src/node/cache.ts',
-      'node/mdx/worker': 'src/node/mdx/worker.ts',
       'node/mdx/shiki-adapter': 'src/node/mdx/shiki-adapter.ts',
       'server/index': 'src/node/feedback/adapters/index.ts',
     },
