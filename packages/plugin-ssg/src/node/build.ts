@@ -444,123 +444,21 @@ export async function build(
     loggerInfo(msg, options)
   }
 
-  if (canBypassClientBuild) {
-    onStep?.({
-      name: 'Client build',
-      duration: 0,
-      success: true,
-      details: 'Code unchanged, restored from cache',
-    })
-    // PR-05: Use hard links for near-instant cache restoration (~10ms vs ~500ms).
-    // Hard links share the same inode — zero copy, zero extra disk space.
-    if (fs.existsSync(out)) await fs.remove(out)
-    hardLinkDir(join(clientCacheDir, 'dist'), out)
-  } else {
-    const clientStart = performance.now()
-    await viteBuild(
-      mergeConfig(viteConfig, {
-        logLevel: 'warn',
-        build: {
-          manifest: true,
-          ssrManifest: true,
-          chunkSizeWarningLimit: 2000,
-          reportCompressedSize: false,
-          sourcemap: false,
-          cssMinify: 'esbuild',
-          ...buildBundlerOptions({
-            input: { app: join(root, htmlEntry || './index.html') },
-            output: {
-              // P2-20.3: Split vendor deps into stable chunks for better caching.
-              // This reduces app chunk size and allows Rolldown to skip re-processing
-              // unchanged vendor modules on incremental builds.
-              manualChunks(id: string) {
-                if (!id.includes('node_modules') && !id.includes('.boltdocs')) {
-                  return
-                }
-                if (
-                  id.includes('/node_modules/react/') ||
-                  id.includes('/node_modules/react-dom/') ||
-                  id.includes('/node_modules/scheduler/')
-                ) {
-                  return 'react-vendor'
-                }
-                if (id.includes('/node_modules/react-router')) {
-                  return 'react-router'
-                }
-                if (id.includes('/node_modules/lucide-react')) {
-                  return 'lucide-icons'
-                }
-                if (id.includes('/node_modules/react-helmet-async')) {
-                  return 'react-helmet'
-                }
-                // mdx-pages are already in chunks; keep them together
-                if (id.includes('.boltdocs/compiled/pages/chunk-')) {
-                  return 'mdx-pages'
-                }
-              },
-            } as any,
-            onLog(level, log, handler) {
-              if (
-                log.message.includes('react-helmet-async') ||
-                shouldSuppressLog(log.message)
-              )
-                return
-              handler(level, log)
-            },
-          }),
-        },
-        customLogger: clientLogger,
-        mode: resolvedConfig.mode,
-        plugins: [
-          {
-            name: 'vite-react-ssg:get-oup-dir',
-            configResolved(resolvedConfig) {
-              outDir = resolvedConfig.build.outDir || 'dist'
-            },
-          } as PluginOption,
-        ],
-      }),
-    )
-    onStep?.({
-      name: 'Client build',
-      duration: performance.now() - clientStart,
-      success: true,
-      details: 'Vite production build',
-    })
-    currentClientHash = computeClientCodeHash(root, docsDirName, finalCacheDir)
-    hash = currentClientHash.substring(0, 12)
-    ssgOut = join(finalCacheDir, 'ssr', turbo ? 'turbo-ssr' : hash)
-    clientCacheDir = join(finalCacheDir, 'client-cache', currentClientHash)
-    hashFile = join(clientCacheDir, 'client-hash.txt')
-    await fs.ensureDir(clientCacheDir)
-    const cachedDist = join(clientCacheDir, 'dist')
-    if (fs.existsSync(cachedDist)) await fs.remove(cachedDist)
-    await fs.copy(out, cachedDist)
-    await fs.writeFile(hashFile, currentClientHash, 'utf-8')
-    await pruneDirectoryCache(join(finalCacheDir, 'client-cache'))
-  }
-
   // === SSG cache setup ===
-  let ssgCache: Record<string, SsgCacheItem> = {}
-  if (!turbo) {
-    try {
-      if (fs.existsSync(cachePath)) {
-        ssgCache = await fs.readJson(cachePath)
-      }
-    } catch {}
+  let unmock = () => {}
+  if (mock) {
+    const { jsdomGlobal } = (await import('./jsdomGlobal.mjs')) as {
+      jsdomGlobal: () => () => void
+    }
+    unmock = jsdomGlobal()
   }
+  let ssgCache: Record<string, SsgCacheItem> = {}
+  try {
+    if (fs.existsSync(cachePath)) {
+      ssgCache = await fs.readJson(cachePath)
+    }
+  } catch {}
 
-  // ── PR-05: Early "all routes cached" check ──────────────────────
-  // If the client build is bypassed (no source or config changes) we can
-  // check the persistent ssgCache to see whether EVERY route's HTML is
-  // already cached and up-to-date.  When that's true we skip the expensive
-  // SSR bundle import (~1-2s), worker pool init (~500ms), and chunk hashing
-  // (~500ms) entirely and jump straight to the copy phase.
-  //
-  // Routes are loaded from routes-cache.json (written at the end of every
-  // previous build).  Each route is validated against ssgCache — if the
-  // cache entry exists and its assetHash matches currentClientHash, the
-  // cached HTML is still valid.
   let canSkipSsrImport = false
   if (canBypassClientBuild) {
     try {
@@ -574,10 +472,6 @@ export async function build(
           cachedRoutes.paths.every((p: string) => {
             const nk = withLeadingSlash(p).replace(/\/$/, '')
             const entry = ssgCache[nk] || ssgCache[p]
-            // The cached HTML is valid because canBypassClientBuild confirms
-            // no source, config, or plugin changes since the previous build.
-            // The ssgCache entry just needs to exist (hashes are validated
-            // in the for-loop for non-skipped paths).
             return !!entry
           })
         if (allExistInCache) {
@@ -590,28 +484,99 @@ export async function build(
     }
   }
 
-  let unmock = () => {}
-  if (mock) {
-    const { jsdomGlobal } = (await import('./jsdomGlobal.mjs')) as {
-      jsdomGlobal: () => () => void
+  const runClientBuild = async () => {
+    if (canBypassClientBuild) {
+      onStep?.({
+        name: 'Client build',
+        duration: 0,
+        success: true,
+        details: 'Code unchanged, restored from cache',
+      })
+      if (fs.existsSync(out)) await fs.remove(out)
+      hardLinkDir(join(clientCacheDir, 'dist'), out)
+    } else {
+      const clientStart = performance.now()
+      await viteBuild(
+        mergeConfig(viteConfig, {
+          logLevel: 'warn',
+          build: {
+            manifest: true,
+            ssrManifest: true,
+            chunkSizeWarningLimit: 2000,
+            reportCompressedSize: false,
+            sourcemap: false,
+            cssMinify: 'esbuild',
+            ...buildBundlerOptions({
+              input: { app: join(root, htmlEntry || './index.html') },
+              output: {
+                manualChunks(id: string) {
+                  if (
+                    !id.includes('node_modules') &&
+                    !id.includes('.boltdocs')
+                  ) {
+                    return
+                  }
+                  if (
+                    id.includes('/node_modules/react/') ||
+                    id.includes('/node_modules/react-dom/') ||
+                    id.includes('/node_modules/scheduler/')
+                  ) {
+                    return 'react-vendor'
+                  }
+                  if (id.includes('/node_modules/react-router')) {
+                    return 'react-router'
+                  }
+                  if (id.includes('/node_modules/lucide-react')) {
+                    return 'lucide-icons'
+                  }
+                  if (id.includes('/node_modules/react-helmet-async')) {
+                    return 'react-helmet'
+                  }
+                  if (id.includes('.boltdocs/compiled/pages/chunk-')) {
+                    return 'mdx-pages'
+                  }
+                },
+              } as any,
+              onLog(level, log, handler) {
+                if (
+                  log.message.includes('react-helmet-async') ||
+                  shouldSuppressLog(log.message)
+                )
+                  return
+                handler(level, log)
+              },
+            }),
+          },
+          customLogger: clientLogger,
+          mode: resolvedConfig.mode,
+          plugins: [
+            {
+              name: 'vite-react-ssg:get-oup-dir',
+              configResolved(resolvedConfig) {
+                outDir = resolvedConfig.build.outDir || 'dist'
+              },
+            } as PluginOption,
+          ],
+        }),
+      )
+      onStep?.({
+        name: 'Client build',
+        duration: performance.now() - clientStart,
+        success: true,
+        details: 'Vite production build',
+      })
+      const buildHash = computeClientCodeHash(root, docsDirName, finalCacheDir)
+      const buildCacheDir = join(finalCacheDir, 'client-cache', buildHash)
+      const buildHashFile = join(buildCacheDir, 'client-hash.txt')
+      await fs.ensureDir(buildCacheDir)
+      const cachedDist = join(buildCacheDir, 'dist')
+      if (fs.existsSync(cachedDist)) await fs.remove(cachedDist)
+      await fs.copy(out, cachedDist)
+      await fs.writeFile(buildHashFile, buildHash, 'utf-8')
+      await pruneDirectoryCache(join(finalCacheDir, 'client-cache'))
     }
-    unmock = jsdomGlobal()
   }
 
-  const renderStartTime = performance.now()
-
-  if (!canSkipSsrImport) {
-    // Routes will be populated from SSR import below
-    routesPaths = []
-  }
-
-  // ── PR-08: Server build (SSR bundle) ─────────────────────────────
-  // The SSR bundle is only used internally by the SSG renderer — never
-  // served to browsers.  We strip everything unnecessary: minification
-  // (saves ~500ms), CSS processing (saves ~500ms).
-  //
-  // On warm builds (canBypassClientBuild=true) the SSR bundle from the
-  // previous build is on disk, so the build is skipped entirely.
   const ssrEntry = !canSkipSsrImport
     ? await resolveAlias(resolvedConfig, entry)
     : ''
@@ -621,79 +586,76 @@ export async function build(
     fs
       .readdirSync(ssgOut)
       .filter((f) => f.endsWith('.mjs') || f.endsWith('.cjs')).length > 0
-  if (serverBuildSkipped) {
-    onStep?.({
-      name: 'Server build',
-      duration: 0,
-      success: true,
-      details: 'SSR bundle unchanged, skipped',
-    })
-  } else {
-    if (fs.existsSync(ssgOut)) await fs.remove(ssgOut)
-    process.env.VITE_SSG = 'true'
-    const serverStart = performance.now()
-    await viteBuild(
-      mergeConfig(viteConfig, {
-        logLevel: 'warn',
-        build: {
-          ssr: !canSkipSsrImport ? ssrEntry : entry,
-          manifest: true,
-          outDir: ssgOut,
-          // P2-30.3: Skip compressed size calculation (saves ~500ms in SSR build).
-          reportCompressedSize: false,
-          // P2-30.3: Target ES2022 for Node 18+ native support.
-          target: 'es2022',
-          // PR-08: No minification — SSR bundle is only used internally.
-          minify: false,
-          cssCodeSplit: false,
-          // PR-08: Skip CSS entirely for SSR.  The client build already
-          // handles all CSS.  Processing it again for SSR is wasted work.
-          cssMinify: false,
-          ...buildBundlerOptions({
-            output:
-              format === 'esm'
-                ? {
-                    entryFileNames: 'combined.mjs',
-                    format: 'esm',
-                  }
-                : {
-                    entryFileNames: 'combined.cjs',
-                    format: 'cjs',
-                  },
-            // PR-08+: Target Node.js runtime — this makes Rolldown
-            // properly externalize Node builtins (no more "missing fs"
-            // bundling issues) and avoids adding browser polyfills.
-            platform: 'node',
-            // @ts-expect-error rollup type
-            onLog(level, log, handler) {
-              if (
-                log.message.includes('react-helmet-async') ||
-                shouldSuppressLog(log.message)
-              )
-                return
-              handler(level, log)
-            },
-          }),
-        },
-        customLogger: clientLogger,
-        mode: resolvedConfig.mode,
-        ssr: {
-          noExternal: true,
-        },
-        // PR-08+: Intercept CSS imports in SSR — return empty strings.
-        plugins: [
-          ...filterPluginsForSsr((viteConfig.plugins as any[]) || []),
-          createSsrCssSkipPlugin(),
-        ],
-      }),
-    )
-    onStep?.({
-      name: 'Server build',
-      duration: performance.now() - serverStart,
-      success: true,
-      details: 'Vite SSR bundle',
-    })
+
+  const runServerBuild = async () => {
+    if (serverBuildSkipped) {
+      onStep?.({
+        name: 'Server build',
+        duration: 0,
+        success: true,
+        details: 'SSR bundle unchanged, skipped',
+      })
+    } else {
+      if (fs.existsSync(ssgOut)) await fs.remove(ssgOut)
+      process.env.VITE_SSG = 'true'
+      const serverStart = performance.now()
+      await viteBuild(
+        mergeConfig(viteConfig, {
+          logLevel: 'warn',
+          build: {
+            ssr: !canSkipSsrImport ? ssrEntry : entry,
+            manifest: true,
+            outDir: ssgOut,
+            reportCompressedSize: false,
+            target: 'es2022',
+            minify: false,
+            cssCodeSplit: false,
+            cssMinify: false,
+            ...buildBundlerOptions({
+              output:
+                format === 'esm'
+                  ? {
+                      entryFileNames: 'combined.mjs',
+                      format: 'esm',
+                    }
+                  : {
+                      entryFileNames: 'combined.cjs',
+                      format: 'cjs',
+                    },
+              platform: 'node',
+              // @ts-expect-error rollup type
+              onLog(level, log, handler) {
+                if (
+                  log.message.includes('react-helmet-async') ||
+                  shouldSuppressLog(log.message)
+                )
+                  return
+                handler(level, log)
+              },
+            }),
+          },
+          customLogger: clientLogger,
+          mode: resolvedConfig.mode,
+          ssr: {
+            noExternal: true,
+          },
+          plugins: [
+            ...filterPluginsForSsr((viteConfig.plugins as any[]) || []),
+            createSsrCssSkipPlugin(),
+          ],
+        }),
+      )
+      onStep?.({
+        name: 'Server build',
+        duration: performance.now() - serverStart,
+        success: true,
+        details: 'Vite SSR bundle',
+      })
+    }
   }
+
+  const renderStartTime = performance.now()
+  await Promise.all([runClientBuild(), runServerBuild()])
 
   const prefix =
     format === 'esm' && process.platform === 'win32' ? 'file://' : ''

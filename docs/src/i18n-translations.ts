@@ -102,7 +102,7 @@ export const translations = {
 
     // Banner
     bannerNewVersion:
-      'New version 3.2.0 is out — size reduction and performance improvements!',
+      'Boltdocs 3.3.0 is out — New Plugin API, performance boost, and more!',
     bannerReadPost: 'Read post',
 
     // Benchmark
@@ -225,7 +225,7 @@ export const translations = {
 
     // Banner
     bannerNewVersion:
-      '¡Nueva versión 3.2.0 - Reducción de tamaño y mejoras de rendimiento!',
+      '¡Boltdocs 3.3.0 ya está aquí — Nueva API de Plugins, mejora de rendimiento y más!',
     bannerReadPost: 'Leer publicación',
 
     // Benchmark

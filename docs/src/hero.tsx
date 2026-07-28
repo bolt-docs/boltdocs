@@ -23,7 +23,7 @@ export const Hero = () => {
 
       <div className="max-w-4xl mx-auto text-center relative z-10 w-full">
         <Link
-          href="site:/blog/boltdocs-3.1.0"
+          href="site:/blog/boltdocs-3.3.0"
           className="inline-flex items-center gap-3 p-1 pr-4 rounded-full bg-neutral-950/70 border border-neutral-700 cursor-pointer mb-10 backdrop-blur-sm"
         >
           <span className="px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest text-black bg-white">
