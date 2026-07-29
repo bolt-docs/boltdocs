@@ -1,6 +1,6 @@
 import { useI18n } from 'boltdocs/client'
 import { Card, Cards } from 'boltdocs/mdx'
-import { Route, FileText, Settings, Sparkles } from 'lucide-react'
+import { Route, FileText, Settings, Sparkles } from '../icons'
 
 const features = [
   {

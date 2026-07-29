@@ -8,8 +8,9 @@ import { colors, warn, error, steps, renderStatic } from '@bdocs/dui'
 import type { StepItem } from '@bdocs/dui'
 
 import { parseCliAndPrompt } from './cli'
+import type { IconLibrary } from './cli'
 import { getPackageManager } from './utils/package-manager'
-import { copy } from './utils/file-system'
+import { copy, writeFile } from './utils/file-system'
 import { adaptersDeploy } from './deploy/adapters'
 
 function installDependencies(
@@ -62,6 +63,71 @@ function renderAll(stepsList: StepItem[]) {
   console.log(steps(stepsList))
 }
 
+const ICON_LIBRARY_VERSIONS: Record<IconLibrary, string> = {
+  'lucide-react': '^0.487.0',
+  '@heroicons/react': '^2.2.0',
+  '@phosphor-icons/react': '^2.4.1',
+}
+
+const ICON_IMPORTS: Record<IconLibrary, string> = {
+  'lucide-react': `import { Route, FileText, Settings, Sparkles, BookOpen, Rocket } from 'lucide-react'`,
+  '@heroicons/react': `import {
+  MapIcon as Route,
+  DocumentTextIcon as FileText,
+  Cog8ToothIcon as Settings,
+  SparklesIcon as Sparkles,
+  BookOpenIcon as BookOpen,
+  RocketLaunchIcon as Rocket,
+} from '@heroicons/react/24/outline'`,
+  '@phosphor-icons/react': `import { Route, FileText, Settings, Sparkles, BookOpen, Rocket } from '@phosphor-icons/react'`,
+}
+
+function getIconLibraryVersion(iconLibrary: IconLibrary): string {
+  return ICON_LIBRARY_VERSIONS[iconLibrary]
+}
+
+function generateIconsFile(projectDir: string, iconLibrary: IconLibrary): void {
+  const importLine = ICON_IMPORTS[iconLibrary]
+  const content = `${importLine}
+
+/**
+ * Custom icon registry consumed by Boltdocs via virtual:boltdocs-icons.
+ * Use these names in meta.json ("icon": "Rocket") or theme config
+ * (tabs, sidebarGroups, socialLinks, etc.).
+ */
+const icons = {
+  Route,
+  FileText,
+  Settings,
+  Sparkles,
+  BookOpen,
+  Rocket,
+}
+
+export default icons
+`
+  writeFile(path.join(projectDir, 'docs', 'icons.tsx'), content)
+}
+
+function scaffoldTemplate(
+  templateDir: string,
+  projectDir: string,
+  iconLibrary: IconLibrary,
+  projectName: string,
+): void {
+  const iconPackageName = iconLibrary
+  const iconLibraryVersion = getIconLibraryVersion(iconLibrary)
+
+  copy(templateDir, projectDir, {
+    name: projectName,
+    title: projectName,
+    iconLibraryPackage: iconPackageName,
+    iconLibraryVersion,
+  })
+
+  generateIconsFile(projectDir, iconLibrary)
+}
+
 export async function run() {
   const pkgManager = getPackageManager()
 
@@ -74,7 +140,7 @@ export async function run() {
     return
   }
 
-  const { projectName, template, deployTarget, install } = options
+  const { projectName, template, deployTarget, install, iconLibrary } = options
   const projectDir = path.join(process.cwd(), projectName)
 
   if (fs.existsSync(projectDir)) {
@@ -104,10 +170,7 @@ export async function run() {
   }
 
   try {
-    copy(templateDir, projectDir, {
-      name: projectName,
-      title: projectName,
-    })
+    scaffoldTemplate(templateDir, projectDir, iconLibrary, projectName)
 
     stepsList[0].status = 'success'
     stepsList[1].status = 'running'

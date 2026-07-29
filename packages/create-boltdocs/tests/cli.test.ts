@@ -7,6 +7,7 @@ describe('CLI arguments parser', () => {
     expect(result.template).toBe('')
     expect(result.deployTarget).toBe('')
     expect(result.install).toBeUndefined()
+    expect(result.iconLibrary).toBe('')
   })
 
   it('should parse --name and -n arguments', () => {
@@ -26,6 +27,9 @@ describe('CLI arguments parser', () => {
 
     const result2 = parseArgs(['my-project', '-t', 'base'])
     expect(result2.template).toBe('base')
+
+    const result3 = parseArgs(['my-project', '-t', 'blog'])
+    expect(result3.template).toBe('blog')
   })
 
   it('should parse --deploy and -d arguments', () => {
@@ -56,11 +60,33 @@ describe('CLI arguments parser', () => {
       '--deploy',
       'aws',
       '--no-install',
+      '--icon-library',
+      'lucide-react',
     ])
 
     expect(result.projectName).toBe('cool-docs')
     expect(result.template).toBe('i18n')
     expect(result.deployTarget).toBe('aws')
     expect(result.install).toBe(false)
+    expect(result.iconLibrary).toBe('lucide-react')
+  })
+
+  it('should parse icon library flags', () => {
+    const result1 = parseArgs(['my-project', '--icon-library', 'lucide-react'])
+    expect(result1.iconLibrary).toBe('lucide-react')
+
+    const result2 = parseArgs([
+      'my-project',
+      '--icon-library',
+      '@heroicons/react',
+    ])
+    expect(result2.iconLibrary).toBe('@heroicons/react')
+
+    const result3 = parseArgs([
+      'my-project',
+      '--icon-library',
+      '@phosphor-icons/react',
+    ])
+    expect(result3.iconLibrary).toBe('@phosphor-icons/react')
   })
 })

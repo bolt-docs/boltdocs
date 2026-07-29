@@ -1,18 +1,26 @@
 import prompts from 'prompts'
 import { colors, colorize, warn } from '@bdocs/dui'
 
+export type Template = 'base' | 'i18n' | 'blog'
+export type IconLibrary =
+  | 'lucide-react'
+  | '@heroicons/react'
+  | '@phosphor-icons/react'
+
 export interface CliOptions {
   projectName: string
-  template: string
+  template: Template
   deployTarget: string
   install: boolean
+  iconLibrary: IconLibrary
 }
 
 export interface ParsedArgs {
   projectName: string
-  template: string
+  template: Template | ''
   deployTarget: string
   install: boolean | undefined
+  iconLibrary: IconLibrary | ''
 }
 
 /**
@@ -20,14 +28,15 @@ export interface ParsedArgs {
  */
 export function parseArgs(args: string[]): ParsedArgs {
   let projectName = ''
-  let template = ''
+  let template: Template | '' = ''
   let install: boolean | undefined
   let deployTarget = ''
+  let iconLibrary: IconLibrary | '' = ''
 
   for (let i = 0; i < args.length; i++) {
     const arg = args[i]
     if (arg === '--template' || arg === '-t') {
-      template = args[++i] || ''
+      template = (args[++i] || '') as Template | ''
     } else if (arg === '--deploy' || arg === '-d') {
       deployTarget = args[++i] || ''
     } else if (arg === '--install' || arg === '-i') {
@@ -36,6 +45,8 @@ export function parseArgs(args: string[]): ParsedArgs {
       install = false
     } else if (arg === '--name' || arg === '-n' || arg === '--projectName') {
       projectName = args[++i] || ''
+    } else if (arg === '--icon-library' || arg === '-l') {
+      iconLibrary = (args[++i] || '') as IconLibrary | ''
     } else if (!arg.startsWith('-')) {
       if (!projectName) {
         projectName = arg
@@ -48,6 +59,7 @@ export function parseArgs(args: string[]): ParsedArgs {
     template,
     deployTarget,
     install,
+    iconLibrary,
   }
 }
 
@@ -59,9 +71,21 @@ export async function parseCliAndPrompt(): Promise<CliOptions | null> {
   let argTemplate = parsed.template
   let argDeployTarget = parsed.deployTarget
   const argInstall = parsed.install
+  let argIconLibrary = parsed.iconLibrary
+
+  const validIconLibraries: IconLibrary[] = [
+    'lucide-react',
+    '@heroicons/react',
+    '@phosphor-icons/react',
+  ]
+  if (argIconLibrary && !validIconLibraries.includes(argIconLibrary)) {
+    warn(`Icon library "${argIconLibrary}" is invalid. Falling back to prompt.`)
+    argIconLibrary = ''
+  }
 
   // Validate template if passed
-  if (argTemplate && argTemplate !== 'base' && argTemplate !== 'i18n') {
+  const validTemplates: Template[] = ['base', 'i18n', 'blog']
+  if (argTemplate && !validTemplates.includes(argTemplate)) {
     warn(`Template "${argTemplate}" is invalid. Falling back to prompt.`)
     argTemplate = ''
   }
@@ -101,13 +125,18 @@ export async function parseCliAndPrompt(): Promise<CliOptions | null> {
             choices: [
               {
                 title: colors.magenta('Base'),
-                description: 'Hero and custom components.',
+                description: 'Docs with a hero landing page.',
                 value: 'base',
               },
               {
                 title: colors.yellow('i18n'),
                 description: 'Multi-language support (EN/ES).',
                 value: 'i18n',
+              },
+              {
+                title: colors.cyan('Blog'),
+                description: 'Docs plus a blog collection.',
+                value: 'blog',
               },
             ],
             initial: 0,
@@ -162,14 +191,42 @@ export async function parseCliAndPrompt(): Promise<CliOptions | null> {
             initial: true,
           },
         ]),
+    ...(argIconLibrary
+      ? []
+      : [
+          {
+            type: 'select' as const,
+            name: 'iconLibrary',
+            message: 'Select an icon library:',
+            choices: [
+              {
+                title: colors.yellow('Lucide React'),
+                description: 'Lightweight, consistent icon set.',
+                value: 'lucide-react',
+              },
+              {
+                title: colors.cyan('Heroicons'),
+                description: 'Beautiful hand-crafted SVG icons by Tailwind.',
+                value: '@heroicons/react',
+              },
+              {
+                title: colors.magenta('Phosphor Icons'),
+                description: 'Flexible icon family with multiple weights.',
+                value: '@phosphor-icons/react',
+              },
+            ],
+            initial: 0,
+          },
+        ]),
   ])
 
   const projectName = argProjectName || response.projectName
-  const template = argTemplate || response.template
+  const template = (argTemplate || response.template) as Template
   const deployTarget = argDeployTarget || response.deployTarget
   const install = argInstall !== undefined ? argInstall : response.install
+  const iconLibrary = argIconLibrary || (response.iconLibrary as IconLibrary)
 
-  if (!projectName || !template || !deployTarget) {
+  if (!projectName || !template || !deployTarget || !iconLibrary) {
     return null
   }
 
@@ -178,5 +235,6 @@ export async function parseCliAndPrompt(): Promise<CliOptions | null> {
     template,
     deployTarget,
     install,
+    iconLibrary,
   }
 }
