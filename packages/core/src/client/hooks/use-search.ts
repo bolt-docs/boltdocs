@@ -3,7 +3,7 @@ import { Index } from 'flexsearch'
 import { useRoutes } from './use-routes'
 import { useConfig } from '../app/config-context'
 import type { ComponentRoute } from '../types'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate } from '../router'
 import fetchSearchData from 'virtual:boltdocs-search'
 
 interface SearchDataItem {

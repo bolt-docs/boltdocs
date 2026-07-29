@@ -1,5 +1,5 @@
 import { useMemo } from 'react'
-import { useLocation } from 'react-router-dom'
+import { useLocation } from '../router'
 import { Helmet } from './helmet-compat'
 import { useConfig } from './config-context'
 import { getTranslated } from '../utils/i18n'

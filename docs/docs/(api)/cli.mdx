@@ -73,6 +73,60 @@ Serves the generated static production bundle from the local `dist/` directory, 
 | **`--port <number>`** | The port number the preview server should listen on (defaults to `4173`). |
 | **`--host [address]`** | The host IP address the preview server should bind to. |
 
+### `theme:dev` (Theme Preview)
+
+Creates a temporary Boltdocs project to preview themes during development. Generates sample MDX content with typography, lists, tables, code blocks, and more — then starts a dev server so you can see how your layout and components look in real time.
+
+* **Usage:** `boltdocs theme:dev [root] [options]`
+
+#### Options
+
+| Option | Description |
+| :--- | :--- |
+| **`--layout <path>`** | Path to a custom `layout.tsx` file. The file is **symlinked** so edits trigger Hot Module Replacement instantly. |
+| **`--mdx <path>`** | Path to a custom `mdx-components.tsx` file. Also symlinked for HMR. |
+| **`--tailwind`** | Enables `@bdocs/plugin-tailwindcss` in the preview project (must be installed in your project). |
+| **`--sass`** | Enables `@bdocs/plugin-sass` for SASS/SCSS preprocessing (must be installed in your project). |
+| **`--name <name>`** | Display name for the theme in the preview banner. |
+| **`--port <number>`** | Port number for the preview server (default `5173`). |
+| **`--host [address]`** | Host IP for the preview server. |
+| **`--verbose`** | Show full Vite logs. |
+
+#### Examples
+
+```bash
+# Preview with default layout + sample content
+boltdocs theme:dev
+
+# Preview with a custom layout (symlinked — edits trigger HMR)
+boltdocs theme:dev --layout ./src/theme-layout.tsx
+
+# Preview with custom layout + MDX components
+boltdocs theme:dev --layout ./layout.tsx --mdx ./components.tsx
+
+# Preview with TailwindCSS
+boltdocs theme:dev --layout ./layout.tsx --tailwind
+
+# Preview with SASS/SCSS
+boltdocs theme:dev --layout ./layout.tsx --sass
+
+# Full configuration
+boltdocs theme:dev --layout ./layout.tsx --mdx ./components.tsx --tailwind --port 4000 --name "My Theme"
+```
+
+#### How it works
+
+The command:
+1. Creates a temporary project under `.boltdocs/theme-preview/`
+2. Symlinks your `--layout` and `--mdx` files (so edits are reflected immediately)
+3. Generates 7 sample MDX pages covering typography, lists, tables, code blocks, media, and advanced layouts
+4. Starts a Vite dev server on the specified port
+5. Cleans up the temporary directory on exit (Ctrl+C)
+
+Dependencies (React, boltdocs, etc.) are resolved from your project's `node_modules` via Node.js module resolution walk.
+
+---
+
 ### `audit`
 Performs a fast static analysis of the source code of all active plugins. It scans for potentially sensitive behaviors like network calls or environment variable access, giving you total visibility before compiling final assets.
 

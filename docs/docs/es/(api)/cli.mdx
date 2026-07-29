@@ -73,6 +73,60 @@ Sirve el paquete estático de producción generado desde el directorio local `di
 | **`--port <number>`** | El número de puerto en el que el servidor de previsualización debe escuchar (predeterminado `4173`). |
 | **`--host [address]`** | La dirección IP del host al que el servidor de previsualización debe vincularse. |
 
+### `theme:dev` (Vista Previa del Tema)
+
+Crea un proyecto temporal de Boltdocs para previsualizar temas durante el desarrollo. Genera contenido MDX de muestra con tipografía, listas, tablas, bloques de código y más — luego inicia un servidor de desarrollo para que puedas ver cómo se ven tu layout y componentes en tiempo real.
+
+* **Uso:** `boltdocs theme:dev [root] [options]`
+
+#### Opciones
+
+| Opción | Descripción |
+| :--- | :--- |
+| **`--layout <path>`** | Ruta a un archivo `layout.tsx` personalizado. El archivo se **enlaza simbólicamente** (symlink) para que las ediciones disparen Hot Module Replacement al instante. |
+| **`--mdx <path>`** | Ruta a un archivo `mdx-components.tsx` personalizado. También enlazado simbólicamente para HMR. |
+| **`--tailwind`** | Activa `@bdocs/plugin-tailwindcss` en el proyecto de previsualización (debe estar instalado en tu proyecto). |
+| **`--sass`** | Activa `@bdocs/plugin-sass` para preprocesamiento SASS/SCSS (debe estar instalado en tu proyecto). |
+| **`--name <name>`** | Nombre mostrado para el tema en el banner de previsualización. |
+| **`--port <number>`** | Puerto para el servidor de previsualización (predeterminado `5173`). |
+| **`--host [address]`** | Dirección IP del host para el servidor. |
+| **`--verbose`** | Muestra logs completos de Vite. |
+
+#### Ejemplos
+
+```bash
+# Previsualizar con layout predeterminado + contenido de muestra
+boltdocs theme:dev
+
+# Previsualizar con un layout personalizado (symlink — las ediciones disparan HMR)
+boltdocs theme:dev --layout ./src/tema-layout.tsx
+
+# Previsualizar con layout + componentes MDX personalizados
+boltdocs theme:dev --layout ./layout.tsx --mdx ./componentes.tsx
+
+# Previsualizar con TailwindCSS
+boltdocs theme:dev --layout ./layout.tsx --tailwind
+
+# Previsualizar con SASS/SCSS
+boltdocs theme:dev --layout ./layout.tsx --sass
+
+# Configuración completa
+boltdocs theme:dev --layout ./layout.tsx --mdx ./componentes.tsx --tailwind --port 4000 --name "Mi Tema"
+```
+
+#### Cómo funciona
+
+El comando:
+1. Crea un proyecto temporal en `.boltdocs/theme-preview/`
+2. Enlaza simbólicamente tus archivos `--layout` y `--mdx` (para que los cambios se reflejen inmediatamente)
+3. Genera 7 páginas MDX de muestra cubriendo tipografía, listas, tablas, bloques de código, media y layouts avanzados
+4. Inicia un servidor de desarrollo Vite en el puerto especificado
+5. Limpia el directorio temporal al salir (Ctrl+C)
+
+Las dependencias (React, boltdocs, etc.) se resuelven desde el `node_modules` de tu proyecto mediante la resolución de módulos de Node.js.
+
+---
+
 ### `audit`
 Realiza un análisis estático rápido del código fuente de todos los plugins activos. Escanea posibles comportamientos sensibles como llamadas de red o acceso a variables de entorno, brindándote total visibilidad antes de compilar los activos finales.
 

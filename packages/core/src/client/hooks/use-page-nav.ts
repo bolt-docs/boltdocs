@@ -1,5 +1,5 @@
 import { useMemo } from 'react'
-import { useLocation } from 'react-router-dom'
+import { useLocation } from '../router'
 import { useRoutes } from './use-routes'
 import { useSidebar } from './use-sidebar'
 import { normalizePath } from '../utils/path'

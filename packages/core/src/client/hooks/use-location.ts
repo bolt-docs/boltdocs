@@ -1,5 +1,3 @@
-import { useLocation as useReactLocation } from 'react-router-dom'
+import { useLocation } from '../router'
 
-export const useLocation = () => {
-  return useReactLocation()
-}
+export { useLocation }

@@ -1,5 +1,5 @@
 import { useMemo } from 'react'
-import { useLocation } from 'react-router-dom'
+import { useLocation } from '../router'
 import { useConfig } from '../app/config-context'
 import { useTheme } from '../app/theme-context'
 import type { NavbarLink } from '../types'

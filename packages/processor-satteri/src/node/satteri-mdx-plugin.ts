@@ -75,12 +75,20 @@ export function invalidateMdxFileCache(filePath: string): void {
   _precompiledIds.delete(key)
 }
 
+interface OutFileCacheEntry {
+  mtime: number
+  body: string
+  importLines: string[]
+}
+const _outFileParsedCache = new Map<string, OutFileCacheEntry>()
+
 /** Clears all in-process MDX compile caches (for tests and dev server restarts). */
 export function resetMdxRuntimeCaches(): void {
   PRE_COMPILED_CACHE.clear()
   PRE_COMPILED_SOURCE_MTIME.clear()
   MANIFEST_CACHE.clear()
   _precompiledIds.clear()
+  _outFileParsedCache.clear()
 }
 
 interface PrecompileManifest {
@@ -710,29 +718,45 @@ export function createSatteriMdxPlugin(
       const globKey =
         '/' + docsDirName + '/' + relPath.split(path.sep).join('/')
 
-      const content = fs.readFileSync(outFile, 'utf-8')
-      const lines = content.split('\n')
+      let cached = _outFileParsedCache.get(outFile)
+      const mtime = fs.statSync(outFile).mtimeMs
+      if (!cached || cached.mtime !== mtime) {
+        const content = fs.readFileSync(outFile, 'utf-8')
+        const lines = content.split('\n')
 
-      const bodyLines: string[] = []
-      let inImports = true
+        const bodyLines: string[] = []
+        const importLines: string[] = []
+        let inImports = true
 
-      for (const line of lines) {
-        if (inImports) {
-          const trimmed = line.trim()
-          if (trimmed.startsWith('import ')) {
-            mergeImportLine(mergedImports, trimmed)
-          } else if (!trimmed.startsWith('export default')) {
-            inImports = false
-            if (trimmed) bodyLines.push(line)
-          }
-        } else {
-          if (!line.trim().startsWith('export default')) {
-            bodyLines.push(line)
+        for (const line of lines) {
+          if (inImports) {
+            const trimmed = line.trim()
+            if (trimmed.startsWith('import ')) {
+              importLines.push(trimmed)
+            } else if (!trimmed.startsWith('export default')) {
+              inImports = false
+              if (trimmed) bodyLines.push(line)
+            }
+          } else {
+            if (!line.trim().startsWith('export default')) {
+              bodyLines.push(line)
+            }
           }
         }
+
+        cached = {
+          mtime,
+          body: bodyLines.join('\n'),
+          importLines,
+        }
+        _outFileParsedCache.set(outFile, cached)
       }
 
-      pageEntries.push({ key: globKey, body: bodyLines.join('\n') })
+      for (const imp of cached.importLines) {
+        mergeImportLine(mergedImports, imp)
+      }
+
+      pageEntries.push({ key: globKey, body: cached.body })
     }
 
     // Generate merged import lines

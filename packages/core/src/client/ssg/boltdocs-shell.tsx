@@ -1,5 +1,5 @@
 import { useEffect, useMemo } from 'react'
-import { Outlet, useLocation } from 'react-router-dom'
+import { Outlet, useLocation } from '../router'
 import { BoltdocsProvider, useBoltdocsContext } from '../store/boltdocs-context'
 import { ThemeProvider } from '../app/theme-context'
 import { MdxComponentsProvider } from '../app/mdx-components-context'

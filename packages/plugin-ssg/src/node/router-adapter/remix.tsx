@@ -100,7 +100,13 @@ export class RemixAdapter implements IRouterAdapter<ViteReactSSGContext> {
   }
 
   async render(path: string) {
-    const { base, routes, getStyleCollector, routerOptions } = this.context
+    const {
+      base,
+      routes,
+      getStyleCollector,
+      routerOptions,
+      app: App,
+    } = this.context
     const leading = withLeadingSlash(path)
     let fullPath = leading
     if (base !== '/') {
@@ -117,73 +123,45 @@ export class RemixAdapter implements IRouterAdapter<ViteReactSSGContext> {
     const { StaticRouterProvider, createStaticHandler, createStaticRouter } =
       await getReactRouterDom()
 
-    const { dataRoutes, staticHandler } = await getCachedHandler(
-      base,
-      routes,
-      routerOptions.future,
-      async () => {
-        const dataRoutes = convertRoutesToDataRoutes(
-          [...routes],
-          (route) => route,
-        )
-        const staticHandler = createStaticHandler(dataRoutes, {
-          basename: base,
-        })
-        return { dataRoutes, staticHandler }
-      },
+    const url = new URL(request.url)
+    const routePath = url.pathname
+
+    const matchedRoute = routes.find(
+      (r) => r.path === routePath || r.path === routePath + '/',
     )
-    const { query } = staticHandler
-    let _context = await query(request)
-
-    // Follow redirects (e.g., /docs -> /docs/guides) during SSR
-    let redirectCount = 0
-    const maxRedirects = 10
-    while (_context instanceof Response && redirectCount < maxRedirects) {
-      const location = _context.headers.get('Location')
-      if (!location) break
-
-      let nextUrl: string
-      if (/^https?:\/\//i.test(location)) {
-        try {
-          const parsedLoc = new URL(location)
-          if (parsedLoc.hostname === 'localhost' || parsedLoc.hostname === '') {
-            nextUrl = `http://localhost${withLeadingSlash(parsedLoc.pathname + parsedLoc.search + parsedLoc.hash)}`
-          } else {
-            break
-          }
-        } catch {
-          break
-        }
-      } else {
-        nextUrl = `http://localhost${withLeadingSlash(location)}`
+    let loaderData = null
+    if (matchedRoute && typeof matchedRoute.loader === 'function') {
+      try {
+        const res = await (matchedRoute as any).loader({ request, params: {} })
+        loaderData =
+          res && typeof res === 'object' && 'data' in res ? res.data : res
+      } catch {
+        loaderData = null
       }
-
-      _context = await query(new Request(nextUrl))
-      redirectCount++
     }
 
-    if (_context instanceof Response) throw _context
-
-    routerContext = _context
-    const router = createStaticRouter(dataRoutes, routerContext, {
-      future: routerOptions.future,
-    })
     const HP = getHelmetProvider()
-
-    // Force canUseDOM = false on HelmetProvider so react-helmet-async uses
-    // server-side state mapping and populates helmetContext.helmet. Without
-    // this, HelmetData skips server-side extraction and htmlAttributes/bodyAttributes
-    // come back as null. We set it directly here instead of relying on
-    // helmet-compat.tsx's __BOLTDOCS_SSG_RENDERING__ check because that check
-    // runs at module load time (before the flag is set).
     const hpAny = HP as any
     if (hpAny && typeof hpAny === 'function') {
       hpAny.canUseDOM = false
     }
 
+    // Import LocationProvider dynamically or from globalThis bridge
+    const LocationProvider =
+      (globalThis as any).__BOLTDOCS_LOCATION_PROVIDER__ ||
+      (({ children }: any) => children)
+
     let app = (
       <HP context={helmetContext}>
-        <StaticRouterProvider router={router} context={routerContext} />
+        <LocationProvider
+          pathname={routePath}
+          loaderData={loaderData}
+          matches={
+            matchedRoute ? [{ data: loaderData, route: matchedRoute }] : []
+          }
+        >
+          {App}
+        </LocationProvider>
       </HP>
     )
 
@@ -200,7 +178,7 @@ export class RemixAdapter implements IRouterAdapter<ViteReactSSGContext> {
       bodyAttributes,
       metaAttributes,
       styleTag,
-      routerContext,
+      routerContext: { loaderData: { root: loaderData } },
     }
   }
 

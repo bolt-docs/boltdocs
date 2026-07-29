@@ -1,4 +1,4 @@
-import { Outlet } from 'react-router-dom'
+import { Outlet } from '../router'
 import UserLayout from 'virtual:boltdocs-layout'
 import { useRoutes } from '../hooks/use-routes'
 import { CollectionsContext } from '../collections/collections-context'

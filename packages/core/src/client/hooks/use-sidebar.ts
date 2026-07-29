@@ -1,5 +1,5 @@
 import { useMemo } from 'react'
-import { useLocation } from 'react-router-dom'
+import { useLocation } from '../router'
 import { useConfig } from '../app/config-context'
 import type { ComponentRoute } from '../types'
 import { normalizePath } from '../utils/path'

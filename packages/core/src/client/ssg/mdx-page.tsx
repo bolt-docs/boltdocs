@@ -1,4 +1,4 @@
-import { useLoaderData } from 'react-router-dom'
+import { useLoaderData } from '../router'
 import { DocPage } from '../app/doc-page'
 import { CurrentPostProvider } from '../collections/collections-context'
 import type { CollectionPostLoaderData } from '../types'

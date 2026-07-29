@@ -1,4 +1,4 @@
-import { useNavigate, useLocation } from 'react-router-dom'
+import { useNavigate, useLocation } from '../../router'
 import { useLocalizedTo } from '../../hooks/use-localized-to'
 import { cn } from '../../utils/cn'
 import type { BoltdocsRoutePathWithFallback } from '../../types'

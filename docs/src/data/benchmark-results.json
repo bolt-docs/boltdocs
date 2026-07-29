@@ -1,24 +1,24 @@
 {
-  "pageCount": 100,
-  "timestamp": "2026-07-28T21:38:51.411Z",
+  "pageCount": 500,
+  "timestamp": "2026-07-28T21:52:20.816Z",
   "buildTimeCold": {
-    "boltdocs": 13.43,
-    "docusaurus": 15.66,
-    "ratio": 1.2
+    "boltdocs": 168,
+    "docusaurus": 34,
+    "ratio": 0.2
   },
   "buildTimeWarm": {
-    "boltdocs": 13.25,
-    "docusaurus": 9.67,
-    "ratio": 0.7
+    "boltdocs": 159,
+    "docusaurus": 24,
+    "ratio": 0.2
   },
   "devServerStart": {
-    "boltdocs": 5484,
-    "docusaurus": 4629,
-    "ratio": 0.8
+    "boltdocs": 6000,
+    "docusaurus": 4000,
+    "ratio": 0.7
   },
   "bundleSize": {
-    "boltdocs": 6733,
-    "docusaurus": 4390,
+    "boltdocs": 74513,
+    "docusaurus": 53247,
     "ratio": 0.7
   }
 }

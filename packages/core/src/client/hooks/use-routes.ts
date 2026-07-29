@@ -1,5 +1,5 @@
 import { useMemo } from 'react'
-import { useLocation } from 'react-router-dom'
+import { useLocation } from '../router'
 import { useConfig } from '../app/config-context'
 import { useRoutesContext } from '../app/routes-context'
 import { useBoltdocsContext } from '../store/boltdocs-context'

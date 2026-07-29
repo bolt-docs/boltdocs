@@ -2,7 +2,7 @@
 
 // Suppress DEP0205 deprecation warning for module.register() in Node 26+
 const { emitWarning: _emitWarn } = process
-process.emitWarning = function (warning: any, ...args: any[]) {
+process.emitWarning = (warning: any, ...args: any[]) => {
   if (warning && typeof warning === 'object' && warning.code === 'DEP0205')
     return
   if (typeof warning === 'string' && args.includes('DEP0205')) return
@@ -120,6 +120,30 @@ cli
       })
     },
   )
+
+cli
+  .command('theme:dev [root]', 'Preview a theme during development')
+  .option('--port <port>', 'Port to listen on')
+  .option('--host [host]', 'Host to bind to')
+  .option('--name <name>', 'Theme display name')
+  .option(
+    '--layout <path>',
+    'Path to a custom layout.tsx file (symlinked for HMR)',
+  )
+  .option(
+    '--mdx <path>',
+    'Path to a custom mdx-components.tsx file (symlinked for HMR)',
+  )
+  .option('--tailwind', 'Enable @bdocs/plugin-tailwindcss (must be installed)')
+  .option(
+    '--sass',
+    'Enable @bdocs/plugin-sass for SASS/SCSS support (must be installed)',
+  )
+  .option('--verbose', 'Show full Vite logs')
+  .action(async (...args) => {
+    const { themeDevAction } = await import('./cli/theme')
+    return themeDevAction(...args)
+  })
 
 cli.help()
 cli.version('3.0.0')

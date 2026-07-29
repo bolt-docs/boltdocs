@@ -532,9 +532,6 @@ export async function build(
                   if (id.includes('/node_modules/react-helmet-async')) {
                     return 'react-helmet'
                   }
-                  if (id.includes('.boltdocs/compiled/pages/chunk-')) {
-                    return 'mdx-pages'
-                  }
                 },
               } as any,
               onLog(level, log, handler) {
