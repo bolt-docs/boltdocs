@@ -104,6 +104,7 @@ const icons = {
   Rocket,
 }
 
+export { Route, FileText, Settings, Sparkles, BookOpen, Rocket }
 export default icons
 `
   writeFile(path.join(projectDir, 'docs', 'icons.tsx'), content)
