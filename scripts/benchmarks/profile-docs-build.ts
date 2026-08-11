@@ -37,16 +37,40 @@ interface BuildScenario {
   totalDurationMs: number
   phases: PhaseTiming[]
   success: boolean
+  cached: boolean
+  basePages: number
+  generatedPages: number
+  totalPages: number
+  pipelineMetrics?: Record<string, unknown>
+  outputSizeBytes: number
+  outputFileCount: number
+  ssrBundleSizeBytes: number
+  workerCount: number
+  requestedWorkers: number | null
 }
 
 interface BuildProfile {
   timestamp: string
+  // `pageCount` remains the CLI-generated count for backwards compatibility.
+  // These fields make the benchmark denominator explicit.
   pageCount: number
+  basePages: number
+  generatedPages: number
+  totalPages: number
   turbo: boolean
   scenarios: {
     cold: BuildScenario
     warm: BuildScenario
     incremental: BuildScenario
+  }
+  output: {
+    cold: { sizeBytes: number; fileCount: number; ssrBundleSizeBytes: number }
+    warm: { sizeBytes: number; fileCount: number; ssrBundleSizeBytes: number }
+    incremental: {
+      sizeBytes: number
+      fileCount: number
+      ssrBundleSizeBytes: number
+    }
   }
   breakdown: {
     clientBuildMs: number
@@ -185,31 +209,137 @@ function cleanupGeneratedPages(): void {
   }
 }
 
+interface ArtifactBackup {
+  directory: string
+  backupPath: string
+}
+
+function preserveBuildArtifacts(): () => void {
+  // Keep the backup on the same filesystem as the docs artifacts so
+  // renameSync remains atomic even when /tmp is mounted separately.
+  const backupRoot = fs.mkdtempSync(path.join(DOCS_DIR, '.boltdocs-profile-'))
+  const backups: ArtifactBackup[] = []
+
+  const restore = () => {
+    for (const { directory, backupPath } of [...backups].reverse()) {
+      if (fs.existsSync(directory)) {
+        fs.rmSync(directory, { recursive: true, force: true })
+      }
+      if (fs.existsSync(backupPath)) {
+        fs.renameSync(backupPath, directory)
+      }
+    }
+  }
+
+  try {
+    for (const directory of [
+      path.join(DOCS_DIR, '.boltdocs'),
+      path.join(DOCS_DIR, 'dist'),
+      path.join(DOCS_DIR, 'docs', 'bench-gen'),
+    ]) {
+      if (!fs.existsSync(directory)) continue
+      const backupPath = path.join(backupRoot, path.basename(directory))
+      fs.renameSync(directory, backupPath)
+      backups.push({ directory, backupPath })
+    }
+  } catch (error) {
+    try {
+      restore()
+      fs.rmSync(backupRoot, { recursive: true, force: true })
+    } catch {
+      // Keep backupRoot intact if rollback itself fails so the original
+      // artifacts remain recoverable instead of being deleted.
+    }
+    throw error
+  }
+
+  return () => {
+    restore()
+    // Only remove the temporary backup after every directory has been
+    // restored successfully. If restoration throws, the backup remains
+    // available for manual recovery instead of being deleted in finally.
+    fs.rmSync(backupRoot, { recursive: true, force: true })
+  }
+}
+
+function findMarkdownFiles(dir: string): string[] {
+  if (!fs.existsSync(dir)) return []
+  const files: string[] = []
+  for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+    const filePath = path.join(dir, entry.name)
+    if (entry.isDirectory()) {
+      files.push(...findMarkdownFiles(filePath))
+    } else if (entry.isFile() && /\.(md|mdx)$/.test(entry.name)) {
+      files.push(filePath)
+    }
+  }
+  return files
+}
+
+async function waitForProcessGroupExit(
+  pid: number,
+  timeoutMs: number,
+): Promise<boolean> {
+  const deadline = Date.now() + timeoutMs
+  while (Date.now() < deadline) {
+    try {
+      process.kill(-pid, 0)
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code === 'ESRCH') return true
+    }
+    await new Promise((resolve) => setTimeout(resolve, 100))
+  }
+  return false
+}
+
 function runBuild(
   turbo: boolean,
 ): Promise<{ stdout: string; stderr: string; exitCode: number }> {
   return new Promise((resolve, reject) => {
-    const args = ['build', '--filter', 'docs']
+    // Invoke the docs package directly. The root `pnpm build --filter docs`
+    // command delegates to Turborepo and can replay a task cache hit without
+    // executing Boltdocs, which invalidates warm/incremental measurements.
+    const args = ['--filter', 'docs', 'build']
 
     const child = spawn('pnpm', args, {
       cwd: WORKSPACE_ROOT,
+      detached: true,
       stdio: ['ignore', 'pipe', 'pipe'],
       env: {
         ...process.env,
         BOLTDOCS_TURBO: turbo ? 'true' : 'false',
+        BOLTDOCS_BENCHMARK_PHASES: 'true',
+        NODE_ENV: 'production',
       },
     })
 
+    const terminateBuild = () => {
+      if (!child.pid) return
+      try {
+        process.kill(-child.pid, 'SIGTERM')
+      } catch {
+        child.kill('SIGTERM')
+      }
+    }
+
     let stdout = ''
     let stderr = ''
-    const timeout = setTimeout(
-      () => {
-        child.kill('SIGTERM')
-        setTimeout(() => child.kill('SIGKILL'), 5000)
-        reject(new Error('Build timed out after 5 minutes'))
-      },
-      5 * 60 * 1000,
-    )
+    let timedOut = false
+    let forceKillTimer: NodeJS.Timeout | undefined
+    const timeoutMs =
+      Number(process.env.BOLTDOCS_PROFILE_TIMEOUT_MS) || 15 * 60 * 1000
+    const timeout = setTimeout(() => {
+      timedOut = true
+      terminateBuild()
+      forceKillTimer = setTimeout(() => {
+        if (!child.pid) return
+        try {
+          process.kill(-child.pid, 'SIGKILL')
+        } catch {
+          child.kill('SIGKILL')
+        }
+      }, 5000)
+    }, timeoutMs)
 
     child.stdout.setEncoding('utf8')
     child.stdout.on('data', (chunk: string) => {
@@ -223,11 +353,40 @@ function runBuild(
 
     child.on('error', (err) => {
       clearTimeout(timeout)
+      if (forceKillTimer) clearTimeout(forceKillTimer)
       reject(err)
     })
 
-    child.on('close', (exitCode) => {
+    child.on('close', async (exitCode) => {
       clearTimeout(timeout)
+      if (forceKillTimer) clearTimeout(forceKillTimer)
+      let groupExited = true
+      if (child.pid) {
+        groupExited = await waitForProcessGroupExit(
+          child.pid,
+          timedOut ? 10000 : 2000,
+        )
+        if (!groupExited) {
+          try {
+            process.kill(-child.pid, 'SIGKILL')
+          } catch {
+            child.kill('SIGKILL')
+          }
+          groupExited = await waitForProcessGroupExit(child.pid, 2000)
+        }
+      }
+      if (!groupExited) {
+        reject(new Error('Build process group did not exit cleanly'))
+        return
+      }
+      if (timedOut) {
+        reject(
+          new Error(
+            `Build timed out after ${Math.round(timeoutMs / 60000)} minutes`,
+          ),
+        )
+        return
+      }
       resolve({ stdout, stderr, exitCode: exitCode ?? 1 })
     })
   })
@@ -249,9 +408,7 @@ function extractPhaseTimings(stdout: string): PhaseTiming[] {
   for (const line of stdout.split('\n')) {
     // Match step lines: "  ✓ ConfigResolve ........ 1.2s"
     // or: "  ✓ Client build ........ 12.3s"
-    const stepMatch = line.match(
-      /[✓✔]\s+(.+?)\s+[\.\s]+\s*(\d+\.?\d*)\s*(ms|s)/,
-    )
+    const stepMatch = line.match(/[✓✔]\s+(.+?)\s+[.\s]+\s*(\d+\.?\d*)\s*(ms|s)/)
     if (stepMatch) {
       const name = stepMatch[1].trim()
       const val = parseFloat(stepMatch[2])
@@ -317,10 +474,110 @@ function extractPhaseTimings(stdout: string): PhaseTiming[] {
   return phases
 }
 
+function getDirectoryStats(directory: string): {
+  sizeBytes: number
+  fileCount: number
+} {
+  let sizeBytes = 0
+  let fileCount = 0
+  if (!fs.existsSync(directory)) return { sizeBytes, fileCount }
+
+  const visit = (current: string) => {
+    for (const entry of fs.readdirSync(current, { withFileTypes: true })) {
+      const filePath = path.join(current, entry.name)
+      if (entry.isDirectory()) {
+        visit(filePath)
+      } else if (entry.isFile()) {
+        fileCount++
+        try {
+          sizeBytes += fs.statSync(filePath).size
+        } catch {
+          // Ignore files removed while the build is finishing.
+        }
+      }
+    }
+  }
+
+  visit(directory)
+  return { sizeBytes, fileCount }
+}
+
+function getMetricNumber(phase: PhaseTiming | undefined, key: string): number {
+  const value = phase?.metrics?.[key]
+  return typeof value === 'number' && Number.isFinite(value) ? value : 0
+}
+
+function getRequestedWorkers(): number | null {
+  const value = Number.parseInt(process.env.BOLTDOCS_SSG_WORKERS || '', 10)
+  return Number.isFinite(value) && value > 0 ? value : null
+}
+
+function clearPhaseReports(): void {
+  const benchmarksDir = path.join(DOCS_DIR, '.boltdocs', 'benchmarks')
+  if (!fs.existsSync(benchmarksDir)) return
+  for (const file of fs.readdirSync(benchmarksDir)) {
+    if (file.startsWith('phases-report-') && file.endsWith('.json')) {
+      fs.rmSync(path.join(benchmarksDir, file), { force: true })
+    }
+  }
+}
+
+function getLatestDirectoryStats(directory: string): {
+  sizeBytes: number
+  fileCount: number
+} {
+  if (!fs.existsSync(directory)) return { sizeBytes: 0, fileCount: 0 }
+  const directories = fs
+    .readdirSync(directory, { withFileTypes: true })
+    .filter((entry) => entry.isDirectory())
+    .map((entry) => {
+      const directoryPath = path.join(directory, entry.name)
+      return { directoryPath, mtimeMs: fs.statSync(directoryPath).mtimeMs }
+    })
+    .sort((a, b) => b.mtimeMs - a.mtimeMs)
+  const latest = directories[0]
+  return latest
+    ? getDirectoryStats(latest.directoryPath)
+    : { sizeBytes: 0, fileCount: 0 }
+}
+
+function findLatestPhaseReport(): {
+  phases: PhaseTiming[]
+} | null {
+  const benchmarksDir = path.join(DOCS_DIR, '.boltdocs', 'benchmarks')
+  if (!fs.existsSync(benchmarksDir)) return null
+  const files = fs
+    .readdirSync(benchmarksDir)
+    .filter(
+      (file) => file.startsWith('phases-report-') && file.endsWith('.json'),
+    )
+    .sort()
+    .reverse()
+  if (files.length === 0) return null
+
+  try {
+    const report = JSON.parse(
+      fs.readFileSync(path.join(benchmarksDir, files[0]), 'utf8'),
+    ) as {
+      stepResults?: Array<PhaseTiming & { duration?: number }>
+    }
+    return {
+      phases: (report.stepResults ?? []).map((phase) => ({
+        ...phase,
+        durationMs: phase.durationMs ?? phase.duration ?? 0,
+      })),
+    }
+  } catch {
+    return null
+  }
+}
+
 async function measureScenario(
   label: string,
   turbo: boolean,
   cleanCache: boolean,
+  basePages: number,
+  generatedPages: number,
 ): Promise<BuildScenario> {
   console.log(`\n  📐 ${label}`)
 
@@ -336,22 +593,80 @@ async function measureScenario(
     console.log('    Cache + dist cleaned')
   }
 
+  clearPhaseReports()
   const start = performance.now()
-  const { stdout, stderr, exitCode } = await runBuild(turbo)
+  let stdout = ''
+  let stderr = ''
+  let exitCode = 1
+  try {
+    const result = await runBuild(turbo)
+    stdout = result.stdout
+    stderr = result.stderr
+    exitCode = result.exitCode
+  } catch (error) {
+    stderr =
+      error instanceof Error ? error.stack || error.message : String(error)
+  }
   const totalMs = performance.now() - start
+  const cached = /cache hit/i.test(stdout)
 
   if (exitCode !== 0) {
     console.error(`    ❌ Build failed (exit ${exitCode})`)
-    const errMsg = stderr.slice(0, 500)
-    return { label, totalDurationMs: totalMs, phases: [], success: false }
+    const errorOutput = stderr.trim()
+    if (errorOutput) {
+      console.error(`    stderr:\n${errorOutput.slice(-4000)}`)
+    }
+    return {
+      label,
+      totalDurationMs: totalMs,
+      phases: [],
+      success: false,
+      cached,
+      basePages,
+      generatedPages,
+      totalPages: basePages + generatedPages,
+      outputSizeBytes: 0,
+      outputFileCount: 0,
+      ssrBundleSizeBytes: 0,
+      workerCount: 0,
+      requestedWorkers: getRequestedWorkers(),
+    }
   }
 
-  const phases = extractPhaseTimings(stdout)
+  const phaseReport = findLatestPhaseReport()
+  const phases = phaseReport?.phases ?? extractPhaseTimings(stdout)
+  const output = getDirectoryStats(path.join(DOCS_DIR, 'dist'))
+  const ssr = getLatestDirectoryStats(
+    path.join(DOCS_DIR, '.boltdocs', 'build', 'ssr'),
+  )
+  const renderPhase = phases.find((phase) => phase.name === 'Render pages')
+  const workerCount = getMetricNumber(renderPhase, 'workerCount')
+  const requestedWorkers = getRequestedWorkers()
+  const pipelineMetrics =
+    renderPhase?.metrics?.pipeline &&
+    typeof renderPhase.metrics.pipeline === 'object'
+      ? (renderPhase.metrics.pipeline as Record<string, unknown>)
+      : undefined
   console.log(
-    `    ✅ ${(totalMs / 1000).toFixed(1)}s total (${phases.length} phases parsed)`,
+    `    ✅ ${(totalMs / 1000).toFixed(1)}s total (${basePages} base + ${generatedPages} generated = ${basePages + generatedPages} pages, ${phases.length} phases parsed, ${(output.sizeBytes / 1024 / 1024).toFixed(1)} MB dist, ${workerCount || 'main'} workers)`,
   )
 
-  return { label, totalDurationMs: totalMs, phases, success: true }
+  return {
+    label,
+    totalDurationMs: totalMs,
+    phases,
+    success: true,
+    cached,
+    basePages,
+    generatedPages,
+    totalPages: basePages + generatedPages,
+    pipelineMetrics,
+    outputSizeBytes: output.sizeBytes,
+    outputFileCount: output.fileCount,
+    ssrBundleSizeBytes: ssr.sizeBytes,
+    workerCount,
+    requestedWorkers,
+  }
 }
 
 async function main() {
@@ -367,18 +682,33 @@ async function main() {
 ╚══════════════════════════════════════════════════════════╝
   `)
 
-  // Generate benchmark pages if requested
-  if (pageCount > 0) {
-    generatePages(pageCount)
-  }
+  let restoreBuildArtifacts: (() => void) | undefined
 
   try {
+    // Preserve every directory this profiler may replace before generating
+    // benchmark pages or starting a build.
+    restoreBuildArtifacts = preserveBuildArtifacts()
+
+    // Count the existing docs before adding generated benchmark pages so each
+    // scenario reports the real denominator instead of only the CLI argument.
+    const basePages = findMarkdownFiles(path.join(DOCS_DIR, 'docs')).length
+
+    // Generate benchmark pages if requested.
+    if (pageCount > 0) {
+      generatePages(pageCount)
+    }
     // Scenario 1: Cold build
     console.log(`\n${'='.repeat(60)}`)
     console.log('  SCENARIO 1: COLD BUILD')
     console.log('  Clean cache + dist, first build')
     console.log(`${'='.repeat(60)}`)
-    const cold = await measureScenario('Cold', turbo, true)
+    const cold = await measureScenario(
+      'Cold',
+      turbo,
+      true,
+      basePages,
+      pageCount,
+    )
 
     // Scenario 2: Warm build (no changes)
     console.log(`\n${'='.repeat(60)}`)
@@ -387,7 +717,13 @@ async function main() {
       '  Same files, repeat build (should use cached client + server)',
     )
     console.log(`${'='.repeat(60)}`)
-    const warm = await measureScenario('Warm', turbo, false)
+    const warm = await measureScenario(
+      'Warm',
+      turbo,
+      false,
+      basePages,
+      pageCount,
+    )
 
     // Scenario 3: Incremental build (one file changed)
     console.log(`\n${'='.repeat(60)}`)
@@ -396,24 +732,63 @@ async function main() {
     console.log(`${'='.repeat(60)}`)
 
     // Touch a random page to bump its mtime
-    const docFiles = fs
-      .readdirSync(path.join(DOCS_DIR, 'docs'))
-      .filter((f) => f.endsWith('.md') || f.endsWith('.mdx'))
+    const docFiles = findMarkdownFiles(path.join(DOCS_DIR, 'docs'))
+    let targetFile: string | undefined
+    let originalContent: string | undefined
     if (docFiles.length > 0) {
-      const targetFile = path.join(DOCS_DIR, 'docs', docFiles[0])
-      const now = new Date()
-      fs.utimesSync(targetFile, now, now)
-      console.log(`    Touched: ${docFiles[0]}`)
+      targetFile =
+        docFiles.find((file) =>
+          file.includes(`${path.sep}bench-gen${path.sep}`),
+        ) || docFiles[0]
+      originalContent = fs.readFileSync(targetFile, 'utf8')
+      fs.appendFileSync(
+        targetFile,
+        '\n\n## Incremental benchmark edit\nThis content change measures one-page invalidation.\n',
+      )
+      console.log(`    Edited: ${path.relative(WORKSPACE_ROOT, targetFile)}`)
     }
 
-    const incremental = await measureScenario('Incremental', turbo, false)
+    let incremental: BuildScenario
+    try {
+      incremental = await measureScenario(
+        'Incremental',
+        turbo,
+        false,
+        basePages,
+        pageCount,
+      )
+    } finally {
+      if (targetFile && originalContent !== undefined) {
+        fs.writeFileSync(targetFile, originalContent, 'utf8')
+      }
+    }
 
     // Build profile object
     const profile: BuildProfile = {
       timestamp: new Date().toISOString(),
       pageCount,
+      basePages,
+      generatedPages: pageCount,
+      totalPages: basePages + pageCount,
       turbo,
       scenarios: { cold, warm, incremental },
+      output: {
+        cold: {
+          sizeBytes: cold.outputSizeBytes,
+          fileCount: cold.outputFileCount,
+          ssrBundleSizeBytes: cold.ssrBundleSizeBytes,
+        },
+        warm: {
+          sizeBytes: warm.outputSizeBytes,
+          fileCount: warm.outputFileCount,
+          ssrBundleSizeBytes: warm.ssrBundleSizeBytes,
+        },
+        incremental: {
+          sizeBytes: incremental.outputSizeBytes,
+          fileCount: incremental.outputFileCount,
+          ssrBundleSizeBytes: incremental.ssrBundleSizeBytes,
+        },
+      },
       breakdown: {
         clientBuildMs: -1,
         serverBuildMs: -1,
@@ -427,7 +802,9 @@ async function main() {
     const coldClient = cold.phases.find((p) => p.name === 'Client build')
     const coldServer = cold.phases.find((p) => p.name === 'Server build')
     const coldRender = cold.phases.find((p) => p.name === 'Render pages')
-    const coldTotal = cold.phases.find((p) => p.name === 'Pipeline Total')
+    const coldTotal =
+      cold.phases.find((p) => p.name === 'SSGBuild') ||
+      cold.phases.find((p) => p.name === 'Build Time')
     if (coldClient) profile.breakdown.clientBuildMs = coldClient.durationMs
     if (coldServer) profile.breakdown.serverBuildMs = coldServer.durationMs
     if (coldRender) profile.breakdown.renderPagesMs = coldRender.durationMs
@@ -486,8 +863,20 @@ async function main() {
     fs.writeFileSync(outPath, JSON.stringify(profile, null, 2))
     console.log(`\n  📁 Profile saved: ${outPath}`)
   } finally {
-    // Always clean up generated pages
-    cleanupGeneratedPages()
+    // Always restore the original artifacts, even if cleanup itself fails.
+    try {
+      cleanupGeneratedPages()
+      for (const directory of [
+        path.join(DOCS_DIR, '.boltdocs'),
+        path.join(DOCS_DIR, 'dist'),
+      ]) {
+        if (fs.existsSync(directory)) {
+          fs.rmSync(directory, { recursive: true, force: true })
+        }
+      }
+    } finally {
+      restoreBuildArtifacts?.()
+    }
   }
 
   console.log('\n  ✅ Profile complete\n')

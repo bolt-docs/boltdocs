@@ -16,12 +16,53 @@ function getArgValue(flag: string): string | null {
   return index !== -1 && args[index + 1] ? args[index + 1] : null
 }
 const pagesArg = getArgValue('--pages')
-const PAGE_COUNT = pagesArg
-  ? Number(pagesArg)
-  : Number(process.env.PAGE_COUNT) || 100
+const requestedPageCount = Number(pagesArg ?? process.env.PAGE_COUNT ?? 100)
+const PAGE_COUNT =
+  Number.isInteger(requestedPageCount) && requestedPageCount > 0
+    ? requestedPageCount
+    : 100
 const IS_COMPLEX =
   args.includes('--complex') || process.env.COMPLEX_MDX === 'true'
 const IS_QUICK = args.includes('--quick')
+const requestedRuns = Number(
+  getArgValue('--runs') ?? process.env.BENCHMARK_RUNS ?? 3,
+)
+const RUNS =
+  Number.isInteger(requestedRuns) && requestedRuns > 0 ? requestedRuns : 3
+const EDITED_PAGE_NUMBER = Math.max(1, Math.min(50, PAGE_COUNT))
+
+type TimedSamples = {
+  samples: number[]
+  min: number
+  max: number
+  mean: number
+  median: number
+}
+
+type OutputInventory = {
+  files: number
+  bytes: number
+  htmlFiles: number
+  documentRoutes: string[]
+}
+
+function summarizeSamples(values: number[]): TimedSamples {
+  const samples = [...values].sort((a, b) => a - b)
+  const total = samples.reduce((sum, value) => sum + value, 0)
+  const middle = Math.floor(samples.length / 2)
+  return {
+    samples,
+    min: samples[0] ?? 0,
+    max: samples[samples.length - 1] ?? 0,
+    mean: samples.length > 0 ? total / samples.length : 0,
+    median:
+      samples.length === 0
+        ? 0
+        : samples.length % 2 === 1
+          ? samples[middle]
+          : (samples[middle - 1] + samples[middle]) / 2,
+  }
+}
 
 // Pack local boltdocs packages into tarballs so the sandbox can use them
 function packLocalBoltdocs(): string {
@@ -61,8 +102,8 @@ function packLocalBoltdocs(): string {
           `    → ${path.isAbsolute(tgzName) ? tgzName : path.join(packDir, tgzName)}`,
         )
       }
-    } catch (err) {
-      console.error(`    Failed to pack ${pkg.name}:`, err)
+    } catch {
+      console.error(`    Failed to pack ${pkg.name}`)
     }
   }
 
@@ -94,6 +135,54 @@ function getDirSize(dirPath: string): number {
     }
   }
   return size
+}
+function getOutputInventory(
+  dirPath: string,
+  relativePrefix = '',
+): OutputInventory {
+  let files = 0
+  let bytes = 0
+  let htmlFiles = 0
+  const documentRoutes = new Set<string>()
+  if (!fs.existsSync(dirPath)) {
+    return { files, bytes, htmlFiles, documentRoutes: [] }
+  }
+
+  for (const entry of fs.readdirSync(dirPath, { withFileTypes: true })) {
+    const filePath = path.join(dirPath, entry.name)
+    const relative = relativePrefix
+      ? `${relativePrefix}/${entry.name}`
+      : entry.name
+    if (entry.isDirectory()) {
+      const nested = getOutputInventory(filePath, relative)
+      files += nested.files
+      bytes += nested.bytes
+      htmlFiles += nested.htmlFiles
+      for (const route of nested.documentRoutes) documentRoutes.add(route)
+    } else if (entry.isFile()) {
+      files++
+      bytes += fs.statSync(filePath).size
+      if (!entry.name.endsWith('.html')) continue
+      htmlFiles++
+
+      if (relative === '404.html' || relative.endsWith('/404.html')) continue
+
+      const route =
+        relative === 'index.html'
+          ? '/'
+          : relative.endsWith('/index.html')
+            ? `/${relative.slice(0, -'/index.html'.length)}`
+            : `/${relative.slice(0, -'.html'.length)}`
+      documentRoutes.add(route)
+    }
+  }
+
+  return {
+    files,
+    bytes,
+    htmlFiles,
+    documentRoutes: [...documentRoutes].sort(),
+  }
 }
 
 // Clean and create directories
@@ -145,11 +234,6 @@ This is the homepage of the benchmarking docs site.
       content = `---
 title: "Hard Benchmark Page ${i} - Architecture & Deep Systems Analysis"
 sidebar_label: "Page ${i}"
-tags:
-  - benchmark
-  - performance
-  - mdx-complex
-  - stress-test
 summary: "Heavy synthetic MDX test page ${i} with multi-language code blocks, tables, math equations, and AST structures."
 author: "Antigravity Engineering"
 date: "2026-07-28"
@@ -289,10 +373,6 @@ f(x) = (1 / (sigma * sqrt(2 * pi))) * exp(-0.5 * ((x - mu) / sigma)^2)
       content = `---
 title: Benchmarking Page ${i}
 sidebar_label: Page ${i}
-tags:
-  - benchmark
-  - performance
-  - docs
 summary: "This generated benchmark page includes headings, code blocks, tables, lists, and HTML markup."
 ---
 # Page ${i}
@@ -361,6 +441,7 @@ function writeConfigs() {
   // Boltdocs Config
   // Using a plain object export to bypass node_modules resolution issues in sandbox
   const boltdocsConfig = `export default {
+  base: '/',
   theme: {
     title: 'Boltdocs Benchmark',
     description: 'A benchmark test suite',
@@ -401,7 +482,9 @@ function writeConfigs() {
   const depOverrides: Record<string, string> = {
     react: '19.2.5',
     'react-dom': '19.2.5',
+    'react-aria-components': '^1.16.0',
   }
+  const localWorkspacePackages: Record<string, string> = {}
   const boltdocsPkg: Record<string, unknown> = {
     name: 'benchmark-boltdocs',
     private: true,
@@ -409,6 +492,7 @@ function writeConfigs() {
     dependencies: {
       react: '19.2.5',
       'react-dom': '19.2.5',
+      'react-aria-components': '^1.16.0',
     },
   }
 
@@ -438,7 +522,9 @@ function writeConfigs() {
           ;(boltdocsPkg.dependencies as Record<string, string>).boltdocs =
             `file:${fullPath}`
         } else {
-          depOverrides[wsDep.name] = `file:${fullPath}`
+          const localPackage = `file:${fullPath}`
+          localWorkspacePackages[wsDep.name] = localPackage
+          depOverrides[wsDep.name] = localPackage
         }
         console.log(`    → ${fullPath}`)
       }
@@ -447,11 +533,16 @@ function writeConfigs() {
     }
   }
 
-  // Add pnpm overrides for workspace deps so they don't resolve from npm
+  // Declare every packed workspace package directly as a sandbox dependency as
+  // well as an override. The direct declarations make the package manager
+  // materialize the exact tarball, while overrides ensure Boltdocs' own
+  // workspace ranges cannot resolve to stale local links or registry copies.
+  Object.assign(
+    boltdocsPkg.dependencies as Record<string, string>,
+    localWorkspacePackages,
+  )
   if (Object.keys(depOverrides).length > 0) {
-    boltdocsPkg.pnpm = {
-      overrides: depOverrides,
-    }
+    boltdocsPkg.pnpm = { overrides: depOverrides }
   }
 
   // Fallback: if we couldn't pack boltdocs, use npm
@@ -578,20 +669,8 @@ function runInstallation() {
     )
     console.log('✅ Docusaurus dependencies installed.')
   } catch (err) {
-    console.error(
-      'Failed to install Docusaurus dependencies with pnpm, trying npm...',
-      err,
-    )
-    try {
-      child_process.execSync('npm install --no-audit --no-fund', {
-        cwd: DOCUSAURUS_DIR,
-        stdio: 'inherit',
-      })
-      console.log('✅ Docusaurus dependencies installed with npm.')
-    } catch (npmErr) {
-      console.error('Failed both pnpm and npm installs:', npmErr)
-      throw npmErr
-    }
+    console.error('Failed to install Docusaurus dependencies with pnpm:', err)
+    throw err
   }
 
   console.log('Installing dependencies for Boltdocs benchmark...')
@@ -605,20 +684,8 @@ function runInstallation() {
     )
     console.log('✅ Boltdocs dependencies installed.')
   } catch (err) {
-    console.error(
-      'Failed to install Boltdocs dependencies with pnpm, trying npm...',
-      err,
-    )
-    try {
-      child_process.execSync('npm install --no-audit --no-fund', {
-        cwd: BOLTDOCS_DIR,
-        stdio: 'inherit',
-      })
-      console.log('✅ Boltdocs dependencies installed with npm.')
-    } catch (npmErr) {
-      console.error('Failed both pnpm and npm installs for Boltdocs:', npmErr)
-      throw npmErr
-    }
+    console.error('Failed to install Boltdocs dependencies with pnpm:', err)
+    throw err
   }
 
   // P2-00: After install, verify boltdocs binary exists
@@ -646,6 +713,12 @@ function measureBuild(command: string, args: string[], cwd: string): number {
   const start = process.hrtime.bigint()
   const result = child_process.spawnSync(command, args, {
     cwd,
+    env: {
+      ...process.env,
+      CI: 'true',
+      NODE_ENV: 'production',
+      BOLTDOCS_BENCHMARK_PHASES: 'true',
+    },
     stdio: 'inherit',
   })
   if (result.status !== 0) {
@@ -734,12 +807,7 @@ function measureDevServer(
   })
 }
 
-async function run() {
-  setupSandbox()
-  generateMarkdownPages()
-  writeConfigs()
-  runInstallation()
-
+async function runOnce() {
   console.log('\n--- Benchmarking Boltdocs ---')
   const boltdocsCLI = path.resolve(
     BOLTDOCS_DIR,
@@ -772,15 +840,8 @@ async function run() {
   )
   console.log(`Boltdocs Cold Build: ${buildTimeColdBoltdocs.toFixed(2)}s`)
 
-  // 3. Warm Build (Boltdocs)
+  // 3. Warm Build (Boltdocs): repeat with identical inputs.
   console.log('Measuring Boltdocs Warm Build...')
-  // Mutate one file slightly
-  const randomPage = path.join(BOLTDOCS_DIR, 'docs/page-50.md')
-  fs.appendFileSync(
-    randomPage,
-    '\n\n## Edited Section\nThis is an incremental change.\n',
-  )
-
   const buildTimeWarmBoltdocs = measureBuild(
     'node',
     [boltdocsCLI, 'build'],
@@ -788,7 +849,33 @@ async function run() {
   )
   console.log(`Boltdocs Warm Build: ${buildTimeWarmBoltdocs.toFixed(2)}s`)
 
-  // 4. Bundle Size (Boltdocs)
+  // 4. Edited-input rebuild (Boltdocs): edit exactly one page, then restore it.
+  // This measures the same full CLI build operation as Docusaurus; it is not HMR timing.
+  console.log('Measuring Boltdocs Edited-input Rebuild...')
+  const randomPage = path.join(
+    BOLTDOCS_DIR,
+    PAGE_COUNT > 0 ? `docs/page-${EDITED_PAGE_NUMBER}.md` : 'docs/index.md',
+  )
+  const originalBoltdocsPage = fs.readFileSync(randomPage, 'utf8')
+  fs.appendFileSync(
+    randomPage,
+    '\n\n## Edited Section\nThis is an incremental change.\n',
+  )
+  let buildTimeEditedRebuildBoltdocs: number
+  try {
+    buildTimeEditedRebuildBoltdocs = measureBuild(
+      'node',
+      [boltdocsCLI, 'build'],
+      BOLTDOCS_DIR,
+    )
+  } finally {
+    fs.writeFileSync(randomPage, originalBoltdocsPage, 'utf8')
+  }
+  console.log(
+    `Boltdocs Edited-input Rebuild: ${buildTimeEditedRebuildBoltdocs.toFixed(2)}s`,
+  )
+
+  // 5. Bundle Size (Boltdocs)
   const bundleSizeBoltdocs = getDirSize(distDir) / 1024 // in KB
   console.log(`Boltdocs Output size: ${bundleSizeBoltdocs.toFixed(1)} KB`)
 
@@ -823,14 +910,8 @@ async function run() {
   )
   console.log(`Docusaurus Cold Build: ${buildTimeColdDocusaurus.toFixed(2)}s`)
 
-  // 3. Warm Build (Docusaurus)
+  // 3. Warm Build (Docusaurus): repeat with identical inputs.
   console.log('Measuring Docusaurus Warm Build...')
-  const docRandomPage = path.join(DOCUSAURUS_DIR, 'docs/page-50.md')
-  fs.appendFileSync(
-    docRandomPage,
-    '\n\n## Edited Section\nThis is an incremental change.\n',
-  )
-
   const buildTimeWarmDocusaurus = measureBuild(
     'pnpm',
     ['exec', 'docusaurus', 'build'],
@@ -838,9 +919,62 @@ async function run() {
   )
   console.log(`Docusaurus Warm Build: ${buildTimeWarmDocusaurus.toFixed(2)}s`)
 
-  // 4. Bundle Size (Docusaurus)
+  // 4. Edited-input rebuild (Docusaurus): Docusaurus production builds are
+  // full rebuilds, so this is not an HMR/incremental-build comparison.
+  console.log('Measuring Docusaurus Edited-input Rebuild...')
+  const docRandomPage = path.join(
+    DOCUSAURUS_DIR,
+    PAGE_COUNT > 0 ? `docs/page-${EDITED_PAGE_NUMBER}.md` : 'docs/index.md',
+  )
+  const originalDocusaurusPage = fs.readFileSync(docRandomPage, 'utf8')
+  fs.appendFileSync(
+    docRandomPage,
+    '\n\n## Edited Section\nThis is an incremental change.\n',
+  )
+  let buildTimeEditedRebuildDocusaurus: number
+  try {
+    buildTimeEditedRebuildDocusaurus = measureBuild(
+      'pnpm',
+      ['exec', 'docusaurus', 'build'],
+      DOCUSAURUS_DIR,
+    )
+  } finally {
+    fs.writeFileSync(docRandomPage, originalDocusaurusPage, 'utf8')
+  }
+  console.log(
+    `Docusaurus Edited-input Rebuild: ${buildTimeEditedRebuildDocusaurus.toFixed(2)}s`,
+  )
+
+  // 5. Bundle Size (Docusaurus)
   const bundleSizeDocusaurus = getDirSize(docBuildDir) / 1024 // in KB
   console.log(`Docusaurus Output size: ${bundleSizeDocusaurus.toFixed(1)} KB`)
+
+  const boltdocsInventory = getOutputInventory(distDir)
+  const docusaurusInventory = getOutputInventory(docBuildDir)
+  const expectedDocumentRoutes = [
+    '/',
+    ...Array.from({ length: PAGE_COUNT }, (_, index) => `/page-${index + 1}`),
+  ]
+  // Both generators may choose different valid route ordering (for example,
+  // lexicographic `page-10` before `page-2` versus numeric ordering). Compare
+  // the normalized route set rather than an incidental traversal order.
+  const expectedRouteSignature = JSON.stringify(
+    [...expectedDocumentRoutes].sort(),
+  )
+  boltdocsInventory.documentRoutes.sort()
+  docusaurusInventory.documentRoutes.sort()
+  if (
+    JSON.stringify(boltdocsInventory.documentRoutes) !==
+      expectedRouteSignature ||
+    JSON.stringify(docusaurusInventory.documentRoutes) !==
+      expectedRouteSignature
+  ) {
+    throw new Error(
+      `Output route parity failed: expected ${expectedRouteSignature}, ` +
+        `Boltdocs=${JSON.stringify(boltdocsInventory.documentRoutes)}, ` +
+        `Docusaurus=${JSON.stringify(docusaurusInventory.documentRoutes)}`,
+    )
+  }
 
   // Write Results
   const results = {
@@ -860,6 +994,15 @@ async function run() {
         (buildTimeWarmDocusaurus / buildTimeWarmBoltdocs).toFixed(1),
       ),
     },
+    buildTimeEditedRebuild: {
+      boltdocs: Number(buildTimeEditedRebuildBoltdocs.toFixed(2)),
+      docusaurus: Number(buildTimeEditedRebuildDocusaurus.toFixed(2)),
+      ratio: Number(
+        (
+          buildTimeEditedRebuildDocusaurus / buildTimeEditedRebuildBoltdocs
+        ).toFixed(1),
+      ),
+    },
     devServerStart: {
       boltdocs: Number(devServerStartBoltdocs.toFixed(0)),
       docusaurus: Number(devServerStartDocusaurus.toFixed(0)),
@@ -872,6 +1015,10 @@ async function run() {
       docusaurus: Number(bundleSizeDocusaurus.toFixed(0)),
       ratio: Number((bundleSizeDocusaurus / bundleSizeBoltdocs).toFixed(1)),
     },
+    outputInventory: {
+      boltdocs: boltdocsInventory,
+      docusaurus: docusaurusInventory,
+    },
   }
 
   const outputDir = path.resolve(WORKSPACE_ROOT, 'docs/src/data')
@@ -882,12 +1029,94 @@ async function run() {
   fs.writeFileSync(outputPath, JSON.stringify(results, null, 2))
   console.log(`\n🎉 Benchmarking complete! Results saved to ${outputPath}`)
 
-  // Clean up sandbox to keep workspace clean
-  console.log(`Cleaning sandbox...`)
-  // fs.rmSync(TEMP_ROOT, { recursive: true, force: true })
+  return results
+}
+
+async function run() {
+  setupSandbox()
+  generateMarkdownPages()
+  writeConfigs()
+  runInstallation()
+
+  const results: Array<Awaited<ReturnType<typeof runOnce>>> = []
+  for (let runIndex = 0; runIndex < RUNS; runIndex++) {
+    console.log(`\\n=== Comparison run ${runIndex + 1}/${RUNS} ===`)
+    results.push(await runOnce())
+  }
+
+  const aggregate = {
+    pageCount: PAGE_COUNT,
+    runs: RUNS,
+    complex: IS_COMPLEX,
+    timestamp: new Date().toISOString(),
+    metrics: {
+      buildTimeCold: {
+        boltdocs: summarizeSamples(
+          results.map((r) => r.buildTimeCold.boltdocs),
+        ),
+        docusaurus: summarizeSamples(
+          results.map((r) => r.buildTimeCold.docusaurus),
+        ),
+      },
+      buildTimeWarm: {
+        boltdocs: summarizeSamples(
+          results.map((r) => r.buildTimeWarm.boltdocs),
+        ),
+        docusaurus: summarizeSamples(
+          results.map((r) => r.buildTimeWarm.docusaurus),
+        ),
+      },
+      buildTimeEditedRebuild: {
+        boltdocs: summarizeSamples(
+          results.map((r) => r.buildTimeEditedRebuild.boltdocs),
+        ),
+        docusaurus: summarizeSamples(
+          results.map((r) => r.buildTimeEditedRebuild.docusaurus),
+        ),
+      },
+      devServerStart: {
+        boltdocs: summarizeSamples(
+          results.map((r) => r.devServerStart.boltdocs),
+        ),
+        docusaurus: summarizeSamples(
+          results.map((r) => r.devServerStart.docusaurus),
+        ),
+      },
+      bundleSize: {
+        boltdocs: summarizeSamples(results.map((r) => r.bundleSize.boltdocs)),
+        docusaurus: summarizeSamples(
+          results.map((r) => r.bundleSize.docusaurus),
+        ),
+      },
+    },
+    samples: results,
+  }
+
+  const outputDir = path.resolve(WORKSPACE_ROOT, 'docs/src/data')
+  fs.mkdirSync(outputDir, { recursive: true })
+  const outputPath = path.join(outputDir, 'benchmark-results.json')
+  fs.writeFileSync(outputPath, JSON.stringify(aggregate, null, 2))
+  console.log(
+    `\\n🎉 Comparison complete across ${RUNS} run(s). Results saved to ${outputPath}`,
+  )
+  console.log(
+    `Cold median: Boltdocs ${aggregate.metrics.buildTimeCold.boltdocs.median.toFixed(2)}s / ` +
+      `Docusaurus ${aggregate.metrics.buildTimeCold.docusaurus.median.toFixed(2)}s`,
+  )
+  console.log(
+    `Warm median: Boltdocs ${aggregate.metrics.buildTimeWarm.boltdocs.median.toFixed(2)}s / ` +
+      `Docusaurus ${aggregate.metrics.buildTimeWarm.docusaurus.median.toFixed(2)}s`,
+  )
+  console.log('Cleaning sandbox...')
+  fs.rmSync(TEMP_ROOT, { recursive: true, force: true })
 }
 
 run().catch((err) => {
+  try {
+    fs.rmSync(TEMP_ROOT, { recursive: true, force: true })
+  } catch {
+    // Preserve the original benchmark error if cleanup also fails.
+  }
   console.error('Benchmark execution failed:', err)
   process.exit(1)
 })
