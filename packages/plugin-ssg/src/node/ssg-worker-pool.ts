@@ -2,6 +2,10 @@ import Piscina from 'piscina'
 import { cpus, freemem, totalmem } from 'node:os'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import type { RouterContextData } from '../router-contract'
+import type { RouterRenderTimings } from './router-adapter/interface'
+import { decodeSsgText } from './ssg-worker-payload'
+import { resolveSsgWorkerCount } from './worker-count-policy'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 
@@ -16,17 +20,47 @@ export interface SsgRenderResult {
   bodyAttributes: string
   htmlAttributes: string
   styleTag: string | undefined
-  loaderData: Record<string, unknown> | null
-  routerContextJSON: string | null
-  _appHTMLBuffer?: ArrayBuffer
-  _loaderDataBuffer?: ArrayBuffer
-  _routerContextBuffer?: ArrayBuffer
+  routerContext: RouterContextData | null
+  timings?: RouterRenderTimings
+}
+
+export interface SsgBatchError {
+  path: string
+  error: string
+}
+
+export type SsgBatchResult = SsgRenderResult | SsgBatchError
+
+type RawSsgRenderResult = Partial<SsgRenderResult> & {
+  _appHTMLBuffer?: ArrayBuffer | ArrayBufferView<ArrayBufferLike>
+  _routerContextBuffer?: ArrayBuffer | ArrayBufferView<ArrayBufferLike>
+}
+
+function isSsgBatchError(value: unknown): value is SsgBatchError {
+  return (
+    !!value &&
+    typeof value === 'object' &&
+    typeof (value as { path?: unknown }).path === 'string' &&
+    typeof (value as { error?: unknown }).error === 'string'
+  )
 }
 
 export interface PoolOptions {
   numWorkers?: number
   ssrEntryPath: string
   format?: 'esm' | 'cjs'
+}
+
+export interface SsgPoolMetrics {
+  totalWorkers: number
+  readyCount: number
+  busyCount: number
+  pagesPerWorker: number[]
+  initTimesMs: number[]
+  totalRendered: number
+  totalErrors: number
+  allReadyMs: number
+  failedCount: number
 }
 
 /* ------------------------------------------------------------------ */
@@ -38,22 +72,20 @@ export class SsgWorkerPool {
   private totalWorkers: number
   private totalRendered = 0
   private totalErrors = 0
+  private destroyPromise: Promise<void> | null = null
   private startTime: number
 
   constructor(options: PoolOptions) {
     const { ssrEntryPath, format = 'esm' } = options
-    const cpuWorkers = Math.max(1, (cpus().length || 4) - 1)
     const freeGB = freemem() / 1024 / 1024 / 1024
     const totalGB = totalmem() / 1024 / 1024 / 1024
-    const maxCap = totalGB >= 4 ? Math.min(cpuWorkers, 12) : 4
-    const budgetWorkers = Math.max(2, Math.floor((totalGB * 0.35) / 0.256))
-    const freeWorkers = Math.max(2, Math.floor(freeGB / 0.3))
-    const ramWorkers = Math.min(budgetWorkers, freeWorkers)
-    const requestedWorkers = options.numWorkers ?? cpuWorkers
-    this.totalWorkers = Math.max(
-      2,
-      Math.min(requestedWorkers, cpuWorkers, ramWorkers, maxCap),
-    )
+    this.totalWorkers = resolveSsgWorkerCount({
+      cpuCount: cpus().length || 4,
+      totalMemoryGB: totalGB,
+      freeMemoryGB: freeGB,
+      requestedWorkers: options.numWorkers,
+      envWorkers: process.env.BOLTDOCS_SSG_WORKERS,
+    })
 
     const workerFile = join(__dirname, 'ssg-worker.mjs')
     this.startTime = performance.now()
@@ -62,7 +94,10 @@ export class SsgWorkerPool {
       filename: workerFile,
       workerData: { ssrEntryPath, format },
       maxThreads: this.totalWorkers,
-      minThreads: this.totalWorkers,
+      // Start workers on demand for the first render task. This preserves the
+      // same concurrency ceiling while avoiding eager SSR runtime creation on
+      // builds that render few pages or fail before dispatch.
+      minThreads: 0,
       idleTimeout: 10000,
     })
 
@@ -75,23 +110,72 @@ export class SsgWorkerPool {
     return Promise.resolve()
   }
 
+  private decodeResult(
+    raw: RawSsgRenderResult,
+    expectedPath: string,
+  ): SsgRenderResult {
+    if (!raw || typeof raw !== 'object' || raw.path !== expectedPath) {
+      throw new Error('SSG worker returned an invalid render payload')
+    }
+    raw.routerContext = raw.routerContext ?? null
+    if (raw._appHTMLBuffer) {
+      raw.appHTML = decodeSsgText(raw._appHTMLBuffer)
+      delete raw._appHTMLBuffer
+    }
+    if (
+      raw._routerContextBuffer ||
+      typeof raw.appHTML !== 'string' ||
+      !Array.isArray(raw.metaAttributes) ||
+      typeof raw.bodyAttributes !== 'string' ||
+      typeof raw.htmlAttributes !== 'string' ||
+      (raw.routerContext !== null &&
+        (typeof raw.routerContext !== 'object' ||
+          Array.isArray(raw.routerContext)))
+    ) {
+      throw new Error('SSG worker returned an invalid render payload')
+    }
+    return raw as SsgRenderResult
+  }
+
   async render(path: string): Promise<SsgRenderResult> {
     try {
-      const res = (await this.piscina.run({ type: 'render', path })) as any
+      const result = this.decodeResult(
+        (await this.piscina.run({
+          type: 'render',
+          path,
+        })) as RawSsgRenderResult,
+        path,
+      )
       this.totalRendered++
-      if (res._appHTMLBuffer) {
-        res.appHTML = Buffer.from(res._appHTMLBuffer as ArrayBuffer).toString(
-          'utf-8',
-        )
-        delete res._appHTMLBuffer
+      return result
+    } catch (err) {
+      this.totalErrors++
+      throw err
+    }
+  }
+
+  async renderBatch(paths: readonly string[]): Promise<SsgBatchResult[]> {
+    if (paths.length === 0) return []
+    try {
+      const rawResults = (await this.piscina.run({
+        type: 'render-batch',
+        paths: [...paths],
+      })) as Array<RawSsgRenderResult | SsgBatchError>
+      if (!Array.isArray(rawResults) || rawResults.length !== paths.length) {
+        throw new Error('SSG worker returned an invalid batch payload')
       }
-      if (res._routerContextBuffer) {
-        res.routerContextJSON = Buffer.from(
-          res._routerContextBuffer as ArrayBuffer,
-        ).toString('utf-8')
-        delete res._routerContextBuffer
-      }
-      return res as SsgRenderResult
+      const results = rawResults.map((raw, index) => {
+        if (isSsgBatchError(raw)) return raw
+        if (!raw || typeof raw !== 'object') {
+          throw new Error('SSG worker returned an invalid batch item')
+        }
+        return this.decodeResult(raw, paths[index])
+      })
+      this.totalRendered += results.filter(
+        (result) => !isSsgBatchError(result),
+      ).length
+      this.totalErrors += results.filter(isSsgBatchError).length
+      return results
     } catch (err) {
       this.totalErrors++
       throw err
@@ -99,10 +183,13 @@ export class SsgWorkerPool {
   }
 
   async destroy(): Promise<void> {
-    await this.piscina.destroy()
+    if (this.destroyPromise) return this.destroyPromise
+
+    this.destroyPromise = this.piscina.destroy()
+    await this.destroyPromise
   }
 
-  poolMetrics() {
+  poolMetrics(): SsgPoolMetrics {
     return {
       totalWorkers: this.totalWorkers,
       readyCount: this.totalWorkers,

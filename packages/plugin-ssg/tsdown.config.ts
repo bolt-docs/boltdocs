@@ -1,6 +1,6 @@
-import { defineConfig } from 'tsdown'
+import { defineConfig, packageConfig } from 'tsdown-config'
 
-const commonConfig = {
+const commonConfig = packageConfig({
   format: ['esm', 'cjs'],
   dts: true,
   clean: false,
@@ -11,7 +11,7 @@ const commonConfig = {
   deps: {
     skipNodeModulesBundle: true,
   },
-}
+})
 
 export default defineConfig([
   {

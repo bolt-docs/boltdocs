@@ -1,22 +1,28 @@
 import type { BoltdocsConfig } from '../config'
 import type { RouteMeta } from '../routes/types'
-import type { SSGRouteData } from '../routes/route-adapter'
 import type { InlineConfig } from 'vite'
 
 export interface BuildContext {
   root: string
+  docsDir?: string
   config?: BoltdocsConfig
   routes?: RouteMeta[]
-  ssgRoutes?: SSGRouteData[]
+  /**
+   * Deprecated compatibility alias for routes used by SEO/SSG output.
+   * It references the same RouteMeta[] array; no adapter copy is created.
+   */
+  ssgRoutes?: RouteMeta[]
   viteConfig?: InlineConfig
   paths?: string[]
+  /** Complete route-path contract used by generated types and link validation. */
+  routePaths?: string[]
   outDir?: string
   timing: Record<string, number>
   stepDetails?: Record<string, string>
   ssgSubSteps?: StepResult[]
-  /** Set by ConfigResolveStep when project types/link-tree have been generated. */
+  /** Set by TypeGenerateStep after project types/link-tree are written. */
   typesGenerated?: boolean
-  /** PR-01: Set when all routes are cached (warm build); skips security inspection. */
+  /** Set when all routes are cached (warm build); skips security inspection. */
   allCached?: boolean
 }
 

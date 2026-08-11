@@ -56,10 +56,12 @@ export async function createServer(
     process.env.__DEV_MODE_SSR = 'true'
 
     if (mock) {
-      // @ts-expect-error dynamic mjs import
-      const { jsdomGlobal }: { jsdomGlobal: () => void } = await import(
-        './jsdomGlobal.mjs'
-      )
+      const { jsdomGlobal } = (await import('./jsdomGlobal.mjs')) as {
+        jsdomGlobal: (
+          html?: string,
+          options?: import('jsdom').ConstructorOptions,
+        ) => () => void
+      }
       jsdomGlobal()
     }
 

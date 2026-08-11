@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { generateSitemap } from '../../packages/core/src/node/seo/sitemap'
+import { generateSitemap } from '../../core/src/node/seo/sitemap'
 
 describe('generateSitemap', () => {
   const defaultConfig: any = { siteUrl: 'https://example.com' }
@@ -14,6 +14,23 @@ describe('generateSitemap', () => {
     )
     expect(sitemap).toContain('<loc>https://example.com/docs/intro</loc>')
     expect(sitemap).toContain('<loc>https://example.com/docs/setup</loc>')
+  })
+
+  it('emits URLs in deterministic lexical order', () => {
+    const routes = [
+      { path: '/docs/zeta' },
+      { path: '/docs/alpha' },
+      { path: '/docs/middle' },
+    ]
+
+    const sitemap = generateSitemap(routes, defaultConfig)
+
+    expect(sitemap.indexOf('/docs/alpha')).toBeLessThan(
+      sitemap.indexOf('/docs/middle'),
+    )
+    expect(sitemap.indexOf('/docs/middle')).toBeLessThan(
+      sitemap.indexOf('/docs/zeta'),
+    )
   })
 
   it('should use the provided siteUrl from config', () => {

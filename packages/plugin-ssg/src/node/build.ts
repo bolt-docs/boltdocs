@@ -1,5 +1,10 @@
 import { colors, warn, error } from '@bdocs/dui'
-import type { InlineConfig, PluginOption } from 'vite'
+import type { InlineConfig } from 'vite'
+import type {
+  MatchRouteBranchWithParams,
+  RouterContextData,
+  RouterEntryModule,
+} from '../router-contract'
 import type {
   RouteRecord,
   ViteReactSSGContext,
@@ -9,44 +14,85 @@ import { createRequire } from 'node:module'
 import os from 'node:os'
 import { basename, dirname, isAbsolute, join, relative } from 'node:path'
 import fs from 'fs-extra'
-import {
-  createLogger,
-  mergeConfig,
-  resolveConfig,
-  build as viteBuild,
-  version as viteVersion,
-} from 'vite'
+import { createLogger, resolveConfig, version as viteVersion } from 'vite'
 import {
   removeLeadingSlash,
   withLeadingSlash,
   withTrailingSlash,
 } from '../utils/path'
 import { serializeState } from '../utils/state'
-import { collectAssets } from './assets'
+import { createAssetCollector } from './assets'
+import type { AssetCollector } from './assets'
 import { getBeasties, getZigCritters } from './critical'
+import {
+  createCriticalCssCacheKey,
+  CriticalCssCache,
+  extractNewStyleTags,
+} from './critical-cache'
 import {
   computeRouteClientAssetHash,
   createManifestIndexes,
 } from './client-dep-map'
 import crypto from 'node:crypto'
-import { detectEntry, renderHTML, SCRIPT_COMMENT_PLACEHOLDER } from './html'
+import {
+  createHtmlTemplate,
+  detectEntry,
+  renderHTML,
+  SCRIPT_COMMENT_PLACEHOLDER,
+  type HtmlTemplate,
+} from './html'
 import { renderPreloadLinks, renderPreloadLinksString } from './preload-links'
 import { getAdapter } from './router-adapter'
 import { getSize, resolveAlias, routesToPaths } from './utils'
+import { materializeFiles } from './materialize'
+import { createDeferredFileWriteQueue } from './deferred-file-write'
+import {
+  getCanonicalRouteKey,
+  getSsgOutputPageFiles,
+  isClientCacheReusable,
+  isSsgOutputReusable,
+  listOutputFiles,
+  readSsgOutputState,
+  reconcileRouteCache,
+  writeFileIfChanged,
+  writeJsonIfChanged,
+  writeSsgOutputState,
+} from './cache-io'
 import {
   collectPerformanceMetrics,
   writePerformanceMetrics,
 } from './performance'
 import { computeClientCodeHash } from './client-hash'
+import { computeChunkHashesWithCache } from './chunk-hash-cache'
+import {
+  getSsgSourceContentHash,
+  isSsgPageCacheValid,
+} from './cache-validation'
+import { getSsgPoolMetrics } from './pool-metrics'
+import {
+  createSsgHydrationScript,
+  createSsgRouterContextPayload,
+} from './ssg-worker-payload'
+import {
+  attachSsgRouteManifest,
+  createSsgBuildSnapshot,
+  createSsgRouteManifest,
+} from './pipeline/snapshot'
+import type { SsgBuildSnapshot } from './pipeline/snapshot'
+import {
+  createBundleLogger,
+  executeClientBundle,
+  executeServerBundle,
+  pruneDirectoryCache,
+  syncPublicAssets,
+  resolveSsrCacheDirectory,
+  shouldSuppressBundleLog,
+} from './pipeline/bundles'
+import { createRenderPlans, getRenderPlan } from './pipeline/render-plan'
+import type { RenderPlan } from './pipeline/render-plan'
+import { executeRenderSchedule } from './pipeline/render-executor'
 
 const dotVitedir = Number.parseInt(viteVersion) >= 5 ? ['.vite'] : []
-function buildBundlerOptions<T extends Record<string, unknown>>(
-  options: T,
-): { rolldownOptions: T } | { rollupOptions: T } {
-  return Number.parseInt(viteVersion) >= 8
-    ? { rolldownOptions: options }
-    : { rollupOptions: options }
-}
 
 export type SSRManifest = Record<string, string[]>
 export interface ManifestItem {
@@ -68,6 +114,17 @@ export interface SsgCacheItem {
 }
 
 export type StaticLoaderDataManifest = Record<string, string>
+
+export function serializeStaticLoaderDataManifest(
+  manifest: StaticLoaderDataManifest,
+): string {
+  const sortedManifest = Object.fromEntries(
+    Object.entries(manifest).sort(([left], [right]) =>
+      left < right ? -1 : left > right ? 1 : 0,
+    ),
+  )
+  return JSON.stringify(sortedManifest)
+}
 
 export type CreateRootFactory = (
   client: boolean,
@@ -116,93 +173,56 @@ function collectChunkFiles(manifest: Manifest): string[] {
 async function computeChunkHashes(
   outDir: string,
   manifest: Manifest,
+  cacheDir?: string,
 ): Promise<Map<string, string>> {
-  const chunkFiles = collectChunkFiles(manifest)
-  const hashes = new Map<string, string>()
-  if (chunkFiles.length === 0) return hashes
-
-  const hasherFor = (buffer: Buffer) =>
-    crypto
-      .createHash('md5')
-      .update(buffer as Uint8Array)
-      .digest('hex')
-
-  await Promise.all(
-    chunkFiles.map(async (file) => {
-      try {
-        const buffer = await fs.readFile(join(outDir, file))
-        hashes.set(file, hasherFor(buffer))
-      } catch {
-        // Ignore files that cannot be read
-      }
-    }),
+  return computeChunkHashesWithCache(
+    outDir,
+    collectChunkFiles(manifest),
+    cacheDir ? join(cacheDir, 'chunk-hashes.json') : undefined,
   )
-
-  return hashes
 }
 
-function getNormalizedPathKey(routePath: string, base: string = '/'): string {
+export function getNormalizedPathKey(
+  routePath: string,
+  _base: string = '/',
+): string {
+  // `routesToPaths()` already returns absolute public paths, including the
+  // configured docs base. Never prepend the base here: doing so aliases an
+  // external/localized route such as `/es` to `/docs/es` and makes the final
+  // loader-data manifest depend on parallel completion order.
   const leading = withLeadingSlash(routePath)
-  let full = leading
-  if (base !== '/') {
-    const prefix = withLeadingSlash(base).replace(/\/$/, '')
-    if (!leading.startsWith(prefix + '/') && leading !== prefix) {
-      full = `${prefix}${leading}`
-    }
-  }
-  return full !== '/' && full.endsWith('/') ? full.slice(0, -1) : full
+  return leading !== '/' && leading.endsWith('/')
+    ? leading.slice(0, -1)
+    : leading
 }
 
-/**
- * PR-08+: Vite plugin that intercepts CSS imports during SSR builds and returns
- * an empty string.  The client build already handles all CSS — processing it
- * again in the SSR bundle is pure overhead (CSS is only needed for critical CSS
- * inlining, which reads files from the client dist, not the SSR bundle).
- *
- * This eliminates ~500ms-1s of Rolldown CSS processing per SSR build.
- */
-function createSsrCssSkipPlugin(): PluginOption {
-  const CSS_VIRTUAL_PREFIX = '\0virtual:ssr-empty-css'
-  return {
-    name: 'vite-react-ssg:ssr-skip-css',
-    enforce: 'pre',
-    resolveId(id: string) {
-      if (id.endsWith('.css') && !id.startsWith('\0')) {
-        return CSS_VIRTUAL_PREFIX + id
-      }
-      return null
-    },
-    load(id: string) {
-      if (id.startsWith(CSS_VIRTUAL_PREFIX)) {
-        return { code: 'export default undefined', map: null }
-      }
-      return null
-    },
-  }
+interface RoutesCacheRecord {
+  paths: string[]
+  dirStyle?: string
+  base?: string
+  sourceFiles?: Record<string, string>
 }
 
-function filterPluginsForSsr(plugins: any[]): any[] {
-  return plugins
-    .map((plugin) => {
-      if (Array.isArray(plugin)) {
-        return filterPluginsForSsr(plugin)
-      }
-      if (plugin && typeof plugin === 'object' && 'name' in plugin) {
-        const name = plugin.name
-        if (
-          name === 'vite:react-babel' ||
-          name === 'vite:react-refresh' ||
-          name === 'vite:react-jsx' ||
-          (typeof name === 'string' && name.includes('tailwind')) ||
-          name === 'vite-plugin-image-optimizer' ||
-          name === 'vite-plugin-boltdocs-dev-server'
-        ) {
-          return null
-        }
-      }
-      return plugin
-    })
-    .filter(Boolean)
+function getCachedRouteSourceFile(
+  root: string,
+  sourceFiles: Record<string, string> | undefined,
+  routePath: string,
+): string | undefined {
+  const source = sourceFiles?.[routePath]
+  if (!source) return undefined
+  return isAbsolute(source) ? source : join(root, source)
+}
+
+function createCachedSourceFiles(
+  root: string,
+  sourceFiles: Record<string, string>,
+): Record<string, string> {
+  return Object.fromEntries(
+    Object.entries(sourceFiles).map(([routePath, sourceFile]) => [
+      routePath,
+      isAbsolute(sourceFile) ? relative(root, sourceFile) : sourceFile,
+    ]),
+  )
 }
 
 function DefaultIncludedRoutes(
@@ -237,9 +257,12 @@ export async function build(
   const root = viteConfig.root || cwd
   let outDir =
     (viteConfig.build as { outDir?: string } | undefined)?.outDir || 'dist'
-  let configBase = (viteConfig.base as string) || '/'
+  const configBase = (viteConfig.base as string) || '/'
 
   const buildStartTime = performance.now()
+  let clientBuildDurationMs = 0
+  let serverBuildDurationMs = 0
+  let ssrImportDurationMs = 0
 
   // Peek at ssgOptions passed directly (no resolveConfig needed).
   // Only extract the MINIMUM fields needed for the early hash and cache
@@ -269,17 +292,51 @@ export async function build(
 
   // Compute client hash early (before resolveConfig) so we can check
   // the client cache and potentially skip the Vite config resolution.
-  let currentClientHash = computeClientCodeHash(
+  const currentClientHash = computeClientCodeHash(
     root,
     docsDirName,
     finalCacheDir,
   )
-  let hash = currentClientHash.substring(0, 12)
+  // Phase 1: establish one immutable build contract before Vite is resolved.
+  // The existing pipeline still consumes its legacy locals below; subsequent
+  // phases will replace those locals with this snapshot step by step.
+  let buildSnapshot: SsgBuildSnapshot = createSsgBuildSnapshot({
+    root,
+    outDir: out,
+    cacheDir: finalCacheDir,
+    base: configBase,
+    mode,
+    entry,
+    htmlEntry,
+    docsDirName,
+    clientHash: currentClientHash,
+    routeToSourceFileMap,
+  })
+  // The public loader-data filenames must use the definitive client hash. On
+  // the first build the early probe can be stat-only, while the client bundle
+  // later produces Sätteri's stable content hash. Keep this mutable until the
+  // bundle phase completes; the SSR cache directory is tracked independently.
+  let hash = buildSnapshot.clientHash.substring(0, 12)
 
   // ssgOut uses a placeholder until turbo is resolved from config
-  let ssgOut = join(finalCacheDir, 'ssr', hash)
-  let clientCacheDir = join(finalCacheDir, 'client-cache', currentClientHash)
-  let hashFile = join(clientCacheDir, 'client-hash.txt')
+  let ssgOut = join(buildSnapshot.cacheDir, 'ssr', hash)
+  const clientCacheDir = join(
+    buildSnapshot.cacheDir,
+    'client-cache',
+    buildSnapshot.clientHash,
+  )
+  // The Sätteri manifest can be generated during the client build, which may
+  // make the definitive post-build hash differ from the early probe. Keep the
+  // resolved directory separate so final metrics/output state always point at
+  // the bundle that was actually produced.
+  let resolvedClientCacheDir = clientCacheDir
+  let resolvedClientHash = currentClientHash
+  // Identity used for routes without a source file (for example synthetic
+  // base routes such as /docs). The first cold probe may use the stat-only
+  // fallback hash, while the completed client build has the stable Sätteri
+  // manifest hash. Keep this separate from the client-cache decision hash.
+  let pageContentFallbackHash = currentClientHash
+  const hashFile = join(clientCacheDir, 'client-hash.txt')
 
   let canBypassClientBuild = false
   try {
@@ -299,24 +356,79 @@ export async function build(
   // the expensive Vite resolveConfig (~2-10s) and just copy files.
   const ssgPagesDir = join(finalCacheDir, 'ssg-pages')
   const cachePath = join(finalCacheDir, 'ssg-cache.json')
+  const outputStatePath = join(finalCacheDir, 'ssg-output.json')
+  // The early path must never bypass plugins/hooks that generate auxiliary
+  // files. Legacy builds without a state file also take the normal pipeline.
+  const earlyOutputState = await readSsgOutputState(outputStatePath)
+  const canUseDeterministicFastPath =
+    earlyOutputState !== undefined &&
+    earlyOutputState.auxiliaryFiles.length === 0
+
+  if (canBypassClientBuild) {
+    const actualClientFiles = listOutputFiles(join(clientCacheDir, 'dist'))
+    if (
+      !isClientCacheReusable(earlyOutputState, actualClientFiles, htmlEntry)
+    ) {
+      // Without a strict output state or with an incomplete client cache, do
+      // not let runClientBuild() hard-link an invalid bundle into dist.
+      canBypassClientBuild = false
+    }
+  }
 
   let routesPaths: string[] = []
   let routesCacheAvailable = false
+  const requestedDirStyle =
+    (ssgOptions.dirStyle || (viteConfig as any).ssgOptions?.dirStyle) ?? 'flat'
 
-  if (canBypassClientBuild) {
+  if (
+    canBypassClientBuild &&
+    canUseDeterministicFastPath &&
+    requestedDirStyle !== 'nested'
+  ) {
     const routesCachePath = join(finalCacheDir, 'routes-cache.json')
     try {
-      if (fs.existsSync(routesCachePath)) {
+      if (fs.existsSync(routesCachePath) && fs.existsSync(cachePath)) {
         const cachedRoutes = JSON.parse(
           fs.readFileSync(routesCachePath, 'utf-8'),
-        ) as { paths: string[] }
-        const allCached = cachedRoutes.paths.every((p: string) => {
-          const pathHash = crypto.createHash('md5').update(p).digest('hex')
-          return fs.existsSync(join(ssgPagesDir, `${pathHash}.html`))
-        })
-        if (allCached) {
-          routesPaths = cachedRoutes.paths
-          routesCacheAvailable = true
+        ) as RoutesCacheRecord
+        const rawCachedSsgIndex = JSON.parse(
+          fs.readFileSync(cachePath, 'utf-8'),
+        ) as Record<string, SsgCacheItem>
+        const cachedSsgIndex = reconcileRouteCache(
+          rawCachedSsgIndex,
+          cachedRoutes.paths,
+        )
+        const cacheMatchesConfig =
+          cachedRoutes.dirStyle === requestedDirStyle &&
+          cachedRoutes.base === configBase
+        if (cacheMatchesConfig) {
+          const allCached = cachedRoutes.paths.every((p: string) => {
+            const normalizedPath = getCanonicalRouteKey(p)
+            const cacheEntry = cachedSsgIndex[normalizedPath]
+            const sourceFile =
+              routeToSourceFileMap[normalizedPath] ||
+              routeToSourceFileMap[p] ||
+              getCachedRouteSourceFile(
+                root,
+                cachedRoutes.sourceFiles,
+                normalizedPath,
+              ) ||
+              getCachedRouteSourceFile(root, cachedRoutes.sourceFiles, p)
+            return isSsgPageCacheValid({
+              routePath: p,
+              cacheItem: cacheEntry,
+              sourceContentHash: getSsgSourceContentHash(
+                sourceFile,
+                pageContentFallbackHash,
+              ),
+              ssgPagesDir,
+              requireAssetHash: true,
+            })
+          })
+          if (cachedRoutes.paths.length > 0 && allCached) {
+            routesPaths = cachedRoutes.paths
+            routesCacheAvailable = true
+          }
         }
       }
     } catch {}
@@ -324,40 +436,89 @@ export async function build(
 
   if (routesCacheAvailable) {
     // Fast path: resolveConfig skipped, copy cached files, return.
-    if (fs.existsSync(out)) await fs.remove(out)
-    await fs.copy(join(clientCacheDir, 'dist'), out)
+    // Keep this path observable too: a fully cached warm build must not
+    // disappear from the Render pages benchmark.
+    const cachedFastPathStart = performance.now()
+    let cachedSsgIndex: Record<string, SsgCacheItem> = {}
+    try {
+      if (fs.existsSync(cachePath)) {
+        cachedSsgIndex = reconcileRouteCache(
+          JSON.parse(fs.readFileSync(cachePath, 'utf-8')),
+          routesPaths,
+        )
+      }
+    } catch {}
+
+    const expectedPageFiles = [
+      ...getSsgOutputPageFiles(
+        routesPaths,
+        cachedSsgIndex,
+        requestedDirStyle === 'nested' ? 'nested' : 'flat',
+      ),
+      `static-loader-data-manifest-${hash}.json`,
+    ]
+    const clientCacheDist = join(clientCacheDir, 'dist')
+    const expectedClientFiles = listOutputFiles(clientCacheDist).filter(
+      (file) => file !== htmlEntry,
+    )
+    const outputState = await readSsgOutputState(outputStatePath)
+    // Auxiliary files are produced by plugins/hooks after the client bundle
+    // and cannot be recomputed safely before resolveConfig. Force the normal
+    // pipeline whenever they exist; the state remains useful for diagnostics,
+    // while the early fast path stays limited to deterministic output.
+    const outputReused =
+      outputState?.auxiliaryFiles.length === 0 &&
+      isSsgOutputReusable(
+        outputState,
+        currentClientHash,
+        out,
+        expectedClientFiles,
+        expectedPageFiles,
+        [],
+      )
 
     const loaderDataManifest: Record<string, string> = {}
-    for (const p of routesPaths) {
-      const pathHash = crypto.createHash('md5').update(p).digest('hex')
-      const cachedHtmlPath = join(ssgPagesDir, `${pathHash}.html`)
-      const cachedLoaderPath = join(ssgPagesDir, `${pathHash}.json`)
-      const filename = `${(p.endsWith('/') ? `${p}index` : p).replace(/^\//g, '')}.html`
-      const finalOutFile = join(out, filename)
-      await fs.ensureDir(dirname(finalOutFile))
-      await fs.copy(cachedHtmlPath, finalOutFile)
-      if (fs.existsSync(cachedLoaderPath)) {
-        try {
-          const ssgCached = JSON.parse(fs.readFileSync(cachePath, 'utf-8'))
-          const nk = withLeadingSlash(p).replace(/\/$/, '')
-          const lEntry = ssgCached[nk] || ssgCached[p]
+
+    if (!outputReused) {
+      if (fs.existsSync(out)) await fs.remove(out)
+      const clientCacheDist = join(clientCacheDir, 'dist')
+      await syncPublicAssets(viteConfig.publicDir, clientCacheDist)
+      await fs.copy(clientCacheDist, out)
+
+      const cachedFilesToMaterialize: Array<{
+        source: string
+        destination: string
+      }> = []
+      for (const p of routesPaths) {
+        const pathHash = crypto.createHash('md5').update(p).digest('hex')
+        const cachedHtmlPath = join(ssgPagesDir, `${pathHash}.html`)
+        const cachedLoaderPath = join(ssgPagesDir, `${pathHash}.json`)
+        const filename = `${(p.endsWith('/') ? `${p}index` : p).replace(/^\//g, '')}.html`
+        cachedFilesToMaterialize.push({
+          source: cachedHtmlPath,
+          destination: join(out, filename),
+        })
+        if (fs.existsSync(cachedLoaderPath)) {
+          const nk = getCanonicalRouteKey(p)
+          const lEntry = cachedSsgIndex[nk]
           if (lEntry?.loaderDataFilePath) {
-            await fs.copy(
-              cachedLoaderPath,
-              join(out, lEntry.loaderDataFilePath),
-            )
+            cachedFilesToMaterialize.push({
+              source: cachedLoaderPath,
+              destination: join(out, lEntry.loaderDataFilePath),
+            })
             loaderDataManifest[getNormalizedPathKey(p, configBase)] =
               lEntry.loaderDataFilePath
           }
-        } catch {}
+        }
       }
-    }
-    if (Object.keys(loaderDataManifest).length > 0) {
-      await fs.writeFile(
+      await materializeFiles(cachedFilesToMaterialize)
+
+      await writeFileIfChanged(
         join(out, `static-loader-data-manifest-${hash}.json`),
-        JSON.stringify(loaderDataManifest, null, 0),
+        serializeStaticLoaderDataManifest(loaderDataManifest),
       )
     }
+    await pruneSsgPagesIfDue(ssgPagesDir, cachedSsgIndex, routesPaths)
     const totalTime = Math.round(performance.now() - buildStartTime)
     onStep?.({
       name: 'Client build',
@@ -383,7 +544,86 @@ export async function build(
       success: true,
       details: `Build time: ${(totalTime / 1000).toFixed(1)}s, all cached`,
     })
+    const cachedFastPathMs = Math.round(performance.now() - cachedFastPathStart)
+    const cachedPipelineMetrics = {
+      renderedPageCount: 0,
+      cachedPageCount: routesPaths.length,
+      clientBuildMs: 0,
+      serverBuildMs: 0,
+      ssrImportMs: 0,
+      workerPoolSetupMs: 0,
+      routePreparationMs: 0,
+      workerTransportMs: 0,
+      workerRoundTripMs: 0,
+      workerTransportAvgMs: 0,
+      finalizeP50Ms: 0,
+      finalizeP95Ms: 0,
+      assetCollectionMs: 0,
+      beforeHookMs: 0,
+      htmlAssemblyMs: 0,
+      onPageRenderedHookMs: 0,
+      criticalCssP50Ms: 0,
+      criticalCssP95Ms: 0,
+      cacheWriteMs: 0,
+      cachedOutputMs: cachedFastPathMs,
+      renderQueueDrainMs: 0,
+      renderPipelineSettleMs: 0,
+      outputLinkMs: cachedFastPathMs,
+    }
+    // The machine-readable JSON envelope is part of the benchmark contract
+    // (scripts/benchmarks parse it from stdout). Emit it only in benchmark
+    // mode — the same gate the core CLI uses for its own phase envelope — so
+    // ordinary builds stay clean.
+    if (process.env.BOLTDOCS_BENCHMARK_PHASES === 'true') {
+      // eslint-disable-next-line no-console
+      console.log(
+        `[boltdocs] ${JSON.stringify({
+          name: 'Render pages',
+          duration: 0,
+          success: true,
+          details: `${routesPaths.length} pages / 0 new / ${routesPaths.length} cached`,
+          metrics: {
+            renderedCount: 0,
+            cachedCount: routesPaths.length,
+            renderedSize: 0,
+            totalPages: routesPaths.length,
+            prunedCount: 0,
+            clientBuildMs: 0,
+            serverBuildMs: 0,
+            ssrImportMs: 0,
+            workerPoolSetupMs: 0,
+            workerUsed: false,
+            workerCount: 0,
+            fallbackMainThread: false,
+            ssrP50Ms: 0,
+            ssrP95Ms: 0,
+            ssrP99Ms: 0,
+            crittersP50Ms: 0,
+            crittersP95Ms: 0,
+            writeP50Ms: 0,
+            writeP95Ms: 0,
+            routerTimingCount: 0,
+            routerMatchAvgMs: 0,
+            routerResolveAvgMs: 0,
+            routerLoadersAvgMs: 0,
+            routerRenderAvgMs: 0,
+            routerHelmetAvgMs: 0,
+            routerTotalAvgMs: 0,
+            pagesPerSecond: 0,
+            pipeline: cachedPipelineMetrics,
+          },
+        })}`,
+      )
+    }
     await onFinished?.(outDir)
+    await removeOutputBuildMetadata(out)
+    await writeSsgOutputState(
+      join(finalCacheDir, 'ssg-output.json'),
+      currentClientHash,
+      out,
+      expectedPageFiles,
+      expectedClientFiles,
+    )
     return
   }
 
@@ -414,48 +654,54 @@ export async function build(
 
   const beastiesOptions = rawBeasties
   const turbo = (mergedOptions.turbo as boolean) ?? false
-  ssgOut = join(finalCacheDir, 'ssr', turbo ? 'turbo-ssr' : hash)
+  const ssrCacheRoot = join(finalCacheDir, 'ssr')
+  const ssrCacheIndexPath = join(finalCacheDir, 'ssr-cache-index.json')
+  ssgOut = join(ssrCacheRoot, turbo ? 'turbo-ssr' : hash)
 
-  function shouldSuppressLog(msg: string): boolean {
-    return (
-      msg.startsWith('dist/') ||
-      msg.startsWith('.boltdocs/build/ssr/') ||
-      msg.startsWith('rendering chunks') ||
-      msg === 'computing gzip size...' ||
-      (msg.includes('built in') && msg.includes('s'))
-    )
-  }
-
-  const clientLogger = createLogger()
-  const loggerWarn = clientLogger.warn
-  clientLogger.warn = (msg: string, options) => {
-    if (
-      msg.includes('externalized for browser compatibility') ||
-      msg.includes("can't be bundled without type") ||
-      shouldSuppressLog(msg)
-    ) {
-      return
+  // The early client hash can be a stat-only probe on cold builds, while the
+  // completed Sätteri manifest produces the definitive hash. Persist the
+  // mapping so a later warm build can reuse the SSR bundle created under the
+  // early probe directory without serializing client and server builds.
+  if (!turbo && canBypassClientBuild) {
+    try {
+      const index = (await fs.readJson(ssrCacheIndexPath)) as Record<
+        string,
+        string
+      >
+      const mappedDirectory = index[currentClientHash]
+      if (typeof mappedDirectory === 'string') {
+        const candidate = resolveSsrCacheDirectory(
+          ssrCacheRoot,
+          mappedDirectory,
+        )
+        if (candidate) ssgOut = candidate
+      }
+    } catch {
+      // A missing or invalid index only costs one SSR rebuild.
     }
-    loggerWarn(msg, options)
   }
-  const loggerInfo = clientLogger.info
-  clientLogger.info = (msg: string, options) => {
-    if (shouldSuppressLog(msg)) return
-    loggerInfo(msg, options)
-  }
+
+  const clientLogger = createBundleLogger(
+    createLogger(),
+    shouldSuppressBundleLog,
+  )
 
   // === SSG cache setup ===
   let unmock = () => {}
   if (mock) {
     const { jsdomGlobal } = (await import('./jsdomGlobal.mjs')) as {
-      jsdomGlobal: () => () => void
+      jsdomGlobal: (
+        html?: string,
+        options?: import('jsdom').ConstructorOptions,
+      ) => () => void
     }
     unmock = jsdomGlobal()
   }
   let ssgCache: Record<string, SsgCacheItem> = {}
   try {
     if (fs.existsSync(cachePath)) {
-      ssgCache = await fs.readJson(cachePath)
+      const cachedIndex = await fs.readJson(cachePath)
+      ssgCache = reconcileRouteCache(cachedIndex, Object.keys(cachedIndex))
     }
   } catch {}
 
@@ -466,13 +712,27 @@ export async function build(
       if (fs.existsSync(routesCachePath)) {
         const cachedRoutes = JSON.parse(
           fs.readFileSync(routesCachePath, 'utf-8'),
-        ) as { paths: string[] }
+        ) as RoutesCacheRecord
         const allExistInCache =
           cachedRoutes.paths.length > 0 &&
           cachedRoutes.paths.every((p: string) => {
-            const nk = withLeadingSlash(p).replace(/\/$/, '')
-            const entry = ssgCache[nk] || ssgCache[p]
-            return !!entry
+            const nk = getCanonicalRouteKey(p)
+            const entry = ssgCache[nk]
+            const sourceFile =
+              routeToSourceFileMap[nk] ||
+              routeToSourceFileMap[p] ||
+              getCachedRouteSourceFile(root, cachedRoutes.sourceFiles, nk) ||
+              getCachedRouteSourceFile(root, cachedRoutes.sourceFiles, p)
+            return isSsgPageCacheValid({
+              routePath: p,
+              cacheItem: entry,
+              sourceContentHash: getSsgSourceContentHash(
+                sourceFile,
+                pageContentFallbackHash,
+              ),
+              ssgPagesDir,
+              requireAssetHash: true,
+            })
           })
         if (allExistInCache) {
           routesPaths = cachedRoutes.paths
@@ -481,96 +741,6 @@ export async function build(
       }
     } catch {
       // Fall through to normal path
-    }
-  }
-
-  const runClientBuild = async () => {
-    if (canBypassClientBuild) {
-      onStep?.({
-        name: 'Client build',
-        duration: 0,
-        success: true,
-        details: 'Code unchanged, restored from cache',
-      })
-      if (fs.existsSync(out)) await fs.remove(out)
-      hardLinkDir(join(clientCacheDir, 'dist'), out)
-    } else {
-      const clientStart = performance.now()
-      await viteBuild(
-        mergeConfig(viteConfig, {
-          logLevel: 'warn',
-          build: {
-            manifest: true,
-            ssrManifest: true,
-            chunkSizeWarningLimit: 2000,
-            reportCompressedSize: false,
-            sourcemap: false,
-            cssMinify: 'esbuild',
-            ...buildBundlerOptions({
-              input: { app: join(root, htmlEntry || './index.html') },
-              output: {
-                manualChunks(id: string) {
-                  if (
-                    !id.includes('node_modules') &&
-                    !id.includes('.boltdocs')
-                  ) {
-                    return
-                  }
-                  if (
-                    id.includes('/node_modules/react/') ||
-                    id.includes('/node_modules/react-dom/') ||
-                    id.includes('/node_modules/scheduler/')
-                  ) {
-                    return 'react-vendor'
-                  }
-                  if (id.includes('/node_modules/react-router')) {
-                    return 'react-router'
-                  }
-                  if (id.includes('/node_modules/lucide-react')) {
-                    return 'lucide-icons'
-                  }
-                  if (id.includes('/node_modules/react-helmet-async')) {
-                    return 'react-helmet'
-                  }
-                },
-              } as any,
-              onLog(level, log, handler) {
-                if (
-                  log.message.includes('react-helmet-async') ||
-                  shouldSuppressLog(log.message)
-                )
-                  return
-                handler(level, log)
-              },
-            }),
-          },
-          customLogger: clientLogger,
-          mode: resolvedConfig.mode,
-          plugins: [
-            {
-              name: 'vite-react-ssg:get-oup-dir',
-              configResolved(resolvedConfig) {
-                outDir = resolvedConfig.build.outDir || 'dist'
-              },
-            } as PluginOption,
-          ],
-        }),
-      )
-      onStep?.({
-        name: 'Client build',
-        duration: performance.now() - clientStart,
-        success: true,
-        details: 'Vite production build',
-      })
-      const buildHash = computeClientCodeHash(root, docsDirName, finalCacheDir)
-      const buildCacheDir = join(finalCacheDir, 'client-cache', buildHash)
-      const buildHashFile = join(buildCacheDir, 'client-hash.txt')
-      await fs.ensureDir(buildCacheDir)
-      const cachedDist = join(buildCacheDir, 'dist')
-      if (fs.existsSync(cachedDist)) await fs.remove(cachedDist)
-      await fs.copy(out, cachedDist)
-      await fs.writeFile(buildHashFile, buildHash, 'utf-8')
-      await pruneDirectoryCache(join(finalCacheDir, 'client-cache'))
     }
   }
 
@@ -584,80 +754,65 @@ export async function build(
       .readdirSync(ssgOut)
       .filter((f) => f.endsWith('.mjs') || f.endsWith('.cjs')).length > 0
 
-  const runServerBuild = async () => {
-    if (serverBuildSkipped) {
-      onStep?.({
-        name: 'Server build',
-        duration: 0,
-        success: true,
-        details: 'SSR bundle unchanged, skipped',
-      })
-    } else {
-      if (fs.existsSync(ssgOut)) await fs.remove(ssgOut)
-      process.env.VITE_SSG = 'true'
-      const serverStart = performance.now()
-      await viteBuild(
-        mergeConfig(viteConfig, {
-          logLevel: 'warn',
-          build: {
-            ssr:
-              entry.includes('boltdocs') || entry.startsWith('virtual:')
-                ? 'virtual:boltdocs-entry'
-                : !canSkipSsrImport && ssrEntry
-                  ? ssrEntry
-                  : entry,
-            manifest: true,
-            outDir: ssgOut,
-            reportCompressedSize: false,
-            target: 'es2022',
-            minify: false,
-            cssCodeSplit: false,
-            cssMinify: false,
-            ...buildBundlerOptions({
-              output:
-                format === 'esm'
-                  ? {
-                      entryFileNames: 'combined.mjs',
-                      format: 'esm',
-                    }
-                  : {
-                      entryFileNames: 'combined.cjs',
-                      format: 'cjs',
-                    },
-              platform: 'node',
-              // @ts-expect-error rollup type
-              onLog(level, log, handler) {
-                if (
-                  log.message.includes('react-helmet-async') ||
-                  shouldSuppressLog(log.message)
-                )
-                  return
-                handler(level, log)
-              },
-            }),
-          },
-          customLogger: clientLogger,
-          mode: resolvedConfig.mode,
-          ssr: {
-            noExternal: true,
-          },
-          plugins: [
-            ...filterPluginsForSsr((viteConfig.plugins as any[]) || []),
-            createSsrCssSkipPlugin(),
-          ],
-        }),
-      )
-      onStep?.({
-        name: 'Server build',
-        duration: performance.now() - serverStart,
-        success: true,
-        details: 'Vite SSR bundle',
-      })
+  const renderStartTime = performance.now()
+  const [clientBundle, serverBundle] = await Promise.all([
+    executeClientBundle(
+      {
+        viteConfig,
+        resolvedMode: resolvedConfig.mode,
+        root,
+        htmlEntry,
+        outDir: out,
+        clientCacheDir,
+        finalCacheDir,
+        docsDirName,
+        initialClientHash: currentClientHash,
+        canBypassClientBuild,
+        customLogger: clientLogger,
+        onStep,
+        shouldSuppressLog: shouldSuppressBundleLog,
+      },
+      () => computeClientCodeHash(root, docsDirName, finalCacheDir),
+    ),
+    executeServerBundle({
+      viteConfig,
+      resolvedMode: resolvedConfig.mode,
+      entry,
+      ssrEntry,
+      ssgOut,
+      format,
+      canSkipSsrImport,
+      serverBuildSkipped,
+      customLogger: clientLogger,
+      onStep,
+      shouldSuppressLog: shouldSuppressBundleLog,
+    }),
+  ])
+  outDir = clientBundle.outDir
+  resolvedClientCacheDir = clientBundle.resolvedClientCacheDir
+  resolvedClientHash = clientBundle.resolvedClientHash
+  pageContentFallbackHash = clientBundle.pageContentFallbackHash
+  hash = resolvedClientHash.substring(0, 12)
+  clientBuildDurationMs = clientBundle.durationMs
+  serverBuildDurationMs = serverBundle.durationMs
+
+  if (!turbo) {
+    try {
+      let ssrCacheIndex: Record<string, string> = {}
+      try {
+        ssrCacheIndex = (await fs.readJson(ssrCacheIndexPath)) as Record<
+          string,
+          string
+        >
+      } catch {
+        // Start a new index when the cache has not been populated yet.
+      }
+      ssrCacheIndex[resolvedClientHash] = relative(ssrCacheRoot, ssgOut)
+      await writeJsonIfChanged(ssrCacheIndexPath, ssrCacheIndex)
+    } catch {
+      // Cache metadata is advisory; never fail a successful build.
     }
   }
-
-  const renderStartTime = performance.now()
-  await Promise.all([runClientBuild(), runServerBuild()])
 
   const prefix =
     format === 'esm' && process.platform === 'win32' ? 'file://' : ''
@@ -690,7 +845,7 @@ export async function build(
     await fs.readFile(join(ssgOut, ...dotVitedir, 'manifest.json'), 'utf-8'),
   )
 
-  // ── PR-05: Skip SSR import when all routes cached ────────────────
+  // ── Skip SSR import when all routes cached ────────────────
   // When canSkipSsrImport is true we already have routesPaths and all
   // pages are cached.  Jump straight to the copy phase without importing
   // the ~7MB SSR bundle, creating the React renderer, or instantiating the
@@ -698,28 +853,31 @@ export async function build(
   let _serverContext: ViteReactSSGContext<true> | null = null
   let _sharedAdapter: ReturnType<typeof getAdapter> | null = null
   let routes: Readonly<RouteRecord[]> = []
+  let matchRouteBranchWithParams: MatchRouteBranchWithParams | undefined
   let ctxBase = '/'
   let ctxTrigger:
     | ((route: string, appHTML: string, ctx: any) => Promise<unknown[]>)
     | undefined
   let ctxApp: any = null
-  let ctxRouterType: 'remix' | 'app' | undefined = undefined
-  let includedRoutes: (
-    paths: string[],
-    routes?: Readonly<RouteRecord[]>,
-  ) => string[] = configIncludedRoutes
+  let ctxRouterType: 'remix' | 'single-page' | undefined
+  type IncludedRoutesFn = NonNullable<ViteReactSSGOptions['includedRoutes']>
+  let includedRoutes: IncludedRoutesFn = configIncludedRoutes
 
   if (!canSkipSsrImport) {
     const _require =
       typeof require !== 'undefined' ? require : createRequire(import.meta.url)
 
-    const {
-      createRoot,
-      includedRoutes: serverEntryIncludedRoutes,
-    }: {
+    const ssrImportStart = performance.now()
+    const serverEntryModule = (
+      format === 'esm' ? await import(serverEntry) : _require(serverEntry)
+    ) as RouterEntryModule & {
       createRoot: CreateRootFactory
-      includedRoutes: ViteReactSSGOptions['includedRoutes']
-    } = format === 'esm' ? await import(serverEntry) : _require(serverEntry)
+      includedRoutes?: ViteReactSSGOptions['includedRoutes']
+    }
+    ssrImportDurationMs = performance.now() - ssrImportStart
+    matchRouteBranchWithParams = serverEntryModule.matchRouteBranchWithParams
+    const { createRoot, includedRoutes: serverEntryIncludedRoutes } =
+      serverEntryModule
     includedRoutes = serverEntryIncludedRoutes || configIncludedRoutes
 
     // Create the SSR context ONCE and reuse it everywhere.  The context's
@@ -747,26 +905,45 @@ export async function build(
       }
     }
 
-    // Pre-create the RemixAdapter ONCE using the shared SSR context.
-    _sharedAdapter = getAdapter(ctx)
+    buildSnapshot = attachSsgRouteManifest(
+      buildSnapshot,
+      createSsgRouteManifest(root, routes, routeToSourceFileMap),
+    )
+
+    // Pre-create the RemixAdapter ONCE using the shared SSR context and the
+    // exact SSR entry module that created the route tree.
+    _sharedAdapter = getAdapter(ctx, serverEntryModule)
   }
 
   // Worker SSR entry path (only computed when we need workers)
   let workerSsrEntryPath = ''
-  // PR-05: Lazy worker thread pool — only created when the first uncached
+  // Route preparation starts before the per-page metric block below.
+  let routePreparationMs = 0
+  // Lazy worker thread pool — only created when the first uncached
   // page is encountered in the for-loop.  Fully cached warm builds never
   // pay the ~500ms pool initialisation cost.
   let renderPool: import('./ssg-worker-pool').SsgWorkerPool | null = null
-  // P2-40.1: Streaming pipeline — each render result is immediately
-  // processed through finalizePage as workers finish, instead of
-  // collecting ALL results first and then batch-processing them.
-  // This overlaps SSR rendering (workers) with HTML finalization
-  // (main thread p-queue), reducing idle time for both.
-  const workerFinalizePromises: Array<Promise<void>> = []
+  let poolForCleanup: import('./ssg-worker-pool').SsgWorkerPool | null = null
+  let poolDestroyPromise: Promise<void> | null = null
   /** Set to true once we've attempted lazy pool creation (avoid re-try). */
   let lazyPoolAttempted = false
 
+  // Pool shutdown can be requested by the worker-failure fallback and by the
+  // executor's finally block. Share one promise so cleanup is idempotent and
+  // never asks Piscina to destroy the same pool twice.
+  async function destroyRenderPool(): Promise<void> {
+    if (poolDestroyPromise) {
+      await poolDestroyPromise
+      return
+    }
+    const pool = poolForCleanup
+    if (!pool) return
+    poolDestroyPromise = pool.destroy()
+    await poolDestroyPromise
+  }
+
   if (!canSkipSsrImport) {
+    const routePreparationStart = performance.now()
     const { paths } = await routesToPaths(routes)
 
     routesPaths = includeAllRoutes
@@ -776,15 +953,20 @@ export async function build(
     routesPaths = DefaultIncludedRoutes(routesPaths, routes || [])
 
     routesPaths = Array.from(new Set(routesPaths))
+    routePreparationMs += performance.now() - routePreparationStart
 
     // Save route paths so future warm builds can skip the SSR import entirely.
     try {
       const routesCachePath = join(finalCacheDir, 'routes-cache.json')
-      await fs.ensureDir(dirname(routesCachePath))
-      await fs.writeJson(
+      await writeJsonIfChanged(
         routesCachePath,
-        { paths: routesPaths, updated: Date.now() },
-        { spaces: 0 },
+        {
+          paths: routesPaths,
+          dirStyle,
+          base: configBase,
+          sourceFiles: createCachedSourceFiles(root, routeToSourceFileMap),
+        },
+        0,
       )
     } catch {
       // Non-critical, ignore
@@ -793,21 +975,9 @@ export async function build(
     // Worker SSR entry path: join the output dir with the entry basename.
     workerSsrEntryPath = join(ssgOut, entryBasename + ext)
 
-    // ── Worker thread pool (eager init for cold builds) ──────────────
-    // On cold builds (canSkipSsrImport = false), create the pool eagerly so
-    // it can start importing the SSR bundle in the background while the
-    // manifest reading and chunk hashing complete (~2-3s window).
-    if (routesPaths.length > 4) {
-      try {
-        const { SsgWorkerPool } = await import('./ssg-worker-pool')
-        renderPool = new SsgWorkerPool({
-          ssrEntryPath: workerSsrEntryPath,
-          format: format === 'esm' ? 'esm' : 'cjs',
-        })
-      } catch {
-        renderPool = null
-      }
-    }
+    // Worker startup is deferred until the complete render pipeline is ready.
+    // This keeps every possible failure before dispatch from leaking a pool;
+    // the cold-build policy is applied immediately before the protected block.
   }
 
   // Lazy pool creation helper — invoked from the for-loop when the first
@@ -816,6 +986,7 @@ export async function build(
   async function ensureRenderPool(): Promise<void> {
     if (renderPool || lazyPoolAttempted || routesPaths.length <= 4) return
     lazyPoolAttempted = true
+    const workerInitStart = performance.now()
     try {
       workerSsrEntryPath = join(ssgOut, entryBasename + ext)
       const { SsgWorkerPool } = await import('./ssg-worker-pool')
@@ -823,13 +994,16 @@ export async function build(
         ssrEntryPath: workerSsrEntryPath,
         format: format === 'esm' ? 'esm' : 'cjs',
       })
+      poolForCleanup = renderPool
       await renderPool.ready()
+      workerPoolSetupMs = performance.now() - workerInitStart
     } catch {
+      workerPoolSetupMs = performance.now() - workerInitStart
       renderPool = null
     }
   }
 
-  // P2-11: New critical CSS strategy
+  // New critical CSS strategy
   // Default: 'zig-critters' (WASM) — fast, no beasties fallback.
   // To enable beasties, set `criticalCss: 'beasties'` in ssgOptions or config.
   // To disable entirely, set `criticalCss: false`.
@@ -841,7 +1015,7 @@ export async function build(
       | undefined) ?? (turbo ? false : false)
 
   let zigCritters: import('./critical').ZigCritters | undefined
-  let beasties: any = undefined
+  let beasties: any
 
   if (resolvedCriticalCss === 'zig-critters') {
     zigCritters = await getZigCritters()
@@ -874,29 +1048,34 @@ export async function build(
     }
   }
 
-  // ── PR-05: Skip manifest reading + chunk hashing when all cached ──
+  // ── Skip manifest reading + chunk hashing when all cached ──
   // These are only needed for per-route cache invalidation in the for-loop.
   // When canSkipSsrImport is true, every route is already cached with a
   // matching assetHash, so we can use currentClientHash as a default.
   let ssrManifest: SSRManifest = {}
   let manifest: Manifest = {}
-  let routeToAssetHash: Record<string, string> = {}
+  const routeToAssetHash: Record<string, string> = {}
   let manifestIndexes: import('./client-dep-map').ManifestIndexes | null = null
 
   if (!canSkipSsrImport) {
-    ssrManifest = JSON.parse(
-      await fs.readFile(join(out, ...dotVitedir, 'ssr-manifest.json'), 'utf-8'),
-    )
-    manifest = JSON.parse(
-      await fs.readFile(join(out, ...dotVitedir, 'manifest.json'), 'utf-8'),
-    )
+    const [ssrManifestText, manifestText] = await Promise.all([
+      fs.readFile(join(out, ...dotVitedir, 'ssr-manifest.json'), 'utf-8'),
+      fs.readFile(join(out, ...dotVitedir, 'manifest.json'), 'utf-8'),
+    ])
+    ssrManifest = JSON.parse(ssrManifestText)
+    manifest = JSON.parse(manifestText)
 
     // Build a per-route client dependency hash from the Vite manifests.
     manifestIndexes = createManifestIndexes(manifest)
 
     // Pre-compute hashes for all client chunks once.
-    const chunkHashes = await computeChunkHashes(out, manifest)
+    const chunkHashes = await computeChunkHashes(out, manifest, finalCacheDir)
 
+    // Keep every source-map entry here. The map may contain localized,
+    // basename, or alias keys that do not equal the final public route string;
+    // filtering it would silently replace a precise asset hash with the global
+    // fallback and weaken invalidation correctness. The parallel manifest
+    // reads are independent of this conservative cache behavior.
     await Promise.all(
       Object.entries(routeToSourceFileMap).map(
         async ([routePath, sourceFile]) => {
@@ -913,31 +1092,40 @@ export async function build(
       ),
     )
 
-    // Routes without a known source file fall back to currentClientHash
+    // Routes without a known source file (including synthetic base routes)
+    // use the stable post-build page identity on cold builds. The initial
+    // stat-only client probe can differ from the Sätteri manifest hash.
     for (const routePath of routesPaths) {
       if (!routeToAssetHash[routePath]) {
-        routeToAssetHash[routePath] = currentClientHash
+        routeToAssetHash[routePath] = pageContentFallbackHash
       }
     }
   } else {
-    // All cached: every route uses currentClientHash as its asset hash.
-    // This matches the check in the early "canSkipSsrImport" gate above
-    // which verified entry.assetHash === currentClientHash for all routes.
+    // All cached: preserve each route's previously computed asset hash.
+    // The route hash is more precise than currentClientHash and is the value
+    // used by the per-route cache check below.
     for (const routePath of routesPaths) {
-      routeToAssetHash[routePath] = currentClientHash
+      const normalizedPath = getCanonicalRouteKey(routePath)
+      const cachedItem = ssgCache[normalizedPath]
+      routeToAssetHash[routePath] = cachedItem?.assetHash || currentClientHash
     }
   }
 
   let indexHTML = await fs.readFile(join(out, htmlEntry), 'utf-8')
   fs.rmSync(join(out, htmlEntry))
   indexHTML = rewriteScripts(indexHTML, script)
+  // Compile the common template once. If a user hook transforms index.html,
+  // finalizePage automatically falls back to the original renderer.
+  const compiledIndexTemplate: HtmlTemplate | null = onBeforePageRender
+    ? null
+    : createHtmlTemplate({ rootContainerId, indexHTML })
 
   const PQueue = (await import('p-queue')).default || (await import('p-queue'))
   const queue = new PQueue({ concurrency })
   const crittersQueue = new PQueue({
     concurrency: Math.min(os.cpus().length, 4),
   })
-  // P2-40.1: Finalize queue with limited concurrency to prevent event-loop
+  // Finalize queue with limited concurrency to prevent event-loop
   // saturation when many worker results arrive simultaneously.
   const finalizeQueue = new PQueue({
     concurrency: Math.max(2, Math.min(os.cpus().length, 6)),
@@ -946,15 +1134,7 @@ export async function build(
   const staticLoaderDataManifest: StaticLoaderDataManifest = {}
   let loaderDataFileCount = 0
 
-  // P2-12: sourceHashCache replaced by sourceMetaCache (includes mtime, no fs.statSync per page)
-  // Pre-compute route path MD5 hashes to avoid re-hashing per page.
-  // Key = route path (e.g. '/docs/api'), value = 32-char hex digest.
-  const pathHashCache = new Map<string, string>()
-  for (const p of routesPaths) {
-    pathHashCache.set(p, crypto.createHash('md5').update(p).digest('hex'))
-  }
-
-  // P2-12: Pre-compute source metadata (content hash + mtime) ONCE so
+  // Pre-compute source metadata (content hash + mtime) ONCE so
   // finalizePage doesn't call fs.statSync per page (which was ~10ms × 202 = ~2s).
   // Key = absolute source file path, value = { hash, mtimeMs }.
   const sourceMetaCache = new Map<string, { hash: string; mtimeMs: number }>()
@@ -978,41 +1158,91 @@ export async function build(
     }
   }
 
-  // PR-11: Cache the critical CSS from the first page processed through beasties.
-  // Since every page shares the same global CSS, we only need to run the
-  // expensive beasties.process() ONCE and reuse the extracted <style> blocks
-  // for all subsequent pages.  This saves ~50ms per page × 201 = ~10s on a
-  // 202-page cold build.
-  //
-  // For zig-critters (turbo mode), the CSS is already cached (cachedAllCss)
-  // and the per-page cost is only ~22ms — not worth the complexity of a
-  // batch API for now.  The beasties path is the main bottleneck.
-  let beastiesCssCache: string[] | null = null
-  /**
-   * Promise-based guard: ensures only ONE beasties.process() call runs even
-   * when multiple finalizePage() instances execute concurrently in the queue.
-   * Subsequent calls either use the cached result (if available) or await
-   * this promise and then use it.
-   */
-  let beastiesFirstPagePromise: Promise<string> | null = null
+  let assetCollector: AssetCollector | null = null
+  if (!canSkipSsrImport && matchRouteBranchWithParams) {
+    assetCollector = createAssetCollector({
+      routes: [...routes],
+      base: ctxBase,
+      matchRouteBranchWithParams,
+      serverManifest,
+      manifest,
+      ssrManifest,
+    })
+  }
 
-  // P2-40.2: Zig-critters CSS cache — same strategy as PR-11 for beasties.
-  // Since every page shares the same global CSS bundle, the extracted critical
-  // CSS <style> blocks are identical for every page.  Run zig-critters WASM
-  // ONCE on the first page, extract the injected <style> tag, then inject it
-  // directly for all subsequent pages (no more WASM calls).
-  // This reduces 202 WASM calls → 1 call, saving ~4s.
-  let zigCrittersCachedStyle: string | null = null
-  let zigCrittersFirstPagePromise: Promise<void> | null = null
+  // Build one immutable plan per route after all source metadata and asset
+  // hashes are known. Both cache validation and HTML finalization consume the
+  // same values, eliminating duplicate path/hash/string work and preventing
+  // nested/flat output logic from drifting between code paths.
+  const renderPlans = createRenderPlans({
+    routes: routesPaths,
+    outDir: out,
+    ssgPagesDir,
+    dirStyle,
+    contextBase: ctxBase,
+    fallbackHash: pageContentFallbackHash,
+    routeToSourceFileMap,
+    sourceMeta: sourceMetaCache,
+    routeToAssetHash,
+  })
 
-  // Cache for collectAssets per route path (same route = same assets)
-  const assetsCache = new Map<string, Set<string>>()
+  // Cache only identical structural pages. Unlike the old first-page cache,
+  // this never applies one route's critical CSS to a different route shape.
+  const criticalCssCache = new CriticalCssCache()
 
-  // P2-00: Per-page timing accumulators for render sub-metrics
+  // Per-page timing accumulators for render sub-metrics.
+  // Keep these as primitive totals/arrays so instrumentation has negligible
+  // overhead and remains safe when worker results resolve out of order.
   const ssrPageTimesMs: number[] = []
+  const finalizePageTimesMs: number[] = []
   const crittersPageTimesMs: number[] = []
   const writePageTimesMs: number[] = []
-  let poolWorkerInitMs = 0
+  let assetCollectionMs = 0
+  let beforeHookMs = 0
+  let pageHtmlAssemblyMs = 0
+  let onPageRenderedHookMs = 0
+  const cacheWriteMs = 0
+  let cachedOutputMs = 0
+  let workerRoundTripMs = 0
+  let workerRoundTripCount = 0
+  let renderedPageCount = 0
+  let cachedPageCount = 0
+  let outputLinkMs = 0
+  let renderQueueDrainMs = 0
+  const routerTimingTotals = {
+    count: 0,
+    matchMs: 0,
+    resolveMs: 0,
+    loadersMs: 0,
+    renderMs: 0,
+    helmetMs: 0,
+    totalMs: 0,
+  }
+  function recordRouterTimings(
+    timings:
+      | {
+          matchMs: number
+          resolveMs: number
+          loadersMs: number
+          renderMs: number
+          helmetMs: number
+          totalMs: number
+        }
+      | undefined,
+  ): void {
+    if (!timings) return
+    routerTimingTotals.count++
+    routerTimingTotals.matchMs += timings.matchMs
+    routerTimingTotals.resolveMs += timings.resolveMs
+    routerTimingTotals.loadersMs += timings.loadersMs
+    routerTimingTotals.renderMs += timings.renderMs
+    routerTimingTotals.helmetMs += timings.helmetMs
+    routerTimingTotals.totalMs += timings.totalMs
+  }
+  // This measures pool construction plus the pool's readiness hook. The pool
+  // currently does not expose a per-worker handshake, so do not label this as
+  // worker initialization; Piscina lazily initializes workers on first work.
+  let workerPoolSetupMs = 0
   let poolFallbackToMainThread = false
 
   function computePercentile(values: number[], p: number): number {
@@ -1025,9 +1255,29 @@ export async function build(
   let renderedCount = 0
   let cachedCount = 0
   let renderedSize = 0
+  // Cache hits are materialized directly into dist before the final batch.
+  // Track those destinations so the hardlink pass does not repeat the I/O.
+  const materializedHtmlFiles = new Set<string>()
+  const materializedLoaderFiles = new Set<string>()
+  // Warm cache hits are registered here and materialized in one batch after
+  // rendering. This avoids one copy/remove operation per cached route.
+  const filesToMaterialize: Array<{
+    source: string
+    destination: string
+  }> = []
+  const deferredPageWrites = createDeferredFileWriteQueue({
+    writeFile: async (filePath, content) => {
+      await fs.ensureDir(dirname(filePath))
+      await fs.writeFile(filePath, content, 'utf-8')
+    },
+  })
 
-  // Use the ssgCache already loaded above the SSR skip block
-  const newSsgCache: Record<string, SsgCacheItem> = { ...ssgCache }
+  // Reconcile the index with the current route set before rendering. This
+  // removes deleted routes from the persisted index and lets the page-cache
+  // pruning pass skip a full directory scan when nothing changed.
+  const originalSsgCacheString = JSON.stringify(ssgCache)
+  const newSsgCache = reconcileRouteCache(ssgCache, routesPaths)
+  const assetPromises = new Map<string, Promise<ReadonlySet<string>>>()
 
   // Pre-create all output directories to avoid ensureDir per page
   const outputDirs = new Set<string>()
@@ -1050,13 +1300,13 @@ export async function build(
   // worker-pool result path can call it.  All per-route variables are
   // computed from the `path` parameter, avoiding closure-capture bugs.
   async function finalizePage(
-    path: string,
+    plan: RenderPlan,
     appHTML: string,
     metaAttributes: string[],
     bodyAttributes: string,
     htmlAttributes: string,
     styleTag: string | undefined,
-    routerContextJSON: string | null,
+    routerContext: RouterContextData | null,
     loaderData: Record<string, unknown> | null,
     appCtx: any,
     base: string,
@@ -1068,49 +1318,29 @@ export async function build(
     routerType: string,
     transformedIndexHTML: string,
   ): Promise<void> {
-    const pPathHash =
-      pathHashCache.get(path) ||
-      crypto.createHash('md5').update(path).digest('hex')
-    const pCachedHtmlFile = join(ssgPagesDir, `${pPathHash}.html`)
-    const pCachedLoaderFile = join(ssgPagesDir, `${pPathHash}.json`)
-    const pNormalizedKey = withLeadingSlash(path).replace(/\/$/, '')
-    const pSourceFile =
-      routeToSourceFileMap[pNormalizedKey] || routeToSourceFileMap[path]
-
-    // P2-12: Use pre-computed hash + mtime from sourceMetaCache (eliminates
-    // fs.statSync per page — was ~10ms × 202 = ~2s).  The cache is populated
-    // synchronously before the for-loop so it's always ready.
-    let pSourceContentHash = ''
-    let pSourceMtimeMs = 0
-    if (pSourceFile) {
-      const meta = sourceMetaCache.get(pSourceFile)
-      if (meta) {
-        pSourceContentHash = meta.hash
-        pSourceMtimeMs = meta.mtimeMs
-      }
-    }
-    if (!pSourceContentHash) {
-      pSourceContentHash = currentClientHash
-    }
-
-    const fetchUrl = `${withTrailingSlash(base)}${removeLeadingSlash(path)}`
+    const finalizeStart = performance.now()
+    const {
+      path,
+      cachedHtmlFile: pCachedHtmlFile,
+      cachedLoaderFile: pCachedLoaderFile,
+      normalizedKey: pNormalizedKey,
+      sourceContentHash: pSourceContentHash,
+      sourceMtimeMs: pSourceMtimeMs,
+      fetchUrl,
+    } = plan
 
     let assets: Set<string>
     if (!app && routerType === 'remix') {
-      const cachedAssets = assetsCache.get(path)
-      if (cachedAssets) {
-        assets = cachedAssets
-      } else {
-        assets = await collectAssets({
-          routes: [...routes],
-          locationArg: fetchUrl,
-          base,
-          serverManifest,
-          manifest,
-          ssrManifest,
-        })
-        assetsCache.set(path, assets)
+      if (!assetCollector) {
+        throw new Error(
+          'The SSR entry must expose matchRouteBranchWithParams for asset collection',
+        )
       }
+      const assetStart = performance.now()
+      assets = new Set(
+        await (assetPromises.get(path) || assetCollector(fetchUrl)),
+      )
+      assetCollectionMs += performance.now() - assetStart
     } else {
       assets = new Set<string>()
     }
@@ -1120,10 +1350,16 @@ export async function build(
     if (loaderData && Object.keys(loaderData).length > 0) {
       const loaderDataFilePath = getLoaderDataFilePath(path, hash)
       writtenLoaderDataPath = loaderDataFilePath
-      await fs.writeFile(
-        join(out, loaderDataFilePath),
-        JSON.stringify(loaderData),
-      )
+      // Keep the rendered payload in the page cache first. For normal builds
+      // it is linked into dist in the same batch as the HTML below, avoiding
+      // one direct dist write per rendered route. Turbo mode intentionally
+      // skips the persistent page cache, so it keeps the direct write path.
+      if (turbo) {
+        await fs.writeFile(
+          join(out, loaderDataFilePath),
+          JSON.stringify(loaderData),
+        )
+      }
       staticLoaderDataManifest[getNormalizedPathKey(path, configBase)] =
         loaderDataFilePath
       loaderDataFileCount++
@@ -1131,22 +1367,33 @@ export async function build(
 
     await triggerOnSSRAppRendered?.(path, appHTML, appCtx)
 
-    const renderedHTML = await renderHTML({
-      rootContainerId,
-      appHTML,
-      indexHTML: transformedIndexHTML,
-      metaAttributes,
-      bodyAttributes,
-      htmlAttributes,
-      initialState: null,
-    })
+    const htmlAssemblyStart = performance.now()
+    const renderedHTML =
+      compiledIndexTemplate && transformedIndexHTML === indexHTML
+        ? compiledIndexTemplate({
+            appHTML,
+            metaAttributes,
+            bodyAttributes,
+            htmlAttributes,
+            initialState: null,
+          })
+        : await renderHTML({
+            rootContainerId,
+            appHTML,
+            indexHTML: transformedIndexHTML,
+            metaAttributes,
+            bodyAttributes,
+            htmlAttributes,
+            initialState: null,
+          })
+    pageHtmlAssemblyMs += performance.now() - htmlAssemblyStart
 
-    // P2-40.3: Skip renderPreloadLinksString for 'app' routerType (always empty).
+    // Skip renderPreloadLinksString for 'app' routerType (always empty).
     const preloadLinksHtml = app ? '' : renderPreloadLinksString(assets)
 
-    // P2-40.3: Skip hydration data regex when no routerContextJSON.
+    // Skip hydration data regex when no router context.
     // The regex with negative lookahead is expensive on large HTML (~1-2ms/page).
-    let html = routerContextJSON
+    let html = routerContext
       ? renderedHTML.replace(
           /<script[^>]*>(?:(?!<\/script>)[\s\S])*__staticRouterHydrationData(?:(?!<\/script>)[\s\S])*<\/script>/g,
           '',
@@ -1157,7 +1404,9 @@ export async function build(
       html = html.replace('<head>', `<head>${preloadLinksHtml}`)
     }
 
+    const onPageRenderedStart = performance.now()
     const transformed = (await onPageRendered?.(path, html, appCtx)) || html
+    onPageRenderedHookMs += performance.now() - onPageRenderedStart
     let loaderDataScript = ''
     if (loaderData && Object.keys(loaderData).length > 0) {
       const safeLoaderDataJSON = JSON.stringify(loaderData).replace(
@@ -1167,34 +1416,14 @@ export async function build(
       loaderDataScript = `window.__VITE_REACT_SSG_STATIC_LOADER_DATA__ = { '${getNormalizedPathKey(path, configBase)}': ${safeLoaderDataJSON} };`
     }
 
-    let routerContextParsed: {
-      loaderData?: Record<string, unknown>
-      actionData?: unknown
-      errors?: unknown
-    } | null = null
-    if (routerContextJSON) {
-      try {
-        routerContextParsed = JSON.parse(routerContextJSON)
-      } catch {
-        // Ignore parse errors
-      }
-    }
-
-    let hydrationScriptContent = ''
-    if (routerContextParsed) {
-      const safeJson = JSON.stringify(routerContextParsed).replace(
-        /</g,
-        '\\u003c',
-      )
-      hydrationScriptContent = `window.__staticRouterHydrationData = ${safeJson};`
-    }
+    const hydrationScriptContent = createSsgHydrationScript(routerContext)
 
     let resultHTML = transformed
     const headerScript = `<script>window.__VITE_REACT_SSG_HASH__ = '${hash}';${loaderDataScript}${hydrationScriptContent}</script>`
-    // P2-40.3: headerScript injection deferred — combined with styleTag below
+    // headerScript injection deferred — combined with styleTag below
     // to save one <head> replace per page.
 
-    // P2-00: Track critters processing time per page
+    // Track critters processing time per page
     const pageCrittersStart = performance.now()
     resultHTML = resultHTML.replace(
       `<script>${SCRIPT_COMMENT_PLACEHOLDER}</script>`,
@@ -1202,48 +1431,39 @@ export async function build(
     )
 
     if (zigCritters) {
-      if (zigCrittersCachedStyle) {
-        // P2-40.2: Fast path — inject cached critical CSS style tag from
-        // the first page.  Every page shares the same CSS bundle, so the
-        // extracted critical CSS is identical for all pages.
-        resultHTML = resultHTML.replace(
-          '</head>',
-          `${zigCrittersCachedStyle}</head>`,
+      // Critical CSS depends on the rendered page structure. Cache only the
+      // generated style block by (engine, structural HTML, CSS) so repeated
+      // layouts avoid a second WASM pass without sharing styles across routes
+      // that need different selectors.
+      if (cachedAllCss) {
+        const cacheKey = createCriticalCssCacheKey(
+          resultHTML,
+          cachedAllCss,
+          'zig-critters',
         )
-      } else if (!zigCrittersFirstPagePromise) {
-        // P2-40.2: First page — run zig-critters ONCE, extract the injected
-        // <style> tag, and cache it for all subsequent pages.
-        zigCrittersFirstPagePromise = (async () => {
-          try {
-            if (cachedAllCss) {
+        try {
+          const criticalStyle = await criticalCssCache.getOrCreate(
+            cacheKey,
+            async () => {
               const processed = await zigCritters.processHtml(
                 resultHTML,
                 cachedAllCss,
               )
-              // Extract <style> tags zig-critters injected; cache for reuse.
-              const styleRegex = /<style[^>]*>[\s\S]*?<\/style>/g
-              const matches = processed.match(styleRegex)
-              if (matches && matches.length > 0) {
-                zigCrittersCachedStyle = matches.join('\n')
-              }
-              // Use the processed HTML for this first page
-              resultHTML = processed
-            }
-          } catch (e) {
-            warn(
-              `[zig-critters] Failed to inline CSS for "${path}": ${e instanceof Error ? e.message : String(e)}`,
+              const matches = processed.match(
+                /<style[^>]*data-zig-critters[^>]*>[\s\S]*?<\/style>/g,
+              )
+              return matches?.join('\\n') || null
+            },
+          )
+          if (criticalStyle && !resultHTML.includes('data-zig-critters')) {
+            resultHTML = resultHTML.replace(
+              '</head>',
+              `${criticalStyle}</head>`,
             )
           }
-        })()
-        await zigCrittersFirstPagePromise
-      } else {
-        // P2-40.2: Concurrent pages while first page is being processed —
-        // wait for the first page's zig-critters result, then use cache.
-        await zigCrittersFirstPagePromise
-        if (zigCrittersCachedStyle) {
-          resultHTML = resultHTML.replace(
-            '</head>',
-            `${zigCrittersCachedStyle}</head>`,
+        } catch (e) {
+          warn(
+            `[zig-critters] Failed to inline CSS for "${path}": ${e instanceof Error ? e.message : String(e)}`,
           )
         }
       }
@@ -1252,47 +1472,22 @@ export async function build(
         '<link rel="stylesheet" crossorigin',
       )
     } else if (beasties) {
-      if (beastiesCssCache) {
-        // PR-11: Fast path — inject pre-computed critical CSS from the first
-        // page.  Every page shares the same global CSS bundle, so the same
-        // critical <style> blocks apply to all pages.  Unused critical CSS
-        // for pages with different content is negligible (<1% of bytes).
-        for (const styleBlock of beastiesCssCache) {
-          resultHTML = resultHTML.replace('</head>', `${styleBlock}</head>`)
-        }
-      } else {
-        // PR-11: First page — start beasties ONCE and cache extracted CSS.
-        // Use the promise guard so concurrent finalizePage() calls don't
-        // trigger duplicate beasties.process() evaluations.
-        if (!beastiesFirstPagePromise) {
-          beastiesFirstPagePromise = crittersQueue
-            .add(() => beasties.process(resultHTML))
-            .then((html: string) => {
-              // Extract <style> blocks from first page's result; cache them
-              // so all subsequent pages can inject the same critical CSS
-              // into their OWN resultHTML.
-              const styleRegex = /<style[^>]*>[\s\S]*?<\/style>/g
-              const matches = html.match(styleRegex)
-              if (matches && matches.length > 0) {
-                beastiesCssCache = matches
-              }
-              // Discard html — we only need the cached CSS, not the HTML body
-            }) as Promise<string>
-        }
-        // Wait for first beasties run to complete
-        await beastiesFirstPagePromise
-
-        if (beastiesCssCache) {
-          // Cache is now populated — inject into THIS page's resultHTML
-          for (const styleBlock of beastiesCssCache) {
-            resultHTML = resultHTML.replace('</head>', `${styleBlock}</head>`)
-          }
-        } else {
-          // Fallback: run beasties for THIS specific page (shouldn't happen)
-          resultHTML = (await crittersQueue.add(() =>
+      const cacheKey = createCriticalCssCacheKey(
+        resultHTML,
+        cachedAllCss,
+        'beasties',
+      )
+      const criticalStyle = await criticalCssCache.getOrCreate(
+        cacheKey,
+        async () => {
+          const processed = await crittersQueue.add(() =>
             beasties.process(resultHTML),
-          ))!
-        }
+          )
+          return extractNewStyleTags(resultHTML, processed)
+        },
+      )
+      if (criticalStyle && !resultHTML.includes(criticalStyle)) {
+        resultHTML = resultHTML.replace('</head>', `${criticalStyle}</head>`)
       }
       resultHTML = resultHTML.replace(
         /<link\srel="stylesheet"(?!.*\bcrossorigin\b)/g,
@@ -1300,13 +1495,13 @@ export async function build(
       )
     }
 
-    // P2-40.3: Single <head> replace with headerScript + styleTag combined.
+    // Single <head> replace with headerScript + styleTag combined.
     // This saves 1 replace() call per page (~0.05ms × 202 = ~10ms).
     const headInjection = headerScript + (styleTag || '')
     if (headInjection)
       resultHTML = resultHTML.replace('<head>', `<head>${headInjection}`)
 
-    // P2-12: Skip formatHtml entirely when formatting === 'none' (the default).
+    // Skip formatHtml entirely when formatting === 'none' (the default).
     // The function is a no-op in this case but still costs an async call.
     const formatted =
       formatting === 'none'
@@ -1314,317 +1509,313 @@ export async function build(
         : await formatHtml(resultHTML, formatting)
     crittersPageTimesMs.push(Math.round(performance.now() - pageCrittersStart))
 
-    // P2-12: Write timing
+    // Phase 7: enqueue page writes instead of awaiting each file inside
+    // finalizePage. The bounded queue flushes before output/cache state is
+    // published, allowing rendering/finalization to overlap filesystem I/O.
     const pageWriteStart = performance.now()
 
     if (!turbo) {
-      // Single write path: only write to the ssg-pages cache.
-      // dist/ HTML files are created via hardlinks in a single batch after the
-      // render loop — this eliminates the double-write per page (~4s saving).
-      await fs.writeFile(pCachedHtmlFile, formatted, 'utf-8')
+      await deferredPageWrites.enqueue(pCachedHtmlFile, formatted)
 
       if (
         loaderData &&
         Object.keys(loaderData).length > 0 &&
         writtenLoaderDataPath
       ) {
-        await fs.writeFile(
+        await deferredPageWrites.enqueue(
           pCachedLoaderFile,
           JSON.stringify(loaderData),
-          'utf-8',
         )
         newSsgCache[pNormalizedKey] = {
           contentHash: pSourceContentHash,
           mtime: pSourceMtimeMs ? Math.round(pSourceMtimeMs) : 0,
           loaderDataFilePath: writtenLoaderDataPath,
-          assetHash: routeToAssetHash[path],
+          assetHash: plan.routeAssetHash,
         }
       } else {
         newSsgCache[pNormalizedKey] = {
           contentHash: pSourceContentHash,
           mtime: pSourceMtimeMs ? Math.round(pSourceMtimeMs) : 0,
-          assetHash: routeToAssetHash[path],
+          assetHash: plan.routeAssetHash,
         }
       }
+    } else if (
+      loaderData &&
+      Object.keys(loaderData).length > 0 &&
+      writtenLoaderDataPath
+    ) {
+      await deferredPageWrites.enqueue(
+        join(out, writtenLoaderDataPath),
+        JSON.stringify(loaderData),
+      )
     }
 
-    writePageTimesMs.push(Math.round(performance.now() - pageWriteStart))
+    const pageWriteDuration = performance.now() - pageWriteStart
+    writePageTimesMs.push(Math.round(pageWriteDuration))
+    // Actual filesystem time is recorded when the bounded queue flushes;
+    // enqueue time stays in the finalize timing and is not counted as I/O.
+    finalizePageTimesMs.push(Math.round(performance.now() - finalizeStart))
     renderedCount++
+    renderedPageCount++
     renderedSize += formatted.length
   }
 
-  // P2-40.4: Don't block on pool ready — dispatch pages immediately.
-  // Workers signal ready asynchronously and start consuming from the
-  // internal queue as they become available.  If NO worker is ready
-  // within 5s, set fallback flag so the pool delegates to main-thread.
-  // The pool is NOT nulled — it needs to remain alive so destroy()
-  // can clean up workers and reject queued promises.
-  if (renderPool) {
-    const workerPoolStart = performance.now()
-    renderPool
-      .ready(5000)
-      .catch(() => {
-        if (renderPool && renderPool.readyCount < 1) {
-          poolFallbackToMainThread = true
-          warn(
-            `[ssg-worker] Pool init timeout (no workers after 5s), falling back to main-thread rendering`,
-          )
-        }
-      })
-      .finally(() => {
-        poolWorkerInitMs = Math.round(performance.now() - workerPoolStart)
-      })
-  }
+  // Dispatch pages immediately. Piscina starts workers lazily when
+  // render() receives work; SsgWorkerPool.ready() is intentionally a no-op
+  // compatibility method, so awaiting it here only adds a microtask before
+  // the render loop. Real worker failures are handled by the render promise
+  // fallback below, where the failed route is still available.
 
-  for (const path of routesPaths) {
-    const pathHash =
-      pathHashCache.get(path) ||
-      crypto.createHash('md5').update(path).digest('hex')
-    const cachedHtmlFile = join(ssgPagesDir, `${pathHash}.html`)
-    const cachedLoaderFile = join(ssgPagesDir, `${pathHash}.json`)
+  const drainStart = performance.now()
+  const mainThreadTasks: Array<Promise<unknown>> = []
 
-    const filename =
-      dirStyle === 'nested'
-        ? join(path.replace(/^\//g, ''), 'index.html')
-        : `${(path.endsWith('/') ? `${path}index` : path).replace(/^\//g, '')}.html`
-
-    const finalOutFile = join(out, filename)
-    const normalizedKey = withLeadingSlash(path).replace(/\/$/, '')
-    const sourceFile =
-      routeToSourceFileMap[normalizedKey] || routeToSourceFileMap[path]
-
-    let isCached = false
-    let sourceContentHash = ''
-    if (!turbo) {
+  await executeRenderSchedule({
+    routes: routesPaths,
+    canBypassClientBuild,
+    getPlan: (path) => getRenderPlan(renderPlans, path),
+    isCached: (plan) => {
+      if (turbo || !canBypassClientBuild) return false
       try {
-        // P2-12: Use sourceMetaCache instead of sourceHashCache (which was never populated)
-        const srcMeta = sourceFile ? sourceMetaCache.get(sourceFile) : undefined
-        sourceContentHash = srcMeta?.hash || currentClientHash
-
-        // PR-05: Skip fs.existsSync on warm builds (canBypassClientBuild).
-        // The cached HTML file is expected to exist — it was saved by the
-        // previous build.  If it doesn't, the error will be caught by the
-        // queue handler below.
-        if (canBypassClientBuild) {
-          const cachedItem = ssgCache[normalizedKey] || ssgCache[path]
-          const routeAssetHash = routeToAssetHash[path] ?? currentClientHash
-          if (
-            cachedItem &&
-            cachedItem.contentHash === sourceContentHash &&
-            cachedItem.assetHash === routeAssetHash &&
-            fs.existsSync(cachedHtmlFile)
-          ) {
-            isCached = true
-          }
-        }
-      } catch (e) {
-        // Safe fallback: ignore cache and force rebuild if fs check fails
+        return isSsgPageCacheValid({
+          routePath: plan.path,
+          cacheItem: ssgCache[plan.normalizedKey],
+          sourceContentHash: plan.sourceContentHash,
+          expectedAssetHash: plan.routeAssetHash,
+          ssgPagesDir,
+        })
+      } catch {
+        return false
       }
-    }
+    },
+    onCacheHit: async (plan) => {
+      const cachedItem = ssgCache[plan.normalizedKey]
+      const loaderDataFilePath = cachedItem?.loaderDataFilePath
+      const loaderDestination = loaderDataFilePath
+        ? join(out, loaderDataFilePath)
+        : undefined
+      const ownsHtmlDestination = !materializedHtmlFiles.has(plan.finalOutFile)
+      const ownsLoaderDestination =
+        !!loaderDestination && !materializedLoaderFiles.has(loaderDestination)
+      if (ownsHtmlDestination) materializedHtmlFiles.add(plan.finalOutFile)
+      if (ownsLoaderDestination && loaderDestination) {
+        materializedLoaderFiles.add(loaderDestination)
+      }
 
-    if (isCached) {
-      queue.add(async () => {
-        try {
-          if (canBypassClientBuild) {
-            await fs.copy(cachedHtmlFile, finalOutFile)
-          } else {
-            let content = await fs.readFile(cachedHtmlFile, 'utf-8')
-            content = content.replace(
-              /window\.__VITE_REACT_SSG_HASH__\s*=\s*'[^']*'/,
-              `window.__VITE_REACT_SSG_HASH__ = '${hash}'`,
-            )
-            await fs.writeFile(finalOutFile, content, 'utf-8')
-          }
-
-          const cachedItem = ssgCache[normalizedKey] || ssgCache[path]
-          if (
-            cachedItem?.loaderDataFilePath &&
-            fs.existsSync(cachedLoaderFile)
-          ) {
-            const loaderDataFilePath = canBypassClientBuild
-              ? cachedItem.loaderDataFilePath
-              : getLoaderDataFilePath(path, hash)
-            await fs.copy(cachedLoaderFile, join(out, loaderDataFilePath))
-            staticLoaderDataManifest[getNormalizedPathKey(path, configBase)] =
-              loaderDataFilePath
-            loaderDataFileCount++
-          }
-
-          cachedCount++
-        } catch (err: any) {
-          throw new Error(`Error on cached page: ${path}\n${err.stack}`)
+      const cachedOutputStart = performance.now()
+      try {
+        if (ownsHtmlDestination) {
+          filesToMaterialize.push({
+            source: plan.cachedHtmlFile,
+            destination: plan.finalOutFile,
+          })
         }
-      })
-      continue
-    }
-
-    // ── Non-cached page ──
-    // PR-05: Lazy worker pool — only created when first uncached page found.
-    // Fully cached warm builds never pay this cost.
-    const needsPool =
-      routesPaths.length > 4 && renderPool === null && !lazyPoolAttempted
-    if (needsPool) {
-      await ensureRenderPool()
-    }
-
-    if (renderPool) {
-      // P2-40.1: Streaming pipeline — as each worker finishes its page,
-      // immediately process through finalizePage.  This overlaps SSR
-      // rendering (workers) with HTML finalization (main thread) so
-      // neither sits idle waiting for the other.
-      const finalizePromise = renderPool
-        .render(path)
-        .then(async (result) => {
-          const loaderDataObj = result.loaderData as Record<
-            string,
-            unknown
-          > | null
-          const appCtx = {
-            ..._serverContext!,
-            routePath: path,
-          } as ViteReactSSGContext<true>
-          const transformedIndexHTML =
-            (await onBeforePageRender?.(path, indexHTML, appCtx)) || indexHTML
-          await finalizeQueue.add(() =>
-            finalizePage(
-              path,
-              result.appHTML,
-              result.metaAttributes,
-              result.bodyAttributes,
-              result.htmlAttributes,
-              result.styleTag,
-              result.routerContextJSON,
-              loaderDataObj,
+        if (
+          loaderDestination &&
+          loaderDataFilePath &&
+          fs.existsSync(plan.cachedLoaderFile)
+        ) {
+          if (ownsLoaderDestination) {
+            filesToMaterialize.push({
+              source: plan.cachedLoaderFile,
+              destination: loaderDestination,
+            })
+          }
+          staticLoaderDataManifest[
+            getNormalizedPathKey(plan.path, configBase)
+          ] = loaderDataFilePath
+          loaderDataFileCount++
+        }
+        cachedCount++
+        cachedPageCount++
+        cachedOutputMs += performance.now() - cachedOutputStart
+      } catch (err: any) {
+        if (ownsHtmlDestination) materializedHtmlFiles.delete(plan.finalOutFile)
+        if (ownsLoaderDestination && loaderDestination) {
+          materializedLoaderFiles.delete(loaderDestination)
+        }
+        throw new Error(`Error on cached page: ${plan.path}\n${err.stack}`)
+      }
+    },
+    prepareRoute: (plan) => {
+      if (!ctxApp && ctxRouterType === 'remix' && assetCollector) {
+        assetPromises.set(plan.path, assetCollector(plan.fetchUrl))
+      }
+    },
+    ensurePool: ensureRenderPool,
+    getPool: () => renderPool,
+    getWorkerCount: () => getSsgPoolMetrics(renderPool)?.totalWorkers ?? 0,
+    onWorkerFailure: async (path, _plan, error, workerPool) => {
+      if (!_sharedAdapter) {
+        throw new Error(`Error on page: ${path}\n${String(error)}`)
+      }
+      warn(
+        `[ssg-worker] Retrying ${path} on the main thread after worker failure`,
+      )
+      poolFallbackToMainThread = true
+      try {
+        await destroyRenderPool()
+      } catch {
+        // Ignore cleanup failures while disabling the pool.
+      }
+      renderPool = null
+      lazyPoolAttempted = true
+      const fallback = await _sharedAdapter.render(path)
+      return {
+        path,
+        appHTML: fallback.appHTML,
+        metaAttributes: fallback.metaAttributes,
+        bodyAttributes: fallback.bodyAttributes,
+        htmlAttributes: fallback.htmlAttributes,
+        styleTag: fallback.styleTag,
+        timings: fallback.timings,
+        routerContext: createSsgRouterContextPayload(fallback.routerContext),
+      }
+    },
+    onWorkerResult: async (path, plan, result, elapsedMs) => {
+      workerRoundTripMs += Math.max(
+        0,
+        elapsedMs - (result.timings?.totalMs ?? 0),
+      )
+      workerRoundTripCount++
+      if (result.timings) {
+        ssrPageTimesMs.push(Math.round(result.timings.totalMs))
+        recordRouterTimings(result.timings)
+      }
+      const appCtx = {
+        ..._serverContext!,
+        routePath: path,
+      } as ViteReactSSGContext<true>
+      const beforeHookStart = performance.now()
+      const transformedIndexHTML =
+        (await onBeforePageRender?.(path, indexHTML, appCtx)) || indexHTML
+      beforeHookMs += performance.now() - beforeHookStart
+      const loaderDataObj = result.routerContext?.loaderData
+        ? (result.routerContext.loaderData as Record<string, unknown>)
+        : null
+      await finalizeQueue.add(() =>
+        finalizePage(
+          plan,
+          result.appHTML,
+          result.metaAttributes,
+          result.bodyAttributes,
+          result.htmlAttributes,
+          result.styleTag,
+          result.routerContext,
+          loaderDataObj,
+          appCtx,
+          ctxBase,
+          routes,
+          ctxTrigger,
+          ctxApp,
+          ctxRouterType ?? 'remix',
+          transformedIndexHTML,
+        ),
+      )
+    },
+    scheduleMainThread: (path, plan) => {
+      mainThreadTasks.push(
+        queue.add(async () => {
+          try {
+            const appCtx = {
+              ..._serverContext!,
+              routePath: path,
+            } as ViteReactSSGContext<true>
+            const beforeHookStart = performance.now()
+            const transformedIndexHTML =
+              (await onBeforePageRender?.(path, indexHTML, appCtx)) || indexHTML
+            beforeHookMs += performance.now() - beforeHookStart
+            const ssrRenderStart = performance.now()
+            const {
+              appHTML,
+              bodyAttributes,
+              htmlAttributes,
+              metaAttributes,
+              styleTag,
+              routerContext,
+              timings,
+            } = await _sharedAdapter!.render(path)
+            ssrPageTimesMs.push(Math.round(performance.now() - ssrRenderStart))
+            recordRouterTimings(timings)
+            const loaderData = routerContext?.loaderData as
+              | Record<string, unknown>
+              | undefined
+            await finalizePage(
+              plan,
+              appHTML,
+              metaAttributes,
+              bodyAttributes,
+              htmlAttributes,
+              styleTag,
+              createSsgRouterContextPayload(routerContext),
+              loaderData || null,
               appCtx,
               ctxBase,
               routes,
               ctxTrigger,
               ctxApp,
-              ctxRouterType,
+              ctxRouterType ?? 'remix',
               transformedIndexHTML,
-            ),
-          )
-        })
-        .catch((err: any) => {
-          throw new Error(`Error on page: ${path}\n${err.stack || err}`)
-        })
-      workerFinalizePromises.push(finalizePromise)
-    } else if (_serverContext && _sharedAdapter) {
-      // Main-thread: use the pre-created shared adapter (avoids per-page
-      // createRoot(false, path) which re-imports the 7MB SSR bundle).
-      queue.add(async () => {
-        try {
-          // Build a minimal context with the correct routePath for
-          // the onBeforePageRender callback.
-          const appCtx = {
-            ..._serverContext!,
-            routePath: path,
-          } as ViteReactSSGContext<true>
-
-          const transformedIndexHTML =
-            (await onBeforePageRender?.(path, indexHTML, appCtx)) || indexHTML
-
-          // P2-00: Time per-page SSR render
-          const ssrRenderStart = performance.now()
-          const {
-            appHTML,
-            bodyAttributes,
-            htmlAttributes,
-            metaAttributes,
-            styleTag,
-            routerContext,
-          } = await _sharedAdapter!.render(path)
-          ssrPageTimesMs.push(Math.round(performance.now() - ssrRenderStart))
-
-          const loaderData = routerContext?.loaderData as
-            | Record<string, unknown>
-            | undefined
-
-          const routerContextJSON = routerContext
-            ? JSON.stringify({
-                loaderData: routerContext.loaderData ?? {},
-                actionData: routerContext.actionData ?? null,
-                errors: routerContext.errors ?? null,
-              })
-            : null
-
-          await finalizePage(
-            path,
-            appHTML,
-            metaAttributes,
-            bodyAttributes,
-            htmlAttributes,
-            styleTag,
-            routerContextJSON,
-            loaderData || null,
-            appCtx,
-            ctxBase,
-            routes,
-            ctxTrigger,
-            ctxApp,
-            ctxRouterType,
-            transformedIndexHTML,
-          )
-        } catch (err: any) {
-          throw new Error(`Error on page: ${path}\n${err.stack}`)
-        }
-      })
-    } else {
-      // No SSR context available (canSkipSsrImport was true but a page
-      // somehow wasn't cached). This shouldn't happen because the early
-      // check guarantees all routes are cached. Fall back gracefully.
-      warn(`[ssg] No SSR context available for ${path}, skipping`)
-    }
-  }
-
-  // ── P2-40.1: Streaming pipeline — wait for all renders + finalizations ──
-  // Worker renders are pipelined: each result is immediately finalizePage'd
-  // via finalizeQueue as workers complete.  We only need to wait for all
-  // promises to settle — no more batch collection + queue re-add.
-  if (workerFinalizePromises.length > 0) {
-    const results = await Promise.allSettled(workerFinalizePromises)
-    // Check for any rejected promises (fatal errors)
-    for (const r of results) {
-      if (r.status === 'rejected') {
-        throw r.reason
-      }
-    }
-  }
-  await finalizeQueue.onIdle()
-  if (renderPool) {
-    await renderPool.destroy()
-  }
-
-  await queue.start().onIdle()
-
-  // P2-12: Batch hardlink ssg-pages cache → dist.
-  // The render loop writes only to ssg-pages/<hash>.html (single write path).
-  // Now we create hardlinks from those cached files to the final dist/ output.
-  // Hardlinks are zero-copy (same inode) and near-instant (~0.1ms/file vs ~15ms
-  // for fs.writeFile). Falls back to fs.copy for cross-device scenarios (EXDEV).
-  const hardlinkStart = performance.now()
-  await Promise.all(
-    routesPaths.map(async (p) => {
-      const pPathHash = pathHashCache.get(p) || ''
-      if (!pPathHash) return
-      const src = join(ssgPagesDir, `${pPathHash}.html`)
-      if (!fs.existsSync(src)) return
-      const filename =
-        dirStyle === 'nested'
-          ? join(p.replace(/^\//g, ''), 'index.html')
-          : `${(p.endsWith('/') ? `${p}index` : p).replace(/^\//g, '')}.html`
-      const dst = join(out, filename)
+            )
+          } catch (err: any) {
+            throw new Error(`Error on page: ${path}\n${err.stack}`)
+          }
+        }),
+      )
+    },
+    drainFinalizers: () => finalizeQueue.onIdle(),
+    drainMainThread: async () => {
+      await Promise.all(mainThreadTasks)
+      await queue.onIdle()
+    },
+    drainWrites: () => deferredPageWrites.flush(),
+    cleanupAfterFailure: async () => {
       try {
-        // Hardlink = zero-copy, same inode.
-        // Multiple routes pointing to the same cached file share inodes.
-        fs.linkSync(src, dst)
+        if (fs.existsSync(out)) await fs.remove(out)
       } catch {
-        // EXDEV (cross-device): fall back to copy
-        await fs.copy(src, dst)
+        // Preserve the original render error if cleanup fails.
       }
-    }),
-  )
+    },
+    destroyPool: destroyRenderPool,
+    onNoRenderer: (path) => {
+      warn(`[ssg] No SSR context available for ${path}, skipping`)
+    },
+  })
+  renderQueueDrainMs += performance.now() - drainStart
+
+  // Batch hardlink ssg-pages cache → dist.
+  // The render loop writes only to ssg-pages/<hash>.html and, for normal
+  // builds, ssg-pages/<hash>.json. Creating both output files here avoids a
+  // second direct write per rendered route. Hardlinks are zero-copy and fall
+  // back to copying for cross-device filesystems.
+  const hardlinkStart = performance.now()
+
+  for (const p of routesPaths) {
+    if (turbo) continue
+    const plan = renderPlans.get(p)
+    if (!plan || !fs.existsSync(plan.cachedHtmlFile)) continue
+
+    if (!materializedHtmlFiles.has(plan.finalOutFile)) {
+      filesToMaterialize.push({
+        source: plan.cachedHtmlFile,
+        destination: plan.finalOutFile,
+      })
+    }
+
+    const cacheEntry = newSsgCache[plan.normalizedKey]
+    if (!cacheEntry?.loaderDataFilePath) continue
+    if (!fs.existsSync(plan.cachedLoaderFile)) continue
+
+    const loaderDestination = join(out, cacheEntry.loaderDataFilePath)
+    if (materializedLoaderFiles.has(loaderDestination)) continue
+    filesToMaterialize.push({
+      source: plan.cachedLoaderFile,
+      destination: loaderDestination,
+    })
+  }
+
+  await materializeFiles(filesToMaterialize)
   const hardlinkDuration = Math.round(performance.now() - hardlinkStart)
+  outputLinkMs += hardlinkDuration
 
   const totalPages = renderedCount + cachedCount
   const totalSizeMB = (renderedSize / 1024 / 1024).toFixed(2)
@@ -1634,45 +1825,42 @@ export async function build(
   let prunedCount = 0
   if (!turbo) {
     try {
-      await fs.ensureDir(dirname(cachePath))
-      await fs.writeJson(cachePath, newSsgCache)
-
-      // Garbage collect unused cached HTML and JSON loader files in ssg-pages
-      if (fs.existsSync(ssgPagesDir)) {
-        const cachedFiles = await fs.readdir(ssgPagesDir)
-        const activeHashes = new Set<string>()
-        for (const route of Object.keys(newSsgCache)) {
-          const pathHash = crypto.createHash('md5').update(route).digest('hex')
-          activeHashes.add(`${pathHash}.html`)
-          activeHashes.add(`${pathHash}.json`)
-        }
-        for (const file of cachedFiles) {
-          if (file.endsWith('.html') || file.endsWith('.json')) {
-            if (!activeHashes.has(file)) {
-              await fs.remove(join(ssgPagesDir, file))
-              prunedCount++
-            }
-          }
-        }
+      const cacheIndexChanged =
+        JSON.stringify(newSsgCache) !== originalSsgCacheString
+      if (cacheIndexChanged) {
+        await writeJsonIfChanged(cachePath, newSsgCache)
       }
+
+      // Garbage collect unused cached HTML and JSON loader files in ssg-pages.
+      // Stable warm builds skip the directory scan, but a periodic maintenance
+      // pass still recovers orphaned files left by interrupted/older builds.
+      prunedCount = await pruneSsgPagesIfDue(
+        ssgPagesDir,
+        newSsgCache,
+        routesPaths,
+        cacheIndexChanged,
+      )
     } catch (e) {
       // Ignore cache and pruning errors
     }
   }
 
   const renderTotalMs = performance.now() - renderStartTime
-  const poolMetricsVal = renderPool ? renderPool.poolMetrics() : null
+  const poolMetricsVal = getSsgPoolMetrics(poolForCleanup)
   const p2Metrics = {
     renderedCount,
     cachedCount,
     renderedSize,
     totalPages,
     prunedCount,
-    // P2-00 worker & timing sub-metrics
-    workerInitMs: Math.round(poolWorkerInitMs),
-    workerUsed:
-      (poolMetricsVal?.readyCount ?? 0) > 0 && !poolFallbackToMainThread,
-    workerCount: poolMetricsVal?.readyCount ?? 0,
+    clientBuildMs: Math.round(clientBuildDurationMs),
+    serverBuildMs: Math.round(serverBuildDurationMs),
+    ssrImportMs: Math.round(ssrImportDurationMs),
+    //  worker & timing sub-metrics. Piscina starts workers lazily, so
+    // this is pool setup time rather than a claim that every worker is ready.
+    workerPoolSetupMs: Math.round(workerPoolSetupMs),
+    workerUsed: poolMetricsVal !== null && !poolFallbackToMainThread,
+    workerCount: poolMetricsVal?.totalWorkers ?? 0,
     fallbackMainThread: poolFallbackToMainThread,
     ssrP50Ms: computePercentile(ssrPageTimesMs, 50),
     ssrP95Ms: computePercentile(ssrPageTimesMs, 95),
@@ -1681,10 +1869,66 @@ export async function build(
     crittersP95Ms: computePercentile(crittersPageTimesMs, 95),
     writeP50Ms: computePercentile(writePageTimesMs, 50),
     writeP95Ms: computePercentile(writePageTimesMs, 95),
+    routerTimingCount: routerTimingTotals.count,
+    routerMatchAvgMs:
+      routerTimingTotals.count > 0
+        ? routerTimingTotals.matchMs / routerTimingTotals.count
+        : 0,
+    routerResolveAvgMs:
+      routerTimingTotals.count > 0
+        ? routerTimingTotals.resolveMs / routerTimingTotals.count
+        : 0,
+    routerLoadersAvgMs:
+      routerTimingTotals.count > 0
+        ? routerTimingTotals.loadersMs / routerTimingTotals.count
+        : 0,
+    routerRenderAvgMs:
+      routerTimingTotals.count > 0
+        ? routerTimingTotals.renderMs / routerTimingTotals.count
+        : 0,
+    routerHelmetAvgMs:
+      routerTimingTotals.count > 0
+        ? routerTimingTotals.helmetMs / routerTimingTotals.count
+        : 0,
+    routerTotalAvgMs:
+      routerTimingTotals.count > 0
+        ? routerTimingTotals.totalMs / routerTimingTotals.count
+        : 0,
     pagesPerSecond:
       totalPages > 0 && renderTotalMs > 0
         ? Math.round((totalPages / (renderTotalMs / 1000)) * 10) / 10
         : 0,
+    pipeline: {
+      renderedPageCount,
+      cachedPageCount,
+      clientBuildMs: Math.round(clientBuildDurationMs),
+      serverBuildMs: Math.round(serverBuildDurationMs),
+      ssrImportMs: Math.round(ssrImportDurationMs),
+      workerPoolSetupMs: Math.round(workerPoolSetupMs),
+      routePreparationMs: Math.round(routePreparationMs),
+      // Includes queue wait, worker execution not covered by router timings,
+      // structured clone and any fallback overhead; it is not pure IPC time.
+      workerTransportMs: Math.round(workerRoundTripMs),
+      workerRoundTripMs: Math.round(workerRoundTripMs),
+      workerTransportAvgMs:
+        workerRoundTripCount > 0
+          ? Math.round(workerRoundTripMs / workerRoundTripCount)
+          : 0,
+      finalizeP50Ms: computePercentile(finalizePageTimesMs, 50),
+      finalizeP95Ms: computePercentile(finalizePageTimesMs, 95),
+      assetCollectionMs: Math.round(assetCollectionMs),
+      beforeHookMs: Math.round(beforeHookMs),
+      htmlAssemblyMs: Math.round(pageHtmlAssemblyMs),
+      onPageRenderedHookMs: Math.round(onPageRenderedHookMs),
+      criticalCssP50Ms: computePercentile(crittersPageTimesMs, 50),
+      criticalCssP95Ms: computePercentile(crittersPageTimesMs, 95),
+      cacheWriteMs: Math.round(cacheWriteMs + deferredPageWrites.writeTimeMs()),
+      cachedOutputMs: Math.round(cachedOutputMs),
+      // Measured from worker settlement through both finalization queues.
+      renderQueueDrainMs: Math.round(renderQueueDrainMs),
+      renderPipelineSettleMs: Math.round(renderQueueDrainMs),
+      outputLinkMs: Math.round(outputLinkMs),
+    },
   }
 
   onStep?.({
@@ -1695,19 +1939,28 @@ export async function build(
     metrics: p2Metrics,
   })
 
-  // P2-00: Emit structured render metrics to stdout for profile harness
-  // eslint-disable-next-line no-console
-  console.log(
-    `[boltdocs] { name: 'Render pages', duration: ${Math.round(renderTotalMs)}, success: true, details: '${totalPages} pages / ${renderedCount} new / ${cachedCount} cached / ${totalSizeMB} MB', metrics: ${JSON.stringify(p2Metrics)} }`,
-  )
+  // Emit one machine-readable JSON record. Keeping the complete
+  // envelope valid JSON makes benchmark parsing deterministic even when the
+  // nested pipeline object grows. Only emitted in benchmark mode so normal
+  // build output stays human-readable.
+  if (process.env.BOLTDOCS_BENCHMARK_PHASES === 'true') {
+    // eslint-disable-next-line no-console
+    console.log(
+      `[boltdocs] ${JSON.stringify({
+        name: 'Render pages',
+        duration: Math.round(renderTotalMs),
+        success: true,
+        details: `${totalPages} pages / ${renderedCount} new / ${cachedCount} cached / ${totalSizeMB} MB`,
+        metrics: p2Metrics,
+      })}`,
+    )
+  }
 
   const staticLoaderDataStart = performance.now()
-  const staticLoaderDataManifestString = JSON.stringify(
+  const staticLoaderDataManifestString = serializeStaticLoaderDataManifest(
     staticLoaderDataManifest,
-    null,
-    0,
   )
-  await fs.writeFile(
+  await writeFileIfChanged(
     join(out, `static-loader-data-manifest-${hash}.json`),
     staticLoaderDataManifestString,
   )
@@ -1717,7 +1970,7 @@ export async function build(
   await pruneDirectoryCache(
     join(finalCacheDir, 'ssr'),
     5,
-    turbo ? 'turbo-ssr' : hash,
+    turbo ? 'turbo-ssr' : basename(ssgOut),
   )
 
   unmock()
@@ -1728,8 +1981,6 @@ export async function build(
   }
 
   const buildTime = Math.round(performance.now() - buildStartTime)
-  const metrics = await collectPerformanceMetrics(out, buildTime, finalCacheDir)
-  writePerformanceMetrics(out, metrics)
 
   onStep?.({
     name: 'Static loader data',
@@ -1738,6 +1989,32 @@ export async function build(
     details: `${loaderDataFileCount} loader data files`,
     metrics: { loaderDataFileCount },
   })
+
+  await onFinished?.(outDir)
+  // Vite manifests are internal build metadata. They remain in the client
+  // cache for incremental asset invalidation, but should not ship in dist.
+  await removeOutputBuildMetadata(out)
+  // Capture the final output inventory once after cleanup. Reuse this exact
+  // inventory for both performance metrics and output state so neither step
+  // recursively scans dist a second time. Vite already copied publicDir into
+  // the client output; syncing it again here can overwrite generated files.
+  const finalOutputFiles = listOutputFiles(out)
+  const clientManifestPath = join(
+    resolvedClientCacheDir,
+    'dist',
+    ...dotVitedir,
+    'manifest.json',
+  )
+  const metrics = await collectPerformanceMetrics(
+    out,
+    buildTime,
+    finalCacheDir,
+    {
+      outputFiles: finalOutputFiles,
+      manifestPath: clientManifestPath,
+    },
+  )
+  writePerformanceMetrics(out, metrics)
 
   onStep?.({
     name: 'Build metrics',
@@ -1752,43 +2029,79 @@ export async function build(
     },
   })
 
-  await onFinished?.(outDir)
-
-  const waitInSeconds = 15
-  const timeout = setTimeout(() => {
-    warn(
-      `Build process still running after ${waitInSeconds}s. There might be something misconfigured in your setup. Force exit.`,
-    )
-    process.exit(0)
-  }, waitInSeconds * 1000)
-  timeout.unref()
+  await writeSsgOutputState(
+    join(finalCacheDir, 'ssg-output.json'),
+    resolvedClientHash,
+    out,
+    getSsgOutputPageFiles(routesPaths, newSsgCache, dirStyle).concat(
+      `static-loader-data-manifest-${hash}.json`,
+    ),
+    clientBundle.clientFiles,
+    finalOutputFiles,
+  )
 }
 
-async function pruneDirectoryCache(
-  cacheRoot: string,
-  keep: number = 5,
-  preserve?: string,
-): Promise<void> {
+async function pruneSsgPagesIfDue(
+  ssgPagesDir: string,
+  activeCache: Record<string, SsgCacheItem>,
+  activeRoutes: readonly string[] = [],
+  force = false,
+): Promise<number> {
   try {
-    if (!fs.existsSync(cacheRoot)) return
-    const entries = await fs.readdir(cacheRoot, { withFileTypes: true })
-    const dirs: { name: string; mtime: number }[] = []
-    for (const entry of entries) {
-      if (!entry.isDirectory()) continue
-      const dirPath = join(cacheRoot, entry.name)
-      const stat = await fs.stat(dirPath)
-      dirs.push({ name: entry.name, mtime: stat.mtimeMs })
-    }
-    dirs.sort((a, b) => b.mtime - a.mtime)
-    const keepSet = new Set(dirs.slice(0, keep).map((d) => d.name))
-    for (const dir of dirs) {
-      if (preserve && dir.name === preserve) continue
-      if (!keepSet.has(dir.name)) {
-        await fs.remove(join(cacheRoot, dir.name))
+    if (!fs.existsSync(ssgPagesDir)) return 0
+
+    const pruneStatePath = join(ssgPagesDir, '.prune-state')
+    if (!force) {
+      try {
+        const pruneState = await fs.stat(pruneStatePath)
+        if (Date.now() - pruneState.mtimeMs < 60_000) return 0
+      } catch {
+        // Missing state triggers maintenance immediately.
       }
     }
+
+    const cachedFiles = await fs.readdir(ssgPagesDir)
+    const activeHashes = new Set<string>()
+    const activeRouteKeys = new Set([
+      ...Object.keys(activeCache),
+      ...activeRoutes,
+    ])
+    for (const route of activeRouteKeys) {
+      const pathHash = crypto.createHash('md5').update(route).digest('hex')
+      activeHashes.add(`${pathHash}.html`)
+      activeHashes.add(`${pathHash}.json`)
+    }
+
+    let prunedCount = 0
+    for (const file of cachedFiles) {
+      if (
+        (file.endsWith('.html') || file.endsWith('.json')) &&
+        !activeHashes.has(file)
+      ) {
+        await fs.remove(join(ssgPagesDir, file))
+        prunedCount++
+      }
+    }
+
+    await fs.writeFile(pruneStatePath, String(Date.now()), 'utf8')
+    return prunedCount
   } catch {
-    // Non-critical, ignore
+    return 0
+  }
+}
+
+async function removeOutputBuildMetadata(outDir: string): Promise<void> {
+  try {
+    if (dotVitedir.length > 0) {
+      await fs.remove(join(outDir, ...dotVitedir))
+    } else {
+      await Promise.all([
+        fs.remove(join(outDir, 'manifest.json')),
+        fs.remove(join(outDir, 'ssr-manifest.json')),
+      ])
+    }
+  } catch {
+    // Non-critical: metadata cleanup must never fail a successful build.
   }
 }
 
@@ -1807,26 +2120,6 @@ function rewriteScripts(indexHTML: string, mode?: string) {
  * or filesystems that don't support hard links (cross-device, Docker overlay2,
  * Windows without admin, etc.).
  */
-function hardLinkDir(srcDir: string, destDir: string): void {
-  const entries = fs.readdirSync(srcDir, { withFileTypes: true })
-  fs.mkdirSync(destDir, { recursive: true })
-  for (const entry of entries) {
-    const srcPath = join(srcDir, entry.name)
-    const destPath = join(destDir, entry.name)
-    if (entry.isDirectory()) {
-      hardLinkDir(srcPath, destPath)
-    } else if (entry.isFile()) {
-      try {
-        // Hard link — fastest option (same filesystem assumed)
-        fs.linkSync(srcPath, destPath)
-      } catch {
-        // Fallback: copy when hard links fail (cross-device, Windows, etc.)
-        fs.copyFileSync(srcPath, destPath)
-      }
-    }
-  }
-}
-
 async function formatHtml(
   html: string,
   formatting: ViteReactSSGOptions['formatting'],

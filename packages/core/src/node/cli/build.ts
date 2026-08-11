@@ -57,6 +57,7 @@ export async function buildAction(
   root: string = process.cwd(),
   _options: {} = {},
 ) {
+  process.env.NODE_ENV = 'production'
   notifyUpdateAvailable()
 
   const benchmarkMode = process.env.BOLTDOCS_BENCHMARK_PHASES === 'true'
@@ -67,6 +68,21 @@ export async function buildAction(
       root,
       timing: {},
     })
+
+    if (benchmarkMode) {
+      console.log(
+        `[boltdocs] ${JSON.stringify({
+          name: 'Build pipeline',
+          success: result.success,
+          steps: result.stepResults.map((step) => ({
+            name: step.name,
+            duration: Math.round(step.duration),
+            success: step.success,
+            ...(step.details ? { details: step.details } : {}),
+          })),
+        })}`,
+      )
+    }
 
     if (!result.success) {
       error(`Build failed at step "${result.failedStep}":`, result.error)
@@ -148,7 +164,7 @@ export async function previewAction(
   options: { port?: number; host?: string | boolean } = {},
 ) {
   try {
-    // PR-02: Preview mode doesn't need route generation or types.
+    // Preview mode doesn't need route generation or types.
     // The production build (pipeline) already generated everything.
     // Skip types/link-tree to save ~700ms of unnecessary work.
     const viteConfig = await createViteConfig(root, 'production', undefined, {

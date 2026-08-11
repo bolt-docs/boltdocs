@@ -13,7 +13,12 @@ import { injectHtmlMeta } from './html'
 import { validatePlugins, type BoltdocsPlugin } from '../plugins'
 import { PluginLifecycleManager } from '../plugins/plugin-lifecycle'
 import type { IPluginLifecycleManager } from '../../shared/types'
-import { createVirtualModulesPlugin } from './virtual-modules'
+import {
+  createVirtualModuleState,
+  createVirtualModulesPlugin,
+  getSearchDataExport,
+  type VirtualModuleState,
+} from './virtual-modules'
 import { createDevServerPlugin } from '../dev-server/index'
 import { createSatteriMdxPlugin } from '@bdocs/processor-satteri/node'
 import type { BoltdocsPluginOptions } from './types'
@@ -32,7 +37,9 @@ import {
 import {
   applyPluginServerMiddleware,
   runPluginServerStartCallbacks,
+  createPluginRuntimeState,
 } from '../plugins/plugin-context'
+import { getRouteCacheContext } from '../routes/cache'
 
 export * from './types'
 
@@ -116,17 +123,18 @@ let _cachedBoltdocsVersion: string | null = null
 
 function _getBoltdocsVersion(): string {
   if (!_cachedBoltdocsVersion) {
-    _cachedBoltdocsVersion = JSON.parse(
+    const packageJson = JSON.parse(
       fs.readFileSync(
         path.resolve(__dirname, '../../../package.json'),
         'utf-8',
       ),
-    ).version
+    ) as { version?: string }
+    _cachedBoltdocsVersion = packageJson.version ?? '0.0.0'
   }
   return _cachedBoltdocsVersion
 }
 
-// PR-01: Memoize plugin validation by config.plugins JSON hash.
+// Memoize plugin validation by config.plugins JSON hash.
 // validatePlugins reads package.json for every plugin, checks version
 // compatibility, and validates the plugin schema.  On cold builds where
 // boltdocsPlugin() is called multiple times (client + SSR builds),
@@ -139,16 +147,30 @@ const _pluginValidationCache = new Map<
 // Cache for SSR external resolution — pre-resolves once, serves per-import cache hits
 let _preResolvedExternals: Map<string, string> | null = null
 
+/**
+ * Vite's Plugin type is not stable across major Vite versions (notably the
+ * Rollup/Rolldown `hotUpdate` context). Plugins are runtime-compatible here,
+ * so keep this unavoidable compatibility boundary in one helper.
+ */
+function adaptVitePlugins(plugins: unknown[] | undefined): Plugin[] {
+  return (plugins ?? []) as unknown as Plugin[]
+}
+
 export function boltdocsPlugin(
   options: BoltdocsPluginOptions = {},
   passedConfig?: BoltdocsConfig,
 ): Plugin[] {
-  const docsDir = path.resolve(process.cwd(), options.docsDir || 'docs')
+  const projectRoot = path.resolve(options.root || process.cwd())
+  const docsDir = path.resolve(projectRoot, options.docsDir || 'docs')
   const normalizedDocsDir = normalizePath(docsDir)
 
   let config: BoltdocsConfig = passedConfig!
   let viteConfig: ResolvedConfig
   let isBuild = false
+  const runtime = createPluginRuntimeState()
+  let routeCacheContext = getRouteCacheContext(docsDir)
+  const virtualModuleState: VirtualModuleState =
+    createVirtualModuleState(routeCacheContext)
   let lifecycle: PluginLifecycleManager
   // Pre-computed routes supplied by the pipeline / createViteConfig.
   let routes: RouteMeta[] = options.routes ?? []
@@ -159,7 +181,7 @@ export function boltdocsPlugin(
   // so they're available when the plugins array is returned to Vite.
   // The config() hook runs AFTER Vite receives the array, so we can't
   // populate resolvedExtraVitePlugins there.
-  //    // PR-01: Memoize plugin validation by plugins array hash.
+  //    // Memoize plugin validation by plugins array hash.
   // On cold builds, boltdocsPlugin() is called twice (client + SSR),
   // but the plugins array is identical.  The cache avoids re-reading
   // each plugin's package.json and re-validating the schema (~500ms saved).
@@ -176,17 +198,35 @@ export function boltdocsPlugin(
       if (cached) {
         const validated = cached.validated
         config.plugins = validated as any
-        lifecycle = new PluginLifecycleManager(validated, config)
-        resolvedExtraVitePlugins = validated.flatMap(
-          (p) => (p.vitePlugins || []) as Plugin[],
+        lifecycle = new PluginLifecycleManager(
+          validated,
+          config,
+          docsDir,
+          undefined,
+          undefined,
+          undefined,
+          runtime,
+          routeCacheContext,
+        )
+        resolvedExtraVitePlugins = validated.flatMap((p) =>
+          adaptVitePlugins(p.vitePlugins),
         )
       } else {
         const version = _getBoltdocsVersion()
         const validated = validatePlugins(config.plugins, version)
         config.plugins = validated as any
-        lifecycle = new PluginLifecycleManager(validated, config)
-        resolvedExtraVitePlugins = validated.flatMap(
-          (p) => (p.vitePlugins || []) as Plugin[],
+        lifecycle = new PluginLifecycleManager(
+          validated,
+          config,
+          docsDir,
+          undefined,
+          undefined,
+          undefined,
+          runtime,
+          routeCacheContext,
+        )
+        resolvedExtraVitePlugins = validated.flatMap((p) =>
+          adaptVitePlugins(p.vitePlugins),
         )
         _pluginValidationCache.set(cacheKey, { validated })
       }
@@ -203,7 +243,28 @@ export function boltdocsPlugin(
     config = c
   }
   const getViteConfig = () => viteConfig
-  const getLifecycle = (): IPluginLifecycleManager | undefined => lifecycle
+  const getLifecycle = (): IPluginLifecycleManager | undefined => {
+    if (routeCacheContext.disposed) {
+      routeCacheContext = getRouteCacheContext(docsDir)
+      virtualModuleState.routeCacheContext = routeCacheContext
+      virtualModuleState.routeCacheVariant = undefined
+      virtualModuleState.routeGenerationFingerprint = undefined
+      virtualModuleState.routesDataMap.clear()
+      virtualModuleState.collectionsDataMap.clear()
+      virtualModuleState.searchDataMap.clear()
+      lifecycle = new PluginLifecycleManager(
+        config.plugins || [],
+        config,
+        docsDir,
+        undefined,
+        routes,
+        viteConfig?.build?.outDir || 'dist',
+        runtime,
+        routeCacheContext,
+      )
+    }
+    return lifecycle
+  }
 
   return [
     {
@@ -303,9 +364,11 @@ export function boltdocsPlugin(
             undefined,
             routes,
             viteConfig?.build?.outDir || 'dist',
+            runtime,
+            routeCacheContext,
           )
-          resolvedExtraVitePlugins = validated.flatMap(
-            (p) => (p.vitePlugins || []) as Plugin[],
+          resolvedExtraVitePlugins = validated.flatMap((p) =>
+            adaptVitePlugins(p.vitePlugins),
           )
         }
 
@@ -552,8 +615,8 @@ export function boltdocsPlugin(
           const url = req.url?.split('?')[0]
           if (url === '/search.json' || url?.endsWith('/search.json')) {
             import('./virtual-modules')
-              .then(({ getSearchDataExport }) => {
-                const data = getSearchDataExport()
+              .then(() => {
+                const data = getSearchDataExport(virtualModuleState)
                 res.setHeader('Content-Type', 'application/json')
                 res.end(JSON.stringify(data))
               })
@@ -573,8 +636,7 @@ export function boltdocsPlugin(
         // client can fetch it lazily instead of embedding it in the bundle.
         if (!isBuild || viteConfig?.build?.ssr) return
         try {
-          const { getSearchDataExport } = await import('./virtual-modules')
-          const data = getSearchDataExport()
+          const data = getSearchDataExport(virtualModuleState)
           this.emitFile({
             type: 'asset',
             fileName: 'search.json',
@@ -597,27 +659,38 @@ export function boltdocsPlugin(
         server.middlewares.use(createStaticHtmlMiddleware(getViteConfig))
 
         // Apply plugin-registered server middleware on preview too
-        applyPluginServerMiddleware(server)
-        runPluginServerStartCallbacks().catch(() => {})
+        applyPluginServerMiddleware(server, runtime)
+        runPluginServerStartCallbacks(runtime).catch(() => {})
       },
     },
 
-    createVirtualModulesPlugin(options, getConfig, getViteConfig, docsDir),
+    createVirtualModulesPlugin(
+      options,
+      getConfig,
+      getViteConfig,
+      docsDir,
+      runtime,
+      virtualModuleState,
+    ),
     createDevServerPlugin(
       docsDir,
       normalizedDocsDir,
       getConfig,
       setConfig,
       getLifecycle,
+      runtime,
+      virtualModuleState,
     ),
 
     // Sätteri MDX processor — Rust-based, fast, always active
     // (replaced the old @mdx-js/rollup pipeline entirely)
-    createSatteriMdxPlugin(config, getLifecycle, {
-      docsDir: options.docsDir || 'docs',
-    }),
+    ...adaptVitePlugins([
+      createSatteriMdxPlugin(config, getLifecycle, {
+        docsDir: options.docsDir || 'docs',
+      }),
+    ]),
 
-    ViteImageOptimizer({ includePublic: true }),
+    ...adaptVitePlugins([ViteImageOptimizer({ includePublic: true })]),
 
     ...resolvedExtraVitePlugins,
   ]

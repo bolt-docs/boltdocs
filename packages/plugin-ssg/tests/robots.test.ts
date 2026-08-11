@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { generateRobotsTxt } from '../../packages/core/src/node/seo/robots'
+import { generateRobotsTxt } from '../../../packages/core/src/node/seo/robots'
 
 describe('ssg robots.txt', () => {
   it('should return string robots config directly', () => {
@@ -7,7 +7,7 @@ describe('ssg robots.txt', () => {
       robots: 'User-agent: *\nDisallow: /private/',
     }
 
-    const result = generateRobotsTxt(config as any)
+    const result = generateRobotsTxt(config)
 
     expect(result).toBe('User-agent: *\nDisallow: /private/')
   })
@@ -15,7 +15,7 @@ describe('ssg robots.txt', () => {
   it('should generate default robots.txt with no config', () => {
     const config = {}
 
-    const result = generateRobotsTxt(config as any)
+    const result = generateRobotsTxt(config)
 
     expect(result).toContain('User-agent: *')
     expect(result).toContain('Allow: /')
@@ -33,7 +33,7 @@ describe('ssg robots.txt', () => {
       },
     }
 
-    const result = generateRobotsTxt(config as any)
+    const result = generateRobotsTxt(config)
 
     expect(result).toContain('User-agent: *')
     expect(result).toContain('Disallow: /admin/')
@@ -53,7 +53,7 @@ describe('ssg robots.txt', () => {
       },
     }
 
-    const result = generateRobotsTxt(config as any)
+    const result = generateRobotsTxt(config)
 
     expect(result).toContain('User-agent: Googlebot')
     expect(result).toContain('Allow: /public/')
@@ -70,7 +70,7 @@ describe('ssg robots.txt', () => {
       },
     }
 
-    const result = generateRobotsTxt(config as any)
+    const result = generateRobotsTxt(config)
 
     expect(result).toContain('User-agent: *')
     expect(result).toContain('User-agent: BadBot')
@@ -85,7 +85,7 @@ describe('ssg robots.txt', () => {
       },
     }
 
-    const result = generateRobotsTxt(config as any)
+    const result = generateRobotsTxt(config)
 
     expect(result).toContain('Sitemap: https://example.com/sitemap.xml')
   })
@@ -101,7 +101,7 @@ describe('ssg robots.txt', () => {
       },
     }
 
-    const result = generateRobotsTxt(config as any)
+    const result = generateRobotsTxt(config)
 
     expect(result).toContain('Sitemap: https://example.com/sitemap1.xml')
     expect(result).toContain('Sitemap: https://example.com/sitemap2.xml')
@@ -114,7 +114,7 @@ describe('ssg robots.txt', () => {
       },
     }
 
-    const result = generateRobotsTxt(config as any)
+    const result = generateRobotsTxt(config)
 
     expect(result).not.toContain('Sitemap:')
   })
@@ -131,7 +131,7 @@ describe('ssg robots.txt', () => {
       },
     }
 
-    const result = generateRobotsTxt(config as any)
+    const result = generateRobotsTxt(config)
 
     expect(result).toContain('Allow: /public/')
   })
@@ -148,7 +148,7 @@ describe('ssg robots.txt', () => {
       },
     }
 
-    const result = generateRobotsTxt(config as any)
+    const result = generateRobotsTxt(config)
 
     expect(result).toContain('Disallow: /admin/')
   })
@@ -160,7 +160,7 @@ describe('ssg robots.txt', () => {
       },
     }
 
-    const result = generateRobotsTxt(config as any)
+    const result = generateRobotsTxt(config)
 
     expect(result.endsWith('\n')).toBe(false)
     expect(result).toBe(result.trim())
@@ -174,7 +174,7 @@ describe('ssg robots.txt', () => {
       },
     }
 
-    const result = generateRobotsTxt(config as any)
+    const result = generateRobotsTxt(config)
 
     expect(result).toContain('Sitemap: https://example.com/sitemap.xml')
     expect(result).not.toContain('https://example.com//sitemap.xml')

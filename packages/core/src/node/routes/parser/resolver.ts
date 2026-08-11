@@ -13,6 +13,69 @@ export interface PathResolution {
   collection?: string
 }
 
+function pathSegments(value: string | undefined): string[] {
+  return (value || '').replace(/\\/g, '/').split('/').filter(Boolean)
+}
+
+function startsWithSegments(parts: string[], candidate: string[]): boolean {
+  return (
+    candidate.length > 0 &&
+    candidate.every((part, index) => parts[index] === part)
+  )
+}
+
+function resolveVersion(
+  parts: string[],
+  config?: BoltdocsConfig,
+): { version?: string; publicSegments: string[]; consumed: number } {
+  const versions = config?.versions
+  if (!versions) return { publicSegments: [], consumed: 0 }
+
+  const prefix = versions.prefix || ''
+  const prefixParts = pathSegments(prefix)
+
+  for (const versionConfig of versions.versions) {
+    const versionParts = pathSegments(versionConfig.path)
+    if (versionParts.length === 0) continue
+
+    // Prefer the explicit version path so `prefix: 'v'` with `path: 'v1'`
+    // remains compatible with the documented `docs/v1/` layout.
+    if (startsWithSegments(parts, versionParts)) {
+      return {
+        version: versionConfig.path,
+        publicSegments: versionParts,
+        consumed: versionParts.length,
+      }
+    }
+
+    // A slash-containing prefix is a real directory prefix, e.g.
+    // `releases/v2`.
+    const prefixedParts = [...prefixParts, ...versionParts]
+    if (startsWithSegments(parts, prefixedParts)) {
+      return {
+        version: versionConfig.path,
+        publicSegments: prefixedParts,
+        consumed: prefixedParts.length,
+      }
+    }
+
+    // Preserve the legacy textual-prefix form (`prefix: 'v', path: '1'` → v1).
+    if (
+      prefix &&
+      !prefix.includes('/') &&
+      parts[0] === `${prefix}${versionConfig.path}`
+    ) {
+      return {
+        version: versionConfig.path,
+        publicSegments: [`${prefix}${versionConfig.path}`],
+        consumed: 1,
+      }
+    }
+  }
+
+  return { publicSegments: [], consumed: 0 }
+}
+
 export function resolveRoutePath(
   file: string,
   docsDir: string,
@@ -21,7 +84,7 @@ export function resolveRoutePath(
   permalink?: string,
 ): PathResolution {
   const relativePath = path.relative(docsDir, file).replace(/\\/g, '/')
-  let parts = relativePath.split('/')
+  let parts = relativePath.split('/').filter(Boolean)
 
   let locale: string | undefined
   let version: string | undefined
@@ -29,18 +92,9 @@ export function resolveRoutePath(
   let subRouteGroup: string | undefined
   let collection: string | undefined
 
-  if (config?.versions && parts.length > 0) {
-    const potentialVersion = parts[0]
-    const prefix = config.versions.prefix || ''
-    const versionMatch = config.versions.versions.find(
-      (v) =>
-        potentialVersion === prefix + v.path || potentialVersion === v.path,
-    )
-    if (versionMatch) {
-      version = versionMatch.path
-      parts = parts.slice(1)
-    }
-  }
+  const versionResolution = resolveVersion(parts, config)
+  version = versionResolution.version
+  parts = parts.slice(versionResolution.consumed)
 
   if (config?.i18n && parts.length > 0) {
     const potentialLocale = parts[0]
@@ -70,12 +124,7 @@ export function resolveRoutePath(
   }
 
   const remainingParts = [...parts]
-
-  const cleanParts = parts.map((p) => {
-    const noNum = stripNumberPrefix(p)
-    return noNum
-  })
-
+  const cleanParts = parts.map((part) => stripNumberPrefix(part))
   const cleanRelativePath = cleanParts.join('/')
   const routePath = permalink
     ? permalink.startsWith('/')
@@ -83,18 +132,24 @@ export function resolveRoutePath(
       : `/${permalink}`
     : fileToRoutePath(cleanRelativePath || 'index.md')
 
-  // Build Final Path
-  const base = collection ? `/${collection}` : basePath
-  const segments = [
-    base,
-    version,
+  const normalizedBase = basePath.replace(/\\/g, '/').replace(/\/$/, '') || '/'
+  const versionSegments = versionResolution.publicSegments
+  const routeSegments = [
+    ...versionSegments,
     locale,
     !permalink && !collection ? inferredTab : undefined,
-    routePath,
   ].filter(Boolean)
 
+  const segments = collection
+    ? [...routeSegments, collection, routePath]
+    : [normalizedBase, ...routeSegments, routePath]
+
   const finalPath =
-    segments.join('/').replace(/\/+/g, '/').replace(/\/$/, '') || '/'
+    segments
+      .join('/')
+      .replace(/\\/g, '/')
+      .replace(/\/+/g, '/')
+      .replace(/\/$/, '') || '/'
 
   return {
     relativePath,

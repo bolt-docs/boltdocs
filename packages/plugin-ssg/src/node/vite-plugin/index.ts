@@ -1,5 +1,4 @@
 import type { Connect, ModuleNode, PluginOption, ViteDevServer } from 'vite'
-import type { ViteReactSSGContext as ViteReactSSGTanstackContext } from '../../client/tanstack'
 import type { ViteReactSSGContext, ViteReactSSGOptions } from '../../types'
 import type { CreateRootFactory } from '../build'
 import { error } from '@bdocs/dui'
@@ -79,22 +78,18 @@ export function ssrServerPlugin({
   return {
     name: 'vite-react-ssg:dev-server',
     configureServer(server) {
-      const renderMiddleware: Connect.NextHandleFunction = async (
-        req,
-        res,
-        next,
-      ) => {
+      const renderMiddleware: Connect.NextHandleFunction = async (req, res) => {
         try {
-          const url = req.originalUrl!
-          const createRoot: CreateRootFactory = await server
-            .ssrLoadModule(ssrEntry)
-            .then((m) => m.createRoot)
-          const appCtx = (await createRoot(false, url)) as
-            | ViteReactSSGContext<true>
-            | ViteReactSSGTanstackContext
-          const adapter = getAdapter(appCtx)
+          const url = req.originalUrl ?? req.url ?? '/'
+          const serverEntryModule = await server.ssrLoadModule(ssrEntry)
+          const createRoot: CreateRootFactory = serverEntryModule.createRoot
+          const appCtx = (await createRoot(
+            false,
+            url,
+          )) as ViteReactSSGContext<true>
+          const adapter = getAdapter(appCtx, serverEntryModule)
           const { app, base } = appCtx
-          const [pathname, search] = url.split('?')
+          const [pathname = '/', search = ''] = url.split('?')
           const searchParams = new URLSearchParams(search)
 
           if (!app && searchParams.has('_data')) {
@@ -103,8 +98,7 @@ export function ssrServerPlugin({
 
           const indexHTML = await server.transformIndexHtml(url, template)
           const transformedIndexHTML =
-            (await onBeforePageRender?.(url, indexHTML, appCtx as any)) ||
-            indexHTML
+            (await onBeforePageRender?.(url, indexHTML, appCtx)) || indexHTML
 
           const {
             appHTML,
@@ -125,10 +119,9 @@ export function ssrServerPlugin({
           const collectedMods = new Set<ModuleNode>()
 
           const collectAssets = async (mod: ModuleNode | undefined) => {
-            if (!mod || !mod?.ssrTransformResult || collectedMods.has(mod))
-              return
+            if (!mod?.ssrTransformResult || collectedMods.has(mod)) return
             collectedMods.add(mod)
-            const { deps = [], dynamicDeps = [] } = mod?.ssrTransformResult
+            const { deps = [], dynamicDeps = [] } = mod.ssrTransformResult
             const allDeps = [...deps, ...dynamicDeps]
             for (const dep of allDeps) {
               if (
@@ -161,8 +154,7 @@ export function ssrServerPlugin({
           })
 
           const transformed =
-            (await onPageRendered?.(url, renderedHTML, appCtx as any)) ||
-            renderedHTML
+            (await onPageRendered?.(url, renderedHTML, appCtx)) || renderedHTML
 
           res.statusCode = 200
           res.setHeader('Content-Type', 'text/html')
@@ -171,11 +163,13 @@ export function ssrServerPlugin({
             ? server.config.server.headers
             : server.config.preview.headers
           send(req, res, transformed, 'html', { headers })
-        } catch (e: any) {
-          server.ssrFixStacktrace(e)
-          error('SSR render error', e)
+        } catch (caught) {
+          const renderError =
+            caught instanceof Error ? caught : new Error(String(caught))
+          server.ssrFixStacktrace(renderError)
+          error('SSR render error', renderError)
           res.statusCode = 500
-          res.end(e.stack)
+          res.end(renderError.stack ?? renderError.message)
         }
       }
 

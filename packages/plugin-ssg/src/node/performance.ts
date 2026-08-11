@@ -40,7 +40,7 @@ function getFileSize(filePath: string): number {
 }
 
 /**
- * PR-05: Cache performance metrics so warm builds don't re-read all dist
+ * Cache performance metrics so warm builds don't re-read all dist
  * files.  The metrics are stored in the cache directory as a JSON file and
  * re-read on subsequent builds (the buildTime is updated to reflect the
  * current build).
@@ -76,23 +76,42 @@ function writeCachedMetrics(
   }
 }
 
+export interface PerformanceMetricsOptions {
+  /**
+   * Final output inventory captured by the build pipeline. When supplied,
+   * avoid recursively walking the output directory just to find HTML pages.
+   */
+  outputFiles?: readonly string[]
+  /**
+   * Client manifest location. This is useful after Vite metadata has been
+   * removed from the public output directory.
+   */
+  manifestPath?: string
+}
+
 export async function collectPerformanceMetrics(
   outDir: string,
   buildTime: number,
   cacheDir?: string,
+  options: PerformanceMetricsOptions = {},
 ): Promise<PerformanceMetrics> {
-  // Check for cached metrics on warm builds
-  const cached = readCachedMetrics(cacheDir)
-  if (cached) {
-    cached.buildTime = buildTime
-    return cached
+  // A caller that supplies the final inventory/manifest has already paid for
+  // the authoritative build state. Do not return an older metrics snapshot in
+  // that case; it could report stale page sizes after an incremental build.
+  // The cached fast path continues to use the snapshot without touching dist.
+  if (!options.outputFiles && !options.manifestPath) {
+    const cached = readCachedMetrics(cacheDir)
+    if (cached) {
+      cached.buildTime = buildTime
+      return cached
+    }
   }
 
   const dotViteDir = join(outDir, '.vite')
   const assetsDir = join(outDir, 'assets')
 
   let manifest: Manifest = {}
-  const manifestPath = join(dotViteDir, 'manifest.json')
+  const manifestPath = options.manifestPath || join(dotViteDir, 'manifest.json')
   if (fs.existsSync(manifestPath)) {
     manifest = JSON.parse(await fs.readFileSync(manifestPath, 'utf-8'))
   }
@@ -136,25 +155,31 @@ export async function collectPerformanceMetrics(
     pages.push({ route: '/', htmlSize: size, htmlFile: 'index.html' })
   }
 
-  try {
-    const distFiles = fs.readdirSync(outDir, { recursive: true }) as string[]
-    for (const file of distFiles) {
-      if (!file.endsWith('.html') || file === 'index.html') continue
-      const fullPath = join(outDir, file)
-      const size = getFileSize(fullPath)
-      if (size > 0) {
-        const route =
-          '/' +
-          file
-            .replace(/\\/g, '/')
-            .replace(/\/index\.html$/, '')
-            .replace(/\.html$/, '')
-        totalHTMLSize += size
-        pages.push({ route, htmlSize: size, htmlFile: file })
-      }
+  const distFiles = options.outputFiles
+    ? [...options.outputFiles]
+    : (() => {
+        try {
+          return fs.readdirSync(outDir, { recursive: true }) as string[]
+        } catch {
+          // recursive readdir may fail on some Node versions; skip per-page
+          return []
+        }
+      })()
+
+  for (const file of distFiles) {
+    if (!file.endsWith('.html') || file === 'index.html') continue
+    const fullPath = join(outDir, file)
+    const size = getFileSize(fullPath)
+    if (size > 0) {
+      const route =
+        '/' +
+        file
+          .replace(/\\/g, '/')
+          .replace(/\/index\.html$/, '')
+          .replace(/\.html$/, '')
+      totalHTMLSize += size
+      pages.push({ route, htmlSize: size, htmlFile: file })
     }
-  } catch {
-    // recursive readdir may fail on some Node versions; skip per-page
   }
 
   const metrics: PerformanceMetrics = {

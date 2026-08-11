@@ -1,24 +1,325 @@
 import path from 'node:path'
+import fs from 'node:fs/promises'
 import { fdir } from 'fdir'
 import type { BoltdocsConfig } from '../config'
-import { capitalize } from '../utils'
+import { capitalize, getCacheConfig } from '../utils'
+import { warn } from '@bdocs/dui'
 
-import type { RouteMeta, ParsedDocFile } from './types'
+import type { DirectoryMeta, RouteMeta, ParsedDocFile } from './types'
 import {
-  docCache,
+  getRouteGenerationFingerprint,
+  getRouteCacheVariant,
+  getRouteCacheContext,
   invalidateRouteCache as baseInvalidateRouteCache,
   invalidateFile as baseInvalidateFile,
+  invalidateDirectoryMetaFile as baseInvalidateDirectoryMetaFile,
+  type RouteCacheContext,
+  type RouteCacheVariant,
+  syncRouteCacheFacade,
+  type DirectoryMetaCacheEntry,
+  type RouteDiscoverySnapshot,
 } from './cache'
 import { sortRoutes } from './sorter'
 
 export type { RouteMeta }
 
 export { getExternalRoutePaths } from './pages-external'
-// Cache for file list and localized path computations
-let cachedFileList: string[] | null = null
-const localizedPathCache = new Map<string, string>()
-
 const PARSE_CONCURRENCY = 32
+const ROUTE_GENERATION_INVALIDATED = Symbol('route-generation-invalidated')
+
+async function loadDirectoryMeta(
+  docsDir: string,
+  files: readonly string[],
+  routeVariant: RouteCacheVariant,
+): Promise<Record<string, DirectoryMeta>> {
+  // Keep the public filename canonical when both conventions are present:
+  // `_meta.json` is read first and `meta.json` wins deterministically.
+  const sortedFiles = [...files].sort((left, right) => {
+    const leftDir = path.dirname(left)
+    const rightDir = path.dirname(right)
+    if (leftDir === rightDir) {
+      const leftName = path.basename(left)
+      const rightName = path.basename(right)
+      if (leftName === '_meta.json' && rightName === 'meta.json') return -1
+      if (leftName === 'meta.json' && rightName === '_meta.json') return 1
+    }
+    return left.localeCompare(right)
+  })
+  const currentFiles = new Set(sortedFiles)
+  const entries = routeVariant.directoryMetaEntries
+
+  for (const file of entries.keys()) {
+    if (!currentFiles.has(file)) entries.delete(file)
+  }
+
+  await Promise.all(
+    sortedFiles.map(async (file) => {
+      let stat: Awaited<ReturnType<typeof fs.stat>>
+      try {
+        stat = await fs.stat(file)
+      } catch (error) {
+        entries.delete(file)
+        warn(
+          `Failed to stat meta.json: ${error instanceof Error ? error.message : String(error)}`,
+        )
+        return
+      }
+
+      const cached = entries.get(file)
+      if (
+        cached &&
+        cached.mtimeMs === stat.mtimeMs &&
+        cached.size === stat.size
+      ) {
+        return
+      }
+
+      try {
+        const raw = await fs.readFile(file, 'utf8')
+        entries.set(file, {
+          mtimeMs: stat.mtimeMs,
+          size: stat.size,
+          content: JSON.parse(raw) as DirectoryMeta,
+        } satisfies DirectoryMetaCacheEntry)
+      } catch (error) {
+        entries.delete(file)
+        warn(
+          `Failed to read meta.json: ${error instanceof Error ? error.message : String(error)}`,
+        )
+      }
+    }),
+  )
+
+  const results: Record<string, DirectoryMeta> = {}
+  for (const file of sortedFiles) {
+    const entry = entries.get(file)
+    if (!entry) continue
+    const relativeDir = path
+      .relative(docsDir, path.dirname(file))
+      .replace(/\\/g, '/')
+    results[relativeDir || '.'] = entry.content
+  }
+  return results
+}
+
+async function loadDiscoverySnapshot(
+  docsDir: string,
+  routeVariant: RouteCacheVariant,
+): Promise<RouteDiscoverySnapshot | null> {
+  if (!routeVariant.discoverySnapshotPath || getCacheConfig().noCache)
+    return null
+  if (routeVariant.discoverySnapshotLoaded) {
+    return routeVariant.discoverySnapshot
+  }
+  routeVariant.discoverySnapshotLoaded = true
+  try {
+    const raw = await fs.readFile(routeVariant.discoverySnapshotPath, 'utf8')
+    const snapshot = JSON.parse(raw) as Partial<RouteDiscoverySnapshot>
+    const isStringArray = (value: unknown): value is string[] =>
+      Array.isArray(value) && value.every((entry) => typeof entry === 'string')
+    const files = snapshot.files
+    const directoryMetaFiles = snapshot.directoryMetaFiles
+    const directories =
+      snapshot.directories && typeof snapshot.directories === 'object'
+        ? Object.entries(snapshot.directories)
+        : []
+    const normalizedDocsDir = path.resolve(docsDir)
+    const realDocsDir = await fs.realpath(normalizedDocsDir)
+    const isWithinDocs = (filePath: string): boolean => {
+      const normalized = path.resolve(filePath)
+      return (
+        normalized === normalizedDocsDir ||
+        normalized.startsWith(`${normalizedDocsDir}${path.sep}`)
+      )
+    }
+    const isDocumentFile = (filePath: string): boolean =>
+      /\.(?:md|mdx)$/i.test(filePath)
+    const isMetaFile = (filePath: string): boolean => {
+      const basename = path.basename(filePath)
+      return basename === 'meta.json' || basename === '_meta.json'
+    }
+    if (
+      snapshot.version !== 1 ||
+      !isStringArray(files) ||
+      !isStringArray(directoryMetaFiles) ||
+      !snapshot.directories ||
+      typeof snapshot.directories !== 'object' ||
+      Array.isArray(snapshot.directories) ||
+      files.some(
+        (filePath) => !isWithinDocs(filePath) || !isDocumentFile(filePath),
+      ) ||
+      directoryMetaFiles.some(
+        (filePath) => !isWithinDocs(filePath) || !isMetaFile(filePath),
+      ) ||
+      directories.some(
+        ([directory, mtimeMs]) =>
+          !isWithinDocs(directory) ||
+          typeof mtimeMs !== 'number' ||
+          !Number.isFinite(mtimeMs),
+      )
+    ) {
+      return null
+    }
+    const isWithinRealDocs = (filePath: string): boolean => {
+      const normalized = path.resolve(filePath)
+      return (
+        normalized === realDocsDir ||
+        normalized.startsWith(`${realDocsDir}${path.sep}`)
+      )
+    }
+    const validFiles = await Promise.all(
+      [...files, ...directoryMetaFiles].map(async (filePath) => {
+        try {
+          const stat = await fs.lstat(filePath)
+          if (!stat.isFile()) return false
+          return isWithinRealDocs(await fs.realpath(filePath))
+        } catch {
+          return false
+        }
+      }),
+    )
+    const validDirectories = await Promise.all(
+      directories.map(async ([directory, mtimeMs]) => {
+        try {
+          const stat = await fs.stat(directory)
+          return (
+            stat.isDirectory() &&
+            stat.mtimeMs === mtimeMs &&
+            isWithinRealDocs(await fs.realpath(directory))
+          )
+        } catch {
+          return false
+        }
+      }),
+    )
+    if (validFiles.every(Boolean) && validDirectories.every(Boolean)) {
+      const validatedSnapshot: RouteDiscoverySnapshot = {
+        version: 1,
+        files,
+        directoryMetaFiles,
+        directories: Object.fromEntries(directories),
+      }
+      routeVariant.discoverySnapshot = validatedSnapshot
+      return validatedSnapshot
+    }
+  } catch {
+    // A missing/corrupt snapshot simply falls back to a fresh crawl.
+  }
+  return null
+}
+
+async function saveDiscoverySnapshot(
+  routeVariant: RouteCacheVariant,
+  snapshot: RouteDiscoverySnapshot,
+): Promise<void> {
+  if (getCacheConfig().noCache) {
+    routeVariant.discoverySnapshot = null
+    routeVariant.discoverySnapshotLoaded = false
+    return
+  }
+
+  routeVariant.discoverySnapshot = snapshot
+  routeVariant.discoverySnapshotLoaded = true
+  try {
+    await fs.mkdir(path.dirname(routeVariant.discoverySnapshotPath), {
+      recursive: true,
+    })
+    await fs.writeFile(
+      routeVariant.discoverySnapshotPath,
+      JSON.stringify(snapshot),
+    )
+  } catch {
+    // Discovery persistence is an optimization; a future build can crawl.
+  }
+}
+
+async function getDiscoverySnapshot(
+  docsDir: string,
+  routeVariant: RouteCacheVariant,
+  forceScan: boolean,
+): Promise<RouteDiscoverySnapshot> {
+  if (!forceScan) {
+    const cached = await loadDiscoverySnapshot(docsDir, routeVariant)
+    if (cached) return cached
+  }
+
+  const api = new fdir({ excludeSymlinks: true })
+    .withFullPaths()
+    .filter((p) => {
+      const basename = path.basename(p)
+      const isMeta = basename === 'meta.json' || basename === '_meta.json'
+      const isMd = p.endsWith('.md') || p.endsWith('.mdx')
+      if (!isMd && !isMeta) return false
+
+      const rel = path.relative(docsDir, p).replace(/\\/g, '/')
+      const segments = rel.split('/')
+      return !segments.some(
+        (seg) =>
+          seg.startsWith('_') &&
+          seg !== '_index.md' &&
+          seg !== '_index.mdx' &&
+          seg !== '_meta.json',
+      )
+    })
+    .crawl(docsDir)
+
+  const rawFiles = await api.withPromise()
+  const directoryMetaFiles = rawFiles
+    .filter((file) => {
+      const basename = path.basename(file)
+      return basename === 'meta.json' || basename === '_meta.json'
+    })
+    .sort((left, right) => left.localeCompare(right))
+  const documentFiles = rawFiles.filter(
+    (file) => file.endsWith('.md') || file.endsWith('.mdx'),
+  )
+  const PRIORITY_PATTERNS = [
+    /index\./i,
+    /intro/i,
+    /getting-started/i,
+    /readme/i,
+  ]
+  const scoredFiles = documentFiles.map((file) => {
+    const score = PRIORITY_PATTERNS.findIndex((pattern) =>
+      pattern.test(path.basename(file)),
+    )
+    return { file, score: score === -1 ? Number.MAX_SAFE_INTEGER : score }
+  })
+  scoredFiles.sort((a, b) => a.score - b.score || a.file.localeCompare(b.file))
+  const files = scoredFiles.map(({ file }) => file)
+  const allFiles = [...files, ...directoryMetaFiles]
+  const directories = new Set<string>([path.resolve(docsDir)])
+  for (const file of allFiles) {
+    let directory = path.dirname(file)
+    while (directory.startsWith(path.resolve(docsDir))) {
+      directories.add(directory)
+      if (directory === path.resolve(docsDir)) break
+      directory = path.dirname(directory)
+    }
+  }
+  const directoryEntries = await Promise.all(
+    [...directories].sort().map(async (directory) => {
+      try {
+        const stat = await fs.stat(directory)
+        return [directory, stat.mtimeMs] as const
+      } catch {
+        return null
+      }
+    }),
+  )
+  const snapshot: RouteDiscoverySnapshot = {
+    version: 1,
+    files,
+    directoryMetaFiles,
+    directories: Object.fromEntries(
+      directoryEntries.filter(
+        (entry): entry is readonly [string, number] => entry !== null,
+      ),
+    ),
+  }
+  await saveDiscoverySnapshot(routeVariant, snapshot)
+  return snapshot
+}
 
 async function runWithConcurrency<T, R>(
   items: T[],
@@ -41,28 +342,47 @@ async function runWithConcurrency<T, R>(
   return results
 }
 
-// In-memory cache for parsed documents from native parser
-let _cachedNativeDocs: Record<string, any> | null = null
+export function invalidateDirectoryMetaFile(
+  filePath: string,
+  contextOrDocsDir?: RouteCacheContext | string,
+): void {
+  baseInvalidateDirectoryMetaFile(filePath, contextOrDocsDir)
+}
 
-export function invalidateFile(filePath: string): void {
-  const normalized = filePath.replace(/\\/g, '/')
-  if (_cachedNativeDocs && _cachedNativeDocs[normalized]) {
-    delete _cachedNativeDocs[normalized]
+export function invalidateFile(
+  filePath: string,
+  contextOrDocsDir?: RouteCacheContext | string,
+): void {
+  const target =
+    typeof contextOrDocsDir === 'string'
+      ? getRouteCacheContext(contextOrDocsDir)
+      : contextOrDocsDir
+  if (target) {
+    const normalized = filePath.replace(/\\/g, '/')
+    if (
+      path.basename(normalized) === 'meta.json' ||
+      path.basename(normalized) === '_meta.json'
+    ) {
+      baseInvalidateDirectoryMetaFile(filePath, target)
+    }
+    if (target.cachedNativeDocs?.[normalized]) {
+      delete target.cachedNativeDocs[normalized]
+    }
+    baseInvalidateFile(filePath, target)
+    return
   }
   baseInvalidateFile(filePath)
 }
 
-// Coalescing promise for concurrent calls
-let activeGenerationPromise: Promise<RouteMeta[]> | null = null
-
-/**
- * Invalidates the global route metadata and clears local state.
- */
-export function invalidateRouteCache(): void {
-  cachedFileList = null
-  localizedPathCache.clear()
+/** Invalidates one project's route metadata and parser state. */
+export function invalidateRouteCache(
+  contextOrDocsDir?: RouteCacheContext | string,
+): void {
+  if (contextOrDocsDir) {
+    baseInvalidateRouteCache(contextOrDocsDir)
+    return
+  }
   baseInvalidateRouteCache()
-  _cachedNativeDocs = null
 }
 
 /**
@@ -81,70 +401,66 @@ export async function generateRoutes(
   config?: BoltdocsConfig,
   basePath?: string,
   forceScan: boolean = false,
+  cacheContext?: RouteCacheContext,
+  cacheVariant?: RouteCacheVariant,
 ): Promise<RouteMeta[]> {
-  if (activeGenerationPromise) {
-    return activeGenerationPromise
+  const routeContext = cacheContext ?? getRouteCacheContext(docsDir)
+  if (routeContext.disposed) {
+    throw new Error('[boltdocs] Route cache context has been disposed.')
   }
+  const generationKey = getRouteGenerationFingerprint(config, basePath)
+
+  if (cacheVariant && cacheVariant.fingerprint !== generationKey) {
+    throw new Error(
+      '[boltdocs] Route cache variant does not match the requested route configuration fingerprint.',
+    )
+  }
+  if (
+    cacheVariant &&
+    routeContext.variants.get(generationKey) !== cacheVariant
+  ) {
+    throw new Error(
+      '[boltdocs] Route cache variant does not belong to the requested route cache context.',
+    )
+  }
+
+  const activeGeneration = routeContext.activeGenerations.get(generationKey)
+  if (activeGeneration) return activeGeneration
+
+  const routeVariant =
+    cacheVariant ?? getRouteCacheVariant(routeContext, generationKey)
+  const generationEpoch = routeContext.generationEpoch
 
   const currentTask = (async (): Promise<RouteMeta[]> => {
     const finalBasePath = basePath || config?.base || '/docs'
-    // Load persistent cache
-    await docCache.load()
+    // Load persistent cache for this documentation tree and configuration.
+    await routeVariant.docCache.load()
 
     let files: string[]
-    if (!forceScan && cachedFileList) {
-      files = cachedFileList
-    } else {
-      // Only clear the localized path cache when we are rebuilding the route
-      // list from scratch. In cached (warm) calls, the locale-to-path mappings
-      // are still valid and clearing them forces expensive re-computation.
-      localizedPathCache.clear()
-      const api = new fdir()
-        .withFullPaths()
-        .filter((p) => {
-          const isMd = p.endsWith('.md') || p.endsWith('.mdx')
-          if (!isMd) return false
+    let directoryMetaFiles: string[]
+    const discovery = await getDiscoverySnapshot(
+      docsDir,
+      routeVariant,
+      forceScan || getCacheConfig().noCache,
+    )
+    files = discovery.files.filter((file) => {
+      if (!config?.experimental?.fileRouting) return true
+      const relative = path.relative(docsDir, file).replace(/\\\\/g, '/')
+      return !relative.split('/').includes('pages-external')
+    })
+    directoryMetaFiles = discovery.directoryMetaFiles
+    routeVariant.cachedFileList = files
+    routeVariant.cachedDirectoryMetaFiles = directoryMetaFiles
 
-          // Get relative path and check if any part starts with an underscore
-          const rel = path.relative(docsDir, p).replace(/\\/g, '/')
-          const segments = rel.split('/')
-          // Exclude if any directory or file itself starts with "_"
-          return !segments.some(
-            (seg) =>
-              seg.startsWith('_') &&
-              seg !== '_index.md' &&
-              seg !== '_index.mdx',
-          )
-        })
-        .crawl(docsDir)
-
-      const rawFiles = await api.withPromise()
-
-      // Prioritized prefetch: Sort files to process important ones first
-      const PRIORITY_PATTERNS = [
-        /index\./i,
-        /intro/i,
-        /getting-started/i,
-        /readme/i,
-      ]
-
-      const scoredFiles = rawFiles.map((f) => {
-        const base = path.basename(f)
-        const score = PRIORITY_PATTERNS.findIndex((p) => p.test(base))
-        return {
-          f,
-          score: score === -1 ? Number.MAX_SAFE_INTEGER : score,
-        }
-      })
-
-      scoredFiles.sort((a, b) => a.score - b.score)
-      files = scoredFiles.map((item) => item.f)
-
-      cachedFileList = files
-    }
+    routeVariant.directoryMeta = await loadDirectoryMeta(
+      docsDir,
+      directoryMetaFiles,
+      routeVariant,
+    )
+    syncRouteCacheFacade(routeContext, routeVariant)
 
     // Prune cache entries for deleted files
-    docCache.pruneStale(new Set(files))
+    routeVariant.docCache.pruneStale(new Set(files))
 
     const isTest =
       process.env.NODE_ENV === 'test' || process.env.VITEST === 'true'
@@ -154,40 +470,71 @@ export async function generateRoutes(
     // Check if all files are already cached in docCache
     let allCached = true
     for (const file of files) {
-      if (!docCache.get(file)) {
+      if (!routeVariant.docCache.get(file)) {
         allCached = false
         break
       }
     }
 
     if (allCached) {
-      parsed = files.map((file) => docCache.get(file)!)
+      parsed = files.map((file) => {
+        const cached = routeVariant.docCache.get(file)
+        if (!cached) {
+          throw new Error(
+            `[boltdocs] Route cache entry disappeared for ${file}`,
+          )
+        }
+        return cached
+      })
     } else {
-      if (!isTest && !_cachedNativeDocs) {
+      if (!isTest && !routeVariant.cachedNativeDocs) {
         try {
           const { runParser } = await import('@bdocs/parser')
-          _cachedNativeDocs = await runParser(docsDir, true) // Sätteri always active
-        } catch (e) {
-          // Native parser not available or failed
+          routeVariant.cachedNativeDocs = await runParser(docsDir, true) // Sätteri always active
+        } catch {
+          // Native parser not available or failed.
         }
       }
 
-      const useNative = !isTest && _cachedNativeDocs !== null
+      const useNative = !isTest && routeVariant.cachedNativeDocs !== null
 
-      if (useNative && _cachedNativeDocs) {
-        const { parseDocFileWithNative, parseDocFile } = await import(
-          './parser'
+      if (useNative && routeVariant.cachedNativeDocs) {
+        const { parseDocFileWithNative } = await import('./parser/native')
+        const missingNativeFiles = files.filter(
+          (file) => !routeVariant.cachedNativeDocs?.[file.replace(/\\/g, '/')],
         )
+        if (missingNativeFiles.length > 0) {
+          try {
+            const { runParserFiles } = await import('@bdocs/parser')
+            const refreshed = await runParserFiles(
+              docsDir,
+              missingNativeFiles,
+              true,
+            )
+            routeVariant.cachedNativeDocs = {
+              ...routeVariant.cachedNativeDocs,
+              ...refreshed,
+            }
+          } catch {
+            // The JS parser remains the safe fallback for missing entries.
+          }
+        }
+        const hasFallbackFiles = files.some(
+          (file) => !routeVariant.cachedNativeDocs?.[file.replace(/\\/g, '/')],
+        )
+        const parseDocFile = hasFallbackFiles
+          ? (await import('./parser')).parseDocFile
+          : undefined
 
         parsed = await runWithConcurrency(
           files,
           PARSE_CONCURRENCY,
           async (file) => {
-            const cached = docCache.get(file)
+            const cached = routeVariant.docCache.get(file)
             if (cached) return cached
 
             const normalizedPath = file.replace(/\\/g, '/')
-            const nativeDoc = _cachedNativeDocs![normalizedPath]
+            const nativeDoc = routeVariant.cachedNativeDocs![normalizedPath]
 
             if (nativeDoc) {
               const result = await parseDocFileWithNative(
@@ -196,17 +543,24 @@ export async function generateRoutes(
                 docsDir,
                 finalBasePath,
                 config,
+                routeVariant.parserCache,
               )
-              docCache.set(file, result)
+              routeVariant.docCache.set(file, result)
               return result
             } else {
+              if (!parseDocFile) {
+                throw new Error(
+                  `[boltdocs] Native parser did not return a document for ${file}`,
+                )
+              }
               const result = await parseDocFile(
                 file,
                 docsDir,
                 finalBasePath,
                 config,
+                routeVariant.parserCache,
               )
-              docCache.set(file, result)
+              routeVariant.docCache.set(file, result)
               return result
             }
           },
@@ -217,23 +571,31 @@ export async function generateRoutes(
           files,
           PARSE_CONCURRENCY,
           async (file) => {
-            const cached = docCache.get(file)
+            const cached = routeVariant.docCache.get(file)
             if (cached) return cached
             const result = await parseDocFile(
               file,
               docsDir,
               finalBasePath,
               config,
+              routeVariant.parserCache,
             )
-            docCache.set(file, result)
+            routeVariant.docCache.set(file, result)
             return result
           },
         )
       }
     }
 
+    // An HMR invalidation may have happened while parsing. Never persist or
+    // return a result produced from the invalidated snapshot; restart using
+    // the same stable variant after removing this in-flight coalescing entry.
+    if (routeContext.generationEpoch !== generationEpoch) {
+      throw ROUTE_GENERATION_INVALIDATED
+    }
+
     // Save cache after processing
-    docCache.save()
+    routeVariant.docCache.save()
 
     const docFiles: ParsedDocFile[] = []
     const collectionFiles: Map<string, ParsedDocFile[]> = new Map()
@@ -391,29 +753,59 @@ export async function generateRoutes(
       }
     }
     collectionRoutes.sort((a, b) => {
-      const dateA = a.date ? new Date(a.date).getTime() : 0
-      const dateB = b.date ? new Date(b.date).getTime() : 0
-      return dateB - dateA
+      const getTimestamp = (date: string | Date | undefined) => {
+        if (!date) return Number.NEGATIVE_INFINITY
+        const value = new Date(date).getTime()
+        return Number.isFinite(value) ? value : Number.NEGATIVE_INFINITY
+      }
+      const dateA = getTimestamp(a.date)
+      const dateB = getTimestamp(b.date)
+      const dateOrder = dateB - dateA
+      return dateOrder !== 0 ? dateOrder : a.path.localeCompare(b.path)
     })
 
     let finalDocRoutes = docRoutes
     if (config?.i18n) {
-      const fallbacks = generateI18nFallbacks(docRoutes, config, finalBasePath)
+      const fallbacks = generateI18nFallbacks(
+        docRoutes,
+        config,
+        finalBasePath,
+        routeVariant.localizedPathCache,
+      )
       finalDocRoutes = [...docRoutes, ...fallbacks]
     }
 
     const sortedDocs = sortRoutes(finalDocRoutes)
     const allRoutes = [...sortedDocs, ...collectionRoutes]
 
+    if (routeContext.generationEpoch !== generationEpoch) {
+      throw ROUTE_GENERATION_INVALIDATED
+    }
+
     return allRoutes
   })()
 
-  activeGenerationPromise = currentTask
+  routeContext.activeGenerations.set(generationKey, currentTask)
 
   try {
     return await currentTask
+  } catch (error) {
+    if (error !== ROUTE_GENERATION_INVALIDATED) throw error
+    if (routeContext.disposed) {
+      throw new Error(
+        '[boltdocs] Route cache context was disposed during generation.',
+      )
+    }
+    routeVariant.docCache.invalidateAll()
+    routeVariant.parserCache.clear()
+    if (routeContext.activeGenerations.get(generationKey) === currentTask) {
+      routeContext.activeGenerations.delete(generationKey)
+    }
+    return generateRoutes(docsDir, config, basePath, forceScan, routeContext)
   } finally {
-    activeGenerationPromise = null
+    if (routeContext.activeGenerations.get(generationKey) === currentTask) {
+      routeContext.activeGenerations.delete(generationKey)
+    }
   }
 }
 
@@ -425,6 +817,7 @@ function generateI18nFallbacks(
   routes: RouteMeta[],
   config: BoltdocsConfig,
   basePath: string,
+  localizedPathCache: Map<string, string>,
 ): RouteMeta[] {
   const defaultLocale = config.i18n!.defaultLocale
   const allLocales = Object.keys(config.i18n!.locales)
@@ -457,6 +850,7 @@ function generateI18nFallbacks(
         locale,
         basePath,
         config,
+        localizedPathCache,
       )
 
       // Skip if the path is already the same (e.g. for default locale unprefixed)
@@ -484,7 +878,8 @@ function computeLocalizedPath(
   defaultLocale: string,
   targetLocale: string,
   basePath: string,
-  config?: BoltdocsConfig,
+  config: BoltdocsConfig | undefined,
+  localizedPathCache: Map<string, string>,
 ): string {
   const cacheKey = `${path}:${targetLocale}`
   const cached = localizedPathCache.get(cacheKey)

@@ -1,13 +1,13 @@
 import type { Options as BeastiesOptions } from 'beasties'
 import type { ReactElement, ReactNode } from 'react'
-import type {
-  FutureConfig as CompFutureConfig,
-  createBrowserRouter,
-  IndexRouteObject,
-  NonIndexRouteObject,
-} from 'react-router-dom'
+import type { RouterRouteRecord } from './router-contract'
 
-type Router = ReturnType<typeof createBrowserRouter>
+/** Minimal router shape kept for the public SSG context without a DOM-router dependency. */
+export interface Router {
+  navigate?: (...args: any[]) => unknown
+  state?: unknown
+  [key: string]: unknown
+}
 
 export interface ViteReactSSGOptions<Context = ViteReactSSGContext> {
   /**
@@ -228,15 +228,16 @@ interface CommonRouteOptions {
   getStaticPaths?: () => string[] | Promise<string[]>
 }
 
-export type NonIndexRouteRecord = Omit<NonIndexRouteObject, 'children'> & {
+export type NonIndexRouteRecord = Omit<RouterRouteRecord, 'children'> & {
   children?: RouteRecord[]
 } & CommonRouteOptions
 
-export type IndexRouteRecord = IndexRouteObject & CommonRouteOptions
+export type IndexRouteRecord = NonIndexRouteRecord & { index: true }
 
 export type RouteRecord = NonIndexRouteRecord | IndexRouteRecord
 
 export interface RouterFutureConfig {
+  [key: string]: boolean | undefined
   v7_fetcherPersist?: boolean
   v7_normalizeFormMethod?: boolean
   v7_partialHydration?: boolean
@@ -247,8 +248,8 @@ export interface RouterFutureConfig {
 export interface RouterOptions {
   routes: RouteRecord[]
   basename?: string
-  future?: Partial<RouterFutureConfig & CompFutureConfig>
-  customCreateRouter?: typeof createBrowserRouter
+  future?: Partial<RouterFutureConfig>
+  customCreateRouter?: (...args: any[]) => Router
 }
 
 export interface StyleCollector {

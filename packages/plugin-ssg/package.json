@@ -72,7 +72,6 @@
     "beasties": "^0.4.2",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
-    "react-router-dom": "^7.0.0",
     "styled-components": "^6.0.0",
     "vite": "^7.0.0 || ^8.0.0"
   },
@@ -81,9 +80,6 @@
       "optional": true
     },
     "prettier": {
-      "optional": true
-    },
-    "react-router-dom": {
       "optional": true
     },
     "styled-components": {
@@ -112,11 +108,11 @@
     "prettier": "^3.8.2",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
-    "react-router-dom": "^7.0.0",
     "styled-components": "6.0.5",
     "tsdown": "^0.21.9",
     "typescript": "^5.9.3",
     "vite": "^8.0.0",
-    "vitest": "^3.0.0"
+    "vitest": "^3.0.0",
+    "tsdown-config": "workspace:*"
   }
 }

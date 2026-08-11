@@ -4,7 +4,7 @@ import { createHash } from 'node:crypto'
 import { join, relative } from 'node:path'
 
 /**
- * PR-04: O(1) client code hash.
+ * O(1) client code hash.
  *
  * Instead of recursively scanning ALL files in the docs directory and hashing
  * their content (O(N) with expensive reads), we use the Sätteri precompile
@@ -63,7 +63,6 @@ const FALLBACK_IGNORE_DIRS = new Set([
   'tests',
   '.next',
   '.cache',
-  'public',
 ])
 
 /** Client-relevant extensions for fallback stat scan. */
@@ -210,7 +209,7 @@ export function computeClientCodeHash(
   docsDirName: string,
   _cacheDir: string,
 ): string {
-  // Clean up legacy Merkle cache file from pre-PR-04 implementation.
+  // Clean up legacy Merkle cache file from pre implementation.
   // The Merkle cache was removed in favor of Sätteri manifest hash + stat-only
   // fallback.  This one-time cleanup prevents stale files from accumulating.
   try {

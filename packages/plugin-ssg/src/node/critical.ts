@@ -22,7 +22,11 @@ export async function getBeasties(
 }
 
 export interface ZigCritters {
-  processHtml(html: string, css: string): Promise<string>
+  processHtml(
+    html: string,
+    css: string,
+    options?: { arenaSize?: number; maxSize?: number; compress?: boolean },
+  ): Promise<string>
 }
 
 export async function getZigCritters(): Promise<ZigCritters | undefined> {
