@@ -2,16 +2,27 @@ import koffi from 'koffi'
 import path from 'node:path'
 import fs from 'node:fs'
 import { fileURLToPath } from 'node:url'
-import type { ParsedDoc } from './index'
+import type { ParsedDoc } from '../index'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
 let napiLib: ReturnType<typeof koffi.load> | null = null
-// Note: Using 'string' return type to avoid segfault with koffi.decode().
-// Trade-off: koffi's 'string' return copies the C string to JS but does NOT
-// free the original malloc'd memory in the .so (~1-2 KB leaked per call).
-// Acceptable for a CLI build tool (~1-2 MB total per full build).
-let _parse_docs_json: ((input: string) => string | null) | null = null
+// The directory API removes the large JS→Zig JSON input allocation. Koffi's
+// disposable return type converts the native char* to a JS string and calls
+// the exported free_result function after conversion.
+type ParseDocsDirectory = (
+  docsDir: string,
+  turbo: number,
+) => string | null
+
+type ParseDocsFiles = (
+  docsDir: string,
+  filesJson: string,
+  turbo: number,
+) => string | null
+
+let _parse_docs_directory: ParseDocsDirectory | null = null
+let _parse_docs_files: ParseDocsFiles | null = null
 
 function getLibraryPath(): string | null {
   const platform = process.platform
@@ -53,36 +64,107 @@ export function tryLoadNapi(): boolean {
 
   try {
     napiLib = koffi.load(libPath)
-    // koffi's 'string' return type auto-converts char* to JS string
-    _parse_docs_json = napiLib.func('parse_docs_json', 'string', ['string'])
+    const disposableString = koffi.disposable(
+      'BoltdocsNativeResult',
+      'str',
+      napiLib.func('free_result', 'void', ['str']),
+    )
+    _parse_docs_directory = napiLib.func(
+      'parse_docs_directory',
+      disposableString,
+      ['string', 'int'],
+    ) as unknown as ParseDocsDirectory
+    _parse_docs_files = napiLib.func(
+      'parse_docs_files',
+      disposableString,
+      ['string', 'string', 'int'],
+    ) as unknown as ParseDocsFiles
     return true
   } catch {
     napiLib = null
-    _parse_docs_json = null
+    _parse_docs_directory = null
+    _parse_docs_files = null
     return false
   }
 }
 
 /**
- * Parse a batch of file contents using the N-API shared library.
+ * Parse every Markdown document below `docsDir` in the native backend.
+ *
+ * Directory discovery, file reads, and parallel parsing all happen in Zig.
+ * This intentionally replaces the old Record<string, string> contract so a
+ * full build no longer serializes the entire source tree into an FFI payload.
  */
+function parseNativeResult(result: string | null): Record<string, ParsedDoc> {
+  if (result === null) {
+    throw new Error('Native parser returned null (fatal error)')
+  }
+  return JSON.parse(result) as Record<string, ParsedDoc>
+}
+
 export function parseWithNapi(
-  files: Record<string, string>,
+  docsDir: string,
   turbo: boolean = false,
 ): Record<string, ParsedDoc> {
-  if (!_parse_docs_json) {
+  if (!_parse_docs_directory) {
     throw new Error('N-API library not loaded. Call tryLoadNapi() first.')
   }
 
-  // Build JSON input matching napi.zig format
-  const jsonInput = JSON.stringify({ turbo, files })
+  const result = _parse_docs_directory(path.resolve(docsDir), turbo ? 1 : 0)
+  return parseNativeResult(result)
+}
 
-  // koffi handles the char*->JS string conversion internally.
-  // The C string memory is freed by koffi, so we don't call free_result.
-  const resultStr = _parse_docs_json(jsonInput)
-  if (!resultStr) {
-    throw new Error('parse_docs_json returned null (fatal error)')
+/**
+ * Parse only the requested files below `docsDir`.
+ * Paths are validated and resolved in Zig; no directory discovery occurs.
+ */
+export function parseFilesWithNapi(
+  docsDir: string,
+  filePaths: readonly string[],
+  turbo: boolean = false,
+): Record<string, ParsedDoc> {
+  if (!_parse_docs_files) {
+    throw new Error('N-API library not loaded. Call tryLoadNapi() first.')
   }
 
-  return JSON.parse(resultStr) as Record<string, ParsedDoc>
+  const absoluteDocsDir = path.resolve(docsDir)
+  const realDocsDir = fs.realpathSync(absoluteDocsDir)
+  const relativePaths = filePaths.map((filePath) => {
+    const absolutePath = path.resolve(filePath)
+    const relativePath = path.relative(absoluteDocsDir, absolutePath)
+    if (
+      relativePath === '' ||
+      relativePath.startsWith(`..${path.sep}`) ||
+      path.isAbsolute(relativePath)
+    ) {
+      throw new Error(`File is outside docs directory: ${filePath}`)
+    }
+
+    // Validate symlink targets before crossing the FFI boundary. This keeps
+    // selected-file parsing inside the real docs tree, including when a file
+    // or an intermediate directory is a symlink.
+    let realFilePath: string
+    try {
+      realFilePath = fs.realpathSync(absolutePath)
+    } catch {
+      throw new Error(`Selected file is unavailable: ${filePath}`)
+    }
+    const realRelativePath = path.relative(realDocsDir, realFilePath)
+    if (
+      realRelativePath === '' ||
+      realRelativePath.startsWith(`..${path.sep}`) ||
+      path.isAbsolute(realRelativePath)
+    ) {
+      throw new Error(`Selected file escapes docs directory: ${filePath}`)
+    }
+
+    return relativePath.replace(/\\/g, '/')
+  })
+
+  const result = _parse_docs_files(
+    absoluteDocsDir,
+    JSON.stringify(relativePaths),
+    turbo ? 1 : 0,
+  )
+  return parseNativeResult(result)
 }
