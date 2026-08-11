@@ -5,11 +5,11 @@
   "description": "Critical CSS extraction engine written in Zig, compiled to WebAssembly",
   "type": "module",
   "main": "wasm/index.mjs",
-  "types": "dist/index.d.ts",
+  "types": "wasm/index.d.ts",
   "exports": {
     ".": {
       "import": "./wasm/index.mjs",
-      "types": "./dist/index.d.ts"
+      "types": "./wasm/index.d.ts"
     }
   },
   "scripts": {
