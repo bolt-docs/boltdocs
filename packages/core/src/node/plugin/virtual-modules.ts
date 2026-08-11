@@ -1,15 +1,98 @@
 import type { Plugin, ResolvedConfig } from 'vite'
 import { generateRoutes } from '../routes'
-import { adaptRoutesForSSG, type SSGRouteData } from '../routes/route-adapter'
+import type { RouteMeta } from '../routes/types'
 import { normalizePath } from '../utils'
 import { generateSearchData, type SearchDocument } from '../search'
-import { virtualModuleRegistry } from '../plugins/plugin-context'
+import {
+  virtualModuleRegistry,
+  type PluginRuntimeState,
+} from '../plugins/plugin-context'
+import {
+  getRouteGenerationFingerprint,
+  getRouteCacheContext,
+  getRouteCacheVariant,
+  type RouteCacheContext,
+  type RouteCacheVariant,
+} from '../routes/cache'
 import type { BoltdocsConfig } from '../config'
 import type { BoltdocsPluginOptions } from './types'
 import { generateEntryCode } from './entry'
 import path from 'node:path'
 import fs from 'node:fs'
-let _directoryMetaCache: Record<string, unknown> | null = null
+export type ClientRouteData = Omit<
+  RouteMeta,
+  'componentPath' | '_content' | 'featureFlags'
+> & {
+  description: string
+  headings: NonNullable<RouteMeta['headings']>
+  _rawContent: string
+}
+
+export function toClientRouteData(route: RouteMeta): ClientRouteData {
+  return {
+    path: route.path,
+    filePath: route.filePath,
+    title: route.title,
+    description: route.description || '',
+    sidebarPosition: route.sidebarPosition,
+    badge: route.badge,
+    icon: route.icon,
+    headings: route.headings || [],
+    _rawContent: route._rawContent || '',
+    frontmatter: route.frontmatter,
+    locale: route.locale,
+    version: route.version,
+    tab: route.tab,
+    collection: route.collection,
+    tags: route.tags,
+    author: route.author,
+    draft: route.draft,
+    excerpt: route.excerpt,
+    coverImage: route.coverImage,
+    group: route.group,
+    groupTitle: route.groupTitle,
+    groupPosition: route.groupPosition,
+    groupIcon: route.groupIcon,
+    subRouteGroup: route.subRouteGroup,
+    seo: route.seo,
+    date: route.date,
+    lastUpdated: route.lastUpdated,
+    category: route.category,
+    order: route.order,
+    sidebarLabel: route.sidebarLabel,
+    sidebarHidden: route.sidebarHidden,
+    slugParts: route.slugParts,
+  }
+}
+
+export interface VirtualModuleState {
+  routeCacheContext?: RouteCacheContext
+  routeCacheVariant?: RouteCacheVariant
+  routeGenerationFingerprint?: string
+  directoryMetaCache: Record<string, unknown> | null
+  routesDataMap: Map<string, RouteMeta>
+  collectionsDataMap: Map<string, CollectionPost>
+  searchDataMap: Map<string, SearchDocument>
+}
+
+export function createVirtualModuleState(
+  routeCacheContext?: RouteCacheContext,
+): VirtualModuleState {
+  return {
+    routeCacheContext,
+    routeGenerationFingerprint: undefined,
+    directoryMetaCache: null,
+    routesDataMap: new Map(),
+    collectionsDataMap: new Map(),
+    searchDataMap: new Map(),
+  }
+}
+
+const defaultVirtualModuleState = createVirtualModuleState()
+
+function getVirtualModuleState(state?: VirtualModuleState): VirtualModuleState {
+  return state ?? defaultVirtualModuleState
+}
 
 /** Minimal mirror of the client-side CollectionPost type to avoid importing from the client package on the server. */
 interface CollectionPost {
@@ -30,15 +113,11 @@ interface CollectionPost {
   collection: string
 }
 
-// Per-route / per-item in-memory caches for virtual module data. These keep
-// the generated values keyed so the dev server can compute delta patches for
-// HMR instead of regenerating monolithic modules every time.
-const _routesDataMap = new Map<string, SSGRouteData>()
-const _collectionsDataMap = new Map<string, CollectionPost>()
-const _searchDataMap = new Map<string, SearchDocument>()
+// Per-route / per-item in-memory caches live in VirtualModuleState so two
+// Vite instances cannot serve each other's route, collection, or search data.
 
 export interface RouteDeltaPayload {
-  updated: SSGRouteData[]
+  updated: ClientRouteData[]
   deleted: string[]
 }
 
@@ -62,44 +141,72 @@ export interface FrontmatterDeltaPayload {
  * Called by the dev-server watcher whenever a file is added or removed
  * so that the next config module request re-crawls for meta.json files.
  */
-export function invalidateDirectoryMetaCache(): void {
-  _directoryMetaCache = null
-  _routesDataMap.clear()
-  _collectionsDataMap.clear()
-  _searchDataMap.clear()
+export function invalidateDirectoryMetaCache(state?: VirtualModuleState): void {
+  const moduleState = getVirtualModuleState(state)
+  moduleState.directoryMetaCache = null
+  moduleState.routeGenerationFingerprint = undefined
+  moduleState.routeCacheVariant = undefined
+  moduleState.routesDataMap.clear()
+  moduleState.collectionsDataMap.clear()
+  moduleState.searchDataMap.clear()
 }
 
-function clearVirtualData(): void {
-  _routesDataMap.clear()
-  _collectionsDataMap.clear()
-  _searchDataMap.clear()
+function clearVirtualData(state?: VirtualModuleState): void {
+  const moduleState = getVirtualModuleState(state)
+  moduleState.routesDataMap.clear()
+  moduleState.collectionsDataMap.clear()
+  moduleState.searchDataMap.clear()
 }
 
 async function regenerateRouteData(
   docsDir: string,
   config: BoltdocsConfig,
+  state?: VirtualModuleState,
+  routeCacheVariant?: RouteCacheVariant,
 ): Promise<void> {
-  const routes = await generateRoutes(docsDir, config)
-  const ssgRoutes = adaptRoutesForSSG(routes)
-
-  _routesDataMap.clear()
-  for (const route of ssgRoutes) {
-    _routesDataMap.set(route.path, route)
+  const moduleState = getVirtualModuleState(state)
+  if (!moduleState.routeCacheContext) {
+    moduleState.routeCacheContext = getRouteCacheContext(docsDir)
+  }
+  const generationKey = getRouteGenerationFingerprint(config)
+  const existingVariant =
+    routeCacheVariant?.fingerprint === generationKey &&
+    moduleState.routeCacheContext.variants.get(generationKey) ===
+      routeCacheVariant
+      ? routeCacheVariant
+      : undefined
+  const variant =
+    existingVariant ??
+    getRouteCacheVariant(moduleState.routeCacheContext, generationKey)
+  moduleState.routeCacheVariant = variant
+  moduleState.routeGenerationFingerprint = generationKey
+  const routes = await generateRoutes(
+    docsDir,
+    config,
+    undefined,
+    false,
+    moduleState.routeCacheContext,
+    variant,
+  )
+  moduleState.routesDataMap.clear()
+  for (const route of routes) {
+    moduleState.routesDataMap.set(route.path, route)
   }
 
-  regenerateSearchAndCollections()
+  regenerateSearchAndCollections(moduleState)
 }
 
-function regenerateSearchAndCollections(): void {
-  const routes = Array.from(_routesDataMap.values())
+function regenerateSearchAndCollections(state?: VirtualModuleState): void {
+  const moduleState = getVirtualModuleState(state)
+  const routes = Array.from(moduleState.routesDataMap.values())
 
   const searchData = generateSearchData(routes as any)
-  _searchDataMap.clear()
+  moduleState.searchDataMap.clear()
   for (const doc of searchData) {
-    _searchDataMap.set(doc.id, doc)
+    moduleState.searchDataMap.set(doc.id, doc)
   }
 
-  _collectionsDataMap.clear()
+  moduleState.collectionsDataMap.clear()
   for (const route of routes) {
     if (route.collection) {
       const post: CollectionPost = {
@@ -117,7 +224,7 @@ function regenerateSearchAndCollections(): void {
         draft: route.frontmatter?.draft,
         collection: route.collection,
       }
-      _collectionsDataMap.set(route.filePath, post)
+      moduleState.collectionsDataMap.set(route.filePath, post)
     }
   }
 }
@@ -125,15 +232,44 @@ function regenerateSearchAndCollections(): void {
 async function ensureRoutesGenerated(
   docsDir: string,
   config: BoltdocsConfig,
+  state?: VirtualModuleState,
 ): Promise<void> {
-  if (_routesDataMap.size === 0) {
-    await regenerateRouteData(docsDir, config)
+  const moduleState = getVirtualModuleState(state)
+  if (!moduleState.routeCacheContext) {
+    moduleState.routeCacheContext = getRouteCacheContext(docsDir)
+  }
+  const generationKey = getRouteGenerationFingerprint(config)
+  if (
+    moduleState.routesDataMap.size === 0 ||
+    moduleState.routeGenerationFingerprint !== generationKey
+  ) {
+    moduleState.routesDataMap.clear()
+    moduleState.collectionsDataMap.clear()
+    moduleState.searchDataMap.clear()
+    await regenerateRouteData(docsDir, config, moduleState)
   }
 }
 
-function getCollectionsRecord(): Record<string, CollectionPost[]> {
+function getCollectionsRecord(
+  state?: VirtualModuleState,
+): Record<string, CollectionPost[]> {
+  const moduleState = getVirtualModuleState(state)
   const record: Record<string, CollectionPost[]> = {}
-  for (const post of _collectionsDataMap.values()) {
+  const posts = Array.from(moduleState.collectionsDataMap.values()).sort(
+    (a, b) => {
+      const timestamp = (date: string | Date | undefined) => {
+        if (!date) return Number.NEGATIVE_INFINITY
+        const value = new Date(date).getTime()
+        return Number.isFinite(value) ? value : Number.NEGATIVE_INFINITY
+      }
+      const dateA = timestamp(a.date)
+      const dateB = timestamp(b.date)
+
+      const dateOrder = dateB - dateA
+      return dateOrder !== 0 ? dateOrder : a.path.localeCompare(b.path)
+    },
+  )
+  for (const post of posts) {
     const collection = post.collection
     if (!collection) continue
     if (!record[collection]) record[collection] = []
@@ -142,13 +278,32 @@ function getCollectionsRecord(): Record<string, CollectionPost[]> {
   return record
 }
 
-function serializeMapToExport<T>(map: Map<string, T>): string {
-  return `export default ${JSON.stringify(Array.from(map.values()), null, 2)};`
+function serializeMapToExport<T, R>(
+  map: Map<string, T>,
+  transform: (value: T) => R = (value) => value as unknown as R,
+): string {
+  const values = Array.from(map.values(), transform).sort((left, right) => {
+    const getKey = (value: R): string => {
+      if (typeof value !== 'object' || value === null) return String(value)
+      const record = value as {
+        path?: unknown
+        id?: unknown
+        filePath?: unknown
+      }
+      return `${String(record.path || '')}\u0000${String(record.id || '')}\u0000${String(record.filePath || '')}`
+    }
+    return getKey(left).localeCompare(getKey(right))
+  })
+  return `export default ${JSON.stringify(values, null, 2)};`
 }
 
 /** Export the current search document cache as a plain array. */
-export function getSearchDataExport(): SearchDocument[] {
-  return Array.from(_searchDataMap.values())
+export function getSearchDataExport(
+  state?: VirtualModuleState,
+): SearchDocument[] {
+  return Array.from(getVirtualModuleState(state).searchDataMap.values()).sort(
+    (a, b) => a.id.localeCompare(b.id),
+  )
 }
 
 function serializeCollectionsToExport(
@@ -165,12 +320,24 @@ function serializeCollectionsToExport(
 export async function computeFrontmatterDelta(
   docsDir: string,
   config: BoltdocsConfig,
+  state?: VirtualModuleState,
+  routeCacheContext?: RouteCacheContext,
+  routeCacheVariant?: RouteCacheVariant,
 ): Promise<FrontmatterDeltaPayload> {
-  const oldRoutes = new Map(_routesDataMap)
-  const oldCollections = new Map(_collectionsDataMap)
-  const oldSearch = new Map(_searchDataMap)
+  const moduleState = getVirtualModuleState(state)
+  if (routeCacheContext) moduleState.routeCacheContext = routeCacheContext
+  if (routeCacheVariant) moduleState.routeCacheVariant = routeCacheVariant
+  const generationKey = getRouteGenerationFingerprint(config)
+  if (moduleState.routeGenerationFingerprint !== generationKey) {
+    moduleState.routesDataMap.clear()
+    moduleState.collectionsDataMap.clear()
+    moduleState.searchDataMap.clear()
+  }
+  const oldRoutes = new Map(moduleState.routesDataMap)
+  const oldCollections = new Map(moduleState.collectionsDataMap)
+  const oldSearch = new Map(moduleState.searchDataMap)
 
-  await regenerateRouteData(docsDir, config)
+  await regenerateRouteData(docsDir, config, moduleState)
 
   const delta: FrontmatterDeltaPayload = {
     routes: { updated: [], deleted: [] },
@@ -178,38 +345,38 @@ export async function computeFrontmatterDelta(
     search: { updated: [], deleted: [] },
   }
 
-  for (const [routePath, route] of _routesDataMap) {
+  for (const [routePath, route] of moduleState.routesDataMap) {
     const previous = oldRoutes.get(routePath)
     if (!previous || JSON.stringify(previous) !== JSON.stringify(route)) {
-      delta.routes.updated.push(route)
+      delta.routes.updated.push(toClientRouteData(route))
     }
   }
   for (const routePath of oldRoutes.keys()) {
-    if (!_routesDataMap.has(routePath)) {
+    if (!moduleState.routesDataMap.has(routePath)) {
       delta.routes.deleted.push(routePath)
     }
   }
 
-  for (const [filePath, post] of _collectionsDataMap) {
+  for (const [filePath, post] of moduleState.collectionsDataMap) {
     const previous = oldCollections.get(filePath)
     if (!previous || JSON.stringify(previous) !== JSON.stringify(post)) {
       delta.collections.updated.push(post)
     }
   }
   for (const filePath of oldCollections.keys()) {
-    if (!_collectionsDataMap.has(filePath)) {
+    if (!moduleState.collectionsDataMap.has(filePath)) {
       delta.collections.deleted.push(filePath)
     }
   }
 
-  for (const [id, doc] of _searchDataMap) {
+  for (const [id, doc] of moduleState.searchDataMap) {
     const previous = oldSearch.get(id)
     if (!previous || JSON.stringify(previous) !== JSON.stringify(doc)) {
       delta.search.updated.push(doc)
     }
   }
   for (const id of oldSearch.keys()) {
-    if (!_searchDataMap.has(id)) {
+    if (!moduleState.searchDataMap.has(id)) {
       delta.search.deleted.push(id)
     }
   }
@@ -227,7 +394,11 @@ export function createVirtualModulesPlugin(
   getConfig: () => BoltdocsConfig,
   getViteConfig: () => ResolvedConfig | undefined,
   docsDir: string,
+  runtime?: PluginRuntimeState,
+  state?: VirtualModuleState,
 ): Plugin {
+  const registry = runtime?.virtualModuleRegistry ?? virtualModuleRegistry
+  const moduleState = getVirtualModuleState(state)
   return {
     name: 'vite-plugin-boltdocs-virtual-modules',
 
@@ -262,14 +433,11 @@ export function createVirtualModulesPlugin(
         const cleanId = id.slice(1)
         if (
           !cleanId.startsWith('virtual:boltdocs-') &&
-          virtualModuleRegistry.has(cleanId)
+          registry?.has(cleanId)
         ) {
           return id
         }
-      } else if (
-        !id.startsWith('virtual:boltdocs-') &&
-        virtualModuleRegistry.has(id)
-      ) {
+      } else if (!id.startsWith('virtual:boltdocs-') && registry?.has(id)) {
         return '\0' + id
       }
 
@@ -295,9 +463,9 @@ export function createVirtualModulesPlugin(
         !cleanId.includes('boltdocs-entry.tsx') &&
         !cleanId.includes('boltdocs-client.mjs') &&
         !cleanId.startsWith('virtual:boltdocs-') &&
-        virtualModuleRegistry.has(cleanId)
+        registry?.has(cleanId)
       ) {
-        const entry = virtualModuleRegistry.get(cleanId)
+        const entry = registry?.get(cleanId)
         if (!entry) return null
         try {
           const code = await entry.loader()
@@ -320,7 +488,15 @@ export function createVirtualModulesPlugin(
         id.includes('boltdocs-entry.tsx') ||
         id === '\0virtual:boltdocs-entry'
       ) {
-        return generateEntryCode(options, config)
+        const resolvedViteConfig = getViteConfig()
+        return generateEntryCode(
+          {
+            ...options,
+            ssr: Boolean(resolvedViteConfig?.build?.ssr),
+            useCompiledPages: resolvedViteConfig?.command === 'build',
+          },
+          config,
+        )
       }
 
       if (
@@ -357,22 +533,24 @@ export function createVirtualModulesPlugin(
       const name = nameWithExt.replace(/\.tsx?$/, '')
 
       if (name === 'routes') {
-        await ensureRoutesGenerated(docsDir, config)
-        return serializeMapToExport(_routesDataMap)
+        await ensureRoutesGenerated(docsDir, config, moduleState)
+        return serializeMapToExport(
+          moduleState.routesDataMap,
+          toClientRouteData,
+        )
       }
       if (name === 'collections') {
-        await ensureRoutesGenerated(docsDir, config)
-        const record = getCollectionsRecord()
+        await ensureRoutesGenerated(docsDir, config, moduleState)
+        const record = getCollectionsRecord(moduleState)
         return serializeCollectionsToExport(record)
       }
       if (name === 'config') {
-        // Use cached directory meta to avoid a full fdir crawl on every request.
-        // The cache is invalidated by the dev-server watcher on add/unlink events.
-        if (_directoryMetaCache === null) {
-          const { loadDirectoryMeta } = await import('../routes/meta-loader')
-          _directoryMetaCache = await loadDirectoryMeta(docsDir)
-        }
-        const directoryMeta = _directoryMetaCache
+        // Route generation discovers documents and meta.json in one crawl.
+        // Reuse the same variant cache instead of performing a second metadata
+        // crawl just to build the client config module.
+        await ensureRoutesGenerated(docsDir, config, moduleState)
+        const directoryMeta = moduleState.routeCacheVariant?.directoryMeta || {}
+        moduleState.directoryMetaCache = directoryMeta
         const clientConfig = {
           base: config?.base,
           theme: config?.theme,
@@ -380,14 +558,24 @@ export function createVirtualModulesPlugin(
           versions: config?.versions,
           siteUrl: config?.siteUrl,
           integrations: config?.integrations,
+          collections: config?.collections,
+          seo: config?.seo,
+          experimental: config?.experimental,
           plugins: config?.plugins?.map((p) => ({ name: p.name })),
           directoryMeta,
         }
         return `export default ${JSON.stringify(clientConfig, null, 2)};`
       }
       if (name === 'entry') {
-        const code = generateEntryCode(options, config)
-        return code
+        const resolvedViteConfig = getViteConfig()
+        return generateEntryCode(
+          {
+            ...options,
+            ssr: Boolean(resolvedViteConfig?.build?.ssr),
+            useCompiledPages: resolvedViteConfig?.command === 'build',
+          },
+          config,
+        )
       }
       if (name === 'mdx-components') {
         const extensions = ['tsx', 'ts', 'jsx', 'js']
@@ -491,13 +679,16 @@ export default UserLayout;`
       }
 
       if (name === 'search') {
-        await ensureRoutesGenerated(docsDir, config)
+        await ensureRoutesGenerated(docsDir, config, moduleState)
         // Serve search data as a runtime-fetched JSON asset so the large
         // document array is not embedded in the client JS bundle.
-        return `export default async function fetchSearchData() {
+        return `export default async function fetchSearchData(options = {}) {
   const base = import.meta.env.BASE_URL || '/';
-  const url = new URL('search.json', base).toString();
-  const res = await fetch(url);
+  const origin = typeof window !== 'undefined' ? window.location.origin : 'http://localhost';
+  const basePath = base.endsWith('/') ? base : base + '/';
+  const url = new URL('search.json', new URL(basePath, origin));
+  if (options.bustCache) url.searchParams.set('t', String(Date.now()));
+  const res = await fetch(url, { cache: options.bustCache ? 'no-store' : 'default' });
   if (!res.ok) throw new Error('Failed to fetch search index');
   return res.json();
 }`

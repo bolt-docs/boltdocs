@@ -8,7 +8,6 @@ import { THEMES_BUILD } from './shiki-themes'
 import { LANG_BUILD, type Languages } from './shiki-langs'
 import type { ShikiTheme } from '../../shared/types'
 
-let onigEngine: RegexEngine | null = null
 let highlighterPromise: Promise<HighlighterCore> | null = null
 
 async function getOnigEngineImpl(): Promise<RegexEngine> {

@@ -730,7 +730,6 @@ describe('doctor unified tests', () => {
     const calls = (console.log as any).mock.calls
       .map((c: any) => c[0])
       .join('\n')
-    expect(() => JSON.parse(calls)).not.toThrow()
     const report = JSON.parse(calls)
     expect(report).toHaveProperty('summary')
     expect(report).toHaveProperty('issues')

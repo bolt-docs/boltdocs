@@ -63,7 +63,6 @@ describe('Next-Gen Boltdocs Plugin API', () => {
       client: {
         slots: {
           'search:dialog': './SearchA.tsx',
-          'footer:top': './FooterA.tsx',
         },
         providers: ['./ProviderA.tsx'],
         mdxComponents: { Callout: './Callout.tsx' },
@@ -76,7 +75,6 @@ describe('Next-Gen Boltdocs Plugin API', () => {
       client: {
         slots: {
           'search:dialog': './SearchB.tsx',
-          'footer:bottom': './FooterB.tsx',
         },
         providers: ['./ProviderB.tsx'],
         mdxComponents: { Badge: './Badge.tsx' },
@@ -89,14 +87,31 @@ describe('Next-Gen Boltdocs Plugin API', () => {
       './SearchA.tsx',
       './SearchB.tsx',
     ])
-    expect(registry.slots['footer:top']).toEqual(['./FooterA.tsx'])
-    expect(registry.slots['footer:bottom']).toEqual(['./FooterB.tsx'])
     expect(registry.providers).toEqual(['./ProviderA.tsx', './ProviderB.tsx'])
     expect(registry.mdxComponents).toEqual({
       Callout: './Callout.tsx',
       Badge: './Badge.tsx',
     })
     expect(registry.head).toEqual([{ tag: 'script', attrs: { src: 'a.js' } }])
+  })
+
+  it('ignores removed footer slots when resolving the client registry', () => {
+    const plugin = definePlugin({
+      name: 'legacy-footer-plugin',
+      client: {
+        slots: {
+          'footer:top': './Footer.tsx',
+          'footer:bottom': './FooterBottom.tsx',
+          'page:after': './After.tsx',
+        },
+      },
+    })()
+
+    const registry = resolveClientRegistry([plugin])
+
+    expect(registry.slots).toEqual({ 'page:after': ['./After.tsx'] })
+    expect(registry.slots['footer:top']).toBeUndefined()
+    expect(registry.slots['footer:bottom']).toBeUndefined()
   })
 
   it('extracts standardized SearchDocument[] from routes', () => {

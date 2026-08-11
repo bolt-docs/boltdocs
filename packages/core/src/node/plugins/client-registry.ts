@@ -1,5 +1,13 @@
 import type { BoltdocsPlugin, PluginClientConfig } from '../../shared/types'
 
+const REMOVED_CLIENT_SLOT_PREFIXES = ['footer:'] as const
+
+function isRemovedClientSlot(slotName: string): boolean {
+  return REMOVED_CLIENT_SLOT_PREFIXES.some((prefix) =>
+    slotName.startsWith(prefix),
+  )
+}
+
 export interface ResolvedClientRegistry {
   slots: Record<string, string[]>
   providers: string[]
@@ -28,6 +36,8 @@ export function resolveClientRegistry(
     // Aggregate slots (multiple plugins can contribute to the same slot)
     if (client.slots) {
       for (const [slotName, componentPath] of Object.entries(client.slots)) {
+        if (isRemovedClientSlot(slotName)) continue
+
         if (!registry.slots[slotName]) {
           registry.slots[slotName] = []
         }

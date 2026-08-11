@@ -63,4 +63,22 @@ describe('Plugin Validator', () => {
     expect(validated[0].hooks?.beforeBuild).toBeDefined()
     expect(validated[0].hooks?.transformMdx).toBeDefined()
   })
+
+  it('preserves modern lifecycle hooks during validation', () => {
+    const buildBefore = async () => {}
+    const plugins = [
+      {
+        name: 'modern-hook-plugin',
+        hooks: {
+          'build:before': buildBefore,
+          'server:configure': async () => {},
+        },
+      },
+    ]
+
+    const validated = validatePlugins(plugins, boltdocsVersion)
+
+    expect(validated[0].hooks?.['build:before']).toBe(buildBefore)
+    expect(validated[0].hooks?.['server:configure']).toBeDefined()
+  })
 })

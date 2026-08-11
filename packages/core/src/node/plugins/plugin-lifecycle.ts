@@ -1,5 +1,12 @@
 import type { BoltdocsConfig } from '../config'
 import type { RouteMeta } from '../routes/types'
+import {
+  getRouteGenerationFingerprint,
+  getRouteCacheContext,
+  getRouteCacheVariant,
+  type RouteCacheContext,
+  type RouteCacheVariant,
+} from '../routes/cache'
 import { PluginHookError } from './plugin-errors'
 import type {
   PluginLifecycleHooks,
@@ -18,12 +25,11 @@ import {
   createPluginPathsAPI,
   createPluginServerAPI,
   createPluginVirtualModulesAPI,
-  middlewareRegistry,
+  createPluginRuntimeState,
+  getDefaultPluginRuntimeState,
+  type PluginRuntimeState,
 } from './plugin-context'
-import type {
-  PluginTransformMiddleware,
-  IPluginLifecycleManager,
-} from '../../shared/types'
+import type { IPluginLifecycleManager } from '../../shared/types'
 
 const HOOK_ALIASES: Record<string, string> = {
   'build:before': 'beforeBuild',
@@ -67,6 +73,9 @@ export class PluginLifecycleManager implements IPluginLifecycleManager {
   private rootDir: string
   private routes: RouteMeta[]
   private outDir: string
+  private runtime: PluginRuntimeState
+  private routeCacheContext: RouteCacheContext
+  private routeCacheVariant: RouteCacheVariant
 
   constructor(
     plugins: BoltdocsPlugin[],
@@ -75,6 +84,9 @@ export class PluginLifecycleManager implements IPluginLifecycleManager {
     rootDir?: string,
     routes?: RouteMeta[],
     outDir?: string,
+    runtime?: PluginRuntimeState,
+    routeCacheContext?: RouteCacheContext,
+    routeCacheVariant?: RouteCacheVariant,
   ) {
     this.plugins = plugins
     this.config = config
@@ -83,6 +95,15 @@ export class PluginLifecycleManager implements IPluginLifecycleManager {
     this.rootDir = rootDir || process.cwd()
     this.routes = routes || []
     this.outDir = outDir || 'dist'
+    this.runtime = runtime ?? getDefaultPluginRuntimeState()
+    this.routeCacheContext =
+      routeCacheContext ?? getRouteCacheContext(this.docsDir)
+    this.routeCacheVariant =
+      routeCacheVariant ??
+      getRouteCacheVariant(
+        this.routeCacheContext,
+        getRouteGenerationFingerprint(config, config.base),
+      )
   }
 
   public async runHook(
@@ -186,7 +207,7 @@ export class PluginLifecycleManager implements IPluginLifecycleManager {
       (hookName === 'transformSource' ||
         hookName === 'transformMdx' ||
         hookName === 'transformHtml') &&
-      [...middlewareRegistry.values()].some(
+      [...this.runtime.middlewareRegistry.values()].some(
         (m) =>
           m[hookName as 'transformSource' | 'transformMdx' | 'transformHtml'],
       )
@@ -203,7 +224,7 @@ export class PluginLifecycleManager implements IPluginLifecycleManager {
   ): Promise<TParams> {
     // Collect middleware: static declarations + programmatic registrations.
     const staticMiddleware = this.plugins.flatMap((p) => p.middleware ?? [])
-    const programmaticMiddleware = [...middlewareRegistry.values()]
+    const programmaticMiddleware = [...this.runtime.middlewareRegistry.values()]
     const all = [...staticMiddleware, ...programmaticMiddleware]
 
     // Sort by enforce: pre → normal → post
@@ -234,13 +255,11 @@ export class PluginLifecycleManager implements IPluginLifecycleManager {
         }
       } catch (error) {
         const mwName = mw.name ?? '<unnamed>'
-        context.diagnostics.report(
-          'error',
-          `MIDDLEWARE_ERROR`,
-          `Middleware '${mwName}' threw: ${
-            error instanceof Error ? error.message : String(error)
-          }`,
-        )
+        const message = `Middleware '${mwName}' threw: ${
+          error instanceof Error ? error.message : String(error)
+        }`
+        context.logger.error(message)
+        context.diagnostics.report('error', 'MIDDLEWARE_ERROR', message)
       }
     }
 
@@ -309,13 +328,17 @@ export class PluginLifecycleManager implements IPluginLifecycleManager {
         has: (p, k) => this.store.has(p, k),
       },
       logger: this.createLogger(plugin.name),
-      caches: createPluginCachesAPI(),
-      diagnostics: createPluginDiagnosticsAPI(plugin.name),
+      caches: createPluginCachesAPI(
+        this.routeCacheContext,
+        this.rootDir,
+        this.routeCacheVariant,
+      ),
+      diagnostics: createPluginDiagnosticsAPI(plugin.name, this.runtime),
       paths: createPluginPathsAPI(this.docsDir, this.rootDir),
-      virtualModules: createPluginVirtualModulesAPI(),
-      middleware: createPluginMiddlewareAPI(),
-      hmr: createPluginHmrAPI(),
-      server: createPluginServerAPI(),
+      virtualModules: createPluginVirtualModulesAPI(this.runtime),
+      middleware: createPluginMiddlewareAPI(this.runtime),
+      hmr: createPluginHmrAPI(this.runtime),
+      server: createPluginServerAPI(this.runtime),
     }
   }
 
@@ -334,13 +357,17 @@ export class PluginLifecycleManager implements IPluginLifecycleManager {
         has: (p, k) => this.store.has(p, k),
       },
       logger: this.createLogger(name),
-      caches: createPluginCachesAPI(),
-      diagnostics: createPluginDiagnosticsAPI(name),
+      caches: createPluginCachesAPI(
+        this.routeCacheContext,
+        this.rootDir,
+        this.routeCacheVariant,
+      ),
+      diagnostics: createPluginDiagnosticsAPI(name, this.runtime),
       paths: createPluginPathsAPI(this.docsDir, this.rootDir),
-      virtualModules: createPluginVirtualModulesAPI(),
-      middleware: createPluginMiddlewareAPI(),
-      hmr: createPluginHmrAPI(),
-      server: createPluginServerAPI(),
+      virtualModules: createPluginVirtualModulesAPI(this.runtime),
+      middleware: createPluginMiddlewareAPI(this.runtime),
+      hmr: createPluginHmrAPI(this.runtime),
+      server: createPluginServerAPI(this.runtime),
     }
   }
 

@@ -1,15 +1,24 @@
-import type { ViteDevServer, Plugin } from 'vite'
+import type { ModuleNode, ViteDevServer, Plugin } from 'vite'
 import { invalidateRouteCache, invalidateFile } from '../routes'
+import {
+  getRouteGenerationFingerprint,
+  getRouteCacheContext,
+  getRouteCacheVariant,
+  invalidateDirectoryMetaFile,
+  type RouteCacheContext,
+  type RouteCacheVariant,
+} from '../routes/cache'
 import { type BoltdocsConfig, CONFIG_FILES } from '../config'
 import { generateProjectTypes } from '../types-generator'
 import { normalizePath, isDocFile } from '../utils'
 import {
   computeFrontmatterDelta,
   invalidateDirectoryMetaCache,
+  type VirtualModuleState,
 } from '../plugin/virtual-modules'
 import {
-  invalidateVirtualModulesCache,
   runPluginHmrHandlers,
+  type PluginRuntimeState,
 } from '../plugins/plugin-context'
 import {
   computeFrontmatterHash,
@@ -35,18 +44,36 @@ export function setupHmr(
   docsDir: string,
   normalizedDocsDir: string,
   getConfig: () => BoltdocsConfig,
+  runtime?: PluginRuntimeState,
+  virtualModuleState?: VirtualModuleState,
+  routeCacheContext?: RouteCacheContext,
+  routeCacheVariant?: RouteCacheVariant,
 ): void {
+  const cacheContext =
+    routeCacheContext ??
+    virtualModuleState?.routeCacheContext ??
+    getRouteCacheContext(docsDir)
+  const cacheVariant =
+    routeCacheVariant ??
+    getRouteCacheVariant(
+      cacheContext,
+      getRouteGenerationFingerprint(getConfig()),
+    )
   const pendingChanges = new Map<string, ReturnType<typeof setTimeout>>()
-  const lowerDocsDir = normalizedDocsDir.toLowerCase()
+  const changeQueues = new Map<string, Promise<void>>()
+  const fileGenerations = new Map<string, number>()
+  const lowerDocsDir = normalizedDocsDir.replace(/\/+$/, '').toLowerCase()
   // Pre-built lowercase index for O(1) module graph fallback lookup
-  let lowerModuleIndex: Map<string, any> | null = null
+  let lowerModuleIndex: Map<string, Set<ModuleNode>> | null = null
 
-  function getLowerModuleIndex(): Map<string, any> {
+  function getLowerModuleIndex(): Map<string, Set<ModuleNode>> {
     if (lowerModuleIndex) return lowerModuleIndex
     lowerModuleIndex = new Map()
     for (const [key, value] of server.moduleGraph.fileToModulesMap.entries()) {
       try {
-        lowerModuleIndex.set(decodeURIComponent(key).toLowerCase(), value)
+        if (value) {
+          lowerModuleIndex.set(decodeURIComponent(key).toLowerCase(), value)
+        }
       } catch {}
     }
     return lowerModuleIndex
@@ -57,10 +84,14 @@ export function setupHmr(
     lowerModuleIndex = null
   })
 
+  function isCurrentGeneration(file: string, generation: number): boolean {
+    return fileGenerations.get(file) === generation
+  }
+
   function invalidateMdxModules(normalized: string): boolean {
     let mods = server.moduleGraph.getModulesByFile(normalized)
     if (!mods || mods.size === 0) {
-      mods = getLowerModuleIndex().get(normalized.toLowerCase()) || null
+      mods = getLowerModuleIndex().get(normalized.toLowerCase())
     }
     if (mods && mods.size > 0) {
       for (const mod of mods) {
@@ -71,10 +102,17 @@ export function setupHmr(
     return false
   }
 
-  function sendMdxContentUpdate(file: string, normalized: string): void {
+  function sendMdxContentUpdate(
+    file: string,
+    normalized: string,
+    generation: number,
+  ): void {
+    if (!isCurrentGeneration(normalized, generation)) return
+
     const relative = path.relative(docsDir, file)
     const relPath = normalizePath(relative)
     const found = invalidateMdxModules(normalized)
+    if (!isCurrentGeneration(normalized, generation)) return
     if (found) {
       server.ws.send({
         type: 'custom',
@@ -92,6 +130,16 @@ export function setupHmr(
   ) => {
     try {
       const normalized = normalizePath(file)
+      const generation = (fileGenerations.get(normalized) ?? 0) + 1
+      fileGenerations.set(normalized, generation)
+
+      if (type === 'add' || type === 'unlink') {
+        const pending = pendingChanges.get(normalized)
+        if (pending) {
+          clearTimeout(pending)
+          pendingChanges.delete(normalized)
+        }
+      }
 
       if (CONFIG_FILES.some((c) => normalized.endsWith(c))) {
         server.restart()
@@ -147,7 +195,10 @@ export function setupHmr(
         return
       }
 
-      const isInsideDocs = normalized.toLowerCase().startsWith(lowerDocsDir)
+      const lowerNormalized = normalized.toLowerCase()
+      const isInsideDocs =
+        lowerNormalized === lowerDocsDir ||
+        lowerNormalized.startsWith(`${lowerDocsDir}/`)
       if (!isInsideDocs) return
 
       const isMetaJson =
@@ -156,14 +207,21 @@ export function setupHmr(
 
       if (type === 'add' || type === 'unlink' || isMetaJson) {
         if (type === 'unlink') {
-          removeFrontmatterHash(file)
+          removeFrontmatterHash(file, cacheContext, cacheVariant)
         }
-        invalidateRouteCache()
-        invalidateDirectoryMetaCache()
-        invalidateVirtualModulesCache()
+        if (isMetaJson) {
+          invalidateDirectoryMetaFile(file, cacheContext)
+        }
+        invalidateRouteCache(cacheContext)
+        invalidateDirectoryMetaCache(virtualModuleState)
 
-        // Notify plugin HMR handlers after core processing
-        runPluginHmrHandlers(type, normalized).catch((e) => {
+        // Notify plugin HMR handlers after core processing. Preserve the
+        // two-argument legacy call for isolated consumers that do not provide
+        // an explicit runtime.
+        const hmrResult = runtime
+          ? runPluginHmrHandlers(type, normalized, runtime)
+          : runPluginHmrHandlers(type, normalized)
+        hmrResult.catch((e) => {
           error('Plugin HMR handler error:', e)
         })
 
@@ -194,64 +252,106 @@ export function setupHmr(
       }
 
       if (pendingChanges.has(normalized)) {
-        clearTimeout(pendingChanges.get(normalized)!)
+        const pending = pendingChanges.get(normalized)
+        if (pending) clearTimeout(pending)
       }
 
       pendingChanges.set(
         normalized,
-        setTimeout(async () => {
+        setTimeout(() => {
           pendingChanges.delete(normalized)
 
-          try {
-            const prevHash = getFrontmatterHash(file)
-            const newHash = await computeFrontmatterHash(file)
-            setFrontmatterHash(file, newHash)
+          const previousChange =
+            changeQueues.get(normalized) ?? Promise.resolve()
+          const currentChange = previousChange.then(async () => {
+            if (fileGenerations.get(normalized) !== generation) return
 
-            invalidateFile(file)
-            invalidateMdxFileCache(file)
+            try {
+              const prevHash = getFrontmatterHash(
+                file,
+                cacheContext,
+                cacheVariant,
+              )
+              const newHash = await computeFrontmatterHash(file)
+              if (fileGenerations.get(normalized) !== generation) return
 
-            if (prevHash !== undefined && prevHash !== newHash) {
-              invalidateVirtualModule(server, 'routes')
-              invalidateVirtualModule(server, 'search')
-              invalidateVirtualModule(server, 'collections')
+              if (!isCurrentGeneration(normalized, generation)) return
 
-              const currentConfig = getConfig()
+              setFrontmatterHash(file, newHash, cacheContext, cacheVariant)
+              invalidateFile(file, cacheContext)
+              invalidateMdxFileCache(file)
 
-              try {
-                const delta = await computeFrontmatterDelta(
-                  docsDir,
-                  currentConfig,
-                )
-                // Structural changes (route deletions) still require a full
-                // reload because React Router's route tree is built from the
-                // static virtual module entry point.
-                if (delta.routes.deleted.length > 0) {
-                  server.ws.send({ type: 'full-reload' })
+              // Regular document changes are debounced below, so notify
+              // plugin handlers here after the change has been validated and
+              // the parser/MDX caches have been invalidated.
+              if (runtime) {
+                await runPluginHmrHandlers('change', normalized, runtime)
+              } else {
+                await runPluginHmrHandlers('change', normalized)
+              }
+
+              if (prevHash !== undefined && prevHash !== newHash) {
+                if (!isCurrentGeneration(normalized, generation)) return
+
+                invalidateVirtualModule(server, 'routes')
+                invalidateVirtualModule(server, 'search')
+                invalidateVirtualModule(server, 'collections')
+
+                const currentConfig = getConfig()
+
+                try {
+                  const delta = await computeFrontmatterDelta(
+                    docsDir,
+                    currentConfig,
+                    virtualModuleState,
+                    cacheContext,
+                    cacheVariant,
+                  )
+                  if (!isCurrentGeneration(normalized, generation)) return
+                  // Structural changes (route deletions) still require a full
+                  // reload because React Router's route tree is built from the
+                  // static virtual module entry point.
+                  if (delta.routes.deleted.length > 0) {
+                    if (isCurrentGeneration(normalized, generation)) {
+                      server.ws.send({ type: 'full-reload' })
+                    }
+                    return
+                  }
+
+                  if (!isCurrentGeneration(normalized, generation)) return
+                  server.ws.send({
+                    type: 'custom',
+                    event: 'boltdocs:frontmatter-update',
+                    data: delta,
+                  })
+                } catch (e) {
+                  error('Failed to compute frontmatter delta:', e)
+                  if (isCurrentGeneration(normalized, generation)) {
+                    server.ws.send({ type: 'full-reload' })
+                  }
                   return
                 }
 
-                server.ws.send({
-                  type: 'custom',
-                  event: 'boltdocs:frontmatter-update',
-                  data: delta,
-                })
-              } catch (e) {
-                error('Failed to compute frontmatter delta:', e)
-                server.ws.send({ type: 'full-reload' })
+                // Frontmatter-only changes may also include body edits; send the
+                // same content HMR event so the page module re-renders without
+                // requiring a separate save cycle.
+                sendMdxContentUpdate(file, normalized, generation)
                 return
               }
 
-              // Frontmatter-only changes may also include body edits; send the
-              // same content HMR event so the page module re-renders without
-              // requiring a separate save cycle.
-              sendMdxContentUpdate(file, normalized)
-              return
+              sendMdxContentUpdate(file, normalized, generation)
+            } catch (e) {
+              error('HMR error processing content change:', e)
             }
+          })
 
-            sendMdxContentUpdate(file, normalized)
-          } catch (e) {
-            error('HMR error processing content change:', e)
+          changeQueues.set(normalized, currentChange)
+          const clearCurrentChange = () => {
+            if (changeQueues.get(normalized) === currentChange) {
+              changeQueues.delete(normalized)
+            }
           }
+          void currentChange.then(clearCurrentChange, clearCurrentChange)
         }, DEBOUNCE_MS),
       )
     } catch (e) {
@@ -267,13 +367,14 @@ export function setupHmr(
 export function createHotUpdateHandler(
   normalizedDocsDir: string,
 ): Plugin['hotUpdate'] {
-  const lowerDocsDir = normalizedDocsDir.toLowerCase()
+  const lowerDocsDir = normalizePath(normalizedDocsDir)
+    .replace(/\/+$/, '')
+    .toLowerCase()
   return ({ file }) => {
-    const normalized = file.toLowerCase()
-    if (
-      normalized.startsWith(lowerDocsDir) &&
-      (isDocFile(file) || normalized.endsWith('meta.json'))
-    ) {
+    const normalized = normalizePath(file).toLowerCase()
+    const isInsideDocs =
+      normalized === lowerDocsDir || normalized.startsWith(`${lowerDocsDir}/`)
+    if (isInsideDocs && (isDocFile(file) || normalized.endsWith('meta.json'))) {
       return []
     }
   }

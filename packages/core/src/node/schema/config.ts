@@ -9,13 +9,6 @@ export const SocialLinkSchema = z.object({
 })
 
 /**
- * Zod schema for footer configuration.
- */
-export const FooterConfigSchema = z.object({
-  text: z.string().max(2000).optional(),
-})
-
-/**
  * Zod schema for MDX configuration.
  */
 export const MdxConfigSchema = z.object({
@@ -219,6 +212,22 @@ export const VerificationConfigSchema = z.object({
 /**
  * Zod schema for SEO configuration.
  */
+const JsonLdValueSchema: z.ZodType<unknown> = z.lazy(() =>
+  z.union([
+    z.string(),
+    z.number(),
+    z.boolean(),
+    z.null(),
+    z.array(JsonLdValueSchema),
+    z.record(z.string(), JsonLdValueSchema),
+  ]),
+)
+
+export const StructuredDataSchema = z.union([
+  z.record(z.string(), JsonLdValueSchema),
+  z.array(z.record(z.string(), JsonLdValueSchema)),
+])
+
 export const BoltdocsSeoConfigSchema = z.object({
   metatags: z.record(z.string(), z.string()).optional(),
   indexing: z.enum(['all', 'public']).optional(),
@@ -228,6 +237,20 @@ export const BoltdocsSeoConfigSchema = z.object({
     })
     .optional(),
   verification: VerificationConfigSchema.optional(),
+  structuredData: StructuredDataSchema.optional(),
+})
+
+export const ExperimentalConfigSchema = z.object({
+  viewTransitions: z
+    .union([
+      z.boolean(),
+      z.object({
+        enabled: z.boolean().optional(),
+        types: z.array(z.string()).optional(),
+      }),
+    ])
+    .optional(),
+  fileRouting: z.boolean().optional(),
 })
 
 /**
@@ -344,6 +367,20 @@ export const SsgConfigSchema = z.object({
 })
 
 /**
+ * Zod schema for collections configuration.
+ */
+export const CollectionsConfigSchema = z.object({
+  labels: z
+    .record(z.string(), z.union([z.string(), z.record(z.string(), z.string())]))
+    .optional(),
+  positions: z.record(z.string(), z.number()).optional(),
+  postsPerPage: z.number().int().positive().optional(),
+  defaultCollection: z.string().optional(),
+  dateFormat: z.string().optional(),
+  sortBy: z.enum(['date', 'title', 'sidebarPosition']).optional(),
+})
+
+/**
  * Zod schema for drafts configuration.
  */
 export const DraftsConfigSchema = z.object({
@@ -365,11 +402,13 @@ export const BoltdocsConfigSchema = z.object({
   mdx: MdxConfigSchema.optional(),
   ssg: SsgConfigSchema.optional(),
   plugins: z.array(BoltdocsPluginSchema).optional(),
+  collections: CollectionsConfigSchema.optional(),
   robots: RobotsConfigSchema.optional(),
   security: SecurityConfigSchema.optional(),
   seo: BoltdocsSeoConfigSchema.optional(),
   integrations: IntegrationsConfigSchema.optional(),
   drafts: DraftsConfigSchema.optional(),
+  experimental: ExperimentalConfigSchema.optional(),
   featureFlags: z
     .record(z.string(), z.union([z.boolean(), z.string()]))
     .optional(),

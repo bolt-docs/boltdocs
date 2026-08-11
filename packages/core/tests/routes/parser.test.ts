@@ -345,6 +345,23 @@ describe('parseDocFile', () => {
       expect(result.route.path).toBe('/docs')
     })
 
+    it('should map a collection _index.md to the collection root', async () => {
+      ;(utils.parseFrontmatterAsync as any).mockResolvedValue({
+        data: { title: 'Blog' },
+        content: '# Blog',
+      })
+
+      const result = await parseDocFile(
+        'C:\\docs\\[blog]\\_index.md',
+        docsDir,
+        basePath,
+      )
+
+      expect(result.route.path).toBe('/blog')
+      expect(result.route.collection).toBe('blog')
+      expect(result.isGroupIndex).toBe(true)
+    })
+
     it('should handle nested directory structure', async () => {
       ;(utils.parseFrontmatterAsync as any).mockResolvedValue({
         data: {},

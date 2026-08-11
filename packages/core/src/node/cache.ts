@@ -1,4 +1,3 @@
-import fs from 'node:fs'
 import fsPromises from 'node:fs/promises'
 import path from 'node:path'
 import crypto from 'node:crypto'
@@ -13,6 +12,13 @@ const mkdir = fsPromises.mkdir
 const rename = fsPromises.rename
 const gzipPromise = promisify(zlib.gzip)
 const gunzipPromise = promisify(zlib.gunzip)
+
+// Transform caches own a debounced index write. Keep process-local
+// registration so `flushCache()` can force those writes before a build exits.
+const transformCacheRegistry = new Set<WeakRef<TransformCache>>()
+const transformCacheFinalizer = new FinalizationRegistry<
+  WeakRef<TransformCache>
+>((ref) => transformCacheRegistry.delete(ref))
 
 /**
  * Shards directory name.
@@ -329,6 +335,9 @@ export class TransformCache {
       ttl: config.lruTTL,
       updateAgeOnGet: true,
     })
+    const ref = new WeakRef(this)
+    transformCacheRegistry.add(ref)
+    transformCacheFinalizer.register(this, ref, this)
   }
 
   /**
@@ -354,6 +363,10 @@ export class TransformCache {
   save(): void {
     const config = getCacheConfig()
     if (config.noCache) return
+    if (this.saveTimeout) {
+      clearTimeout(this.saveTimeout)
+      this.saveTimeout = null
+    }
     const data = JSON.stringify(Object.fromEntries(this.index))
     const target = this.indexPath
 
@@ -376,7 +389,7 @@ export class TransformCache {
 
     for (const key of keys) {
       const mem = this.memoryCache.get(key)
-      if (mem) results.set(key, mem)
+      if (mem !== undefined) results.set(key, mem)
       else if (this.index.has(key)) toLoad.push(key)
     }
 
@@ -414,7 +427,7 @@ export class TransformCache {
    */
   async getAsync(key: string): Promise<string | null> {
     const mem = this.memoryCache.get(key)
-    if (mem) return mem
+    if (mem !== undefined) return mem
 
     const hash = this.index.get(key)
     if (!hash) return null
@@ -476,6 +489,7 @@ export class TransformCache {
       clearTimeout(this.saveTimeout)
     }
     this.saveTimeout = setTimeout(() => {
+      this.saveTimeout = null
       this.save()
     }, 500)
     if (typeof this.saveTimeout.unref === 'function') {
@@ -488,7 +502,27 @@ export class TransformCache {
   }
 
   async flush() {
+    // A debounced index write must be materialized before waiting for the
+    // background queue; otherwise a fast build can finish before the 500 ms
+    // timer runs and lose the latest cache index.
+    if (this.saveTimeout) {
+      clearTimeout(this.saveTimeout)
+      this.saveTimeout = null
+      this.save()
+    }
     await globalBackgroundQueue.flush()
+  }
+
+  /** Release this cache from the process-wide flush registry. */
+  dispose(): void {
+    if (this.saveTimeout) {
+      clearTimeout(this.saveTimeout)
+      this.saveTimeout = null
+    }
+    for (const ref of transformCacheRegistry) {
+      if (ref.deref() === this) transformCacheRegistry.delete(ref)
+    }
+    transformCacheFinalizer.unregister(this)
   }
 }
 
@@ -496,5 +530,12 @@ export class TransformCache {
  * Flushes all pending background cache operations.
  */
 export async function flushCache() {
+  // Flush debounced transform indexes first, then wait for their shard writes.
+  await Promise.all(
+    [...transformCacheRegistry]
+      .map((ref) => ref.deref())
+      .filter((cache): cache is TransformCache => cache !== undefined)
+      .map((cache) => cache.flush()),
+  )
   await globalBackgroundQueue.flush()
 }

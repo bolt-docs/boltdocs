@@ -7,6 +7,8 @@ import { resolveConfig } from '../config'
 import { inspectPluginsSecurity } from '../security/inspect'
 import { generateRoutes } from '../routes'
 import path from 'node:path'
+import { createDevShutdownController } from './dev-lifecycle'
+import { acquireDevServerLock, type DevServerLock } from './dev-lock'
 
 let devServerStarted = false
 
@@ -23,9 +25,12 @@ export async function devAction(
   if (devServerStarted) return
   devServerStarted = true
 
+  let lock: DevServerLock | null = null
+  let server: Awaited<ReturnType<typeof createServer>> | null = null
+  let removeSignalHandlers = () => {}
   notifyUpdateAvailable()
-  let config: any = undefined
-  let devRoutes: any = undefined
+  let config: any
+  let devRoutes: any
   try {
     config = await resolveConfig(path.resolve(root, 'docs'), root)
     inspectPluginsSecurity(config, root)
@@ -34,6 +39,7 @@ export async function devAction(
   }
 
   try {
+    lock = acquireDevServerLock(root)
     const viteConfig = await createViteConfig(root, 'development', config, {
       routes: devRoutes,
       skipTypes: true,
@@ -55,13 +61,46 @@ export async function devAction(
       viteConfig.optimizeDeps.force = true
     }
 
-    const server = await createServer(viteConfig)
-    await server.listen()
+    server = await createServer(viteConfig)
+
+    removeSignalHandlers = () => {
+      process.off('SIGINT', handleSigint)
+      process.off('SIGTERM', handleSigterm)
+    }
+    const shutdown = createDevShutdownController(
+      () => server!.close(),
+      () => {
+        devServerStarted = false
+        lock?.release()
+        removeSignalHandlers()
+      },
+    )
+    const handleSigint = () => {
+      void shutdown.shutdown(0)
+    }
+    const handleSigterm = () => {
+      void shutdown.shutdown(143)
+    }
+    process.once('SIGINT', handleSigint)
+    process.once('SIGTERM', handleSigterm)
+    try {
+      await server.listen()
+    } catch (listenError) {
+      removeSignalHandlers()
+      throw listenError
+    }
+    server.httpServer?.once('close', () => {
+      removeSignalHandlers()
+      devServerStarted = false
+      lock?.release()
+    })
 
     // Start generating routes in the background
-    generateRoutes('docs', config).catch((err) => {
-      error('Background route generation failed:', err)
-    })
+    generateRoutes(config?.docsDir || path.resolve(root, 'docs'), config).catch(
+      (err) => {
+        error('Background route generation failed:', err)
+      },
+    )
 
     const urls = server.resolvedUrls
     console.log(
@@ -72,6 +111,16 @@ export async function devAction(
     )
     server.bindCLIShortcuts({ print: false })
   } catch (e) {
+    removeSignalHandlers()
+    if (server) {
+      try {
+        await server.close()
+      } catch {
+        // Preserve the original startup error; shutdown is best effort.
+      }
+    }
+    devServerStarted = false
+    lock?.release()
     error('Failed to start dev server:', e)
     process.exit(1)
   }

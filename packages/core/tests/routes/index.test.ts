@@ -14,17 +14,59 @@ const tempDocsDir = fs.mkdtempSync(path.join(os.tmpdir(), 'litedocs-tests-'))
 
 // Mock parser and cache
 vi.mock('../../src/node/routes/parser')
-vi.mock('../../src/node/routes/cache', () => ({
-  docCache: {
+vi.mock('../../src/node/routes/cache', () => {
+  const docCache = {
     load: vi.fn(),
     get: vi.fn(),
     set: vi.fn(),
     pruneStale: vi.fn(),
     save: vi.fn(),
     invalidateAll: vi.fn(),
-  },
-  invalidateRouteCache: vi.fn(),
-}))
+  }
+  const context = {
+    docsDir: 'mock-docs',
+    cacheRoot: 'mock-root',
+    docCache,
+    parserCache: {
+      get: vi.fn(),
+      set: vi.fn(),
+      invalidate: vi.fn(),
+      clear: vi.fn(),
+    },
+    cachedFileList: null as string[] | null,
+    localizedPathCache: new Map<string, string>(),
+    cachedNativeDocs: null,
+    frontmatterHashes: new Map<string, string>(),
+    directoryMeta: null,
+    cachedDirectoryMetaFiles: null,
+    directoryMetaEntries: new Map(),
+    activeGenerations: new Map<string, Promise<unknown>>(),
+    variants: new Map(),
+    activeVariant: null,
+  }
+  const configureRouteCacheContext = vi.fn(() => context)
+  const getRouteGenerationFingerprint = vi.fn(() => 'mock-generation')
+  const getRouteCacheVariant = vi.fn(() => context)
+  const invalidateRouteCache = vi.fn(() => {
+    context.cachedFileList = null
+    context.localizedPathCache.clear()
+    context.cachedNativeDocs = null
+    context.frontmatterHashes.clear()
+    context.activeGenerations.clear()
+    docCache.invalidateAll()
+    context.parserCache.clear()
+  })
+  return {
+    docCache,
+    getRouteCacheContext: vi.fn(() => context),
+    configureRouteCacheContext,
+    getRouteGenerationFingerprint,
+    getRouteCacheVariant,
+    syncRouteCacheFacade: vi.fn(),
+    invalidateRouteCache,
+    invalidateFile: vi.fn(),
+  }
+})
 
 describe('generateRoutes', () => {
   const basePath = '/docs'

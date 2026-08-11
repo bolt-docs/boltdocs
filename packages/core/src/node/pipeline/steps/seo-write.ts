@@ -14,6 +14,7 @@ export class SEOWriteStep implements PipelineStep<BuildContext> {
     }
 
     const sitemap = generateSitemap(ctx.ssgRoutes, ctx.config)
+    const docsDir = ctx.docsDir || path.resolve(ctx.root, 'docs')
     const targetOutDir = path.resolve(ctx.root, ctx.outDir)
 
     if (sitemap) {
@@ -31,13 +32,13 @@ export class SEOWriteStep implements PipelineStep<BuildContext> {
       const manager = new PluginLifecycleManager(
         ctx.config.plugins,
         ctx.config,
-        ctx.docsDir,
+        docsDir,
         ctx.root,
-        ctx.ssgRoutes,
+        ctx.routes ?? [],
         targetOutDir,
       )
       await manager.runHook('build:generate', {
-        routes: ctx.ssgRoutes,
+        routes: ctx.routes ?? [],
         outDir: targetOutDir,
         siteUrl: ctx.config.siteUrl,
       })

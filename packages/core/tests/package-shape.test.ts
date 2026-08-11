@@ -56,9 +56,8 @@ describe('packages/core/package.json shape', () => {
     expect(deps.dependencies['isomorphic-dompurify']).toBe('3.7.1')
   })
 
-  it('keeps zod, react-router-dom, and the workspace packages as runtime deps', () => {
+  it('keeps zod and the workspace packages as runtime deps', () => {
     expect(deps.dependencies.zod).toBeDefined()
-    expect(deps.dependencies['react-router-dom']).toBeDefined()
     expect(deps.dependencies['@bdocs/ssg']).toBe('workspace:*')
     expect(deps.dependencies['@bdocs/parser']).toBe('workspace:*')
     expect(deps.dependencies['@bdocs/unist-utils']).toBe('workspace:*')

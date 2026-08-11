@@ -42,6 +42,11 @@
       "import": "./dist/client/index.js",
       "require": "./dist/client/index.cjs"
     },
+    "./client/router": {
+      "types": "./dist/client/router.d.ts",
+      "import": "./dist/client/router.js",
+      "require": "./dist/client/router.cjs"
+    },
     "./primitives": {
       "types": "./dist/client/primitives.d.ts",
       "import": "./dist/client/primitives.js",
@@ -105,7 +110,6 @@
     "lru-cache": "^11.3.6",
     "picomatch": "^4.0.4",
     "react-helmet-async": "^2.0.1",
-    "react-router-dom": "^7.0.0",
     "scroll-into-view-if-needed": "3.1.0",
     "semver": "^7.7.4",
     "shiki": "3.23.0",
@@ -135,6 +139,7 @@
     "tailwindcss": "^4.3.0",
     "tsdown": "0.21.7",
     "typescript": "5.9.3",
-    "vitest": "^3.0.0"
+    "vitest": "^3.0.0",
+    "tsdown-config": "workspace:*"
   }
 }

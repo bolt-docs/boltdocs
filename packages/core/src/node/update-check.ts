@@ -3,7 +3,6 @@ import os from 'node:os'
 import fs from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
-import * as dui from '@bdocs/dui'
 import { updateAvailable } from './ui-utils'
 
 const req = createRequire(import.meta.url)

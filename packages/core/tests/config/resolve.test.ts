@@ -45,6 +45,18 @@ describe('config', () => {
       expect(config.theme?.title).toBe('Direct Title')
     })
 
+    it('should resolve a custom docsDir from the project root', async () => {
+      const configPath = path.resolve(tempProjectDir, 'boltdocs.config.js')
+      fs.writeFileSync(configPath, 'export default { docsDir: "content" };')
+
+      const config = await resolveConfig(
+        path.join(tempProjectDir, 'docs'),
+        tempProjectDir,
+      )
+
+      expect(config.docsDir).toBe(path.join(tempProjectDir, 'content'))
+    })
+
     it('should handle errors during config import gracefully', async () => {
       const configPath = path.resolve(tempProjectDir, 'boltdocs.config.js')
       fs.writeFileSync(configPath, 'throw new Error("Config Error");')
@@ -131,7 +143,7 @@ describe('config', () => {
 
       const config = await resolveConfig(tempProjectDir, tempProjectDir)
       expect(config.theme?.navbar).toHaveLength(3)
-      expect(config.theme?.navbar![0]).toEqual({
+      expect(config.theme?.navbar?.[0]).toEqual({
         label: 'Home',
         href: '/',
       })
@@ -184,6 +196,19 @@ describe('config', () => {
       })
     })
 
+    it('should resolve safely when theme.tabs is omitted', async () => {
+      const configPath = path.resolve(tempProjectDir, 'boltdocs.config.ts')
+      fs.writeFileSync(
+        configPath,
+        `export default { theme: { title: 'No Tabs Site' } };`,
+      )
+
+      const config = await resolveConfig(tempProjectDir, tempProjectDir)
+
+      expect(config.theme?.title).toBe('No Tabs Site')
+      expect(config.theme?.tabs).toBeUndefined()
+    })
+
     it('should accept theme.tabs configuration', async () => {
       const configPath = path.resolve(tempProjectDir, 'boltdocs.config.ts')
       fs.writeFileSync(
@@ -200,7 +225,7 @@ describe('config', () => {
 
       const config = await resolveConfig(tempProjectDir, tempProjectDir)
       expect(config.theme?.tabs).toHaveLength(2)
-      expect(config.theme?.tabs![0]).toEqual({
+      expect(config.theme?.tabs?.[0]).toEqual({
         id: 'api',
         text: 'API Reference',
         icon: 'code',
@@ -283,6 +308,44 @@ describe('config', () => {
       const config = await resolveConfig(tempProjectDir, tempProjectDir)
       expect(config.versions?.defaultVersion).toBe('v2')
       expect(config.versions?.versions).toHaveLength(2)
+    })
+
+    it('should preserve version order and labels for a developer version selector', async () => {
+      const configPath = path.resolve(tempProjectDir, 'boltdocs.config.ts')
+      fs.writeFileSync(
+        configPath,
+        `export default {
+          versions: {
+            defaultVersion: 'v2',
+            versions: [
+              { label: 'Legacy', path: 'v1' },
+              { label: 'Current', path: 'v2' }
+            ]
+          }
+        };`,
+      )
+
+      const config = await resolveConfig(tempProjectDir, tempProjectDir)
+
+      expect(config.versions).toEqual({
+        defaultVersion: 'v2',
+        versions: [
+          { label: 'Legacy', path: 'v1' },
+          { label: 'Current', path: 'v2' },
+        ],
+      })
+    })
+
+    it('should not expose removed footer configuration', async () => {
+      const configPath = path.resolve(tempProjectDir, 'boltdocs.config.ts')
+      fs.writeFileSync(
+        configPath,
+        `export default { footer: { text: 'Legacy footer' } };`,
+      )
+
+      const config = await resolveConfig(tempProjectDir, tempProjectDir)
+
+      expect('footer' in config).toBe(false)
     })
 
     it('should accept versions with prefix', async () => {

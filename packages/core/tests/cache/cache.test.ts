@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { FileCache, TransformCache, flushCache } from '../../src/node/cache'
+import { ParserCache } from '../../src/node/routes/parser/cache'
 import fs from 'node:fs'
 import path from 'node:path'
 import os from 'node:os'
@@ -299,6 +300,37 @@ describe('cache system', () => {
       ).length
       expect(shardCountAfter).toBeLessThanOrEqual(shardCountBefore)
       expect(cache.get('new.md')).toBe('new')
+    })
+  })
+
+  describe('ParserCache persistence', () => {
+    it('keeps valid parser shards after an in-memory clear', async () => {
+      const source = path.join(tempDir, 'page.md')
+      fs.writeFileSync(source, '# Cached page')
+      const cache = new ParserCache(tempDir, 'parser-persistence')
+      const parsed = {
+        route: {
+          path: '/docs/page',
+          componentPath: source,
+          filePath: 'page.md',
+          title: 'Cached page',
+        },
+        isGroupIndex: false,
+      } as any
+
+      await cache.set(source, parsed)
+      await flushCache()
+      const shardDir = path.join(
+        tempDir,
+        '.boltdocs',
+        'cache',
+        'parser-parser-persistence',
+      )
+      expect(fs.existsSync(shardDir)).toBe(true)
+
+      cache.clear()
+      const restored = new ParserCache(tempDir, 'parser-persistence')
+      await expect(restored.get(source)).resolves.toEqual(parsed)
     })
   })
 

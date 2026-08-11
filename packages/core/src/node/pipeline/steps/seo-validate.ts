@@ -1,6 +1,5 @@
 import type { PipelineStep } from '../index'
 import type { BuildContext } from '../types'
-import { adaptRoutesForSSG } from '../../routes/route-adapter'
 import { z } from 'zod'
 import { warn } from '@bdocs/dui'
 
@@ -27,8 +26,11 @@ export class SEOValidateStep implements PipelineStep<BuildContext> {
 
     const siteUrl = ctx.config?.siteUrl
 
-    // Shallow/Deep copy elements to prevent context corruption
-    ctx.routes = ctx.routes.map((route) => {
+    // Enrich the existing route objects in place. ConfigResolveStep passes the
+    // same RouteMeta[] reference into createViteConfig, so replacing the array
+    // here would leave virtual modules with stale SEO metadata.
+    const routes = ctx.routes
+    for (const route of routes) {
       const rawSeo = route.seo || {}
 
       // Calculate defaults
@@ -74,12 +76,11 @@ export class SEOValidateStep implements PipelineStep<BuildContext> {
         warn(`[SEOValidate] Route "${route.path}" is missing a title.`)
       }
 
-      return {
-        ...route,
-        seo: enrichedSeo,
-      }
-    })
+      route.seo = enrichedSeo
+    }
 
-    ctx.ssgRoutes = adaptRoutesForSSG(ctx.routes)
+    // RouteMeta is already the serializable SSG contract. Keep the legacy
+    // pipeline alias without allocating a field-by-field adapter copy.
+    ctx.ssgRoutes = routes
   }
 }

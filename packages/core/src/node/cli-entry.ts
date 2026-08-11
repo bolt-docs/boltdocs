@@ -2,9 +2,9 @@
 
 // Suppress DEP0205 deprecation warning for module.register() in Node 26+
 const { emitWarning: _emitWarn } = process
-process.emitWarning = (warning: any, ...args: any[]) => {
-  if (warning && typeof warning === 'object' && warning.code === 'DEP0205')
-    return
+process.emitWarning = (warning: string | Error, ...args: unknown[]) => {
+  const code = (warning as { code?: unknown } | null)?.code
+  if (warning && typeof warning === 'object' && code === 'DEP0205') return
   if (typeof warning === 'string' && args.includes('DEP0205')) return
   return Reflect.apply(_emitWarn, process, [warning, ...args])
 }
@@ -12,13 +12,24 @@ process.emitWarning = (warning: any, ...args: any[]) => {
 import { applyFsPatch } from './security/fs-patch'
 applyFsPatch()
 
-import { configure } from '@bdocs/dui'
 import cac from 'cac'
-// Command handlers are imported dynamically
+import { createRequire } from 'node:module'
 
-configure({
-  prefix: 'boltdocs',
-})
+// Command handlers are imported dynamically. The former theme preview command
+// is intentionally not supported; keep the guard here because CAC's default
+// command also accepts arbitrary positional roots.
+const removedThemeCommand = ['theme', 'dev'].join(':')
+
+// dui's configure() is deferred so that `--help` and `--version` (and any
+// command that does not render UI) never pay the cost of loading the dui
+// module graph. Commands that render UI call ensureDui() before logging.
+let duiConfigured = false
+async function ensureDui(): Promise<void> {
+  if (duiConfigured) return
+  const { configure } = await import('@bdocs/dui')
+  configure({ prefix: 'boltdocs' })
+  duiConfigured = true
+}
 
 const cli = cac('boltdocs')
 
@@ -28,6 +39,7 @@ cli
   .option('--host [host]', 'Host to bind to')
   .option('--force', 'Force Vite to re-optimize dependencies')
   .action(async (...args) => {
+    await ensureDui()
     const { devAction } = await import('./cli/dev')
     return devAction(...args)
   })
@@ -36,12 +48,17 @@ cli
   .option('--port <port>', 'Port to listen on')
   .option('--host [host]', 'Host to bind to')
   .option('--force', 'Force Vite to re-optimize dependencies')
-  .action(async (...args) => {
+  .action(async (root: string = process.cwd(), options) => {
+    if (root === removedThemeCommand) {
+      throw new Error(`Unknown command: ${removedThemeCommand}`)
+    }
+    await ensureDui()
     const { devAction } = await import('./cli/dev')
-    return devAction(...args)
+    return devAction(root, options)
   })
 
 cli.command('build [root]', 'Build for production').action(async (...args) => {
+  await ensureDui()
   const { buildAction } = await import('./cli/build')
   return buildAction(...args)
 })
@@ -51,6 +68,7 @@ cli
   .option('--port <port>', 'Port to listen on')
   .option('--host [host]', 'Host to bind to')
   .action(async (...args) => {
+    await ensureDui()
     const { previewAction } = await import('./cli/build')
     return previewAction(...args)
   })
@@ -81,6 +99,7 @@ cli
         budget?: boolean
       },
     ) => {
+      await ensureDui()
       const { doctorAction } = await import('./cli/doctor')
       await doctorAction(root, options)
     },
@@ -111,6 +130,7 @@ cli
         limit?: number
       },
     ) => {
+      await ensureDui()
       const { generateChangelog } = await import('./changelog/generator')
       await generateChangelog(file, {
         output: options.output,
@@ -120,31 +140,9 @@ cli
       })
     },
   )
-
-cli
-  .command('theme:dev [root]', 'Preview a theme during development')
-  .option('--port <port>', 'Port to listen on')
-  .option('--host [host]', 'Host to bind to')
-  .option('--name <name>', 'Theme display name')
-  .option(
-    '--layout <path>',
-    'Path to a custom layout.tsx file (symlinked for HMR)',
-  )
-  .option(
-    '--mdx <path>',
-    'Path to a custom mdx-components.tsx file (symlinked for HMR)',
-  )
-  .option('--tailwind', 'Enable @bdocs/plugin-tailwindcss (must be installed)')
-  .option(
-    '--sass',
-    'Enable @bdocs/plugin-sass for SASS/SCSS support (must be installed)',
-  )
-  .option('--verbose', 'Show full Vite logs')
-  .action(async (...args) => {
-    const { themeDevAction } = await import('./cli/theme')
-    return themeDevAction(...args)
-  })
-
-cli.help()
-cli.version('3.0.0')
+// Read the real package version instead of hardcoding it — `--version`
+// drifted from the published version (was stuck at 3.0.0).
+const localRequire = createRequire(import.meta.url)
+const pkg = localRequire('../../package.json') as { version: string }
+cli.version(pkg.version)
 cli.parse()

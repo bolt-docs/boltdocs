@@ -5,6 +5,7 @@ import { BoltdocsConfigSchema } from './schema/config'
 import { ValidationError } from './errors'
 import { generateProjectTypes } from './types-generator'
 import { warn } from '@bdocs/dui'
+import { CONFIG_FILES } from './config-files'
 import type {
   BoltdocsConfig,
   BoltdocsThemeConfig,
@@ -33,11 +34,7 @@ export type {
 
 export { defineConfig } from '../shared/config-utils'
 
-export const CONFIG_FILES = [
-  'boltdocs.config.js',
-  'boltdocs.config.mjs',
-  'boltdocs.config.ts',
-]
+export { CONFIG_FILES } from './config-files'
 
 // In-memory cache: avoids re-loading + re-validating the config when
 // resolveConfig is called multiple times with the same docsDir + root.
@@ -227,7 +224,7 @@ export async function resolveConfig(
   }
 
   const defaults: BoltdocsConfig = {
-    docsDir: path.resolve(docsDir),
+    docsDir: path.resolve(projectRoot, docsDir),
     theme: {
       title: 'Boltdocs',
       description: 'A Vite documentation framework',
@@ -326,7 +323,7 @@ export async function resolveConfig(
   }
 
   const finalConfig: BoltdocsConfig = {
-    docsDir: path.resolve(docsDir),
+    docsDir: path.resolve(projectRoot, userConfig.docsDir || docsDir),
     theme: {
       ...defaults.theme,
       ...cleanThemeConfig,
@@ -342,11 +339,16 @@ export async function resolveConfig(
     versions: userConfig.versions,
     siteUrl: userConfig.siteUrl,
     base: userConfig.base,
+    ssg: userConfig.ssg,
     seo: userConfig.seo,
     plugins: userConfig.plugins || [],
     robots: userConfig.robots,
     security: userConfig.security,
     integrations: userConfig.integrations,
+    experimental: userConfig.experimental,
+    featureFlags: userConfig.featureFlags,
+    drafts: userConfig.drafts,
+    collections: userConfig.collections,
     vite: userConfig.vite,
   }
 
@@ -354,7 +356,7 @@ export async function resolveConfig(
   const validation = BoltdocsConfigSchema.safeParse(finalConfig)
   if (!validation.success) {
     const errorMessages = validation.error.issues
-      .map((err: any) => {
+      .map((err: { path: PropertyKey[]; message: string }) => {
         const path = err.path.join('.')
         return `  - ${path}: ${err.message}`
       })

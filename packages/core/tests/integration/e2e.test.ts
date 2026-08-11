@@ -62,6 +62,75 @@ describe('E2E integration tests', () => {
     const routes = await generateRoutes(docsDir, config as any, '/docs', true)
     expect(routes.length).toBeGreaterThanOrEqual(2)
   })
+
+  it('should preserve home, blog, changelog, locale, version, sidebar, and headings together', async () => {
+    const docsDir = path.join(tempDir, 'docs')
+    const files: Record<string, string> = {
+      'index.md': '---\ntitle: Home\n---\n# Home\n## Welcome\n',
+      'guide.md':
+        '---\ntitle: Guide\nsidebarPosition: 1\n---\n# Guide\n## Install\n### Configure\n',
+      'es/guide.md':
+        '---\ntitle: Guía\nsidebarPosition: 1\n---\n# Guía\n## Instalar\n',
+      'v1/guide.md':
+        '---\ntitle: Guide v1\nsidebarPosition: 2\n---\n# Guide v1\n## Legacy\n',
+      'v1/es/guide.md':
+        '---\ntitle: Guía v1\nsidebarPosition: 2\n---\n# Guía v1\n## Legado\n',
+      '[blog]/release.md':
+        '---\ntitle: Release\ndate: 2026-01-01\n---\n# Release\n## Notes\n',
+      '[changelog]/v1.md':
+        '---\ntitle: Changelog v1\ndate: 2026-01-02\n---\n# Changelog v1\n',
+    }
+    for (const [file, content] of Object.entries(files)) {
+      const target = path.join(docsDir, file)
+      fs.mkdirSync(path.dirname(target), { recursive: true })
+      fs.writeFileSync(target, content)
+    }
+
+    const { generateRoutes, invalidateRouteCache } = await import(
+      '../../src/node/routes'
+    )
+    const config = {
+      i18n: { defaultLocale: 'en', locales: { en: 'English', es: 'Español' } },
+      versions: {
+        defaultVersion: 'v1',
+        versions: [{ label: 'v1', path: 'v1' }],
+      },
+      theme: { title: 'Test' },
+    }
+
+    const routes = await generateRoutes(docsDir, config as any, '/docs', true)
+    const guide = routes.find((route) => route.path === '/docs/guide')
+    const spanishGuide = routes.find((route) => route.path === '/docs/es/guide')
+    const versionedGuide = routes.find((route) => route.path === '/docs/v1/guide')
+    const blog = routes.find((route) => route.collection === 'blog')
+    const changelog = routes.find((route) => route.collection === 'changelog')
+
+    expect(guide).toMatchObject({ title: 'Guide', sidebarPosition: 1 })
+    expect(guide?.headings?.map((heading) => heading.text)).toEqual([
+      'Welcome',
+      'Install',
+      'Configure',
+    ])
+    expect(spanishGuide).toMatchObject({ locale: 'es', title: 'Guía' })
+    expect(versionedGuide).toMatchObject({ version: 'v1', title: 'Guide v1' })
+    expect(blog?.collection).toBe('blog')
+    expect(changelog?.collection).toBe('changelog')
+
+    fs.writeFileSync(
+      path.join(docsDir, 'guide.md'),
+      '---\ntitle: Guide updated\nsidebarPosition: 9\n---\n# Guide updated\n## Changed\n',
+    )
+    invalidateRouteCache(docsDir)
+    const updated = await generateRoutes(docsDir, config as any, '/docs', false)
+    const updatedGuide = updated.find((route) => route.path === '/docs/guide')
+    expect(updatedGuide).toMatchObject({
+      title: 'Guide updated',
+      sidebarPosition: 9,
+    })
+    expect(updatedGuide?.headings?.map((heading) => heading.text)).toEqual([
+      'Changed',
+    ])
+  }, 30000)
 })
 
 describe('cache integration with routes', () => {
@@ -124,6 +193,12 @@ describe('plugin entry code generation with externalPages', () => {
 
     const code = generateEntryCode(options, config as any, false)
     expect(code).toContain('_external_module')
+    expect(code).toContain(
+      'export { RouteRenderer, matchRouteBranch, matchRouteBranchWithParams, resolveRouteBranch }',
+    )
+    expect(code).toContain(
+      'createRoot.matchRouteBranchWithParams = matchRouteBranchWithParams;',
+    )
   })
 })
 

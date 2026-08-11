@@ -3,6 +3,7 @@ import type { BoltdocsConfig } from './config'
 import type { BoltdocsPluginOptions } from './plugin/index'
 import type { RouteMeta } from './routes/types'
 import path from 'node:path'
+import fs from 'node:fs'
 import crypto from 'node:crypto'
 import { ssrDirnamePolyfillPlugin } from './plugins/ssr-dirname-polyfill'
 export { generateEntryCode } from './plugin/entry'
@@ -15,6 +16,33 @@ export { generateEntryCode } from './plugin/entry'
 // calls createViteConfig once, and the build process can call it again
 // during dev server setup (previewAction).
 const _createViteConfigCache = new Map<string, { config: InlineConfig }>()
+
+function resolvePublicDir(
+  root: string,
+  config: BoltdocsConfig | undefined,
+  explicit?: string | false,
+): string | false {
+  if (explicit === false) return false
+  if (typeof explicit === 'string') return path.resolve(root, explicit)
+
+  const configuredPublicDir = (
+    config?.vite as { publicDir?: string | false } | undefined
+  )?.publicDir
+  if (configuredPublicDir === false) return false
+  if (typeof configuredPublicDir === 'string') {
+    return path.resolve(root, configuredPublicDir)
+  }
+
+  // CLI users commonly run `pnpm -C docs dev`, making `docs/` the Vite
+  // root while the content directory is `docs/docs/`. Prefer the root-level
+  // public directory in that layout, then support the project-root/docs/public
+  // convention used by projects whose root is one level above docsDir.
+  const rootPublicDir = path.resolve(root, 'public')
+  const docsPublicDir = path.resolve(root, config?.docsDir || 'docs', 'public')
+  return fs.existsSync(rootPublicDir) || !fs.existsSync(docsPublicDir)
+    ? rootPublicDir
+    : docsPublicDir
+}
 
 function createViteConfigCacheKey(
   root: string,
@@ -32,6 +60,8 @@ function createViteConfigCacheKey(
         skipTypes: options.skipTypes ?? false,
         skipLinkTree: options.skipLinkTree ?? false,
         hasPreResolved: !!preResolvedConfig,
+        docsDir: preResolvedConfig?.docsDir || 'docs',
+        publicDir: resolvePublicDir(root, preResolvedConfig, options.publicDir),
       }),
     )
     .digest('hex')
@@ -45,6 +75,8 @@ export interface CreateViteConfigOptions {
   skipTypes?: boolean
   /** Skip writing the link tree (it was already written elsewhere). */
   skipLinkTree?: boolean
+  /** Static asset directory relative to the project root (default: docs/public). */
+  publicDir?: string | false
 }
 
 export default async function boltdocs(
@@ -148,11 +180,13 @@ export async function createViteConfig(
       return resolveConfig('docs', root)
     })())
 
+  const docsDir = path.resolve(root, config.docsDir || 'docs')
+
   const routes =
     options.routes ??
     (await (async () => {
       const { generateRoutes } = await import('./routes')
-      return generateRoutes('docs', config, undefined, false)
+      return generateRoutes(docsDir, config, undefined, false)
     })())
 
   const isProd = mode === 'production'
@@ -184,12 +218,12 @@ export async function createViteConfig(
     if (!routePaths.includes(basePath)) {
       routePaths.push(basePath)
     }
-    const externalPaths = getExternalRoutePaths('docs', config)
+    const externalPaths = getExternalRoutePaths(docsDir, config)
     for (const p of externalPaths) {
       if (!routePaths.includes(p)) routePaths.push(p)
     }
     if (shouldGenerateTypes) {
-      generateProjectTypes(config, 'docs', root, routePaths)
+      generateProjectTypes(config, docsDir, root, routePaths)
     }
     if (shouldGenerateLinkTree) {
       writeLinkTree(routePaths)
@@ -255,7 +289,7 @@ export async function createViteConfig(
       ssrDirnamePolyfillPlugin(),
       _reactPlugin(),
       ..._boltdocsPlugin(
-        { docsDir: 'docs', root, routes } as BoltdocsPluginOptions,
+        { docsDir, root, routes } as BoltdocsPluginOptions,
         config,
       ),
     ],
@@ -339,6 +373,10 @@ export async function createViteConfig(
       ...(config.vite as any)?.preview,
     } as any,
     ...((config.vite as any) ?? {}),
+    base: config.base || '/',
+    // Boltdocs projects keep static files next to their docs source. Vite's
+    // default is <root>/public, which leaves docs/public assets unresolved.
+    publicDir: resolvePublicDir(root, config, options.publicDir),
   }
 
   // Populate in-memory cache so the next caller with the same parameters
@@ -354,6 +392,27 @@ export type {
   BoltdocsConfig,
   BoltdocsThemeConfig,
 } from './config'
+export type {
+  StructuredData,
+  JsonLdObject,
+  JsonLdValue,
+  BoltdocsExperimentalConfig,
+  BoltdocsViewTransitionsConfig,
+  ExternalFileRoute,
+} from '../shared/types'
+export {
+  createArticleStructuredData,
+  createBreadcrumbStructuredData,
+  createStructuredData,
+  createWebSiteStructuredData,
+  defineStructuredData,
+} from '../shared/structured-data'
+export type {
+  ArticleStructuredDataOptions,
+  BreadcrumbStructuredDataItem,
+  StructuredDataFactoryOptions,
+  WebSiteStructuredDataOptions,
+} from '../shared/structured-data'
 export { defineConfig } from '../shared/config-utils'
 export * from './plugins'
 export type { IPluginLifecycleManager } from '../shared/types'

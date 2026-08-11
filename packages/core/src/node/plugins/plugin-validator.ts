@@ -16,20 +16,53 @@ const PluginValidationSchema = BoltdocsPluginSchema.extend({
       cssFiles: z.array(z.string()).optional(),
       headStyles: z.array(z.string()).optional(),
       postcssPlugins: z.array(z.any()).optional(),
-      preprocessorOptions: z.record(z.any()).optional(),
+      preprocessorOptions: z.record(z.string(), z.any()).optional(),
     })
     .optional(),
   hooks: z
     .object({
-      beforeBuild: z.function().optional(),
-      afterBuild: z.function().optional(),
-      beforeDev: z.function().optional(),
-      afterDev: z.function().optional(),
-      buildEnd: z.function().optional(),
-      transformSource: z.function().optional(),
-      transformMdx: z.function().optional(),
-      transformHtml: z.function().optional(),
+      beforeBuild: z
+        .custom<(...args: unknown[]) => unknown>(
+          (value) => typeof value === 'function',
+        )
+        .optional(),
+      afterBuild: z
+        .custom<(...args: unknown[]) => unknown>(
+          (value) => typeof value === 'function',
+        )
+        .optional(),
+      beforeDev: z
+        .custom<(...args: unknown[]) => unknown>(
+          (value) => typeof value === 'function',
+        )
+        .optional(),
+      afterDev: z
+        .custom<(...args: unknown[]) => unknown>(
+          (value) => typeof value === 'function',
+        )
+        .optional(),
+      buildEnd: z
+        .custom<(...args: unknown[]) => unknown>(
+          (value) => typeof value === 'function',
+        )
+        .optional(),
+      transformSource: z
+        .custom<(...args: unknown[]) => unknown>(
+          (value) => typeof value === 'function',
+        )
+        .optional(),
+      transformMdx: z
+        .custom<(...args: unknown[]) => unknown>(
+          (value) => typeof value === 'function',
+        )
+        .optional(),
+      transformHtml: z
+        .custom<(...args: unknown[]) => unknown>(
+          (value) => typeof value === 'function',
+        )
+        .optional(),
     })
+    .passthrough()
     .optional(),
 })
 
