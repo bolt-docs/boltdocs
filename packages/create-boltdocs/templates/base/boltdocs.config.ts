@@ -5,7 +5,6 @@ export default defineConfig({
   theme: {
     title: '{{title}}',
     description: 'Documentation for my project',
-    breadcrumbs: true,
     codeTheme: {
       light: 'github-light',
       dark: 'github-dark',
@@ -22,7 +21,6 @@ export default defineConfig({
         href: '/docs/getting-started',
       },
     ],
-    // githubRepo: 'bolt-doc/boltdocs',
   },
   robots: {
     rules: [

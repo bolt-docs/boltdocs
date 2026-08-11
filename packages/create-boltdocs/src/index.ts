@@ -10,8 +10,9 @@ import type { StepItem } from '@bdocs/dui'
 import { parseCliAndPrompt } from './cli'
 import type { IconLibrary } from './cli'
 import { getPackageManager } from './utils/package-manager'
-import { copy, writeFile } from './utils/file-system'
+import { copy } from './utils/file-system'
 import { adaptersDeploy } from './deploy/adapters'
+import { generateIconsFile, getIconLibraryVersion } from './utils/icons'
 
 function installDependencies(
   pkgManager: string,
@@ -61,53 +62,6 @@ function renderAll(stepsList: StepItem[]) {
   console.log(BANNER)
   console.log(TAGLINE)
   console.log(steps(stepsList))
-}
-
-const ICON_LIBRARY_VERSIONS: Record<IconLibrary, string> = {
-  'lucide-react': '^0.487.0',
-  '@heroicons/react': '^2.2.0',
-  '@phosphor-icons/react': '^2.4.1',
-}
-
-const ICON_IMPORTS: Record<IconLibrary, string> = {
-  'lucide-react': `import { Route, FileText, Settings, Sparkles, BookOpen, Rocket } from 'lucide-react'`,
-  '@heroicons/react': `import {
-  MapIcon as Route,
-  DocumentTextIcon as FileText,
-  Cog8ToothIcon as Settings,
-  SparklesIcon as Sparkles,
-  BookOpenIcon as BookOpen,
-  RocketLaunchIcon as Rocket,
-} from '@heroicons/react/24/outline'`,
-  '@phosphor-icons/react': `import { Route, FileText, Settings, Sparkles, BookOpen, Rocket } from '@phosphor-icons/react'`,
-}
-
-function getIconLibraryVersion(iconLibrary: IconLibrary): string {
-  return ICON_LIBRARY_VERSIONS[iconLibrary]
-}
-
-function generateIconsFile(projectDir: string, iconLibrary: IconLibrary): void {
-  const importLine = ICON_IMPORTS[iconLibrary]
-  const content = `${importLine}
-
-/**
- * Custom icon registry consumed by Boltdocs via virtual:boltdocs-icons.
- * Use these names in meta.json ("icon": "Rocket") or theme config
- * (tabs, sidebarGroups, socialLinks, etc.).
- */
-const icons = {
-  Route,
-  FileText,
-  Settings,
-  Sparkles,
-  BookOpen,
-  Rocket,
-}
-
-export { Route, FileText, Settings, Sparkles, BookOpen, Rocket }
-export default icons
-`
-  writeFile(path.join(projectDir, 'docs', 'icons.tsx'), content)
 }
 
 function scaffoldTemplate(

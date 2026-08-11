@@ -25,7 +25,6 @@ export default defineConfig({
         href: '/docs/getting-started',
       },
     ],
-    // githubRepo: 'bolt-doc/boltdocs',
   },
   robots: {
     rules: [
