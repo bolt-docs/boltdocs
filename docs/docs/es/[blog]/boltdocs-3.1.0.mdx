@@ -41,7 +41,7 @@ BOLTDOCS_TURBO=true pnpm boltdocs build
 Qué cambia por debajo:
 
 | Componente | Sin `--turbo` | Con `--turbo` |
-|------------|---------------|---------------|
+| ------------ | --------------- | --------------- |
 | Compilación MDX | `@mdx-js/rollup` + plugins remark/rehype JS | Sätteri (Rust) + plugins nativos |
 | CSS crítico | Ninguno (CSS externo solamente) | `@bdocs/zig-critters` (Zig/WASM) |
 | Parser | Modo multi-pasada | Pasada única con buffer compartido |
@@ -67,7 +67,7 @@ El pipeline:
 Benchmarks del sitio de documentación de Boltdocs (241 páginas):
 
 | Métrica | Default (`@mdx-js/rollup`) | Turbo (Sätteri) | Diferencia |
-|---------|---------------------------|-----------------|------------|
+| --------- | --------------------------- | ----------------- | ------------ |
 | Build Time | 97.3s | 43.9s | **2.2x más rápido** |
 | SSG Total | 98.7s | 45.1s | **54% más rápido** |
 | Salida JavaScript | 10.5 MB | 8.4 MB | **20% menos** |
@@ -220,15 +220,15 @@ Elegí la opción 2. El archivo CSS es solo 99 KB y se comprime bien con gzip. L
 
 Anteriormente, `generateI18nFallbacks()` creaba copias con prefijo de locale del contenido del locale por defecto. Para un sitio con locales `en` (por defecto) y `es`, cada página en inglés existía dos veces:
 
-- `/docs/api/cli` — el original
-- `/docs/en/api/cli` — una copia idéntica
+- `/docs/api/structured-data` — el original
+- `/docs/en/api/structured-data` — una copia idéntica
 
 Esto resultó en **74 archivos HTML duplicados** totalizando **~8 MB** de espacio desperdiciado. La corrección omite la generación de rutas de fallback para el locale por defecto — su contenido ya existe a nivel raíz.
 
 ### Resultados
 
 | Métrica | Antes | Después | Ahorro |
-|---------|-------|---------|--------|
+| --------- | ------- | --------- | -------- |
 | HTML output (total) | 25.4 MB | ~10.1 MB | **~15.3 MB (60%)** |
 | Tamaño por página (promedio) | ~217 KB | ~180 KB | ~37 KB por página |
 | Páginas duplicadas | 74 | 0 | **74 archivos eliminados** |

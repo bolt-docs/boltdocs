@@ -14,15 +14,15 @@ Boltdocs estiliza automáticamente las imágenes Markdown predeterminadas, dánd
 Las definiciones de imágenes Markdown estándar se interceptan automáticamente y se renderizan con el estilo premium de Boltdocs:
 
 ```mdx
-![Diagrama de Arquitectura](/public/light.svg)
+![Diagrama de Arquitectura](/light.svg)
 ```
 
 ### Renderizado Adaptable al Tema
 Puedes usar el componente `<Image>` para renderizar diferentes recursos dependiendo de si el usuario está viendo el sitio en modo claro u oscuro.
 
 ```mdx
-<Image src="/public/light.svg" alt="Flujo del Sistema" theme="light" />
-<Image src="/public/dark.svg" alt="Flujo del Sistema" theme="dark" />
+<Image src="/light.svg" alt="Flujo del Sistema" theme="light" />
+<Image src="/dark.svg" alt="Flujo del Sistema" theme="dark" />
 ```
 
 ---

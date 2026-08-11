@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "boltdocs",
+    "audit": "boltdocs audit",
     "build": "boltdocs build",
     "preview": "boltdocs preview",
     "doctor": "boltdocs doctor",

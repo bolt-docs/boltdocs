@@ -37,7 +37,7 @@ This deleted the entire SSR build output directory. The next build's `serverBuil
 ### Benchmark results
 
 | Build type | Before 3.2.0 | After 3.2.0 | Speedup |
-|------------|--------------|-------------|---------|
+| ------------ | -------------- | ------------- | --------- |
 | Cold (first build) | ~82s | ~78s | ~1.05x |
 | Warm (no changes) | ~50s | **~10s** | **5x faster** |
 | Incremental (1 file edit) | ~50s | ~15s | **3.3x faster** |
@@ -68,7 +68,7 @@ export function getFileMtime(filePath: string): number {
 ```
 
 | Metric | Before | After | Speedup |
-|--------|--------|-------|---------|
+| -------- | -------- | ------- | --------- |
 | 5 files × 500 rounds | 18.6ms | 3.2ms | **5.9x** |
 
 ---
@@ -217,7 +217,7 @@ Here's the architecture:
 ### Before vs. after (client payload)
 
 | Concern | Client-side highlighter | Boltdocs (build-time Shiki) |
-|---------|-------------------------|-----------------------------|
+| --------- | ------------------------- | ----------------------------- |
 | Shiki + WASM + grammars in the bundle | Hundreds of KB–MB | **0 KB** — never imported on the client |
 | First paint of a code block | After JS loads and tokenizes | **Instant** — spans ship with the page |
 | Light/dark switch | Re-highlight or ship two full trees | **CSS variables** on each token |
@@ -240,7 +240,7 @@ engine: createOnigurumaEngine(import('shiki/wasm'))
 ```
 
 | Metric | JS Regex | WASM Oniguruma | Difference |
-|--------|----------|----------------|------------|
+| -------- | ---------- | ---------------- | ------------ |
 | 3 langs × 50 rounds | 1101ms | 959ms | **13% faster** |
 | Per iteration | 22.0ms | 17.7ms | **4.3ms saved** |
 
@@ -318,7 +318,7 @@ Here's the architecture:
 ### Before vs. after
 
 | Page type | Before 3.2.0 | After 3.2.0 |
-|-----------|--------------|-------------|
+| ----------- | -------------- | ------------- |
 | Page **without** diagrams | ~0 KB mermaid runtime (dynamic import in `useEffect`) | **~0 KB** — the static component never references `mermaid` |
 | Page **with** diagrams | ~800 KB of mermaid chunks loaded on demand, then `mermaid.initialize` + render | **~0 KB** — SVG is already in the initial HTML |
 | First diagram paint | After client bundle + engine initialize (~depends on connection) | **Instant** — SVG ships with the page |
@@ -357,14 +357,14 @@ While we were in there, the fullscreen overlay picked up entrance/exit animation
 
 The 3.1.x `install` carried `react-aria-components` as a hard dependency alongside the entire Mermaid pre-render toolchain, language icons, and the image optimizer native binaries — even for users who never rendered a Mermaid diagram, never had a code block, and never felt a need for sharp/svgo. 3.2.0 separates the *what* from the *when*.
 
-### Before vs. after
+### Before vs. after (package weight)
 
 Two categories of "size" — **client bundle** (bytes shipped to every browser) and **`node_modules` footprint** (bytes unpacked on disk per consumer install) — measured separately so you can read the table top-to-bottom without confusion.
 
 **Client bundle — bytes shipped to browsers (per cold-load)**
 
 | Surface | Before 3.2.0 | After 3.2.0 | Notes |
-|---------|--------------|-------------|-------|
+| --------- | -------------- | ------------- | ------- |
 | `client/index.js` (front door) | 108 KB | **108 KB** | Unchanged at the entry; savings are in deferred chunks. |
 | `icons-dev.tsx` language icon blob in the initial chunk | **44 KB on every page** | **0 KB** on all pages | The entire `lang-icons.tsx` module (twelve SVG icons + registry map) was removed from the core. Code block titles render the filename text only — no language icon is shipped to the client. Pages with code blocks save ~17 KB versus 3.1.x's eager bundle; pages without code blocks were already at zero bytes for these icons. |
 | Social/nav icons in the navbar bundle | bundled with everything | **~1 KB isolated** in `icons-prod.tsx` | `Github`, `Discord`, `XSocial`, `Bluesky` are namespaced separately so layouts that don't need them can override without dragging the language set along. |
@@ -372,7 +372,7 @@ Two categories of "size" — **client bundle** (bytes shipped to every browser) 
 **`node_modules` footprint — bytes unpacked on disk (per `pnpm install`)**
 
 | Surface | Before 3.2.0 | After 3.2.0 | Notes |
-|---------|--------------|-------------|-------|
+| --------- | -------------- | ------------- | ------- |
 | `react-aria-components` (unpacked) | ~1 MB transitively in `node_modules` | **0 KB** in core | Now a **required peer** — consumers install it once alongside React. No double-bundling. |
 | `sharp` + `svgo` native binaries | **~35 MB unpacked** for every site install | **0 KB** in core; install only if you use `@bdocs/plugin-image-optimizer` | Moved out of core into the image plugin's `peerDependenciesMeta.optional`. Alpine ARM, musl libc, and old glibc users no longer hit hard `sharp` postinstall failures during `boltdocs` install. |
 | `shiki` + `@shikijs/engine-oniguruma` + `@mdx-js/rollup` | Same as 3.1.x | Same as 3.1.x | Stayed in `dependencies` — the CLI unconditionally imports them when `npx boltdocs build` runs. They never reach the client bundle. |
@@ -438,7 +438,7 @@ peerDependencyRules.allowedVersions.react-aria-components=^1.16.0
 
 **Don't** use `legacy-peer-deps=true`. That silences every peer warning across the tree and will mask future real breakages.
 
-Read the full audit in **[Upgrading to 3.2.0 → Semi-breaking changes](/docs/guides/upgrading-3-2)**.
+Read the full audit in **[Upgrading to 3.2.0 → Semi-breaking changes](/docs/guides/operations/upgrading-3-2)**.
 
 ---
 
@@ -652,6 +652,6 @@ boltdocs@3.2.0 requires react-aria-components@^1.16.0 as a peer
 
 Satisfy it with `pnpm add react-aria-components` (or pin a lower version if your React Aria vendor already provides it). Sites that use `@bdocs/plugin-image-optimizer` are unaffected — the optimizer's own peer declarations still work, and `sharp`/`svgo` install via the optimizer's `peerDependenciesMeta.optional: true`.
 
-See **[Upgrading to 3.2.0 → Semi-breaking changes](/docs/guides/upgrading-3-2)** for the full audit, before/after `package.json` snippets, and platform-specific notes.
+See **[Upgrading to 3.2.0 → Semi-breaking changes](/docs/guides/operations/upgrading-3-2)** for the full audit, before/after `package.json` snippets, and platform-specific notes.
 
 Check the [full docs](/docs/) to explore everything new.

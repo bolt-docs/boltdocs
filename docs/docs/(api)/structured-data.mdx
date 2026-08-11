@@ -1,0 +1,149 @@
+---
+title: Structured Data
+sidebarPosition: 8
+description: Type-safe JSON-LD helpers and the StructuredData component for website, article, and breadcrumb graphs.
+---
+
+# Structured Data API
+
+Boltdocs emits JSON-LD for search engines and crawlers through `seo.structuredData` or the `<StructuredData />` client component. It is separate from the internal search index.
+
+## The convenient factory
+
+Use `createStructuredData()` when a page needs one or more common graph nodes. Structured Data is a stable SEO API; only View Transitions and `experimental.fileRouting` require opt-in:
+
+```ts
+import { createStructuredData, defineConfig, defineStructuredData } from 'boltdocs'
+
+export default defineConfig({
+  seo: {
+    structuredData: defineStructuredData(
+      createStructuredData({
+        website: {
+          name: 'Example Docs',
+          url: 'https://example.com',
+        },
+        article: {
+          headline: 'Getting Started',
+          url: 'https://example.com/docs/start',
+          description: 'Install and configure the project.',
+          datePublished: '2026-08-01',
+          author: 'Example Team',
+        },
+        breadcrumbs: [
+          { name: 'Docs', url: 'https://example.com/docs' },
+          { name: 'Getting Started', url: 'https://example.com/docs/start' },
+        ],
+      }),
+    ),
+  },
+})
+```
+
+The factory returns one object when exactly one preset is provided and an array when multiple nodes are provided. It throws a clear error when no graph input is provided. Use `additional` for schema types that do not have a built-in preset:
+
+```ts
+const data = createStructuredData({
+  additional: {
+    '@context': 'https://schema.org',
+    '@type': 'SoftwareApplication',
+    name: 'Example App',
+    applicationCategory: 'DeveloperApplication',
+  },
+})
+```
+
+## Preset options
+
+### `website`
+
+| Property | Type | Required | Description |
+| :--- | :--- | :--- | :--- |
+| `name` | `string` | yes | Public website name. |
+| `url` | `string` | yes | Canonical website URL. |
+| `description` | `string` | no | Website description. |
+| `searchUrl` | `string` | no | Search endpoint containing the query prefix, such as `https://example.com/search?q=`. |
+
+### `article`
+
+| Property | Type | Required | Description |
+| :--- | :--- | :--- | :--- |
+| `headline` | `string` | yes | Article or page headline. |
+| `url` | `string` | yes | Canonical page URL. |
+| `description` | `string` | no | Article summary. |
+| `datePublished` | `string \| Date` | no | Publication date, normalized to ISO. |
+| `dateModified` | `string \| Date` | no | Last modification date, normalized to ISO. |
+| `image` | `string` | no | Absolute or resolved image URL. |
+| `author` | `string \| { name, url? }` | no | Person name or person object. |
+
+### `breadcrumbs`
+
+Pass an ordered array of `{ name, url }` objects. Positions are generated automatically starting at `1`.
+
+```ts
+const breadcrumbs = createStructuredData({
+  breadcrumbs: [
+    { name: 'Docs', url: 'https://example.com/docs' },
+    { name: 'API', url: 'https://example.com/docs/api' },
+  ],
+})
+```
+
+## Page-level MDX data
+
+Add a graph directly to a page's frontmatter:
+
+```mdx
+---
+title: Getting Started
+seo:
+  structuredData:
+    '@context': https://schema.org
+    '@type': TechArticle
+    headline: Getting Started
+    url: https://example.com/docs/start
+---
+```
+
+Global `seo.structuredData` and page-level data are emitted together.
+
+## External React pages
+
+Render JSON-LD from a page under `pages-external/`:
+
+```tsx
+import { StructuredData, createStructuredData } from 'boltdocs/client'
+
+export default function AboutPage() {
+  const data = createStructuredData({
+    article: {
+      headline: 'About Example',
+      url: 'https://example.com/about',
+    },
+  })
+
+  return (
+    <>
+      <StructuredData data={data} id="about-jsonld" />
+      <main>About Example</main>
+    </>
+  )
+}
+```
+
+The component safely escapes `<` before writing the `application/ld+json` script.
+
+## Existing specialized helpers
+
+These helpers remain supported when you prefer explicit construction:
+
+```ts
+import {
+  createArticleStructuredData,
+  createBreadcrumbStructuredData,
+  createWebSiteStructuredData,
+  defineStructuredData,
+} from 'boltdocs'
+```
+
+`defineStructuredData()` preserves literal TypeScript types; it does not modify the runtime value.

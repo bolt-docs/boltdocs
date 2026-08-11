@@ -18,7 +18,7 @@ badge: Migración
 ## 1. La auditoría de un vistazo
 
 | Concern | Qué cambió | Quién es afectado | Acción requerida |
-|---------|------------|-------------------|-----------------|
+| --------- | ------------ | ------------------- | ----------------- |
 | `react-aria-components` | Promovida de `dependencies` a un `peerDependencies` **requerido** | Todo consumidor de Boltdocs | Agregá `react-aria-components: ^1.16.0` a tus `dependencies` (o aceptá el peer warning si tu wrapper de framework lo provee) |
 | `sharp` | Removido de core; ahora `peerDependenciesMeta.optional` de `@bdocs/plugin-image-optimizer` | Solo si no usás `@bdocs/plugin-image-optimizer`: victoria pura (ahorrás ~30 MB desempaquetados) | Si dependías de `sharp` como transitivo de `boltdocs`, instalá `sharp` explícitamente o agregá el plugin optimizer |
 | `svgo` | Igual que `sharp` (movido fuera de core) | Solo si no usás el image optimizer: victoria pura (~5 MB desempaquetados) | Igual que `sharp` |

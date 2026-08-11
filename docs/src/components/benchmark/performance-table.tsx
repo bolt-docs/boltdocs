@@ -36,7 +36,7 @@ const rows = (data: BenchmarkData) => [
     ),
   },
   {
-    metric: 'Warm Build / Rebuild (1 page edit)',
+    metric: 'Warm Build (no changes)',
     boltdocs: `${data.buildTimeWarm.boltdocs}s`,
     docusaurus: `${data.buildTimeWarm.docusaurus}s`,
     diff: formatDiff(
@@ -45,6 +45,20 @@ const rows = (data: BenchmarkData) => [
       'time',
     ),
   },
+  ...(data.buildTimeEditedRebuild
+    ? [
+        {
+          metric: 'Edited-input rebuild (full CLI build)',
+          boltdocs: `${data.buildTimeEditedRebuild.boltdocs}s`,
+          docusaurus: `${data.buildTimeEditedRebuild.docusaurus}s`,
+          diff: formatDiff(
+            data.buildTimeEditedRebuild.boltdocs,
+            data.buildTimeEditedRebuild.docusaurus,
+            'time',
+          ),
+        },
+      ]
+    : []),
   {
     metric: 'Dev Server Startup',
     boltdocs: `${data.devServerStart.boltdocs}ms`,

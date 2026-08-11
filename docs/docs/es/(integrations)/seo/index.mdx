@@ -90,7 +90,7 @@ Generado en tiempo de compilación. Contiene todas las rutas indexadas con:
 - `changefreq` — Frecuencia de actualización de la página
 - `priority` — Calculada a partir de la posición en la barra lateral
 
-### robots.txt
+### robots.txt generado
 
 Generado desde tu configuración `robots`. Ejemplo de salida:
 
@@ -100,6 +100,64 @@ Allow: /
 Disallow: /private/
 Sitemap: https://docs.example.com/sitemap.xml
 ```
+
+---
+
+## Datos estructurados (JSON-LD)
+
+Los datos estructurados son metadatos para buscadores y crawlers. Son independientes del índice de búsqueda interno de Boltdocs. Usa JSON-LD para describir tu sitio, artículos y breadcrumbs mediante un graph compatible con schema.org.
+
+### Datos globales del sitio
+
+Usa los helpers seguros para Node desde `boltdocs` en `boltdocs.config.ts`:
+
+```ts
+import {
+  createWebSiteStructuredData,
+  defineConfig,
+  defineStructuredData,
+} from 'boltdocs'
+
+export default defineConfig({
+  siteUrl: 'https://docs.example.com',
+  seo: {
+    structuredData: defineStructuredData(
+      createWebSiteStructuredData({
+        name: 'Example Docs',
+        url: 'https://docs.example.com',
+        description: 'Documentación del producto',
+      }),
+    ),
+  },
+})
+```
+
+### Datos específicos de una página
+
+Agrega `structuredData` dentro de `seo` en el frontmatter MDX:
+
+```mdx
+---
+title: Primeros pasos
+seo:
+  structuredData:
+    '@context': https://schema.org
+    '@type': TechArticle
+    headline: Primeros pasos
+---
+```
+
+En páginas React externas, renderiza `<StructuredData data={...} />` desde `boltdocs/client`. Los helpers `createArticleStructuredData` y `createBreadcrumbStructuredData` cubren los graphs más comunes de artículos y navegación.
+
+### Referencia de `StructuredData`
+
+| API | Propósito |
+| :--- | :--- |
+| `defineStructuredData(data)` | Conserva objetos JSON-LD tipados en archivos de configuración. |
+| `createWebSiteStructuredData(options)` | Crea un graph `WebSite`, con acción de búsqueda opcional. |
+| `createArticleStructuredData(options)` | Crea un graph `Article` con autor, fechas, imagen y descripción. |
+| `createBreadcrumbStructuredData(items)` | Crea un graph `BreadcrumbList` desde URLs con nombre. |
+| `<StructuredData data={...} />` | Emite un script seguro `application/ld+json` desde una página externa. |
 
 ---
 

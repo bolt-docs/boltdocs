@@ -227,7 +227,7 @@ Since it uses the REST API directly instead of the official `@docsearch/react` p
 Plugins can hook into the build and dev lifecycle:
 
 | Hook | When it runs |
-|------|-------------|
+| ------ | ------------- |
 | `beforeBuild` / `afterBuild` | Before and after production build |
 | `beforeDev` / `afterDev` | Dev server starts and finishes |
 | `buildEnd` | Build completes (even on error) |
@@ -299,7 +299,7 @@ Every plugin is validated at startup — duplicate names, semver mismatches, and
 Migration from 2.7.x is straightforward — no breaking changes to the public API. But if you have scripts poking around `.boltdocs/`, update your paths:
 
 | Before | After |
-|---|---|
+| --- | --- |
 | `.boltdocs/routes.json` | `.boltdocs/cache/routes.json` |
 | `.boltdocs/types.d.ts` | `.boltdocs/generated/types.d.ts` |
 | `.boltdocs/cache-*` | `.boltdocs/cache/*` |

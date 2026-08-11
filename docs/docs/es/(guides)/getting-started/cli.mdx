@@ -1,0 +1,276 @@
+---
+title: Comandos CLI
+sidebarPosition: 4
+description: Todos los comandos de la CLI de Boltdocs — dev, build, preview, audit, doctor y generate-changelog — más los exit codes que puedes usar en CI.
+---
+
+La **CLI de Boltdocs** impulsa todo el flujo de trabajo: arranca tu servidor de desarrollo, construye el sitio estático, previsualiza el bundle de producción, audita tus plugins en busca de advertencias de seguridad, comprueba la salud de tu documentación y genera páginas de changelog.
+
+La ejecutas con `npx boltdocs` o — una vez añadida a los scripts de tu `package.json` — con `pnpm docs:dev`, `pnpm docs:build` y compañía:
+
+```json
+{
+  "scripts": {
+    "docs:dev": "boltdocs dev",
+    "docs:build": "boltdocs build",
+    "docs:preview": "boltdocs preview",
+    "docs:audit": "boltdocs audit",
+    "docs:doctor": "boltdocs doctor"
+  }
+}
+```
+
+Todos los comandos aceptan un argumento posicional opcional `[root]` que apunta a un directorio de proyecto. Por defecto es `process.cwd()`.
+
+---
+
+## Resumen de comandos
+
+| Comando | Qué hace |
+| :--- | :--- |
+| **`dev`** | Inicia el servidor de desarrollo local con HMR (también es el comando por defecto si ejecutas `boltdocs` sin comando). |
+| **`build`** | Compila el sitio en HTML + JS estáticos mediante el motor SSG. |
+| **`preview`** | Sirve el build de producción de `dist/` localmente antes de desplegar. |
+| **`audit`** | Escanea estáticamente los plugins configurados en busca de código sensible. Sale con código no-cero ante riesgo alto — listo para CI. |
+| **`doctor`** | Diagnostica enlaces rotos, frontmatter malformado, traducciones faltantes y presupuestos de rendimiento. |
+| **`generate-changelog`** | Divide un `CHANGELOG.md` en páginas MDX por versión. |
+
+Flags globales: `--help` lista todos los comandos, y `--version` imprime la versión de Boltdocs instalada (leída de `package.json` en runtime — siempre coincide con lo que tienes instalado).
+
+---
+
+## `dev` — servidor de desarrollo
+
+Inicia un servidor de desarrollo Vite de alto rendimiento con Hot Module Replacement (HMR) instantáneo para archivos MDX, ediciones de estilos y recargas en caliente de configuración.
+
+* **Uso:** `boltdocs dev [root] [options]` — o simplemente `boltdocs [root] [options]`
+
+### Opciones del servidor dev
+
+| Opción | Descripción |
+| :--- | :--- |
+| **`--port <number>`** | Puerto del servidor de desarrollo (por defecto `5173`). |
+| **`--host [address]`** | Host al que vincularse — p. ej. `0.0.0.0` para exponerlo en tu red local. |
+| **`--force`** | Fuerza a Vite a re-optimizar y pre-empaquetar dependencias, ignorando la caché. |
+
+---
+
+## `build` — build de producción
+
+Compila tu documentación en activos HTML y JavaScript completamente estáticos y altamente optimizados mediante el motor de Static Site Generation (SSG) de React.
+
+* **Uso:** `boltdocs build [root]`
+
+La salida se genera en `dist/` (configurable con `outDir` en `boltdocs.config.ts`).
+
+---
+
+## `preview` — prueba el bundle de producción
+
+Sirve el bundle estático generado desde `dist/` para que verifiques rendimiento, redirecciones, etiquetas SEO y el renderizado de páginas antes de desplegar.
+
+* **Uso:** `boltdocs preview [root] [options]`
+
+### Opciones de preview
+
+| Opción | Descripción |
+| :--- | :--- |
+| **`--port <number>`** | Puerto del servidor de preview (por defecto `4173`). |
+| **`--host [address]`** | Host al que vincularse. |
+
+---
+
+## `audit` — escaneo de seguridad de plugins
+
+Realiza un análisis **estático** y rápido del código fuente de cada plugin configurado en tu proyecto. Escanea comportamientos potencialmente sensibles — llamadas a procesos hijos y código dinámico, acceso a red, lecturas y escrituras de archivos, lectura de variables de entorno y señales de metadatos como scripts de instalación o licencias faltantes — antes de que compiles o publiques.
+
+El escaneo nunca ejecuta código de plugins: solo lee `package.json` y los archivos fuente de `node_modules`. (Cargar tu configuración sí evalúa el propio archivo de config, pero nunca se ejecuta ningún hook de plugin, plugin de Vite ni script de instalación.)
+
+* **Uso:** `boltdocs audit [root]`
+
+### Exit codes (contrato para CI)
+
+| Código de salida | Significado |
+| :--- | :--- |
+| **`0`** | Todos los plugins configurados fueron escaneados y no contienen hallazgos de riesgo alto (solo hallazgos low/warning siguen pasando). |
+| **`1`** | Al menos un plugin tiene hallazgos de **riesgo alto**, no pudo resolverse, falló el escaneo o el escaneo fue truncado. |
+
+El comando es fail-closed: un plugin no resuelto o no escaneado se trata como no confiable y nunca cuenta como "pasado". Úsalo como puerta antes de fusionar plugins de terceros:
+
+```yaml
+# .github/workflows/security.yml (ejemplo)
+- run: pnpm docs:build
+- run: pnpm docs:audit
+```
+
+Si el audit devuelve `1`, tu job de CI falla — exactamente cuando quieres que un humano revise un plugin antes de que se publique.
+
+---
+
+## `doctor` — diagnósticos y verificación de integridad
+
+Ejecuta comprobaciones automatizadas en tu directorio de documentación para encontrar enlaces rotos, frontmatter malformado, traducciones faltantes y otros problemas estructurales.
+
+```bash
+# Ejecutar doctor en la carpeta actual
+npx boltdocs doctor
+
+# Corregir automáticamente problemas reparables
+npx boltdocs doctor --fix
+
+# Verificar URLs externas además de las rutas internas
+npx boltdocs doctor --check-external
+
+# Inicializar un archivo doctor.json por defecto
+npx boltdocs doctor --init
+
+# Verificar el rendimiento del build contra presupuestos configurados
+npx boltdocs doctor --budget
+```
+
+### Opciones de doctor
+
+| Opción | Descripción |
+| :--- | :--- |
+| **`--fix`** | Corrige automáticamente problemas reparables como rutas relativas rotas y claves i18n faltantes. |
+| **`--check-external`** | Verifica de forma asíncrona enlaces web externos (más lento). |
+| **`--init`** | Crea un archivo de configuración `doctor.json` por defecto en la raíz del proyecto. |
+| **`--budget`** | Verifica métricas de rendimiento del build contra presupuestos configurados. Requiere un `boltdocs build` previo. |
+
+### Configurar `doctor.json`
+
+Crea un `doctor.json` en la raíz de tu proyecto para personalizar comprobaciones, severidades y comportamiento en CI. Ejecuta `boltdocs doctor --init` para generarlo y luego ajústalo:
+
+```json
+{
+  "$schema": "https://boltdocs.vercel.app/schemas/doctor-config.schema.json",
+  "checks": {
+    "metadata": {
+      "enabled": true,
+      "titleMin": 10,
+      "titleMax": 60,
+      "descriptionMin": 50,
+      "required": ["title", "description"]
+    },
+    "links": {
+      "internal": true,
+      "external": false,
+      "timeout": 10000,
+      "concurrency": 10
+    },
+    "i18n": { "enabled": true },
+    "performance": {
+      "enabled": true,
+      "budgets": {
+        "maxJSBundleSize": "200kb",
+        "maxCSSBundleSize": "30kb",
+        "maxPageHTMLSize": "80kb",
+        "maxImagesKB": 500,
+        "maxBuildTime": 30000,
+        "maxFontCount": 3
+      }
+    }
+  },
+  "fix": {
+    "confirmChanges": false,
+    "backupFiles": false,
+    "backupPath": ".boltdocs/backups"
+  },
+  "reporting": {
+    "format": "pretty",
+    "outputFile": ".boltdocs/reports/doctor.json",
+    "failOnError": false,
+    "maxWarnings": -1
+  },
+  "severity": {
+    "missingTranslation": "warning",
+    "brokenLink": "high",
+    "brokenAnchor": "warning",
+    "malformedFrontmatter": "high",
+    "invalidFrontmatter": "high",
+    "budgetExceeded": "warning"
+  }
+}
+```
+
+#### `checks`
+
+| Clave | Tipo | Predeterminado | Descripción |
+| :--- | :--- | :--- | :--- |
+| **`metadata`** | `object` | Predeterminados | Longitud de título/descripción y campos de frontmatter requeridos. |
+| **`links`** | `object` | Predeterminados | Comprobación de enlaces internos/externos, timeout, concurrencia e ignorados. |
+| **`i18n`** | `object` | Predeterminados | Validez de la sincronización de traducciones. |
+| **`performance`** | `object` | Predeterminados | Presupuestos de rendimiento de build contra umbrales. |
+
+Opciones de metadata: `titleMin` (10), `titleMax` (60), `descriptionMin` (50), `required` (`["title", "description"]`), `optional` (`[]`), `validateDates` (`false`).
+
+Opciones de enlaces: `internal` (`true`), `external` (`false`), `timeout` (`10000` ms), `concurrency` (`10`), `ignore` (`[]` — patrones regex o URLs exactas a omitir).
+
+Los presupuestos de rendimiento aceptan `maxJSBundleSize`, `maxCSSBundleSize`, `maxPageHTMLSize` (strings como `"200kb"`), además de `maxImagesKB`, `maxBuildTime` (ms) y `maxFontCount`.
+
+#### `fix`
+
+| Clave | Tipo | Predeterminado | Descripción |
+| :--- | :--- | :--- | :--- |
+| **`confirmChanges`** | `boolean` | `false` | Preguntar antes de escribir correcciones automáticas. |
+| **`backupFiles`** | `boolean` | `false` | Copiar el documento fuente antes de corregir automáticamente. |
+| **`backupPath`** | `string` | `".boltdocs/backups"` | Dónde se guardan las copias pre-corrección. |
+
+#### `reporting`
+
+| Clave | Tipo | Predeterminado | Descripción |
+| :--- | :--- | :--- | :--- |
+| **`format`** | `'pretty' \| 'json' \| 'silent'` | `'pretty'` | Estilo de salida. `json` emite el informe en bruto. |
+| **`outputFile`** | `string` | `".boltdocs/reports/doctor.json"` | Dónde se escribe el informe. |
+| **`failOnError`** | `boolean` | `false` | Salir con estado `1` si se encuentra un problema de severidad `high`. |
+| **`maxWarnings`** | `number` | `-1` | Máximo de advertencias antes de que falle el proceso. `-1` es ilimitado. |
+
+---
+
+## `generate-changelog` — generador de changelog
+
+Analiza un `CHANGELOG.md` unificado (formatos Keep a Changelog, Standard Version o Semantic Release) y lo descompone en páginas MDX individuales por versión formateadas para el tema de Boltdocs.
+
+```bash
+# Descomponer CHANGELOG.md en páginas bajo docs/changelog
+npx boltdocs generate-changelog CHANGELOG.md
+```
+
+### Opciones de changelog
+
+| Opción | Predeterminado | Descripción |
+| :--- | :--- | :--- |
+| **`-o, --output <path>`** | `docs/changelog` | Carpeta de destino de las páginas de versión generadas. |
+| **`-t, --title <text>`** | `Changelog` | Título de encabezado inyectado en las páginas generadas. |
+| **`-l, --limit <number>`** | ilimitado | Conservar solo las últimas N versiones. |
+| **`--infer-tab`** | `true` | Inferir la agrupación de pestañas del sidebar desde los directorios de salida. |
+
+### Salida
+
+Cada versión se agrupa por tipo de actualización (Features, Bug Fixes, Performance, Refactor, Documentation, Chore) y se escribe como página incremental:
+
+```
+docs/changelog/
+├── 1.v2.0.0.md
+├── 2.v1.1.0.md
+└── 3.v1.0.0.md
+```
+
+Para mostrar las páginas generadas en el navbar, enlázalas desde `boltdocs.config.ts`:
+
+```ts
+export default defineConfig({
+  theme: {
+    navbar: [
+      { label: 'Documentation', href: '/docs' },
+      { label: 'Changelog', href: '/changelog' },
+    ],
+  },
+})
+```
+
+---
+
+## Comandos eliminados
+
+`theme:dev` (preview de temas) ya no está soportado y falla con un mensaje de comando desconocido. Construye tu layout personalizado directamente en tu proyecto — consulta la [guía de layouts personalizados](/docs/es/guides/customization/layout).

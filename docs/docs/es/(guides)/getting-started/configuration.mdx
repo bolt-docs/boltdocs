@@ -32,7 +32,8 @@ Boltdocs lee este archivo al iniciar y genera una configuración completa de Vit
 | **`docsDir`** | `string` | `'./docs'` | Ruta al directorio que contiene tu contenido Markdown. Relativa a la raíz del proyecto. |
 | **`plugins`** | `BoltdocsPlugin[]` | `[]` | Un array de plugins de Boltdocs. Consulta la pestaña [Plugins](/docs/plugins) para la referencia completa del sistema de plugins. |
 | **`theme`** | [`ThemeConfig`](#themeconfig) | — | Controla la apariencia visual, navegación, sidebar y opciones de visualización. |
-| **`seo`** | [`SeoConfig`](#seoconfig) | — | Controla el comportamiento de indexación y generación de thumbnails Open Graph. |
+| **`seo`** | [`SeoConfig`](#seoconfig) | — | Controla la indexación, los metadatos Open Graph y los datos estructurados. |
+| **`experimental`** | [`BoltdocsExperimentalConfig`](#experimentalconfig) | — | Habilita APIs opt-in que pueden evolucionar entre releases. |
 | **`robots`** | [`RobotsConfig`](#robotsconfig) | — | Genera `robots.txt` y enlaza tu sitemap. |
 | **`integrations`** | [`IntegrationsConfig`](#integrationsconfig) | — | Habilita integraciones de terceros como Google Analytics 4 y Google Tag Manager. |
 | **`i18n`** | [`I18nConfig`](#i18nconfig) | — | Habilita documentación multilingüe con enrutamiento basado en carpetas por locale. |
@@ -56,7 +57,7 @@ Controla toda la shell visual de tu sitio de documentación.
 | **`favicon`** | `string` | — | Ruta al favicon (relativa a `public/`). |
 | **`githubRepo`** | `string` | — | Repositorio en formato `owner/repo`. Habilita el enlace de GitHub en la navbar automáticamente. |
 | **`navbar`** | `NavbarItem[]` | — | Enlaces de navegación de nivel superior. Soporta elementos anidados con dropdown. |
-| **`tabs`** | `TabConfig[]` | — | Franja de pestañas horizontal sobre el sidebar. Consulta [Enrutamiento por Sistema de Archivos](/docs/guides/getting-started/file-routing). |
+| **`tabs`** | `TabConfig[]` | — | Franja de pestañas horizontal sobre el sidebar. Consulta [Enrutamiento por Sistema de Archivos](/docs/guides/getting-started/routing). |
 | **`sidebar`** | `SidebarConfig` | — | Estructura del sidebar definida manualmente (deshabilita el auto-descubrimiento para esos prefijos). |
 | **`sidebarGroups`** | `Record<string, SidebarGroupConfig>` | — | Sobreescribe títulos e iconos de grupos sin definir un sidebar manual completo. |
 | **`codeTheme`** | [`CodeThemeConfig`](#codethemeconfig) | — | Tema de Shiki usado para el resaltado de código. |
@@ -94,12 +95,52 @@ Controla cómo los motores de búsqueda indexan tu sitio y cómo se ven los comp
 | :--- | :--- | :--- | :--- |
 | **`indexing`** | `'all' \| 'none' \| 'noindex' \| 'nofollow'` | `'all'` | Controla la directiva `<meta name="robots">` aplicada a cada página. |
 | **`thumbnails`** | [`ThumbnailConfig`](#thumbnailconfig) | — | Genera imágenes Open Graph para cada página usando una plantilla de fondo. |
+| **`structuredData`** | `StructuredData` | — | Emite JSON-LD en el head del documento. Es para buscadores y crawlers, no para el índice de búsqueda interno. |
+
+### Datos estructurados
+
+Usa los helpers seguros para Node desde `boltdocs` en `boltdocs.config.ts`. Para la API más cómoda, consulta la [referencia de Structured Data](/docs/es/api/structured-data) y usa `createStructuredData({ website, article, breadcrumbs })`. `seo.structuredData` también puede definirse en el frontmatter MDX, y `<StructuredData />` está disponible para páginas React externas.
+
+```ts
+import {
+  createWebSiteStructuredData,
+  defineConfig,
+  defineStructuredData,
+} from 'boltdocs'
+
+export default defineConfig({
+  siteUrl: 'https://docs.example.com',
+  seo: {
+    structuredData: defineStructuredData(
+      createWebSiteStructuredData({
+        name: 'Example Docs',
+        url: 'https://docs.example.com',
+      }),
+    ),
+  },
+})
+```
+
+Los helpers disponibles incluyen `createWebSiteStructuredData`, `createArticleStructuredData` y `createBreadcrumbStructuredData`.
 
 ### `ThumbnailConfig`
 
 | Propiedad | Tipo | Descripción |
 | :--- | :--- | :--- |
 | **`background`** | `string` | Ruta (relativa a `public/`) a la imagen de fondo usada para thumbnails OG. |
+
+---
+
+## `ExperimentalConfig`
+
+Las capacidades experimentales están desactivadas por defecto.
+
+| Propiedad | Tipo | Predeterminado | Descripción |
+| :--- | :--- | :--- | :--- |
+| **`viewTransitions`** | `boolean \| { enabled?: boolean; types?: string[] }` | desactivado | Usa la API nativa de View Transitions cuando existe y vuelve a un comportamiento normal cuando no. |
+| **`fileRouting`** | `boolean` | desactivado | Mapea archivos literales de `docs/pages-external/` a rutas externas. |
+
+Consulta [Funciones Experimentales](/docs/es/guides/advanced/experimental) para ejemplos prácticos de View Transitions, `TransitionLink` y limitaciones de file-routing.
 
 ---
 

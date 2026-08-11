@@ -1,24 +1,357 @@
 {
-  "pageCount": 500,
-  "timestamp": "2026-07-28T21:52:20.816Z",
-  "buildTimeCold": {
-    "boltdocs": 168,
-    "docusaurus": 34,
-    "ratio": 0.2
+  "pageCount": 100,
+  "runs": 1,
+  "complex": false,
+  "timestamp": "2026-08-08T15:38:18.854Z",
+  "metrics": {
+    "buildTimeCold": {
+      "boltdocs": {
+        "samples": [
+          17.85
+        ],
+        "min": 17.85,
+        "max": 17.85,
+        "mean": 17.85,
+        "median": 17.85
+      },
+      "docusaurus": {
+        "samples": [
+          16.97
+        ],
+        "min": 16.97,
+        "max": 16.97,
+        "mean": 16.97,
+        "median": 16.97
+      }
+    },
+    "buildTimeWarm": {
+      "boltdocs": {
+        "samples": [
+          3.16
+        ],
+        "min": 3.16,
+        "max": 3.16,
+        "mean": 3.16,
+        "median": 3.16
+      },
+      "docusaurus": {
+        "samples": [
+          8.42
+        ],
+        "min": 8.42,
+        "max": 8.42,
+        "mean": 8.42,
+        "median": 8.42
+      }
+    },
+    "buildTimeEditedRebuild": {
+      "boltdocs": {
+        "samples": [
+          12.87
+        ],
+        "min": 12.87,
+        "max": 12.87,
+        "mean": 12.87,
+        "median": 12.87
+      },
+      "docusaurus": {
+        "samples": [
+          8.62
+        ],
+        "min": 8.62,
+        "max": 8.62,
+        "mean": 8.62,
+        "median": 8.62
+      }
+    },
+    "devServerStart": {
+      "boltdocs": {
+        "samples": [
+          5506
+        ],
+        "min": 5506,
+        "max": 5506,
+        "mean": 5506,
+        "median": 5506
+      },
+      "docusaurus": {
+        "samples": [
+          5000
+        ],
+        "min": 5000,
+        "max": 5000,
+        "mean": 5000,
+        "median": 5000
+      }
+    },
+    "bundleSize": {
+      "boltdocs": {
+        "samples": [
+          1852
+        ],
+        "min": 1852,
+        "max": 1852,
+        "mean": 1852,
+        "median": 1852
+      },
+      "docusaurus": {
+        "samples": [
+          4183
+        ],
+        "min": 4183,
+        "max": 4183,
+        "mean": 4183,
+        "median": 4183
+      }
+    }
   },
-  "buildTimeWarm": {
-    "boltdocs": 159,
-    "docusaurus": 24,
-    "ratio": 0.2
-  },
-  "devServerStart": {
-    "boltdocs": 6000,
-    "docusaurus": 4000,
-    "ratio": 0.7
-  },
-  "bundleSize": {
-    "boltdocs": 74513,
-    "docusaurus": 53247,
-    "ratio": 0.7
-  }
+  "samples": [
+    {
+      "pageCount": 100,
+      "timestamp": "2026-08-08T15:38:18.846Z",
+      "buildTimeCold": {
+        "boltdocs": 17.85,
+        "docusaurus": 16.97,
+        "ratio": 1
+      },
+      "buildTimeWarm": {
+        "boltdocs": 3.16,
+        "docusaurus": 8.42,
+        "ratio": 2.7
+      },
+      "buildTimeEditedRebuild": {
+        "boltdocs": 12.87,
+        "docusaurus": 8.62,
+        "ratio": 0.7
+      },
+      "devServerStart": {
+        "boltdocs": 5506,
+        "docusaurus": 5000,
+        "ratio": 0.9
+      },
+      "bundleSize": {
+        "boltdocs": 1852,
+        "docusaurus": 4183,
+        "ratio": 2.3
+      },
+      "outputInventory": {
+        "boltdocs": {
+          "files": 214,
+          "bytes": 1896425,
+          "htmlFiles": 101,
+          "documentRoutes": [
+            "/",
+            "/page-1",
+            "/page-10",
+            "/page-100",
+            "/page-11",
+            "/page-12",
+            "/page-13",
+            "/page-14",
+            "/page-15",
+            "/page-16",
+            "/page-17",
+            "/page-18",
+            "/page-19",
+            "/page-2",
+            "/page-20",
+            "/page-21",
+            "/page-22",
+            "/page-23",
+            "/page-24",
+            "/page-25",
+            "/page-26",
+            "/page-27",
+            "/page-28",
+            "/page-29",
+            "/page-3",
+            "/page-30",
+            "/page-31",
+            "/page-32",
+            "/page-33",
+            "/page-34",
+            "/page-35",
+            "/page-36",
+            "/page-37",
+            "/page-38",
+            "/page-39",
+            "/page-4",
+            "/page-40",
+            "/page-41",
+            "/page-42",
+            "/page-43",
+            "/page-44",
+            "/page-45",
+            "/page-46",
+            "/page-47",
+            "/page-48",
+            "/page-49",
+            "/page-5",
+            "/page-50",
+            "/page-51",
+            "/page-52",
+            "/page-53",
+            "/page-54",
+            "/page-55",
+            "/page-56",
+            "/page-57",
+            "/page-58",
+            "/page-59",
+            "/page-6",
+            "/page-60",
+            "/page-61",
+            "/page-62",
+            "/page-63",
+            "/page-64",
+            "/page-65",
+            "/page-66",
+            "/page-67",
+            "/page-68",
+            "/page-69",
+            "/page-7",
+            "/page-70",
+            "/page-71",
+            "/page-72",
+            "/page-73",
+            "/page-74",
+            "/page-75",
+            "/page-76",
+            "/page-77",
+            "/page-78",
+            "/page-79",
+            "/page-8",
+            "/page-80",
+            "/page-81",
+            "/page-82",
+            "/page-83",
+            "/page-84",
+            "/page-85",
+            "/page-86",
+            "/page-87",
+            "/page-88",
+            "/page-89",
+            "/page-9",
+            "/page-90",
+            "/page-91",
+            "/page-92",
+            "/page-93",
+            "/page-94",
+            "/page-95",
+            "/page-96",
+            "/page-97",
+            "/page-98",
+            "/page-99"
+          ]
+        },
+        "docusaurus": {
+          "files": 215,
+          "bytes": 4283151,
+          "htmlFiles": 102,
+          "documentRoutes": [
+            "/",
+            "/page-1",
+            "/page-10",
+            "/page-100",
+            "/page-11",
+            "/page-12",
+            "/page-13",
+            "/page-14",
+            "/page-15",
+            "/page-16",
+            "/page-17",
+            "/page-18",
+            "/page-19",
+            "/page-2",
+            "/page-20",
+            "/page-21",
+            "/page-22",
+            "/page-23",
+            "/page-24",
+            "/page-25",
+            "/page-26",
+            "/page-27",
+            "/page-28",
+            "/page-29",
+            "/page-3",
+            "/page-30",
+            "/page-31",
+            "/page-32",
+            "/page-33",
+            "/page-34",
+            "/page-35",
+            "/page-36",
+            "/page-37",
+            "/page-38",
+            "/page-39",
+            "/page-4",
+            "/page-40",
+            "/page-41",
+            "/page-42",
+            "/page-43",
+            "/page-44",
+            "/page-45",
+            "/page-46",
+            "/page-47",
+            "/page-48",
+            "/page-49",
+            "/page-5",
+            "/page-50",
+            "/page-51",
+            "/page-52",
+            "/page-53",
+            "/page-54",
+            "/page-55",
+            "/page-56",
+            "/page-57",
+            "/page-58",
+            "/page-59",
+            "/page-6",
+            "/page-60",
+            "/page-61",
+            "/page-62",
+            "/page-63",
+            "/page-64",
+            "/page-65",
+            "/page-66",
+            "/page-67",
+            "/page-68",
+            "/page-69",
+            "/page-7",
+            "/page-70",
+            "/page-71",
+            "/page-72",
+            "/page-73",
+            "/page-74",
+            "/page-75",
+            "/page-76",
+            "/page-77",
+            "/page-78",
+            "/page-79",
+            "/page-8",
+            "/page-80",
+            "/page-81",
+            "/page-82",
+            "/page-83",
+            "/page-84",
+            "/page-85",
+            "/page-86",
+            "/page-87",
+            "/page-88",
+            "/page-89",
+            "/page-9",
+            "/page-90",
+            "/page-91",
+            "/page-92",
+            "/page-93",
+            "/page-94",
+            "/page-95",
+            "/page-96",
+            "/page-97",
+            "/page-98",
+            "/page-99"
+          ]
+        }
+      }
+    }
+  ]
 }

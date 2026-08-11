@@ -32,7 +32,8 @@ Boltdocs reads this file at startup and generates a complete Vite configuration 
 | **`docsDir`** | `string` | `'./docs'` | Path to the directory containing your Markdown content. Relative to the project root. |
 | **`plugins`** | `BoltdocsPlugin[]` | `[]` | An array of Boltdocs plugins. See the [Plugins tab](/docs/plugins) for the full plugin system reference. |
 | **`theme`** | [`ThemeConfig`](#themeconfig) | — | Controls the visual appearance, navigation, sidebar, and display options. |
-| **`seo`** | [`SeoConfig`](#seoconfig) | — | Controls indexing behavior and Open Graph thumbnail generation. |
+| **`seo`** | [`SeoConfig`](#seoconfig) | — | Controls indexing behavior, Open Graph metadata, and structured data. |
+| **`experimental`** | [`BoltdocsExperimentalConfig`](#experimentalconfig) | — | Enables opt-in APIs that may evolve between releases. |
 | **`robots`** | [`RobotsConfig`](#robotsconfig) | — | Generates `robots.txt` and links your sitemap. |
 | **`integrations`** | [`IntegrationsConfig`](#integrationsconfig) | — | Enables third-party integrations such as Google Analytics 4 and Google Tag Manager. |
 | **`i18n`** | [`I18nConfig`](#i18nconfig) | — | Enables multi-language documentation with locale-based folder routing. |
@@ -56,7 +57,7 @@ Controls the entire visual shell of your documentation site.
 | **`favicon`** | `string` | — | Path to the favicon (relative to `public/`). |
 | **`githubRepo`** | `string` | — | Repository in `owner/repo` format. Enables the GitHub link in the navbar automatically. |
 | **`navbar`** | `NavbarItem[]` | — | Top-level navigation links. Supports nested dropdown items. |
-| **`tabs`** | `TabConfig[]` | — | Horizontal tab strip above the sidebar. See [File-System Routing](/docs/guides/getting-started/file-routing). |
+| **`tabs`** | `TabConfig[]` | — | Horizontal tab strip above the sidebar. See [File-System Routing](/docs/guides/getting-started/routing). |
 | **`sidebar`** | `SidebarConfig` | — | Manually defined sidebar structure (disables auto-discovery for those prefixes). |
 | **`sidebarGroups`** | `Record<string, SidebarGroupConfig>` | — | Override group titles and icons without defining a full manual sidebar. |
 | **`codeTheme`** | [`CodeThemeConfig`](#codethemeconfig) | — | Shiki theme used for code block highlighting. |
@@ -94,12 +95,52 @@ Controls how search engines index your site and how social shares look.
 | :--- | :--- | :--- | :--- |
 | **`indexing`** | `'all' \| 'none' \| 'noindex' \| 'nofollow'` | `'all'` | Controls the `<meta name="robots">` directive applied to every page. |
 | **`thumbnails`** | [`ThumbnailConfig`](#thumbnailconfig) | — | Generates Open Graph images for each page using a background template. |
+| **`structuredData`** | `StructuredData` | — | Emits JSON-LD in the document head. It is for search engines and crawlers, not the internal search index. |
+
+### Structured data
+
+Use the Node-safe helpers from `boltdocs` in `boltdocs.config.ts`. For the most convenient API, see the [Structured Data API reference](/docs/api/structured-data) and use `createStructuredData({ website, article, breadcrumbs })`. Page-level `seo.structuredData` can be supplied in MDX frontmatter, and `<StructuredData />` is available for external React pages.
+
+```ts
+import {
+  createWebSiteStructuredData,
+  defineConfig,
+  defineStructuredData,
+} from 'boltdocs'
+
+export default defineConfig({
+  siteUrl: 'https://docs.example.com',
+  seo: {
+    structuredData: defineStructuredData(
+      createWebSiteStructuredData({
+        name: 'Example Docs',
+        url: 'https://docs.example.com',
+      }),
+    ),
+  },
+})
+```
+
+Available helpers include `createWebSiteStructuredData`, `createArticleStructuredData`, and `createBreadcrumbStructuredData`.
 
 ### `ThumbnailConfig`
 
 | Property | Type | Description |
 | :--- | :--- | :--- |
 | **`background`** | `string` | Path (relative to `public/`) to the background image used for OG thumbnails. |
+
+---
+
+## `ExperimentalConfig`
+
+Experimental capabilities are disabled by default.
+
+| Property | Type | Default | Description |
+| :--- | :--- | :--- | :--- |
+| **`viewTransitions`** | `boolean \| { enabled?: boolean; types?: string[] }` | disabled | Uses the native View Transition API when available and falls back safely when it is not. |
+| **`fileRouting`** | `boolean` | disabled | Maps literal files in `docs/pages-external/` to external routes. |
+
+See [Experimental Features](/docs/guides/advanced/experimental) for practical View Transitions examples, `TransitionLink`, and file-routing limitations.
 
 ---
 

@@ -90,7 +90,7 @@ Generated at build time. Contains all indexed routes with:
 - `changefreq` — Page update frequency
 - `priority` — Calculated from sidebar position
 
-### robots.txt
+### Generated robots.txt
 
 Generated from your `robots` config. Example output:
 
@@ -100,6 +100,64 @@ Allow: /
 Disallow: /private/
 Sitemap: https://docs.example.com/sitemap.xml
 ```
+
+---
+
+## Structured Data (JSON-LD)
+
+Structured data is metadata for search engines and crawlers. It is separate from Boltdocs' internal search index. Use JSON-LD to describe your website, articles, and breadcrumbs in a schema.org-compatible graph.
+
+### Global website data
+
+Use the Node-safe helpers from `boltdocs` in `boltdocs.config.ts`:
+
+```ts
+import {
+  createWebSiteStructuredData,
+  defineConfig,
+  defineStructuredData,
+} from 'boltdocs'
+
+export default defineConfig({
+  siteUrl: 'https://docs.example.com',
+  seo: {
+    structuredData: defineStructuredData(
+      createWebSiteStructuredData({
+        name: 'Example Docs',
+        url: 'https://docs.example.com',
+        description: 'Product documentation',
+      }),
+    ),
+  },
+})
+```
+
+### Page-specific data
+
+Add `structuredData` under `seo` in MDX frontmatter:
+
+```mdx
+---
+title: Getting Started
+seo:
+  structuredData:
+    '@context': https://schema.org
+    '@type': TechArticle
+    headline: Getting Started
+---
+```
+
+For external React pages, render `<StructuredData data={...} />` from `boltdocs/client`. The helpers `createArticleStructuredData` and `createBreadcrumbStructuredData` cover common article and navigation graphs.
+
+### `StructuredData` reference
+
+| API | Purpose |
+| :--- | :--- |
+| `defineStructuredData(data)` | Preserves typed JSON-LD objects in config files. |
+| `createWebSiteStructuredData(options)` | Creates a `WebSite` graph, with optional site search action. |
+| `createArticleStructuredData(options)` | Creates an `Article` graph with author, dates, image, and description. |
+| `createBreadcrumbStructuredData(items)` | Creates a `BreadcrumbList` graph from named URLs. |
+| `<StructuredData data={...} />` | Emits a safe `application/ld+json` script from an external page. |
 
 ---
 

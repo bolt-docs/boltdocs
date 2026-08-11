@@ -1,9 +1,14 @@
-import { Link } from 'react-router-dom'
-import { useRecentPosts } from 'boltdocs/client'
+import { Link } from 'boltdocs/primitives'
+import {
+  resolvePublicAssetUrl,
+  useConfig,
+  useRecentPosts,
+} from 'boltdocs/client'
 import { useTranslations } from '../../i18n/index'
 
 export function FeaturedResources() {
   const recentPosts = useRecentPosts('blog', 3)
+  const config = useConfig()
   const t = useTranslations()
 
   return (
@@ -36,7 +41,7 @@ export function FeaturedResources() {
                 <div className="relative aspect-video w-full overflow-hidden bg-neutral-900">
                   {cover ? (
                     <img
-                      src={cover as string}
+                      src={resolvePublicAssetUrl(cover as string, config.base)}
                       alt={title as string}
                       className="object-cover w-full h-full"
                     />

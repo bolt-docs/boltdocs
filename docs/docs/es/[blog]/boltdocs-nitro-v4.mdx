@@ -50,7 +50,7 @@ flowchart TD
 ```
 
 | Fase | Tiempo | % del total |
-|------|--------|-------------|
+| ------ | -------- | ------------- |
 | Resolución de config | ~50ms | 1% |
 | Generación de rutas | ~500ms | 3% |
 | Validación SEO | ~100ms | 1% |
@@ -192,7 +192,7 @@ Si editas un archivo y deshaces la edición, el HTML renderizado es idéntico. H
 **Línea base actual (200 páginas): ~35s total**
 
 | Métrica | v3 (actual) | v4 (objetivo) | Aceleración |
-|---------|------------|---------------|-------------|
+| --------- | ------------ | --------------- | ------------- |
 | Build en frío | 35s | 9-12s | **~3-4x** |
 | Editar 1 línea | 35s | 0.5-2s | **~20-70x** |
 | CI (sin cambios) | 35s | 1-2s | **~20-35x** |
@@ -217,7 +217,7 @@ Los resultados hablan por sí mismos: el análisis identificó 12 cuellos de bot
 Cada fase se envía aproximadamente al 50% en los próximos releases menores:
 
 | Versión | Fase | Qué incluye |
-|---------|------|-------------|
+| --------- | ------ | ------------- |
 | 3.2.x | Fase 1 (50%) | Motor Shiki WASM, hash de cliente inteligente, paralelismo en pipeline |
 | 3.3.x | Fase 1 (100%) + Fase 2 (50%) | FileStore shardeado, sin gzip en dev, prototipo de worker threads MDX |
 | 3.4.x | Fase 2 (100%) | Caché por ruta, parches delta, HMR de frontmatter, mapa de dependencias |

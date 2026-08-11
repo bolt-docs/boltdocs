@@ -1,82 +1,182 @@
 ---
-title: "Boltdocs 3.3.0 — Docusaurus Superado: Cold Builds 34% Más Rápidos, Dev Startup Sub-3s y Core Agnóstico a CSS"
-description: "Boltdocs 3.3.0 supera oficialmente a Docusaurus Faster en velocidad de Cold Build (11.41s vs 15.26s) y Dev Startup (4.31s vs 4.52s), introduce precompilación asíncrona anticipada con Sätteri y convierte el Core en 100% Agnóstico a CSS con plugins oficiales de Tailwind v4, SASS y UnoCSS."
+title: "Boltdocs 3.3.0 — Builds más rápidos, core agnóstico a CSS y routing experimental"
+description: "Boltdocs 3.3.0 mejora los cold builds y el arranque de desarrollo, agrega integraciones oficiales de CSS, amplía la API de plugins e incorpora JSON-LD, View Transitions y file-routing de pages-external de forma opt-in."
 date: 2026-07-28
 cover: /blog-covers/Boltdocs-3.3.0.webp
 author:
   name: Jesús Alcalá
   avatar: /avatar.jpeg
-excerpt: "3.3.0 supera oficialmente a Docusaurus Faster en Cold Builds (11.41s vs 15.26s) y Dev Startup (4.31s vs 4.52s), convierte el Core en 100% Agnóstico a CSS con Vanilla CSS nativo e introduce plugins oficiales para Tailwind v4, SASS y UnoCSS."
+excerpt: "Boltdocs 3.3.0 combina las mejoras de rendimiento de Nitro con un core agnóstico a CSS, plugins oficiales para Tailwind v4, SASS y UnoCSS, además de datos estructurados y file-routing externo opt-in."
 tags: ["Release", "Performance"]
 ---
 
-## Lo logramos: Boltdocs 3.3.0 supera a Docusaurus Faster
+## Ya está aquí Boltdocs 3.3.0
 
-Nos propusimos construir el framework de documentación más rápido del ecosistema JavaScript. Hoy, con **Boltdocs 3.3.0**, nos enorgullece anunciar que Boltdocs supera oficialmente a **Docusaurus Faster** tanto en velocidad de **Cold Build** como en tiempo de **Dev Server Startup**.
+Boltdocs 3.3.0 continúa el trabajo de Nitro iniciado en 3.1.0 y 3.2.0: menos trabajo durante el arranque, mejor concurrencia y menos supuestos dentro del core. También incorpora APIs opt-in para tener más control sobre SEO, transiciones y páginas personalizadas.
 
 <Callout type="info">
-  En benchmarks comparativos sobre un sitio de 100 páginas:
-  - **Velocidad de Cold Build**: **11.41s** vs Docusaurus **15.26s** (**3.85s / 34% más rápido**)
-  - **Arranque del Dev Server**: **4.31s** vs Docusaurus **4.52s** (**210ms más rápido**)
-  - **HMR Incremental MDX**: **0.36s** (**7x más rápido**)
+  En el sitio de benchmark de 100 páginas, Boltdocs midió **11.41s en cold builds**, **4.31s de arranque dev** y **0.36s de HMR incremental de MDX**. Son resultados de benchmark, no una garantía para cada proyecto; consulta la [página de rendimiento](/es/benchmark) para ver la metodología y los resultados actuales.
 </Callout>
 
 ---
 
-## Resultados del Benchmark (100 Páginas)
+---
 
-| Métrica | Boltdocs 3.3.0 | Docusaurus Faster | Ventaja |
-|:---|:---|:---|:---|
-| ❄️ **Cold Build** | **11.41s** | **15.26s** | 🏆 **3.85s Más Rápido (1.34× / +34%)** |
-| 🚀 **Dev Server Startup** | **4.31s** | **4.52s** | 🏆 **210ms Más Rápido (1.05×)** |
-| ⚡ **HMR Incremental** | **0.36s** | **~2.50s** | 🏆 **7× Más Rápido** |
+## Builds y arranque más rápidos
+
+3.3.0 mueve más trabajo fuera de la ruta crítica de inicio:
+
+- **Precompilación temprana de Sätteri**: comienza desde `configResolved()` para que los workers preparen MDX mientras Vite inicializa su grafo.
+- **Pools dinámicos de workers**: evita saturar máquinas pequeñas con un número fijo de workers. El pool escala según CPU y cantidad de archivos.
+- **Arranque dev no bloqueante**: el servidor empieza a escuchar antes de que termine la generación de rutas en segundo plano.
+
+La comparación completa está en la [página de rendimiento](/es/benchmark). Úsala como referencia reproducible, no como promesa para una aplicación concreta.
 
 ---
 
-## Cómo lo Conseguimos: Bajo el Capó
+## Un core agnóstico a CSS
 
-### 1. Precompilación Asíncrona Anticipada con Sätteri
-En lugar de esperar al hook `buildStart()` de Vite para compilar los ASTs de Markdown, Sätteri ahora inicia la precompilación en los workers de Rust dentro de `configResolved()`. Esto permite que los hilos compilen archivos MDX en paralelo mientras Vite inicializa su grafo de plugins.
+El core ya no supone que cada proyecto usa Tailwind CSS. Vanilla CSS, CSS Modules, custom properties y los tokens del tema funcionan sin agregar un framework CSS.
 
-### 2. Dimensionamiento Dinámico de Pools en Piscina y Sätteri
-En lugar de instanciar 7 workers fijos (lo que causaba contención de CPU y sobrecarga de IPC), el número de workers ahora se escala dinámicamente (`Math.min(cpus, Math.ceil(files/25))`), utilizando 4 workers óptimos para 100 páginas.
+Las integraciones CSS ahora son plugins explícitos:
 
-### 3. Arranque de Dev Server No Bloqueante y Rutas Perezosas
-`generateRoutes()` ya no bloquea `server.listen()`. El servidor de desarrollo comienza a escuchar inmediatamente y genera el árbol de rutas en segundo plano antes de que el navegador realice su primera petición HTTP.
+| Paquete | Propósito |
+| :--- | :--- |
+| [`@bdocs/plugin-tailwindcss`](/es/plugins/css/tailwindcss) | Tailwind CSS v4 mediante la integración de Vite. |
+| [`@bdocs/plugin-sass`](/es/plugins/css/sass) | Preprocesamiento SASS y SCSS. |
+| [`@bdocs/plugin-unocss`](/es/plugins/css/unocss) | Utilidades atómicas de UnoCSS. |
+
+Por ejemplo:
+
+```ts title="boltdocs.config.ts"
+import { defineConfig } from 'boltdocs'
+import tailwindcssPlugin from '@bdocs/plugin-tailwindcss'
+
+export default defineConfig({
+  plugins: [tailwindcssPlugin()],
+})
+```
 
 ---
 
-## 🎨 Core Agnóstico a Frameworks CSS y Plugins Oficiales
+## La nueva API de plugins
 
-Antes de 3.3.0, el core tenía validaciones estáticas de Tailwind. En 3.3.0, **Boltdocs es 100% Agnóstico a Frameworks CSS**:
+La API `definePlugin` ofrece hooks tipados y puntos de extensión claros para UI cliente, providers, frontmatter, indexación de búsqueda y assets posteriores al build.
 
-1. **Core Nativo Vanilla CSS**: Soporte por defecto para archivos `.css`, CSS Modules y variables CSS nativas sin dependencias externas. `base-theme.css` ofrece tokens de diseño base para componentes `ui-base`.
-2. **API de Plugins Ampliada**: Los plugins ahora pueden registrar plugins de PostCSS y preprocesadores mediante `css: { postcssPlugins, preprocessorOptions }`.
-3. **Nuevos Plugins Oficiales de Estilos**:
-   - 🎨 **`@bdocs/plugin-tailwindcss`**: Soporte completo para Tailwind CSS v4 mediante `@tailwindcss/vite`.
-   - ⚡ **`@bdocs/plugin-sass`**: Soporte para el preprocesador SASS / SCSS.
-   - 🚀 **`@bdocs/plugin-unocss`**: Soporte para el motor atómico UnoCSS.
+```ts
+import { definePlugin } from 'boltdocs'
+
+export default definePlugin(() => ({
+  name: 'my-plugin',
+  hooks: {
+    'frontmatter:transform'(_ctx, { frontmatter, rawContent }) {
+      return {
+        ...frontmatter,
+        readingTime: Math.ceil(rawContent.split(/\s+/).length / 200),
+      }
+    },
+    'build:generate'(ctx, { routes, outDir }) {
+      ctx.logger.info(`Generated assets for ${routes.length} routes in ${outDir}.`)
+    },
+  },
+}))
+```
+
+Consulta la [referencia de la API de plugins](/es/api/plugin-api) para la lista completa de hooks y namespaces.
 
 ---
 
-## Actualización a 3.3.0
+## APIs opt-in para SEO y páginas
 
-Actualiza los paquetes en tu proyecto:
+### Structured Data (JSON-LD)
+
+JSON-LD pertenece al SEO y la descubribilidad, no al diálogo de búsqueda interno. Configura un graph global con helpers importados desde el entrypoint de Node:
+
+```ts
+import {
+  createWebSiteStructuredData,
+  defineConfig,
+  defineStructuredData,
+} from 'boltdocs'
+
+export default defineConfig({
+  siteUrl: 'https://example.com',
+  seo: {
+    structuredData: defineStructuredData(
+      createWebSiteStructuredData({
+        name: 'Example Docs',
+        url: 'https://example.com',
+      }),
+    ),
+  },
+})
+```
+
+Usa `seo.structuredData` en el frontmatter para datos específicos de una página o renderiza `<StructuredData data={...} />` desde una página React externa. Consulta la [guía SEO](/es/integrations/seo) para helpers de artículos y breadcrumbs.
+
+### View Transitions
+
+Las View Transitions son opt-in y vuelven a una actualización normal cuando el navegador no implementa `document.startViewTransition`:
+
+```ts
+export default defineConfig({
+  experimental: {
+    viewTransitions: {
+      enabled: true,
+      types: ['page'],
+    },
+  },
+})
+```
+
+Los layouts personalizados y las páginas externas pueden llamar `useViewTransition()` desde `boltdocs/client`. Consulta [Funciones Experimentales](/docs/es/guides/advanced/experimental).
+
+### File-routing estático en `pages-external`
+
+Un proyecto puede activar rutas de archivos literales sin construir un único objeto `pages`:
+
+```text
+docs/pages-external/
+├── home.tsx      → /home
+├── about.tsx     → /about
+└── pricing.mdx   → /pricing
+```
+
+Actívalo con `experimental.fileRouting`. En esta primera versión se ignoran intencionalmente los segmentos dinámicos como `[id]`, los grupos de rutas y los archivos auxiliares reservados. La API existente de `pages-external/index.tsx` sigue disponible. La [guía de Páginas Externas](/docs/es/guides/customization/external-pages) cubre ambas APIs.
+
+---
+
+## Las colecciones muestran primero las publicaciones recientes
+
+Las publicaciones de colecciones ahora se ordenan por fecha de publicación descendente. Las nuevas aparecen primero y las fechas ausentes o inválidas quedan después de las publicaciones fechadas. Esto aplica a `usePosts()`, `useRecentPosts()`, los datos virtuales de colecciones y la paginación de la plantilla de blog.
+
+---
+
+## Una auditoría de seguridad de plugins más precisa
+
+`boltdocs audit` — el escaneo estático que inspecciona los plugins instalados en busca de llamadas riesgosas **sin ejecutarlos nunca** — recibió una ronda de mejoras de corrección y rendimiento:
+
+- **Resolución precisa de plugins.** Los plugins ahora se emparejan con sus paquetes instalados mediante los specifiers de import del config, así los paquetes con scope se resuelven correctamente aunque el `name` del plugin difiera del nombre del paquete. `boltdocs-plugin-mermaid` ahora audita `@bdocs/plugin-mermaid` en lugar de reportar `Unresolved`.
+- **Escaneos acotados.** Cada plugin se escanea dentro de un presupuesto total de bytes (8 MB por defecto). Si un bundle minificado enorme cruza el presupuesto, el escaneo se detiene y reporta un hallazgo `scan-truncated` — un escaneo incompleto nunca se reporta como limpio.
+- **Resúmenes fail-closed.** Los plugins que no se pueden resolver o escanear se tratan como no confiables y nunca cuentan para "todos los plugins pasaron".
+- **Arranque más rápido.** La auditoría carga solo `config.plugins` (saltándose la validación completa de configuración), filtra el catálogo de reglas con un pre-paso de rechazo rápido, y `--help`/`--version` ya no cargan el toolkit de UI — el CLI arranca aproximadamente un 30% más rápido.
+
+Ejecútalo antes de agregar un plugin de terceros:
+
+```bash
+boltdocs audit
+```
+
+El escaneo reporta llamadas a child-process y código dinámico, acceso de red, lectura y escritura de archivos, acceso a variables de entorno y banderas rojas de metadatos (scripts de instalación, dependencias empaquetadas, licencia o procedencia ausente). Consulta la [referencia del CLI](/docs/es/guides/getting-started/cli) para el formato completo de salida, incluido el contrato de exit codes para CI.
+
+---
+
+## Actualización
 
 ```bash
 pnpm add boltdocs@latest @bdocs/ssg@latest
 ```
 
-Si usas Tailwind CSS v4, simplemente añade `@bdocs/plugin-tailwindcss`:
+Si usas un framework CSS, instala también el plugin correspondiente. Los proyectos existentes pueden actualizar sin activar flags experimentales: `viewTransitions` y `fileRouting` siguen siendo opt-in.
 
-```ts
-// boltdocs.config.ts
-import { defineConfig } from 'boltdocs'
-import tailwindcssPlugin from '@bdocs/plugin-tailwindcss'
-
-export default defineConfig({
-  plugins: [
-    tailwindcssPlugin(),
-  ],
-})
-```
+Consulta el [post de Boltdocs 3.3.0](/docs/es/blog/boltdocs-3.3.0), el [changelog](/docs/es/changelog) y la [documentación completa](/docs/es/) para explorar las referencias detalladas de cada API.

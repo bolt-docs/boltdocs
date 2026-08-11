@@ -53,6 +53,17 @@ export default defineConfig({
     }),
   ],
   siteUrl: 'https://boltdocs.vercel.app/',
+  experimental: {
+    // View Transitions are kept off for the official docs — the default layout
+    // and navigation should behave identically for every visitor.
+    viewTransitions: {
+      enabled: false,
+      types: ['page'],
+    },
+    // File routing is opt-in for projects that keep only route files in
+    // pages-external/. This site has auxiliary components there, so it stays off.
+    fileRouting: false,
+  },
   seo: {
     indexing: 'all',
     thumbnails: {
@@ -102,6 +113,10 @@ export default defineConfig({
           {
             label: { en: 'Configuration', es: 'Configuración' },
             href: '/docs/guides/getting-started/configuration',
+          },
+          {
+            label: { en: 'Changelog', es: 'Changelog' },
+            href: '/docs/changelog',
           },
         ],
       },

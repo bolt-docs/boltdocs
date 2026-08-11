@@ -59,7 +59,7 @@ La [especificación llms.txt](https://llmstxt.org) (propuesta por Jeremy Howard 
 
 ### Cómo Funciona
 
-1. **Recolección de Rutas:** Después de que la compilación SSG se completa, el plugin lee todas las rutas generadas del `PluginContext` — las mismas rutas usadas para generar las páginas de tu sitio.
+1. **Recolección de Rutas:** Durante la fase final de generación de assets, el plugin recibe todas las rutas generadas por el pipeline — las mismas rutas usadas para generar las páginas de tu sitio.
 
 2. **Agrupación en Secciones:** Las rutas se agrupan en secciones H2 basadas en prefijos de ruta. Por defecto:
    - Las rutas de documentación principal van bajo `## Documentation`
@@ -80,10 +80,10 @@ La [especificación llms.txt](https://llmstxt.org) (propuesta por Jeremy Howard 
 | Entorno | Comportamiento |
 | :--- | :--- |
 | **Compilación de producción** (`boltdocs build`) | `llms.txt` siempre se genera |
-| **Desarrollo** (`boltdocs dev`) | `llms.txt` NO se genera (la etiqueta link aún se inyecta) |
+| **Desarrollo** (`boltdocs dev`) | `llms.txt` no se escribe; la etiqueta link aún puede inyectarse |
 | **CI/CD** | `llms.txt` se genera automáticamente |
 
-Para generar durante el desarrollo, activa `devMode: true`.
+`devMode` se conserva por compatibilidad, pero la generación está ligada a la fase de assets de producción. Usa una compilación de producción cuando necesites el archivo en disco.
 
 ---
 
@@ -115,6 +115,7 @@ llmsTextPlugin({
   ],
   includePaths: ['/docs', '/blog'],
   excludePaths: ['/blog/experimental'],
+  locales: ['en', 'es'],
   maxLinksPerSection: 50,
   includeDrafts: false,
   devMode: false,
@@ -127,7 +128,7 @@ llmsTextPlugin({
 
 ## Referencia de API
 
-### Opciones del Plugin
+### Referencia de Opciones del Plugin
 
 | Propiedad | Tipo | Por Defecto | Descripción |
 | :--- | :--- | :--- | :--- |
@@ -138,9 +139,10 @@ llmsTextPlugin({
 | **`sections`** | [`Section[]`](#opciones-de-sección) | auto-generado | Secciones H2 personalizadas. Reemplaza la estructura de secciones por defecto. |
 | **`includePaths`** | `string[]` | todas las rutas | Solo incluye rutas que coincidan con estos prefijos. |
 | **`excludePaths`** | `string[]` | ninguna | Excluye rutas que coincidan con estos prefijos. Se aplica **después** de `includePaths`. |
+| **`locales`** | `string[]` | todos los locales | Solo incluye enlaces de los códigos de idioma seleccionados, por ejemplo `['en', 'es']`. El locale por defecto se detecta automáticamente. |
 | **`maxLinksPerSection`** | `number` (1–500) | ilimitado | Máximo de enlaces por sección. |
 | **`includeDrafts`** | `boolean` | `false` | Si incluir rutas borrador. |
-| **`devMode`** | `boolean` | `false` | Si es `true`, genera `llms.txt` durante `boltdocs dev`. |
+| **`devMode`** | `boolean` | `false` | Opción heredada por compatibilidad. `llms.txt` se genera durante la fase de assets de producción. |
 | **`addLinkTag`** | `boolean` | `true` | Si inyectar `<link rel="llms-txt">` en el `<head>` del HTML. |
 | **`baseUrl`** | `string` (URL) | `siteUrl` | URL base alternativa para los enlaces. Útil cuando `siteUrl` difiere de la URL de despliegue. |
 
@@ -262,13 +264,27 @@ llmsTextPlugin({
 })
 ```
 
+### Seleccionar Idiomas
+
+Cuando tu sitio tiene traducciones, el plugin incluye todos los idiomas por defecto. Usa `locales` para publicar solo las variantes de idioma que quieres incluir en `llms.txt`:
+
+```ts
+llmsTextPlugin({
+  locales: ['en', 'es'],
+})
+```
+
+`locales` coincide con los códigos configurados en `i18n.locales`. El idioma por defecto se incluye correctamente aunque sus rutas no tengan un campo `locale` explícito. Si omites `locales`, se incluyen todas las rutas traducidas.
+
 ### Modo de Desarrollo
 
 ```ts
 llmsTextPlugin({
-  devMode: true, // También genera durante `boltdocs dev`
+  devMode: true, // opción heredada; la generación ocurre en el build de producción
 })
 ```
+
+`devMode` se conserva para no romper configuraciones existentes, pero el archivo no se escribe durante `boltdocs dev`. En producción, Boltdocs usa `build:generate`; en versiones antiguas del core se usa automáticamente `afterBuild` como respaldo.
 
 ### URL Base Personalizada
 
@@ -363,9 +379,11 @@ Si deseas que la página aparezca en una sección diferente, puedes mover este a
 
 ### llms.txt no se genera
 
+- **Verifica la versión del core:** en versiones actuales se usa `build:generate`; en cores antiguos el plugin usa `afterBuild` como respaldo.
 - **Verifica `siteUrl`:** El plugin requiere que `siteUrl` esté configurado. Sin él, el plugin registra una advertencia y omite la generación.
-- **Verifica la compilación:** Asegúrate de que la compilación se haya completado con éxito. El hook `afterBuild` solo se ejecuta en compilaciones exitosas.
-- **Verifica el entorno:** Por defecto, el plugin solo genera en producción (`boltdocs build`). Activa `devMode: true` para generar durante el desarrollo.
+- **Verifica la compilación:** Asegúrate de que la compilación se haya completado con éxito. El plugin escribe durante la fase `build:generate`, cuando el directorio de salida final ya está resuelto.
+- **Verifica la ruta de salida:** Revisa `<raíz-del-proyecto>/dist/llms.txt` (o tu directorio de salida configurado). El log incluye `llms.txt generated` y el tamaño en bytes.
+- **Verifica el entorno:** La generación ocurre durante `boltdocs build`; el servidor de desarrollo no persiste el archivo en cada request.
 
 ### La etiqueta link no se inyecta
 
@@ -375,6 +393,7 @@ Si deseas que la página aparezca en una sección diferente, puedes mover este a
 ### Faltan enlaces en las secciones
 
 - **Verifica `includePaths`/`excludePaths`:** Si estableciste filtros, asegúrate de que tus rutas coincidan con los criterios. `excludePaths` se aplica **después** de `includePaths`.
+- **Verifica `locales`:** Si configuraste `locales`, solo se incluyen esos códigos de idioma. Usa exactamente los códigos definidos en `i18n.locales` (por ejemplo, `en`, `es` o `pt-BR`).
 - **Verifica `maxLinksPerSection`:** Si tu sección tiene un límite de enlaces, algunas rutas pueden omitirse.
 - **Verifica los prefijos de ruta:** Las rutas deben coincidir con el `pathPrefix` de al menos una sección para aparecer.
 
@@ -408,7 +427,7 @@ Patrones clave:
 - Server Components para obtención de datos
 - Streaming SSR para renderizado progresivo
 
-## Documentation
+## Formato de Documentación
 - [Instalación](https://boltdocs.vercel.app/docs/installation): Comienza con Boltdocs.
 - [Configuración](https://boltdocs.vercel.app/docs/configuration): Configura tu proyecto.
 - [Referencia API](https://boltdocs.vercel.app/docs/api): Documentación completa de la API.
@@ -418,7 +437,7 @@ Patrones clave:
 - [i18n](https://boltdocs.vercel.app/docs/guides/i18n): Guía de internacionalización.
 - [Deployment](https://boltdocs.vercel.app/docs/guides/deployment): Despliega tu documentación.
 
-## Optional
+## Optional (Externo)
 - [Anunciando v3](https://boltdocs.vercel.app/blog/v3): Gran actualización con nuevas funciones.
 - [Consejos](https://boltdocs.vercel.app/blog/tips): Patrones de uso avanzados.
 ```

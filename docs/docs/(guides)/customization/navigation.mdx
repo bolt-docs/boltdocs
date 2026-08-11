@@ -1,0 +1,275 @@
+---
+title: Navigation
+sidebarPosition: 3
+description: The complete navigation model — navbar, tabs, sidebar, breadcrumbs, on-this-page, and page nav — and how to configure each layer so readers never get lost.
+---
+
+Boltdocs ships a four-layer navigation system. Understanding the layers — and which config key controls each one — is the difference between a site readers breeze through and one they get lost in.
+
+```text
+┌───────────────────────────────────────────────────────────┐
+│ Navbar (theme.navbar)          top-level links + dropdowns │
+├──────────┬────────────────────────────────────────────────┤
+│ Tabs     │                                                │
+│ (theme.  │  Breadcrumbs (auto, from route path)           │
+│  tabs)   │                                                │
+├──────────┤────────────────────────────────────────────────┤
+│ Sidebar  │  Page content                                  │
+│ (auto or │                    OnThisPage (right rail)     │
+│  theme.  │                    — headings of the page       │
+│  sidebar)│                                                │
+│          │  PageNav (previous / next page)                │
+└──────────┴────────────────────────────────────────────────┘
+```
+
+| Layer | Config key | What it does |
+| :--- | :--- | :--- |
+| **Navbar** | `theme.navbar` | Global header: branding, top-level links, dropdowns. |
+| **Tabs** | `theme.tabs` | Horizontal section strip (Guides / API / Blog). |
+| **Sidebar** | `theme.sidebar`, `theme.sidebarGroups`, `meta.json` | Directory navigation, auto-generated from your `docs/` tree. |
+| **Breadcrumbs** | auto | Path trail above the page title (locale/version aware). |
+| **OnThisPage** | auto | Right-rail TOC of the current page's headings. |
+| **PageNav** | auto | Previous / next links at the bottom of each page. |
+
+The last three are rendered automatically by the default layout from your route data — you only configure the first two, and optionally take control of the sidebar.
+
+---
+
+## Navbar — `theme.navbar`
+
+The navbar is the global header. It shows your logo, title, and top-level links. Links can be simple entries or nested dropdowns:
+
+```ts title="boltdocs.config.ts"
+export default defineConfig({
+  theme: {
+    navbar: [
+      { label: 'Docs', href: '/docs' },
+      { label: 'Blog', href: '/blog' },
+      {
+        label: 'Resources',
+        href: '/resources',
+        items: [
+          { label: 'Changelog', href: '/changelog' },
+          { label: 'Showcase', href: '/showcase' },
+        ],
+      },
+    ],
+  },
+})
+```
+
+### Navbar item reference
+
+| Property | Type | Description |
+| :--- | :--- | :--- |
+| **`label`** | `string \| Record<string, string>` | Link label. Pass a locale map for i18n (e.g. `{ en: 'Docs', es: 'Documentación' }`). |
+| **`href`** | `string` | Destination route. |
+| **`items`** | `NavbarItem[]` | Optional sub-items that render as a hover dropdown. |
+
+Related display options: `theme.githubRepo` adds a GitHub icon link automatically, and `theme.socialLinks` adds Discord/X/Bluesky icons.
+
+<Callout variant="note" title="Building a custom navbar?">
+The default navbar is a component — see the [Navbar component](/docs/components/layout/navbar) to compose your own with search, theme toggle, and mobile drawer.
+</Callout>
+
+---
+
+## Tabs — `theme.tabs`
+
+Tabs divide your documentation into horizontal sections. Each tab maps to a **parenthesized folder** in `docs/`:
+
+```text
+docs/
+├── (guides)/        → "guides" tab
+├── (api)/           → "api" tab
+└── (blog)/          → "blog" tab
+```
+
+```ts title="boltdocs.config.ts"
+export default defineConfig({
+  theme: {
+    tabs: [
+      { id: 'guides', text: 'Guides', icon: 'BookOpen' },
+      { id: 'api', text: 'API', icon: 'Code2' },
+      { id: 'blog', text: 'Blog', icon: 'History' },
+    ],
+  },
+})
+```
+
+### Tab reference
+
+| Property | Type | Description |
+| :--- | :--- | :--- |
+| **`id`** | `string` | Must match the parenthesized folder name. |
+| **`text`** | `string \| Record<string, string>` | Label shown in the tab strip. |
+| **`icon`** | `string` | Optional Lucide icon name or raw SVG. |
+
+The parentheses are stripped from URLs: `docs/(guides)/getting-started` serves at `/docs/guides/getting-started`. Tabs work with i18n by nesting locale folders inside them. See [File-System Routing](/docs/guides/getting-started/routing) for the full folder conventions.
+
+---
+
+## Sidebar — auto or manual
+
+The sidebar is **auto-generated** from your `docs/` tree by default: every folder becomes a group, every file a child item. This is the fastest way to a complete sidebar — you never write navigation config for it.
+
+### Auto sidebar (default)
+
+- Folders become collapsible groups; group titles default to the capitalized folder name.
+- Order comes from numeric filename prefixes (`01-intro.md`) or `sidebarPosition` frontmatter.
+- A folder's `meta.json` controls its title, icon, order, and collapse state.
+
+### Overriding group titles — `theme.sidebarGroups`
+
+Adjust group titles and icons without rebuilding the whole sidebar:
+
+```ts title="boltdocs.config.ts"
+export default defineConfig({
+  theme: {
+    sidebarGroups: {
+      'getting-started': { title: 'Quick Start', icon: 'Rocket' },
+    },
+  },
+})
+```
+
+### Manual sidebar — `theme.sidebar`
+
+Take full control of a prefix's structure:
+
+```ts title="boltdocs.config.ts"
+export default defineConfig({
+  theme: {
+    sidebar: {
+      '/docs/guides': [
+        { text: 'Introduction', link: '/docs/guides/introduction' },
+        { text: 'Installation', link: '/docs/guides/installation' },
+      ],
+    },
+  },
+})
+```
+
+<Callout variant="warning" title="Manual disables auto-discovery">
+Defining `theme.sidebar` for a prefix turns off auto-discovery for that prefix. Items are listed exactly as you define them.
+</Callout>
+
+### Per-page sidebar frontmatter
+
+| Frontmatter key | Effect |
+| :--- | :--- |
+| **`sidebarPosition`** | Numeric order inside the group. |
+| **`sidebarLabel`** | Custom label in the sidebar (defaults to `title`). |
+| **`sidebarHidden`** | `true` keeps the page routable but hides it from the sidebar. |
+| **`badge`** | Renders a small badge next to the item (e.g. `'New'`, `'Beta'`). |
+| **`icon`** | Lucide icon or raw SVG next to the item. |
+
+See the [Routing guide](/docs/guides/getting-started/routing) for ordering rules, and the [Metadata guide](/docs/guides/content/metadata) for `meta.json` in depth.
+
+---
+
+## Breadcrumbs, OnThisPage, and PageNav
+
+These three are **automatic** — the default layout derives them from route metadata. You don't configure them, but you should know what they do and how to swap them:
+
+- **Breadcrumbs** — a path trail above the title (e.g. `Guides → Customization → Navigation`), built from the route's group chain and localized automatically. Reference: [Breadcrumbs](/docs/components/layout/breadcrumbs).
+- **OnThisPage** — the right-rail table of contents listing the page's `h2`–`h4` headings. Reference: [OnThisPage](/docs/components/layout/on-this-page).
+- **PageNav** — "Previous / Next" links at the bottom, following sidebar order. Reference: [PageNav](/docs/components/layout/page-nav).
+
+### Using them in a custom layout
+
+They are exported as primitives, so a custom layout can place them anywhere:
+
+```tsx
+import { Breadcrumbs, OnThisPage, PageNav } from 'boltdocs/primitives'
+
+export function MyLayout() {
+  return (
+    <>
+      <Breadcrumbs />
+      <main>{/* page content */}</main>
+      <OnThisPage />
+      <PageNav />
+    </>
+  )
+}
+```
+
+---
+
+## Links & hrefs
+
+Every link in Boltdocs — navbar entries, sidebar entries, cards, and MDX links — goes through the same path resolver (`useLocalizedTo`). It automatically prepends the locale and version the visitor is currently reading, so you write **canonical hrefs** and the framework localizes them. The resolver never rewrites external URLs.
+
+| Href | Kind | Resolution |
+| :--- | :--- | :--- |
+| `/docs/guides/getting-started` | **Docs page** | Localized with the active locale/version. The canonical form is the unlocalized path. |
+| `/showcase`, `/pricing` | **External page** | Route served by a `pages-external/` page. Known external routes are kept as-is. |
+| `/` | **Site root** | Resolves to the site root (localized). |
+| `https://example.com`, `//cdn...` | **External URL** | Never rewritten — passed through verbatim. |
+| `#section`, `?q=term` | **Anchor / query** | Passed through, joined to the current page URL. |
+| `site:/path` | **Site-prefixed** | Optional `site:` prefix forces the route to resolve against the site root, outside the docs base. |
+
+### Hrefs in `boltdocs.config.ts`
+
+Navbar and sidebar config accept canonical paths — the same values you would write in Markdown:
+
+```ts title="boltdocs.config.ts"
+export default defineConfig({
+  theme: {
+    navbar: [
+      { label: 'Docs', href: '/docs/guides' },
+      { label: 'Showcase', href: '/showcase' },
+      // External URLs pass through the resolver untouched — no special flag needed.
+      { label: 'GitHub', href: 'https://github.com/my-org/my-project' },
+    ],
+  },
+})
+```
+
+### Hrefs in MDX
+
+Write the same canonical paths in Markdown — locale and version prefixes are added automatically at render time:
+
+```mdx
+- [Guides](/docs/guides)
+- [Showcase](/showcase)
+- [External docs](https://example.com)
+- [Jump to a section](#links--hrefs)
+```
+
+### Hrefs in custom components
+
+Use the `Link` primitive from `boltdocs/primitives` for localized navigation, or call `useLocalizedTo()` directly when you need the resolved string (e.g. to compute an active state):
+
+```tsx
+import { Link } from 'boltdocs/primitives'
+import { useLocalizedTo } from 'boltdocs/client'
+
+const resolved = useLocalizedTo('/docs/guides')
+
+<Link href="/docs/guides">Guides</Link>
+```
+
+<Callout variant="warning" title="Never hand-write locale prefixes">
+Hard-coding `/es/docs/guides` or `/v2/docs/guides` breaks localization — the resolver expects canonical, unlocalized paths. Write `/docs/guides` and let `useLocalizedTo` add the prefix for the active locale and version.
+</Callout>
+
+---
+
+## How readers navigate (quick reference)
+
+1. **Top** — navbar links switch between major areas; tabs switch documentation sections.
+2. **Left** — the sidebar shows the current section's full structure; the active page is highlighted.
+3. **Right** — OnThisPage jumps within the current page.
+4. **Bottom** — PageNav moves to the previous/next page in reading order.
+5. **Everywhere** — breadcrumbs show where the page sits in the hierarchy; search (`⌘K`) finds pages across all tabs.
+
+---
+
+## Where next
+
+- [File-System Routing](/docs/guides/getting-started/routing) — folder conventions, ordering, and tabs in depth.
+- [Metadata](/docs/guides/content/metadata) — `meta.json` and `_meta.json` for sidebar groups.
+- [Custom Layout](/docs/guides/customization/layout) — compose the full page shell yourself.
+- [DocsLayout reference](/docs/components/layout/docs-layout) — every region the default layout wires up.

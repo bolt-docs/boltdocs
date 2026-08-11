@@ -41,7 +41,7 @@ BOLTDOCS_TURBO=true pnpm boltdocs build
 What changes under the hood:
 
 | Component | Without `--turbo` | With `--turbo` |
-|-----------|-------------------|----------------|
+| ----------- | ------------------- | ---------------- |
 | MDX compilation | `@mdx-js/rollup` + remark/rehype JS plugins | Sätteri (Rust) + native plugins |
 | Critical CSS | None (external CSS only) | `@bdocs/zig-critters` (Zig/WASM) |
 | Parser | Multi-pass mode | Single-pass with shared buffer |
@@ -67,7 +67,7 @@ The pipeline:
 Benchmarks from the Boltdocs docs site (241 pages):
 
 | Metric | Default (`@mdx-js/rollup`) | Turbo (Sätteri) | Difference |
-|--------|---------------------------|-----------------|------------|
+| -------- | --------------------------- | ----------------- | ------------ |
 | Build Time | 97.3s | 43.9s | **2.2x faster** |
 | SSG Total | 98.7s | 45.1s | **54% faster** |
 | JavaScript Output | 10.5 MB | 8.4 MB | **20% smaller** |
@@ -220,15 +220,15 @@ I chose option 2. The CSS file is only 99 KB and compresses well with gzip. Mode
 
 Previously, `generateI18nFallbacks()` created locale-prefixed copies of the default locale's content. For a site with `en` (default) and `es` locales, every English page existed twice:
 
-- `/docs/api/cli` — the original
-- `/docs/en/api/cli` — an identical copy
+- `/docs/api/structured-data` — the original
+- `/docs/en/api/structured-data` — an identical copy
 
 This resulted in **74 duplicate HTML files** totaling **~8 MB** of wasted space. The fix skips generating fallback routes for the default locale — its content already exists at the root level.
 
 ### Results
 
 | Metric | Before | After | Savings |
-|--------|--------|-------|---------|
+| -------- | -------- | ------- | --------- |
 | HTML output (total) | 25.4 MB | ~10.1 MB | **~15.3 MB (60%)** |
 | Per-page size (avg) | ~217 KB | ~180 KB | ~37 KB per page |
 | Duplicate pages | 74 | 0 | **74 files eliminated** |

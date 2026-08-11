@@ -18,7 +18,7 @@ import { DocsLayout } from 'boltdocs/primitives'
 
 ## Ejemplo de Ensamblaje de Diseño Componible
 
-La primitiva `DocsLayout` y sus módulos de diseño acompañantes están estructurados usando un **patrón de subcomponentes componibles**. Esto te permite definir envoltorios HTML exactos e inyectar clases de estilo personalizadas alrededor de encabezados, barras laterales, regiones de contenido y pies de página.
+La primitiva `DocsLayout` y sus módulos de diseño acompañantes están estructurados usando un **patrón de subcomponentes componibles**. Esto te permite definir envoltorios HTML exactos e inyectar clases de estilo personalizadas alrededor de encabezados, barras laterales y regiones de contenido.
 
 Aquí hay un ejemplo que muestra cómo ensamblar un diseño personalizado completo usando solo primitivas (sin depender de archivos de temas pre-estilizados):
 
@@ -83,10 +83,10 @@ export default function CustomLayout({ children }) {
               </article>
             </ErrorBoundary>
 
-            {/* Sección de pie que contiene botones de navegación anterior/siguiente */}
-            <DocsLayout.Footer>
+            {/* Navegación anterior/siguiente */}
+            <div className="mt-12">
               <PageNav />
-            </DocsLayout.Footer>
+            </div>
           </DocsLayout.ContentMdx>
         </DocsLayout.Content>
 
@@ -164,10 +164,10 @@ export default function ProductionLayout({ children }: LayoutProps) {
               </div>
             </CustomErrorBoundary>
 
-            {/* Pie que contiene guías de navegación */}
-            <DocsLayout.Footer className="mt-12">
+            {/* Navegación anterior/siguiente */}
+            <div className="mt-12">
               <CustomPageNav />
-            </DocsLayout.Footer>
+            </div>
 
           </DocsLayout.ContentMdx>
         </DocsLayout.Content>
@@ -198,7 +198,6 @@ La primitiva `DocsLayout` proporciona los siguientes componentes contenedor de r
 | **`DocsLayout.Content`** | `<main>` | Contenedor exterior desplazable del flujo principal de lectura de la página. | [`ComponentBaseProps`](#componentbaseprops-common) |
 | **`DocsLayout.ContentMdx`** | `<div>` | Contenedor de contenido con relleno que impone restricciones máximas de lectura. | [`ComponentBaseProps`](#componentbaseprops-common) |
 | **`DocsLayout.Header`** | `<header>` | Envoltorio de sección superior dentro del flujo de lectura (por ejemplo, para migas de pan y título). | [`ComponentBaseProps`](#componentbaseprops-common) |
-| **`DocsLayout.Footer`** | `<footer>` | Envoltorio de sección inferior dentro del flujo de lectura (por ejemplo, para enlaces de navegación). | [`ComponentBaseProps`](#componentbaseprops-common) |
 
 ---
 

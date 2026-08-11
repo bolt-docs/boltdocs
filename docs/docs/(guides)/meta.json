@@ -2,6 +2,5 @@
   "title": "Guides",
   "icon": "BookOpen",
   "collapsible": true,
-  "collapsed": false,
-  "pages": ["installation", "configuration", "deployment", "upgrading-3-2"]
+  "collapsed": false
 }

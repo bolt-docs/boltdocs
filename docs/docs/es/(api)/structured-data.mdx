@@ -1,0 +1,149 @@
+---
+title: Structured Data
+sidebarPosition: 8
+description: Helpers tipados de JSON-LD y componente StructuredData para graphs de website, artículos y breadcrumbs.
+---
+
+# API de Structured Data
+
+Boltdocs emite JSON-LD para buscadores y crawlers mediante `seo.structuredData` o el componente cliente `<StructuredData />`. Es independiente del índice de búsqueda interno.
+
+## La factory cómoda
+
+Usa `createStructuredData()` cuando una página necesite uno o varios graphs comunes. Structured Data es una API estable de SEO; solo View Transitions y `experimental.fileRouting` requieren opt-in:
+
+```ts
+import { createStructuredData, defineConfig, defineStructuredData } from 'boltdocs'
+
+export default defineConfig({
+  seo: {
+    structuredData: defineStructuredData(
+      createStructuredData({
+        website: {
+          name: 'Example Docs',
+          url: 'https://example.com',
+        },
+        article: {
+          headline: 'Primeros pasos',
+          url: 'https://example.com/docs/start',
+          description: 'Instala y configura el proyecto.',
+          datePublished: '2026-08-01',
+          author: 'Example Team',
+        },
+        breadcrumbs: [
+          { name: 'Docs', url: 'https://example.com/docs' },
+          { name: 'Primeros pasos', url: 'https://example.com/docs/start' },
+        ],
+      }),
+    ),
+  },
+})
+```
+
+La factory devuelve un objeto cuando se proporciona un solo preset y un array cuando se generan varios nodos. Lanza un error claro si no proporcionas ningún graph. Usa `additional` para tipos Schema.org que no tengan un preset incorporado:
+
+```ts
+const data = createStructuredData({
+  additional: {
+    '@context': 'https://schema.org',
+    '@type': 'SoftwareApplication',
+    name: 'Example App',
+    applicationCategory: 'DeveloperApplication',
+  },
+})
+```
+
+## Opciones de los presets
+
+### `website`
+
+| Propiedad | Tipo | Requerida | Descripción |
+| :--- | :--- | :--- | :--- |
+| `name` | `string` | sí | Nombre público del sitio. |
+| `url` | `string` | sí | URL canónica del sitio. |
+| `description` | `string` | no | Descripción del sitio. |
+| `searchUrl` | `string` | no | Endpoint de búsqueda con el prefijo de consulta, por ejemplo `https://example.com/search?q=`. |
+
+### `article`
+
+| Propiedad | Tipo | Requerida | Descripción |
+| :--- | :--- | :--- | :--- |
+| `headline` | `string` | sí | Titular del artículo o página. |
+| `url` | `string` | sí | URL canónica de la página. |
+| `description` | `string` | no | Resumen del artículo. |
+| `datePublished` | `string \| Date` | no | Fecha de publicación, normalizada a ISO. |
+| `dateModified` | `string \| Date` | no | Fecha de modificación, normalizada a ISO. |
+| `image` | `string` | no | URL absoluta o resuelta de imagen. |
+| `author` | `string \| { name, url? }` | no | Nombre o objeto de persona. |
+
+### `breadcrumbs`
+
+Pasa un array ordenado de objetos `{ name, url }`. Las posiciones se generan automáticamente desde `1`.
+
+```ts
+const breadcrumbs = createStructuredData({
+  breadcrumbs: [
+    { name: 'Docs', url: 'https://example.com/docs' },
+    { name: 'API', url: 'https://example.com/docs/api' },
+  ],
+})
+```
+
+## Datos por página en MDX
+
+Agrega un graph directamente en el frontmatter de una página:
+
+```mdx
+---
+title: Primeros pasos
+seo:
+  structuredData:
+    '@context': https://schema.org
+    '@type': TechArticle
+    headline: Primeros pasos
+    url: https://example.com/docs/start
+---
+```
+
+El `seo.structuredData` global y el de la página se emiten juntos.
+
+## Páginas React externas
+
+Renderiza JSON-LD desde una página en `pages-external/`:
+
+```tsx
+import { StructuredData, createStructuredData } from 'boltdocs/client'
+
+export default function AboutPage() {
+  const data = createStructuredData({
+    article: {
+      headline: 'Sobre Example',
+      url: 'https://example.com/about',
+    },
+  })
+
+  return (
+    <>
+      <StructuredData data={data} id="about-jsonld" />
+      <main>Sobre Example</main>
+    </>
+  )
+}
+```
+
+El componente escapa de forma segura `<` antes de escribir el script `application/ld+json`.
+
+## Helpers especializados existentes
+
+Siguen disponibles cuando prefieras una construcción explícita:
+
+```ts
+import {
+  createArticleStructuredData,
+  createBreadcrumbStructuredData,
+  createWebSiteStructuredData,
+  defineStructuredData,
+} from 'boltdocs'
+```
+
+`defineStructuredData()` conserva los tipos literales de TypeScript; no modifica el valor en runtime.

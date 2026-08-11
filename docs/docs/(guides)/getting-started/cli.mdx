@@ -1,0 +1,276 @@
+---
+title: CLI Commands
+sidebarPosition: 4
+description: Every Boltdocs CLI command — dev, build, preview, audit, doctor, and generate-changelog — plus the exit codes you can rely on in CI.
+---
+
+The **Boltdocs CLI** powers the whole workflow: it starts your dev server, builds the static site, previews the production bundle, audits your plugins for security warnings, checks the health of your docs, and generates changelog pages.
+
+You run it with `npx boltdocs` or — once added to your `package.json` scripts — with `pnpm docs:dev`, `pnpm docs:build`, and friends:
+
+```json
+{
+  "scripts": {
+    "docs:dev": "boltdocs dev",
+    "docs:build": "boltdocs build",
+    "docs:preview": "boltdocs preview",
+    "docs:audit": "boltdocs audit",
+    "docs:doctor": "boltdocs doctor"
+  }
+}
+```
+
+Every command accepts an optional `[root]` positional argument pointing at a project directory. It defaults to `process.cwd()`.
+
+---
+
+## Command overview
+
+| Command | What it does |
+| :--- | :--- |
+| **`dev`** | Start the local development server with HMR (this is also the default when you run `boltdocs` with no command). |
+| **`build`** | Compile the site into static HTML + JS via the SSG engine. |
+| **`preview`** | Serve the production `dist/` build locally before deploying. |
+| **`audit`** | Statically scan configured plugins for security-sensitive code. Exits non-zero on high risk — CI-ready. |
+| **`doctor`** | Diagnose broken links, malformed frontmatter, missing translations, and performance budgets. |
+| **`generate-changelog`** | Split a `CHANGELOG.md` into per-version MDX pages. |
+
+Global flags: `--help` lists every command, and `--version` prints the installed Boltdocs version (read from `package.json` at runtime — it always matches what you have installed).
+
+---
+
+## `dev` — development server
+
+Starts a high-performance Vite dev server with instant Hot Module Replacement (HMR) for MDX files, stylesheet edits, and configuration hot-reloads.
+
+* **Usage:** `boltdocs dev [root] [options]` — or just `boltdocs [root] [options]`
+
+### Dev server options
+
+| Option | Description |
+| :--- | :--- |
+| **`--port <number>`** | Port for the dev server (defaults to `5173`). |
+| **`--host [address]`** | Host to bind to — e.g. `0.0.0.0` to expose on your local network. |
+| **`--force`** | Force Vite to re-optimize and pre-bundle dependencies, ignoring cache. |
+
+---
+
+## `build` — production build
+
+Compiles your documentation into fully static, highly optimized HTML and JavaScript assets through the React Static Site Generation (SSG) engine.
+
+* **Usage:** `boltdocs build [root]`
+
+The output lands in `dist/` (configurable via `outDir` in `boltdocs.config.ts`).
+
+---
+
+## `preview` — test the production bundle
+
+Serves the generated static bundle from `dist/` so you can verify performance, redirects, SEO tags, and page rendering before deploying.
+
+* **Usage:** `boltdocs preview [root] [options]`
+
+### Preview options
+
+| Option | Description |
+| :--- | :--- |
+| **`--port <number>`** | Port for the preview server (defaults to `4173`). |
+| **`--host [address]`** | Host to bind to. |
+
+---
+
+## `audit` — plugin security scan
+
+Performs a fast **static** analysis of the source code of every plugin configured in your project. It scans for potentially sensitive behaviors — child-process and dynamic-code calls, network access, file reads and writes, environment-variable reads, and metadata red flags like install scripts or missing licenses — before you compile or ship.
+
+The scan never executes plugin code: it reads `package.json` and source files from `node_modules` only. (Loading your config does evaluate the config file itself, but no plugin hook, Vite plugin, or install script ever runs.)
+
+* **Usage:** `boltdocs audit [root]`
+
+### Exit codes (CI contract)
+
+| Exit code | Meaning |
+| :--- | :--- |
+| **`0`** | Every configured plugin was scanned and contains no high-risk findings (low/warning findings alone still pass). |
+| **`1`** | At least one plugin has **HIGH-risk findings**, could not be resolved, failed to scan, or the scan was truncated. |
+
+The command is fail-closed: an unresolved or un-scanned plugin is treated as untrusted and never counted as passing. Use it as a gate before merging third-party plugins:
+
+```yaml
+# .github/workflows/security.yml (example)
+- run: pnpm docs:build
+- run: pnpm docs:audit
+```
+
+If the audit returns `1`, your CI job fails — exactly when you want a human to review a plugin before it ships.
+
+---
+
+## `doctor` — diagnostics & integrity check
+
+Runs automated checks across your documentation directory to find broken links, malformed frontmatter, missing translations, and other structural issues.
+
+```bash
+# Run doctor in the current folder
+npx boltdocs doctor
+
+# Automatically fix repairable issues
+npx boltdocs doctor --fix
+
+# Verify external URLs in addition to internal routes
+npx boltdocs doctor --check-external
+
+# Initialize a default doctor.json config file
+npx boltdocs doctor --init
+
+# Check build performance against configured budgets
+npx boltdocs doctor --budget
+```
+
+### Doctor options
+
+| Option | Description |
+| :--- | :--- |
+| **`--fix`** | Automatically corrects repairable issues like broken relative paths and missing i18n keys. |
+| **`--check-external`** | Asynchronously verifies external web links (slower). |
+| **`--init`** | Creates a default `doctor.json` configuration file in the project root. |
+| **`--budget`** | Checks build performance metrics against configured budgets. Requires a prior `boltdocs build`. |
+
+### Configuring `doctor.json`
+
+Create a `doctor.json` in your project root to customize checks, severities, and CI behavior. Run `boltdocs doctor --init` to scaffold it, then tweak:
+
+```json
+{
+  "$schema": "https://boltdocs.vercel.app/schemas/doctor-config.schema.json",
+  "checks": {
+    "metadata": {
+      "enabled": true,
+      "titleMin": 10,
+      "titleMax": 60,
+      "descriptionMin": 50,
+      "required": ["title", "description"]
+    },
+    "links": {
+      "internal": true,
+      "external": false,
+      "timeout": 10000,
+      "concurrency": 10
+    },
+    "i18n": { "enabled": true },
+    "performance": {
+      "enabled": true,
+      "budgets": {
+        "maxJSBundleSize": "200kb",
+        "maxCSSBundleSize": "30kb",
+        "maxPageHTMLSize": "80kb",
+        "maxImagesKB": 500,
+        "maxBuildTime": 30000,
+        "maxFontCount": 3
+      }
+    }
+  },
+  "fix": {
+    "confirmChanges": false,
+    "backupFiles": false,
+    "backupPath": ".boltdocs/backups"
+  },
+  "reporting": {
+    "format": "pretty",
+    "outputFile": ".boltdocs/reports/doctor.json",
+    "failOnError": false,
+    "maxWarnings": -1
+  },
+  "severity": {
+    "missingTranslation": "warning",
+    "brokenLink": "high",
+    "brokenAnchor": "warning",
+    "malformedFrontmatter": "high",
+    "invalidFrontmatter": "high",
+    "budgetExceeded": "warning"
+  }
+}
+```
+
+#### `checks`
+
+| Key | Type | Default | Description |
+| :--- | :--- | :--- | :--- |
+| **`metadata`** | `object` | Defaults | Title/description length and required frontmatter fields. |
+| **`links`** | `object` | Defaults | Internal/external link checking, timeout, concurrency, ignores. |
+| **`i18n`** | `object` | Defaults | Translation synchronization validity. |
+| **`performance`** | `object` | Defaults | Build performance budgets against thresholds. |
+
+Metadata options: `titleMin` (10), `titleMax` (60), `descriptionMin` (50), `required` (`["title", "description"]`), `optional` (`[]`), `validateDates` (`false`).
+
+Link options: `internal` (`true`), `external` (`false`), `timeout` (`10000` ms), `concurrency` (`10`), `ignore` (`[]` — regex patterns or exact URLs to skip).
+
+Performance budgets accept `maxJSBundleSize`, `maxCSSBundleSize`, `maxPageHTMLSize` (strings like `"200kb"`), plus `maxImagesKB`, `maxBuildTime` (ms), and `maxFontCount`.
+
+#### `fix`
+
+| Key | Type | Default | Description |
+| :--- | :--- | :--- | :--- |
+| **`confirmChanges`** | `boolean` | `false` | Prompt before writing auto-fixes. |
+| **`backupFiles`** | `boolean` | `false` | Copy the source document before auto-fixing. |
+| **`backupPath`** | `string` | `".boltdocs/backups"` | Where pre-fix backups are saved. |
+
+#### `reporting`
+
+| Key | Type | Default | Description |
+| :--- | :--- | :--- | :--- |
+| **`format`** | `'pretty' \| 'json' \| 'silent'` | `'pretty'` | Output style. `json` emits raw report data. |
+| **`outputFile`** | `string` | `".boltdocs/reports/doctor.json"` | Where the report is written. |
+| **`failOnError`** | `boolean` | `false` | Exit with status `1` if a `high` severity issue is found. |
+| **`maxWarnings`** | `number` | `-1` | Max warnings before the process fails. `-1` is unlimited. |
+
+---
+
+## `generate-changelog` — changelog generator
+
+Parses a unified `CHANGELOG.md` (Keep a Changelog, Standard Version, or Semantic Release formats) and decomposes it into individual per-version MDX pages formatted for the Boltdocs theme.
+
+```bash
+# Decompose CHANGELOG.md into pages under docs/changelog
+npx boltdocs generate-changelog CHANGELOG.md
+```
+
+### Changelog options
+
+| Option | Default | Description |
+| :--- | :--- | :--- |
+| **`-o, --output <path>`** | `docs/changelog` | Destination folder for the generated version pages. |
+| **`-t, --title <text>`** | `Changelog` | Heading title injected into generated pages. |
+| **`-l, --limit <number>`** | unlimited | Keep only the latest N versions. |
+| **`--infer-tab`** | `true` | Infer active sidebar tab grouping from output directories. |
+
+### Output
+
+Each version is grouped by update type (Features, Bug Fixes, Performance, Refactor, Documentation, Chore) and written as an incremental page:
+
+```
+docs/changelog/
+├── 1.v2.0.0.md
+├── 2.v1.1.0.md
+└── 3.v1.0.0.md
+```
+
+To surface the generated pages in the navbar, link them from `boltdocs.config.ts`:
+
+```ts
+export default defineConfig({
+  theme: {
+    navbar: [
+      { label: 'Documentation', href: '/docs' },
+      { label: 'Changelog', href: '/changelog' },
+    ],
+  },
+})
+```
+
+---
+
+## Removed commands
+
+`theme:dev` (theme preview) is no longer supported and errors with an unknown-command message. Build your custom layout directly in your project instead — see the [custom layout guide](/docs/guides/customization/layout).

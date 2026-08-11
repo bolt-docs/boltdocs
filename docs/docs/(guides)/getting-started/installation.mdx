@@ -13,7 +13,7 @@ pnpm create boltdocs@latest my-docs
 Then skip straight to [running the dev server](#run-the-dev-server).
 
 <Callout variant="note" title="pnpm 10+ build scripts">
-  pnpm 10+ blocks lifecycle scripts (preinstall/postinstall) from dependencies by default. The `create-boltdocs` template already includes the required `pnpm.onlyBuiltDependencies` configuration, so `pnpm install` works out of the box. If you're adding Boltdocs to an existing project manually, see the [troubleshooting guide](/docs/guides/troubleshooting#err_pnpm_ignored_builds) for the required configuration.
+  pnpm 10+ blocks lifecycle scripts (preinstall/postinstall) from dependencies by default. The `create-boltdocs` template already includes the required `pnpm.onlyBuiltDependencies` configuration, so `pnpm install` works out of the box. If you're adding Boltdocs to an existing project manually, see the [troubleshooting guide](/docs/guides/operations/troubleshooting#err_pnpm_ignored_builds) for the required configuration.
 </Callout>
 
 ---
@@ -112,7 +112,7 @@ import { Route, Settings } from 'lucide-react'
   <Card title="Configuration" href="/docs/guides/getting-started/configuration" icon={<Settings />}>
     Learn how to customize the title, logo, navigation, and every other option in your config file.
   </Card>
-  <Card title="File-System Routing" href="/docs/guides/getting-started/file-routing" icon={<Route />}>
+  <Card title="File-System Routing" href="/docs/guides/getting-started/routing" icon={<Route />}>
     Learn how Boltdocs turns your `docs/` folder into a full navigation structure.
   </Card>
 </Cards>

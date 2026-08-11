@@ -4,7 +4,6 @@ import HomePage from './home-page'
 import AboutPage from './about-page'
 import ShowcasePage from './showcase-page'
 import BenchmarkPage from './benchmark-page'
-import { useLocation } from 'react-router-dom'
 import { ArrowRight } from 'lucide-react'
 import { useTranslations } from '../../src/i18n/index'
 import { Grainient } from '../../src/components/ui/grainient'
@@ -19,7 +18,6 @@ export const pages = {
 }
 
 export const layout = ({ children }: { children: React.ReactNode }) => {
-  const { pathname } = useLocation()
   const t = useTranslations()
   return (
     <div className="pb-0">
@@ -30,7 +28,7 @@ export const layout = ({ children }: { children: React.ReactNode }) => {
         />
         {t.bannerNewVersion}{' '}
         <Link
-          href="site:/blog/boltdocs-3.2.0"
+          href="site:/blog/boltdocs-3.3.0"
           className="underline underline-offset-4 text-white dark:text-white"
         >
           {t.bannerReadPost}
@@ -41,7 +39,7 @@ export const layout = ({ children }: { children: React.ReactNode }) => {
       </Banner>
       <Navbar />
       {children}
-      <Footer key={pathname} />
+      <Footer />
     </div>
   )
 }

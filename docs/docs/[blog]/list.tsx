@@ -1,5 +1,10 @@
 import { useState } from 'react'
-import { useI18n, usePosts } from 'boltdocs/client'
+import {
+  resolvePublicAssetUrl,
+  useConfig,
+  useI18n,
+  usePosts,
+} from 'boltdocs/client'
 import { Button, Link } from 'boltdocs/primitives'
 
 const translations = {
@@ -19,6 +24,7 @@ const translations = {
 
 export default function BlogList() {
   const allPosts = usePosts()
+  const config = useConfig()
   const { currentLocale } = useI18n()
   const [page, setPage] = useState(1)
   const perPage = 20
@@ -61,7 +67,11 @@ export default function BlogList() {
             </div>
             <div className="w-[75%] px-5">
               <img
-                src={post.coverImage}
+                src={
+                  post.coverImage
+                    ? resolvePublicAssetUrl(post.coverImage, config.base)
+                    : undefined
+                }
                 alt={post.title}
                 className="w-full h-auto mb-4"
               />

@@ -11,6 +11,7 @@ import {
   KeyRound,
 } from 'lucide-react'
 import { Link } from 'boltdocs/primitives'
+import { resolvePublicAssetUrl, useConfig } from 'boltdocs/client'
 import { useRef, useState, useEffect, useCallback } from 'react'
 import {
   useScrollAnimation,
@@ -182,7 +183,13 @@ export default function ShowcasePage() {
   const cardsRef = useRef<HTMLDivElement>(null)
   const carouselRef = useRef<HTMLDivElement>(null)
   const t = useTranslations()
-  const showcaseItems = ShowcaseItems()
+  const config = useConfig()
+  const showcaseItems = ShowcaseItems().map((item) => ({
+    ...item,
+    images: item.images.map((image) =>
+      resolvePublicAssetUrl(image, config.base),
+    ),
+  }))
 
   useScrollAnimation(titleRef, 'fade-up')
   useScrollAnimation(subtitleRef, 'fade-up')

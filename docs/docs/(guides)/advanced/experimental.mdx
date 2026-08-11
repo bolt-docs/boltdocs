@@ -1,0 +1,170 @@
+---
+title: Experimental Features
+sidebarPosition: 1
+badge: Experimental
+icon: FlaskConical
+description: Opt-in APIs that are useful today and may evolve in future Boltdocs releases.
+---
+
+Experimental APIs are disabled by default. They are documented here as first-class features, but their contracts may evolve before becoming stable.
+
+<Callout variant="warning" title="Opt in deliberately">
+  Enable only the experimental features you need. If you publish a reusable theme or plugin, keep a fallback for projects that have not enabled them.
+</Callout>
+
+```ts title="boltdocs.config.ts"
+import { defineConfig } from 'boltdocs'
+
+export default defineConfig({
+  experimental: {
+    viewTransitions: {
+      enabled: true,
+      types: ['page'],
+    },
+    fileRouting: true,
+  },
+})
+```
+
+## View Transitions
+
+View Transitions add a native animated snapshot between two document states. In Boltdocs, enabling the feature makes internal router navigation transition-aware automatically. Browsers without `document.startViewTransition()` use normal navigation with no error.
+
+### Enable automatic navigation
+
+```ts
+export default defineConfig({
+  experimental: {
+    viewTransitions: true,
+  },
+})
+```
+
+Or configure transition types passed to the browser:
+
+```ts
+export default defineConfig({
+  experimental: {
+    viewTransitions: {
+      enabled: true,
+      types: ['page'],
+    },
+  },
+})
+```
+
+Once enabled, the existing `Link`, navbar, sidebar, and router navigation surfaces use the API automatically. You do not need to replace every link.
+
+### Add an explicit transition link
+
+For a custom page or a link that should opt in independently, use `TransitionLink` from `boltdocs/primitives`:
+
+```tsx
+import { TransitionLink } from 'boltdocs/primitives'
+
+export function NextStep() {
+  return (
+    <TransitionLink href="/docs/guides/getting-started/configuration">
+      Continue to configuration
+    </TransitionLink>
+  )
+}
+```
+
+`TransitionLink` explicitly opts this link into a transition, even when the global experimental setting is disabled. It still keeps regular anchor behavior when the browser does not support the native API.
+
+### Run a transition around an update
+
+Use `useViewTransition()` for state changes in external pages or custom controls:
+
+```tsx
+import { useState } from 'react'
+import { useViewTransition } from 'boltdocs/client'
+
+export function PreviewToggle() {
+  const [preview, setPreview] = useState(false)
+  const transition = useViewTransition()
+
+  function toggle() {
+    transition.run(() => {
+      setPreview((value) => !value)
+    })
+  }
+
+  return (
+    <button type="button" onClick={toggle}>
+      {preview ? 'Show source' : 'Show preview'}
+    </button>
+  )
+}
+```
+
+The hook is also callable for backwards compatibility:
+
+```tsx
+transition(() => setOpen(true))
+transition.start(() => setOpen(true))
+```
+
+The runner exposes `transition.enabled` and `transition.supported` when a custom component needs to show a capability hint. The update callback may return a promise. The returned handle exposes the browser's `ready`, `updateCallbackDone`, `finished`, and `skipTransition` values when supported.
+
+## Structured Data (JSON-LD)
+
+Structured data is for search engines and crawlers, not the internal search dialog. The convenient factory composes the common website, article, and breadcrumb graphs in one typed call. It throws a clear error when no graph input is provided:
+
+```ts
+import { createStructuredData, defineConfig, defineStructuredData } from 'boltdocs'
+
+export default defineConfig({
+  siteUrl: 'https://example.com',
+  seo: {
+    structuredData: defineStructuredData(
+      createStructuredData({
+        website: {
+          name: 'Example Docs',
+          url: 'https://example.com',
+          description: 'Product documentation',
+          searchUrl: 'https://example.com/search?q=',
+        },
+      }),
+    ),
+  },
+})
+```
+
+For a release or article page, compose all relevant nodes without manually assembling `@context`, `@type`, and list positions:
+
+```ts
+const data = createStructuredData({
+  article: {
+    headline: 'Getting Started',
+    url: 'https://example.com/docs/start',
+    description: 'Install and configure the project.',
+    datePublished: '2026-08-01',
+    author: { name: 'Example Team', url: 'https://example.com/team' },
+  },
+  breadcrumbs: [
+    { name: 'Docs', url: 'https://example.com/docs' },
+    { name: 'Getting Started', url: 'https://example.com/docs/start' },
+  ],
+})
+```
+
+Use `seo.structuredData` in MDX frontmatter for page-specific nodes, or render `<StructuredData data={data} />` from an external React page. The existing specialized helpers (`createWebSiteStructuredData`, `createArticleStructuredData`, and `createBreadcrumbStructuredData`) remain supported.
+
+Structured Data is a stable SEO API. See the [Structured Data API reference](/docs/api/structured-data) for every option and the [SEO integration guide](/docs/integrations/seo) for search-engine guidance.
+
+## Static `pages-external` file routing
+
+With `experimental.fileRouting`, each literal file in `docs/pages-external/` becomes one route:
+
+```text
+docs/pages-external/
+├── home.tsx      → /home
+├── about.tsx     → /about
+└── pricing.mdx   → /pricing
+```
+
+Supported extensions are `.tsx`, `.ts`, `.jsx`, `.js`, `.mdx`, and `.md`. Dynamic segments such as `[id]`, route groups such as `(marketing)`, `index.*`, and reserved helpers such as `layout`, `icons`, and `mdx-components` are ignored. The existing `pages-external/index.tsx` object API can run alongside file routes; avoid assigning the same URL twice.
+
+See the [External Pages guide](/docs/guides/customization/external-pages) for the legacy object API, layouts, limitations, and file-routing details.

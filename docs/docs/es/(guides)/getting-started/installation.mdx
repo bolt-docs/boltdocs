@@ -13,7 +13,7 @@ pnpm create boltdocs@latest my-docs
 Luego salta directamente a [ejecutar el servidor de desarrollo](#ejecutar-el-servidor-de-desarrollo).
 
 <Callout variant="note" title="Scripts de build en pnpm 10+">
-  pnpm 10+ bloquea los scripts de lifecycle (preinstall/postinstall) de las dependencias por defecto. El template de `create-boltdocs` ya incluye la configuración requerida `pnpm.onlyBuiltDependencies`, así que `pnpm install` funciona sin problemas. Si estás agregando Boltdocs a un proyecto existente de forma manual, consulta la [guía de solución de problemas](/docs/es/guides/troubleshooting#err_pnpm_ignored_builds) para la configuración requerida.
+  pnpm 10+ bloquea los scripts de lifecycle (preinstall/postinstall) de las dependencias por defecto. El template de `create-boltdocs` ya incluye la configuración requerida `pnpm.onlyBuiltDependencies`, así que `pnpm install` funciona sin problemas. Si estás agregando Boltdocs a un proyecto existente de forma manual, consulta la [guía de solución de problemas](/docs/es/guides/operations/troubleshooting#err_pnpm_ignored_builds) para la configuración requerida.
 </Callout>
 
 ---
@@ -112,7 +112,7 @@ import { Route, Settings } from 'lucide-react'
   <Card title="Configuración" href="/docs/es/guides/getting-started/configuration" icon={<Settings />}>
     Aprende a personalizar el título, logo, navegación y cada otra opción en tu archivo de configuración.
   </Card>
-  <Card title="Enrutamiento por Sistema de Archivos" href="/docs/es/guides/getting-started/file-routing" icon={<Route />}>
+  <Card title="Enrutamiento por Sistema de Archivos" href="/docs/es/guides/getting-started/routing" icon={<Route />}>
     Aprende cómo Boltdocs convierte tu carpeta `docs/` en una estructura de navegación completa.
   </Card>
 </Cards>

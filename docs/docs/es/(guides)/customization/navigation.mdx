@@ -1,0 +1,275 @@
+---
+title: Navegación
+sidebarPosition: 3
+description: El modelo completo de navegación — navbar, tabs, sidebar, breadcrumbs, on-this-page y page nav — y cómo configurar cada capa para que los lectores nunca se pierdan.
+---
+
+Boltdocs trae un sistema de navegación de cuatro capas. Entender las capas — y qué clave de configuración controla cada una — es la diferencia entre un sitio que los lectores recorren con fluidez y uno en el que se pierden.
+
+```text
+┌───────────────────────────────────────────────────────────┐
+│ Navbar (theme.navbar)          enlaces principales + dropdowns │
+├──────────┬────────────────────────────────────────────────┤
+│ Tabs     │                                                │
+│ (theme.  │  Breadcrumbs (automáticos, desde la ruta)      │
+│  tabs)   │                                                │
+├──────────┤────────────────────────────────────────────────┤
+│ Sidebar  │  Contenido de la página                        │
+│ (auto o  │                    OnThisPage (rail derecho)   │
+│  theme.  │                    — headings de la página     │
+│  sidebar)│                                                │
+│          │  PageNav (página anterior / siguiente)         │
+└──────────┴────────────────────────────────────────────────┘
+```
+
+| Capa | Clave de config | Qué hace |
+| :--- | :--- | :--- |
+| **Navbar** | `theme.navbar` | Header global: branding, enlaces principales, dropdowns. |
+| **Tabs** | `theme.tabs` | Tira horizontal de secciones (Guías / API / Blog). |
+| **Sidebar** | `theme.sidebar`, `theme.sidebarGroups`, `meta.json` | Navegación de directorio, auto-generada desde tu árbol de `docs/`. |
+| **Breadcrumbs** | auto | Ruta de migas sobre el título (consciente de locale/versión). |
+| **OnThisPage** | auto | TOC en el rail derecho con los headings de la página actual. |
+| **PageNav** | auto | Enlaces anterior / siguiente al final de cada página. |
+
+Las tres últimas las renderiza automáticamente el layout por defecto a partir de los datos de ruta — solo configuras las dos primeras y, opcionalmente, tomas control del sidebar.
+
+---
+
+## Navbar — `theme.navbar`
+
+El navbar es el header global. Muestra tu logo, título y enlaces principales. Los enlaces pueden ser entradas simples o dropdowns anidados:
+
+```ts title="boltdocs.config.ts"
+export default defineConfig({
+  theme: {
+    navbar: [
+      { label: 'Docs', href: '/docs' },
+      { label: 'Blog', href: '/blog' },
+      {
+        label: 'Recursos',
+        href: '/recursos',
+        items: [
+          { label: 'Changelog', href: '/changelog' },
+          { label: 'Showcase', href: '/showcase' },
+        ],
+      },
+    ],
+  },
+})
+```
+
+### Referencia del item de navbar
+
+| Propiedad | Tipo | Descripción |
+| :--- | :--- | :--- |
+| **`label`** | `string \| Record<string, string>` | Texto del enlace. Pasa un mapa de locales para i18n (p. ej. `{ en: 'Docs', es: 'Documentación' }`). |
+| **`href`** | `string` | Ruta de destino. |
+| **`items`** | `NavbarItem[]` | Sub-items opcionales que se renderizan como dropdown al pasar el cursor. |
+
+Opciones de display relacionadas: `theme.githubRepo` añade automáticamente el icono de GitHub, y `theme.socialLinks` añade iconos de Discord/X/Bluesky.
+
+<Callout variant="note" title="¿Construyendo un navbar personalizado?">
+El navbar por defecto es un componente — consulta el [componente Navbar](/docs/es/components/layout/navbar) para componer el tuyo con búsqueda, toggle de tema y drawer móvil.
+</Callout>
+
+---
+
+## Tabs — `theme.tabs`
+
+Los tabs dividen tu documentación en secciones horizontales. Cada tab mapea a una carpeta **entre paréntesis** en `docs/`:
+
+```text
+docs/
+├── (guides)/        → tab "guides"
+├── (api)/           → tab "api"
+└── (blog)/          → tab "blog"
+```
+
+```ts title="boltdocs.config.ts"
+export default defineConfig({
+  theme: {
+    tabs: [
+      { id: 'guides', text: 'Guías', icon: 'BookOpen' },
+      { id: 'api', text: 'API', icon: 'Code2' },
+      { id: 'blog', text: 'Blog', icon: 'History' },
+    ],
+  },
+})
+```
+
+### Referencia de tab
+
+| Propiedad | Tipo | Descripción |
+| :--- | :--- | :--- |
+| **`id`** | `string` | Debe coincidir con el nombre de la carpeta entre paréntesis. |
+| **`text`** | `string \| Record<string, string>` | Etiqueta mostrada en la tira de tabs. |
+| **`icon`** | `string` | Nombre de icono Lucide o SVG en bruto opcional. |
+
+Los paréntesis se eliminan de las URLs: `docs/(guides)/getting-started` se sirve en `/docs/guides/getting-started`. Los tabs funcionan con i18n anidando carpetas de locale dentro de ellos. Consulta [File-System Routing](/docs/es/guides/getting-started/routing) para las convenciones completas de carpetas.
+
+---
+
+## Sidebar — auto o manual
+
+El sidebar se **genera automáticamente** desde tu árbol de `docs/` por defecto: cada carpeta se convierte en un grupo, cada archivo en un item hijo. Es la forma más rápida de tener un sidebar completo — nunca escribes config de navegación para ello.
+
+### Sidebar automático (por defecto)
+
+- Las carpetas se convierten en grupos colapsables; los títulos de grupo por defecto son el nombre de la carpeta capitalizado.
+- El orden viene de prefijos numéricos de archivo (`01-intro.md`) o del frontmatter `sidebarPosition`.
+- El `meta.json` de una carpeta controla su título, icono, orden y estado de colapso.
+
+### Sobrescribir títulos de grupo — `theme.sidebarGroups`
+
+Ajusta títulos e iconos de grupo sin reconstruir todo el sidebar:
+
+```ts title="boltdocs.config.ts"
+export default defineConfig({
+  theme: {
+    sidebarGroups: {
+      'getting-started': { title: 'Quick Start', icon: 'Rocket' },
+    },
+  },
+})
+```
+
+### Sidebar manual — `theme.sidebar`
+
+Toma control total de la estructura de un prefijo:
+
+```ts title="boltdocs.config.ts"
+export default defineConfig({
+  theme: {
+    sidebar: {
+      '/docs/guides': [
+        { text: 'Introduction', link: '/docs/guides/introduction' },
+        { text: 'Installation', link: '/docs/guides/installation' },
+      ],
+    },
+  },
+})
+```
+
+<Callout variant="warning" title="Manual desactiva el auto-descubrimiento">
+Definir `theme.sidebar` para un prefijo desactiva el auto-descubrimiento para ese prefijo. Los items se listan exactamente como los defines.
+</Callout>
+
+### Frontmatter de sidebar por página
+
+| Clave de frontmatter | Efecto |
+| :--- | :--- |
+| **`sidebarPosition`** | Orden numérico dentro del grupo. |
+| **`sidebarLabel`** | Etiqueta personalizada en el sidebar (por defecto usa `title`). |
+| **`sidebarHidden`** | `true` mantiene la página enrutable pero la oculta del sidebar. |
+| **`badge`** | Renderiza un badge pequeño junto al item (p. ej. `'New'`, `'Beta'`). |
+| **`icon`** | Icono Lucide o SVG en bruto junto al item. |
+
+Consulta la [guía de Routing](/docs/es/guides/getting-started/routing) para las reglas de orden y la [guía de Metadatos](/docs/es/guides/content/metadata) para `meta.json` en profundidad.
+
+---
+
+## Breadcrumbs, OnThisPage y PageNav
+
+Estos tres son **automáticos** — el layout por defecto los deriva de los metadatos de ruta. No los configuras, pero debes saber qué hacen y cómo sustituirlos:
+
+- **Breadcrumbs** — una ruta de migas sobre el título (p. ej. `Guías → Personalización → Navegación`), construida desde la cadena de grupos de la ruta y localizada automáticamente. Referencia: [Breadcrumbs](/docs/es/components/layout/breadcrumbs).
+- **OnThisPage** — el TOC del rail derecho que lista los headings `h2`–`h4` de la página. Referencia: [OnThisPage](/docs/es/components/layout/on-this-page).
+- **PageNav** — enlaces "Anterior / Siguiente" al final, siguiendo el orden del sidebar. Referencia: [PageNav](/docs/es/components/layout/page-nav).
+
+### Usarlos en un layout personalizado
+
+Se exportan como primitivas, así que un layout personalizado puede colocarlas donde quieras:
+
+```tsx
+import { Breadcrumbs, OnThisPage, PageNav } from 'boltdocs/primitives'
+
+export function MyLayout() {
+  return (
+    <>
+      <Breadcrumbs />
+      <main>{/* contenido de la página */}</main>
+      <OnThisPage />
+      <PageNav />
+    </>
+  )
+}
+```
+
+---
+
+## Links y hrefs
+
+Todos los enlaces de Boltdocs — entradas del navbar, entradas del sidebar, cards y enlaces MDX — pasan por el mismo resolvedor de rutas (`useLocalizedTo`). Añade automáticamente el locale y la versión que el visitante está leyendo, así que escribes **hrefs canónicos** y el framework los localiza. El resolvedor nunca reescribe URLs externas.
+
+| Href | Tipo | Resolución |
+| :--- | :--- | :--- |
+| `/docs/guides/getting-started` | **Página de docs** | Localizada con el locale/versión activos. La forma canónica es la ruta sin localizar. |
+| `/showcase`, `/pricing` | **Página externa** | Ruta servida por una página de `pages-external/`. Las rutas externas conocidas se mantienen tal cual. |
+| `/` | **Raíz del sitio** | Resuelve a la raíz del sitio (localizada). |
+| `https://example.com`, `//cdn...` | **URL externa** | Nunca se reescribe — se pasa tal cual. |
+| `#section`, `?q=term` | **Ancla / query** | Se pasa tal cual, unida a la URL de la página actual. |
+| `site:/path` | **Prefijo site** | El prefijo opcional `site:` fuerza la resolución contra la raíz del sitio, fuera del base de docs. |
+
+### Hrefs en `boltdocs.config.ts`
+
+El navbar y el sidebar aceptan rutas canónicas — los mismos valores que escribirías en Markdown:
+
+```ts title="boltdocs.config.ts"
+export default defineConfig({
+  theme: {
+    navbar: [
+      { label: 'Docs', href: '/docs/guides' },
+      { label: 'Showcase', href: '/showcase' },
+      // Las URLs externas pasan por el resolvedor sin tocarlas — no hace falta flag especial.
+      { label: 'GitHub', href: 'https://github.com/my-org/my-project' },
+    ],
+  },
+})
+```
+
+### Hrefs en MDX
+
+Escribe las mismas rutas canónicas en Markdown — los prefijos de locale y versión se añaden automáticamente al renderizar:
+
+```mdx
+- [Guías](/docs/guides)
+- [Showcase](/showcase)
+- [Docs externos](https://example.com)
+- [Saltar a una sección](#links-y-hrefs)
+```
+
+### Hrefs en componentes personalizados
+
+Usa la primitiva `Link` de `boltdocs/primitives` para navegación localizada, o llama a `useLocalizedTo()` directamente cuando necesites el string resuelto (p. ej. para calcular un estado activo):
+
+```tsx
+import { Link } from 'boltdocs/primitives'
+import { useLocalizedTo } from 'boltdocs/client'
+
+const resolved = useLocalizedTo('/docs/guides')
+
+<Link href="/docs/guides">Guías</Link>
+```
+
+<Callout variant="warning" title="Nunca escribas prefijos de locale a mano">
+Hardcodear `/es/docs/guides` o `/v2/docs/guides` rompe la localización — el resolvedor espera rutas canónicas sin localizar. Escribe `/docs/guides` y deja que `useLocalizedTo` añada el prefijo del locale y la versión activos.
+</Callout>
+
+---
+
+## Cómo navegan los lectores (referencia rápida)
+
+1. **Arriba** — los enlaces del navbar cambian de área principal; los tabs cambian de sección de documentación.
+2. **Izquierda** — el sidebar muestra la estructura completa de la sección actual; la página activa está resaltada.
+3. **Derecha** — OnThisPage salta dentro de la página actual.
+4. **Abajo** — PageNav mueve a la página anterior/siguiente en orden de lectura.
+5. **En todas partes** — los breadcrumbs muestran dónde está la página en la jerarquía; la búsqueda (`⌘K`) encuentra páginas en todos los tabs.
+
+---
+
+## Dónde seguir
+
+- [File-System Routing](/docs/es/guides/getting-started/routing) — convenciones de carpetas, orden y tabs en profundidad.
+- [Metadatos](/docs/es/guides/content/metadata) — `meta.json` y `_meta.json` para grupos del sidebar.
+- [Layout personalizado](/docs/es/guides/customization/layout) — compón el shell completo de la página tú mismo.
+- [Referencia de DocsLayout](/docs/es/components/layout/docs-layout) — cada región que el layout por defecto conecta.

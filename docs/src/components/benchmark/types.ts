@@ -9,6 +9,8 @@ export interface BenchmarkData {
   timestamp: string
   buildTimeCold: BenchmarkMetric
   buildTimeWarm: BenchmarkMetric
+  /** Full CLI build after editing one input; not HMR timing. */
+  buildTimeEditedRebuild?: BenchmarkMetric
   devServerStart: BenchmarkMetric
   bundleSize: BenchmarkMetric
 }

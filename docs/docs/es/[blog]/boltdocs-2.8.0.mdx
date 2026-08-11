@@ -226,7 +226,7 @@ Como se usa la API REST directamente en lugar del paquete oficial `@docsearch/re
 Los plugins pueden engancharse al ciclo de vida de construcción y desarrollo:
 
 | Hook | Cuándo se ejecuta |
-|------|-------------------|
+| ------ | ------------------- |
 | `beforeBuild` / `afterBuild` | Antes y después de la construcción de producción |
 | `beforeDev` / `afterDev` | El servidor de desarrollo inicia y finaliza |
 | `buildEnd` | La construcción completa (incluso con error) |
@@ -298,7 +298,7 @@ Cada plugin se valida al iniciar — nombres duplicados, incompatibilidades de s
 La migración desde 2.7.x es sencilla — no hay cambios de ruptura en la API pública. Pero si tienes scripts accediendo a `.boltdocs/`, actualiza tus rutas:
 
 | Antes | Después |
-|-------|---------|
+| ------- | --------- |
 | `.boltdocs/routes.json` | `.boltdocs/cache/routes.json` |
 | `.boltdocs/types.d.ts` | `.boltdocs/generated/types.d.ts` |
 | `.boltdocs/cache-*` | `.boltdocs/cache/*` |

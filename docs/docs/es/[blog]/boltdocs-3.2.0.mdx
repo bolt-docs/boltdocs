@@ -37,7 +37,7 @@ Esto eliminaba todo el directorio de output del build SSR. El check `serverBuild
 ### Resultados del benchmark
 
 | Tipo de build | Antes de 3.2.0 | Después de 3.2.0 | Aceleración |
-|---------------|-----------------|-------------------|-------------|
+| --------------- | ----------------- | ------------------- | ------------- |
 | Cold (primer build) | ~82s | ~78s | ~1.05x |
 | Warm (sin cambios) | ~50s | **~10s** | **5x** |
 | Incremental (1 archivo editado) | ~50s | ~15s | **3.3x** |
@@ -68,7 +68,7 @@ export function getFileMtime(filePath: string): number {
 ```
 
 | Métrica | Antes | Después | Aceleración |
-|---------|-------|---------|-------------|
+| --------- | ------- | --------- | ------------- |
 | 5 archivos × 500 rondas | 18.6ms | 3.2ms | **5.9x** |
 
 ---
@@ -211,7 +211,7 @@ engine: createOnigurumaEngine(import('shiki/wasm'))
 ```
 
 | Métrica | JS Regex | WASM Oniguruma | Diferencia |
-|---------|----------|----------------|------------|
+| --------- | ---------- | ---------------- | ------------ |
 | 3 langs × 50 rondas | 1101ms | 959ms | **13% más rápido** |
 | Por iteración | 22.0ms | 17.7ms | **4.3ms ahorrados** |
 
@@ -289,7 +289,7 @@ La arquitectura:
 ### Antes vs. después
 
 | Tipo de página | Antes de 3.2.0 | Después de 3.2.0 |
-|----------------|----------------|-------------------|
+| ---------------- | ---------------- | ------------------- |
 | Página **sin** diagramas | ~0 KB runtime mermaid (import dinámico en `useEffect`) | **~0 KB** — el componente estático nunca referencia `mermaid` |
 | Página **con** diagramas | ~800 KB de chunks mermaid cargados on-demand, luego `mermaid.initialize` + render | **~0 KB** — el SVG ya está en el HTML inicial |
 | Primer paint del diagrama | Después de que el bundle del cliente y el motor inicializan | **Instantáneo** — el SVG viaja con la página |
@@ -328,14 +328,14 @@ El overlay de fullscreen recibió animaciones de entrada/salida — un detalle p
 
 El `install` de 3.1.x cargaba `react-aria-components` como dependencia dura junto al toolchain completo de pre-render de Mermaid, todos los iconos de lenguajes, y los binarios nativos del image optimizer — incluso para usuarios que nunca renderizaron un diagrama Mermaid, nunca tuvieron un code block y nunca necesitaron `sharp`/`svgo`. 3.2.0 separa el *qué* del *cuándo*.
 
-### Antes vs. después
+### Antes vs. después (peso del paquete)
 
 Dos categorías de "tamaño" — **bundle del cliente** (bytes que viajan al navegador) y **footprint de `node_modules`** (bytes desempaquetados en disco por install del consumidor) — medidas por separado para que puedas leer la tabla de arriba a abajo sin confusión.
 
 **Bundle del cliente — bytes que viajan al navegador (por cold load)**
 
 | Superficie | Antes de 3.2.0 | Después de 3.2.0 | Notas |
-|------------|----------------|------------------|-------|
+| ------------ | ---------------- | ------------------ | ------- |
 | `client/index.js` (puerta de entrada) | 108 KB | **108 KB** | Sin cambios en la entrada; el ahorro vive en los chunks diferidos. |
 | `icons-dev.tsx` (blob de iconos de lenguajes) en el chunk inicial | **44 KB en cada página** | **0 KB** en todas las páginas | El módulo completo `lang-icons.tsx` (doce iconos SVG + mapa del registry) fue eliminado del core. Los títulos de los code blocks renderizan solo el texto del nombre del archivo — no se envía ningún ícono de lenguaje al cliente. Las páginas con code blocks ahorran ~17 KB versus el bundle eager de 3.1.x; las páginas sin code blocks ya estaban en cero bytes para estos íconos. |
 | Iconos sociales/nav en el bundle del navbar | mezclados con todo | **~1 KB aislados** en `icons-prod.tsx` | `Github`, `Discord`, `XSocial`, `Bluesky` están namespaced aparte para que layouts que no los necesiten puedan sobreescribirlos sin arrastrar el set de lenguajes. |
@@ -343,7 +343,7 @@ Dos categorías de "tamaño" — **bundle del cliente** (bytes que viajan al nav
 **Footprint de `node_modules` — bytes desempaquetados (por `pnpm install`)**
 
 | Superficie | Antes de 3.2.0 | Después de 3.2.0 | Notas |
-|------------|----------------|------------------|-------|
+| ------------ | ---------------- | ------------------ | ------- |
 | `react-aria-components` (desempaquetado) | ~1 MB transitivo en `node_modules` | **0 KB** en core | Ahora un **peer requerido** — el consumidor lo instala una vez junto a React. Sin doble-bundling. |
 | Binarios nativos `sharp` + `svgo` | **~35 MB desempaquetados** en cada install del sitio | **0 KB** en core; instala solo si usás `@bdocs/plugin-image-optimizer` | Movidos a `peerDependenciesMeta.optional` del plugin de imágenes. Usuarios de Alpine ARM, musl libc o glibc viejo ya no rompen el postinstall de `sharp`. |
 | `shiki` + `@shikijs/engine-oniguruma` + `@mdx-js/rollup` | Igual que 3.1.x | Igual que 3.1.x | Quedan en `dependencies` — el CLI los importa incondicionalmente cuando corre `npx boltdocs build`. Nunca llegan al bundle del cliente. |
@@ -409,7 +409,7 @@ peerDependencyRules.allowedVersions.react-aria-components=^1.16.0
 
 **No** uses `legacy-peer-deps=true`. Eso silencia cada peer warning en todo el árbol y va a enmascarar futuras roturas reales.
 
-Leé la auditoría completa en **[Actualizar a 3.2.0 → Cambios semi-breaking](/es/guides/upgrading-3-2)**.
+Leé la auditoría completa en **[Actualizar a 3.2.0 → Cambios semi-breaking](/docs/es/guides/operations/upgrading-3-2)**.
 
 ---
 
@@ -602,6 +602,6 @@ boltdocs@3.2.0 requiere react-aria-components@^1.16.0 como peer
 
 Satísfacélo con `pnpm add react-aria-components` (o fijá una versión menor si tu vendor de React Aria ya lo provee). Los sitios que usan `@bdocs/plugin-image-optimizer` no se ven afectados — las peer declarations del optimizer ya funcionan, y `sharp`/`svgo` se instalan via `peerDependenciesMeta.optional: true` del optimizer.
 
-Consultá **[Actualizar a 3.2.0 → Cambios semi-breaking](/es/guides/upgrading-3-2)** para la auditoría completa, snippets de `package.json` antes/después y notas por plataforma.
+Consultá **[Actualizar a 3.2.0 → Cambios semi-breaking](/docs/es/guides/operations/upgrading-3-2)** para la auditoría completa, snippets de `package.json` antes/después y notas por plataforma.
 
 Revisá la [documentación completa](/docs/) para explorar todo lo nuevo.

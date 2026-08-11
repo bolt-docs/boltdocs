@@ -1,151 +1,63 @@
 ---
 title: API Reference
 sidebarPosition: 1
-description: Complete API reference for Boltdocs — React hooks, layout components, and configuration helpers.
+description: Public API reference for Boltdocs configuration, React runtime, primitives, plugins, and experimental features.
 ---
 
-import { Settings, Search, Palette, Layers, Map, ChevronsRight, ArrowRight, Globe, GitBranch, FolderOpen, Compass, Link, Terminal, Puzzle } from 'lucide-react'
+import { Server, Blocks, Workflow, Wrench, Puzzle, FlaskConical, Braces } from 'lucide-react'
 
-This section provides reference documentation for all public APIs exported by the `boltdocs` framework packages.
+Use this section when you know the API surface you need. For task-oriented instructions, start with the [Guides](/docs/guides).
 
----
+## Entry points
 
-## Architecture Overview
-
-Boltdocs splits its modules into separate entrypoints to isolate server-side configurations from browser-side interactive elements:
-
-| Module Import | Purpose | Environment |
+| Import | Runtime | Use it for |
 | :--- | :--- | :--- |
-| **`boltdocs`** | Project configuration schemas & plugins | Node / Build |
-| **`boltdocs/client`** | Default styled React components, context hooks, & helpers | Browser / SSR |
-| **`boltdocs/primitives`** | Unstyled primitive elements for crafting custom layouts | Browser / SSR |
-
----
-
-## React Hooks
-
-Hooks let you consume Boltdocs state (active theme, navigation links, locale selections, search indexes) directly in your custom components.
-
-<Cards cols={2}>
-  <Card title="useConfig" icon={<Settings />} href="/docs/api/hooks/use-config">
-    Retrieve the parsed global Boltdocs configuration object.
-  </Card>
-  <Card title="useSearch" icon={<Search />} href="/docs/api/hooks/use-search">
-    Retrieve search query, results, and open/close toggles.
-  </Card>
-  <Card title="useTheme" icon={<Palette />} href="/docs/api/hooks/use-theme">
-    Access and toggle between light and dark UI themes.
-  </Card>
-  <Card title="useNavbar" icon={<Layers />} href="/docs/api/hooks/use-navbar">
-    Retrieve active navigation configurations, logo details, and social links.
-  </Card>
-  <Card title="useRoutes" icon={<Map />} href="/docs/api/hooks/use-routes">
-    Read metadata list for all generated pages.
-  </Card>
-  <Card title="useBreadcrumbs" icon={<ChevronsRight />} href="/docs/api/hooks/use-breadcrumbs">
-    Access navigation breadcrumbs for current location.
-  </Card>
-  <Card title="usePageNav" icon={<ArrowRight />} href="/docs/api/hooks/use-page-nav">
-    Determine the logically preceding or following page routes.
-  </Card>
-  <Card title="useI18n" icon={<Globe />} href="/docs/api/hooks/use-i18n">
-    Manage and switch between different languages/locales.
-  </Card>
-  <Card title="useVersion" icon={<GitBranch />} href="/docs/api/hooks/use-version">
-    Manage and switch between different documentation versions.
-  </Card>
-  <Card title="useTabs" icon={<FolderOpen />} href="/docs/api/hooks/use-tabs">
-    Retrieve category tabs and active sliding indicator style values.
-  </Card>
-  <Card title="useLocation" icon={<Compass />} href="/docs/api/hooks/use-location">
-    Wrapper around React Router DOM location hook to access current router path metadata.
-  </Card>
-  <Card title="useLocalizedTo" icon={<Link />} href="/docs/api/hooks/use-localized-to">
-    Utility hook to automatically append locale and version segments to path links.
-  </Card>
-</Cards>
-
----
-
-## Utilities
-
-Helper functions for combining styles, translation indexing, text compilation, and config validation.
+| `boltdocs` | Node / build | `defineConfig`, plugins, config types, JSON-LD factories. |
+| `boltdocs/client` | Browser / SSR | React hooks, structured data, transitions, collections, and client utilities. |
+| `boltdocs/primitives` | Browser / SSR | Unstyled layout, navigation, link, and interaction components. |
 
 <Cards cols={3}>
-  <Card title="cn" href="/docs/api/utils/cn">
-    Merge Tailwind styles.
+  <Card title="Configuration" icon={<Server />} href="/docs/guides/getting-started/configuration">
+    Configure the project through `boltdocs.config.ts`.
   </Card>
-  <Card title="getTranslated" href="/docs/api/utils/i18n">
-    Locale lookup utility.
+  <Card title="React Hooks" icon={<Workflow />} href="/docs/api/hooks/use-config">
+    Read runtime state such as config, routes, theme, locale, and navigation.
   </Card>
-  <Card title="reactToText" href="/docs/api/utils/react-to-text">
-    Extract JSX plain text.
+  <Card title="Utilities" icon={<Wrench />} href="/docs/api/utils/define-config">
+    Small typed helpers for config, i18n, URLs, clipboard, and text.
   </Card>
-  <Card title="copyToClipboard" href="/docs/api/utils/copy-clipboard">
-    Write to clipboard.
+  <Card title="Primitives" icon={<Blocks />} href="/docs/components/layout/docs-layout">
+    Compose custom layouts and navigation without the default theme shell.
   </Card>
-  <Card title="defineConfig" href="/docs/api/utils/define-config">
-    TypeScript config helper.
+  <Card title="Plugin API" icon={<Puzzle />} href="/docs/api/plugin-api">
+    Extend lifecycle, transforms, caches, diagnostics, server, and HMR.
   </Card>
-</Cards>
-
----
-
-## Command Line Interface (CLI)
-
-Boltdocs includes CLI commands to build, preview, debug, and auto-fix documentation structures.
-
-<Cards cols={1}>
-  <Card title="CLI Reference" icon={<Terminal />} href="/docs/api/cli">
-    Learn about core workflow commands (dev, build, preview), health diagnostics (doctor), and the changelog generator.
+  <Card title="Structured Data" icon={<Braces />} href="/docs/api/structured-data">
+    Generate and render type-safe JSON-LD graphs.
+  </Card>
+  <Card title="Experimental APIs" icon={<FlaskConical />} href="/docs/guides/advanced/experimental">
+    View Transitions, TransitionLink, and experimental file routing.
   </Card>
 </Cards>
 
----
+## React hooks
 
-## Plugin Development
+The [Hooks reference](/docs/api/hooks/use-config) documents the public hooks individually:
 
-References for authors building Boltdocs plugins — the `PluginContext` shape, the lifecycle hooks, and every enriched namespace (caches, diagnostics, paths, virtual modules, slots, middleware, server, hmr) exposed to plugin code.
+- `useConfig`, `useTheme`, `useI18n`, `useVersion`, and `useLocation`
+- `useRoutes`, `useSearch`, `useNavbar`, `usePageNav`, and `useTabs`
+- collection hooks such as `usePosts`, `usePost`, and `useRecentPosts`
 
-<Cards cols={2}>
-  <Card title="PluginContext" icon={<Puzzle />} href="/docs/api/plugin-api">
-    Base context object, base fields, and enriched namespaces overview.
-  </Card>
-  <Card title="Caches" icon={<Puzzle />} href="/docs/api/plugin-api/caches">
-    Transform cache, routes cache, and in-memory FIFO cache.
-  </Card>
-  <Card title="Diagnostics" icon={<Puzzle />} href="/docs/api/plugin-api/diagnostics">
-    Structured diagnostic reporting with severity levels.
-  </Card>
-  <Card title="Paths" icon={<Puzzle />} href="/docs/api/plugin-api/paths">
-    Safe workspace path resolution with traversal protection.
-  </Card>
-  <Card title="Virtual Modules" icon={<Puzzle />} href="/docs/api/plugin-api/virtual-modules">
-    Runtime virtual module declarations for Vite.
-  </Card>
-  <Card title="Middleware" icon={<Puzzle />} href="/docs/api/plugin-api/middleware">
-    Transform middleware pipeline (source, MDX, HTML).
-  </Card>
-  <Card title="Server" icon={<Puzzle />} href="/docs/api/plugin-api/server">
-    HTTP middleware & server lifecycle hooks.
-  </Card>
-  <Card title="HMR" icon={<Puzzle />} href="/docs/api/plugin-api/hmr">
-    Dev-server file watching & custom HMR events.
-  </Card>
-</Cards>
+## Plugin API
 
----
+The [Plugin API](/docs/api/plugin-api) is split into focused references for lifecycle hooks, caches, diagnostics, paths, virtual modules, middleware, server, and HMR.
 
-## Type Exports
+## Experimental APIs
 
-Import TypeScript interfaces directly from `'boltdocs'` (for configuration schemas) or `'boltdocs/client'` (for client-side routing elements):
+- [Structured Data](/docs/api/structured-data) — JSON-LD factory and component.
+- [Experimental Features](/docs/guides/advanced/experimental) — practical View Transitions and `pages-external` file-routing guide.
 
-### Build Config Types
-```ts
-import type { BoltdocsConfig, BoltdocsPlugin } from 'boltdocs'
-```
-
-### Client Context Types
-```ts
-import type { RouteMeta, SidebarGroup, Heading } from 'boltdocs/client'
-```
+<Callout variant="tip" title="Need a recipe instead?
+  ">
+  Guides explain the workflow. This section explains exact exports, parameters, and return values.
+</Callout>

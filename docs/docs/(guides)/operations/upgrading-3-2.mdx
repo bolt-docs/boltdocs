@@ -17,7 +17,7 @@ description: "The complete audit of peer dependency changes, moved dependencies,
 ## 1. The audit at a glance
 
 | Concern | What changed | Who is affected | Action required |
-|---------|--------------|-----------------|-----------------|
+| --------- | -------------- | ----------------- | ----------------- |
 | `react-aria-components` | Promoted from `dependencies` to a **required** `peerDependencies` | Every Boltdocs consumer | Add `react-aria-components: ^1.16.0` to your `dependencies` (or accept the peer warning if your framework wrapper provides it) |
 | `sharp` | Removed from core; now `peerDependenciesMeta.optional` of `@bdocs/plugin-image-optimizer` | Only if you don't use `@bdocs/plugin-image-optimizer`: pure win (you save ~30 MB unpacked) | If you previously relied on `sharp` being a transitive of `boltdocs`, install `sharp` explicitly or add the optimizer plugin |
 | `svgo` | Same as `sharp` (moved out of core) | Only if you don't use the image optimizer: pure win (~5 MB unpacked) | Same as `sharp` |

@@ -50,7 +50,7 @@ flowchart TD
 ```
 
 | Phase | Time | % of total |
-|-------|------|-----------|
+| ------- | ------ | ----------- |
 | Config resolve | ~50ms | 1% |
 | Route generation | ~500ms | 3% |
 | SEO validation | ~100ms | 1% |
@@ -192,7 +192,7 @@ If you edit a file and undo the edit, the rendered HTML is identical. Today it's
 **Current baseline (200 pages): ~35s total**
 
 | Metric | v3 (current) | v4 (target) | Speedup |
-|--------|-------------|-------------|---------|
+| -------- | ------------- | ------------- | --------- |
 | Cold build | 35s | 9-12s | **~3-4x** |
 | 1-line edit | 35s | 0.5-2s | **~20-70x** |
 | CI (no changes) | 35s | 1-2s | **~20-35x** |
@@ -217,7 +217,7 @@ The results speak for themselves: the analysis identified 12 distinct bottleneck
 Each phase ships at roughly 50% completion in the next minor releases:
 
 | Release | Phase | What ships |
-|---------|-------|-----------|
+| --------- | ------- | ----------- |
 | 3.1.x | Phase 1 (50%) | Shiki WASM engine, smarter client hash, pipeline parallelism |
 | 3.2.x | Phase 1 (100%) + Phase 2 (50%) | Sharded FileStore, no-gzip dev, MDX worker threads prototype |
 | 3.3.x | Phase 2 (100%) | Per-route cache, delta patches, frontmatter HMR, dependency map |

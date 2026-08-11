@@ -106,11 +106,36 @@ Esto te da acceso a las mismas primitivas de UI usadas en el layout de docs por 
 
 ---
 
+## File-routing estático (experimental)
+
+Para páginas literales puedes activar el routing externo basado en archivos en lugar de mantener un objeto `pages`. Configura `experimental.fileRouting` en `boltdocs.config.ts`:
+
+```ts
+export default defineConfig({
+  experimental: {
+    fileRouting: true,
+  },
+})
+```
+
+```text
+docs/pages-external/
+├── home.tsx      → /home
+├── about.tsx     → /about
+└── pricing.mdx   → /pricing
+```
+
+El nombre del archivo se convierte en la ruta. Se admiten `.tsx`, `.ts`, `.jsx`, `.js`, `.mdx` y `.md`. `index.*` queda reservado para el objeto `pages` legacy. Los segmentos dinámicos como `[id]`, los grupos como `(marketing)` y los archivos auxiliares reservados (`layout`, `icons` y `mdx-components`) se ignoran. Las rutas existentes de `pages-external/index.tsx` pueden convivir con file routes; evita asignar la misma URL a ambas APIs.
+
+Consulta [Funciones Experimentales](/docs/es/guides/advanced/experimental) para la API opt-in completa.
+
+---
+
 ## Limitaciones
 
 - Las páginas externas **no** soportan características MDX como `<Callout>` o `<Card>`
 - Frontmatter no está disponible — todos los metadatos deben manejarse en React
-- La indexación de búsqueda funciona automáticamente, pero puedes necesitar registrar encabezados manualmente a través de metadatos de ruta
+- El comportamiento de indexación de las páginas externas depende de los metadatos de ruta generados por el proyecto; agrega metadatos explícitos cuando necesites encabezados buscables
 
 ---
 

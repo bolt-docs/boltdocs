@@ -1,7 +1,14 @@
-import { usePost, useMergedComponents, OnThisPage } from 'boltdocs/client'
+import {
+  OnThisPage,
+  resolvePublicAssetUrl,
+  useConfig,
+  useMergedComponents,
+  usePost,
+} from 'boltdocs/client'
 
 export default function BlogPost({ MDXComponent, mdxComponents }: any) {
   const post = usePost()
+  const config = useConfig()
   if (!post) return null
 
   const { title, date, author, excerpt, lastUpdated, coverImage } = post
@@ -33,7 +40,13 @@ export default function BlogPost({ MDXComponent, mdxComponents }: any) {
             <>
               <span aria-hidden="true">&middot;</span>
               <img
-                src={typeof author === 'string' ? author : author.avatar}
+                src={
+                  typeof author === 'string'
+                    ? resolvePublicAssetUrl(author, config.base)
+                    : author.avatar
+                      ? resolvePublicAssetUrl(author.avatar, config.base)
+                      : undefined
+                }
                 alt={typeof author === 'string' ? author : author.name}
                 className="w-8 h-8 rounded-full"
               />
@@ -45,7 +58,7 @@ export default function BlogPost({ MDXComponent, mdxComponents }: any) {
         {coverImage && (
           <div className="relative aspect-video w-full overflow-hidden rounded-xl border border-gray-200 dark:border-gray-800 bg-neutral-100 dark:bg-neutral-900 mt-8 mb-6">
             <img
-              src={coverImage}
+              src={resolvePublicAssetUrl(coverImage, config.base)}
               alt={title || 'Cover image'}
               className="object-cover w-full h-full"
             />
