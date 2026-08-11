@@ -1,7 +1,7 @@
 {
   "name": "@bdocs/plugin-llms-text",
   "version": "0.1.0",
-  "description": "llms.txt generator plugin for Boltdocs — provides AI-optimized documentation indexes for LLMs and AI agents",
+  "description": "llms.txt generator plugin for Boltdocs \u2014 provides AI-optimized documentation indexes for LLMs and AI agents",
   "publishConfig": {
     "access": "public"
   },
@@ -34,6 +34,7 @@
     "boltdocs": "workspace:*",
     "tsdown": "^0.21.7",
     "typescript": "^5.9.3",
-    "vitest": "^3.2.4"
+    "vitest": "^3.2.4",
+    "tsdown-config": "workspace:*"
   }
 }

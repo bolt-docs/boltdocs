@@ -60,6 +60,13 @@ export const LlmsTextPluginOptionsSchema = z.object({
   excludePaths: z.array(z.string()).optional(),
 
   /**
+   * Restrict links to the selected locale codes. The default locale is
+   * matched automatically even when its RouteMeta.locale is undefined.
+   * Example: ['en', 'es']. When omitted, all locales are included.
+   */
+  locales: z.array(z.string().trim().min(1)).optional(),
+
+  /**
    * Custom H2 sections that group links by path prefix.
    * When provided, the default "Documentation" section is replaced.
    * Default: a single "Documentation" section with all routes.
@@ -82,8 +89,9 @@ export const LlmsTextPluginOptionsSchema = z.object({
   includeDrafts: z.boolean().default(false),
 
   /**
-   * Whether to generate the llms.txt file in dev mode.
-   * Default: false (production builds only).
+   * @deprecated The afterBuild hook is always registered now; generation
+   * happens on every production build. This option is kept for backwards
+   * compatibility and no longer has any effect.
    */
   devMode: z.boolean().default(false),
 

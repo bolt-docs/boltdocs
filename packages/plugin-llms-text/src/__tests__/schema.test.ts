@@ -100,12 +100,20 @@ describe('LlmsTextPluginOptionsSchema', () => {
     ).toThrow()
   })
 
-  it('accepts includePaths and excludePaths filters', () => {
+  it('accepts includePaths, excludePaths, and locale filters', () => {
     const result = LlmsTextPluginOptionsSchema.parse({
       includePaths: ['/docs', '/blog'],
       excludePaths: ['/blog/experimental'],
+      locales: ['es', 'en'],
     })
     expect(result.includePaths).toEqual(['/docs', '/blog'])
     expect(result.excludePaths).toEqual(['/blog/experimental'])
+    expect(result.locales).toEqual(['es', 'en'])
+  })
+
+  it('rejects empty locale codes', () => {
+    expect(() =>
+      LlmsTextPluginOptionsSchema.parse({ locales: ['en', ''] }),
+    ).toThrow()
   })
 })

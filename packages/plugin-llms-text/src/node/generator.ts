@@ -17,6 +17,8 @@ export interface LlmsTextConfig {
   includeDrafts: boolean
   includePaths?: string[]
   excludePaths?: string[]
+  locales?: string[]
+  defaultLocale?: string
 }
 
 /**
@@ -80,6 +82,11 @@ function routePassesPathFilter(
   route: RouteMeta,
   config: LlmsTextConfig,
 ): boolean {
+  if (config.locales && config.locales.length > 0) {
+    const routeLocale = route.locale ?? config.defaultLocale
+    if (routeLocale && !config.locales.includes(routeLocale)) return false
+  }
+
   if (config.includePaths && config.includePaths.length > 0) {
     const included = config.includePaths.some((p) => route.path.startsWith(p))
     if (!included) return false

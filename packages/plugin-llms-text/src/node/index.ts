@@ -3,6 +3,7 @@ import {
   LlmsTextPluginOptionsSchema,
   type LlmsTextPluginOptions,
 } from './schema'
+import path from 'node:path'
 import {
   generateLlmsText,
   buildDefaultSections,
@@ -18,8 +19,8 @@ export type { LlmsTextPluginOptions }
  *
  * The llms.txt specification (llmstxt.org) provides a standardised
  * plain-text index of documentation pages optimised for Large Language
- * Models and AI agents. The file lives at `<siteUrl>/llms.txt` and
- * mirrors the structure of robots.txt and sitemap.xml.
+ * Models and AI agents. The file is emitted into the resolved build output
+ * directory and is therefore served at `<siteUrl>/llms.txt`.
  */
 export default function llmsTextPlugin(
   rawOptions: LlmsTextPluginOptions = {},
@@ -80,28 +81,54 @@ export default function llmsTextPlugin(
       includeDrafts: options.includeDrafts,
       includePaths: options.includePaths,
       excludePaths: options.excludePaths,
+      locales: options.locales,
+      defaultLocale: ctx.config.i18n?.defaultLocale,
     }
   }
 
-  const isEnabled =
-    options.devMode || process.env.NODE_ENV === 'production' || process.env.CI
+  // Older Boltdocs versions only invoke `afterBuild`. Keep a per-plugin
+  // guard so the compatibility hook cannot generate the file twice when a
+  // current core invokes both `build:generate` and `afterBuild`.
+  let generatedKey: string | null = null
+
+  const generate = (ctx: any, routes: any[], outputDir: string): void => {
+    const resolved = resolveConfig({ ...ctx, routes })
+    if (!resolved) return
+
+    const content = generateLlmsText(routes, resolved)
+    // Both hooks can run on a current core. Deduplicate only identical
+    // output, not merely identical directories: a later build can reuse
+    // `dist/` while routes or descriptions have changed.
+    const normalizedOutputDir = path.resolve(outputDir)
+    const key = `${normalizedOutputDir}\0${content}`
+    if (generatedKey === key) return
+
+    writeLlmsText(content, normalizedOutputDir, ctx.logger.info)
+    generatedKey = key
+  }
 
   return createPlugin({
     name: 'boltdocs-plugin-llms-text',
     version: '0.1.0',
     hooks: {
-      ...(isEnabled
-        ? {
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            async afterBuild(ctx: any) {
-              const resolved = resolveConfig(ctx)
-              if (!resolved) return
+      // `build:generate` receives the absolute output directory from the
+      // core pipeline after SSG has finalized it. Using `ctx.outDir` from a
+      // lifecycle context here could resolve relative to the wrong cwd.
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      async 'build:generate'(
+        ctx: any,
+        params: { routes: any[]; outDir: string },
+      ) {
+        generate(ctx, params.routes, params.outDir)
+      },
 
-              const content = generateLlmsText(ctx.routes, resolved)
-              writeLlmsText(content, ctx.outDir, ctx.logger.info)
-            },
-          }
-        : {}),
+      // Compatibility fallback for cores that predate `build:generate`.
+      // `rootDir` makes a relative context output path deterministic.
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      async afterBuild(ctx: any) {
+        const outputDir = path.resolve(ctx.rootDir ?? process.cwd(), ctx.outDir)
+        generate(ctx, ctx.routes, outputDir)
+      },
 
       transformHtml(ctx, params) {
         return linkTagInjection(ctx, params)

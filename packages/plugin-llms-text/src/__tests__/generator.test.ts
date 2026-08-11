@@ -5,7 +5,8 @@ import {
   writeLlmsText,
   formatSiteUrl,
 } from '../node/generator'
-import type { LlmsTextConfig, LlmsTextSection } from '../node/generator'
+import type { LlmsTextConfig } from '../node/generator'
+import type { LlmsTextSection } from '../node/schema'
 import type { RouteMeta } from 'boltdocs'
 import fs from 'node:fs'
 import path from 'node:path'
@@ -315,6 +316,62 @@ describe('generateLlmsText', () => {
     const result = generateLlmsText(routes, config)
 
     expect(result).not.toContain('## Optional')
+  })
+
+  it('includes only configured locales and maps the default locale', () => {
+    const routes: RouteMeta[] = [
+      makeRoute({ path: '/docs/guide', title: 'English Guide' }),
+      makeRoute({ path: '/es/docs/guide', title: 'Guía', locale: 'es' }),
+      makeRoute({ path: '/fr/docs/guide', title: 'Guide', locale: 'fr' }),
+    ]
+    const config = makeConfig({
+      locales: ['es', 'en'],
+      defaultLocale: 'en',
+    })
+
+    const result = generateLlmsText(routes, config)
+
+    expect(result).toContain('[English Guide]')
+    expect(result).toContain('[Guía]')
+    expect(result).not.toContain('[Guide]')
+  })
+
+  it('includes every locale when locales is omitted', () => {
+    const routes: RouteMeta[] = [
+      makeRoute({ path: '/docs/guide', title: 'English Guide' }),
+      makeRoute({ path: '/es/docs/guide', title: 'Guía', locale: 'es' }),
+    ]
+
+    const result = generateLlmsText(routes, makeConfig())
+
+    expect(result).toContain('[English Guide]')
+    expect(result).toContain('[Guía]')
+  })
+
+  it('treats an undefined route locale as the configured default locale', () => {
+    const routes: RouteMeta[] = [
+      makeRoute({ path: '/blog/post', title: 'Blog Post' }),
+      makeRoute({ path: '/es/blog/post', title: 'Publicación', locale: 'es' }),
+    ]
+    const config = makeConfig({ locales: ['es'], defaultLocale: 'en' })
+
+    const result = generateLlmsText(routes, config)
+
+    expect(result).not.toContain('[Blog Post]')
+    expect(result).toContain('[Publicación]')
+  })
+
+  it('keeps non-localized routes when no default locale is configured', () => {
+    const routes: RouteMeta[] = [
+      makeRoute({ path: '/blog/post', title: 'Blog Post' }),
+      makeRoute({ path: '/es/blog/post', title: 'Publicación', locale: 'es' }),
+    ]
+    const config = makeConfig({ locales: ['es'] })
+
+    const result = generateLlmsText(routes, config)
+
+    expect(result).toContain('[Blog Post]')
+    expect(result).toContain('[Publicación]')
   })
 
   it('excludes draft routes when includeDrafts is false', () => {
