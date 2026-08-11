@@ -1,14 +1,23 @@
 import { createPlugin, type BoltdocsPlugin } from 'boltdocs'
 
 export interface SassPluginOptions {
-  /** Additional SASS options passed to Vite css.preprocessorOptions.scss */
   additionalData?: string
-  api?: 'modern' | 'legacy'
+  api?: 'modern' | 'modern-compiler' | 'legacy'
+  loadPaths?: string[]
   includePaths?: string[]
 }
 
 export function sassPlugin(options: SassPluginOptions = {}): BoltdocsPlugin {
-  const { additionalData, api = 'modern', includePaths } = options
+  const { additionalData, api = 'modern', loadPaths, includePaths } = options
+  const resolvedLoadPaths = loadPaths ?? includePaths
+  const pathOptions =
+    api === 'legacy'
+      ? resolvedLoadPaths
+        ? { includePaths: resolvedLoadPaths }
+        : {}
+      : resolvedLoadPaths
+        ? { loadPaths: resolvedLoadPaths }
+        : {}
 
   return createPlugin({
     name: 'plugin-sass',
@@ -18,11 +27,12 @@ export function sassPlugin(options: SassPluginOptions = {}): BoltdocsPlugin {
         scss: {
           api,
           ...(additionalData ? { additionalData } : {}),
-          ...(includePaths ? { includePaths } : {}),
+          ...pathOptions,
         },
         sass: {
           api,
           ...(additionalData ? { additionalData } : {}),
+          ...pathOptions,
         },
       },
     },

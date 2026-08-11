@@ -2,20 +2,16 @@ import { createPlugin, type BoltdocsPlugin } from 'boltdocs'
 import tailwindVite from '@tailwindcss/vite'
 
 export interface TailwindPluginOptions {
-  /** Optional custom configuration file or flags */
-  config?: string
+  optimize?: boolean | { minify?: boolean }
 }
 
 export function tailwindcssPlugin(
-  _options: TailwindPluginOptions = {},
+  options: TailwindPluginOptions = {},
 ): BoltdocsPlugin {
   return createPlugin({
     name: 'plugin-tailwindcss',
     version: '1.0.0',
-    vitePlugins: [tailwindVite()],
-    css: {
-      headStyles: [],
-    },
+    vitePlugins: [tailwindVite({ optimize: options.optimize })],
   })
 }
 

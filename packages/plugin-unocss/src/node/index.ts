@@ -12,7 +12,7 @@ export function unocssPlugin(
   return createPlugin({
     name: 'plugin-unocss',
     version: '1.0.0',
-    vitePlugins: [UnoCSS(options as any)],
+    vitePlugins: [UnoCSS(options)],
   })
 }
 

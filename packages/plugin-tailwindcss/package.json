@@ -16,7 +16,8 @@
   ],
   "scripts": {
     "build": "tsdown --config-loader unrun",
-    "dev": "tsdown --watch --config-loader unrun"
+    "dev": "tsdown --watch --config-loader unrun",
+    "test": "vitest run"
   },
   "dependencies": {
     "@tailwindcss/vite": "^4.0.0",
@@ -30,6 +31,8 @@
     "@types/node": "^22.0.0",
     "boltdocs": "workspace:*",
     "tsdown": "^0.21.7",
-    "typescript": "^5.9.3"
+    "typescript": "^5.9.3",
+    "tsdown-config": "workspace:*",
+    "vitest": "^3.0.0"
   }
 }

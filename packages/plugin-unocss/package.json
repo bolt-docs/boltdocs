@@ -16,10 +16,11 @@
   ],
   "scripts": {
     "build": "tsdown --config-loader unrun",
-    "dev": "tsdown --watch --config-loader unrun"
+    "dev": "tsdown --watch --config-loader unrun",
+    "test": "vitest run"
   },
   "dependencies": {
-    "unocss": "^0.65.0"
+    "unocss": "^66.7.5"
   },
   "peerDependencies": {
     "boltdocs": "workspace:*",
@@ -29,6 +30,8 @@
     "@types/node": "^22.0.0",
     "boltdocs": "workspace:*",
     "tsdown": "^0.21.7",
-    "typescript": "^5.9.3"
+    "typescript": "^5.9.3",
+    "tsdown-config": "workspace:*",
+    "vitest": "^3.0.0"
   }
 }
