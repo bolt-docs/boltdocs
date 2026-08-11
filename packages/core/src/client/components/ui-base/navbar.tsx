@@ -6,7 +6,7 @@ import NavbarPrimitive from '../primitives/navbar'
 import { ThemeToggle } from './theme-toggle'
 import { GithubStars } from './github-stars'
 import { Tabs } from './tabs'
-import { useLocation } from 'react-router-dom'
+import { useLocation } from '../../router'
 import type { BoltdocsSocialLink } from '../../../shared/types'
 import { Button } from '../primitives/button'
 import { Menu as MenuIcon, X } from './icons'
@@ -26,6 +26,7 @@ export function Navbar() {
   const { links, title, logo, logoProps, github, social, config } = useNavbar()
   const {
     routes,
+    allRoutes,
     currentRoute,
     isCollectionPage,
     currentVersion,
@@ -176,7 +177,11 @@ export function Navbar() {
 
       {isDocs && hasTabs && themeConfig?.tabs && (
         <div className="w-full border-b border-subtle bg-main">
-          <Tabs tabs={themeConfig.tabs} routes={routes || []} />
+          <Tabs
+            tabs={themeConfig.tabs}
+            routes={routes || []}
+            allRoutes={allRoutes || []}
+          />
         </div>
       )}
     </NavbarPrimitive.Root>

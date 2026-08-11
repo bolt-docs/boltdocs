@@ -1,4 +1,11 @@
-import { createContext, use, useMemo, useState, useEffect } from 'react'
+import {
+  createContext,
+  use,
+  useCallback,
+  useMemo,
+  useState,
+  useEffect,
+} from 'react'
 
 const PREFERENCES_KEY = 'boltdocs-user-preferences'
 
@@ -19,11 +26,25 @@ export interface BoltdocsState {
 const BOLTDOCS_CONTEXT_SYMBOL = Symbol.for('__BDOCS_BOLTDOCS_CONTEXT__')
 const BOLTDOCS_INSTANCE_SYMBOL = Symbol.for('__BDOCS_BOLTDOCS_INSTANCE__')
 
+function getSavedPrefs(): PersistedState {
+  if (typeof window === 'undefined') return {}
+  try {
+    const raw = window.localStorage.getItem(PREFERENCES_KEY)
+    return raw ? JSON.parse(raw) : {}
+  } catch {
+    return {}
+  }
+}
+
+const globalRegistry = globalThis as Record<PropertyKey, unknown>
+const existingContext = globalRegistry[BOLTDOCS_CONTEXT_SYMBOL] as
+  | React.Context<BoltdocsState | undefined>
+  | undefined
 const BoltdocsContext =
-  (globalThis as any)[BOLTDOCS_CONTEXT_SYMBOL] ||
-  ((globalThis as any)[BOLTDOCS_CONTEXT_SYMBOL] = createContext<
-    BoltdocsState | undefined
-  >(undefined))
+  existingContext || createContext<BoltdocsState | undefined>(undefined)
+if (!existingContext) {
+  Reflect.set(globalRegistry, BOLTDOCS_CONTEXT_SYMBOL, BoltdocsContext)
+}
 
 export function BoltdocsProvider({
   children,
@@ -34,18 +55,8 @@ export function BoltdocsProvider({
   initialLocale?: string
   initialVersion?: string
 }) {
-  // Helper to read from storage safely
-  const getSavedPrefs = (): PersistedState => {
-    if (typeof window === 'undefined') return {}
-    try {
-      const raw = window.localStorage.getItem(PREFERENCES_KEY)
-      return raw ? JSON.parse(raw) : {}
-    } catch {
-      return {}
-    }
-  }
-
-  // 1. Lazy state initializers prioritize passed URL state, falling back to LocalStorage preference immediately
+  // Lazy state initializers prioritize passed URL state, falling back to
+  // localStorage preference immediately.
   const [locale, setLocaleState] = useState(() => {
     if (initialLocale) return initialLocale
     const prefs = getSavedPrefs()
@@ -67,52 +78,63 @@ export function BoltdocsProvider({
     setHasHydrated(true)
   }, [])
 
-  const value = useMemo(() => {
-    const updateLocale = (l: string) => {
-      const newL = l || ''
-      setLocaleState(newL)
-      if (typeof window !== 'undefined') {
-        try {
-          const prefs = getSavedPrefs()
+  const updateLocale = useCallback((l: string) => {
+    const newL = l || ''
+    setLocaleState((current) => {
+      if (current === newL) return current
+      return newL
+    })
+    if (typeof window !== 'undefined') {
+      try {
+        const prefs = getSavedPrefs()
+        if (prefs.locale !== newL) {
           window.localStorage.setItem(
             PREFERENCES_KEY,
             JSON.stringify({ ...prefs, locale: newL }),
           )
-        } catch (e) {
-          // Safe fallback: ignore localStorage write failures (e.g., if storage is blocked/disabled)
         }
+      } catch {
+        // Safe fallback: ignore localStorage write failures.
       }
     }
+  }, [])
 
-    const updateVersion = (v: string) => {
-      const newV = v || ''
-      setVersionState(newV)
-      if (typeof window !== 'undefined') {
-        try {
-          const prefs = getSavedPrefs()
+  const updateVersion = useCallback((v: string) => {
+    const newV = v || ''
+    setVersionState((current) => {
+      if (current === newV) return current
+      return newV
+    })
+    if (typeof window !== 'undefined') {
+      try {
+        const prefs = getSavedPrefs()
+        if (prefs.version !== newV) {
           window.localStorage.setItem(
             PREFERENCES_KEY,
             JSON.stringify({ ...prefs, version: newV }),
           )
-        } catch (e) {
-          // Safe fallback: ignore localStorage write failures (e.g., if storage is blocked/disabled)
         }
+      } catch {
+        // Safe fallback: ignore localStorage write failures.
       }
     }
+  }, [])
 
-    return {
+  const value = useMemo(
+    () => ({
       currentLocale: locale,
       currentVersion: version,
       setLocale: updateLocale,
       setVersion: updateVersion,
       hasHydrated,
       setHasHydrated,
-    }
-  }, [locale, version, hasHydrated])
+    }),
+    [locale, version, hasHydrated, updateLocale, updateVersion],
+  )
 
   // Sync with global registry for dual-package fallback
   if (typeof globalThis !== 'undefined') {
-    ;(globalThis as any)[BOLTDOCS_INSTANCE_SYMBOL] = value
+    Reflect.set(globalThis, BOLTDOCS_INSTANCE_SYMBOL, value)
   }
 
   return (
@@ -126,12 +148,13 @@ export function useBoltdocsContext() {
   const context = use(BoltdocsContext)
 
   // Fallback to global registry if context is missing (dual-package hazard safety net)
-  if (
-    !context &&
-    typeof globalThis !== 'undefined' &&
-    (globalThis as any)[BOLTDOCS_INSTANCE_SYMBOL]
-  ) {
-    return (globalThis as any)[BOLTDOCS_INSTANCE_SYMBOL] as BoltdocsState
+  const globalInstance =
+    typeof globalThis !== 'undefined'
+      ? (globalThis as Record<PropertyKey, unknown>)[BOLTDOCS_INSTANCE_SYMBOL]
+      : undefined
+
+  if (!context && globalInstance) {
+    return globalInstance as BoltdocsState
   }
 
   if (!context) {

@@ -1,11 +1,20 @@
-import type { RouteRecord } from '@bdocs/ssg'
+import type { RouteRecord } from '../router'
 import type { ComponentRoute, BoltdocsConfig } from '../types'
 import {
   EagerMdxElement,
   resolveModuleLoader,
   type MdxModule,
 } from './mdx-elements'
-import { buildModuleMap, withBase } from './create-routes.utils'
+import {
+  buildModuleMap,
+  resolveModuleKey,
+  withBase,
+} from './create-routes.utils'
+import { buildUrl, parseUrlReference } from '../router'
+
+function FallbackWrapper({ children }: { children: React.ReactNode }) {
+  return <>{children}</>
+}
 
 function buildDocRoutes(options: {
   routesData: ComponentRoute[]
@@ -21,6 +30,12 @@ function buildDocRoutes(options: {
   const defaultVersionMetadata: ComponentRoute[] = []
   const defaultVersion = config.versions?.defaultVersion
   const docsBase = (config.base || '/docs').replace(/\/$/, '')
+  const urlConfig = {
+    base: config.base,
+    i18n: config.i18n,
+    versions: config.versions,
+    collections: [],
+  }
 
   if (defaultVersion) {
     routesData
@@ -31,13 +46,17 @@ function buildDocRoutes(options: {
         const subPath = p.startsWith(docsBase)
           ? p.substring(docsBase.length).replace(/^\//, '')
           : p.replace(/^\//, '')
-        const hasVersionPrefix =
-          subPath === defaultVersion || subPath.startsWith(`${defaultVersion}/`)
+        const hasVersionPrefix = route.version === defaultVersion
         if (!hasVersionPrefix) {
-          const explicitPath =
-            `${docsBase}/${defaultVersion}/${subPath}`
-              .replace(/\/+/g, '/')
-              .replace(/\/$/, '') || '/'
+          const explicitPath = buildUrl(
+            {
+              kind: 'doc',
+              path: `/${subPath}`,
+              locale: route.locale,
+              version: defaultVersion,
+            },
+            urlConfig,
+          )
           defaultVersionMetadata.push({
             ...route,
             path: explicitPath,
@@ -49,17 +68,20 @@ function buildDocRoutes(options: {
 
   const docRoutesData = routesData.filter((r) => !r.collection)
   const docMetadata = [...docRoutesData, ...defaultVersionMetadata]
-
   const moduleMap = buildModuleMap(mdxModules)
+  const routeMetadata = new Map<RouteRecord, ComponentRoute>()
 
-  const mdxModuleKeys = Object.keys(mdxModules)
-  const isLazy =
-    mdxModuleKeys.length > 0 &&
-    typeof mdxModules[mdxModuleKeys[0]] === 'function'
+  const getDocumentIdentity = (route: ComponentRoute) => {
+    const parsed = parseUrlReference(route.path, urlConfig, { kind: 'doc' })
+    return {
+      path: parsed.routePath,
+      version:
+        route.version || parsed.version || config.versions?.defaultVersion,
+    }
+  }
 
   const docRoutes: RouteRecord[] = docMetadata.map((route) => {
-    const normalizedFilePath = route.filePath.replace(/\\/g, '/')
-    const moduleKey = moduleMap.get(normalizedFilePath)
+    const moduleKey = resolveModuleKey(route.filePath, moduleMap)
     const moduleLoader = moduleKey ? mdxModules[moduleKey] : null
     const fullPath = withBase(route.path === '' ? '/' : route.path, config)
     const path =
@@ -71,6 +93,7 @@ function buildDocRoutes(options: {
 
     const routeRecord: RouteRecord = {
       path,
+      locale: route.locale,
       loader: async () => ({
         path,
         frontmatter: {
@@ -91,7 +114,9 @@ function buildDocRoutes(options: {
       getStaticPaths: () => [path],
     }
 
-    if (isLazy && moduleLoader) {
+    routeMetadata.set(routeRecord, route)
+
+    if (moduleLoader) {
       routeRecord.lazy = async () => {
         const mod: MdxModule = (await resolveModuleLoader(
           moduleLoader as unknown as MdxModule,
@@ -100,7 +125,7 @@ function buildDocRoutes(options: {
           Component: function LoadedMdxRoute() {
             return (
               <EagerMdxElement
-                key={moduleKey || path}
+                key={`${moduleKey || path}-${route.locale || config.i18n?.defaultLocale || 'en'}`}
                 moduleKey={moduleKey}
                 moduleLoader={mod as unknown as MdxModule}
                 route={route}
@@ -115,7 +140,7 @@ function buildDocRoutes(options: {
     } else {
       routeRecord.element = (
         <EagerMdxElement
-          key={moduleKey || path}
+          key={`${moduleKey || path}-${route.locale || config.i18n?.defaultLocale || 'en'}`}
           moduleKey={moduleKey}
           moduleLoader={(moduleLoader ?? {}) as unknown as MdxModule}
           route={route}
@@ -137,53 +162,33 @@ function buildDocRoutes(options: {
 
   const targetBasePaths: Array<{
     path: string
-    filter: (p?: string) => boolean
     locale?: string
     version?: string
   }> = []
 
-  targetBasePaths.push({
-    path: baseDocsPath,
-    filter: () => true,
-    locale: config.i18n?.defaultLocale,
-    version: config.versions?.defaultVersion,
-  })
+  const addTargetBase = (locale?: string, version?: string) => {
+    const fullPath = buildUrl(
+      { kind: 'doc', path: '/', locale, version },
+      urlConfig,
+    )
+    targetBasePaths.push({
+      path: fullPath,
+      locale,
+      version,
+    })
+  }
 
-  if (allVersions.length > 0) {
-    allVersions.forEach((v) => {
-      const fullP = baseDocsPath === '/' ? `/${v}` : `${baseDocsPath}/${v}`
-      targetBasePaths.push({
-        path: fullP,
-        filter: (rp) => !!rp && rp.startsWith(fullP.replace(/\/$/, '') + '/'),
-        locale: config.i18n?.defaultLocale,
-        version: v,
-      })
-    })
+  addTargetBase(config.i18n?.defaultLocale)
+  for (const version of allVersions) {
+    addTargetBase(config.i18n?.defaultLocale, version)
   }
-  if (locales.length > 0) {
-    locales.forEach((l) => {
-      const fullP = baseDocsPath === '/' ? `/${l}` : `${baseDocsPath}/${l}`
-      targetBasePaths.push({
-        path: fullP,
-        filter: (rp) => !!rp && rp.startsWith(fullP.replace(/\/$/, '') + '/'),
-        locale: l,
-        version: config.versions?.defaultVersion,
-      })
-    })
+  for (const locale of locales) {
+    addTargetBase(locale)
   }
-  if (allVersions.length > 0 && locales.length > 0) {
-    allVersions.forEach((v) => {
-      locales.forEach((l) => {
-        const fullP =
-          baseDocsPath === '/' ? `/${v}/${l}` : `${baseDocsPath}/${v}/${l}`
-        targetBasePaths.push({
-          path: fullP,
-          filter: (rp) => !!rp && rp.startsWith(fullP.replace(/\/$/, '') + '/'),
-          locale: l,
-          version: v,
-        })
-      })
-    })
+  for (const version of allVersions) {
+    for (const locale of locales) {
+      addTargetBase(locale, version)
+    }
   }
 
   const docPathRegistry = new Set(
@@ -196,7 +201,10 @@ function buildDocRoutes(options: {
       const p = rawPath.startsWith('/') ? rawPath : `/${rawPath}`
       externalPaths.add(p.replace(/\/$/, ''))
       if (config.i18n) {
-        Object.keys(config.i18n.locales).forEach((locale) => {
+        const locales = Array.isArray(config.i18n.locales)
+          ? config.i18n.locales
+          : Object.keys(config.i18n.locales)
+        locales.forEach((locale) => {
           externalPaths.add(
             `/${locale}${p === '/' ? '' : p}`.replace(/\/$/, ''),
           )
@@ -206,7 +214,7 @@ function buildDocRoutes(options: {
   }
 
   targetBasePaths.forEach(
-    ({ path: bPath, filter, locale: bLocale, version: bVersion }) => {
+    ({ path: bPath, locale: bLocale, version: bVersion }) => {
       if (bPath === '/') return
 
       const normalizedPath = bPath.replace(/\/$/, '')
@@ -219,24 +227,67 @@ function buildDocRoutes(options: {
           ? `${normalizedPath}/${defaultTab}`.replace(/\/+/g, '/')
           : null
 
-        let matchedRouteObj: RouteRecord | undefined =
-          defaultTabPath &&
-          docPathRegistry.has(defaultTabPath.replace(/\/$/, ''))
-            ? docRoutes.find(
-                (r) =>
-                  r.path &&
-                  r.path.replace(/\/$/, '') ===
-                    defaultTabPath.replace(/\/$/, ''),
+        // `docRoutes` use paths relative to the `/docs` parent while the
+        // metadata keeps absolute public paths. Compare fallback candidates
+        // against metadata so the docs root can reliably choose tab #1.
+        let matchedRouteObj: RouteRecord | undefined = defaultTabPath
+          ? docRoutes.find((r) => {
+              const meta = routeMetadata.get(r)
+              return (
+                meta?.path?.replace(/\/$/, '') ===
+                defaultTabPath.replace(/\/$/, '')
               )
-            : docRoutes.find(
-                (r) => r.path && filter(r.path) && r.path !== normalizedPath,
-              )
+            })
+          : undefined
+
+        if (!matchedRouteObj) {
+          matchedRouteObj = docRoutes.find((r) => {
+            const meta = routeMetadata.get(r)
+            const routePath = meta?.path?.replace(/\/$/, '')
+            return (
+              !!routePath &&
+              (routePath === normalizedPath ||
+                routePath.startsWith(`${normalizedPath}/`))
+            )
+          })
+        }
 
         if (!matchedRouteObj && docRoutes.length > 0) {
           matchedRouteObj = docRoutes[0]
         }
 
+        // Prefer the route whose source file is the translated counterpart of
+        // the matched route so that a locale base path (e.g. /docs/es) renders
+        // content in the correct language.
+        if (matchedRouteObj && bLocale) {
+          const localeBaseRoute = matchedRouteObj
+          const defaultLocale = config.i18n?.defaultLocale
+          const matchedMeta = routeMetadata.get(localeBaseRoute)
+          const matchedIdentity = matchedMeta
+            ? getDocumentIdentity(matchedMeta)
+            : undefined
+
+          const localeMatch = docRoutes.find((r) => {
+            const meta = routeMetadata.get(r)
+            if (!meta || !matchedIdentity) return false
+            const isTargetLocale =
+              meta.locale === bLocale ||
+              (bLocale === defaultLocale && !meta.locale)
+            if (!isTargetLocale) return false
+            const identity = getDocumentIdentity(meta)
+            return (
+              identity.path === matchedIdentity.path &&
+              identity.version === (bVersion || config.versions?.defaultVersion)
+            )
+          })
+
+          if (localeMatch) {
+            matchedRouteObj = localeMatch
+          }
+        }
+
         if (matchedRouteObj) {
+          const matchedRoute = matchedRouteObj
           const redirectPath =
             bPath === baseDocsPath
               ? '.'
@@ -245,47 +296,131 @@ function buildDocRoutes(options: {
                 : bPath
 
           const isBasePathFallback = redirectPath === '.'
-          docRoutes.push({
+
+          // Build metadata for this fallback up-front so the rendered element
+          // receives the correct locale/version and path context. Prefer the
+          // metadata that corresponds to the target locale.
+          const matchedMetaObj = (() => {
+            const matchedMeta = routeMetadata.get(matchedRoute)
+            if (!matchedMeta) return undefined
+
+            const matchedIdentity = getDocumentIdentity(matchedMeta)
+            const targetVersion = bVersion || config.versions?.defaultVersion
+            const targetLocale = bLocale || config.i18n?.defaultLocale
+
+            return (
+              docMetadata.find((m) => {
+                const identity = getDocumentIdentity(m)
+                const locale = m.locale || config.i18n?.defaultLocale
+                return (
+                  identity.path === matchedIdentity.path &&
+                  locale === targetLocale &&
+                  identity.version === targetVersion
+                )
+              }) || matchedMeta
+            )
+          })()
+
+          const fallbackMetaObj: ComponentRoute = matchedMetaObj
+            ? {
+                ...matchedMetaObj,
+                path: bPath,
+                filePath: matchedMetaObj.filePath,
+                locale: bLocale,
+                version: bVersion,
+                slugParts: [],
+                fallback: true,
+                seo: {
+                  ...matchedMetaObj.seo,
+                  canonical: config.siteUrl
+                    ? `${config.siteUrl.replace(/\/$/, '')}${withBase(bPath, config)}`
+                    : withBase(bPath, config),
+                },
+              }
+            : ({
+                path: bPath,
+                filePath: '',
+                title: redirectPath,
+                componentPath: '',
+                headings: [],
+                locale: bLocale,
+                version: bVersion,
+                fallback: true,
+              } as unknown as ComponentRoute)
+
+          // Never share the matched route's element/lazy directly — that causes
+          // React to reuse the same component instance and can pin the wrong
+          // locale content. Build a fresh lazy wrapper per fallback route so
+          // each base-path (locale/version) entry gets its own route record.
+          const fallbackRoute: RouteRecord = {
             ...(isBasePathFallback
               ? { index: true as const }
               : { path: redirectPath }),
-            element: matchedRouteObj.element,
-            lazy: matchedRouteObj.lazy,
-            loader: matchedRouteObj.loader,
+            locale: bLocale,
+            loader: matchedRoute.loader,
             getStaticPaths: () => [],
-          })
-
-          const matchedMetaObj = docMetadata.find((m) => {
-            const fullPath = withBase(m.path === '' ? '/' : m.path, config)
-            const p =
-              fullPath === baseDocsPath
-                ? '.'
-                : fullPath.startsWith(baseDocsPath + '/')
-                  ? fullPath.slice(baseDocsPath.length + 1)
-                  : fullPath
-            return p === matchedRouteObj.path
-          })
-
-          if (matchedMetaObj) {
-            const canonicalPath = withBase(matchedMetaObj.path, config)
-            const canonicalUrl = config.siteUrl
-              ? `${config.siteUrl.replace(/\/$/, '')}${canonicalPath}`
-              : canonicalPath
-
-            docMetadata.push({
-              ...matchedMetaObj,
-              path: bPath,
-              filePath: matchedMetaObj.filePath,
-              locale: bLocale,
-              version: bVersion,
-              slugParts: [],
-              fallback: true,
-              seo: {
-                ...matchedMetaObj.seo,
-                canonical: canonicalUrl,
-              },
-            })
           }
+
+          const resolveFallbackComponent = async () => {
+            const moduleKey = resolveModuleKey(
+              fallbackMetaObj.filePath,
+              moduleMap,
+            )
+            const moduleLoader = moduleKey ? mdxModules[moduleKey] : null
+            const localeKey = bLocale || config.i18n?.defaultLocale || 'en'
+            const key = `${moduleKey || bPath}-${localeKey}`
+
+            if (!moduleLoader) return null
+
+            const module = await resolveModuleLoader(
+              moduleLoader as unknown as MdxModule,
+            )
+            return (
+              <EagerMdxElement
+                key={key}
+                moduleKey={moduleKey}
+                moduleLoader={module}
+                route={fallbackMetaObj}
+                components={
+                  (components ?? {}) as Record<string, React.ComponentType>
+                }
+              />
+            )
+          }
+
+          if (matchedRoute.lazy) {
+            fallbackRoute.lazy = async () => {
+              const fallbackComponent = await resolveFallbackComponent()
+              return {
+                Component: () => (
+                  <FallbackWrapper>{fallbackComponent}</FallbackWrapper>
+                ),
+              }
+            }
+          } else if (matchedRoute.element) {
+            fallbackRoute.element = matchedRoute.element
+          }
+
+          fallbackRoute.loader = async () => ({
+            path: redirectPath,
+            frontmatter: {
+              title: fallbackMetaObj.title,
+              description: fallbackMetaObj.description || '',
+              ...(fallbackMetaObj.frontmatter || {}),
+            },
+            seo: fallbackMetaObj.seo,
+            headings: fallbackMetaObj.headings || [],
+            filePath: fallbackMetaObj.filePath,
+            locale: fallbackMetaObj.locale,
+            version: fallbackMetaObj.version,
+            group: fallbackMetaObj.group,
+            groupTitle: fallbackMetaObj.groupTitle,
+            date: fallbackMetaObj.date,
+            lastUpdated: fallbackMetaObj.lastUpdated,
+          })
+
+          docRoutes.push(fallbackRoute)
+          docMetadata.push(fallbackMetaObj)
         }
       }
     },

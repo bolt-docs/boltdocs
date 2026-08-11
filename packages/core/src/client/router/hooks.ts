@@ -1,29 +1,36 @@
-import { useContext } from 'react'
+import { use } from 'react'
 import {
   LocationContext,
   NavigateContext,
+  PrefetchContext,
   RouteDataContext,
   MatchesContext,
   type LocationState,
   type NavigateFunction,
 } from './context'
+import type { RouteMatch } from './types'
 
 export function useLocation(): LocationState {
-  return useContext(LocationContext)
+  return use(LocationContext)
 }
 
 export function useNavigate(): NavigateFunction {
-  return useContext(NavigateContext)
+  return use(NavigateContext)
 }
 
-export function useRouteData<T = any>(): T {
-  return useContext(RouteDataContext) as T
+export function usePrefetch(): (to: string) => Promise<void> {
+  return use(PrefetchContext)
 }
 
-export function useLoaderData<T = any>(): T {
-  return useContext(RouteDataContext) as T
+export function useRouteData<T = Record<string, unknown>>(): T {
+  return use(RouteDataContext) as T
 }
 
-export function useMatches(): any[] {
-  return useContext(MatchesContext)
+/** Alias for useRouteData — parity with react-router-dom's useLoaderData */
+export function useLoaderData<T = Record<string, unknown>>(): T {
+  return use(RouteDataContext) as T
+}
+
+export function useMatches(): RouteMatch[] {
+  return use(MatchesContext)
 }

@@ -13,11 +13,16 @@
 import type { ComponentType, ReactNode } from 'react'
 import * as ReactHelmetAsync from 'react-helmet-async'
 
+export interface HelmetProps {
+  children?: ReactNode
+  htmlAttributes?: Record<string, string>
+}
+
 type HelmetModule = {
-  Helmet?: ComponentType<{ children?: ReactNode }>
+  Helmet?: ComponentType<HelmetProps>
   HelmetProvider?: ComponentType<{ children?: ReactNode }>
   default?: {
-    Helmet?: ComponentType<{ children?: ReactNode }>
+    Helmet?: ComponentType<HelmetProps>
     HelmetProvider?: ComponentType<{ children?: ReactNode }>
   }
 }
@@ -28,7 +33,7 @@ const mod = ReactHelmetAsync as unknown as HelmetModule
  * The `<Helmet>` component, resolved across CJS/ESM module shapes.
  * Falls back to a transparent fragment wrapper if the module cannot be resolved.
  */
-export const Helmet: ComponentType<{ children?: ReactNode }> =
+export const Helmet: ComponentType<HelmetProps> =
   mod.Helmet || mod.default?.Helmet || (({ children }) => <>{children}</>)
 
 /**
@@ -54,9 +59,11 @@ if (
   typeof globalThis !== 'undefined' &&
   (globalThis as any).__BOLTDOCS_SSG_RENDERING__
 ) {
-  const hp = HelmetProvider as any
-  if (hp && typeof hp === 'function' && hp.canUseDOM) {
-    hp.canUseDOM = false
+  if (
+    typeof HelmetProvider === 'function' &&
+    (HelmetProvider as { canUseDOM?: boolean }).canUseDOM
+  ) {
+    ;(HelmetProvider as { canUseDOM?: boolean }).canUseDOM = false
   }
 }
 

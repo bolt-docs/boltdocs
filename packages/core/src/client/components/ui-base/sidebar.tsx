@@ -8,6 +8,7 @@ import { ThemeSwitcher } from './theme-toggle'
 import { useNavbar } from '../../hooks/use-navbar'
 import { useUI } from '../../app/ui-context'
 import { Button } from '../primitives/button'
+import { resolvePublicAssetUrl } from '../../utils/path'
 
 interface SidebarProps {
   routes: ComponentRoute[]
@@ -20,7 +21,7 @@ function SidebarMain({ routes, config }: SidebarProps) {
 
   const SidebarLogo = logo ? (
     <img
-      src={logo}
+      src={resolvePublicAssetUrl(logo, config.base)}
       alt={logoProps?.alt || title}
       width={24}
       height={24}

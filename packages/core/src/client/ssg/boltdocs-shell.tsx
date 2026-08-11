@@ -11,6 +11,7 @@ import type { BoltdocsConfig } from '../../shared/types'
 import type { ComponentRoute } from '../types'
 import { UIProvider } from '../app/ui-context'
 import { Head } from '../app/head'
+import { Helmet } from '../app/helmet-compat'
 import { InternalErrorBoundary as ErrorBoundary } from '../components/internal/error-boundary'
 import { CollectionsProvider } from '../collections/collections-context'
 import type { CollectionsData } from '../collections/collections-context'
@@ -23,16 +24,18 @@ import { normalizePath } from '../utils/path'
  */
 function I18nUpdater({ config }: { config: BoltdocsConfig }) {
   const { currentLocale } = useBoltdocsContext()
+  const locale = currentLocale || config.i18n?.defaultLocale || 'en'
+  const localeConfig = config.i18n?.localeConfigs?.[locale]
+  const htmlLang = localeConfig?.htmlLang || locale
+  const direction = localeConfig?.direction || 'ltr'
 
   useEffect(() => {
     if (!config.i18n || typeof document === 'undefined') return
-    const locale = currentLocale || config.i18n.defaultLocale
-    const localeConfig = config.i18n.localeConfigs?.[locale]
-    document.documentElement.lang = localeConfig?.htmlLang || locale || 'en'
-    document.documentElement.dir = localeConfig?.direction || 'ltr'
-  }, [currentLocale, config.i18n])
+    document.documentElement.lang = htmlLang
+    document.documentElement.dir = direction
+  }, [config.i18n, direction, htmlLang])
 
-  return null
+  return <Helmet htmlAttributes={{ lang: htmlLang, dir: direction }} />
 }
 
 // synchronizes store with current URL pathname
@@ -44,7 +47,8 @@ function StoreSync({
   routeMap: Map<string, ComponentRoute>
 }) {
   const location = useLocation()
-  const { setLocale, setVersion } = useBoltdocsContext()
+  const { currentLocale, currentVersion, setLocale, setVersion } =
+    useBoltdocsContext()
 
   useEffect(() => {
     const currentPath = normalizePath(location.pathname)
@@ -53,15 +57,30 @@ function StoreSync({
     if (matchedRoute) {
       if (config.i18n) {
         const targetLocale = matchedRoute.locale || config.i18n.defaultLocale
-        setLocale(targetLocale)
+        if (targetLocale !== currentLocale) setLocale(targetLocale)
       }
       if (config.versions) {
         const targetVersion =
           matchedRoute.version || config.versions.defaultVersion
-        setVersion(targetVersion)
+        if (targetVersion !== currentVersion) setVersion(targetVersion)
       }
+    } else if (
+      config.versions &&
+      currentVersion !== config.versions.defaultVersion
+    ) {
+      // Reset an invalid persisted preference only once when entering an
+      // unmatched route; avoid a redundant localStorage write on every render.
+      setVersion(config.versions.defaultVersion)
     }
-  }, [location.pathname, config, routeMap, setLocale, setVersion])
+  }, [
+    location.pathname,
+    config,
+    routeMap,
+    currentLocale,
+    currentVersion,
+    setLocale,
+    setVersion,
+  ])
 
   return null
 }

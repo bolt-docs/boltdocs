@@ -4,6 +4,28 @@ import { Helmet } from './helmet-compat'
 import { useConfig } from './config-context'
 import { getTranslated } from '../utils/i18n'
 import { useRoutes } from '../hooks/use-routes'
+import { resolvePublicAssetUrl } from '../utils/path'
+import { StructuredData } from '../components/structured-data'
+import type { StructuredData as StructuredDataValue } from '../../shared/types'
+
+function stringifyMetaValue(value: unknown): string {
+  if (value == null) return ''
+  if (typeof value === 'string') return value
+  if (typeof value === 'number' || typeof value === 'boolean')
+    return String(value)
+  if (Array.isArray(value)) return value.map(stringifyMetaValue).join(', ')
+  if (typeof value === 'object') {
+    const record = value as Record<string, unknown>
+    const namedValue = record.name ?? record.value ?? record.url
+    if (namedValue !== undefined) return stringifyMetaValue(namedValue)
+    try {
+      return JSON.stringify(value)
+    } catch {
+      return ''
+    }
+  }
+  return String(value)
+}
 
 interface HeadProps {
   siteTitle?: string | Record<string, string>
@@ -29,6 +51,7 @@ export function Head({ siteTitle, siteDescription, routes }: HeadProps) {
         ? location.pathname.slice(0, -1)
         : location.pathname
     return routes?.find?.((r) => {
+      if (!r?.path) return false
       const routePath =
         r.path.endsWith('/') && r.path.length > 1 ? r.path.slice(0, -1) : r.path
       return routePath === normalizedPath
@@ -48,40 +71,57 @@ export function Head({ siteTitle, siteDescription, routes }: HeadProps) {
     : translatedSiteTitle
 
   const seo = route?.seo || {}
+  const structuredData = [
+    ...(Array.isArray(config?.seo?.structuredData)
+      ? config.seo.structuredData
+      : config?.seo?.structuredData
+        ? [config.seo.structuredData]
+        : []),
+    ...(Array.isArray(seo.structuredData)
+      ? seo.structuredData
+      : seo.structuredData
+        ? [seo.structuredData]
+        : []),
+  ] as StructuredDataValue[]
 
+  const canonicalValue = stringifyMetaValue(seo.canonical)
   const canonicalUrl =
-    seo.canonical ||
+    canonicalValue ||
     (config?.siteUrl && route?.path
       ? `${config.siteUrl.replace(/\/$/, '')}${route.path}`
       : undefined)
 
   const ogUrl =
-    seo['og:url'] ||
+    stringifyMetaValue(seo['og:url']) ||
     canonicalUrl ||
     (typeof window !== 'undefined' ? window.location.href : undefined)
 
-  // Merge custom global metatags
-  const globalMetatags = config?.seo?.metatags || {}
-
   // Calculate specific ones
   const defaultOgImage = config?.seo?.thumbnails?.background
-  const rawOgImage = (seo['og:image'] || route?.coverImage || defaultOgImage) as
-    | string
-    | undefined
+  const rawOgImage =
+    stringifyMetaValue(seo['og:image']) || route?.coverImage || defaultOgImage
 
   let ogImage = rawOgImage
-  if (ogImage && config?.siteUrl && !/^https?:\/\/|^\/\//.test(ogImage)) {
-    const base = config.siteUrl.endsWith('/')
-      ? config.siteUrl.slice(0, -1)
-      : config.siteUrl
-    const path = ogImage.startsWith('/') ? ogImage : `/${ogImage}`
-    ogImage = `${base}${path}`
+  if (ogImage && !/^https?:\/\/|^\/\//.test(ogImage)) {
+    const assetPath = resolvePublicAssetUrl(
+      ogImage.startsWith('/') ? ogImage : `/${ogImage}`,
+      config.base,
+    )
+    if (config?.siteUrl) {
+      const siteBase = config.siteUrl.replace(/\/$/, '')
+      ogImage = `${siteBase}${assetPath}`
+    } else {
+      ogImage = assetPath
+    }
   }
 
   return (
     <Helmet>
       <title>{finalTitle}</title>
       <meta name="description" content={pageDescription} />
+      {structuredData.map((data) => (
+        <StructuredData key={JSON.stringify(data)} data={data} />
+      ))}
 
       {/* Default OG Tags */}
       <meta property="og:title" content={finalTitle} />
@@ -101,55 +141,6 @@ export function Head({ siteTitle, siteDescription, routes }: HeadProps) {
       {ogImage && <meta name="twitter:image" content={ogImage} />}
       {ogImage && <meta property="og:image" content={ogImage} />}
 
-      {/* Generator */}
-      <meta name="generator" content="Boltdocs" />
-
-      {/* Search engine verification tags */}
-      {config?.seo?.verification?.google && (
-        <meta
-          name="google-site-verification"
-          content={config.seo.verification.google}
-        />
-      )}
-      {config?.seo?.verification?.bing && (
-        <meta name="msvalidate.01" content={config.seo.verification.bing} />
-      )}
-      {config?.seo?.verification?.yandex && (
-        <meta
-          name="yandex-verification"
-          content={config.seo.verification.yandex}
-        />
-      )}
-      {config?.seo?.verification?.pinterest && (
-        <meta
-          name="p:domain_verify"
-          content={config.seo.verification.pinterest}
-        />
-      )}
-      {config?.seo?.verification?.facebook && (
-        <meta
-          name="facebook-domain-verification"
-          content={config.seo.verification.facebook}
-        />
-      )}
-
-      {/* User-defined global metatags */}
-      {Object.entries(globalMetatags).map(([key, value]) => {
-        const isProperty =
-          key.startsWith('og:') ||
-          key.startsWith('music:') ||
-          key.startsWith('video:') ||
-          key.startsWith('article:') ||
-          key.startsWith('book:') ||
-          key.startsWith('profile:')
-        const strVal: string = String(value ?? '')
-        return isProperty ? (
-          <meta key={key} property={key} content={strVal} />
-        ) : (
-          <meta key={key} name={key} content={strVal} />
-        )
-      })}
-
       {/* Page granular SEO tags (override global) */}
       {Object.entries(seo).map(([key, value]) => {
         if (key === 'noindex' && value === true)
@@ -159,14 +150,15 @@ export function Head({ siteTitle, siteDescription, routes }: HeadProps) {
             <meta
               key="robots"
               name="robots"
-              content={String(value) as string}
+              content={stringifyMetaValue(value)}
             />
           )
         if (
           key === 'canonical' ||
           key === 'og:url' ||
           key === 'og:image' ||
-          key === 'twitter:image'
+          key === 'twitter:image' ||
+          key === 'structuredData'
         )
           return null // Handled explicitly above
 
@@ -177,7 +169,7 @@ export function Head({ siteTitle, siteDescription, routes }: HeadProps) {
           key.startsWith('article:') ||
           key.startsWith('book:') ||
           key.startsWith('profile:')
-        const strVal: string = String(value ?? '')
+        const strVal = stringifyMetaValue(value)
         return isProperty ? (
           <meta key={key} property={key} content={strVal} />
         ) : (

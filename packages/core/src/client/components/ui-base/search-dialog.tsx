@@ -38,8 +38,16 @@ function Highlight({ text, query }: { text: string; query: string }) {
 }
 
 export function SearchDialog({ routes }: { routes: ComponentRoute[] }) {
-  const { isOpen, setIsOpen, query, setQuery, list, handleSelect } =
-    useSearch(routes)
+  const {
+    isOpen,
+    setIsOpen,
+    query,
+    setQuery,
+    list,
+    searchDataLoading,
+    searchDataError,
+    handleSelect,
+  } = useSearch(routes)
 
   return (
     <>
@@ -73,10 +81,7 @@ export function SearchDialog({ routes }: { routes: ComponentRoute[] }) {
               aria-label="Search documentation"
               className="flex flex-col min-h-0 h-[450px]"
             >
-              <SearchDialogPrimitive.Autocomplete
-                onSelectionChange={handleSelect}
-                className="flex flex-col min-h-0"
-              >
+              <SearchDialogPrimitive.Autocomplete className="flex flex-col min-h-0">
                 <SearchDialogPrimitive.Input
                   value={query}
                   onChange={setQuery}
@@ -96,29 +101,45 @@ export function SearchDialog({ routes }: { routes: ComponentRoute[] }) {
                   )}
                 </SearchDialogPrimitive.Input>
 
-                <SearchDialogPrimitive.List items={list as SearchResult[]}>
-                  {(item: SearchResult) => (
-                    <SearchDialogPrimitive.Item
-                      key={item.id}
-                      onPress={() => handleSelect(item.id)}
-                      textValue={item.title}
-                      className="flex items-center gap-3 px-4 py-2 rounded-xl group dark:hover:bg-primary-300/40 hover:bg-primary-200/50 transition-colors duration-100"
-                    >
-                      <SearchDialogPrimitive.Item.Icon
-                        isHeading={item.isHeading}
-                        className="text-muted group-hover:text-primary-500 group-focus:text-primary-500"
-                      />
-                      <div className="flex flex-col justify-center min-w-0">
-                        <SearchDialogPrimitive.Item.Title className="text-sm font-medium text-body truncate dark:group-hover:text-primary-100">
-                          <Highlight text={item.title} query={query} />
-                        </SearchDialogPrimitive.Item.Title>
-                        <SearchDialogPrimitive.Item.Bio className="text-xs text-muted truncate">
-                          <Highlight text={item.bio} query={query} />
-                        </SearchDialogPrimitive.Item.Bio>
-                      </div>
-                    </SearchDialogPrimitive.Item>
-                  )}
-                </SearchDialogPrimitive.List>
+                {searchDataLoading ? (
+                  <div className="flex flex-1 items-center justify-center px-4 py-8 text-sm text-muted">
+                    Loading search index…
+                  </div>
+                ) : searchDataError ? (
+                  <div className="flex flex-1 items-center justify-center px-4 py-8 text-center text-sm text-muted">
+                    Search is temporarily unavailable.
+                  </div>
+                ) : query && list.length === 0 ? (
+                  <div className="flex flex-1 items-center justify-center px-4 py-8 text-sm text-muted">
+                    No results found.
+                  </div>
+                ) : (
+                  <SearchDialogPrimitive.List
+                    items={list as SearchResult[]}
+                    onAction={handleSelect}
+                  >
+                    {(item: SearchResult) => (
+                      <SearchDialogPrimitive.Item
+                        key={item.id}
+                        textValue={item.title}
+                        className="flex items-center gap-3 px-4 py-2 rounded-xl group dark:hover:bg-primary-300/40 hover:bg-primary-200/50 transition-colors duration-100"
+                      >
+                        <SearchDialogPrimitive.Item.Icon
+                          isHeading={item.isHeading}
+                          className="text-muted group-hover:text-primary-500 group-focus:text-primary-500"
+                        />
+                        <div className="flex flex-col justify-center min-w-0">
+                          <SearchDialogPrimitive.Item.Title className="text-sm font-medium text-body truncate dark:group-hover:text-primary-100">
+                            <Highlight text={item.title} query={query} />
+                          </SearchDialogPrimitive.Item.Title>
+                          <SearchDialogPrimitive.Item.Bio className="text-xs text-muted truncate">
+                            <Highlight text={item.bio} query={query} />
+                          </SearchDialogPrimitive.Item.Bio>
+                        </div>
+                      </SearchDialogPrimitive.Item>
+                    )}
+                  </SearchDialogPrimitive.List>
+                )}
               </SearchDialogPrimitive.Autocomplete>
             </SearchDialogPrimitive.Dialog>
           </SearchDialogPrimitive.Content>

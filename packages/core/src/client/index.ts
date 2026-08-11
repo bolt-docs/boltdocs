@@ -41,7 +41,30 @@ export type {
 
 // Utilities
 export { cn } from './utils/cn'
+export { resolvePublicAssetUrl } from './utils/path'
 export { getTranslated } from './utils/i18n'
+export {
+  StructuredData,
+  defineStructuredData,
+  createArticleStructuredData,
+  createBreadcrumbStructuredData,
+  createStructuredData,
+  createWebSiteStructuredData,
+} from './components/structured-data'
+export type {
+  StructuredDataProps,
+  ArticleStructuredDataOptions,
+  BreadcrumbStructuredDataItem,
+  StructuredDataFactoryOptions,
+  WebSiteStructuredDataOptions,
+} from './components/structured-data'
+export { startViewTransition, useViewTransition } from './view-transitions'
+export type {
+  ViewTransitionHandle,
+  ViewTransitionOptions,
+  ViewTransitionRunner,
+  ViewTransitionUpdate,
+} from './view-transitions'
 export { reactToText } from './utils/react-to-text'
 export { copyToClipboard } from './utils/copy-clipboard'
 export { getStarsRepo } from './utils/github'

@@ -63,8 +63,8 @@ export function useNavbar() {
       }
 
       // Process nested items recursively
-      const processItems = (items?: any[]): NavbarLink[] => {
-        if (!items || items.length === 0) return undefined as any
+      const processItems = (items?: any[]): NavbarLink[] | undefined => {
+        if (!items || items.length === 0) return undefined
         return items.map((subItem: any) => {
           const subHref = subItem.href || subItem.to || subItem.link || ''
           return {
@@ -97,20 +97,33 @@ export function useNavbar() {
   const logo = themeConfig.logo
   // Use resolvedTheme so 'system' correctly maps to 'dark' or 'light'
   // based on the OS preference, instead of always falling back to 'light'.
+  type LogoObject = {
+    dark: string
+    light: string
+    alt?: string
+    width?: number
+    height?: number
+  }
+
   const logoSrc = !logo
     ? null
     : typeof logo === 'string'
       ? logo
       : resolvedTheme === 'dark'
-        ? (logo as any).dark
-        : (logo as any).light
+        ? (logo as LogoObject).dark
+        : (logo as LogoObject).light
 
   const logoProps = {
     alt:
-      (logo && typeof logo === 'object' ? (logo as any).alt : undefined) ||
-      title,
-    width: logo && typeof logo === 'object' ? (logo as any).width : undefined,
-    height: logo && typeof logo === 'object' ? (logo as any).height : undefined,
+      (logo && typeof logo === 'object'
+        ? (logo as LogoObject).alt
+        : undefined) || title,
+    width:
+      logo && typeof logo === 'object' ? (logo as LogoObject).width : undefined,
+    height:
+      logo && typeof logo === 'object'
+        ? (logo as LogoObject).height
+        : undefined,
   }
 
   const github = githubRepo ? `https://github.com/${githubRepo}` : null

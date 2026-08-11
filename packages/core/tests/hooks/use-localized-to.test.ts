@@ -1,138 +1,167 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { renderHook } from '@testing-library/react'
 import { useLocalizedTo } from '../../src/client/hooks/use-localized-to'
 import { useConfig } from '../../src/client/app/config-context'
-import { useRoutes } from '../../src/client/hooks/use-routes'
+import { useRoutesContext } from '../../src/client/app/routes-context'
+import { useBoltdocsContext } from '../../src/client/store/boltdocs-context'
 
-// Mock the dependencies of the hook
 vi.mock('../../src/client/app/config-context')
-vi.mock('../../src/client/hooks/use-routes')
+vi.mock('../../src/client/app/routes-context')
+vi.mock('../../src/client/store/boltdocs-context')
+
+type TestRoute = {
+  path: string
+  version?: string
+  collection?: string
+}
+
+function setContext(
+  routes: TestRoute[] = [],
+  currentLocale?: string,
+  currentVersion?: string,
+) {
+  const byPath = new Map(
+    routes.map((route) => [route.path.replace(/\/$/, '') || '/', route]),
+  )
+  const hintsByPath = new Map(
+    routes.map((route) => [
+      route.path.replace(/\/$/, '') || '/',
+      {
+        path: route.path,
+        kind: route.collection ? ('collection' as const) : undefined,
+        collection: route.collection,
+      },
+    ]),
+  )
+
+  vi.mocked(useRoutesContext).mockReturnValue({
+    routes: routes as never,
+    index: {
+      byPath,
+      hintsByPath,
+      collectionNames: routes
+        .map((route) => route.collection)
+        .filter((collection): collection is string => Boolean(collection)),
+    },
+  })
+  vi.mocked(useBoltdocsContext).mockReturnValue({
+    currentLocale: currentLocale as never,
+    currentVersion: currentVersion as never,
+    hasHydrated: true,
+    setLocale: vi.fn(),
+    setVersion: vi.fn(),
+    setHasHydrated: vi.fn(),
+  })
+}
+
+function localized(to: string) {
+  return renderHook(() => useLocalizedTo(to)).result.current
+}
 
 describe('useLocalizedTo', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    vi.mocked(useConfig).mockReturnValue({ base: '/docs' } as never)
+    setContext()
   })
 
-  it('should return external links as-is', () => {
-    ;(useConfig as any).mockReturnValue({ base: '/docs' })
-    ;(useRoutes as any).mockReturnValue({ allRoutes: [] })
-
-    expect(useLocalizedTo('https://google.com')).toBe('https://google.com')
-    expect(useLocalizedTo('//google.com')).toBe('//google.com')
-    expect(useLocalizedTo('#anchor')).toBe('#anchor')
+  it('returns external links and anchors as-is', () => {
+    expect(localized('https://google.com')).toBe('https://google.com')
+    expect(localized('//google.com')).toBe('//google.com')
+    expect(localized('#anchor')).toBe('#anchor')
   })
 
-  it('should return site: links without the prefix', () => {
-    ;(useConfig as any).mockReturnValue({ base: '/docs' })
-    ;(useRoutes as any).mockReturnValue({ allRoutes: [] })
-
-    expect(useLocalizedTo('site:/roadmap')).toBe('/roadmap')
+  it('returns site links without the protocol prefix', () => {
+    expect(localized('site:/roadmap')).toBe('/roadmap')
   })
 
-  it('should prefix internal links with base path by default', () => {
-    ;(useConfig as any).mockReturnValue({ base: '/docs' })
-    ;(useRoutes as any).mockReturnValue({ allRoutes: [] })
-
-    expect(useLocalizedTo('/guides/intro')).toBe('/docs/guides/intro')
+  it('prefixes unknown internal links with the base path', () => {
+    expect(localized('/guides/intro')).toBe('/docs/guides/intro')
   })
 
-  it('should NOT prefix if the path matches a known route (external page fix)', () => {
-    ;(useConfig as any).mockReturnValue({ base: '/docs' })
-    ;(useRoutes as any).mockReturnValue({
-      allRoutes: [{ path: '/roadmap' }, { path: '/docs/guides/intro' }],
-    })
+  it('does not prefix known external routes', () => {
+    setContext([{ path: '/roadmap' }, { path: '/docs/guides/intro' }])
 
-    // 1. Should NOT prefix /roadmap because it's in allRoutes (external page)
-    expect(useLocalizedTo('/roadmap')).toBe('/roadmap')
-
-    // 2. Should still correctly handle doc links that are already prefixed
-    expect(useLocalizedTo('/docs/guides/intro')).toBe('/docs/guides/intro')
-
-    // 3. Should STILL prefix unknown links (assuming they are doc paths without base)
-    expect(useLocalizedTo('/unknown')).toBe('/docs/unknown')
+    expect(localized('/roadmap')).toBe('/roadmap')
+    expect(localized('/docs/guides/intro')).toBe('/docs/guides/intro')
+    expect(localized('/unknown')).toBe('/docs/unknown')
   })
 
-  it('should handle trailing slashes in route matching correctly', () => {
-    ;(useConfig as any).mockReturnValue({ base: '/docs' })
-    ;(useRoutes as any).mockReturnValue({
-      allRoutes: [{ path: '/roadmap/' }],
-    })
+  it('preserves trailing slashes for known routes', () => {
+    setContext([{ path: '/roadmap/' }])
 
-    // Both should match /roadmap/ and thus NOT be prefixed
-    expect(useLocalizedTo('/roadmap')).toBe('/roadmap')
-    expect(useLocalizedTo('/roadmap/')).toBe('/roadmap/')
+    expect(localized('/roadmap')).toBe('/roadmap')
+    expect(localized('/roadmap/')).toBe('/roadmap/')
   })
 
-  it('should handle query parameters and hashes in route matching correctly', () => {
-    ;(useConfig as any).mockReturnValue({ base: '/docs' })
-    ;(useRoutes as any).mockReturnValue({
-      allRoutes: [{ path: '/roadmap' }],
-    })
+  it('preserves query parameters and hashes for known routes', () => {
+    setContext([{ path: '/roadmap' }])
 
-    // Should ignore query/hash when checking for known routes, then return original
-    expect(useLocalizedTo('/roadmap?s=1')).toBe('/roadmap?s=1')
-    expect(useLocalizedTo('/roadmap#hash')).toBe('/roadmap#hash')
+    expect(localized('/roadmap?s=1')).toBe('/roadmap?s=1')
+    expect(localized('/roadmap#hash')).toBe('/roadmap#hash')
   })
 
-  it('should handle i18n and versions if NOT a known route', () => {
-    ;(useConfig as any).mockReturnValue({
+  it('handles i18n and versions for unknown documentation links', () => {
+    vi.mocked(useConfig).mockReturnValue({
       base: '/docs',
       i18n: { defaultLocale: 'en', locales: { en: 'EN', es: 'ES' } },
       versions: {
         defaultVersion: 'v1',
         versions: [{ path: 'v1', label: 'v1' }],
       },
-    })
-    ;(useRoutes as any).mockReturnValue({
-      currentLocale: 'es',
-      currentVersion: 'v1',
-      allRoutes: [],
-    })
+    } as never)
+    setContext([], 'es', 'v1')
 
-    expect(useLocalizedTo('/guides/intro')).toBe('/docs/v1/es/guides/intro')
+    expect(localized('/guides/intro')).toBe('/docs/v1/es/guides/intro')
   })
 
-  it('should NOT add locale prefix when currentLocale is the default locale', () => {
-    ;(useConfig as any).mockReturnValue({
-      base: '/docs',
-      i18n: { defaultLocale: 'en', locales: { en: 'EN', es: 'ES' } },
-    })
-    ;(useRoutes as any).mockReturnValue({
-      currentLocale: 'en',
-      currentVersion: undefined,
-      allRoutes: [],
-    })
+  it('ignores a stale version preference when versioning is disabled', () => {
+    vi.mocked(useConfig).mockReturnValue({ base: '/docs' } as never)
+    setContext([], 'en', 'next')
 
-    expect(useLocalizedTo('/docs/guides')).toBe('/docs/guides')
-    expect(useLocalizedTo('/guides/intro')).toBe('/docs/guides/intro')
+    expect(localized('/guides/getting-started/file-routing')).toBe(
+      '/docs/guides/getting-started/file-routing',
+    )
   })
 
-  it('should NOT add locale prefix for site: root links when currentLocale is default', () => {
-    ;(useConfig as any).mockReturnValue({
+  it('preserves an explicit version over the active version', () => {
+    vi.mocked(useConfig).mockReturnValue({
       base: '/docs',
       i18n: { defaultLocale: 'en', locales: { en: 'EN', es: 'ES' } },
-    })
-    ;(useRoutes as any).mockReturnValue({
-      currentLocale: 'en',
-      currentVersion: undefined,
-      allRoutes: [],
-    })
+      versions: {
+        defaultVersion: 'v1',
+        versions: [
+          { path: 'v1', label: 'v1' },
+          { path: 'v2', label: 'v2' },
+        ],
+      },
+    } as never)
+    setContext([], 'en', 'v1')
 
-    expect(useLocalizedTo('site:/')).toBe('/')
-    expect(useLocalizedTo('site:')).toBe('/')
+    expect(localized('/docs/v2/guides/intro')).toBe('/docs/v2/guides/intro')
   })
 
-  it('should add locale prefix for site: root links when currentLocale is NOT default', () => {
-    ;(useConfig as any).mockReturnValue({
+  it('does not add the default locale prefix', () => {
+    vi.mocked(useConfig).mockReturnValue({
       base: '/docs',
       i18n: { defaultLocale: 'en', locales: { en: 'EN', es: 'ES' } },
-    })
-    ;(useRoutes as any).mockReturnValue({
-      currentLocale: 'es',
-      currentVersion: undefined,
-      allRoutes: [],
-    })
+    } as never)
+    setContext([], 'en')
 
-    expect(useLocalizedTo('site:/')).toBe('/es')
-    expect(useLocalizedTo('site:')).toBe('/es')
+    expect(localized('/docs/guides')).toBe('/docs/guides')
+    expect(localized('/guides/intro')).toBe('/docs/guides/intro')
+    expect(localized('site:/')).toBe('/')
+    expect(localized('site:')).toBe('/')
+  })
+
+  it('adds the active locale for site root links', () => {
+    vi.mocked(useConfig).mockReturnValue({
+      base: '/docs',
+      i18n: { defaultLocale: 'en', locales: { en: 'EN', es: 'ES' } },
+    } as never)
+    setContext([], 'es')
+
+    expect(localized('site:/')).toBe('/es')
+    expect(localized('site:')).toBe('/es')
   })
 })

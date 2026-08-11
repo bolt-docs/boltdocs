@@ -15,20 +15,16 @@ import type { ComponentRoute } from '../../types'
 import type { BoltdocsRoutePathWithFallback } from '../../../shared/types'
 import { useSidebar } from '../../hooks/use-sidebar'
 import { useLocalizedTo } from '../../hooks/use-localized-to'
-import * as DefaultIcons from '../ui-base/icons'
-import virtualIcons from 'virtual:boltdocs-icons'
+import {
+  IconRenderer,
+  resolveIcon,
+  type IconValue,
+} from '../ui-base/icon-renderer'
 
-// Persistent scroll position across navigation (SPA)
 let sidebarScrollPos = 0
 
-function getIcon(iconName?: string): React.ElementType | undefined {
-  if (!iconName) return undefined
-  const icons = { ...DefaultIcons, ...virtualIcons } as unknown as Record<
-    string,
-    React.ElementType
-  >
-  const IconComponent = icons[iconName] || icons[iconName + 'Icon']
-  return IconComponent || undefined
+function getIcon(iconName?: string) {
+  return resolveIcon(iconName)
 }
 
 /**
@@ -169,20 +165,16 @@ export function SidebarGroup({
   active = false,
 }: {
   title?: string
-  icon?: React.ElementType
+  icon?: IconValue
   collapsible?: boolean
   collapsed?: boolean
   active?: boolean
 } & ComponentBase) {
   const [isOpen, setIsOpen] = useState(() => active || !collapsed)
-  const [prevActive, setPrevActive] = useState(active)
 
-  if (active !== prevActive) {
-    setPrevActive(active)
-    if (active) {
-      setIsOpen(true)
-    }
-  }
+  useEffect(() => {
+    if (active) setIsOpen(true)
+  }, [active])
 
   return (
     <div className={className}>
@@ -193,7 +185,7 @@ export function SidebarGroup({
             className="w-full text-left px-2 mb-2 flex items-center justify-between text-xs font-regular tracking-widest text-muted/50 hover:text-body transition-colors outline-none cursor-pointer group"
           >
             <span className="flex items-center gap-2">
-              {Icon && <Icon size={12} />}
+              {Icon && <IconRenderer icon={Icon} size={12} />}
               {title}
             </span>
             <ChevronRight
@@ -206,7 +198,7 @@ export function SidebarGroup({
           </button>
         ) : (
           <h4 className="px-2 mb-2 flex items-center gap-2 text-[11px] font-bold uppercase tracking-widest text-muted/50">
-            {Icon && <Icon size={12} />}
+            {Icon && <IconRenderer icon={Icon} size={12} />}
             {title}
           </h4>
         ))}
@@ -224,7 +216,7 @@ export interface SidebarLinkProps extends ComponentBase {
   label: string
   href: BoltdocsRoutePathWithFallback
   active?: boolean
-  icon?: React.ElementType
+  icon?: IconValue
   badge?: ComponentRoute['badge']
 }
 
@@ -248,7 +240,8 @@ export function SidebarLink({
       )}
     >
       {Icon && (
-        <Icon
+        <IconRenderer
+          icon={Icon}
           size={16}
           className={cn(
             active ? 'text-primary-500' : 'text-muted group-hover:text-body',
@@ -343,26 +336,16 @@ export function SidebarItem({
   const hasChildren = !!route.routes?.length || !!route.subRoutes?.length
   const children = route.routes || route.subRoutes
 
-  const [isOpen, setIsOpen] = useState(
-    () =>
-      activePath.startsWith(localizedHref) ||
-      (!!activeRoute?.filePath &&
-        !!route.filePath &&
-        activeRoute.filePath === route.filePath),
-  )
-  const [prevActivePath, setPrevActivePath] = useState(activePath)
+  const shouldBeOpen =
+    activePath.startsWith(localizedHref) ||
+    (!!activeRoute?.filePath &&
+      !!route.filePath &&
+      activeRoute.filePath === route.filePath)
+  const [isOpen, setIsOpen] = useState(() => shouldBeOpen)
 
-  if (activePath !== prevActivePath) {
-    setPrevActivePath(activePath)
-    if (
-      activePath.startsWith(localizedHref) ||
-      (!!activeRoute?.filePath &&
-        !!route.filePath &&
-        activeRoute.filePath === route.filePath)
-    ) {
-      setIsOpen(true)
-    }
-  }
+  useEffect(() => {
+    if (shouldBeOpen) setIsOpen(true)
+  }, [shouldBeOpen])
 
   if (hasChildren) {
     return (
@@ -408,10 +391,11 @@ export interface SidebarItemsProps extends ComponentBase {
 }
 
 const isRouteActive = (
-  route: any,
+  route: ComponentRoute,
   activePath: string,
-  activeRoute?: any,
+  activeRoute?: ComponentRoute,
 ): boolean => {
+  if (!route?.path) return false
   const normalizedPath = route.path.endsWith('/')
     ? route.path.slice(0, -1)
     : route.path
@@ -426,16 +410,9 @@ const isRouteActive = (
     activeRoute.filePath === route.filePath
   )
     return true
-
-  if (
-    route.routes &&
-    route.routes.some((r: any) => isRouteActive(r, activePath, activeRoute))
-  )
+  if (route.routes?.some((r) => isRouteActive(r, activePath, activeRoute)))
     return true
-  if (
-    route.subRoutes &&
-    route.subRoutes.some((r: any) => isRouteActive(r, activePath, activeRoute))
-  )
+  if (route.subRoutes?.some((r) => isRouteActive(r, activePath, activeRoute)))
     return true
 
   return false
@@ -454,7 +431,7 @@ export function SidebarItems({ routes, className }: SidebarItemsProps) {
     })),
     ...groups.map((group) => ({
       type: 'group' as const,
-      position: (group as any).sidebarPosition ?? 999,
+      position: group.sidebarPosition ?? 999,
       title: group.title,
       group,
     })),
@@ -473,7 +450,7 @@ export function SidebarItems({ routes, className }: SidebarItemsProps) {
     if (currentUngrouped.length > 0) {
       const routesToRender = [...currentUngrouped]
       renderedElements.push(
-        <SidebarGroup key={`ungrouped-${routesToRender[0].path}`}>
+        <SidebarGroup key={`ungrouped-${routesToRender[0]?.path || 'root'}`}>
           {routesToRender.map((route) => (
             <SidebarItem
               key={route.path}
@@ -493,7 +470,7 @@ export function SidebarItems({ routes, className }: SidebarItemsProps) {
       currentUngrouped.push(item.route)
     } else {
       pushUngrouped()
-      const isGroupActive = item.group.routes.some((route: any) =>
+      const isGroupActive = item.group.routes.some((route: ComponentRoute) =>
         isRouteActive(route, activePath, activeRoute),
       )
       renderedElements.push(
@@ -505,7 +482,7 @@ export function SidebarItems({ routes, className }: SidebarItemsProps) {
           collapsed={item.group.collapsed}
           active={isGroupActive}
         >
-          {item.group.routes.map((route: any) => (
+          {item.group.routes.map((route: ComponentRoute) => (
             <SidebarItem
               key={route.path}
               route={route}

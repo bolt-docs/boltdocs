@@ -72,6 +72,8 @@ declare module 'virtual:boltdocs-search' {
     version?: string
   }
 
-  const fetchSearchData: () => Promise<SearchDataItem[]>
+  const fetchSearchData: (options?: {
+    bustCache?: boolean
+  }) => Promise<SearchDataItem[]>
   export default fetchSearchData
 }

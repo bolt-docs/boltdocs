@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect, useCallback } from 'react'
+import { useState, useMemo, useEffect, useCallback, useRef } from 'react'
 import { Index } from 'flexsearch'
 import { useRoutes } from './use-routes'
 import { useConfig } from '../app/config-context'
@@ -16,6 +16,23 @@ interface SearchDataItem {
   version?: string
 }
 
+interface AlgoliaHit {
+  objectID?: string
+  url?: string
+  hierarchy?: Record<string, string | undefined>
+  anchor?: string
+}
+
+interface SearchResult {
+  id: string
+  title: string
+  path: string
+  bio: string
+  groupTitle: string
+  isHeading: boolean
+  localeMatch?: boolean
+}
+
 export function useSearch(routes: ComponentRoute[]) {
   const { currentLocale, currentVersion } = useRoutes()
   const config = useConfig()
@@ -24,10 +41,12 @@ export function useSearch(routes: ComponentRoute[]) {
   const [isOpen, setIsOpen] = useState(false)
   const [query, setQuery] = useState('')
   const [index, setIndex] = useState<Index | null>(null)
-  const [algoliaResults, setAlgoliaResults] = useState<[]>([])
+  const [algoliaResults, setAlgoliaResults] = useState<SearchResult[]>([])
   const [searchData, setSearchData] = useState<SearchDataItem[]>([])
   const [searchDataLoading, setSearchDataLoading] = useState(false)
   const [searchDataError, setSearchDataError] = useState<Error | null>(null)
+  const searchGeneration = useRef(0)
+  const loadingGeneration = useRef<number | null>(null)
   const navigate = useNavigate()
 
   // Fetch the search index lazily when the dialog opens and we are not
@@ -39,52 +58,92 @@ export function useSearch(routes: ComponentRoute[]) {
     // Use cached data if already loaded.
     if (searchData.length > 0) return
 
-    // Reset stale loading/error state on open so a previously cancelled
-    // or failed fetch does not block a new one.
-    if (searchDataLoading) setSearchDataLoading(false)
-    if (searchDataError) setSearchDataError(null)
-
     setSearchDataLoading(true)
+    setSearchDataError(null)
     let active = true
+    const generation = ++searchGeneration.current
+    loadingGeneration.current = generation
 
     fetchSearchData()
       .then((data: SearchDataItem[]) => {
-        if (!active) return
+        if (!active || generation !== searchGeneration.current) return
         setSearchData(data || [])
-        setSearchDataLoading(false)
+        if (loadingGeneration.current === generation) {
+          loadingGeneration.current = null
+          setSearchDataLoading(false)
+        }
       })
       .catch((err: Error) => {
-        if (!active) return
+        if (!active || generation !== searchGeneration.current) return
         console.error('[boltdocs] Failed to load search index:', err)
         setSearchDataError(err)
-        setSearchDataLoading(false)
+        if (loadingGeneration.current === generation) {
+          loadingGeneration.current = null
+          setSearchDataLoading(false)
+        }
       })
 
     return () => {
       active = false
     }
-  }, [isOpen, algoliaConfig])
+  }, [isOpen, algoliaConfig, searchData.length])
 
   useEffect(() => {
     if (!import.meta.hot) return
-    const handler = (payload: {
-      search: { updated: SearchDataItem[]; deleted: string[] }
+
+    const applyFrontmatterDelta = (payload: {
+      search?: { updated?: SearchDataItem[]; deleted?: string[] }
     }) => {
+      const updated = payload.search?.updated ?? []
+      const deleted = new Set(payload.search?.deleted ?? [])
+      searchGeneration.current += 1
+      if (loadingGeneration.current !== null) {
+        loadingGeneration.current = null
+        setSearchDataLoading(false)
+      }
       setSearchData((prev) => {
         const map = new Map(prev.map((d) => [d.id, d]))
-        for (const doc of payload.search.updated) {
+        for (const doc of updated) {
           map.set(doc.id, doc)
         }
-        for (const id of payload.search.deleted) {
+        for (const id of deleted) {
           map.delete(id)
         }
         return Array.from(map.values())
       })
       setIndex(null)
     }
-    import.meta.hot.on('boltdocs:frontmatter-update', handler)
+
+    const refreshFromAsset = async () => {
+      const generation = ++searchGeneration.current
+      loadingGeneration.current = generation
+      setSearchDataLoading(true)
+      try {
+        const data = await fetchSearchData({ bustCache: true })
+        if (generation !== searchGeneration.current) return
+        setSearchData(data || [])
+        setSearchDataError(null)
+        setIndex(null)
+      } catch (error) {
+        if (generation !== searchGeneration.current) return
+        console.error('[boltdocs] Failed to refresh search index:', error)
+        setSearchDataError(
+          error instanceof Error ? error : new Error(String(error)),
+        )
+      } finally {
+        if (generation === searchGeneration.current) {
+          loadingGeneration.current = null
+          setSearchDataLoading(false)
+        }
+      }
+    }
+
+    const hot = import.meta.hot
+    hot.on('boltdocs:frontmatter-update', applyFrontmatterDelta)
+    hot.on('boltdocs:mdx-update', refreshFromAsset)
     return () => {
-      import.meta.hot?.off?.('boltdocs:frontmatter-update', handler)
+      hot.off?.('boltdocs:frontmatter-update', applyFrontmatterDelta)
+      hot.off?.('boltdocs:mdx-update', refreshFromAsset)
     }
   }, [])
 
@@ -105,20 +164,16 @@ export function useSearch(routes: ComponentRoute[]) {
   const handleSelect = useCallback(
     (key: React.Key) => {
       const path = String(key)
+      if (!path) return
+
       setIsOpen(false)
-
-      const [baseUrl, hash] = path.split('#')
-      const search = query ? `?hl=${encodeURIComponent(query)}` : ''
-      const finalPath = `${baseUrl}${search}${hash ? `#${hash}` : ''}`
-
-      navigate(finalPath)
-
-      if (hash) {
-        setTimeout(() => {
-          const el = document.getElementById(hash)
-          if (el) el.scrollIntoView({ behavior: 'smooth' })
-        }, 100)
+      const url = new URL(path, window.location.origin)
+      if (query) {
+        url.searchParams.set('hl', query)
       }
+
+      const finalPath = `${url.pathname}${url.search}${url.hash}`
+      navigate(finalPath)
     },
     [navigate, query],
   )
@@ -130,15 +185,17 @@ export function useSearch(routes: ComponentRoute[]) {
     if (!isOpen || searchData.length === 0 || index) return
 
     const newIndex = new Index({
-      preset: 'match',
-      tokenize: 'full',
-      resolution: 9,
+      tokenize: 'forward',
       cache: true,
     })
 
-    // Index all documents
-    for (const doc of searchData as SearchDataItem[]) {
-      newIndex.add(doc.id, `${doc.title} ${doc.content}`)
+    // FlexSearch's basic Index requires numeric document IDs. Keep the
+    // numeric position as the index key and resolve it back to searchData
+    // after searching; route IDs remain string URLs in the public result.
+    for (let i = 0; i < searchData.length; i++) {
+      const doc = searchData[i]
+      if (!doc) continue
+      newIndex.add(i, `${doc.title} ${doc.content}`)
     }
 
     setIndex(newIndex)
@@ -189,14 +246,14 @@ export function useSearch(routes: ComponentRoute[]) {
         const data = await response.json()
         const hits = data.hits || []
 
-        const results = hits.map((hit: any) => {
+        const results: SearchResult[] = hits.map((hit: AlgoliaHit) => {
           let path = hit.url || ''
           try {
             if (path.startsWith('http://') || path.startsWith('https://')) {
               const urlObj = new URL(path)
               path = urlObj.pathname + urlObj.search + urlObj.hash
             }
-          } catch (e) {
+          } catch {
             // Keep hit.url as fallback
           }
 
@@ -233,15 +290,6 @@ export function useSearch(routes: ComponentRoute[]) {
     return () => clearTimeout(delayDebounceFn)
   }, [query, algoliaConfig, currentLocale, currentVersion])
 
-  // Pre-index searchData for O(1) lookups
-  const searchDataMap = useMemo(() => {
-    const map = new Map<string, SearchDataItem>()
-    for (const doc of searchData as SearchDataItem[]) {
-      map.set(doc.id, doc)
-    }
-    return map
-  }, [searchData])
-
   const list = useMemo(() => {
     if (!query) {
       // Default results: just active routes
@@ -275,18 +323,22 @@ export function useSearch(routes: ComponentRoute[]) {
       suggest: true,
     })
 
-    const results: any[] = []
+    const results: SearchResult[] = []
     const seen = new Set<string>()
 
     for (const id of searchResults) {
-      const doc = searchDataMap.get(id as string)
+      const numericId = typeof id === 'number' ? id : Number(id)
+      const doc = searchData[numericId]
       if (!doc) continue
 
       const docLocale = doc.locale || config.i18n?.defaultLocale
       const docVersion = doc.version || config.versions?.defaultVersion
-      const localeMatch = !currentLocale || docLocale === currentLocale
+      const localeMatch =
+        !currentLocale ||
+        docLocale === currentLocale ||
+        (!doc.locale && currentLocale === config.i18n?.defaultLocale)
       const versionMatch = !currentVersion || docVersion === currentVersion
-      if (!localeMatch || !versionMatch) continue
+      if (!versionMatch) continue
 
       if (seen.has(doc.url)) continue
       seen.add(doc.url)
@@ -298,17 +350,18 @@ export function useSearch(routes: ComponentRoute[]) {
         bio: doc.display,
         groupTitle: doc.display.split(' > ')[0],
         isHeading: doc.url.includes('#'),
+        localeMatch,
       })
     }
 
-    return results.slice(0, 10)
+    return results.filter((result) => result.localeMatch).slice(0, 10)
   }, [
     query,
     index,
     currentLocale,
     currentVersion,
     routes,
-    searchDataMap,
+    searchData,
     algoliaConfig,
     algoliaResults,
     config,

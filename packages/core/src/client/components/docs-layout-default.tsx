@@ -9,6 +9,7 @@ import { CopyMarkdown } from './ui-base/copy-markdown'
 import { OnThisPage } from './ui-base/on-this-page'
 import { useRoutes } from '../hooks/use-routes'
 import { useConfig } from '../app/config-context'
+import { Outlet } from '../router'
 import { Feedback, Giscus } from './ui-base'
 import type { ComponentRoute } from '../types'
 
@@ -62,16 +63,18 @@ function DocsLayoutComponent({ children }: DocsLayoutThemeProps) {
 
             <ErrorBoundary>
               <div className="prose prose-neutral dark:prose-invert max-w-none">
-                {children}
+                {children ?? <Outlet />}
               </div>
             </ErrorBoundary>
 
             {!isCollectionPage && <Feedback />}
             {!isCollectionPage && <Giscus />}
 
-            <DocsLayoutPrimitive.Footer>
-              {!isCollectionPage && <PageNav />}
-            </DocsLayoutPrimitive.Footer>
+            {!isCollectionPage && (
+              <div className="mt-20">
+                <PageNav />
+              </div>
+            )}
           </DocsLayoutPrimitive.ContentMdx>
         </DocsLayoutPrimitive.Content>
         <div className="overflow-y-auto sticky">

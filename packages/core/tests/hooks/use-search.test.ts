@@ -91,7 +91,7 @@ describe('useSearch hook', () => {
       })
     })
 
-    it('should perform local search using FlexSearch when query is populated', async () => {
+    it('should perform local search using numeric index IDs and recover the route URL', async () => {
       const { result } = renderHook(() => useSearch(mockRoutes as any))
 
       // Trigger index creation (and lazy search data fetch)
@@ -117,6 +117,31 @@ describe('useSearch hook', () => {
         id: '/docs/advanced',
         title: 'Advanced Config',
         bio: 'Guides > Advanced Config',
+      })
+    })
+
+    it('should not return results from another active locale', async () => {
+      vi.mocked(useRoutes).mockReturnValue({
+        currentLocale: 'es',
+        currentVersion: undefined,
+      } as any)
+
+      const { result } = renderHook(() => useSearch(mockRoutes as any))
+
+      act(() => {
+        result.current.setIsOpen(true)
+      })
+
+      await waitFor(() => {
+        expect(result.current.searchDataLoading).toBe(false)
+      })
+
+      act(() => {
+        result.current.setQuery('advanced')
+      })
+
+      await waitFor(() => {
+        expect(result.current.list).toEqual([])
       })
     })
   })

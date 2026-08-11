@@ -3,6 +3,7 @@ import { useLocation } from '../router'
 import { useRoutes } from './use-routes'
 import { useSidebar } from './use-sidebar'
 import { normalizePath } from '../utils/path'
+import type { ComponentRoute } from '../types'
 
 export function usePageNav() {
   const { routes, currentRoute } = useRoutes()
@@ -28,7 +29,7 @@ export function usePageNav() {
       })),
       ...groups.map((group) => ({
         type: 'group' as const,
-        position: (group as any).sidebarPosition ?? 999,
+        position: group.sidebarPosition ?? 999,
         title: group.title,
         group,
       })),
@@ -40,27 +41,28 @@ export function usePageNav() {
       return a.title.localeCompare(b.title)
     })
 
-    const orderedRoutes: typeof routes = []
+    const orderedRoutes: ComponentRoute[] = []
 
-    const flattenNode = (node: any) => {
+    const flattenNode = (node: ComponentRoute) => {
+      if (!node) return
       if (node.path && node.path !== '#' && !node.sidebarHidden) {
         orderedRoutes.push(node)
       }
       const children = node.routes || node.subRoutes
       if (children && children.length > 0) {
         for (const child of children) {
-          flattenNode(child)
+          if (child) flattenNode(child)
         }
       }
     }
 
     for (const item of mergedItems) {
       if (item.type === 'link') {
-        flattenNode(item.route)
+        if (item.route) flattenNode(item.route)
       } else {
         if (item.group.routes) {
           for (const route of item.group.routes) {
-            flattenNode(route)
+            if (route) flattenNode(route)
           }
         }
       }
@@ -68,7 +70,7 @@ export function usePageNav() {
 
     const currentNormalizedPath = normalizePath(location.pathname)
     const currentIndex = orderedRoutes.findIndex(
-      (r) => normalizePath(r.path) === currentNormalizedPath,
+      (r) => r && r.path && normalizePath(r.path) === currentNormalizedPath,
     )
 
     const prevPage = currentIndex > 0 ? orderedRoutes[currentIndex - 1] : null

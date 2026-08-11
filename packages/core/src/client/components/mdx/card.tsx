@@ -34,7 +34,7 @@ export function Card({
 
   return (
     <Wrapper
-      // @ts-ignore
+      // @ts-expect-error
       ref={cardRef}
       href={href}
       onMouseMove={handleMouseMove}

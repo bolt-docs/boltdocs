@@ -7,11 +7,17 @@ import type { BoltdocsConfig } from '../../shared/types'
  */
 const CONFIG_CONTEXT_SYMBOL = Symbol.for('__BDOCS_CONFIG_CONTEXT__')
 const CONFIG_INSTANCE_SYMBOL = Symbol.for('__BDOCS_CONFIG_INSTANCE__')
+const globalRegistry = globalThis as Record<PropertyKey, unknown>
+const existingConfigContext = globalRegistry[CONFIG_CONTEXT_SYMBOL] as
+  | React.Context<BoltdocsConfig | null>
+  | undefined
 
 export const ConfigContext =
-  (globalThis as any)[CONFIG_CONTEXT_SYMBOL] ||
-  ((globalThis as any)[CONFIG_CONTEXT_SYMBOL] =
-    createContext<BoltdocsConfig | null>(null))
+  existingConfigContext || createContext<BoltdocsConfig | null>(null)
+
+if (!existingConfigContext) {
+  globalRegistry[CONFIG_CONTEXT_SYMBOL] = ConfigContext
+}
 
 export function ConfigProvider({
   config,
@@ -21,9 +27,7 @@ export function ConfigProvider({
   children: React.ReactNode
 }) {
   // Sync with global registry for dual-package fallback
-  if (typeof globalThis !== 'undefined') {
-    ;(globalThis as any)[CONFIG_INSTANCE_SYMBOL] = config
-  }
+  globalRegistry[CONFIG_INSTANCE_SYMBOL] = config
 
   return (
     <ConfigContext.Provider value={config}>{children}</ConfigContext.Provider>
@@ -31,21 +35,32 @@ export function ConfigProvider({
 }
 
 /**
+ * Hook to access the Boltdocs configuration when one is available.
+ *
+ * Low-level primitives such as icons can also be rendered standalone (for
+ * example in a component preview or a unit test), so they must not be forced
+ * to mount the full application provider just to render an inline SVG.
+ */
+export function useOptionalConfig(): BoltdocsConfig | null {
+  const context = use(ConfigContext)
+  if (context) return context
+
+  // Fallback to global registry if context is missing (dual-package hazard safety net)
+  const globalConfig = globalRegistry[CONFIG_INSTANCE_SYMBOL]
+  if (globalConfig) {
+    return globalConfig as BoltdocsConfig
+  }
+
+  return null
+}
+
+/**
  * Hook to access the Boltdocs configuration.
  */
 export function useConfig() {
-  const context = use(ConfigContext)
-
-  // Fallback to global registry if context is missing (dual-package hazard safety net)
-  if (
-    !context &&
-    typeof globalThis !== 'undefined' &&
-    (globalThis as any)[CONFIG_INSTANCE_SYMBOL]
-  ) {
-    return (globalThis as any)[CONFIG_INSTANCE_SYMBOL] as BoltdocsConfig
-  }
-
-  if (!context)
+  const config = useOptionalConfig()
+  if (!config) {
     throw new Error('useConfig must be used within a ConfigProvider')
-  return context as BoltdocsConfig
+  }
+  return config
 }

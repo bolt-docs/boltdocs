@@ -5,6 +5,13 @@ import { useRoutes } from '../hooks/use-routes'
 import type { CollectionPost } from './collections-context'
 
 const DEFAULT_COLLECTION = 'blog'
+const NO_DATE = Number.NEGATIVE_INFINITY
+
+function getPostTimestamp(date: CollectionPost['date']): number {
+  if (!date) return NO_DATE
+  const timestamp = new Date(date).getTime()
+  return Number.isFinite(timestamp) ? timestamp : NO_DATE
+}
 
 interface UsePostsOptions {
   includeDrafts?: boolean
@@ -31,14 +38,21 @@ export function usePosts(
   const defaultVersion = config.versions?.defaultVersion
 
   return useMemo(() => {
-    return posts.filter((post) => {
-      const postLocale = post.locale || defaultLocale
-      const postVersion = post.version || defaultVersion
-      const localeMatch = !currentLocale || postLocale === currentLocale
-      const versionMatch = !currentVersion || postVersion === currentVersion
-      const draftMatch = options?.includeDrafts || !post.draft
-      return localeMatch && versionMatch && draftMatch
-    })
+    return posts
+      .filter((post) => {
+        const postLocale = post.locale || defaultLocale
+        const postVersion = post.version || defaultVersion
+        const localeMatch = !currentLocale || postLocale === currentLocale
+        const versionMatch = !currentVersion || postVersion === currentVersion
+        const draftMatch = options?.includeDrafts || !post.draft
+        return localeMatch && versionMatch && draftMatch
+      })
+      .sort((a, b) => {
+        const dateA = getPostTimestamp(a.date)
+        const dateB = getPostTimestamp(b.date)
+        const dateOrder = dateB - dateA
+        return dateOrder !== 0 ? dateOrder : a.path.localeCompare(b.path)
+      })
   }, [
     posts,
     currentLocale,

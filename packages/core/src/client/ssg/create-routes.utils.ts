@@ -39,4 +39,48 @@ function buildModuleMap(mdxModules: Record<string, any>): Map<string, string> {
   return moduleMap
 }
 
-export { withBase, buildModuleMap }
+function cleanModulePath(value: string): string {
+  return value
+    .replace(/\\/g, '/')
+    .replace(/^\/+/, '')
+    .replace(/\/\([^)]+\)/g, '')
+    .replace(/^\([^)]+\)\//, '')
+}
+
+/**
+ * Resolves a route source path against both Vite glob keys and relative keys.
+ * Exact cleaned matches are preferred so `es/guide.md` cannot select the
+ * default-locale `guide.md` when both modules are present.
+ */
+function resolveModuleKey(
+  filePath: string,
+  moduleMap: Map<string, string>,
+): string | undefined {
+  const normalized = filePath.replace(/\\/g, '/')
+  const cleanPath = cleanModulePath(normalized)
+
+  for (const candidate of [
+    normalized,
+    normalized.replace(/^\//, ''),
+    cleanPath,
+  ]) {
+    const direct = moduleMap.get(candidate)
+    if (direct) return direct
+  }
+
+  for (const [relativePath, moduleKey] of moduleMap.entries()) {
+    const cleanRelative = cleanModulePath(relativePath)
+    if (
+      normalized.endsWith(relativePath) ||
+      relativePath.endsWith(normalized) ||
+      cleanPath.endsWith(cleanRelative) ||
+      cleanRelative.endsWith(cleanPath)
+    ) {
+      return moduleKey
+    }
+  }
+
+  return undefined
+}
+
+export { withBase, buildModuleMap, resolveModuleKey }

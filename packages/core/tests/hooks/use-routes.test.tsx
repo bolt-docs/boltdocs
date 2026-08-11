@@ -1,19 +1,17 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { renderHook } from '@testing-library/react'
-import { MemoryRouter } from 'react-router-dom'
 import type * as React from 'react'
-import * as ReactRouter from 'react-router-dom'
+import { LocationProvider } from '../../src/client/router'
+import { useLocation } from '../../src/client/router'
 
-vi.mock('react-router-dom', async () => {
-  const actual = await vi.importActual('react-router-dom')
+vi.mock('../../src/client/router', async () => {
+  const actual = await vi.importActual('../../src/client/router')
   return {
     ...actual,
     useLocation: vi.fn(() => ({
       pathname: '/docs',
       search: '',
       hash: '',
-      state: null,
-      key: 'test',
     })),
   }
 })
@@ -45,7 +43,7 @@ vi.mock('@/client/hooks/use-routes', () => ({
 }))
 
 const TestWrapper = ({ children }: { children: React.ReactNode }) => (
-  <MemoryRouter>{children}</MemoryRouter>
+  <LocationProvider>{children}</LocationProvider>
 )
 
 describe('useRoutes', () => {
@@ -94,12 +92,10 @@ describe('useRoutes', () => {
 
     vi.mocked(useRoutesContext).mockReturnValue({ routes: mockRoutes })
     vi.mocked(useConfig).mockReturnValue({})
-    vi.mocked(ReactRouter.useLocation).mockReturnValue({
+    vi.mocked(useLocation).mockReturnValue({
       pathname: '/docs',
       search: '',
       hash: '',
-      state: null,
-      key: 'test',
     })
     vi.mocked(useBoltdocsContext).mockReturnValue({
       hasHydrated: true,
@@ -134,12 +130,10 @@ describe('useRoutes', () => {
     vi.mocked(useConfig).mockReturnValue({
       i18n: { defaultLocale: 'en', locales: { en: 'English', es: 'Spanish' } },
     })
-    vi.mocked(ReactRouter.useLocation).mockReturnValue({
+    vi.mocked(useLocation).mockReturnValue({
       pathname: '/es/docs',
       search: '',
       hash: '',
-      state: null,
-      key: 'test',
     })
     vi.mocked(useBoltdocsContext).mockReturnValue({
       hasHydrated: true,
@@ -178,12 +172,10 @@ describe('useRoutes', () => {
         ],
       },
     })
-    vi.mocked(ReactRouter.useLocation).mockReturnValue({
+    vi.mocked(useLocation).mockReturnValue({
       pathname: '/docs/v2',
       search: '',
       hash: '',
-      state: null,
-      key: 'test',
     })
     vi.mocked(useBoltdocsContext).mockReturnValue({
       hasHydrated: true,
@@ -215,12 +207,10 @@ describe('useRoutes', () => {
 
     vi.mocked(useRoutesContext).mockReturnValue({ routes: mockRoutes })
     vi.mocked(useConfig).mockReturnValue({})
-    vi.mocked(ReactRouter.useLocation).mockReturnValue({
+    vi.mocked(useLocation).mockReturnValue({
       pathname: '/docs/',
       search: '',
       hash: '',
-      state: null,
-      key: 'test',
     })
     vi.mocked(useBoltdocsContext).mockReturnValue({
       hasHydrated: true,
@@ -253,12 +243,10 @@ describe('useRoutes', () => {
     vi.mocked(useConfig).mockReturnValue({
       i18n: { defaultLocale: 'en', locales: { en: 'English', es: 'Spanish' } },
     })
-    vi.mocked(ReactRouter.useLocation).mockReturnValue({
+    vi.mocked(useLocation).mockReturnValue({
       pathname: '/docs',
       search: '',
       hash: '',
-      state: null,
-      key: 'test',
     })
     vi.mocked(useBoltdocsContext).mockReturnValue({
       hasHydrated: false,
@@ -297,12 +285,10 @@ describe('useRoutes', () => {
         ],
       },
     })
-    vi.mocked(ReactRouter.useLocation).mockReturnValue({
+    vi.mocked(useLocation).mockReturnValue({
       pathname: '/docs',
       search: '',
       hash: '',
-      state: null,
-      key: 'test',
     })
     vi.mocked(useBoltdocsContext).mockReturnValue({
       hasHydrated: false,
@@ -333,12 +319,10 @@ describe('useRoutes', () => {
 
     vi.mocked(useRoutesContext).mockReturnValue({ routes: mockRoutes })
     vi.mocked(useConfig).mockReturnValue({})
-    vi.mocked(ReactRouter.useLocation).mockReturnValue({
+    vi.mocked(useLocation).mockReturnValue({
       pathname: '/unknown-route',
       search: '',
       hash: '',
-      state: null,
-      key: 'test',
     })
     vi.mocked(useBoltdocsContext).mockReturnValue({
       hasHydrated: true,

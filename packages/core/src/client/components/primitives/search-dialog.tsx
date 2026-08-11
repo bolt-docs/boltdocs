@@ -94,20 +94,12 @@ function SearchDialogClearButton({ className, ...props }: RAC.ButtonProps) {
 function SearchDialogAutocomplete<T extends object>({
   children,
   className,
-  onSelectionChange,
   ...props
-}: RAC.AutocompleteProps<T> & {
-  className?: string
-  onSelectionChange?: (key: RAC.Key) => void
-}) {
+}: RAC.AutocompleteProps<T> & { className?: string }) {
   const Autocomplete = RAC.Autocomplete as any
   return (
     <div className={cn('flex-1 min-h-0', className)}>
-      <Autocomplete
-        {...props}
-        onSelectionChange={onSelectionChange}
-        className="flex flex-col min-h-0"
-      >
+      <Autocomplete {...props} className="flex flex-col min-h-0">
         {children}
       </Autocomplete>
     </div>

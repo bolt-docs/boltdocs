@@ -4,11 +4,21 @@ import { useVersion } from '../../src/client/hooks/use-version'
 import { useConfig } from '../../src/client/app/config-context'
 import { useRoutes } from '../../src/client/hooks/use-routes'
 import { useBoltdocsContext } from '../../src/client/store/boltdocs-context'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate } from '../../src/client/router'
 
 // Mock the dependencies of the hook
-vi.mock('react-router-dom', () => ({
+vi.mock('../../src/client/router', () => ({
   useNavigate: vi.fn(),
+  LocationProvider: ({ children }: any) => children,
+  useLocation: vi.fn(() => ({ pathname: '/', search: '', hash: '' })),
+  useRouteData: vi.fn(),
+  useLoaderData: vi.fn(),
+  useMatches: vi.fn(() => []),
+  Outlet: () => null,
+  OutletContext: null as any,
+  RouteRenderer: ({ children }: any) => children,
+  matchRouteBranch: vi.fn(() => []),
+  resolveRouteBranch: vi.fn(async (b: any) => b),
 }))
 vi.mock('../../src/client/app/config-context')
 vi.mock('../../src/client/hooks/use-routes')
@@ -101,6 +111,50 @@ describe('useVersion', () => {
     expect(currentVersion).toBeUndefined()
     expect(currentVersionLabel).toBeUndefined()
     expect(availableVersions).toEqual([])
+  })
+
+  it('should preserve the active locale when changing versions', () => {
+    ;(useConfig as any).mockReturnValue({
+      base: '/docs',
+      i18n: {
+        defaultLocale: 'en',
+        locales: { en: 'English', es: 'Spanish' },
+      },
+      versions: {
+        defaultVersion: 'v1',
+        versions: [
+          { label: 'Version 1', path: 'v1' },
+          { label: 'Version 2', path: 'v2' },
+        ],
+      },
+    })
+    ;(useRoutes as any).mockReturnValue({
+      allRoutes: [
+        {
+          path: '/docs/v2/es/guides/intro',
+          filePath: 'v2/es/guides/intro.md',
+          version: 'v2',
+          locale: 'es',
+        },
+      ],
+      currentRoute: {
+        path: '/docs/v1/es/guides/intro',
+        filePath: 'v1/es/guides/intro.md',
+        version: 'v1',
+        locale: 'es',
+      },
+      currentVersion: 'v1',
+      currentLocale: 'es',
+    })
+
+    const { result } = renderHook(() => useVersion())
+
+    act(() => {
+      result.current.handleVersionChange('v2')
+    })
+
+    expect(mockSetVersion).toHaveBeenCalledWith('v2')
+    expect(mockNavigate).toHaveBeenCalledWith('/docs/v2/es/guides/intro')
   })
 
   it('should navigate to the correct target version path on version change', () => {

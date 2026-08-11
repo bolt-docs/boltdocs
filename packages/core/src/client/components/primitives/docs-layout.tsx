@@ -1,5 +1,4 @@
 import type { ReactNode, FC } from 'react'
-import { createPortal } from 'react-dom'
 import { cn } from '../../utils/cn'
 import { SearchHighlight } from '../ui-base/search-highlight'
 
@@ -77,20 +76,11 @@ function Header({ children, className, style }: SlotProps) {
   )
 }
 
-function Footer({ children, className, style }: SlotProps) {
-  return (
-    <div className={cn('mt-20', className)} style={style}>
-      {children}
-    </div>
-  )
-}
-
 interface DocsLayoutComponent extends FC<SlotProps> {
   Body: typeof Body
   Content: typeof Content
   ContentMdx: typeof ContentMdx
   Header: typeof Header
-  Footer: typeof Footer
 }
 
 export const DocsLayout = Object.assign(DocsLayoutRoot, {
@@ -98,5 +88,4 @@ export const DocsLayout = Object.assign(DocsLayoutRoot, {
   Content,
   ContentMdx,
   Header,
-  Footer,
 }) as DocsLayoutComponent

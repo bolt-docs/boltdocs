@@ -1,5 +1,5 @@
 import { useMemo } from 'react'
-import { useNavigate } from '../router'
+import { useLocation, useNavigate } from '../router'
 import { getBaseFilePath } from '../utils/get-base-file-path'
 import { useRoutes } from './use-routes'
 import { useConfig } from '../app/config-context'
@@ -25,6 +25,7 @@ export interface UseI18nReturn {
  */
 export function useI18n(): UseI18nReturn {
   const navigate = useNavigate()
+  const location = useLocation()
   const config = useConfig()
   const { allRoutes, currentRoute, currentLocale, isCollectionPage } =
     useRoutes()
@@ -44,14 +45,17 @@ export function useI18n(): UseI18nReturn {
 
     if (currentRoute) {
       if (isDocRoute && !currentRoute.collection && !isCollectionPage) {
-        const baseFile = getBaseFilePath(
-          currentRoute.filePath,
-          currentRoute.version,
-          currentRoute.locale,
-        )
+        const baseFile = currentRoute.filePath
+          ? getBaseFilePath(
+              currentRoute.filePath,
+              currentRoute.version,
+              currentRoute.locale,
+            )
+          : ''
 
         const targetRoute = allRoutes.find(
           (r) =>
+            r.filePath &&
             getBaseFilePath(r.filePath, r.version, r.locale) === baseFile &&
             (r.locale || i18n.defaultLocale) === locale &&
             r.version === currentRoute.version,
@@ -62,7 +66,10 @@ export function useI18n(): UseI18nReturn {
         } else {
           const defaultIndexRoute = allRoutes.find(
             (r) =>
-              getBaseFilePath(r.filePath, r.version, r.locale) === 'index.md' &&
+              r.filePath &&
+              ['index.md', '_index.md'].includes(
+                getBaseFilePath(r.filePath, r.version, r.locale),
+              ) &&
               (r.locale || i18n.defaultLocale) === locale &&
               r.version === currentRoute.version,
           )
@@ -76,13 +83,9 @@ export function useI18n(): UseI18nReturn {
           }
         }
       } else {
-        let rawExternal = currentRoute.path
+        let rawExternal = currentRoute.path || ''
 
-        // Strip existing locale if any
         const parts = rawExternal.split('/').filter(Boolean)
-
-        // Collection routes (/blog/es/post) have locale at position 1
-        // External routes (/es/about) have locale at position 0
         const localePosition = currentRoute.collection ? 1 : 0
 
         if (
@@ -95,7 +98,6 @@ export function useI18n(): UseI18nReturn {
           rawExternal = '/' + parts.join('/')
         }
 
-        // Re-apply new locale at the correct position
         const cleanParts = rawExternal.split('/').filter(Boolean)
         if (locale === i18n.defaultLocale) {
           targetPath = rawExternal === '' ? '/' : rawExternal
@@ -129,7 +131,7 @@ export function useI18n(): UseI18nReturn {
       }
     }
 
-    if (!targetPath || targetPath === '') targetPath = '/s'
+    if (!targetPath || targetPath === '') targetPath = '/'
     targetPath = targetPath.replace(/\/+/g, '/')
 
     navigate(targetPath)

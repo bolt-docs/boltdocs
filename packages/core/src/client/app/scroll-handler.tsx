@@ -1,15 +1,15 @@
-import { useEffect, useLayoutEffect } from 'react'
+import { useEffect } from 'react'
 import { useLocation } from '../router'
 
 /**
- * Handles scroll restoration and hash scrolling on navigation.
- * It ensures the page scrolls to top on pathname changes,
- * or specifically to an anchor element if a hash is present.
+ * Handles scroll restoration after navigation.
+ *
+ * Normal page navigation returns the active content container to the top
+ * instantly. Explicit hash navigation is positioned at its anchor instead.
  */
 export function ScrollHandler() {
   const { pathname, hash } = useLocation()
 
-  // Helper to handle scroll logic
   const handleScroll = (behavior: ScrollBehavior = 'auto') => {
     const container =
       document.querySelector('.boltdocs-content') ||
@@ -31,7 +31,13 @@ export function ScrollHandler() {
     }
 
     if (hash) {
-      const id = hash.replace('#', '')
+      let id = hash.slice(1)
+      try {
+        id = decodeURIComponent(id)
+      } catch {
+        // Keep the raw fragment when it contains malformed encoding.
+      }
+
       const element = document.getElementById(id)
       if (element) {
         const offset = 80
@@ -48,20 +54,46 @@ export function ScrollHandler() {
       }
     }
 
-    scrollTo(0, behavior)
+    // A route without a resolved anchor starts at the top. Assigning the
+    // property directly bypasses any CSS `scroll-behavior: smooth` rule.
+    if (container === window) {
+      document.documentElement.scrollTop = 0
+      document.body.scrollTop = 0
+    } else {
+      ;(container as HTMLElement).scrollTop = 0
+    }
     return false
   }
 
-  // 1. Immediate sync scroll before paint
-  // biome-ignore lint/correctness/useExhaustiveDependencies: pathname is used as a trigger for scroll-to-top on navigation
-  useLayoutEffect(() => {
-    handleScroll('auto')
-  }, [pathname, hash])
-
-  // 2. Delayed async scroll as fallback/stabilizer after paint & passive effects
-  // biome-ignore lint/correctness/useExhaustiveDependencies: pathname is used as a trigger for scroll-to-top on navigation
+  // Run one synchronized scroll pass after the route has committed. The
+  // router owns URL state; this component owns DOM scrolling.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: pathname is used as a route trigger
   useEffect(() => {
-    handleScroll('auto')
+    const handleRouteCommit = (event: Event) => {
+      const detail = (
+        event as CustomEvent<{ pathname?: string; hash?: string }>
+      ).detail
+      if (detail?.pathname && detail.pathname !== pathname) return
+      if (detail?.hash !== undefined && detail.hash !== hash) return
+      handleScroll('auto')
+    }
+
+    window.addEventListener('boltdocs:route-commit', handleRouteCommit)
+    let frame = 0
+    if (hash) {
+      let attempts = 0
+      const retry = () => {
+        if (handleScroll('auto') || attempts >= 8) return
+        attempts++
+        frame = requestAnimationFrame(retry)
+      }
+      frame = requestAnimationFrame(retry)
+    }
+
+    return () => {
+      window.removeEventListener('boltdocs:route-commit', handleRouteCommit)
+      if (frame) cancelAnimationFrame(frame)
+    }
   }, [pathname, hash])
 
   return null

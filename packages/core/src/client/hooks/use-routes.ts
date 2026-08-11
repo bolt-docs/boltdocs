@@ -11,7 +11,15 @@ import { normalizePath } from '../utils/path'
  * version and locale.
  */
 export function useRoutes() {
-  const { routes: allRoutes } = useRoutesContext()
+  const routeContext = useRoutesContext()
+  const allRoutes = routeContext.routes
+  const routeIndex = routeContext.index || {
+    byPath: new Map(
+      allRoutes.map((route) => [normalizePath(route.path), route]),
+    ),
+    hintsByPath: new Map(),
+    collectionNames: [],
+  }
   const config = useConfig()
   const location = useLocation()
 
@@ -22,16 +30,26 @@ export function useRoutes() {
 
   const currentPath = normalizePath(location.pathname)
 
-  const currentRoute = allRoutes?.find?.(
-    (r) => normalizePath(r.path) === currentPath,
-  )
+  const currentRoute = routeIndex.byPath.get(currentPath)
 
-  const currentLocale = config.i18n
-    ? currentLocaleStore || config.i18n.defaultLocale
+  const pathParts = location.pathname.split('/').filter(Boolean)
+  const urlLocale = config.i18n
+    ? pathParts.find((part) =>
+        Array.isArray(config.i18n?.locales)
+          ? config.i18n?.locales.includes(part)
+          : part in (config.i18n?.locales || {}),
+      )
     : undefined
 
+  const currentLocale = config.i18n
+    ? urlLocale || currentLocaleStore || config.i18n.defaultLocale
+    : undefined
+
+  const configuredVersions = config.versions?.versions || []
   const currentVersion = config.versions
-    ? currentVersionStore || config.versions.defaultVersion
+    ? configuredVersions.some((version) => version.path === currentVersionStore)
+      ? currentVersionStore
+      : config.versions.defaultVersion
     : undefined
 
   const routes = useMemo(() => {
@@ -65,9 +83,8 @@ export function useRoutes() {
       )
       const isCurrentVersionPrefixed = !!(
         config.versions &&
-        pathParts.includes(
-          currentVersionStore || config.versions.defaultVersion,
-        )
+        !!currentVersion &&
+        pathParts.includes(currentVersion)
       )
 
       const isRouteLocalePrefixed = !!r.locale
@@ -94,6 +111,7 @@ export function useRoutes() {
   }, [
     allRoutes,
     config,
+    routeIndex,
     currentLocale,
     currentVersion,
     location.pathname,
@@ -101,11 +119,10 @@ export function useRoutes() {
     currentVersionStore,
   ])
 
-  const collections = useMemo(() => {
-    return new Set(
-      (allRoutes || []).map((r) => r.collection).filter(Boolean) as string[],
-    )
-  }, [allRoutes])
+  const collections = useMemo(
+    () => new Set(routeIndex.collectionNames),
+    [routeIndex.collectionNames],
+  )
 
   const currentSegment = location.pathname
     .split('/')

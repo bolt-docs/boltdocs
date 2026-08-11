@@ -1,6 +1,7 @@
 import { useMemo } from 'react'
-import { useLocation } from '../router'
+import { parseUrlReference, useLocation } from '../router'
 import { useConfig } from '../app/config-context'
+import { useRoutesContext } from '../app/routes-context'
 import type { ComponentRoute } from '../types'
 import { normalizePath } from '../utils/path'
 
@@ -67,9 +68,22 @@ const getOrCreateNode = (
   return lastNode
 }
 
+interface SidebarGroupData {
+  slug: string
+  title: string
+  icon?: string
+  path: string
+  filePath: string
+  routes: ComponentRoute[]
+  sidebarPosition?: number
+  collapsible?: boolean
+  collapsed?: boolean
+}
+
 const getRoutePosition = (r: ComponentRoute) =>
   r.sidebarPosition ?? r.order ?? 999
-const getNodePosition = (n: any) => n.sidebarPosition ?? n.groupPosition ?? 999
+const getNodePosition = (n: ComponentRoute) =>
+  n.sidebarPosition ?? n.groupPosition ?? 999
 
 const finalizeTree = (nodes: TreeNode[]): ComponentRoute[] => {
   return nodes
@@ -97,18 +111,43 @@ const finalizeTree = (nodes: TreeNode[]): ComponentRoute[] => {
 export function useSidebar(routes: ComponentRoute[]) {
   const config = useConfig()
   const { pathname } = useLocation()
+  const { index } = useRoutesContext()
+  const currentPath = normalizePath(pathname)
+  const activeRoute =
+    index.byPath.size > 0
+      ? index.byPath.get(currentPath)
+      : routes.find((route) => normalizePath(route.path) === currentPath)
+  const configuredTabs = config.theme?.tabs || []
+  const configuredTabIds = new Set(
+    configuredTabs.map((tab) => tab.id.toLowerCase()),
+  )
 
-  return useMemo(() => {
-    const currentPath = normalizePath(pathname)
+  // The docs root is commonly rendered by a generated fallback route. Keep
+  // the sidebar scoped to the first tab there instead of showing every tab.
+  // For a concrete page, its route metadata remains the source of truth.
+  const normalizedBase = normalizePath(config.base || '/docs')
+  const routeTabId = activeRoute?.tab?.toLowerCase()
+  const parsedCurrentRoute = parseUrlReference(currentPath, config, {
+    kind: 'doc',
+  })
+  const isDocsRoot =
+    currentPath === normalizedBase ||
+    (Boolean(activeRoute?.fallback) && parsedCurrentRoute.routePath === '/') ||
+    (currentPath.startsWith(`${normalizedBase}/`) &&
+      parsedCurrentRoute.routePath === '/')
+  const activeTabId =
+    (isDocsRoot
+      ? configuredTabs[0]?.id.toLowerCase()
+      : routeTabId && configuredTabIds.has(routeTabId)
+        ? routeTabId
+        : undefined) || undefined
 
-    const activeRoute = routes.find(
-      (r) => normalizePath(r.path) === currentPath,
-    )
-    const activeTabId = activeRoute?.tab?.toLowerCase()
-
+  const sidebar = useMemo(() => {
     const filteredRoutes = routes
       .filter((r) => !r.collection && !r.sidebarHidden && !r.fallback)
-      .filter((r) => !activeTabId || r.tab?.toLowerCase() === activeTabId)
+      .filter(
+        (r) => !configuredTabs.length || r.tab?.toLowerCase() === activeTabId,
+      )
       .sort((a, b) => getRoutePosition(a) - getRoutePosition(b))
 
     const directoryMeta = getCleanDirectoryMeta(config.directoryMeta)
@@ -147,10 +186,11 @@ export function useSidebar(routes: ComponentRoute[]) {
     }
 
     const finalizedTopNodes = finalizeTree(Array.from(rootNodesMap.values()))
-    const groups: any[] = []
+    const groups: SidebarGroupData[] = []
 
     for (const node of finalizedTopNodes) {
       if (node.subRoutes && node.subRoutes.length > 0) {
+        const nodeWithMeta = node as TreeNode
         groups.push({
           slug: node.title.toLowerCase().replace(/\s+/g, '-'),
           title: node.title,
@@ -159,8 +199,8 @@ export function useSidebar(routes: ComponentRoute[]) {
           filePath: node.filePath,
           routes: node.subRoutes,
           sidebarPosition: node.sidebarPosition ?? node.groupPosition ?? 999,
-          collapsible: (node as any).collapsible,
-          collapsed: (node as any).collapsed,
+          collapsible: nodeWithMeta.collapsible,
+          collapsed: nodeWithMeta.collapsed,
         })
       } else {
         ungrouped.push(node)
@@ -170,9 +210,13 @@ export function useSidebar(routes: ComponentRoute[]) {
     return {
       groups,
       ungrouped: finalizeTree(ungrouped as TreeNode[]),
-      activeRoute,
-      activePath: currentPath,
-      config,
     }
-  }, [routes, config, pathname])
+  }, [routes, config, activeTabId, configuredTabs.length, currentPath])
+
+  return {
+    ...sidebar,
+    activeRoute,
+    activePath: currentPath,
+    config,
+  }
 }

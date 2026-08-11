@@ -1,12 +1,28 @@
-import { createContext, use, useEffect, useState } from 'react'
+import { createContext, use, useEffect, useMemo, useState } from 'react'
 import type { ComponentRoute } from '../types'
+import type { UrlRouteHint } from '../router'
+import { normalizePath } from '../utils/path'
+
+export interface RouteIndex {
+  byPath: ReadonlyMap<string, ComponentRoute>
+  hintsByPath: ReadonlyMap<string, UrlRouteHint>
+  collectionNames: readonly string[]
+}
 
 interface RoutesContextType {
   routes: ComponentRoute[]
+  index: RouteIndex
+}
+
+const emptyRouteIndex: RouteIndex = {
+  byPath: new Map(),
+  hintsByPath: new Map(),
+  collectionNames: [],
 }
 
 const RoutesContext = createContext<RoutesContextType>({
   routes: [],
+  index: emptyRouteIndex,
 })
 
 /**
@@ -35,6 +51,30 @@ export function RoutesProvider({
 }) {
   const [routes, setRoutes] = useState(initialRoutes)
 
+  const index = useMemo<RouteIndex>(() => {
+    const byPath = new Map<string, ComponentRoute>()
+    const hintsByPath = new Map<string, UrlRouteHint>()
+    const collectionNames = new Set<string>()
+
+    for (const route of routes) {
+      if (!route.path) continue
+      const path = normalizePath(route.path)
+      byPath.set(path, route)
+      hintsByPath.set(path, {
+        path: route.path,
+        kind: route.collection ? 'collection' : undefined,
+        collection: route.collection,
+      })
+      if (route.collection) collectionNames.add(route.collection)
+    }
+
+    return {
+      byPath,
+      hintsByPath,
+      collectionNames: [...collectionNames],
+    }
+  }, [routes])
+
   useEffect(() => {
     if (!import.meta.hot) return
 
@@ -60,7 +100,7 @@ export function RoutesProvider({
   }, [])
 
   return (
-    <RoutesContext.Provider value={{ routes }}>
+    <RoutesContext.Provider value={{ routes, index }}>
       {children}
     </RoutesContext.Provider>
   )

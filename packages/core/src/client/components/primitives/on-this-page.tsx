@@ -1,8 +1,8 @@
 import {
   createContext,
   use,
+  useCallback,
   useEffect,
-  useImperativeHandle,
   useMemo,
   useRef,
   useState,
@@ -10,6 +10,7 @@ import {
   type RefObject,
 } from 'react'
 import scrollIntoView from 'scroll-into-view-if-needed'
+import { defaultNavigate, useNavigate } from '../../router'
 import { cn } from '../../utils/cn'
 import type { ComponentBase } from './types'
 import { getItemId, Observer } from './helpers/observer'
@@ -155,7 +156,7 @@ export function AnchorProvider({
     return () => {
       observer.unwatch()
     }
-  }, [observer])
+  }, [observer, observerOptions])
 
   return <ItemsContext.Provider value={items}>{children}</ItemsContext.Provider>
 }
@@ -194,24 +195,37 @@ function OnThisPageContent({
 }: OnThisPageContentProps) {
   const internalRef = useRef<HTMLDivElement>(null)
 
-  useImperativeHandle(ref, () => internalRef.current!)
+  const setRefs = useCallback(
+    (node: HTMLDivElement | null) => {
+      internalRef.current = node
+      if (typeof ref === 'function') {
+        ref(node)
+      } else if (ref) {
+        ref.current = node
+      }
+    },
+    [ref],
+  )
 
   return (
     <div
-      ref={internalRef}
+      ref={setRefs}
       className={cn(
-        'relative overflow-y-auto boltdocs-otp-content pb-12',
+        'relative isolate overflow-y-auto boltdocs-otp-content pb-12',
         'max-h-[70%]',
         className,
       )}
-      style={{
-        maskImage: 'linear-gradient(to bottom, black 90%, transparent 100%)',
-        WebkitMaskImage:
-          'linear-gradient(to bottom, black 90%, transparent 100%)',
-      }}
       {...props}
     >
-      {children}
+      <div className="relative z-10">{children}</div>
+      <div
+        aria-hidden="true"
+        className="pointer-events-none sticky bottom-0 z-0 -mt-10 h-10 w-full"
+        style={{
+          background:
+            'linear-gradient(to bottom, color-mix(in srgb, var(--color-main) 0%, transparent), var(--color-main) 96%)',
+        }}
+      />
     </div>
   )
 }
@@ -244,6 +258,7 @@ function OnThisPageLink({
 }: OnThisPageLinkProps) {
   const items = use(ItemsContext)
   const containerRef = use(ScrollContext)
+  const navigate = useNavigate()
   const id = href ? getItemId(href) : null
   const anchorRef = useRef<HTMLAnchorElement>(null)
 
@@ -257,7 +272,7 @@ function OnThisPageLink({
   useEffect(() => {
     if (computedActive && anchorRef.current && containerRef?.current) {
       scrollIntoView(anchorRef.current, {
-        behavior: 'smooth',
+        behavior: 'auto',
         block: 'center',
         inline: 'center',
         scrollMode: 'if-needed',
@@ -269,13 +284,13 @@ function OnThisPageLink({
   const handleClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
     if (onClick) {
       onClick(e)
-    } else if (href && href.startsWith('#')) {
-      e.preventDefault()
-      const elementId = href.slice(1)
-      const el = document.getElementById(elementId)
-      if (el) {
-        el.scrollIntoView({ behavior: 'smooth' })
-        window.history.pushState(null, '', href)
+      return
+    }
+    if (href) {
+      const elementId = href.includes('#') ? href.split('#')[1] : null
+      if (elementId && navigate !== defaultNavigate) {
+        e.preventDefault()
+        navigate(href)
       }
     }
   }
@@ -307,6 +322,8 @@ function OnThisPageIndicator({ style, className }: OnThisPageIndicatorProps) {
   const items = useItems()
 
   useEffect(() => {
+    if (items.length === 0) return
+
     const parent = containerRef.current?.parentElement
     if (!parent) return
 
@@ -400,7 +417,7 @@ export function OnThisPageTree({
   if (headings.length === 0) return null
 
   return (
-    <AnchorProvider toc={toc} single={false}>
+    <AnchorProvider toc={toc} single={true}>
       <ScrollProvider containerRef={scrollContainerRef}>
         <OnThisPageContent ref={scrollContainerRef}>
           <OnThisPageItems headings={headings} className={className} />

@@ -11,6 +11,8 @@ import { Link } from './link'
 import { Menu } from './menu'
 import { Popover } from './popover'
 import { cn } from '../../utils/cn'
+import { resolvePublicAssetUrl } from '../../utils/path'
+import { useConfig } from '../../app/config-context'
 import { Sun, Moon, ExternalLink, MoreVertical, X } from '../ui-base/icons'
 import * as IconsSocials from '../icons-prod'
 import type { ComponentBase } from './types'
@@ -119,6 +121,8 @@ function NavbarLogo({
   className,
   href = '/',
 }: NavbarLogoProps) {
+  const config = useConfig()
+
   return (
     <Link
       href={href}
@@ -126,7 +130,7 @@ function NavbarLogo({
     >
       {src ? (
         <img
-          src={src}
+          src={resolvePublicAssetUrl(src, config.base)}
           alt={alt}
           width={width}
           height={height}

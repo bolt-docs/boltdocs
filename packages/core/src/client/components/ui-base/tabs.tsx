@@ -3,21 +3,23 @@ import { useTabs as useTabsHook } from '../../hooks/use-tabs'
 import { Tabs as T } from '../primitives/tabs'
 import { Link } from '../primitives/link'
 import type { BoltdocsTab, ComponentRoute } from '../../types'
-import * as DefaultIcons from './icons'
-import virtualIcons from 'virtual:boltdocs-icons'
+import { IconRenderer, resolveIcon } from './icon-renderer'
 import { getTranslated } from '../../utils/i18n'
 import { useRoutes } from '../../hooks/use-routes'
-import DOMPurify from 'isomorphic-dompurify'
 
 export function Tabs({
   tabs,
   routes,
+  allRoutes,
 }: {
   tabs: BoltdocsTab[]
   routes: ComponentRoute[]
+  allRoutes?: ComponentRoute[]
 }) {
   const { currentLocale } = useRoutes()
   const { indicatorStyle, tabRefs, activeIndex } = useTabsHook(tabs, routes)
+  const routeCandidates = routes
+  const fallbackRouteCandidates = allRoutes || []
 
   useEffect(() => {
     const activeTab = tabRefs.current[activeIndex]
@@ -28,34 +30,24 @@ export function Tabs({
         inline: 'center',
       })
     }
-  }, [activeIndex])
+  }, [activeIndex, tabRefs])
 
-  const renderTabIcon = (iconName?: string) => {
-    if (!iconName) return null
-    if (iconName.trim().startsWith('<svg')) {
-      const clean = DOMPurify.sanitize(iconName, {
-        USE_PROFILES: { svg: true },
-      })
-      return (
-        <span className="h-4 w-4" dangerouslySetInnerHTML={{ __html: clean }} />
-      )
-    }
-    const icons = { ...DefaultIcons, ...virtualIcons } as Record<string, any>
-    const TabIcon = icons[iconName] || icons[iconName + 'Icon']
-    if (TabIcon) {
-      return <TabIcon size={16} />
-    }
-    return <img src={iconName} alt="" className="h-4 w-4 object-contain" />
-  }
+  const renderTabIcon = (iconName?: string) => (
+    <IconRenderer icon={resolveIcon(iconName)} size={16} />
+  )
 
   return (
     <div className="mx-auto max-w-(--breakpoint-3xl) px-4 md:px-6 select-none">
       <T.List className="border-none py-0 scrollbar-hide relative flex flex-row items-center overflow-x-auto">
         {tabs.map((tab, index) => {
           const isActive = index === activeIndex
-          const firstRoute = routes.find(
-            (r) => r.tab && r.tab.toLowerCase() === tab.id.toLowerCase(),
-          )
+          const firstRoute =
+            routeCandidates.find(
+              (r) => r.tab && r.tab.toLowerCase() === tab.id.toLowerCase(),
+            ) ||
+            fallbackRouteCandidates.find(
+              (r) => r.tab && r.tab.toLowerCase() === tab.id.toLowerCase(),
+            )
           const linkTo = firstRoute ? firstRoute.path : '#'
 
           return (
