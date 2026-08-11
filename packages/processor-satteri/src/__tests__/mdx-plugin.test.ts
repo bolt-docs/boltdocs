@@ -17,6 +17,9 @@ vi.mock('../node/index', () => ({
       },
     ],
   }),
+  isPrecompileStarted: () => false,
+  getPrecompilePromise: () => null,
+  CompilePool: vi.fn(),
 }))
 
 vi.mock('../node/user-plugins', () => ({
@@ -41,8 +44,10 @@ vi.mock('../node/compiler', () => ({
 vi.mock('node:fs', () => ({
   default: {
     readFileSync: vi.fn(),
+    existsSync: vi.fn(() => false),
   },
   readFileSync: vi.fn(),
+  existsSync: vi.fn(() => false),
 }))
 
 vi.mock('satteri', () => ({
@@ -88,7 +93,50 @@ describe('createSatteriMdxPlugin', () => {
         expect.objectContaining({ name: 'mock-shiki-plugin' }),
         expect.objectContaining({ name: 'user-rehype-plugin' }),
       ]),
+      expect.any(String),
     )
+  })
+
+  it('does not bulk-precompile during Vite serve, including production-mode preview', async () => {
+    const previousNodeEnv = process.env.NODE_ENV
+    process.env.NODE_ENV = 'production'
+
+    try {
+      const configResolved = plugin.configResolved as unknown as (
+        config: unknown,
+      ) => void
+      configResolved({ command: 'serve', root: '/tmp/project' })
+
+      await (
+        plugin as unknown as { buildStart: () => Promise<void> }
+      ).buildStart()
+
+      expect(vi.mocked(fs.existsSync)).not.toHaveBeenCalled()
+    } finally {
+      if (previousNodeEnv === undefined) delete process.env.NODE_ENV
+      else process.env.NODE_ENV = previousNodeEnv
+    }
+  })
+
+  it('keeps bulk precompile enabled for Vite production builds', async () => {
+    const previousNodeEnv = process.env.NODE_ENV
+    delete process.env.NODE_ENV
+
+    try {
+      const configResolved = plugin.configResolved as unknown as (
+        config: unknown,
+      ) => void
+      configResolved({ command: 'build', root: '/tmp/project' })
+
+      await (
+        plugin as unknown as { buildStart: () => Promise<void> }
+      ).buildStart()
+
+      expect(vi.mocked(fs.existsSync)).toHaveBeenCalled()
+    } finally {
+      if (previousNodeEnv === undefined) delete process.env.NODE_ENV
+      else process.env.NODE_ENV = previousNodeEnv
+    }
   })
 
   describe('load hook', () => {
@@ -214,7 +262,7 @@ describe('createSatteriMdxPlugin', () => {
         'export default function MDXContent() { return null }',
       )
 
-      const result = await (
+      await (
         plugin as {
           transform: (code: string, id: string) => Promise<unknown>
         }
@@ -234,7 +282,7 @@ describe('createSatteriMdxPlugin', () => {
       }
       mockGetLifecycle.mockReturnValue(lifecycleMock)
 
-      const result = await (
+      await (
         plugin as {
           transform: (code: string, id: string) => Promise<unknown>
         }

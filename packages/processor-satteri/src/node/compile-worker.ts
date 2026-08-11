@@ -21,15 +21,22 @@ const DEFAULT_HAST_PLUGINS = [
   satteriRehypeShikiPlugin(),
 ]
 
-// Eagerly pre-warm Sätteri + Shiki engine at worker instantiation
-mdxToJs('# Prewarm', {
-  jsxRuntime: 'automatic',
-  jsxImportSource: 'react',
-  outputFormat: 'program',
-  mdastPlugins: [...DEFAULT_MDAST_PLUGINS],
-  hastPlugins: [...DEFAULT_HAST_PLUGINS],
-  features: { gfm: true, frontmatter: true },
-}).catch(() => {})
+// Eagerly pre-warm Sätteri + Shiki engine at worker instantiation.
+// `mdxToJs` is synchronous in the NAPI implementation, so use try/catch
+// instead of Promise.catch() here. The compile path below intentionally uses
+// `await`, which remains compatible with both sync and async implementations.
+try {
+  mdxToJs('# Prewarm', {
+    jsxRuntime: 'automatic',
+    jsxImportSource: 'react',
+    outputFormat: 'program',
+    mdastPlugins: [...DEFAULT_MDAST_PLUGINS],
+    hastPlugins: [...DEFAULT_HAST_PLUGINS],
+    features: { gfm: true, frontmatter: true },
+  })
+} catch {
+  // Prewarming is best-effort; compilation reports real errors to the caller.
+}
 
 export default async function compileTask(msg: {
   sourceCode: string

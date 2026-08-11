@@ -48,11 +48,25 @@ describe('MdxCompiler', () => {
   })
 
   describe('compile', () => {
-    it('returns cached result when available', async () => {
+    it('loads the persistent cache before the first lookup', async () => {
       mockCacheInstance.getAsync.mockResolvedValue('cached-code')
+
       const result = await compiler.compile('# Hello', 'test.mdx')
+
       expect(result).toBe('cached-code')
+      expect(mockCacheInstance.load).toHaveBeenCalledOnce()
+      expect(mockCacheInstance.getAsync).toHaveBeenCalledOnce()
       expect(satteriMdxToJs).not.toHaveBeenCalled()
+    })
+
+    it('loads the persistent cache only once for multiple compilations', async () => {
+      mockCacheInstance.getAsync.mockResolvedValue('cached-code')
+
+      await compiler.compile('# One', 'one.mdx')
+      await compiler.compile('# Two', 'two.mdx')
+
+      expect(mockCacheInstance.load).toHaveBeenCalledOnce()
+      expect(mockCacheInstance.getAsync).toHaveBeenCalledTimes(2)
     })
 
     it('compiles with satteri on cache miss', async () => {
@@ -71,6 +85,31 @@ describe('MdxCompiler', () => {
         hastPlugins: [],
         features: { gfm: true, frontmatter: true },
       })
+    })
+
+    it('accepts the synchronous Sätteri API result', async () => {
+      mockCacheInstance.getAsync.mockResolvedValue(null)
+      vi.mocked(satteriMdxToJs).mockReturnValue({
+        code: 'export default function MDXContent() {}',
+      } as never)
+
+      const result = await compiler.compile('# Hello', 'test.mdx')
+
+      expect(result).toContain('MDXContent')
+      expect(mockCacheInstance.set).toHaveBeenCalled()
+    })
+
+    it('includes the compiler plugin signature in the cache key', async () => {
+      mockCacheInstance.getAsync.mockResolvedValue(null)
+      vi.mocked(satteriMdxToJs).mockResolvedValue({
+        code: 'export default function MDXContent() {}',
+      } as never)
+
+      await compiler.compile('# Hello', 'test.mdx')
+
+      expect(mockCacheInstance.getAsync).toHaveBeenCalledWith(
+        expect.stringMatching(/^test\.mdx:mocked-hash:dev:mocked-hash$/),
+      )
     })
 
     it('caches compiled result', async () => {

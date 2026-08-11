@@ -2,6 +2,7 @@ import type { Plugin, ResolvedConfig } from 'vite'
 import fs from 'node:fs'
 import path from 'node:path'
 import crypto from 'node:crypto'
+import os from 'node:os'
 import type { BoltdocsConfig, IPluginLifecycleManager } from 'boltdocs'
 import {
   createSatteriProcessorPlugin,
@@ -14,8 +15,11 @@ import { MdxCompiler, MDX_PLUGIN_VERSION } from './compiler'
 import type { PoolMetrics } from './compile-pool'
 
 const PRE_COMPILED_CACHE = new Map<string, string>()
-/** Source file mtime when an entry was stored — used to skip stale dev cache. */
-const PRE_COMPILED_SOURCE_MTIME = new Map<string, number>()
+/** Source stat when an entry was stored — used to skip stale dev cache. */
+const PRE_COMPILED_SOURCE_STAT = new Map<
+  string,
+  { mtime: number; size: number }
+>()
 const _precompiledIds = new Set<string>()
 
 /**
@@ -48,19 +52,24 @@ function setPrecompiledCache(filePath: string, code: string): void {
   const key = resolveMdxCacheKey(filePath)
   PRE_COMPILED_CACHE.set(key, code)
   try {
-    PRE_COMPILED_SOURCE_MTIME.set(key, fs.statSync(key).mtimeMs)
+    const stat = fs.statSync(key)
+    PRE_COMPILED_SOURCE_STAT.set(key, {
+      mtime: stat.mtimeMs,
+      size: stat.size,
+    })
   } catch {
-    PRE_COMPILED_SOURCE_MTIME.delete(key)
+    PRE_COMPILED_SOURCE_STAT.delete(key)
   }
 }
 
 function isDevSourceStale(filePath: string): boolean {
   if (process.env.NODE_ENV === 'production' || process.env.CI) return false
   const key = resolveMdxCacheKey(filePath)
-  const cachedMtime = PRE_COMPILED_SOURCE_MTIME.get(key)
-  if (cachedMtime === undefined) return false
+  const cachedStat = PRE_COMPILED_SOURCE_STAT.get(key)
+  if (cachedStat === undefined) return false
   try {
-    return fs.statSync(key).mtimeMs !== cachedMtime
+    const stat = fs.statSync(key)
+    return stat.mtimeMs !== cachedStat.mtime || stat.size !== cachedStat.size
   } catch {
     return true
   }
@@ -70,7 +79,7 @@ function isDevSourceStale(filePath: string): boolean {
 export function invalidateMdxFileCache(filePath: string): void {
   const key = resolveMdxCacheKey(filePath)
   PRE_COMPILED_CACHE.delete(key)
-  PRE_COMPILED_SOURCE_MTIME.delete(key)
+  PRE_COMPILED_SOURCE_STAT.delete(key)
   MANIFEST_CACHE.delete(key)
   _precompiledIds.delete(key)
 }
@@ -85,10 +94,11 @@ const _outFileParsedCache = new Map<string, OutFileCacheEntry>()
 /** Clears all in-process MDX compile caches (for tests and dev server restarts). */
 export function resetMdxRuntimeCaches(): void {
   PRE_COMPILED_CACHE.clear()
-  PRE_COMPILED_SOURCE_MTIME.clear()
+  PRE_COMPILED_SOURCE_STAT.clear()
   MANIFEST_CACHE.clear()
   _precompiledIds.clear()
   _outFileParsedCache.clear()
+  LAST_GLOBAL_KEY = ''
 }
 
 interface PrecompileManifest {
@@ -104,6 +114,7 @@ interface PrecompileManifest {
       exportName: string
       outFile: string
       mtime: number
+      size?: number
     }
   >
 }
@@ -121,6 +132,97 @@ function getManifestPath(root: string): string {
 
 function hashInput(input: string | Buffer): string {
   return crypto.createHash('md5').update(input).digest('hex')
+}
+
+function writeFileIfChanged(filePath: string, content: string): boolean {
+  try {
+    if (
+      fs.existsSync(filePath) &&
+      fs.readFileSync(filePath, 'utf-8') === content
+    ) {
+      return false
+    }
+  } catch {
+    // Fall through and replace an unreadable or missing artifact.
+  }
+  fs.writeFileSync(filePath, content, 'utf-8')
+  return true
+}
+
+function isManifestEntryFresh(
+  filePath: string,
+  entry: { mtime?: number; size?: number } | undefined,
+): boolean {
+  if (!entry) return false
+  try {
+    const stat = fs.statSync(filePath)
+    return (
+      stat.mtimeMs === entry.mtime &&
+      (entry.size === undefined || stat.size === entry.size)
+    )
+  } catch {
+    return false
+  }
+}
+
+function hasCompleteCompiledPagesArtifacts(
+  root: string,
+  files: PrecompileManifest['files'],
+): boolean {
+  const compiledDir = getCompileDir(root)
+  const pagesDir = path.join(compiledDir, 'pages')
+  const pagesIndexFile = path.join(pagesDir, 'index.mjs')
+  const combinedFile = path.join(pagesDir, 'combined.mjs')
+  const globMapFile = path.join(compiledDir, 'pages-glob-map.json')
+
+  if (
+    !fs.existsSync(pagesIndexFile) ||
+    !fs.existsSync(combinedFile) ||
+    !fs.existsSync(globMapFile)
+  ) {
+    return false
+  }
+
+  try {
+    const globMap = JSON.parse(fs.readFileSync(globMapFile, 'utf-8')) as Record<
+      string,
+      string
+    >
+    const expectedGlobMap = new Map<string, string>()
+    for (const [filePath, entry] of Object.entries(files)) {
+      const relativePath = path
+        .relative(root, filePath)
+        .split(path.sep)
+        .join('/')
+      expectedGlobMap.set(`/${relativePath}`, entry.exportName)
+    }
+
+    if (Object.keys(globMap).length !== expectedGlobMap.size) return false
+    for (const [key, exportName] of expectedGlobMap) {
+      if (globMap[key] !== exportName) return false
+    }
+
+    for (const entry of Object.values(files)) {
+      if (!fs.existsSync(entry.outFile)) return false
+    }
+
+    const chunkMapFile = path.join(compiledDir, 'pages-chunk-map.json')
+    if (fs.existsSync(chunkMapFile)) {
+      const chunkMap = JSON.parse(
+        fs.readFileSync(chunkMapFile, 'utf-8'),
+      ) as Record<string, number>
+      const chunkIndexes = new Set(Object.values(chunkMap))
+      for (const index of chunkIndexes) {
+        if (!fs.existsSync(path.join(pagesDir, `chunk-${index}.mjs`))) {
+          return false
+        }
+      }
+    }
+
+    return true
+  } catch {
+    return false
+  }
 }
 
 function readManifest(
@@ -173,11 +275,18 @@ function computeGlobalKey(
   // content. We can't hash plugin functions, so we use names/versions when
   // available and fall back to counts.
   const pluginSignatures = (config.plugins || [])
-    .map((p: any) => `${p?.name ?? 'unknown'}@${p?.version ?? '0'}`)
+    .map((p: any) => {
+      const options = p?.options ? JSON.stringify(p.options) : ''
+      return `${p?.name ?? 'unknown'}@${p?.version ?? '0'}:${options}`
+    })
     .join(',')
 
+  const compilerSignature = String(
+    (compiler as MdxCompiler & { signature?: string }).signature ?? 'compiler',
+  )
   const parts = [
     `v${MANIFEST_VERSION}`,
+    compilerSignature,
     MDX_PLUGIN_VERSION,
     process.env.NODE_ENV || 'development',
     hasTransformSource ? 'with-transformSource' : 'no-transformSource',
@@ -343,9 +452,16 @@ export function createSatteriMdxPlugin(
   const hasUserPlugins =
     userPlugins.remarkPlugins.length > 0 || userPlugins.rehypePlugins.length > 0
 
+  const compilerConfigSignature = JSON.stringify({
+    codeTheme: config.theme?.codeTheme || {},
+    shiki: (config as BoltdocsConfig & { shiki?: unknown }).shiki || null,
+    base: config.base || '/',
+    siteUrl: config.siteUrl || '',
+  })
   const compiler = new MdxCompiler(
     [...mdastPlugins, ...userPlugins.remarkPlugins],
     [...hastPlugins, ...userPlugins.rehypePlugins],
+    compilerConfigSignature,
   )
 
   // P2-22: Compile pool for parallel MDX compilation
@@ -376,6 +492,7 @@ export function createSatteriMdxPlugin(
   }
 
   let viteResolvedConfig: ResolvedConfig | undefined
+  const isBuildCommand = () => viteResolvedConfig?.command === 'build'
   // Background pre-compilation promise kicked off in configResolved so it
   // can overlap with Vite's setup and the main boltdocs config() work.
   let preCompilePromise: Promise<void> | null = null
@@ -431,6 +548,13 @@ export function createSatteriMdxPlugin(
 
     // Global key changes whenever the compiler, plugins, or relevant env changes.
     const globalKey = computeGlobalKey(compiler, config, hasTransformSource)
+    if (LAST_GLOBAL_KEY && LAST_GLOBAL_KEY !== globalKey) {
+      PRE_COMPILED_CACHE.clear()
+      PRE_COMPILED_SOURCE_STAT.clear()
+      MANIFEST_CACHE.clear()
+      _precompiledIds.clear()
+      _outFileParsedCache.clear()
+    }
     LAST_GLOBAL_KEY = globalKey
     const manifest = readManifest(root, globalKey) || {}
 
@@ -453,8 +577,14 @@ export function createSatteriMdxPlugin(
     // When transformSource IS active, we must validate each file individually
     // because the same raw source may produce different compiled output if
     // the transform plugin changed.
-    if (!hasTransformSource && fs.existsSync(pagesIndexFile)) {
-      const allCached = mdxFiles.every((f) => MANIFEST_CACHE.has(f))
+    if (
+      !hasTransformSource &&
+      hasCompleteCompiledPagesArtifacts(root, manifest) &&
+      fs.existsSync(pagesIndexFile)
+    ) {
+      const allCached = mdxFiles.every(
+        (f) => MANIFEST_CACHE.has(f) && isManifestEntryFresh(f, manifest[f]),
+      )
       if (allCached) {
         COMPILED_PAGES_INDEX_PATH = pagesIndexFile
         return
@@ -499,7 +629,9 @@ export function createSatteriMdxPlugin(
         // load() hook will lazy-load via MANIFEST_CACHE if needed.
         if (
           !hasTransformSource &&
-          (PRE_COMPILED_CACHE.has(file) || MANIFEST_CACHE.has(file))
+          (PRE_COMPILED_CACHE.has(file) ||
+            (MANIFEST_CACHE.has(file) &&
+              isManifestEntryFresh(file, manifest[file])))
         ) {
           hitCount++
           continue
@@ -635,11 +767,13 @@ export function createSatteriMdxPlugin(
       // matches what the compiler actually compiled.
       const sourceForHash =
         rawContentMap.get(filePath) ?? fs.readFileSync(filePath, 'utf-8')
+      const sourceStat = fs.statSync(filePath)
       newManifest[filePath] = {
         contentHash: hashInput(sourceForHash),
         exportName,
         outFile,
-        mtime: fs.statSync(filePath).mtimeMs,
+        mtime: sourceStat.mtimeMs,
+        size: sourceStat.size,
       }
     }
 
@@ -661,6 +795,7 @@ export function createSatteriMdxPlugin(
             exportName: cachedEntry.exportName,
             outFile: cachedEntry.outFile,
             mtime: fs.existsSync(filePath) ? fs.statSync(filePath).mtimeMs : 0,
+            size: fs.existsSync(filePath) ? fs.statSync(filePath).size : 0,
           }
         }
       }
@@ -680,15 +815,14 @@ export function createSatteriMdxPlugin(
       const exportName = pageMap[filePath] || filePathToExportName(filePath)
       const relPath = path.relative(docsDirAbs, filePath)
       if (!relPath.startsWith('..')) {
-        const globKey =
-          '/' + docsDirName + '/' + relPath.split(path.sep).join('/')
+        const globKey = `/${docsDirName}/${relPath.split(path.sep).join('/')}`
         globMap[globKey] = exportName
       }
     }
 
     // Write barrel index + glob map + manifest
-    fs.writeFileSync(pagesIndexFile, reexports.join('\n'), 'utf-8')
-    fs.writeFileSync(globMapFile, JSON.stringify(globMap), 'utf-8')
+    writeFileIfChanged(pagesIndexFile, reexports.join('\n'))
+    writeFileIfChanged(globMapFile, JSON.stringify(globMap))
     writeManifest(root, globalKey, newManifest)
 
     // ── PR-06: Write combined single file for SSR ────────────────────
@@ -715,8 +849,7 @@ export function createSatteriMdxPlugin(
 
       const relPath = path.relative(docsDirAbs2, filePath)
       if (relPath.startsWith('..')) continue
-      const globKey =
-        '/' + docsDirName + '/' + relPath.split(path.sep).join('/')
+      const globKey = `/${docsDirName}/${relPath.split(path.sep).join('/')}`
 
       let cached = _outFileParsedCache.get(outFile)
       const mtime = fs.statSync(outFile).mtimeMs
@@ -790,7 +923,7 @@ export function createSatteriMdxPlugin(
     combinedLines.push('')
 
     for (const { key, body } of pageEntries) {
-      combinedLines.push('// Page: ' + key)
+      combinedLines.push(`// Page: ${key}`)
       combinedLines.push('(function() {')
       if (body.trim()) {
         combinedLines.push(body)
@@ -810,7 +943,7 @@ export function createSatteriMdxPlugin(
     }
 
     combinedLines.push('export default __pages;')
-    fs.writeFileSync(combinedFile, combinedLines.join('\n'), 'utf-8')
+    writeFileIfChanged(combinedFile, combinedLines.join('\n'))
 
     // ── P2-20: Write client chunk packs for ALL sites > 25 pages ──
     // Groups pages into chunks of 25 to reduce Vite/Rolldown module count
@@ -826,23 +959,6 @@ export function createSatteriMdxPlugin(
           : totalFiles <= 500
             ? 50
             : 100
-
-    // Remove any old chunk files from previous builds
-    // (also cleans up files from the old 500-page threshold)
-    const oldChunks = fs
-      .readdirSync(pagesDir)
-      .filter((f) => f.startsWith('chunk-') && f.endsWith('.mjs'))
-    for (const oldChunk of oldChunks) {
-      try {
-        fs.unlinkSync(path.join(pagesDir, oldChunk))
-      } catch {}
-    }
-    const oldChunkMapFile = path.join(compileDir, 'pages-chunk-map.json')
-    if (fs.existsSync(oldChunkMapFile)) {
-      try {
-        fs.unlinkSync(oldChunkMapFile)
-      } catch {}
-    }
 
     // P2-20.4: Write shared imports chunk (_shared.mjs) so every page chunk
     // doesn't repeat the same import lines.  Each chunk imports _shared.mjs
@@ -866,7 +982,18 @@ export function createSatteriMdxPlugin(
 
     if (pageEntries.length > PAGES_PER_CHUNK) {
       const chunkCount = Math.ceil(pageEntries.length / PAGES_PER_CHUNK)
-      const chunkMap = {}
+      const chunkMap: Record<string, number> = {}
+      const oldChunks = fs
+        .readdirSync(pagesDir)
+        .filter((f) => f.startsWith('chunk-') && f.endsWith('.mjs'))
+      for (const oldChunk of oldChunks) {
+        const chunkIndex = Number.parseInt(oldChunk.slice(6, -4), 10)
+        if (Number.isFinite(chunkIndex) && chunkIndex >= chunkCount) {
+          try {
+            fs.unlinkSync(path.join(pagesDir, oldChunk))
+          } catch {}
+        }
+      }
 
       for (let chunkIdx = 0; chunkIdx < chunkCount; chunkIdx++) {
         const start = chunkIdx * PAGES_PER_CHUNK
@@ -904,16 +1031,15 @@ export function createSatteriMdxPlugin(
         }
 
         chunkLines.push('export default __pages;')
-        fs.writeFileSync(
-          path.join(pagesDir, 'chunk-' + chunkIdx + '.mjs'),
+        writeFileIfChanged(
+          path.join(pagesDir, `chunk-${chunkIdx}.mjs`),
           chunkLines.join('\n'),
-          'utf-8',
         )
       }
 
       // Write chunk map for the entry code to use
       const chunkMapPath = path.join(compileDir, 'pages-chunk-map.json')
-      fs.writeFileSync(chunkMapPath, JSON.stringify(chunkMap), 'utf-8')
+      writeFileIfChanged(chunkMapPath, JSON.stringify(chunkMap))
       console.log(
         '[satteri-mdx] client chunks: ' +
           chunkCount +
@@ -923,6 +1049,21 @@ export function createSatteriMdxPlugin(
           PAGES_PER_CHUNK +
           ' per chunk)',
       )
+    } else {
+      const oldChunks = fs
+        .readdirSync(pagesDir)
+        .filter((f) => f.startsWith('chunk-') && f.endsWith('.mjs'))
+      for (const oldChunk of oldChunks) {
+        try {
+          fs.unlinkSync(path.join(pagesDir, oldChunk))
+        } catch {}
+      }
+      const oldChunkMapFile = path.join(compileDir, 'pages-chunk-map.json')
+      if (fs.existsSync(oldChunkMapFile)) {
+        try {
+          fs.unlinkSync(oldChunkMapFile)
+        } catch {}
+      }
     }
 
     COMPILED_PAGES_INDEX_PATH = pagesIndexFile
@@ -962,6 +1103,13 @@ export function createSatteriMdxPlugin(
     configResolved(resolved) {
       viteResolvedConfig = resolved
 
+      // `preview` resolves the production mode but still runs Vite with the
+      // `serve` command. Bulk precompilation is a build-only concern; doing it
+      // here blocks the preview socket (and makes dev feel frozen) while all
+      // MDX files are compiled before the first request. Preview/dev use the
+      // normal `load()` path and the persistent compiler cache instead.
+      if (!isBuildCommand()) return
+
       if (isPrecompileStarted()) {
         // Pipeline already handling precompile (P2-21). Don't start again.
         return
@@ -972,9 +1120,7 @@ export function createSatteriMdxPlugin(
       // and Vite's own setup. buildStart() will await the result.
       // P2-22: Compile pool is created lazily inside runPreCompile() only
       // when there are actual cache misses (avoids worker init on warm builds).
-      if (process.env.NODE_ENV === 'production' || process.env.CI) {
-        preCompilePromise = runPreCompile().catch(() => {})
-      }
+      preCompilePromise = runPreCompile().catch(() => {})
     },
 
     /**
@@ -989,7 +1135,11 @@ export function createSatteriMdxPlugin(
      * compile cycle.
      */
     async buildStart() {
-      if (process.env.NODE_ENV !== 'production' && !process.env.CI) return
+      // Vite calls buildStart for both production builds and other plugin
+      // lifecycles. Never turn dev/preview into a synchronous full-site
+      // precompile, even when preview uses `mode: 'production'` or CI sets
+      // NODE_ENV. Individual pages remain available through `load()`.
+      if (!isBuildCommand()) return
       if (
         _precompileCompleted &&
         COMPILED_PAGES_INDEX_PATH &&
@@ -1019,12 +1169,17 @@ export function createSatteriMdxPlugin(
       const docsDir = path.join(root, docsDirName)
       if (fs.existsSync(docsDir)) {
         const manifestPath = getManifestPath(root)
+        const expectedGlobalKey = computeGlobalKey(
+          compiler,
+          config,
+          shouldRunTransformSource(),
+        )
         if (fs.existsSync(manifestPath)) {
           try {
             const raw = JSON.parse(
               fs.readFileSync(manifestPath, 'utf-8'),
             ) as PrecompileManifest
-            if (raw?.files) {
+            if (raw?.globalKey === expectedGlobalKey && raw.files) {
               // Scan ALL MDX files on disk — not just manifest entries —
               // so newly-added files force a full precompile.  A file added
               // after the last build won't be in the manifest; checking it
@@ -1034,9 +1189,19 @@ export function createSatteriMdxPlugin(
               const allCached =
                 mdxFiles.length > 0 &&
                 mdxFiles.every(
-                  (f) => raw.files![f] && fs.existsSync(raw.files![f].outFile),
-                )
+                  (f) =>
+                    raw.files![f] &&
+                    isManifestEntryFresh(f, raw.files![f]) &&
+                    fs.existsSync(raw.files![f].outFile),
+                ) &&
+                hasCompleteCompiledPagesArtifacts(root, raw.files)
               if (allCached) {
+                // Keep the in-process cache contract consistent with the
+                // precompile path. Without this assignment, a later load()
+                // or buildEnd() in the same process can read the previous
+                // global key and incorrectly invalidate valid entries.
+                LAST_GLOBAL_KEY = expectedGlobalKey
+
                 // All files already cached — return fast (<10ms).
                 // Load MANIFEST_CACHE for the load() hook.
                 for (const [filePath, entry] of Object.entries(raw.files)) {
@@ -1222,7 +1387,7 @@ export function createSatteriMdxPlugin(
           if (!manifest) {
             // globalKey mismatch or no manifest — clear everything
             PRE_COMPILED_CACHE.clear()
-            PRE_COMPILED_SOURCE_MTIME.clear()
+            PRE_COMPILED_SOURCE_STAT.clear()
             MANIFEST_CACHE.clear()
           } else {
             // Same globalKey — only remove entries for files that no longer
@@ -1230,7 +1395,7 @@ export function createSatteriMdxPlugin(
             for (const key of PRE_COMPILED_CACHE.keys()) {
               if (!manifest[key]) {
                 PRE_COMPILED_CACHE.delete(key)
-                PRE_COMPILED_SOURCE_MTIME.delete(key)
+                PRE_COMPILED_SOURCE_STAT.delete(key)
               }
             }
             for (const key of MANIFEST_CACHE.keys()) {

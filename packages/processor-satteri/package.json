@@ -1,7 +1,7 @@
 {
   "name": "@bdocs/processor-satteri",
   "version": "0.2.0",
-  "description": "Sätteri MDX processor for Boltdocs (Rust-based)",
+  "description": "S\u00e4tteri MDX processor for Boltdocs (Rust-based)",
   "type": "module",
   "publishConfig": {
     "access": "public"
@@ -34,7 +34,8 @@
     "@types/mdast": "^4.0.4",
     "tsdown": "^0.21.7",
     "typescript": "^5.9.3",
-    "vitest": "^3.2.4"
+    "vitest": "^3.2.4",
+    "tsdown-config": "workspace:*"
   },
   "peerDependencies": {
     "vite": "^7.0.0 || ^8.0.0"

@@ -2,8 +2,41 @@ import { mdxToJs as satteriMdxToJs } from 'satteri'
 import type { MdastPluginDefinition, HastPluginDefinition } from 'satteri'
 import { transformSync } from 'esbuild'
 import crypto from 'node:crypto'
+import fs from 'node:fs'
+import path from 'node:path'
+import { createRequire } from 'node:module'
 
 export const MDX_PLUGIN_VERSION = 'v9-transpile-jsx'
+
+function resolveSatteriVersion(): string {
+  try {
+    const require = createRequire(import.meta.url)
+    let directory = path.dirname(require.resolve('satteri'))
+    for (let depth = 0; depth < 6; depth++) {
+      const packagePath = path.join(directory, 'package.json')
+      if (fs.existsSync(packagePath)) {
+        const packageJson = JSON.parse(
+          fs.readFileSync(packagePath, 'utf8'),
+        ) as {
+          name?: string
+          version?: string
+        }
+        if (packageJson.name === 'satteri' && packageJson.version) {
+          return packageJson.version
+        }
+      }
+      const parent = path.dirname(directory)
+      if (parent === directory) break
+      directory = parent
+    }
+  } catch {
+    // Cache safety falls back to the compiler implementation signature.
+  }
+  return 'unknown'
+}
+
+const SATTERI_VERSION = resolveSatteriVersion()
+const PROCESS_CACHE_NONCE = `${process.pid}:${Date.now()}:${Math.random()}`
 
 /** Minimal interface for TransformCache from boltdocs/node/cache. */
 interface TransformCache {
@@ -12,6 +45,36 @@ interface TransformCache {
   getAsync(key: string): Promise<string | null>
   set(key: string, result: string): void
   flush(): Promise<void>
+}
+
+function pluginSignature(
+  plugin: unknown,
+  ancestors: WeakSet<object> = new WeakSet(),
+): string {
+  if (typeof plugin === 'function') {
+    return `function:${plugin.toString()}`
+  }
+  if (plugin === null || typeof plugin !== 'object') {
+    return `${typeof plugin}:${String(plugin)}`
+  }
+  if (ancestors.has(plugin)) return '[Circular]'
+  ancestors.add(plugin)
+
+  const record = plugin as Record<string, unknown>
+  if (record.__boltdocsPersistentCache === false) {
+    return `nonpersistent:${PROCESS_CACHE_NONCE}:${String(record.__boltdocsCacheSignature ?? 'unknown')}`
+  }
+  const result = Array.isArray(plugin)
+    ? `[${plugin.map((item) => pluginSignature(item, ancestors)).join(',')}]`
+    : `{${Object.keys(record)
+        .sort()
+        .map(
+          (key) =>
+            `${JSON.stringify(key)}:${pluginSignature(record[key], ancestors)}`,
+        )
+        .join(',')}}`
+  ancestors.delete(plugin)
+  return result
 }
 
 /**
@@ -23,13 +86,33 @@ export class MdxCompiler {
   private hastPlugins: HastPluginDefinition[]
   private cache!: TransformCache
   private cacheReady = false
+  private cacheLoadPromise: Promise<void> | null = null
+  private readonly compilerSignature: string
 
   constructor(
     mdastPlugins: MdastPluginDefinition[],
     hastPlugins: HastPluginDefinition[],
+    cacheSignature = '',
   ) {
     this.mdastPlugins = mdastPlugins
     this.hastPlugins = hastPlugins
+    this.compilerSignature = crypto
+      .createHash('md5')
+      .update(
+        [
+          MDX_PLUGIN_VERSION,
+          `satteri:${SATTERI_VERSION}`,
+          `engine:${pluginSignature(satteriMdxToJs)}`,
+          `config:${cacheSignature}`,
+          ...mdastPlugins.map((plugin) => pluginSignature(plugin)),
+          ...hastPlugins.map((plugin) => pluginSignature(plugin)),
+        ].join('|'),
+      )
+      .digest('hex')
+  }
+
+  get signature(): string {
+    return this.compilerSignature
   }
 
   private async ensureCache(): Promise<TransformCache> {
@@ -38,7 +121,12 @@ export class MdxCompiler {
         TransformCache: new (name: string) => TransformCache
       }
       this.cache = new mod.TransformCache('mdx')
+      this.cacheLoadPromise = this.cache.load()
       this.cacheReady = true
+    }
+    if (this.cacheLoadPromise) {
+      await this.cacheLoadPromise
+      this.cacheLoadPromise = null
     }
     return this.cache
   }
@@ -57,7 +145,7 @@ export class MdxCompiler {
       .update(sourceCode)
       .digest('hex')
     const isProd = process.env.NODE_ENV === 'production' ? 'prod' : 'dev'
-    const cacheKey = `${cleanId}:${contentHash}:${isProd}:${MDX_PLUGIN_VERSION}`
+    const cacheKey = `${cleanId}:${contentHash}:${isProd}:${this.compilerSignature}`
 
     // Check cache first
     try {
