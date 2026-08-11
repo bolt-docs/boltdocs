@@ -1,6 +1,6 @@
-import { defineConfig } from 'tsdown'
+import { defineConfig, packageConfig } from 'tsdown-config'
 
-export default defineConfig({
+export default defineConfig(packageConfig({
   entry: {
     'node/index': 'src/node/index.ts',
     'client/index': 'src/client/index.ts',
@@ -20,4 +20,4 @@ export default defineConfig({
       'boltdocs/client',
     ],
   },
-})
+}))

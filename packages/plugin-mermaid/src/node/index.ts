@@ -106,7 +106,7 @@ function remarkMermaid(config: {
           (process.env.CI === 'true' && config.preRender === undefined)
         const shouldPreRender =
           !skipMermaid &&
-          (config.preRender ?? process.env.NODE_ENV === 'production')
+          (config.preRender ?? process.env.NODE_ENV !== 'development')
         if (shouldPreRender) {
           const result = await renderMermaidBothThemes(
             rawCode,

@@ -1,6 +1,6 @@
-import { defineConfig } from 'tsdown'
+import { defineConfig, packageConfig } from 'tsdown-config'
 
-export default defineConfig({
+export default defineConfig(packageConfig({
   entry: {
     index: 'src/index.ts',
     worker: 'src/worker.ts',
@@ -14,4 +14,4 @@ export default defineConfig({
   deps: {
     neverBundle: ['vite', 'sharp', 'svgo', 'boltdocs', '@bdocs/dui'],
   },
-})
+}))
