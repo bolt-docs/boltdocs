@@ -78,7 +78,7 @@ interface PluginClientConfig {
 ### Available UI Slots
 
 | Slot ID | Location |
-|---------|----------|
+| --------- | ---------- |
 | `'header:left'` | Left side of navbar |
 | `'header:right'` | Right side of navbar |
 | `'search:dialog'` | Search dialog |
@@ -86,8 +86,6 @@ interface PluginClientConfig {
 | `'sidebar:bottom'` | Bottom of sidebar |
 | `'page:before'` | Before page content |
 | `'page:after'` | After page content |
-| `'footer:top'` | Top of footer |
-| `'footer:bottom'` | Bottom of footer |
 
 ### Head Entry Interface
 
@@ -106,7 +104,7 @@ interface PluginHeadEntry {
 ### Build Lifecycle
 
 | Hook | Signature | Description |
-|------|-----------|-------------|
+| ------ | ----------- | ------------- |
 | `'build:before'` | `(ctx) => void \| Promise<void>` | Before SSG starts |
 | `'build:after'` | `(ctx) => void \| Promise<void>` | After successful production build |
 | `'build:end'` | `(ctx) => void \| Promise<void>` | Process completion (success or error) |
@@ -115,7 +113,7 @@ interface PluginHeadEntry {
 ### Dev & Server Lifecycle
 
 | Hook | Signature | Description |
-|------|-----------|-------------|
+| ------ | ----------- | ------------- |
 | `'dev:before'` | `(ctx) => void \| Promise<void>` | Before dev server starts listening |
 | `'dev:after'` | `(ctx) => void \| Promise<void>` | After dev server is fully initialized |
 | `'server:configure'` | `(ctx, { server, middleware }) => void \| Promise<void>` | Configure HTTP middlewares and API endpoints (note: `server` is typed as `unknown` — cast as needed) |
@@ -125,7 +123,7 @@ interface PluginHeadEntry {
 These hooks form a **chain** — each plugin's output feeds into the next. Supports `__signal: 'skip' | 'break'` for chain control.
 
 | Hook | Signature | Description |
-|------|-----------|-------------|
+| ------ | ----------- | ------------- |
 | `'transform:source'` | `(ctx, { code, filePath, frontmatter? }) => { code, __signal? }` | Raw MDX source **before** MDX compilation |
 | `'transform:mdx'` | `(ctx, { code, filePath, frontmatter? }) => { code, __signal? }` | Compiled MDX JavaScript **after** compilation |
 | `'transform:html'` | `(ctx, { html, path, route? }) => { html, __signal? }` | Rendered HTML during SSG generation |
@@ -133,28 +131,28 @@ These hooks form a **chain** — each plugin's output feeds into the next. Suppo
 ### Frontmatter & Route Hooks
 
 | Hook | Signature | Description |
-|------|-----------|-------------|
+| ------ | ----------- | ------------- |
 | `'frontmatter:transform'` | `(ctx, { frontmatter, filePath, rawContent }) => Record<string, unknown> \| void` | Intercept & enrich frontmatter (readingTime, wordCount, custom metadata) |
 | `'routes:resolved'` | `(ctx, { routes }) => RouteMeta[] \| void` | After all routes are crawled, normalized, and sorted |
 
 ### Search Contract Hook
 
 | Hook | Signature | Description |
-|------|-----------|-------------|
+| ------ | ----------- | ------------- |
 | `'search:index'` | `(ctx, { documents, routes }) => unknown \| Promise<unknown>` | Standardized search index hook. Receives `SearchDocument[]` |
 
 ### Legacy Hook Aliases (Backwards Compatible)
 
-Modern name | Legacy alias
-------------|-------------
-`'build:before'` | `beforeBuild`
-`'build:after'` | `afterBuild`
-`'build:end'` | `buildEnd`
-`'dev:before'` | `beforeDev`
-`'dev:after'` | `afterDev`
-`'transform:source'` | `transformSource`
-`'transform:mdx'` | `transformMdx`
-`'transform:html'` | `transformHtml`
+| Modern name | Legacy alias |
+| --- | --- |
+| `'build:before'` | `beforeBuild` |
+| `'build:after'` | `afterBuild` |
+| `'build:end'` | `buildEnd` |
+| `'dev:before'` | `beforeDev` |
+| `'dev:after'` | `afterDev` |
+| `'transform:source'` | `transformSource` |
+| `'transform:mdx'` | `transformMdx` |
+| `'transform:html'` | `transformHtml` |
 
 ---
 
@@ -405,7 +403,7 @@ createPlugin({
 
 ## Hook Execution Order
 
-```
+```text
 build:before / dev:before
   → frontmatter:transform
     → routes:resolved

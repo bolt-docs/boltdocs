@@ -7,7 +7,7 @@ Boltdocs automatically maps your folder structure inside the `docs/` folder to U
 Every Markdown (`.md`) or MDX (`.mdx`) file translates directly to a URL route:
 
 | File path | URL path |
-|-----------|----------|
+| --- | --- |
 | `docs/index.md` | `/docs` (or `/`) |
 | `docs/getting-started.mdx` | `/docs/getting-started` |
 | `docs/guides/advanced-setup.md` | `/docs/guides/advanced-setup` |
@@ -36,7 +36,7 @@ sidebarPosition: 2
 ### Full Frontmatter Reference
 
 | Field | Type | Description |
-|-------|------|-------------|
+| ------- | ------ | ------------- |
 | `title` | `string` | Overrides the sidebar label and HTML `<title>` tag |
 | `description` | `string` | Page SEO meta description |
 | `sidebarPosition` | `number` | Integer ordering position (lower = first) |
@@ -61,6 +61,41 @@ sidebarPosition: 2
 
 ---
 
+## Page Content Conventions
+
+### One H1 per page — never repeat the frontmatter title
+
+The default layout already renders the page title as an `<h1>` (`<h1>{currentRoute.title}</h1>`) and the `description` under it, both sourced from frontmatter. **Do not add a `# Title` heading or a description paragraph to the content** — the theme renders it as a duplicated heading with a link icon, and it fails accessibility. Content should start with prose or the first `##` section directly:
+
+```markdown
+---
+title: Navigation
+description: The complete navigation model.
+---
+
+## First section  ← content starts here, no `# Navigation` heading
+```
+
+### Unique headings per page
+
+The OnThisPage right-rail TOC lists every `h2`–`h4` heading. Duplicate heading text (e.g. `### Search` twice) produces duplicate TOC entries. Keep heading text unique within each page.
+
+### Canonical hrefs
+
+All links (navbar, sidebar, cards, MDX) go through `useLocalizedTo()`, which prepends the active locale and version automatically. Write canonical, unlocalized paths:
+
+| Href | Kind | Resolution |
+| --- | --- | --- |
+| `/docs/guides` | Docs page | Localized automatically — never write `/es/docs/guides` or `/v2/docs/guides` |
+| `/showcase` | External page (`pages-external/`) | Kept as-is by the resolver |
+| `https://example.com` | External URL | Passed through untouched |
+| `#section`, `?q=term` | Anchor / query | Joined to the current page URL |
+| `site:/path` | Site root-relative | `site:` forces resolution against the site root |
+
+`theme.navbar` items support only `{ label, href, items? }` — the `to="external"` prop exists only on the `Navbar.Link` **component**, not in config.
+
+---
+
 ## Directory Sidebar Customization (`meta.json`)
 
 To configure folder behaviors in the sidebar (naming, collapsible settings, and icons), place a `meta.json` file inside the folder:
@@ -78,9 +113,9 @@ To configure folder behaviors in the sidebar (naming, collapsible settings, and 
 ### Parameters
 
 | Field | Type | Description |
-|-------|------|-------------|
+| ------- | ------ | ------------- |
 | `title` | `string` | Label rendered for the folder in the sidebar |
-| `order` | `number | string[]` | Numeric order or explicit page order array |
+| `order` | `number \| string[]` | Numeric order or explicit page order array |
 | `icon` | `string` | [Lucide icon name](https://lucide.dev/icons) |
 | `collapsible` | `boolean` | Whether users can expand/collapse (default: `true`) |
 | `collapsed` | `boolean` | Whether section starts collapsed (default: `false`) |
@@ -101,7 +136,8 @@ theme: {
 ```
 
 Directory structure:
-```
+
+```text
 docs/
   guides/        ← visible under "Guides" tab
     index.md
@@ -117,7 +153,7 @@ docs/
 
 Directories named `[collection-name]/` create collection routes:
 
-```
+```text
 docs/
   [blog]/
     my-first-post.md
@@ -137,7 +173,7 @@ docs/
 
 When `i18n` is configured, routes are prefixed by locale:
 
-```
+```text
 docs/
   en/
     index.md                → /en/docs
@@ -157,7 +193,7 @@ docs/
 
 When `versions` is configured, routes include the version prefix:
 
-```
+```text
 docs/
   latest/
     index.md                → /v/latest/docs

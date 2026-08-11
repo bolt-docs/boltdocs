@@ -4,7 +4,7 @@ Boltdocs supports **content collections** (blogs, changelogs, release notes, new
 
 ## Directory Structure
 
-```
+```text
 docs/
   [blog]/                  ← Collection directory
     _index.md               ← Collection index page
@@ -58,7 +58,7 @@ export default defineConfig({
 Individual posts within collections get enhanced route metadata from frontmatter:
 
 | Frontmatter Field | Type | Description |
-|-------------------|------|-------------|
+| ------------------- | ------ | ------------- |
 | `title` | `string` | Post title |
 | `date` | `string \| Date` | Publication date (used for sorting) |
 | `tags` | `string[]` | Tags for filtering/taxonomy |
@@ -199,7 +199,7 @@ interface PaginationData {
 
 Collections also support i18n. Place locale-specific collection content in:
 
-```
+```text
 docs/
   en/
     [blog]/

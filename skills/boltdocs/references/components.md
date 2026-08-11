@@ -15,6 +15,7 @@ Use callouts to highlight important guidelines, warnings, or tips.
 ```
 
 #### Variants
+
 - `"info"` (Default blue)
 - `"note"` (Muted neutral)
 - `"tip"` (Green success)
@@ -131,7 +132,7 @@ Use ```` ```mermaid ```` code blocks to define diagrams.
 
 For bracket directories (`[blog]`, `[changelog]`), you can provide custom React components:
 
-```
+```text
 docs/
   [blog]/
     layout.tsx        ← Wraps the entire collection (header, footer, etc.)
@@ -175,7 +176,7 @@ export default mdxComponents
 Plugins can inject React components into dynamic UI slots via `client.slots`. These slots are provided by the plugin's `client` configuration:
 
 | Slot ID | Location | Purpose |
-|---------|----------|---------|
+| --------- | ---------- | --------- |
 | `'header:left'` | Left side of navbar | Logo or branding |
 | `'header:right'` | Right side of navbar | CTA buttons, version selector |
 | `'search:dialog'` | Search dialog | Custom search modal |
@@ -183,8 +184,6 @@ Plugins can inject React components into dynamic UI slots via `client.slots`. Th
 | `'sidebar:bottom'` | Bottom of sidebar | Footer links |
 | `'page:before'` | Before page content | Breadcrumbs, alerts |
 | `'page:after'` | After page content | Comments, feedback |
-| `'footer:top'` | Top of footer | Links, newsletter |
-| `'footer:bottom'` | Bottom of footer | Copyright, legal |
 
 ### Plugin Provider Components
 

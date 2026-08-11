@@ -73,17 +73,24 @@ boltdocs doctor --budget            # Check build performance against configured
 
 ### `boltdocs audit [root]`
 
-Audit all configured plugins for security warnings and compatibility issues.
+Statically scans every configured plugin's source for security-sensitive behavior — child-process and dynamic-code calls, network access, file reads/writes, environment-variable reads, and metadata red flags (install scripts, bundled deps, missing license/provenance). The scan never executes plugin code.
 
 ```bash
 boltdocs audit                       # Security audit of plugins
 ```
 
-Checks:
-- Plugin `boltdocsVersion` compatibility
-- Duplicate plugin names
-- Invalid component paths (traversal, absolute paths)
-- Plugin security inspection from `plugin-security.json`
+**Exit codes (CI contract):**
+
+| Code | Meaning |
+| ------ | --------- |
+| `0` | Every plugin was scanned and has no high-risk findings (low/warning findings alone still pass) |
+| `1` | At least one plugin has HIGH-risk findings, is unresolved, failed to scan, or the scan was truncated |
+
+The command is fail-closed: unresolved or un-scanned plugins never count as passing. Use it as a CI gate before merging third-party plugins:
+
+```bash
+pnpm docs:audit || exit 1
+```
 
 ---
 
@@ -96,8 +103,9 @@ boltdocs generate-changelog CHANGELOG.md -o docs/changelog -t "Changelog" -l 10
 ```
 
 Options:
+
 | Flag | Default | Description |
-|------|---------|-------------|
+| ------ | --------- | ------------- |
 | `-o, --output` | `docs/changelog` | Output folder |
 | `-t, --title` | `Changelog` | Title for changelog pages |
 | `-l, --limit` | — | Limit number of versions to generate |
@@ -108,7 +116,7 @@ Options:
 ## Environment Variables
 
 | Variable | Description |
-|----------|-------------|
+| ---------- | ------------- |
 | `BOLTDOCS_CACHE_DIR` | Custom cache directory (default: `.boltdocs/`) |
 | `BOLTDOCS_NO_CACHE` | Disable caching |
 | `BOLTDOCS_CACHE_COMPRESS` | Enable gzip compression for cache |

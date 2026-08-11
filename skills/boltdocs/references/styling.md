@@ -163,7 +163,7 @@ export default defineConfig({
 Boltdocs relies on semantic CSS variables for consistent theming:
 
 | Variable | Purpose |
-|----------|---------|
+| ---------- | --------- |
 | `--color-main` | Primary background |
 | `--color-surface` | Card/panel backgrounds |
 | `--color-soft` | Container/tab backgrounds |

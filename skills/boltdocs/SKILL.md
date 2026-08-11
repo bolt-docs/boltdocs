@@ -37,6 +37,7 @@ Use these guidelines when:
 - Configuring i18n, versioning, SEO, analytics, or security features
 - Using the CLI commands (dev, build, preview, audit, doctor, generate-changelog)
 - Writing plugins that inject UI slots, providers, or middleware into the pipeline
+- Writing `.mdx` page content — see the content conventions below before adding headings or links
 
 ## Reference Guides
 
@@ -96,10 +97,19 @@ Read the following documents in the `references/` directory for detailed specifi
    - `boltdocs audit` — plugin security audit
    - `boltdocs generate-changelog` — changelog from CHANGELOG.md
 
+## Content Conventions (`.mdx` pages)
+
+These rules keep the rendered site consistent and are enforced by the project's a11y and lint checks:
+
+- **One H1 per page — never repeat the frontmatter title.** The default layout renders the page title as `<h1>{currentRoute.title}</h1>` and the `description` under it, both from frontmatter. Do **not** add a `# Title` heading or a description paragraph to the content — it renders as a duplicated heading and is an accessibility failure. Content starts with prose or the first `##` section directly.
+- **Unique headings per page.** The OnThisPage TOC lists every `h2`–`h4`; duplicate heading text produces duplicate TOC entries. Playwright test `tests/a11y/on-this-page.spec.ts` fails on duplicates.
+- **Canonical hrefs — never hand-write locale/version prefixes.** All links go through `useLocalizedTo()`, which adds the active locale and version. Write `/docs/guides` (never `/es/docs/guides` or `/v2/docs/guides`). External URLs (`https://...`) pass through untouched; `/showcase`-style `pages-external/` routes stay as-is. `theme.navbar` items support only `{ label, href, items? }` — there is no `to` field in config.
+- **Compact table separators.** markdownlint MD060 requires `| --- |` (spaces inside), never `|---|`.
+
 ## Quick Reference
 
 | Package | npm name | Path | Purpose |
-|---------|----------|------|---------|
+| --------- | ---------- | ------ | --------- |
 | Core | `boltdocs` | `packages/core` | Main engine: CLI, MDX pipeline, Vite plugins, routing, config |
 | SSG | `@bdocs/ssg` | `packages/plugin-ssg` | Static Site Generator: client/server Vite builds, HTML rendering |
 | Mermaid | `@bdocs/plugin-mermaid` | `packages/plugin-mermaid` | Remark plugin + React container for Mermaid.js diagrams |

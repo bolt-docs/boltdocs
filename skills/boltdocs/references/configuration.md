@@ -39,7 +39,7 @@ export default defineConfig({
 ## Top-Level Parameters
 
 | Parameter | Type | Default | Description |
-|-----------|------|---------|-------------|
+| ----------- | ------ | --------- | ------------- |
 | `siteUrl` | `string` | — | Production domain URL. Used for sitemap.xml, RSS feeds, canonical headers, llms.txt |
 | `base` | `string` | `'/'` | Sub-path where the website is served (e.g. `'/docs/'`) |
 | `docsDir` | `string` | `'./docs'` | Relative path to the folder containing Markdown/MDX content |
@@ -97,6 +97,7 @@ theme: {
 ```
 
 ### Theme Title (i18n)
+
 Use a `Record<string, string>` for locale-aware titles:
 
 ```ts
