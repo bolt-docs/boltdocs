@@ -1,10 +1,21 @@
 {
   "name": "tsdown-config",
   "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
+  "private": true,
+  "type": "module",
+  "description": "Shared tsdown configuration helpers for the Boltdocs workspace",
+  "exports": {
+    ".": {
+      "types": "./index.ts",
+      "import": "./index.ts"
+    }
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "tsdown": "catalog:",
+    "typescript": "^5.9.3"
+  },
   "packageManager": "pnpm@10.30.2"
 }

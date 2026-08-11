@@ -1,4 +1,4 @@
-import { defineConfig } from 'tsdown'
+import { defineConfig, packageConfig } from 'tsdown-config'
 
 const banner = `/**
  * @bdocs/unist-utils - https://boltdocs.vercel.app
@@ -6,7 +6,7 @@ const banner = `/**
  * Licensed under the MIT License.
  */`
 
-export default defineConfig({
+export default defineConfig(packageConfig({
   entry: ['src/index.ts'],
   format: ['esm'],
   banner: {
@@ -15,4 +15,4 @@ export default defineConfig({
   dts: true,
   clean: true,
   tsconfig: './tsconfig.json',
-})
+}))

@@ -635,8 +635,6 @@ export type BoltdocsUiSlot =
   | 'sidebar:bottom'
   | 'page:before'
   | 'page:after'
-  | 'footer:top'
-  | 'footer:bottom'
   | (string & {})
 
 export interface PluginHeadEntry {
@@ -812,6 +810,13 @@ export interface BoltdocsVerificationConfig {
 /**
  * Configuration for SEO.
  */
+export type JsonLdPrimitive = string | number | boolean | null
+export type JsonLdValue = JsonLdPrimitive | JsonLdObject | JsonLdValue[]
+export interface JsonLdObject {
+  [key: string]: JsonLdValue | undefined
+}
+export type StructuredData = JsonLdObject | JsonLdObject[]
+
 export interface BoltdocsSeoConfig {
   metatags?: Record<string, string>
   indexing?: 'all' | 'public'
@@ -819,6 +824,32 @@ export interface BoltdocsSeoConfig {
     background?: string
   }
   verification?: BoltdocsVerificationConfig
+  /** Global JSON-LD graph emitted in every page head. */
+  structuredData?: StructuredData
+}
+
+export interface BoltdocsViewTransitionsConfig {
+  /** Native document transitions are enabled when true. */
+  enabled?: boolean
+  /** Optional transition types passed to `document.startViewTransition`. */
+  types?: string[]
+}
+
+export interface BoltdocsExperimentalConfig {
+  /** Enables the native View Transition API integration. */
+  viewTransitions?: boolean | BoltdocsViewTransitionsConfig
+  /** Enables static file-routing under `docs/pages-external/`. */
+  fileRouting?: boolean
+}
+
+export type ExperimentalViewTransitions =
+  | boolean
+  | BoltdocsViewTransitionsConfig
+
+export interface ExternalFileRoute {
+  path: string
+  filePath: string
+  kind: 'component' | 'mdx'
 }
 
 /**
@@ -917,6 +948,14 @@ export interface BoltdocsIntegrationsConfig {
 }
 
 /**
+ * Configuration for static site generation.
+ */
+export interface BoltdocsSsgConfig {
+  /** Critical CSS strategy; `none` disables critical CSS processing. */
+  criticalCss?: 'zig-critters' | 'beasties' | 'none'
+}
+
+/**
  * Configuration for drafts visibility control.
  */
 export interface BoltdocsDraftsConfig {
@@ -937,6 +976,7 @@ export interface BoltdocsConfig {
   i18n?: BoltdocsI18nConfig
   versions?: BoltdocsVersionsConfig
   mdx?: BoltdocsMdxConfig
+  ssg?: BoltdocsSsgConfig
   plugins?: BoltdocsPlugin[]
   collections?: BoltdocsCollectionsConfig
   robots?: BoltdocsRobotsConfig
@@ -945,6 +985,7 @@ export interface BoltdocsConfig {
   integrations?: BoltdocsIntegrationsConfig
   drafts?: BoltdocsDraftsConfig
   featureFlags?: Record<string, boolean | string>
+  experimental?: BoltdocsExperimentalConfig
   directoryMeta?: Record<string, unknown>
   vite?: unknown
 }

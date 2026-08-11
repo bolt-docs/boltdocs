@@ -28,6 +28,7 @@
     "benchmark:report": "tsx scripts/benchmarks/run.ts --suite all",
     "benchmark:native": "tsx scripts/benchmarks/parser-native.ts",
     "benchmark:compare": "tsx scripts/benchmarks/compare-boltdocs-docusaurus.ts",
+    "benchmark:baseline": "tsx scripts/benchmarks/run-baseline.ts",
     "knip": "knip"
   },
   "packageManager": "pnpm@10.30.2",

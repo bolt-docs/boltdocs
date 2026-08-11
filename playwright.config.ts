@@ -18,7 +18,7 @@ export default defineConfig({
   /* Shared settings for all the projects below. See https://playwright.dev/docs/api/class-testoptions. */
   use: {
     /* Base URL to use in actions like `await page.goto('/')`. */
-    baseURL: 'http://localhost:5173/docs',
+    baseURL: 'http://localhost:5195/docs',
 
     /* Collect trace when retrying the failed test. See https://playwright.dev/docs/trace-viewer */
     trace: 'on-first-retry',
@@ -34,8 +34,11 @@ export default defineConfig({
 
   /* Run your local dev server before starting the tests */
   webServer: {
-    command: 'pnpm -C docs dev',
-    url: 'http://localhost:5173/docs',
+    // Use the explicit CLI form. Passing `--port` through the package script
+    // (`docs dev -- --port`) is parsed as a root argument and silently falls
+    // back to another port, making E2E runs hit the wrong server.
+    command: 'pnpm -C docs exec boltdocs dev --port 5195',
+    url: 'http://localhost:5195/docs',
     reuseExistingServer: !process.env.CI,
     timeout: 180000,
   },

@@ -1,6 +1,6 @@
 import fs from 'node:fs'
 import path from 'node:path'
-import { defineConfig } from 'tsdown'
+import { defineConfig, packageConfig } from 'tsdown-config'
 
 const banner = `/**
  * Boltdocs - https://boltdocs.vercel.app
@@ -10,7 +10,7 @@ const banner = `/**
 
 export default defineConfig([
   // Node Build
-  {
+  packageConfig({
     entry: {
       'node/index': 'src/node/index.ts',
       'node/cli-entry': 'src/node/cli-entry.ts',
@@ -60,11 +60,12 @@ export default defineConfig([
       fs.copyFileSync(resetSrc, path.resolve(destDir, 'reset.css'))
       console.log('✓ Theme reset.css copied to dist')
     },
-  },
+  }),
   // Client Build
-  {
+  packageConfig({
     entry: {
       'client/index': 'src/client/index.ts',
+      'client/router': 'src/client/router/index.ts',
       'client/primitives': 'src/client/primitives.ts',
       'client/mdx': 'src/client/mdx.ts',
     },
@@ -99,5 +100,5 @@ export default defineConfig([
         'virtual:boltdocs-search.ts',
       ],
     },
-  },
+  }),
 ])
