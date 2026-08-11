@@ -64,3 +64,5 @@ env/
 
 
 .qwen/
+test-results/
+packages/plugin-tailwindcss/.tmp-tailwind-*
