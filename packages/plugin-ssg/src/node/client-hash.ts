@@ -1,7 +1,8 @@
 import { warn } from '@bdocs/dui'
 import fs from 'fs-extra'
 import { createHash } from 'node:crypto'
-import { join, relative } from 'node:path'
+import { createRequire } from 'node:module'
+import { dirname, join, relative } from 'node:path'
 
 /**
  * O(1) client code hash.
@@ -135,6 +136,41 @@ function statFilesRecursive(
   }
 }
 
+/* ───────────── Framework code check ───────────── */
+
+/**
+ * Stat-scan the framework packages that ship the client bundle, virtual
+ * modules, and SSG runtime. In a pnpm workspace these are symlinks into
+ * `packages/*`, so `mtime:size` changes there — a core rebuild, a patched
+ * plugin — must invalidate the docs client/SSR cache exactly like MDX or
+ * config changes do. Stat-only, so the cost stays in the low milliseconds.
+ * Published installs resolve to the immutable package tarball and are a no-op.
+ */
+function hashFrameworkCode(
+  root: string,
+  hasher: ReturnType<typeof createHash>,
+): void {
+  const require = createRequire(import.meta.url)
+  // `boltdocs` is the primary framework package. `@bdocs/ssg` may not resolve
+  // from the site root (pnpm nests it under boltdocs), but core's client dist
+  // bundles the ssg client code, so hashing boltdocs covers it — the extra
+  // spec is only a safety net for install layouts where it does resolve.
+  const specs = ['boltdocs', '@bdocs/ssg']
+  for (const spec of specs) {
+    try {
+      const packageDir = dirname(
+        require.resolve(`${spec}/package.json`, { paths: [root] }),
+      )
+      const distDir = join(packageDir, 'dist')
+      if (fs.existsSync(distDir)) {
+        statFilesRecursive(distDir, root, hasher)
+      }
+    } catch {
+      // Package not resolvable from this project — nothing to hash.
+    }
+  }
+}
+
 /* ───────────── Non-MDX asset check ───────────── */
 
 /**
@@ -220,6 +256,9 @@ export function computeClientCodeHash(
 
   try {
     const hasher = createHash('sha256')
+
+    // ---- Framework code always participates in the hash ----
+    hashFrameworkCode(root, hasher)
 
     // ---- Strategy 1: Sätteri manifest exists → O(1) manifest hash ----
     const manifestPath = join(root, '.boltdocs', 'compiled', 'manifest.json')

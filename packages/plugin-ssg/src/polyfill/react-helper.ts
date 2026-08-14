@@ -1,6 +1,6 @@
 import type { ReactElement } from 'react'
 import * as ReactDOM from 'react-dom'
-import * as React from 'react'
+import type * as React from 'react'
 import {
   createRoot as reactCreateRoot,
   hydrateRoot as reactHydrateRoot,

@@ -74,6 +74,25 @@ describe('computeClientCodeHash (PR-04: O(1) manifest hash)', () => {
     expect(hash2).not.toBe(hash1)
   })
 
+  it('changes when framework dist code changes (workspace install)', () => {
+    // Simulate a pnpm workspace install: `boltdocs` symlinked into
+    // node_modules. Framework code changes must invalidate the docs client
+    // cache — otherwise a core rebuild is never picked up by the site.
+    const nmDir = join(root, 'node_modules', 'boltdocs')
+    const distDir = join(nmDir, 'dist')
+    fs.mkdirpSync(distDir)
+    fs.writeJsonSync(join(nmDir, 'package.json'), {
+      name: 'boltdocs',
+      version: '1.0.0',
+    })
+    fs.writeFileSync(join(distDir, 'index.js'), 'export const a = 1;')
+
+    const hash1 = computeClientCodeHash(root, 'docs', cacheDir)
+    fs.writeFileSync(join(distDir, 'index.js'), 'export const b = 2;')
+    const hash2 = computeClientCodeHash(root, 'docs', cacheDir)
+    expect(hash2).not.toBe(hash1)
+  })
+
   it('uses Sätteri manifest hash when manifest exists', () => {
     // Create a fake Sätteri manifest
     const manifestDir = join(root, '.boltdocs', 'compiled')
