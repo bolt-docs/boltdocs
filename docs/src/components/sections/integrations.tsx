@@ -12,7 +12,6 @@ import {
   BarChart3,
   Zap,
 } from 'lucide-react'
-import { NoiseOverlay } from '../ui/noise-overlay'
 import { useTranslations } from '../../i18n/index'
 
 const INTEGRATIONS = [
@@ -36,7 +35,6 @@ export const Integrations = () => {
   const t = useTranslations()
   return (
     <section className="py-20 overflow-hidden border-y border-subtle bg-main/60 relative">
-      <NoiseOverlay />
       <div className="max-w-7xl mx-auto px-6 mb-10 relative z-20">
         <p className="text-center text-sm font-semibold tracking-wider uppercase text-primary-500">
           {t.integrationsLabel}

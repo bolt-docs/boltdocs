@@ -1,6 +1,5 @@
 import { Fragment } from 'react'
 import { Grainient } from '../ui/grainient'
-import { NoiseOverlay } from '../ui/noise-overlay'
 import { useTranslations } from '../../i18n/index'
 import { color_active_version } from '../../color'
 
@@ -256,7 +255,6 @@ export const FeaturesGrid = () => {
 
   return (
     <section className="py-20 px-6 overflow-hidden bg-main/40 relative">
-      <NoiseOverlay />
       <div className="max-w-5xl mx-auto">
         <div className="text-center mb-16">
           <h2 className="text-2xl md:text-4xl font-black tracking-tighter border-0 text-body mb-6">

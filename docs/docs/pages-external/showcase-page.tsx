@@ -18,7 +18,6 @@ import {
   useScrollStagger,
 } from '../../src/hooks/useScrollAnimation'
 import { Github } from '../../src/components/ui/icons'
-import { NoiseOverlay } from '../../src/components/ui/noise-overlay'
 import { useTranslations } from '../../src/i18n/index'
 
 function ShowcaseItems() {
@@ -198,7 +197,6 @@ export default function ShowcasePage() {
 
   return (
     <div className="font-sans antialiased min-h-screen bg-main text-body flex flex-col justify-start relative">
-      <NoiseOverlay />
       {/* Hero Section */}
       <section className="relative py-20 px-6 w-full overflow-hidden">
         <div className="absolute inset-0 -z-10">

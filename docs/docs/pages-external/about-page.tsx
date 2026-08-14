@@ -2,7 +2,6 @@ import { Link } from 'boltdocs/primitives'
 import { useRef } from 'react'
 import { useScrollStagger } from '../../src/hooks/useScrollAnimation'
 import { Github } from '../../src/components/ui/icons'
-import { NoiseOverlay } from '../../src/components/ui/noise-overlay'
 import { useTranslations } from '../../src/i18n/index'
 
 export default function AboutPage() {
@@ -13,7 +12,6 @@ export default function AboutPage() {
 
   return (
     <div className="font-sans antialiased min-h-screen bg-main text-body flex flex-col justify-start relative">
-      <NoiseOverlay />
       <div className="max-w-2xl mx-auto px-6 py-28 md:py-36 w-full grow">
         <div ref={contentRef} className="flex flex-col gap-10">
           <div>

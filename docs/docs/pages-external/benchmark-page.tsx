@@ -3,7 +3,6 @@ import {
   useScrollAnimation,
   useScrollStagger,
 } from '../../src/hooks/useScrollAnimation'
-import { NoiseOverlay } from '../../src/components/ui/noise-overlay'
 import rawBenchmarkData from '../../src/data/benchmark-results.json'
 import type {
   BenchmarkData,
@@ -216,7 +215,6 @@ export default function BenchmarkPage() {
 
   return (
     <div className="font-sans antialiased min-h-screen bg-main text-body flex flex-col justify-start relative">
-      <NoiseOverlay />
       <section className="relative py-24 px-6 w-full overflow-hidden">
         <div className="absolute inset-0 -z-10">
           <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-primary-400/10 via-main to-main" />
