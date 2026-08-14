@@ -6,13 +6,15 @@ const banner = `/**
  * Licensed under the MIT License.
  */`
 
-export default defineConfig(packageConfig({
-  entry: ['src/index.ts'],
-  format: ['esm'],
-  banner: {
-    js: banner,
-  },
-  dts: true,
-  clean: true,
-  tsconfig: './tsconfig.json',
-}))
+export default defineConfig(
+  packageConfig({
+    entry: ['src/index.ts'],
+    format: ['esm'],
+    banner: {
+      js: banner,
+    },
+    dts: true,
+    clean: true,
+    tsconfig: './tsconfig.json',
+  }),
+)
