@@ -47,7 +47,9 @@ describe.runIf(NAPI_AVAILABLE)('N-API binding unit tests', () => {
         ].sort(),
       )
       expect(result[normalized(path.join(root, 'selected.md'))]).toBeDefined()
-      expect(result[normalized(path.join(root, 'ignored/_private.md'))]).toBeUndefined()
+      expect(
+        result[normalized(path.join(root, 'ignored/_private.md'))],
+      ).toBeUndefined()
     } finally {
       fs.rmSync(root, { recursive: true, force: true })
     }
@@ -88,7 +90,9 @@ Some paragraph content here.`,
   })
 
   it('should parse a file without frontmatter', () => {
-    const root = createDocs({ 'plain.md': '## Just Content\n\nNo frontmatter here.' })
+    const root = createDocs({
+      'plain.md': '## Just Content\n\nNo frontmatter here.',
+    })
 
     try {
       const doc = parseWithNapi(root, false)[

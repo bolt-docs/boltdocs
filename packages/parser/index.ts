@@ -176,7 +176,10 @@ async function runWasmParserFiles(
         const noFollow = fs.constants.O_NOFOLLOW ?? 0
         let descriptor: number | undefined
         try {
-          descriptor = fs.openSync(absolutePath, fs.constants.O_RDONLY | noFollow)
+          descriptor = fs.openSync(
+            absolutePath,
+            fs.constants.O_RDONLY | noFollow,
+          )
           const content = fs.readFileSync(descriptor, 'utf8')
           fs.writeFileSync(temporaryPath, content)
         } finally {

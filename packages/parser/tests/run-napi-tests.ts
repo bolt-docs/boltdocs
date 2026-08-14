@@ -24,11 +24,17 @@ function assert(condition: boolean, message: string) {
 }
 
 function assertEqual(actual: unknown, expected: unknown, message: string) {
-  assert(actual === expected, `${message}: expected ${JSON.stringify(expected)}, got ${JSON.stringify(actual)}`)
+  assert(
+    actual === expected,
+    `${message}: expected ${JSON.stringify(expected)}, got ${JSON.stringify(actual)}`,
+  )
 }
 
 function assertContains(actual: string, expected: string, message: string) {
-  assert(actual.includes(expected), `${message}: expected content to contain ${JSON.stringify(expected)}`)
+  assert(
+    actual.includes(expected),
+    `${message}: expected content to contain ${JSON.stringify(expected)}`,
+  )
 }
 
 function normalized(filePath: string) {
@@ -60,12 +66,17 @@ Some paragraph content here.`,
   })
 
   try {
-    const doc = parseWithNapi(root, false)[normalized(path.join(root, 'doc.md'))] as ParsedDoc
+    const doc = parseWithNapi(root, false)[
+      normalized(path.join(root, 'doc.md'))
+    ] as ParsedDoc
     assert(doc !== undefined, 'doc is defined')
     assertContains(doc.rawMatter, 'title: Test Doc', 'rawMatter contains title')
     assertContains(doc.content, '# Hello World', 'content contains heading')
     assertContains(doc.plainText, 'Hello World', 'plainText contains title')
-    assert(doc.headings.some((heading) => heading.text === 'Section 1'), 'heading contains Section 1')
+    assert(
+      doc.headings.some((heading) => heading.text === 'Section 1'),
+      'heading contains Section 1',
+    )
   } finally {
     fs.rmSync(root, { recursive: true, force: true })
   }
@@ -81,10 +92,23 @@ function testDiscovery() {
 
   try {
     const result = parseWithNapi(root, false)
-    assertEqual(Object.keys(result).length, 2, 'result has two public documents')
-    assert(result[normalized(path.join(root, 'a.md'))] !== undefined, 'file A exists')
-    assert(result[normalized(path.join(root, 'nested/b.mdx'))] !== undefined, 'file B exists')
-    assert(result[normalized(path.join(root, '_private/ignored.md'))] === undefined, 'private file is ignored')
+    assertEqual(
+      Object.keys(result).length,
+      2,
+      'result has two public documents',
+    )
+    assert(
+      result[normalized(path.join(root, 'a.md'))] !== undefined,
+      'file A exists',
+    )
+    assert(
+      result[normalized(path.join(root, 'nested/b.mdx'))] !== undefined,
+      'file B exists',
+    )
+    assert(
+      result[normalized(path.join(root, '_private/ignored.md'))] === undefined,
+      'private file is ignored',
+    )
   } finally {
     fs.rmSync(root, { recursive: true, force: true })
   }
@@ -108,7 +132,11 @@ Turbo content.`,
     assertEqual(turbo.rawMatter, normal.rawMatter, 'rawMatter matches')
     assertEqual(turbo.content, normal.content, 'content matches')
     assertEqual(turbo.plainText, normal.plainText, 'plainText matches')
-    assertEqual(turbo.headings.length, normal.headings.length, 'heading count matches')
+    assertEqual(
+      turbo.headings.length,
+      normal.headings.length,
+      'heading count matches',
+    )
     assertEqual(turbo.description, normal.description, 'description matches')
   } finally {
     fs.rmSync(root, { recursive: true, force: true })
@@ -119,7 +147,11 @@ function testEmptyDirectory() {
   console.log('\n📁 Empty directory')
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'bdocs-napi-empty-'))
   try {
-    assertEqual(Object.keys(parseWithNapi(root, false)).length, 0, 'empty directory returns no documents')
+    assertEqual(
+      Object.keys(parseWithNapi(root, false)).length,
+      0,
+      'empty directory returns no documents',
+    )
   } finally {
     fs.rmSync(root, { recursive: true, force: true })
   }

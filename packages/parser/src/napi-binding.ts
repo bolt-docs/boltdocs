@@ -10,10 +10,7 @@ let napiLib: ReturnType<typeof koffi.load> | null = null
 // The directory API removes the large JS→Zig JSON input allocation. Koffi's
 // disposable return type converts the native char* to a JS string and calls
 // the exported free_result function after conversion.
-type ParseDocsDirectory = (
-  docsDir: string,
-  turbo: number,
-) => string | null
+type ParseDocsDirectory = (docsDir: string, turbo: number) => string | null
 
 type ParseDocsFiles = (
   docsDir: string,
@@ -74,11 +71,11 @@ export function tryLoadNapi(): boolean {
       disposableString,
       ['string', 'int'],
     ) as unknown as ParseDocsDirectory
-    _parse_docs_files = napiLib.func(
-      'parse_docs_files',
-      disposableString,
-      ['string', 'string', 'int'],
-    ) as unknown as ParseDocsFiles
+    _parse_docs_files = napiLib.func('parse_docs_files', disposableString, [
+      'string',
+      'string',
+      'int',
+    ]) as unknown as ParseDocsFiles
     return true
   } catch {
     napiLib = null
