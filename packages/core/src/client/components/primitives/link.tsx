@@ -70,7 +70,10 @@ export function Link(props: LinkProps) {
     if (!isExternal) {
       e.preventDefault()
       const navigateTo = () =>
-        navigate(localizedHref, transition ? { viewTransition: false } : undefined)
+        navigate(
+          localizedHref,
+          transition ? { viewTransition: false } : undefined,
+        )
       if (transition) {
         runTransition(navigateTo, {
           enabled: true,
