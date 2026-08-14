@@ -56,7 +56,20 @@ export function useLocalizedTo(to: string): string {
 
   const siteProtocol = to.startsWith('site:')
   const siteValue = siteProtocol ? to.slice('site:'.length) || '/' : to
-  const collectionNames = routeIndex.collectionNames
+  // The route index is not always available: external pages render before
+  // hydration with an empty index. The client config carries the collection
+  // names derived from `[collection]/` route directories, so merge both
+  // sources before classifying `site:/<collection>/...` references.
+  const configCollections = config.collections as
+    | string[]
+    | { labels?: Record<string, string | Record<string, string>> }
+    | undefined
+  const configuredCollectionNames = Array.isArray(configCollections)
+    ? configCollections
+    : Object.keys(configCollections?.labels || {})
+  const collectionNames = [
+    ...new Set([...routeIndex.collectionNames, ...configuredCollectionNames]),
+  ]
   const targetPath = siteValue.split(/[?#]/, 1)[0]
   const normalizedTarget =
     targetPath.endsWith('/') && targetPath.length > 1

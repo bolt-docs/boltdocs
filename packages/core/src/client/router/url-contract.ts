@@ -50,6 +50,8 @@ export interface BuildUrlOptions {
   collection?: string
   search?: string
   hash?: string
+  /** The input pathname already contained the configured base. */
+  hadBase?: boolean
 }
 
 export interface ResolveUrlOptions {
@@ -380,7 +382,14 @@ export function buildUrl(
     if (!options.collection) {
       throw new Error('A collection route requires a collection name')
     }
+    // Collection routes (blogs, changelogs, …) are generated under the
+    // configured base, so the same base is always applied here — including
+    // when an explicit `site:` reference targets a known collection. The
+    // base-stripped route path makes the rebuilt URL keep it exactly once.
     const parts = [
+      normalizeUrlBase(config.base) === '/'
+        ? undefined
+        : normalizeUrlBase(config.base).slice(1),
       ...getVersionSegments(options.version, config),
       locale,
       options.collection,
@@ -414,15 +423,36 @@ export function resolveUrlReference(
   const locale = options.locale ?? parsed.locale
   const version = options.version ?? parsed.version
 
+  // A collection name cannot be derived from a path that already contains the
+  // configured base (e.g. `/docs/blog/post`), and an external `site:` path is
+  // not classified as a collection by the parser. Strip the base and derive the
+  // collection from the normalized path so the rebuilt URL always carries the
+  // base and never duplicates the collection segment in the route path.
+  const baseStripped = stripUrlBase(parsed.pathname, config.base)
+  const derived = getCollectionFromPath(baseStripped, config)
+  const collection = parsed.collection ?? derived.collection
+  const routePath =
+    derived.collection && !parsed.collection
+      ? normalizeUrlPath(derived.remainder.join('/'))
+      : parsed.routePath
+  // A `site:` reference to a known collection (e.g. `site:/blog/post`) never
+  // resolves through the route hints on its own — the hint map keys on the
+  // base-prefixed path. Deriving the collection here must also upgrade the
+  // route family, otherwise `buildUrl` treats the URL as external and drops
+  // the documentation base.
+  const effectiveKind =
+    collection || parsed.kind === 'collection' ? 'collection' : kind
+
   return buildUrl(
     {
-      kind,
-      path: parsed.routePath,
+      kind: effectiveKind,
+      path: routePath,
       locale,
       version,
-      collection: parsed.collection,
+      collection,
       search: parsed.search,
       hash: parsed.hash,
+      hadBase: parsed.hadBase,
     },
     config,
   )

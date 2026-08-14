@@ -9,7 +9,7 @@ vi.mock('virtual:boltdocs-mdx-components', () => ({ default: {} }))
 vi.mock('virtual:boltdocs-layout', () => ({ default: {} }))
 
 describe('collection route matching', () => {
-  it('matches /blog alongside /docs routes', () => {
+  it('matches the collection index under the docs base alongside docs routes', () => {
     const routesData: ComponentRoute[] = [
       {
         path: '/docs/api',
@@ -38,10 +38,16 @@ describe('collection route matching', () => {
       mdxModules: {},
     })
 
-    const branch = matchRouteBranch(result.routes, '/blog')
-    expect(branch.map((r) => r.path)).toContain('/blog')
+    // The collection layout lives under the docs base. A root-level /blog
+    // must not resolve to the collection (only the NotFound catch-all).
+    const branch = matchRouteBranch(result.routes, '/docs/blog')
+    expect(branch.map((r) => r.path)).toContain('/docs/blog')
+    expect(
+      matchRouteBranch(result.routes, '/blog').map((r) => r.path),
+    ).not.toContain('/docs/blog')
   })
-  it('matches /blog to the collection list', () => {
+
+  it('matches /docs/blog to the collection list', () => {
     const routesData: ComponentRoute[] = [
       {
         path: '/blog/hello-world',
@@ -65,9 +71,9 @@ describe('collection route matching', () => {
       mdxModules: {},
     })
 
-    const branch = matchRouteBranch(result.routes, '/blog')
+    const branch = matchRouteBranch(result.routes, '/docs/blog')
     const paths = branch.map((r) => r.path)
-    expect(paths).toContain('/blog')
+    expect(paths).toContain('/docs/blog')
   })
 
   it('keeps a collection route when it only has _index.md', () => {
@@ -94,8 +100,8 @@ describe('collection route matching', () => {
       mdxModules: {},
     })
 
-    const branch = matchRouteBranch(result.routes, '/blog')
-    expect(branch.some((route) => route.path === '/blog')).toBe(true)
+    const branch = matchRouteBranch(result.routes, '/docs/blog')
+    expect(branch.some((route) => route.path === '/docs/blog')).toBe(true)
     expect(branch.at(-1)?.index).toBe(true)
   })
 
@@ -127,7 +133,7 @@ describe('collection route matching', () => {
     })
 
     const collectionRoute = result.routes[0]?.children?.find(
-      (route) => route.path === '/blog',
+      (route) => route.path === '/docs/blog',
     )
     const indexRoute = collectionRoute?.children?.find((route) => route.index)
 
@@ -136,7 +142,7 @@ describe('collection route matching', () => {
 
     expect(
       await indexRoute.loader({
-        request: new Request('http://localhost/blog'),
+        request: new Request('http://localhost/docs/blog'),
         params: {},
       }),
     ).toMatchObject({
@@ -151,7 +157,7 @@ describe('collection route matching', () => {
     expect((await indexRoute.lazy()).Component).toBeTypeOf('function')
   })
 
-  it('matches /blog/hello-world to a post', () => {
+  it('matches /docs/blog/hello-world to a post', () => {
     const routesData: ComponentRoute[] = [
       {
         path: '/blog/hello-world',
@@ -175,8 +181,12 @@ describe('collection route matching', () => {
       mdxModules: {},
     })
 
-    const branch = matchRouteBranch(result.routes, '/blog/hello-world')
+    const branch = matchRouteBranch(result.routes, '/docs/blog/hello-world')
     const paths = branch.map((r) => r.path)
     expect(paths).toContain('hello-world')
+    // The base-less root-level URL must not resolve to the post anymore.
+    expect(
+      matchRouteBranch(result.routes, '/blog/hello-world').map((r) => r.path),
+    ).not.toContain('hello-world')
   })
 })

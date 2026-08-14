@@ -25,6 +25,36 @@ function CollectionIndex({
   )
 }
 
+function splitCollectionPath(routePath: string): string[] {
+  return routePath.split('/').filter(Boolean)
+}
+
+/**
+ * Resolve the child path of a collection post relative to its layout route.
+ *
+ * Route generation emits collection paths without the configured docs base
+ * (e.g. `/blog/post` or `/es/blog/post`), while the collection layout lives
+ * under the base (`/docs/blog`). Keeping everything after the collection
+ * segment as a *relative* child path is what makes the router match
+ * `/docs/blog/post` and the SSG emit `dist/docs/blog/post.html` — never a
+ * root-level `/blog/post` that neither the matcher nor the cache can reach.
+ */
+function getCollectionSubPath(
+  routePath: string,
+  colBase: string,
+  collection: string,
+): string {
+  if (routePath.startsWith(`${colBase}/`)) {
+    return routePath.slice(colBase.length + 1)
+  }
+  const parts = splitCollectionPath(routePath)
+  const collectionIndex = parts.indexOf(collection)
+  if (collectionIndex >= 0) {
+    return parts.slice(collectionIndex + 1).join('/')
+  }
+  return parts.join('/')
+}
+
 function isCollectionIndexRoute(
   route: ComponentRoute,
   collection: string,
@@ -249,9 +279,7 @@ function buildCollectionRoutes(options: {
           moduleMap,
           mdxModules,
         )
-        const subPath = route.path.startsWith(colBase + '/')
-          ? route.path.slice(colBase.length + 1)
-          : route.path.replace(colBase, '') || ''
+        const subPath = getCollectionSubPath(route.path, colBase, colName)
 
         const routeWithCollection: ComponentRoute = {
           ...route,

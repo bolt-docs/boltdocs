@@ -164,4 +164,46 @@ describe('useLocalizedTo', () => {
     expect(localized('site:/')).toBe('/es')
     expect(localized('site:')).toBe('/es')
   })
+
+  it('resolves site: collection links from config collections when the route index is empty', () => {
+    // External pages (home, banner, hero) render with an empty route index
+    // before hydration. The client config carries the collection names derived
+    // from [collection]/ directories, which must classify site:/blog/... as a
+    // based collection URL instead of dropping the base.
+    vi.mocked(useConfig).mockReturnValue({
+      base: '/docs',
+      collections: ['blog'],
+    } as never)
+    setContext([])
+
+    expect(localized('site:/blog/boltdocs-3.3.0')).toBe(
+      '/docs/blog/boltdocs-3.3.0',
+    )
+    expect(localized('site:/blog')).toBe('/docs/blog')
+    expect(localized('/blog/boltdocs-3.3.0')).toBe('/docs/blog/boltdocs-3.3.0')
+  })
+
+  it('reads collection names from config labels when declared as an object', () => {
+    vi.mocked(useConfig).mockReturnValue({
+      base: '/docs',
+      collections: { labels: { blog: 'Blog' } },
+    } as never)
+    setContext([])
+
+    expect(localized('site:/blog/boltdocs-3.3.0')).toBe(
+      '/docs/blog/boltdocs-3.3.0',
+    )
+  })
+
+  it('merges route index collections with config collections', () => {
+    vi.mocked(useConfig).mockReturnValue({
+      base: '/docs',
+      collections: ['blog'],
+    } as never)
+    setContext([{ path: '/blog/boltdocs-3.3.0', collection: 'blog' }])
+
+    expect(localized('site:/blog/boltdocs-3.3.0')).toBe(
+      '/docs/blog/boltdocs-3.3.0',
+    )
+  })
 })

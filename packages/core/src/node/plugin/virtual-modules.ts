@@ -551,6 +551,43 @@ export function createVirtualModulesPlugin(
         await ensureRoutesGenerated(docsDir, config, moduleState)
         const directoryMeta = moduleState.routeCacheVariant?.directoryMeta || {}
         moduleState.directoryMetaCache = directoryMeta
+        // Collections declared as `[name]/` directories are known from the
+        // generated routes, not only from `config.collections`. Expose the
+        // derived names on the client config so URL resolution can classify
+        // `site:/<collection>/...` links even when the route index is not
+        // available (e.g. external pages rendered before hydration). When the
+        // user declared collections, merge the derived names into the labels
+        // so a partial declaration still resolves directory-based collections
+        // while keeping postsPerPage/order options intact. Note: this field
+        // can be either a `BoltdocsCollectionsConfig` or a plain string array
+        // (the array form is produced only when no config was declared);
+        // consumers already handle both shapes.
+        const derivedCollectionNames = [
+          ...new Set(
+            Array.from(moduleState.routesDataMap.values())
+              .map((route) => route.collection)
+              .filter((collection): collection is string =>
+                Boolean(collection),
+              ),
+          ),
+        ].sort((left, right) => left.localeCompare(right))
+        const userCollections = config?.collections
+        const collections = userCollections
+          ? {
+              ...userCollections,
+              labels: {
+                ...(userCollections.labels || {}),
+                ...Object.fromEntries(
+                  derivedCollectionNames.map((name) => [
+                    name,
+                    userCollections.labels?.[name] ?? name,
+                  ]),
+                ),
+              },
+            }
+          : derivedCollectionNames.length > 0
+            ? derivedCollectionNames
+            : undefined
         const clientConfig = {
           base: config?.base,
           theme: config?.theme,
@@ -558,7 +595,7 @@ export function createVirtualModulesPlugin(
           versions: config?.versions,
           siteUrl: config?.siteUrl,
           integrations: config?.integrations,
-          collections: config?.collections,
+          collections,
           seo: config?.seo,
           experimental: config?.experimental,
           plugins: config?.plugins?.map((p) => ({ name: p.name })),
