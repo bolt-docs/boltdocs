@@ -623,6 +623,11 @@ function RouteContent({
     [],
   )
   const previousBranch = resolved?.branch
+  // The last branch that actually produced DOM. Kept in a ref so a navigation
+  // to a lazy route never flashes a blank page: while the new branch resolves
+  // we keep rendering the previous page instead of falling back to the raw
+  // matched (unresolved) branch.
+  const lastRenderableBranchRef = useRef<RouteRecord[]>([])
   const branch = usesInitialResolvedBranch
     ? hasResolvedCurrentRoute
       ? resolved.branch
@@ -633,7 +638,14 @@ function RouteContent({
         : initialBranch
       : hasRenderableBranch(previousBranch || [])
         ? previousBranch || []
-        : matchedBranch
+        : hasRenderableBranch(lastRenderableBranchRef.current)
+          ? lastRenderableBranchRef.current
+          : matchedBranch
+
+  // Persist the last renderable branch once the current route is committed.
+  if (hasResolvedCurrentRoute && hasRenderableBranch(branch)) {
+    lastRenderableBranchRef.current = branch
+  }
 
   useEffect(() => {
     if (typeof window === 'undefined') return
