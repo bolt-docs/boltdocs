@@ -2,7 +2,7 @@
 
 // Suppress DEP0205 deprecation warning for module.register() in Node 26+
 const { emitWarning: _emitWarn } = process
-process.emitWarning = function (warning, ...args) {
+process.emitWarning = (warning, ...args) => {
   if (warning && typeof warning === 'object' && warning.code === 'DEP0205')
     return
   if (typeof warning === 'string' && args.includes('DEP0205')) return

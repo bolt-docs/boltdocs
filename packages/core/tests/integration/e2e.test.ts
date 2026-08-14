@@ -101,7 +101,9 @@ describe('E2E integration tests', () => {
     const routes = await generateRoutes(docsDir, config as any, '/docs', true)
     const guide = routes.find((route) => route.path === '/docs/guide')
     const spanishGuide = routes.find((route) => route.path === '/docs/es/guide')
-    const versionedGuide = routes.find((route) => route.path === '/docs/v1/guide')
+    const versionedGuide = routes.find(
+      (route) => route.path === '/docs/v1/guide',
+    )
     const blog = routes.find((route) => route.collection === 'blog')
     const changelog = routes.find((route) => route.collection === 'changelog')
 

@@ -40,7 +40,9 @@ describe('Sass plugin Vite integration', () => {
       await build({
         root,
         logLevel: 'error',
-        css: plugin.css as unknown as Parameters<typeof build>[0] extends infer T
+        css: plugin.css as unknown as Parameters<
+          typeof build
+        >[0] extends infer T
           ? T extends { css?: infer C }
             ? C
             : never

@@ -26,9 +26,7 @@ test.describe('Keyboard Navigation Accessibility Tests', () => {
       try {
         await element.focus()
         tabCount++
-      } catch {
-        continue
-      }
+      } catch {}
     }
 
     expect(tabCount).toBeGreaterThan(0)
