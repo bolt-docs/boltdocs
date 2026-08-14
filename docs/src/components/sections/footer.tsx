@@ -1,15 +1,15 @@
-import { useRef } from 'react'
-import { Link } from 'boltdocs/primitives'
-import { useScrollAnimation } from '../../hooks/useScrollAnimation'
-import { useTranslations } from '../../i18n/index'
+import { useRef } from "react";
+import { Link } from "boltdocs/primitives";
+import { useScrollAnimation } from "../../hooks/useScrollAnimation";
+import { useTranslations } from "../../i18n/index";
 
 export const Footer = () => {
-  const topRef = useRef<HTMLDivElement>(null)
-  const titleRef = useRef<HTMLHeadingElement>(null)
-  const t = useTranslations()
+  const topRef = useRef<HTMLDivElement>(null);
+  const titleRef = useRef<HTMLHeadingElement>(null);
+  const t = useTranslations();
 
-  useScrollAnimation(topRef, 'fade-up')
-  useScrollAnimation(titleRef, 'fade-up')
+  useScrollAnimation(topRef, "fade-up");
+  useScrollAnimation(titleRef, "fade-up");
 
   return (
     <footer className="w-full bg-main/95 backdrop-blur-2xl text-body px-6 md:px-12 pt-20 pb-10 border-t border-subtle relative overflow-hidden">
@@ -101,5 +101,5 @@ export const Footer = () => {
         </div>
       </div>
     </footer>
-  )
-}
+  );
+};
