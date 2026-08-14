@@ -96,6 +96,7 @@ export default defineConfig({
       { id: 'api', text: 'API' },
       { id: 'plugins', text: { en: 'Plugins', es: 'Plugins' } },
       { id: 'components', text: { en: 'Components', es: 'Componentes' } },
+      { id: 'releases', text: { en: 'Releases', es: 'Lanzamientos' } },
     ],
     navbar: [
       {
@@ -113,10 +114,6 @@ export default defineConfig({
           {
             label: { en: 'Configuration', es: 'Configuración' },
             href: '/docs/guides/getting-started/configuration',
-          },
-          {
-            label: { en: 'Changelog', es: 'Changelog' },
-            href: '/docs/changelog',
           },
         ],
       },

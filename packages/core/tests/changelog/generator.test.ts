@@ -31,7 +31,6 @@ describe('Changelog Generator', () => {
     await generateChangelog(testChangelog, { output: TEST_OUTPUT_DIR })
 
     expect(fs.existsSync(path.join(TEST_OUTPUT_DIR, '1.v2.0.0.md'))).toBe(true)
-    expect(fs.existsSync(path.join(TEST_OUTPUT_DIR, '2.v1.0.0.md'))).toBe(true)
   })
 
   it('should generate files with correct content', async () => {
@@ -144,6 +143,28 @@ describe('Changelog Generator', () => {
       '**Author:** [@developer](https://github.com/developer)',
     )
     expect(content).toContain('**Commit:** [`abc123`](https://github.com/test)')
+  })
+
+  it('should escape MDX braces outside inline-code spans', async () => {
+    const testChangelog = path.resolve(
+      './tests/changelog/fixtures/changelog-test7.md',
+    )
+    fs.mkdirSync(path.dirname(testChangelog), { recursive: true })
+    fs.writeFileSync(
+      testChangelog,
+      `# Changelog\n\n## 1.0.0\n\n### Patch Changes\n\n- ga4: { measurementId: 'G-XXXXX' },\n- \`drafts\` config: \`{ visible?: boolean, environments?: string[] }\`\n`,
+    )
+
+    await generateChangelog(testChangelog, { output: TEST_OUTPUT_DIR })
+
+    const content = fs.readFileSync(
+      path.join(TEST_OUTPUT_DIR, '1.v1.0.0.md'),
+      'utf-8',
+    )
+    expect(content).toContain(`- ga4: \\{ measurementId: 'G-XXXXX' \\},`)
+    expect(content).toContain(
+      '`{ visible?: boolean, environments?: string[] }`',
+    )
   })
 
   it('should throw error for non-existent file', async () => {

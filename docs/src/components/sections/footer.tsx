@@ -1,7 +1,6 @@
 import { useRef } from 'react'
 import { Link } from 'boltdocs/primitives'
 import { useScrollAnimation } from '../../hooks/useScrollAnimation'
-import { NoiseOverlay } from '../ui/noise-overlay'
 import { useTranslations } from '../../i18n/index'
 
 export const Footer = () => {
@@ -14,7 +13,6 @@ export const Footer = () => {
 
   return (
     <footer className="w-full bg-main/95 backdrop-blur-2xl text-body px-6 md:px-12 pt-20 pb-10 border-t border-subtle relative overflow-hidden">
-      <NoiseOverlay />
       <div className="max-w-350 mx-auto w-full">
         {/* Top Section */}
         <div
@@ -41,6 +39,12 @@ export const Footer = () => {
                 className="hover:text-primary-500 transition-colors"
               >
                 {t.footerIssues}
+              </Link>
+              <Link
+                href="/docs/changelog"
+                className="hover:text-primary-500 transition-colors"
+              >
+                {t.footerChangelog}
               </Link>
               <Link
                 href="site:/blog"

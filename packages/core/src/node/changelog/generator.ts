@@ -14,11 +14,34 @@ const TYPE_LABELS: Record<string, string> = {
   other: 'Other',
 }
 
+/**
+ * Escape `{` and `}` that appear outside inline-code spans so MDX does not
+ * interpret them as JSX expressions (e.g. `- ga4: { measurementId: 'G' },`
+ * would otherwise crash the Sätteri compiler with mdx-jsx:unexpected-character).
+ */
+function escapeMdxBraces(value: string): string {
+  let result = ''
+  let inCode = false
+  for (const char of value) {
+    if (char === '`') {
+      inCode = !inCode
+      result += char
+    } else if (!inCode && (char === '{' || char === '}')) {
+      result += `\\${char}`
+    } else {
+      result += char
+    }
+  }
+  return result
+}
+
 export interface GenerateOptions {
   output?: string
   title?: string
   inferTab?: boolean
   limit?: number
+  type?: 'major' | 'minor'
+  // When type is undefined, generates major and minor versions only
 }
 
 export async function generateChangelog(
@@ -40,7 +63,23 @@ export async function generateChangelog(
     return
   }
 
-  const limitedVersions = limit ? versions.slice(0, limit) : versions
+  let limitedVersions = versions
+
+  if (options.type) {
+    limitedVersions = versions.filter((v) => v.type === options.type)
+  } else if (limit) {
+    // When limit is used without type, only filter from major/minor versions
+    const majorMinorVersions = versions.filter((v) => v.type !== 'patch')
+    limitedVersions = majorMinorVersions.slice(0, limit)
+  } else {
+    // Generate only major and minor versions (exclude patch)
+    limitedVersions = versions.filter((v) => v.type !== 'patch')
+    // If filtering out patch versions leaves nothing, keep all versions
+    // (e.g., changelog with only patch-version entries like 1.0.0)
+    if (limitedVersions.length === 0) {
+      limitedVersions = versions
+    }
+  }
 
   if (!fs.existsSync(outputDir)) {
     fs.mkdirSync(outputDir, { recursive: true })
@@ -56,18 +95,44 @@ export async function generateChangelog(
     success(`Generated: ${filename}`)
   }
 
-  const totalVersions =
-    limit && limit < versions.length
-      ? `${limit} of ${versions.length} versions`
-      : `${versions.length} versions`
+  const totalTypeFiltered = options.type
+    ? versions.filter((v) => v.type === options.type).length
+    : versions.filter((v) => v.type !== 'patch').length
 
+  const totalLimitFiltered = limit
+    ? Math.min(limit, versions.filter((v) => v.type !== 'patch').length)
+    : undefined
+
+  const totalVersions =
+    (options.type
+      ? totalTypeFiltered
+      : (totalLimitFiltered ??
+        versions.filter((v) => v.type !== 'patch').length)) +
+    ' of ' +
+    versions.filter((v) => v.type !== 'patch').length +
+    ' versions'
+
+  const typeLabel = options.type ? ` (${options.type})` : ''
   const summaryLines = [
-    `  ✨ Generated ${totalVersions} changelog pages in ${outputDir}`,
+    `  ✨ Generated ${totalVersions}${typeLabel} changelog pages in ${outputDir}`,
     '',
     `  📝 Add this to your navbar in boltdocs.config.ts:`,
     `     { label: '${title}', href: '/changelog' }`,
   ]
   console.log(`\n${double(summaryLines, { title: 'Changelog Generation' })}\n`)
+}
+
+function getCoverImage(version: string): string | undefined {
+  const versionNum = version.replace(/^v/, '')
+  const coverMap: Record<string, string> = {
+    '2.8.0': '/blog-covers/Boltdocs-2.8.0.webp',
+    '2.9.0': '/blog-covers/Boltdocs-2.9.0.webp',
+    '3.0.0': '/blog-covers/Boltdocs-3.0.0.webp',
+    '3.1.0': '/blog-covers/Boltdocs-3.1.0.webp',
+    '3.2.0': '/blog-covers/Boltdocs-3.2.0.webp',
+    '4.0.0-Nitro': '/blog-covers/Boltdocs-4.0.0-Nitro.webp',
+  }
+  return coverMap[versionNum]
 }
 
 function generateMarkdown(
@@ -79,11 +144,14 @@ function generateMarkdown(
     version.type.charAt(0).toUpperCase() + version.type.slice(1)
 
   const groupedChanges = groupChangesByType(version.changes)
+  const coverImage = getCoverImage(version.version)
 
   let content = `---
 title: v${version.version}
 badge: "${badgeLabel}"
 description: Changelog version ${version.version}${version.date ? ` (${version.date})` : ''}
+tab: "(releases)"
+${coverImage ? `cover: "${coverImage}"` : ''}
 ---
 
 # ${title} v${version.version}
@@ -100,7 +168,7 @@ ${version.date ? `**Released:** ${version.date}` : ''}
     content += `## ${label}\n\n`
 
     for (const change of changes) {
-      content += `- ${change.message}\n`
+      content += `- ${escapeMdxBraces(change.message)}\n`
       if (change.author) {
         if (change.authorUrl) {
           content += `  - **Author:** [@${change.author}](${change.authorUrl})\n`

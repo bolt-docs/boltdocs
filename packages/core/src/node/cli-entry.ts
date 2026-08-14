@@ -120,6 +120,10 @@ cli
     default: true,
   })
   .option('-l, --limit <number>', 'Limit number of versions to generate')
+  .option(
+    '--type <"major"|"minor"|"patch">',
+    'Filter by version type (major, minor, or patch)',
+  )
   .action(
     async (
       file: string,
@@ -128,6 +132,7 @@ cli
         title?: string
         inferTab?: boolean
         limit?: number
+        type?: string | undefined
       },
     ) => {
       await ensureDui()
@@ -137,6 +142,7 @@ cli
         title: options.title,
         inferTab: options.inferTab,
         limit: options.limit ? parseInt(String(options.limit), 10) : undefined,
+        type: options.type as 'major' | 'minor' | 'patch' | undefined,
       })
     },
   )
