@@ -30,7 +30,18 @@ export default function BlogPost({
               {new Date(date).toLocaleDateString()}
             </time>
           )}
-          {author && <span>· {author}</span>}
+          {author && (
+            <div className="flex items-center gap-2">
+              {author.avatar && (
+                <img
+                  src={author.avatar}
+                  alt={title || 'Author avatar'}
+                  className="rounded-w-full h-10 w-10 object-cover"
+                />
+              )}
+              <span>· {author}</span>
+            </div>
+          )}
         </div>
 
         {coverImage && (
