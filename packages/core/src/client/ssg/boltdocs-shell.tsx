@@ -64,11 +64,11 @@ function StoreSync({
     )
     const matchedRoute = routeMap.get(currentPath)
 
-    // The URL is the single source of truth for locale/version preferences.
-    // Selector handlers only navigate and never write the store: an
-    // optimistic write re-renders this effect while `location.pathname`
-    // still points at the previous page, reverting the preference and
-    // desynchronizing every consumer until the navigation lands.
+    // Selector handlers (use-i18n / use-version) write the store optimistically
+    // BEFORE navigating — the router's locale-preserving navigation reads it
+    // synchronously. Because this effect matches the live browser URL (which
+    // navigate() updates immediately), the optimistic write is never reverted
+    // mid-navigation; the preference converges when the navigation lands.
     if (matchedRoute) {
       if (config.i18n) {
         const targetLocale = matchedRoute.locale || config.i18n.defaultLocale
