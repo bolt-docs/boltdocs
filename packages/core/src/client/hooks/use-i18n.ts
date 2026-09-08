@@ -32,6 +32,11 @@ export function useI18n(): UseI18nReturn {
   const i18n = config.i18n
   const { setLocale } = useBoltdocsContext()
 
+  // Writes the store BEFORE navigating on purpose: the router re-adds the
+  // active locale to out-of-basename targets (external pages) read from the
+  // store within this same handler, and StoreSync reconciles the preference
+  // once the navigation lands (it matches against the live browser URL, so
+  // the optimistic write is never reverted mid-navigation).
   const handleLocaleChange = (locale: string) => {
     if (!i18n || locale === currentLocale) return
 

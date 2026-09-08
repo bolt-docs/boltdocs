@@ -92,6 +92,9 @@ describe('useI18n locale navigation', () => {
     const { result } = renderHook(() => useI18n())
     result.current.handleLocaleChange('es')
 
+    // The store write is optimistic (the router reads the active locale from
+    // the global registry within this same handler); StoreSync reconciles it
+    // against the live URL once the navigation lands.
     expect(setLocale).toHaveBeenCalledWith('es')
     expect(navigate).toHaveBeenCalledWith('/docs/es/guides/getting-started')
   })
@@ -145,5 +148,24 @@ describe('useI18n locale navigation', () => {
 
     expect(setLocale).toHaveBeenCalledWith('es')
     expect(navigate).toHaveBeenCalledWith('/docs/v2/es/guides/getting-started')
+  })
+
+  it('is a no-op when the target locale equals the current locale', () => {
+    const englishRoute: Route = {
+      path: '/docs/guides/getting-started',
+      filePath: 'guides/getting-started.mdx',
+    }
+
+    configure({
+      currentRoute: englishRoute,
+      allRoutes: [englishRoute],
+      currentLocale: 'en',
+    })
+
+    const { result } = renderHook(() => useI18n())
+    result.current.handleLocaleChange('en')
+
+    expect(navigate).not.toHaveBeenCalled()
+    expect(setLocale).not.toHaveBeenCalled()
   })
 })

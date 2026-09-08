@@ -30,6 +30,8 @@ export function useVersion(): UseVersionReturn {
   const versions = config.versions
   const { setVersion } = useBoltdocsContext()
 
+  // Writes the store BEFORE navigating on purpose. See the comment in
+  // use-i18n's handleLocaleChange for the store/navigation contract.
   const handleVersionChange = (version: BoltdocsVersion) => {
     if (!versions || version === currentVersion) return
 

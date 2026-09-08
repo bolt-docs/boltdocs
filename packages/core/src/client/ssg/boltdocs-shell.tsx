@@ -52,9 +52,23 @@ function StoreSync({
     useBoltdocsContext()
 
   useEffect(() => {
-    const currentPath = normalizePath(location.pathname)
+    // Match against the live browser URL, not the (deferred) React location:
+    // navigate() pushes history immediately but setLocation lands on a later
+    // task. Comparing `location.pathname` here reverts an optimistic store
+    // write from a locale/version selector mid-navigation (URL already
+    // updated, React location stale) and desynchronizes the selector.
+    const currentPath = normalizePath(
+      typeof window !== 'undefined'
+        ? window.location.pathname
+        : location.pathname,
+    )
     const matchedRoute = routeMap.get(currentPath)
 
+    // The URL is the single source of truth for locale/version preferences.
+    // Selector handlers only navigate and never write the store: an
+    // optimistic write re-renders this effect while `location.pathname`
+    // still points at the previous page, reverting the preference and
+    // desynchronizing every consumer until the navigation lands.
     if (matchedRoute) {
       if (config.i18n) {
         const targetLocale = matchedRoute.locale || config.i18n.defaultLocale
@@ -69,8 +83,11 @@ function StoreSync({
       config.versions &&
       currentVersion !== config.versions.defaultVersion
     ) {
-      // Reset an invalid persisted preference only once when entering an
-      // unmatched route; avoid a redundant localStorage write on every render.
+      // Reset an invalid persisted version preference only once when entering
+      // an unmatched route (e.g. the 404 splat); avoid a redundant
+      // localStorage write on every render. Locale is intentionally left
+      // untouched: the last known preference is the best guess for localizing
+      // external/404 pages where no route metadata exists.
       setVersion(config.versions.defaultVersion)
     }
   }, [

@@ -84,6 +84,16 @@ export function BoltdocsProvider({
       if (current === newL) return current
       return newL
     })
+    // Write through to the global registry synchronously: the router reads
+    // the active locale from here within the same handler that calls
+    // setLocale (locale-preserving navigation on external pages), before any
+    // re-render commits the new context value.
+    if (typeof globalThis !== 'undefined') {
+      Reflect.set(globalThis, BOLTDOCS_INSTANCE_SYMBOL, {
+        ...(globalThis[BOLTDOCS_INSTANCE_SYMBOL] as BoltdocsState | undefined),
+        currentLocale: newL,
+      })
+    }
     if (typeof window !== 'undefined') {
       try {
         const prefs = getSavedPrefs()
@@ -105,6 +115,13 @@ export function BoltdocsProvider({
       if (current === newV) return current
       return newV
     })
+    // Write through to the global registry synchronously (see updateLocale).
+    if (typeof globalThis !== 'undefined') {
+      Reflect.set(globalThis, BOLTDOCS_INSTANCE_SYMBOL, {
+        ...(globalThis[BOLTDOCS_INSTANCE_SYMBOL] as BoltdocsState | undefined),
+        currentVersion: newV,
+      })
+    }
     if (typeof window !== 'undefined') {
       try {
         const prefs = getSavedPrefs()
