@@ -25,6 +25,7 @@
     "test": "vitest run"
   },
   "dependencies": {
+    "esbuild": "^0.25.0",
     "piscina": "^5.3.0",
     "satteri": "^0.9.2"
   },
