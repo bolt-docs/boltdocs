@@ -10,6 +10,9 @@ const rootDir = path.dirname(import.meta.filename)
 
 export default defineConfig({
   base: '/docs',
+  aliases: {
+    '@': path.resolve(rootDir, 'src'),
+  },
   i18n: {
     defaultLocale: 'en',
     locales: { en: 'English', es: 'Español' },
@@ -139,60 +142,6 @@ export default defineConfig({
       },
     ],
     sitemaps: ['https://boltdocs.vercel.app/sitemap.xml'],
-  },
-  vite: {
-    resolve: {
-      // `config.vite` replaces the core's `resolve` entirely, so the aliases
-      // set by the framework (boltdocs/entry, boltdocs/client, primitives,
-      // use-sync-external-store) must be replicated here. `@` maps to docs/src.
-      alias: [
-        {
-          find: 'boltdocs/entry',
-          replacement: path.resolve(rootDir, 'boltdocs-entry.tsx'),
-        },
-        {
-          find: 'boltdocs/client',
-          replacement: path.resolve(rootDir, 'boltdocs-client.mjs'),
-        },
-        {
-          find: 'boltdocs/primitives',
-          replacement: path.resolve(
-            rootDir,
-            '../packages/core/src/client/primitives.ts',
-          ),
-        },
-        {
-          find: 'boltdocs/mdx',
-          replacement: path.resolve(
-            rootDir,
-            '../packages/core/src/client/mdx.ts',
-          ),
-        },
-        {
-          find: 'boltdocs/client/router',
-          replacement: path.resolve(
-            rootDir,
-            '../packages/core/src/client/router/index.ts',
-          ),
-        },
-        {
-          find: 'use-sync-external-store/shim/index.js',
-          replacement: 'react',
-        },
-        {
-          find: 'use-sync-external-store/shim',
-          replacement: 'react',
-        },
-        {
-          find: 'use-sync-external-store',
-          replacement: 'react',
-        },
-        {
-          find: '@',
-          replacement: path.resolve(rootDir, 'src'),
-        },
-      ],
-    },
   },
   integrations: {
     analytics: {

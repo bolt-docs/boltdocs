@@ -6,6 +6,7 @@ import path from 'node:path'
 import fs from 'node:fs'
 import crypto from 'node:crypto'
 import { ssrDirnamePolyfillPlugin } from './plugins/ssr-dirname-polyfill'
+import { createBoltdocsAliases, normalizeAliases } from './aliases'
 export { generateEntryCode } from './plugin/entry'
 
 // In-memory cache keyed by `${root}::${mode}::${optionsHash}` where
@@ -104,6 +105,8 @@ function createViteConfigCacheKey(
         skipRoutes: options.skipRoutes ?? false,
         hasPreResolved: !!preResolvedConfig,
         docsDir: preResolvedConfig?.docsDir || 'docs',
+        aliases: preResolvedConfig?.aliases,
+        viteAliases: preResolvedConfig?.vite?.resolve?.alias,
         publicDir: resolvePublicDir(root, preResolvedConfig, options.publicDir),
       }),
     )
@@ -340,61 +343,6 @@ export async function createViteConfig(
         config,
       ),
     ],
-    resolve: {
-      alias: [
-        {
-          find: 'boltdocs/entry',
-          replacement: _normalizePath(path.resolve(root, 'boltdocs-entry.tsx')),
-        },
-        {
-          find: 'boltdocs/client',
-          replacement: _normalizePath(
-            path.resolve(root, 'boltdocs-client.mjs'),
-          ),
-        },
-        ...(_clientSourceRoot
-          ? ([
-              {
-                find: 'boltdocs/primitives',
-                replacement: _normalizePath(
-                  path.join(_clientSourceRoot, 'primitives.ts'),
-                ),
-              },
-              {
-                find: 'boltdocs/mdx',
-                replacement: _normalizePath(
-                  path.join(_clientSourceRoot, 'mdx.ts'),
-                ),
-              },
-              {
-                find: 'boltdocs/client/router',
-                replacement: _normalizePath(
-                  path.join(_clientSourceRoot, 'router/index.ts'),
-                ),
-              },
-            ] as { find: string; replacement: string }[])
-          : []),
-        {
-          find: 'use-sync-external-store/shim/index.js',
-          replacement: 'react',
-        },
-        {
-          find: 'use-sync-external-store/shim',
-          replacement: 'react',
-        },
-        {
-          find: 'use-sync-external-store',
-          replacement: 'react',
-        },
-        {
-          find: '@',
-          replacement: _normalizePath(
-            path.resolve(root, '../packages/core/src'),
-          ),
-        },
-      ],
-      dedupe: ['react', 'react-dom', 'react-router-dom'],
-    },
     ssr: {
       external: [
         'react',
@@ -442,6 +390,28 @@ export async function createViteConfig(
       ...(config.vite as any)?.preview,
     } as any,
     ...((config.vite as any) ?? {}),
+    resolve: {
+      ...((config.vite as any)?.resolve ?? {}),
+      alias: createBoltdocsAliases({
+        root,
+        clientSourceRoot: _clientSourceRoot,
+        aliases: [
+          ...normalizeAliases(config.aliases),
+          ...normalizeAliases(config.vite?.resolve?.alias),
+        ],
+      }).map((alias) => ({
+        ...alias,
+        ...(typeof alias.replacement === 'string'
+          ? { replacement: _normalizePath(alias.replacement) }
+          : {}),
+      })),
+      dedupe: [
+        'react',
+        'react-dom',
+        'react-router-dom',
+        ...(((config.vite as any)?.resolve?.dedupe ?? []) as string[]),
+      ],
+    },
     base: config.base || '/',
     // Boltdocs projects keep static files next to their docs source. Vite's
     // default is <root>/public, which leaves docs/public assets unresolved.

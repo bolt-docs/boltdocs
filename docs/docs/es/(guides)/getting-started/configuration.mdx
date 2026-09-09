@@ -20,6 +20,21 @@ export default defineConfig({
 ```
 
 Boltdocs lee este archivo al iniciar y genera una configuración completa de Vite internamente. Nunca necesitas tocar un `vite.config.ts`.
+
+## `aliases`
+
+Agrega aliases propios del proyecto sin reemplazar los aliases internos que usa Boltdocs:
+
+```ts title="boltdocs.config.ts"
+export default defineConfig({
+  aliases: {
+    '@components': './src/components',
+    '@data': './src/data',
+  },
+})
+```
+
+El core mantiene configurados automáticamente aliases como `boltdocs/client`, `boltdocs/entry` y `use-sync-external-store`. La opción `aliases` acepta los mismos formatos de objeto o array que Vite. Las configuraciones avanzadas de Vite todavía pueden definirse mediante `vite`; `vite.resolve.alias` se fusiona con `aliases` en lugar de reemplazar los aliases del framework. Los aliases del framework tienen prioridad si el mismo alias se declara dos veces.
   
 
 ## `ThemeConfig`

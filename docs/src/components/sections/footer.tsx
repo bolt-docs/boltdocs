@@ -1,5 +1,5 @@
 import { Link } from 'boltdocs/primitives'
-import { Github, Instagram } from '@/theme/icons'
+import { Github, Instagram, Twitter } from '@/theme/icons'
 import { X } from 'lucide-react'
 import { useTranslations } from '@/i18n/index'
 import { Section } from '@/theme/section'
@@ -23,6 +23,7 @@ export const Footer = () => {
   const resources: FooterLink[] = [
     { href: 'site:/roadmap', label: 'Roadmap' },
     { href: 'site:/about', label: t.footerAbout },
+    { href: 'site:/rss.xml', label: 'RSS Feed' },
   ]
 
   const community: FooterLink[] = [
@@ -58,21 +59,21 @@ export const Footer = () => {
             aria-label="GitHub"
             className="hover:scale-105 transition-transform"
           >
-            <Github className="size-5" />
+            <Github className="size-7" />
           </Link>
           <Link
             href="https://www.instagram.com/boldocts26"
             aria-label="Instagram"
             className="hover:scale-105 transition-transform"
           >
-            <Instagram className="size-5" />
+            <Instagram className="size-6" />
           </Link>
           <Link
             href="https://x.com/JesusAlcal41649"
             aria-label="X / Twitter"
             className="hover:scale-105 transition-transform"
           >
-            <X className="size-5" />
+            <Twitter className="size-5" />
           </Link>
         </div>
         <p className="text-sm">

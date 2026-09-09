@@ -38,6 +38,23 @@ Core no longer assumes Tailwind CSS: vanilla CSS, CSS Modules, custom properties
 | [`@bdocs/plugin-sass`](/docs/plugins/css/sass)                             | SASS and SCSS preprocessing                  |
 | [`@bdocs/plugin-unocss`](/docs/plugins/css/unocss)                         | UnoCSS atomic utilities                      |
 
+## Cleaner project aliases
+
+Boltdocs 3.3.0 adds a first-class `aliases` option for project-specific imports. The core now keeps its own runtime aliases configured automatically, so you no longer need to copy aliases such as `boltdocs/client`, `boltdocs/entry`, or `use-sync-external-store` into your project configuration:
+
+```ts title="boltdocs.config.ts"
+import { defineConfig } from 'boltdocs'
+
+export default defineConfig({
+  aliases: {
+    '@components': './src/components',
+    '@data': './src/data',
+  },
+})
+```
+
+Relative replacements resolve from the project root. The object and array formats supported by Vite are both accepted. Existing advanced `vite.resolve.alias` settings remain compatible and are merged with `aliases`; framework aliases stay authoritative so a custom `resolve` block cannot accidentally disable the Boltdocs runtime.
+
 ## Typed plugin hooks
 
 `definePlugin()` gives plugin authors typed lifecycle hooks across client UI, providers, frontmatter, search indexing, and build assets:

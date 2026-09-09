@@ -409,6 +409,7 @@ export const BoltdocsConfigSchema = z.object({
   integrations: IntegrationsConfigSchema.optional(),
   drafts: DraftsConfigSchema.optional(),
   experimental: ExperimentalConfigSchema.optional(),
+  aliases: z.custom<import('vite').AliasOptions>().optional(),
   featureFlags: z
     .record(z.string(), z.union([z.boolean(), z.string()]))
     .optional(),

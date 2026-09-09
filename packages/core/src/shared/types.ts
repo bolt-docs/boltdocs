@@ -1,4 +1,4 @@
-import type { Plugin as VitePlugin } from 'vite'
+import type { AliasOptions, Plugin as VitePlugin, UserConfig } from 'vite'
 import type { ComponentType } from 'react'
 
 /**
@@ -992,7 +992,8 @@ export interface BoltdocsConfig {
   featureFlags?: Record<string, boolean | string>
   experimental?: BoltdocsExperimentalConfig
   directoryMeta?: Record<string, unknown>
-  vite?: unknown
+  aliases?: AliasOptions
+  vite?: UserConfig
 }
 
 /**

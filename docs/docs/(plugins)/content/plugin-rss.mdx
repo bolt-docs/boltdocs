@@ -23,7 +23,7 @@ description: Generate RSS and Atom feeds from your Boltdocs documentation with a
 
 ### When Does It Run?
 
-The plugin uses the `afterBuild` lifecycle hook, which runs immediately after the SSG build succeeds:
+The plugin generates feeds through the `build:generate` lifecycle hook, which the build pipeline runs after the SSG output has been written to disk (with `afterBuild` kept as a compatibility fallback):
 
 | Environment | Behavior |
 | :--- | :--- |
@@ -80,7 +80,7 @@ The plugin writes feed files to the `rss/` directory inside the build output:
 
 | Format | Default Locale | Other Locales |
 | :--- | :--- | :--- |
-| RSS | `/rss/feed-{locale}.xml` | `/rss/feed-{locale}.xml` |
+| RSS | `/rss/rss-{locale}.xml` | `/rss/rss-{locale}.xml` |
 | Atom | `/rss/atom-{locale}.xml` | `/rss/atom-{locale}.xml` |
 
 ### Feed Item Fields

@@ -347,6 +347,7 @@ export async function resolveConfig(
     integrations: userConfig.integrations,
     experimental: userConfig.experimental,
     featureFlags: userConfig.featureFlags,
+    aliases: userConfig.aliases,
     drafts: userConfig.drafts,
     collections: userConfig.collections,
     vite: userConfig.vite,
