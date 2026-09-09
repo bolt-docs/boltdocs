@@ -762,6 +762,9 @@ importers:
 
   packages/processor-satteri:
     dependencies:
+      esbuild:
+        specifier: ^0.25.0
+        version: 0.25.12
       piscina:
         specifier: ^5.3.0
         version: 5.3.0
