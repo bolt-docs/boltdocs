@@ -339,6 +339,11 @@ export function boltdocsPlugin(
   // lifecycle and config — those are stable within a single process.
   let _ssgOptionsCache: Record<string, unknown> | null = null
 
+  // Path → RouteMeta lookup cache for the onPageRendered transform chain.
+  // Filled lazily on first render of each path; route paths are unique so
+  // the initial linear scan is the only one that runs.
+  const _routeMetaByPathCache = new Map<string, RouteMeta>()
+
   const getConfig = () => config
   const setConfig = (c: BoltdocsConfig) => {
     config = c
@@ -504,9 +509,18 @@ export function boltdocsPlugin(
             ): Promise<string> => {
               if (!lifecycle) return renderedHTML
               try {
+                // Resolve the RouteMeta for this page so transform chains
+                // receive the documented `route` context (locale, version,
+                // collection, ...). Route paths are unique, so a linear
+                // lookup cached per path is fine.
+                const routeMeta =
+                  _routeMetaByPathCache.get(path) ??
+                  routes.find((r) => r.path === path)
+                if (routeMeta) _routeMetaByPathCache.set(path, routeMeta)
                 const result = await lifecycle.runChain('transformHtml', {
                   html: renderedHTML,
                   path,
+                  route: routeMeta,
                 })
                 let html = result.html
                 // Run middleware chain after lifecycle hooks
