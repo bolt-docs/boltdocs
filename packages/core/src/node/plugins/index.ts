@@ -9,10 +9,4 @@ export * from './plugin-lifecycle'
 // in-monorepo consumers that have not migrated yet.
 export * from '@bdocs/unist-utils'
 
-import type { SecureBoltdocsPlugin } from './plugin-types'
-
-export function createPlugin(
-  plugin: SecureBoltdocsPlugin,
-): SecureBoltdocsPlugin {
-  return plugin
-}
+export * from './define-plugin'

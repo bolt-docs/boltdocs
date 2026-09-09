@@ -6,6 +6,10 @@ export interface CardProps
   title?: React.ReactNode
   icon?: React.ReactNode
   href?: string
+  headerClassName?: string
+  iconClassName?: string
+  titleClassName?: string
+  bodyClassName?: string
 }
 
 export function Card({
@@ -14,6 +18,10 @@ export function Card({
   icon,
   href,
   children,
+  headerClassName,
+  iconClassName,
+  titleClassName,
+  bodyClassName,
   ...props
 }: CardProps) {
   const cardRef = useRef<HTMLDivElement | HTMLAnchorElement>(null)
@@ -30,11 +38,11 @@ export function Card({
   }
 
   const Wrapper: ElementType = href ? 'a' : 'div'
-  const spotlightColor = 'var(--color-primary-500, #eb5828)'
+  const spotlightColor = 'var(--color-primary-500)'
 
   return (
     <Wrapper
-      // @ts-ignore
+      // @ts-expect-error
       ref={cardRef}
       href={href}
       onMouseMove={handleMouseMove}
@@ -69,25 +77,38 @@ export function Card({
       />
 
       {/* Header Content */}
-      <div className="relative z-10 flex items-center gap-3">
+      <div
+        className={cn('relative z-10 flex items-center gap-3', headerClassName)}
+      >
         {icon && (
           <div
             className={cn(
               'shrink-0 transition-transform duration-500 group-hover:rotate-15 group-hover:scale-110 flex items-center justify-center text-muted group-hover:text-primary-500',
               '[&>svg]:w-6 [&>svg]:h-6 [&>svg]:stroke-[1.5]',
+              iconClassName,
             )}
           >
             {icon}
           </div>
         )}
         {title && (
-          <h3 className="font-semibold text-base m-0 leading-none text-body">
+          <h3
+            className={cn(
+              'font-semibold text-base m-0 leading-none text-body',
+              titleClassName,
+            )}
+          >
             {title}
           </h3>
         )}
       </div>
 
-      <div className="relative z-10 text-[0.875rem] leading-[1.6] opacity-90 prose prose-neutral dark:prose-invert max-w-none [&>p]:m-0 [&>p+p]:mt-2">
+      <div
+        className={cn(
+          'relative z-10 text-[0.875rem] leading-[1.6] opacity-90 prose prose-neutral dark:prose-invert max-w-none [&>p]:m-0 [&>p+p]:mt-2',
+          bodyClassName,
+        )}
+      >
         {children}
       </div>
     </Wrapper>

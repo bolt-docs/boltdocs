@@ -1,32 +1,17 @@
 ---
 title: Code Blocks
 sidebarPosition: 5
-description: Use Shiki syntax highlighting, titles, line numbers, word-wrapping, and copying in Markdown code blocks.
+description: Use Shiki syntax highlighting, titles, line numbers, word wrap, and copy buttons in Markdown code blocks.
 ---
 
-Fenced code blocks in Boltdocs use **Shiki** for syntax highlighting. They are computed entirely at build time, ensuring fast page load speeds with zero client-side performance cost.
-
----
-
-## Usage
-
-Create code blocks using standard markdown triple backticks. Specify the language identifier for highlighting support.
-
-```ts
-// Example: src/index.ts
-export function greet(name: string): string {
-  return `Hello, ${name}!`
-}
-```
-
----
+Fenced code blocks in Boltdocs use **Shiki** for syntax highlighting. Everything is computed at build time, ensuring fast load times with zero client-side performance cost.
 
 ## Code Block Parameters (Meta Properties)
 
-Boltdocs supports custom parameters in the code block's header line to configure titles, line numbers, and word wrapping dynamically.
+Boltdocs supports custom parameters on the code block header line to configure titles, line numbers, and word wrap dynamically.
 
 ### 1. Title Banner
-Add `title="file_name.extension"` to display a styled header containing the filename. A generic file icon is rendered next to the title to indicate the code block boundary:
+Add `title="file_name.extension"` to display a styled header containing the file name. A generic file icon is rendered next to the title to indicate the code block boundary:
 
 ````markdown
 ```tsx title="components/Button.tsx"
@@ -35,7 +20,7 @@ export const Button = () => <button>Click me</button>;
 ````
 
 ### 2. Line Numbers
-Add `showLineNumbers` (or `lineNumbers`) to display line numbers beside your code:
+Add `showLineNumbers` (or `lineNumbers`) to display line numbers next to your code:
 
 ````markdown
 ```ts showLineNumbers
@@ -44,7 +29,7 @@ console.log(num);
 ```
 ````
 
-### 3. Word Wrapping
+### 3. Word Wrap
 Add `wordWrap` (or `word-wrap`) to break long code lines, avoiding the default horizontal scrollbar:
 
 ````markdown
@@ -63,7 +48,7 @@ You can combine these attributes in any order:
 {
   "name": "my-cool-package",
   "version": "1.0.0",
-  "description": "A very descriptive paragraph that will wrap onto multiple lines in the generated code block render rather than causing horizontal scrollbars."
+  "description": "A very descriptive paragraph that will wrap across multiple lines in the rendered code block output instead of causing horizontal scrollbars."
 }
 ```
 ````
@@ -72,7 +57,7 @@ You can combine these attributes in any order:
 
 ## Configuration
 
-You can customize the Shiki themes in `boltdocs.config.ts`. You can choose different themes for light and dark modes:
+You can customize the Shiki themes in `boltdocs.config.ts`. You can pick different themes for light and dark modes:
 
 ```ts
 // boltdocs.config.ts
@@ -92,7 +77,7 @@ export default defineConfig({
 
 ## Supported Themes
 
-The following syntax highlighting themes are supported out-of-the-box:
+The following syntax highlighting themes are supported out of the box:
 
 - `github-light` / `github-dark`
 - `tokyo-night`
@@ -106,19 +91,19 @@ The following syntax highlighting themes are supported out-of-the-box:
 ## Enhanced Features
 
 - **Copy Code Button**: A floating copy button is automatically added to the top-right corner of every code block.
-- **Word Wrapping**: Long code lines overflow cleanly with a scrollbar or wrap when the `wordWrap` or `word-wrap` parameter is set.
+- **Word Wrap**: Long code lines overflow cleanly with a scrollbar or wrap when the `wordWrap` or `word-wrap` parameter is set.
 
 ---
 
 ## Customizing Code Blocks
 
-If the default code block layout, styling, or interactions do not fit your design system, you can easily build a fully custom code block component. 
+If the default code block design, styling, or interactions don't fit your design system, you can easily build a fully custom code block component.
 
-Boltdocs exposes the core state and logic of code blocks via the `useCodeBlock` hook, allowing you to focus purely on your custom visual rendering without having to rewrite complex highlighted HTML parsing, clipboard copy timers, expansion and truncation logic, or feedback form integrations.
+Boltdocs exposes the core state and logic of code blocks through the `useCodeBlock` hook, letting you focus purely on your custom visual rendering without rewriting the complex highlighted-HTML parsing, clipboard copy timers, expand/truncate logic, or feedback form integrations.
 
 ### 1. Registering a Custom Code Block
 
-To override the default code block component, register your custom component as the `pre` tag renderer in your `docs/mdx-components.tsx` file:
+To override the default code block component, register your custom component as the renderer for the `pre` tag in your `docs/mdx-components.tsx` file:
 
 ```tsx title="docs/mdx-components.tsx"
 import { CustomCodeBlock } from '../src/components/CustomCodeBlock'
@@ -186,22 +171,21 @@ export function CustomCodeBlock(props) {
 
 ### 3. Hook API Reference (`useCodeBlock`)
 
-The `useCodeBlock` hook accepts the standard code block properties (passed from the MDX compiler) and returns the following state and resolved properties:
+The `useCodeBlock` hook accepts the standard code block props (passed from the MDX compiler) and returns the following resolved state and properties:
 
 | Property | Type | Description |
 | :--- | :--- | :--- |
 | **`copied`** | `boolean` | `true` if the code was recently copied to the clipboard (resets after 2 seconds). |
 | **`handleCopy`** | `() => void` | Copies the current plain text content of the code block to the clipboard. |
 | **`isExpanded`** | `boolean` | `true` if an expandable code block is currently expanded. |
-| **`setIsExpanded`** | `(val: boolean) => void` | Updates the expansion state of the code block. |
-| **`isExpandable`** | `boolean` | `true` if the code block exceeds 6 lines and supports expansion/truncation. |
+| **`setIsExpanded`** | `(val: boolean) => void` | Updates the expanded state of the code block. |
+| **`isExpandable`** | `boolean` | `true` if the code block exceeds 6 lines and supports expand/truncate. |
 | **`shouldTruncate`** | `boolean` | Helper flag that is `true` when the block is expandable and not yet expanded. |
-| **`preRef`** | `RefObject<HTMLElement>` | A React Ref that MUST be attached to the container element rendering the code text or Shiki HTML. Used to read the copy text and compute line counts. |
-| **`isHighlighted`** | `boolean` | `true` if the code block is syntax-highlighted (e.g. via Shiki). |
-| **`effectiveHighlightedHtml`** | `string \| undefined` | The pre-processed and cleaned syntax-highlighted HTML string. Render using `dangerouslySetInnerHTML` if present. |
+| **`preRef`** | `RefObject<HTMLElement>` | A React Ref that MUST be attached to the container element rendering the code text or Shiki HTML. Used to read the text to copy and compute line counts. |
+| **`isHighlighted`** | `boolean` | `true` if the code block has syntax highlighting (e.g., via Shiki). |
+| **`effectiveHighlightedHtml`** | `string \| undefined` | The preprocessed, cleaned syntax highlighting HTML string. Render using `dangerouslySetInnerHTML` if present. |
 | **`effectiveTitle`** | `string \| undefined` | The resolved title from the code block meta parameters. |
 | **`lang`** | `string` | The parsed language identifier of the code block (e.g., `'ts'`, `'json'`). |
 | **`showCodeBlockFeedback`** | `boolean` | `true` if code block feedback forms are enabled in `boltdocs.config.ts` and the block is not in plain mode. |
 | **`rated`** | `'up' \| 'down' \| null` | The current feedback rating submitted by the user. |
-| **`handleRate`** | `(type: 'up' \| 'down') => Promise<void>` | Callback function to submit feedback rating to the serverless endpoint. |
-
+| **`handleRate`** | `(type: 'up' \| 'down') => Promise<void>` | Callback function to submit the feedback rating to the serverless endpoint. |

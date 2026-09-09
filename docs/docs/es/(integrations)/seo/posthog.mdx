@@ -6,33 +6,6 @@ description: Rastrea vistas de página, eventos personalizados y grabaciones de 
 
 PostHog es una plataforma de analítica de productos de código abierto que te da control total sobre tus datos. Boltdocs inyecta el fragmento JavaScript de PostHog automáticamente cuando lo configuras.
 
----
-
-## Inicio Rápido
-
-### Paso 1: Obtén tu clave API
-
-Crea un proyecto en [PostHog](https://app.posthog.com/) y copia la clave API del proyecto (comienza con `phc_`).
-
-### Paso 2: Configura en boltdocs.config.ts
-
-```ts title="boltdocs.config.ts"
-export default defineConfig({
-  integrations: {
-    analytics: {
-      posthog: {
-        apiKey: 'phc_xxxxxxxxxxxxxxxxxxxx',
-      },
-    },
-  },
-})
-```
-
-### Paso 3: Despliega
-
-El fragmento de PostHog se inyecta automáticamente en cada página. Las vistas de página y eventos de salida se rastrean por defecto.
-
----
 
 ## Referencia de Configuración
 

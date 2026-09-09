@@ -1,5 +1,5 @@
 import { useMemo } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate } from '../router'
 import { getBaseFilePath } from '../utils/get-base-file-path'
 import { useRoutes } from './use-routes'
 import { useConfig } from '../app/config-context'
@@ -30,6 +30,8 @@ export function useVersion(): UseVersionReturn {
   const versions = config.versions
   const { setVersion } = useBoltdocsContext()
 
+  // Writes the store BEFORE navigating on purpose. See the comment in
+  // use-i18n's handleLocaleChange for the store/navigation contract.
   const handleVersionChange = (version: BoltdocsVersion) => {
     if (!versions || version === currentVersion) return
 

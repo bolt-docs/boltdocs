@@ -1,6 +1,8 @@
 import { error as logError } from '@bdocs/dui'
 import { escapeHtml } from '../utils'
-import { highlight } from './highlighter'
+import { ensureLanguage, highlight } from './highlighter'
+
+export { ensureLanguage }
 import { showLineNumbers } from './transformers/show-line-numbers'
 import { showWordWrap } from './transformers/show-word-wrap'
 import {
@@ -26,14 +28,40 @@ export function parseMetaString(metaStr: string): ParsedMeta {
   const result: ParsedMeta = {}
   if (!metaStr) return result
 
-  if (/lineNumbers|showLineNumbers/.test(metaStr)) {
-    result.lineNumbers = true
-  }
-  if (/wordWrap|word-wrap/.test(metaStr)) {
-    result.wordWrap = true
+  const setBooleanFlag = (
+    key: 'lineNumbers' | 'wordWrap',
+    value?: string,
+  ): void => {
+    if (value === 'false') {
+      result[key] = false
+      return
+    }
+    if (value === 'true' || value === undefined) {
+      result[key] = true
+    }
   }
 
-  const titleMatch = metaStr.match(/title=(["'])(.*?)\1/)
+  const lineMatches = Array.from(
+    metaStr.matchAll(
+      /(?:^|\s)(?:lineNumbers|showLineNumbers|show-line-numbers|show_line_numbers|line_numbers)(?:\s*=\s*(true|false))?(?=\s|$)/gi,
+    ),
+  )
+  const lastLineMatch = lineMatches[lineMatches.length - 1]
+  if (lastLineMatch) {
+    setBooleanFlag('lineNumbers', lastLineMatch[1])
+  }
+
+  const wordMatches = Array.from(
+    metaStr.matchAll(
+      /(?:^|\s)(?:wordWrap|word-wrap|word_wrap)(?:\s*=\s*(true|false))?(?=\s|$)/gi,
+    ),
+  )
+  const lastWordMatch = wordMatches[wordMatches.length - 1]
+  if (lastWordMatch) {
+    setBooleanFlag('wordWrap', lastWordMatch[1])
+  }
+
+  const titleMatch = metaStr.match(/title=(['"])(.*?)\1/)
   if (titleMatch) {
     result.title = titleMatch[2]
   }
@@ -91,12 +119,23 @@ export class ShikiAdapter {
       rawMeta = meta.__raw || ''
     }
 
+    const metaObj: Record<string, unknown> = {
+      __raw: rawMeta,
+    }
+
+    for (const [key, value] of Object.entries(parsedMeta)) {
+      if (key === '__raw') continue
+      Object.defineProperty(metaObj, key, {
+        value,
+        enumerable: false,
+        configurable: true,
+        writable: true,
+      })
+    }
+
     const options = {
       lang: lang || DEFAULTS.LANG,
-      meta: {
-        __raw: rawMeta,
-        ...parsedMeta,
-      },
+      meta: metaObj,
       transformers: [
         showLineNumbers(),
         showWordWrap(),
@@ -127,6 +166,7 @@ export class ShikiAdapter {
     meta: string | ParsedMeta,
   ): Promise<string> {
     try {
+      await ensureLanguage(lang || DEFAULTS.LANG)
       const highlighter = await this.getHighlighter()
       const options = this.getOptions(lang, meta)
       return highlighter.codeToHtml(code, options)
@@ -153,4 +193,17 @@ export function getShikiAdapter(config?: BoltdocsConfig): ShikiAdapter {
     _adapterThemeConfigStr = currentThemeStr
   }
   return _adapterInstance
+}
+
+/**
+ * Starts building the highlighter in the background. The highlighter build
+ * is ~2.5s of synchronous CPU (TextMate grammar parsing for every theme and
+ * language), so it must never run on the critical path of Vite's server
+ * setup. The underlying `highlight()` promise is module-level, so callers
+ * that need the highlighter later share the same in-flight build.
+ */
+export function prewarmShiki(config?: BoltdocsConfig): void {
+  getShikiAdapter(config)
+    .getHighlighter()
+    .catch(() => {})
 }

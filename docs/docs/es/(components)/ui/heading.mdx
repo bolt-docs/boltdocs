@@ -6,15 +6,6 @@ description: Encabezados de título de documento accesibles con anclajes de slug
 
 La primitiva `Heading` es un elemento envoltorio que renderiza encabezados de título HTML (`<h1>` a `<h6>`) y adjunta automáticamente enlaces de anclaje al portapapeles cuando se proporciona un `id`.
 
----
-
-## Importación
-
-```tsx
-import { Heading } from 'boltdocs/primitives'
-```
-
----
 
 ## Inicio Rápido
 
@@ -70,3 +61,30 @@ El componente `Heading` acepta atributos estándar de encabezado HTML más:
 | **`anchorClassName`** | `string` | `undefined` | Sobrescrituras de estilo personalizadas para el elemento de enlace envolvente de anclaje. |
 | **`className`** | `string` | `undefined` | Sobrescritura de estilo de clase CSS para el encabezado. |
 | **`style`** | `CSSProperties` | `undefined` | Configuraciones de estilo en línea. |
+
+---
+
+## Personalización y estados
+
+`Heading` renderiza una etiqueta de encabezado semántica (`h1`–`h6`) y, cuando hay un `id`, envuelve el contenido en un enlace de anclaje. No tiene estado de interacción propio — la tipografía, el espaciado y los bordes vienen del tema mediante `className` (el encabezado) y `anchorClassName` (el envoltorio del enlace de anclaje).
+
+| Estado / Slot | Mecanismo |
+| :--- | :--- |
+| `className` | Passthrough al `<h1>`–`<h6>` renderizado; el tema controla tipo, tamaño, espaciado, bordes |
+| `anchorClassName` | Passthrough al envoltorio del enlace de anclaje (por defecto, un icono de enlace visible al hacer hover) |
+| `level` | `1`–`6`, solo estructural — sin estado visual |
+| `id` + `showAnchor` | Habilita el enlace de anclaje; `anchorPosition` elige `wrap` / `before` / `after` |
+| Sin estado | No hay atributos `data-*` ni estados de interacción |
+
+Tailwind v4:
+
+```tsx
+<Heading
+  level={2}
+  id="overview"
+  className="group text-2xl font-bold text-body border-b border-subtle pb-2"
+  anchorClassName="text-muted/50 hover:text-primary-500"
+>
+  Descripción General
+</Heading>
+```

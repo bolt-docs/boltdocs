@@ -1,0 +1,51 @@
+---
+title: Structured Data
+sidebarPosition: 3
+description: Generate and render type-safe JSON-LD graphs for website, article, and breadcrumbs.
+---
+
+Structured data is for search engines and crawlers, not the internal search dialog. The convenience factory combines the common website, article, and breadcrumbs graphs into a single typed call. It throws a clear error if you don't provide any graph:
+
+```ts
+import { createStructuredData, defineConfig, defineStructuredData } from 'boltdocs'
+
+export default defineConfig({
+  siteUrl: 'https://example.com',
+  seo: {
+    structuredData: defineStructuredData(
+      createStructuredData({
+        website: {
+          name: 'Example Docs',
+          url: 'https://example.com',
+          description: 'Product documentation',
+          searchUrl: 'https://example.com/search?q=',
+        },
+      }),
+    ),
+  },
+})
+```
+
+For a release or article, compose all relevant nodes without manually assembling `@context`, `@type`, and the positions:
+
+```ts
+const data = createStructuredData({
+  article: {
+    headline: 'Getting Started',
+    url: 'https://example.com/docs/start',
+    description: 'Install and configure the project.',
+    datePublished: '2026-08-01',
+    author: { name: 'Example Team', url: 'https://example.com/team' },
+  },
+  breadcrumbs: [
+    { name: 'Docs', url: 'https://example.com/docs' },
+    { name: 'Getting started', url: 'https://example.com/docs/start' },
+  ],
+})
+```
+
+Use `seo.structuredData` in MDX frontmatter for page-specific nodes, or render `<StructuredData data={data} />` from an external React page. The specialized helpers (`createWebSiteStructuredData`, `createArticleStructuredData`, and `createBreadcrumbStructuredData`) remain available.
+
+Structured Data is a stable SEO API. See the [Structured Data API reference](/docs/api/structured-data) for all options and the [SEO integration guide](/docs/integrations/seo) for search engine recommendations.
+
+See [Experimental Features](/docs/guides/advanced/experimental) for the full opt-in setup.

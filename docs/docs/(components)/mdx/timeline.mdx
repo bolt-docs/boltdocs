@@ -1,57 +1,13 @@
 ---
 title: Timeline
-sidebarPosition: 3
+sidebarPosition: 6
 description: A vertical timeline of dated entries with dots, badges, and Markdown body content. Built for changelogs and release notes.
 ---
-
-# Timeline
 
 The `Timeline` MDX component renders a vertical timeline of dated entries — perfect for changelogs, release notes, status updates, and audit logs. Each entry has a colored dot on the connector line, an optional date and badge, a title, and a Markdown body.
 
 It joins the family of MDX components (`Callout`, `Card`, `Cards`, `Field`, `Image`, `LastUpdated`) and is auto-registered in every `.mdx` file — you don't `import` it.
 
----
-
-## Quick start
-
-```mdx
-<Timeline>
-  <Timeline.Item
-    date="2026-07-20"
-    title="Boltdocs 3.2.0"
-    badge="Major"
-    icon={<Sparkles />}
-  >
-    Released **Plugin v3.2 API** — caches, diagnostics, paths, virtual modules,
-    middleware, server, and HMR hooks. See the [migration guide](/docs/blog/boltdocs-3.2.0).
-  </Timeline.Item>
-
-  <Timeline.Item
-    date="2026-06-01"
-    title="Added i18n support"
-    badge={{ text: 'Minor', variant: 'success' }}
-  >
-    New locale filesystem convention, version-aware routes, and SSR-safe URL prefixes.
-  </Timeline.Item>
-</Timeline>
-```
-
-Renders as:
-
-```text
-●  Jul 20, 2026  [MAJOR]
-│  Boltdocs 3.2.0
-│  Released Plugin v3.2 API — caches, diagnostics, paths, virtual modules,
-│  middleware, server, and HMR hooks. See the migration guide.
-│
-●  Jun 1, 2026   [MINOR]
-│  Added i18n support
-│  New locale filesystem convention, version-aware routes, and SSR-safe URL prefixes.
-```
-
-The connector line is a single continuous vertical stroke that reads as one timeline regardless of how many items you stack.
-
----
 
 ## Anatomy
 
@@ -89,7 +45,7 @@ Timeline ships two flavors of variants:
 
 | Variant | Dot color | Badge color | Suggested use |
 | :--- | :--- | :--- | :--- |
-| `primary` | terracotta | terracotta | Generic milestone. |
+| `primary` | azure blue | azure blue | Generic milestone. |
 | `success` / `minor` | green | green | Additive releases, new features. |
 | `info` / `patch` / `new` | indigo | indigo | Background improvements, tiny tweaks. |
 | `warning` / `deprecated` | amber | amber | Soft-deprecation notices. |
@@ -229,7 +185,7 @@ Pair this with a `frontmatter.date` and `frontmatter.changelog` (or a JSON file)
 `<Timeline>` doesn't ship its own dark-mode styles. Every color comes from your theme tokens (`--color-primary-500`, `--color-success-500`, `--color-warning-500`, `--color-info-500`, `--color-danger-500`, plus `bg-surface`, `border-subtle`, `text-body`, `text-paragraph`). When the user's theme switches from light to dark, the Timeline follows automatically:
 
 - The connector line stays `border-subtle` — paler in light mode, deeper charcoal in dark mode.
-- Each dot keeps its semantic accent — terracotta stays terracotta; the danger-red doesn't tint into pink.
+- Each dot keeps its semantic accent — azure stays azure; the danger-red doesn't tint into pink.
 - Card body text uses `text-paragraph` so the prose reflows naturally.
 
 If you hard-code a `text-primary-500` color somewhere in a Timeline body, it stays rust-colored in both modes — that's intentional and matches the rest of the docs.
@@ -286,5 +242,5 @@ If you hard-code a `text-primary-500` color somewhere in a Timeline body, it sta
 - [`Callout`](/docs/components) — for a single inline alert.
 - [`Card`](/docs/components) / [`Cards`](/docs/components) — for grids or feature highlights.
 - [`LastUpdated`](/docs/components) — opposite direction: a single "last updated on …" stamp at the bottom of a page.
-- The [blog index](/docs/blog) — most Boltdocs release posts use `<Timeline>` to render their changelogs.
+- The [latest release post](/docs/blog/boltdocs-3.3.0) — most Boltdocs release posts use `<Timeline>` to render their changelogs.
 - [Building a Timeline from data](#building-a-timeline-from-data) — the data-driven pattern above is the recommended starting point when a plugin or CMS feeds your changelog.

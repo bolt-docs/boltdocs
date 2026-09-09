@@ -1,24 +1,11 @@
 ---
 title: ButtonGroup
 sidebarPosition: 2
-description: Layout wrapper to group and align related action buttons.
+description: Layout wrapper for grouping and aligning related action buttons.
 ---
 
-The `ButtonGroup` primitive allows you to group multiple adjacent buttons into a single horizontal or vertical unit, automatically handling border merging and corner radius clipping.
+The `ButtonGroup` primitive lets you group multiple adjacent buttons into a single horizontal or vertical unit, automatically handling border merging and corner radius clipping.
 
-It's a thin layout primitive — there's no aria, no focus-management, no state. It exists purely to make a row of buttons *look* like a single attached segmented control. Everything else (keyboard navigation, focus rings, disabled propagation) is handled by `Button` underneath.
-
-Reach for it when you have visually related buttons: a tab filter, an alignment toggler, a segmented yes/no/maybe picker. Don't reach for it when buttons are independent — just use a flex container.
-
----
-
-## Import
-
-```tsx
-import { ButtonGroup } from 'boltdocs/primitives'
-```
-
----
 
 ## Quick Start
 
@@ -49,10 +36,10 @@ export default function FilterGroup() {
 ## Layout Configurations
 
 ### Horizontal Alignment (Default)
-By default, `<ButtonGroup>` aligns button children in a row. It strips internal adjacent border margins and applies left and right border radii properly to the outer edges.
+By default, `<ButtonGroup>` aligns button children in a row. It removes adjacent internal border margins and applies correct left and right border radii to the outer edges.
 
 ### Vertical Alignment
-Set `vertical` to `true` to stack the button children in a vertical column structure.
+Set `vertical` to `true` to stack button children in a vertical column structure.
 
 ```tsx
 <ButtonGroup vertical className="rounded-md">
@@ -66,19 +53,38 @@ Set `vertical` to `true` to stack the button children in a vertical column struc
 
 ## Component Props
 
-The `ButtonGroup` component accepts these layout configuration properties:
+The `ButtonGroup` component accepts these layout configuration props:
 
 | Property | Type | Default | Description |
 | :--- | :--- | :--- | :--- |
-| **`vertical`** | `boolean` | `false` | Stacks the buttons vertically if set to `true`. Otherwise, arranges them in a horizontal flex row. |
+| **`vertical`** | `boolean` | `false` | Stacks the buttons vertically when set to `true`. Otherwise arranges them in a horizontal flex row. |
 | **`children`** | `ReactNode` | *Required* | The buttons or interactive list nodes to group. |
-| **`className`** | `string` | `undefined` | Custom CSS utility class overrides. |
-| **`style`** | `CSSProperties` | `undefined` | Inline styling overrides. |
+| **`className`** | `string` | `undefined` | Custom utility CSS class overrides. |
+| **`style`** | `CSSProperties` | `undefined` | Inline style overrides. |
 
 ---
 
-## Common pitfalls
+## Customization & states
 
-- **Use `flex` border colors, not arbitrary CSS.** Adding `border` to each child and `divide-x` on the parent is much cleaner than manually clipping radius with `first:rounded-l-* / last:rounded-r-*`.
-- **Don't put non-buttons inside.** Layout primitives in Boltdocs prefer specialized children (`Button`, `Link`, `Tab.Item`) over generic divs. A grouped layout with non-semantic content should be a regular flex container.
-- **Vertical orientation doesn't auto-rotate icons.** If you want the segmented control's icon to rotate (e.g. for a vertical splitter), the parent layout is responsible for that.
+`ButtonGroup` is pure layout with no state of its own. It only composes its children — joining adjacent buttons, merging their borders, and clipping corner radii. Every visual decision belongs to the theme: the container's colors, borders, and radius through `className`, and each child button's appearance through its own `className`.
+
+| State / Slot | Mechanism |
+| :--- | :--- |
+| `vertical` prop | Switches the layout between `flex-row` (default) and `flex-col` |
+| `className` | Passthrough to the flex container (e.g. `rounded-lg border border-subtle`) |
+| First / last child | Corner radii clipped (`rounded-r-none`, `rounded-l-none`); outer corners follow your `rounded-*` |
+| Adjacent children | Shared borders merged via `-ml-px` (horizontal) or `-mt-px` (vertical) |
+| No state | No `data-*` attributes or interaction states — children own their own states |
+
+Tailwind v4:
+
+```tsx
+<ButtonGroup className="rounded-lg border border-subtle overflow-hidden">
+  <Button className="px-4 py-2 bg-surface hover:bg-soft text-body border-r border-subtle">
+    Left
+  </Button>
+  <Button className="px-4 py-2 bg-surface hover:bg-soft text-body">
+    Right
+  </Button>
+</ButtonGroup>
+```

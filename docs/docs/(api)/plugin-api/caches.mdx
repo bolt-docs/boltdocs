@@ -9,28 +9,6 @@ description: PluginCachesAPI — transform cache, routes cache, and in-memory FI
 Three cache types, each bound to a namespaced scope so plugins never
 collide.
 
----
-
-## `caches.transform(namespace)`
-
-Sharded, hash-keyed cache backed by the core's `TransformCache`. One
-namespace per plugin is recommended.
-
-```ts
-const cache = ctx.caches.transform('my-plugin')
-
-// Async read — first call may warm from disk
-const cached = await cache.get('some-unique-key')
-// → string | null
-
-// Synchronous write — batches a background disk flush
-cache.set('some-unique-key', `<transformed>...</transformed>`)
-
-// Force-flush background writes (call before measuring disk state)
-await cache.flush()
-```
-
----
 
 ## `caches.routes`
 

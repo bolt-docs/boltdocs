@@ -4,35 +4,23 @@ sidebarPosition: 1
 description: Use Callouts to highlight important information, tips, warnings, or breaking changes in your documentation.
 ---
 
-The `<Callout>` component is used to draw a reader's attention to critical side-notes, tips, or warning details. It supports five color-coded and icon-labeled variants out-of-the-box.
-
----
-
-## Usage
-
-```mdx
-<Callout variant="note" title="Important Note">
-  Here is a standard notice to provide context to the user.
-</Callout>
-```
-
----
+The `<Callout>` component draws the reader's attention to critical asides, tips, or warning details. It ships with five ready-to-use variants, each with its own label, colors, and icon.
 
 ## Variants
 
-Here are the five visual variants available:
+These are the five visual variants available:
 
 ### Note (Default)
 Used for neutral, supplementary explanations.
 
 ```mdx
 <Callout variant="note" title="Note">
-  This is a neutral side-note.
+  This is a neutral aside.
 </Callout>
 ```
 
 ### Info
-Used to highlight key technical aspects or characteristics.
+Used to highlight key technical aspects or features.
 
 ```mdx
 <Callout variant="info" title="Info">
@@ -45,21 +33,21 @@ Used for best practices and efficiency suggestions.
 
 ```mdx
 <Callout variant="tip" title="Tip">
-  Use code-splitting to reduce bundle sizes!
+  Use code splitting to keep your bundle sizes small!
 </Callout>
 ```
 
 ### Warning
-Used for pitfalls, deprecation notices, or conditions that need caution.
+Used for pitfalls, deprecation notices, or conditions that require caution.
 
 ```mdx
 <Callout variant="warning" title="Warning">
-  Keep in mind that legacy APIs might be removed in future versions.
+  Be aware that legacy APIs may be removed in future releases.
 </Callout>
 ```
 
 ### Danger
-Used for breaking changes, security warnings, or critical risks.
+Used for breaking changes, security advisories, or critical risks.
 
 ```mdx
 <Callout variant="danger" title="Breaking Change">
@@ -71,8 +59,64 @@ Used for breaking changes, security warnings, or critical risks.
 
 ## Props
 
+The default `<Callout>` accepts the following props:
+
 | Prop | Type | Default | Description |
 | :--- | :--- | :--- | :--- |
-| **`variant`** | `'note' \| 'info' \| 'tip' \| 'warning' \| 'danger'` | `'note'` | The visual style, icon, and colors applied to the callout container. |
-| **`title`** | `string` | *(Variant name)* | Bold label shown at the top of the callout box. |
-| **`children`** | `ReactNode` | — | The main content or body text rendered inside the callout block. |
+| **`variant`** | `'note' \| 'info' \| 'tip' \| 'warning' \| 'danger'` | `'note'` | The visual style, icon, and colors applied to the callout container. Exposed as `data-variant` on the root. |
+| **`title`** | `string` | *(Variant name)* | Bold label displayed at the top of the callout box. |
+| **`icon`** | `ReactNode` | *(Variant icon)* | Custom leading icon that replaces the per-variant default. |
+| **`iconClassName`** | `string` | — | Extra classes for the leading icon wrapper. |
+| **`titleClassName`** | `string` | — | Extra classes for the title element. |
+| **`bodyClassName`** | `string` | — | Extra classes for the body wrapper. |
+| **`className`** | `string` | — | Extra classes merged onto the callout root. |
+| **`children`** | `ReactNode` | — | The main body content rendered inside the callout block. |
+
+---
+
+## Personalizing the Callout
+
+Unlike most built-in components, the Callout is built on a **style-neutral primitive**, so you can fully restyle it from your own theme without fighting defaults.
+
+### Style with CSS tokens
+
+The default callout derives its color from semantic variant tokens (`--color-primary-500`, `--color-success-500`, `--color-warning-500`, `--color-danger-500`, `--color-info-500`). Redefine these in your theme's CSS to recolor every callout variant globally:
+
+```css
+:root {
+  --color-info-500: #7c3aed; /* violet infos */
+  --color-warning-500: #f59e0b;
+}
+```
+
+### Build a custom Callout from the primitive
+
+Import `Callout` from `boltdocs/primitives` to compose your own themed callout. The primitive owns structure only — it exposes `data-variant` on the root and renders no colors, so every pixel is yours:
+
+```tsx
+import { Callout } from 'boltdocs/primitives'
+import { cn } from 'your-cn-helper'
+
+const variantStyles = {
+  note: 'border-primary-500/50 bg-primary-500/10',
+  tip: 'border-success-500/50 bg-success-500/10',
+  warning: 'border-warning-500/50 bg-warning-500/10',
+  danger: 'border-danger-500/50 bg-danger-500/10',
+  info: 'border-info-500/50 bg-info-500/10',
+}
+
+export function MyCallout({ variant = 'note', children, title }) {
+  return (
+    <Callout
+      variant={variant}
+      icon={<Icon className="size-5 text-muted" />}
+      title={<span className="font-semibold text-body">{title}</span>}
+      className={cn('my-6 rounded-xl border-2 p-4', variantStyles[variant])}
+    >
+      {children}
+    </Callout>
+  )
+}
+```
+
+The primitive is also exportable as composable parts — `Callout.Root`, `Callout.Icon`, `Callout.Title`, and `Callout.Body` — when you need a fully custom layout. Because the default Callout is just a usage of the same primitive (mapped to `Callout` in JSX), overriding it through your `mdx-components` module applies everywhere with no framework debt.

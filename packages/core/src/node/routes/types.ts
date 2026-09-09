@@ -2,6 +2,15 @@ import type { RouteMeta } from '../../shared/types'
 
 export type { RouteMeta }
 
+export interface DirectoryMeta {
+  title?: string
+  order?: string[] | number
+  icon?: string
+  collapsible?: boolean
+  collapsed?: boolean
+  [key: string]: unknown
+}
+
 /**
  * Internal representation of a parsed documentation file before finalizing groups.
  * Stored in the file cache to avoid re-parsing unchanged files.

@@ -5,7 +5,7 @@ import { Button } from 'react-aria-components'
 import { Menu } from '../primitives/menu'
 import { cn } from '../../utils/cn'
 
-export function ThemeToggle() {
+export function ThemeToggle({ className }: { className?: string }) {
   const { theme, setTheme } = useTheme()
   const [mounted, setMounted] = useState(false)
 
@@ -14,7 +14,7 @@ export function ThemeToggle() {
   }, [])
 
   if (!mounted) {
-    return <div className="h-9 w-9" />
+    return <div className={cn('h-9 w-9', className)} />
   }
 
   const Icon = theme === 'system' ? Monitor : theme === 'dark' ? Moon : Sun
@@ -22,7 +22,10 @@ export function ThemeToggle() {
   return (
     <Menu.Trigger placement="bottom right">
       <Button
-        className="flex h-9 w-9 items-center justify-center rounded-xl text-muted transition-colors hover:bg-surface hover:text-body outline-none border-none bg-transparent cursor-pointer"
+        className={cn(
+          'flex h-9 w-9 items-center justify-center rounded-xl text-muted transition-colors hover:bg-surface hover:text-body outline-none border-none bg-transparent cursor-pointer',
+          className,
+        )}
         aria-label="Selection theme"
       >
         <Icon size={20} className="animate-in fade-in zoom-in duration-300" />

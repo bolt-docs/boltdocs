@@ -1,105 +1,20 @@
 ---
 title: DocsLayout
 sidebarPosition: 1
-description: The page shell — composes navbar, sidebar, content, and ToC into a single React tree.
+description: The main wrapper component for standard documentation pages in Boltdocs.
 ---
 
-# DocsLayout
+The `DocsLayout` component is the high-level container that structures standard documentation pages.
 
-`DocsLayout` is the outermost wrapper around any docs page. It doesn't do much *visually* — instead, it splits the screen into named, themed slots that the rest of the UI hooks into. Most custom layouts only need to swap two or three of its sub-components.
 
-The default implementation in Boltdocs already wires `Navbar`, `Sidebar`, `OnThisPage`, breadcrumbs, and so on. You don't *need* to use it. But if you're building a custom theme, copying the assembly pattern is the fastest way to get consistent spacing, scrolling, and z-index behavior for free.
+## Composable Layout Assembly Example
 
----
+The `DocsLayout` primitive and its companion layout modules are structured using a **composable subcomponent pattern**. This lets you define the exact HTML wrappers and inject custom style classes around headers, sidebars, and content regions.
 
-## Import
+Here's an example showing how to assemble a complete custom layout using only primitives (without relying on pre-styled theme files):
 
 ```tsx
-import { DocsLayout } from 'boltdocs/primitives'
-```
-
----
-
-## The mental model
-
-Every Boltdocs page has *seven regions* that plugin authors and custom layouts may want to write into:
-
-```text
-┌─ Navbar ──────────────────────────────────────────┐  ← sticky top
-├─ Body ─────────────────────────────────────────────┤
-│  ┌─ Sidebar ─┐  ┌─ Content ────────┐  ┌─ ToC ────┐ │
-│  │           │  │  ┌─ Header ──┐  │  │           │ │
-│  │           │  │  │  crumbs   │  │  │           │ │
-│  │           │  │  │  title    │  │  │           │ │
-│  │           │  │  └───────────┘  │  │           │ │
-│  │           │  │  ┌─ MDX ───────┐  │  │           │ │
-│  │           │  │  │  ...children │  │  │           │ │
-│  │           │  │  └─────────────┘  │  │           │ │
-│  │           │  │  ┌─ Footer ───┐  │  │           │ │
-│  │           │  │  │  PageNav   │  │  │           │ │
-│  │           │  │  └────────────┘  │  │           │ │
-│  └───────────┘  └──────────────────┘  └───────────┘ │
-└───────────────────────────────────────────────────┘
-        Floating elements outside this tree:
-        • FloatingBottom — bubble pinned to viewport corner
-        • RightRail      — vertical column on lg+ viewports
-        • BodyPortal     — `createPortal` to `document.body`
-```
-
-`DocsLayout` exposes one named sub-component per region. Inside your custom layout, you decide which ones get a `Navbar`, which one gets a `Sidebar`, etc.
-
----
-
-## Sub-components
-
-| Sub-component | Renders | Purpose |
-| :--- | :--- | :--- |
-| `DocsLayout` (root) | `<div>` | The outer flex column container. Sets app-wide background, scrolling, and color defaults. |
-| `DocsLayout.Body` | `<div>` | The horizontal row that holds Sidebar + Content + ToC. |
-| `DocsLayout.Content` | `<main>` | The scrollable middle column. The actual page goes here. |
-| `DocsLayout.ContentMdx` | `<div>` | An inner padded wrapper that constrains content to a max-width reading column. |
-| `DocsLayout.Header` | `<header>` | Above-body section. Best home for breadcrumbs + page title + description. |
-| `DocsLayout.Footer` | `<div>` | Below-body section. Best home for `PageNav`. |
-| `DocsLayout.FloatingBottom` | `<div>` (fixed) | Pinned to `bottom-6 right-6`. Hosts floating widgets like "Ask AI" buttons. |
-| `DocsLayout.RightRail` | `<aside>` (fixed) | Vertical column on the right edge on `xl+` viewports. Persistence + scrollable. |
-| `DocsLayout.BodyPortal` | `<div>` | Anything you wrap here is portalled into `document.body`. Modals, toasts, global overlays. |
-
-Every sub-component accepts `children`, `className`, and `style`. There are no surprise props — they're extensions of a minimal HTML pass-through.
-
----
-
-## Minimal layout
-
-The smallest layout that makes sense: a navbar at the top and the page content in the middle. The `Sidebar` and `OnThisPage` are optional.
-
-```tsx
-// my-docs/layout.tsx
-import { DocsLayout, Navbar } from 'boltdocs/primitives'
-
-export default function MyLayout({ children }: { children: React.ReactNode }) {
-  return (
-    <DocsLayout>
-      <Navbar>...</Navbar>
-      <DocsLayout.Body>
-        <DocsLayout.Content>
-          <DocsLayout.ContentMdx>{children}</DocsLayout.ContentMdx>
-        </DocsLayout.Content>
-      </DocsLayout.Body>
-    </DocsLayout>
-  )
-}
-```
-
-That's the entire page. Add `Sidebar` to the left, `OnThisPage` to the right, and you have a fully built docs site.
-
----
-
-## Real-world layout, with everything
-
-The layout we ship as a default. It uses every named slot. Use it as a copy-paste starting point when you want to make a custom theme that still feels "stock Boltdocs":
-
-```tsx
-// src/components/ProductionDocsLayout.tsx
+// docs/layout.tsx
 import {
   DocsLayout,
   Navbar,
@@ -107,111 +22,215 @@ import {
   OnThisPage,
   Breadcrumbs,
   PageNav,
-  ErrorBoundary,
+  ErrorBoundary
 } from 'boltdocs/primitives'
 import { useRoutes } from 'boltdocs/client'
-import { ProductionNavbar } from './ProductionNavbar'
-import { ProductionSidebar } from './ProductionSidebar'
 
-export function ProductionDocsLayout({ children }: { children: React.ReactNode }) {
-  const { currentRoute } = useRoutes()
+export default function CustomLayout({ children }) {
+  // Query routes and active page details from context
+  const { routes, currentRoute } = useRoutes()
 
   return (
-    // 1. Outer shell — sets background + scroll behavior
-    <DocsLayout className="min-h-screen selection:bg-primary-500/10 selection:text-primary-500">
-      {/* The navbar lives outside DocsLayout.Body so it spans full width. */}
-      <ProductionNavbar />
+    <DocsLayout className="selection:bg-primary-500/10">
+      {/* Composable Navbar Primitive */}
+      <Navbar className="bg-white dark:bg-black border-b">
+        <Navbar.Content>
+          <Navbar.Left>
+            <Navbar.Logo src="/logo-light.svg" alt="Branding" />
+            <Navbar.Title>Framework Docs</Navbar.Title>
+          </Navbar.Left>
+          <Navbar.Right>
+            {/* Add custom search dialog triggers or theme toggles here */}
+          </Navbar.Right>
+        </Navbar.Content>
+      </Navbar>
 
-      {/* 2. Body row: sidebar + content + ToC */}
-      <DocsLayout.Body className="bg-main">
-        <ProductionSidebar />
+      <DocsLayout.Body className="bg-zinc-50 dark:bg-zinc-950">
+        {/* Composable Sidebar Primitive */}
+        <Sidebar className="border-r">
+          <Sidebar.Content>
+            <Sidebar.Items routes={routes} />
+          </Sidebar.Content>
+        </Sidebar>
 
+        {/* Content Shell */}
         <DocsLayout.Content className="scroll-smooth">
-          <DocsLayout.ContentMdx className="max-w-3xl px-4 pt-8 pb-24 mx-auto">
-
-            {/* 3. Page header — breadcrumbs + title + description */}
+          <DocsLayout.ContentMdx className="max-w-4xl pt-8 pb-20">
+            {/* Header section containing breadcrumbs and page details */}
             <DocsLayout.Header>
               <Breadcrumbs />
-
               {currentRoute?.title && (
-                <h1 className="text-4xl font-bold tracking-tight mt-4">
-                  {currentRoute.title}
-                </h1>
+                <h1 className="text-3xl font-bold mt-4">{currentRoute.title}</h1>
               )}
               {currentRoute?.description && (
-                <p className="text-lg text-muted leading-relaxed mt-3">
-                  {currentRoute.description}
-                </p>
+                <p className="text-zinc-500 mt-2">{currentRoute.description}</p>
               )}
             </DocsLayout.Header>
 
-            {/* 4. Article body — wrapped in an Error Boundary */}
+            {/* Main MDX content wrapped inside an Error Boundary */}
             <ErrorBoundary>
-              <article className="prose dark:prose-invert max-w-none">
+              <article className="prose dark:prose-invert">
                 {children}
               </article>
             </ErrorBoundary>
 
-            {/* 5. Footer — previous/next links */}
-            <DocsLayout.Footer className="mt-12">
+            {/* Previous/next navigation */}
+            <div className="mt-12">
               <PageNav />
-            </DocsLayout.Footer>
-
+            </div>
           </DocsLayout.ContentMdx>
         </DocsLayout.Content>
 
-        {/* 6. Right rail — table of contents (sticky, scroll-spy) */}
-        <OnThisPage.Tree headings={currentRoute?.headings} />
+        {/* Composable Table of Contents (Scroll Tracker) */}
+        <OnThisPage headings={currentRoute?.headings} />
       </DocsLayout.Body>
-
-      {/* 7. Floating widgets — outside the body flex */}
-      <DocsLayout.FloatingBottom>
-        <AskAiBubble /> {/* e.g. from `@bdocs/plugin-ask-ai` */}
-      </DocsLayout.FloatingBottom>
-
-      <DocsLayout.RightRail>
-        <RightRailAskAiHistory />
-      </DocsLayout.RightRail>
-
-      {/* 8. Body portal — modal mounts, toast roots, etc. */}
-      <DocsLayout.BodyPortal>
-        <ToastContainer />
-      </DocsLayout.BodyPortal>
     </DocsLayout>
   )
 }
 ```
 
-A few details worth calling out:
+---
 
-- **`Navbar` is *outside* `DocsLayout.Body`.** That keeps the navbar full-width while everything else shares the constrained body row.
-- **`FloatingBottom` / `RightRail` / `BodyPortal` are *outside* the body flex.** They're positioned with `fixed` so they can escape the layout flow.
-- **`ErrorBoundary` sits around the article body only.** Crashes there won't hide the navbar, breadcrumbs, or footer.
+## Real-World Production Reference
+
+Below is a complete, production-ready reference implementation demonstrating how to build a unified page wrapper. It wires together custom `Navbar`, `Sidebar`, breadcrumbs, previous/next page navigation guides, alternate global error boundary views, and table-of-contents sidebars:
+
+```tsx
+// docs/components/ProductionLayout.tsx
+import React from 'react'
+import { DocsLayout } from 'boltdocs/primitives'
+import { useRoutes, useConfig } from 'boltdocs/client'
+import ProductionNavbar from './ProductionNavbar'
+import ProductionSidebar from './ProductionSidebar'
+import CustomBreadcrumbs from './CustomBreadcrumbs'
+import CustomPageNav from './CustomPageNav'
+import CustomErrorBoundary from './CustomErrorBoundary'
+import CustomOnThisPage from './CustomOnThisPage'
+
+interface LayoutProps {
+  children?: React.ReactNode
+}
+
+export default function ProductionLayout({ children }: LayoutProps) {
+  const { routes, currentRoute } = useRoutes()
+  const config = useConfig()
+
+  return (
+    <DocsLayout className="selection:bg-primary-500/10 selection:text-primary-500 min-h-screen">
+      {/* 1. Cohesive Header Navigation */}
+      <ProductionNavbar />
+
+      {/* 2. Main Page Body */}
+      <DocsLayout.Body className="bg-main">
+        
+        {/* Responsive Sidebar Component */}
+        <ProductionSidebar />
+
+        {/* 3. Central reading content flow */}
+        <DocsLayout.Content className="scroll-smooth">
+          <DocsLayout.ContentMdx className="max-w-5xl px-4 pt-8 pb-24 mx-auto">
+            
+            {/* Header: breadcrumb trails and dynamic page meta-title details */}
+            <DocsLayout.Header>
+              <div className="mb-4 border-b border-subtle pb-4">
+                <CustomBreadcrumbs />
+              </div>
+
+              {currentRoute?.title && (
+                <h1 className="text-4xl font-bold tracking-tight text-body mb-3">
+                  {currentRoute.title}
+                </h1>
+              )}
+              {currentRoute?.description && (
+                <p className="text-lg text-muted mb-6 leading-relaxed">
+                  {currentRoute.description}
+                </p>
+              )}
+            </DocsLayout.Header>
+
+            {/* Main content body wrapped in an Error Boundary */}
+            <CustomErrorBoundary>
+              <div className="prose dark:prose-invert max-w-none">
+                {children}
+              </div>
+            </CustomErrorBoundary>
+
+            {/* Previous/next navigation */}
+            <div className="mt-12">
+              <CustomPageNav />
+            </div>
+
+          </DocsLayout.ContentMdx>
+        </DocsLayout.Content>
+
+        {/* 4. Right-hand table of contents column */}
+        <CustomOnThisPage
+          headings={currentRoute?.headings}
+          editLink={config.theme?.editLink}
+          communityHelp={config.theme?.communityHelp}
+          filePath={currentRoute?.filePath}
+        />
+      </DocsLayout.Body>
+    </DocsLayout>
+  )
+}
+```
 
 ---
 
-## Floating widgets & portals
+## Composable Subcomponents
 
-The three "floating" sub-components behave differently from the others:
+The `DocsLayout` primitive provides the following slot container components:
 
-- `DocsLayout.FloatingBottom` is a `position: fixed` container pinned bottom-right. Use it for chat bubbles, "back to top" buttons, or any small persistent widget.
-- `DocsLayout.RightRail` is a `position: fixed` vertical column on the right edge. Use it for chat histories, conversation sidebars, or persistent drawers that shouldn't be inside the article.
-- `DocsLayout.BodyPortal` uses `createPortal` to render its children into `document.body`. Use it when you need a modal/toast to escape `overflow: hidden` containers.
-
-You don't *have to* mount them — they're all optional. Mount only what you use.
-
----
-
-## Common decisions
-
-- **Need a sticky ToC?** Put `<OnThisPage.Tree>` inside `DocsLayout.Body` on the right. Boltdocs already ships one; copy it for your theme.
-- **Making the content narrower on mobile?** `ContentMdx` accepts `max-w-{value}` via `className`. The default is unset — pass your own width.
-- **Debugging a layout issue?** Set a red border on each sub-component (`border border-red-500`) and walk down the tree.
+| Component | HTML Tag | Description | Props |
+| :--- | :--- | :--- | :--- |
+| **`DocsLayout.Root`** / **`DocsLayout`** | `<div>` | Top-level flex column container for the entire site page layout. | [`ComponentBaseProps`](#componentbaseprops-common) |
+| **`DocsLayout.Body`** | `<div>` | Flex row wrapper grouping the sidebar, main content area, and right-column table of contents. | [`ComponentBaseProps`](#componentbaseprops-common) |
+| **`DocsLayout.Content`** | `<main>` | Scrollable outer container of the main page reading flow. | [`ComponentBaseProps`](#componentbaseprops-common) |
+| **`DocsLayout.ContentMdx`** | `<div>` | Padded content container imposing maximum reading constraints. | [`ComponentBaseProps`](#componentbaseprops-common) |
+| **`DocsLayout.Header`** | `<header>` | Top section wrapper within the reading flow (e.g., for breadcrumbs and title). | [`ComponentBaseProps`](#componentbaseprops-common) |
 
 ---
 
-## Where next
+## Component Props
 
-- The default layout is at [`packages/core/src/client/components/docs-layout-default.tsx`](https://github.com/your-org/boltdocs). It's the production source of truth for region placement and responsive breakpoints.
-- See the [Custom Layouts guide](/docs/guides/advanced/custom-layout) for a step-by-step walkthrough on swapping the default out.
-- Each sub-component has a matching primitive — see [Navbar](/docs/components/layout/navbar), [Sidebar](/docs/components/layout/sidebar), [OnThisPage](/docs/components/layout/on-this-page), [Breadcrumbs](/docs/components/layout/breadcrumbs), [PageNav](/docs/components/layout/page-nav), [CodeBlock](/docs/components/layout/code-block), [ErrorBoundary](/docs/components/layout/error-boundary) for the full reference.
+### ComponentBaseProps (Common)
+
+All primitive subcomponents accept these common props for styling and content injection:
+
+| Property | Type | Default | Description |
+| :--- | :--- | :--- | :--- |
+| **`children`** | `ReactNode` | `undefined` | The content elements to render inside the container. |
+| **`className`** | `string` | `undefined` | Custom Tailwind or CSS classes for utility styling. |
+| **`style`** | `CSSProperties` | `undefined` | Inline style overrides. |
+
+---
+
+## Customization & states
+
+The `DocsLayout` primitive is **style-neutral**: it is pure composition — slot containers (`children`, navbar, sidebar, content, `onThisPage`) that accept `className` and expose no state attributes. Every visual decision (backgrounds, borders, spacing, column widths) belongs to the site theme through the `className` on each slot.
+
+| State / Slot | Mechanism |
+| :--- | :--- |
+| `DocsLayout` (root) | `<div>` flex column for the whole page; `bg-main text-body` come from theme tokens |
+| `DocsLayout.Body` | `<div>` flex row grouping the sidebar, content, and on-this-page columns |
+| `DocsLayout.Content` | `<main>` scrollable reading column |
+| `DocsLayout.ContentMdx` | `<div>` padded, centered max-width reading container |
+| `DocsLayout.Header` | `<header>` slot for breadcrumbs and the page title |
+
+```tsx
+<DocsLayout className="min-h-screen bg-main text-body">
+  <DocsLayout.Body>
+    <Sidebar className="w-64 border-r border-subtle" />
+    <DocsLayout.Content className="bg-main">
+      <DocsLayout.ContentMdx className="mx-auto w-full max-w-4xl px-6 py-8">
+        <DocsLayout.Header className="mb-8 border-b border-subtle pb-6">
+          <Breadcrumbs />
+          <h1 className="mt-3 text-3xl font-bold text-body">{title}</h1>
+        </DocsLayout.Header>
+        {children}
+      </DocsLayout.ContentMdx>
+    </DocsLayout.Content>
+  </DocsLayout.Body>
+</DocsLayout>
+```

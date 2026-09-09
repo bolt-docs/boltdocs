@@ -85,6 +85,20 @@ describe('plugin html', () => {
       expect(result).not.toContain('<meta name="twitter:description"')
     })
 
+    it('should prefix root-relative favicon and preload URLs with the base', () => {
+      const config = {
+        base: '/docs',
+        theme: {
+          favicon: '/favicon.ico',
+          logo: { light: '/logo-light.svg' },
+        },
+      }
+      const result = injectHtmlMeta(baseHtml, config as any)
+
+      expect(result).toContain('<link rel="icon" href="/docs/favicon.ico">')
+      expect(result).toContain('href="/docs/logo-light.svg"')
+    })
+
     it('should inject favicon from string logo', () => {
       const config = {
         theme: {

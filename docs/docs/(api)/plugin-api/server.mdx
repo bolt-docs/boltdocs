@@ -6,9 +6,9 @@ description: PluginServerAPI — register HTTP middleware and server lifecycle h
 
 # `ctx.server` — PluginServerAPI
 
-Register HTTP middleware and server lifecycle hooks without authoring
-a Vite plugin. This is the formal API for what plugins like
-`@bdocs/plugin-ask-ai` previously did by hand with
+Registers HTTP middleware and server lifecycle hooks without needing
+to write a Vite plugin. This is the formal API for what plugins like
+`@bdocs/plugin-ask-ai` used to do manually with
 `vitePlugins: [{ configureServer }]`.
 
 ```ts
@@ -28,7 +28,6 @@ ctx.server.useAt('/api/my-plugin', (req, res, next) => {
     res.end('Method Not Allowed')
     return
   }
-  // Handle the request...
   res.end(JSON.stringify({ ok: true }))
 })
 
@@ -42,10 +41,10 @@ ctx.server.onEnd(() => {
 })
 ```
 
-Middleware registered via `ctx.server.use()` runs on both the **dev
-server** and **preview server**. The `onStart` callback fires once per
-process when the server initialises; `onEnd` fires on shutdown or
-restart (use it for cleanup).
+Middleware registered via `ctx.server.use()` runs on both the
+**dev server** and the **preview server**. The `onStart` callback
+fires once per process when the server initializes; `onEnd`
+fires on shutdown or restart (use it for cleanup).
 
 ---
 
@@ -53,5 +52,4 @@ restart (use it for cleanup).
 
 - [PluginContext](/docs/api/plugin-api) — base context object
 - [Middleware](/docs/api/plugin-api/middleware) — transform middleware pipeline
-- [HMR](/docs/api/plugin-api/hmr) — dev-server file watching & custom events
-- [Lifecycle Hooks](/docs/api/plugin-api/lifecycle-hooks) — build/dev hooks, transform chains, and chain signals
+- [HMR](/docs/api/plugin-api/hmr) — file watching and custom dev server events

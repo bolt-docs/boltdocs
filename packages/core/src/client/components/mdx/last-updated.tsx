@@ -1,12 +1,15 @@
+import { cn } from '../../utils/cn'
+
 interface LastUpdatedProps {
   date?: string | number | Date
+  className?: string
 }
 
 /**
  * A subtle display for when the page was last updated.
  * Small, opaque, and positioned at the bottom of the content with a thin top border divider.
  */
-export function LastUpdated({ date }: LastUpdatedProps) {
+export function LastUpdated({ date, className }: LastUpdatedProps) {
   if (!date) return null
 
   const d = new Date(date)
@@ -19,7 +22,12 @@ export function LastUpdated({ date }: LastUpdatedProps) {
   })
 
   return (
-    <div className="mt-16 pt-6 border-t border-subtle flex items-center justify-between text-xs text-muted select-none">
+    <div
+      className={cn(
+        'mt-16 pt-6 border-t border-subtle flex items-center justify-between text-xs text-muted select-none',
+        className,
+      )}
+    >
       <span></span>
       <span className="italic">Last updated on {formattedDate}</span>
     </div>

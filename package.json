@@ -8,12 +8,14 @@
     "release": "pnpm build && pnpm changeset publish",
     "version-packages": "changeset version",
     "audit": "pnpm audit",
-    "test": "pnpm test:core",
+    "test": "pnpm test:all",
     "test:core": "pnpm --filter boltdocs test",
     "test:ssg": "pnpm --filter @bdocs/ssg test",
     "test:a11y": "playwright test",
-    "test:all": "pnpm --filter boltdocs test && pnpm --filter @bdocs/ssg test && pnpm --filter @bdocs/plugin-mermaid test",
-    "test:coverage": "pnpm --filter boltdocs test --coverage",
+    "test:plugins": "pnpm --filter @bdocs/plugin-mermaid test && pnpm --filter @bdocs/plugin-math test && pnpm --filter @bdocs/plugin-ask-ai test && pnpm --filter @bdocs/plugin-llms-text test && pnpm --filter @bdocs/plugin-sass test && pnpm --filter @bdocs/plugin-tailwindcss test && pnpm --filter @bdocs/plugin-unocss test && pnpm --filter @bdocs/plugin-rss test && pnpm --filter @bdocs/plugin-image-optimizer test",
+    "test:processors": "pnpm --filter @bdocs/processor-satteri test && pnpm --filter @bdocs/unist-utils test && pnpm --filter create-boltdocs test && pnpm --filter @bdocs/parser exec vitest run",
+    "test:all": "pnpm test:core && pnpm test:ssg && pnpm test:plugins && pnpm test:processors",
+    "test:coverage": "pnpm exec vitest run --coverage --coverage.include=\"packages/*/src/**/*.{ts,tsx}\"",
     "lint:md": "markdownlint-cli2 \"**/*.{md,mdx}\"",
     "lint:md:fix": "markdownlint-cli2 --fix \"**/*.{md,mdx}\"",
     "format": "pnpm exec biome format --write .",
@@ -28,18 +30,28 @@
     "benchmark:report": "tsx scripts/benchmarks/run.ts --suite all",
     "benchmark:native": "tsx scripts/benchmarks/parser-native.ts",
     "benchmark:compare": "tsx scripts/benchmarks/compare-boltdocs-docusaurus.ts",
-    "knip": "knip"
+    "benchmark:baseline": "tsx scripts/benchmarks/run-baseline.ts",
+    "benchmark:gate": "tsx scripts/benchmarks/gate.ts",
+    "knip": "knip",
+    "prepare": "husky"
+  },
+  "lint-staged": {
+    "*.{ts,tsx,js,jsx,mjs,cjs,json,css}": "biome check --write",
+    "*.{md,mdx}": "markdownlint-cli2 --fix"
   },
   "packageManager": "pnpm@10.30.2",
   "devDependencies": {
     "@axe-core/playwright": "^4.11.2",
+    "@bdocs/unist-utils": "workspace:*",
     "@biomejs/biome": "2.4.9",
     "@changesets/changelog-github": "^0.6.0",
     "@changesets/cli": "^2.30.0",
     "@playwright/test": "^1.59.1",
     "@vitest/coverage-v8": "^3.0.0",
     "boltdocs": "workspace:*",
+    "husky": "^9.1.7",
     "knip": "^5.66.0",
+    "lint-staged": "^17.3.0",
     "markdownlint-cli2": "^0.21.0",
     "tinybench": "^6.0.2",
     "tsx": "^4.21.0",
@@ -84,6 +96,7 @@
     "onlyBuiltDependencies": [
       "@swc/core",
       "esbuild",
+      "koffi",
       "sharp"
     ],
     "auditConfig": {

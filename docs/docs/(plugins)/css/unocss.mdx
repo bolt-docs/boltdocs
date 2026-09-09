@@ -1,0 +1,26 @@
+---
+title: UnoCSS
+description: Official UnoCSS atomic engine plugin for Boltdocs.
+sidebarPosition: 4
+---
+
+The `@bdocs/plugin-unocss` plugin provides official integration for **UnoCSS** in Boltdocs via `@unocss/vite`.
+
+## Installation
+
+Install `@bdocs/plugin-unocss` and `unocss`:
+
+```bash
+pnpm add -D @bdocs/plugin-unocss unocss
+```
+
+
+## Usage
+
+Import `virtual:uno.css` in your layout or main style:
+
+```tsx
+import 'virtual:uno.css'
+```
+
+Now all UnoCSS utilities and attributes will be generated instantly on demand!

@@ -1,0 +1,72 @@
+---
+title: Plugins
+sidebarPosition: 1
+sidebarHidden: true
+description: Plugins oficiales de Boltdocs — plugins de contenido y MDX más integraciones de frameworks CSS.
+---
+
+import { Bot, FileText, Calculator, GitFork, Rss, Boxes, Palette, Braces, Shapes, Sparkles } from 'lucide-react'
+
+Los plugins de Boltdocs extienden el core mediante hooks en remark, rehype, Vite y el registro de client. Instálalos con pnpm y regístralos en `plugins` dentro de `boltdocs.config.ts`:
+
+```bash
+pnpm add @bdocs/plugin-mermaid
+```
+
+```ts title="boltdocs.config.ts"
+import { defineConfig } from 'boltdocs'
+import mermaidPlugin from '@bdocs/plugin-mermaid'
+
+export default defineConfig({
+  plugins: [mermaidPlugin()],
+})
+```
+
+## Plugins de contenido
+
+<Cards cols={3}>
+  <Card title="Mermaid" icon={<GitFork />} href="/docs/plugins/content/plugin-mermaid">
+    Transforma bloques de código mermaid en diagramas interactivos conscientes del tema.
+  </Card>
+  <Card title="Math" icon={<Calculator />} href="/docs/plugins/content/plugin-math">
+    Renderizado de matemáticas LaTeX con KaTeX para expresiones inline y en bloque.
+  </Card>
+  <Card title="RSS" icon={<Rss />} href="/docs/plugins/content/plugin-rss">
+    Genera un feed RSS desde tu blog o páginas de colección.
+  </Card>
+  <Card title="Ask AI" icon={<Bot />} href="/docs/plugins/content/plugin-ask-ai">
+    Añade un chat de asistente IA a tu documentación, respaldado por tu índice de búsqueda.
+  </Card>
+  <Card title="LLMs.txt" icon={<FileText />} href="/docs/plugins/content/plugin-llms-text">
+    Genera llms.txt / llms-full.txt para documentación amigable con LLMs.
+  </Card>
+  <Card title="Unist Utils" icon={<Boxes />} href="/docs/plugins/content/unist-utils">
+    Utilidades de AST para crear plugins de remark y rehype.
+  </Card>
+</Cards>
+
+## Integraciones CSS
+
+<Cards cols={2}>
+  <Card title="Tailwind CSS" icon={<Palette />} href="/docs/plugins/css/tailwindcss">
+    Tailwind CSS v4 a través del plugin oficial de Vite.
+  </Card>
+  <Card title="Sass" icon={<Braces />} href="/docs/plugins/css/sass">
+    Preprocesamiento SASS y SCSS para tus estilos.
+  </Card>
+  <Card title="UnoCSS" icon={<Shapes />} href="/docs/plugins/css/unocss">
+    Utilidades atómicas de UnoCSS con generación on-demand.
+  </Card>
+  <Card title="Vanilla CSS" icon={<Sparkles />} href="/docs/plugins/css/vanilla-css">
+    Usa CSS puro, CSS Modules o custom properties sin framework.
+  </Card>
+</Cards>
+
+## Escribir tu propio plugin
+
+Para construir un plugin, consulta la [referencia de la API de plugins](/docs/api/plugin-api) y la [guía de autoría de plugins](/docs/api/plugin-api#putting-it-all-together). Ejecuta `boltdocs audit` antes de añadir cualquier plugin de terceros para escanearlo en busca de llamadas de riesgo.
+
+## Dónde seguir
+
+- [Referencia de API](/docs/api) — hooks, utilidades y la API de plugins.
+- [Integraciones](/docs/integrations) — SEO, búsqueda, analytics, i18n y versionado.

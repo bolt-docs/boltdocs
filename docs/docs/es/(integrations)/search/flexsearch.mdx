@@ -1,5 +1,6 @@
 ---
 title: FlexSearch
+sidebarPosition: 2
 description: Boltdocs incluye **FlexSearch** como su motor de búsqueda offline predeterminado. Durante la fase de compilación, Boltdocs escanea todos los archivos markdown, parsea su HTML/encabezados y compila un archivo JSON de índice altamente comprimido. El runtime del lado del cliente carga este índice y realiza coincidencias locales de alta velocidad sin consultas de red
 ---
 
@@ -36,22 +37,6 @@ export function MySearchBar() {
 }
 ```
 
----
-
-## Referencia de API
-
-### Valores de Retorno de `useSearch()`
-
-| Propiedad | Tipo | Descripción |
-| :--- | :--- | :--- |
-| **`query`** | `string` | La consulta de texto de búsqueda activa. |
-| **`setQuery`** | `(q: string) => void` | Actualiza la cadena de búsqueda y consulta el índice offline de FlexSearch. |
-| **`results`** | [`SearchResult[]`](#searchresult) | Arreglo de rutas de páginas coincidentes, ordenadas por puntuación de relevancia. |
-| **`isOpen`** | `boolean` | `true` si el modal de búsqueda está actualmente abierto. |
-| **`open`** | `() => void` | Abre el estado del modal de búsqueda. |
-| **`close`** | `() => void` | Cierra el estado del modal de búsqueda y restablece la cadena de consulta. |
-
----
 
 ### `SearchResult`
 

@@ -8,9 +8,11 @@ import { colors, warn, error, steps, renderStatic } from '@bdocs/dui'
 import type { StepItem } from '@bdocs/dui'
 
 import { parseCliAndPrompt } from './cli'
+import type { IconLibrary } from './cli'
 import { getPackageManager } from './utils/package-manager'
 import { copy } from './utils/file-system'
 import { adaptersDeploy } from './deploy/adapters'
+import { generateIconsFile, getIconLibraryVersion } from './utils/icons'
 
 function installDependencies(
   pkgManager: string,
@@ -47,7 +49,7 @@ const BANNER = colors.cyan.bold(`
    ██████╔╝██║   ██║██║     ██║   ██║  ██║██║   ██║██║     ███████╗
    ██╔══██╗██║   ██║██║     ██║   ██║  ██║██║   ██║██║     ╚════██║
    ██████╔╝╚██████╔╝███████╗██║   ██████╔╝╚██████╔╝╚██████╗███████║
-   ╚══════╝  ╚═════╝ ╚══════╝╚═╝   ╚═════╝  ╚═════╝  ╚═════╝╚══════╝`)
+   ╚═════╝  ╚═════╝ ╚══════╝╚═╝   ╚═════╝  ╚═════╝  ╚═════╝╚══════╝`)
 
 const TAGLINE = colors.dim(
   '\n  ⚡ Boltdocs - the modern documentation framework\n',
@@ -62,6 +64,25 @@ function renderAll(stepsList: StepItem[]) {
   console.log(steps(stepsList))
 }
 
+function scaffoldTemplate(
+  templateDir: string,
+  projectDir: string,
+  iconLibrary: IconLibrary,
+  projectName: string,
+): void {
+  const iconPackageName = iconLibrary
+  const iconLibraryVersion = getIconLibraryVersion(iconLibrary)
+
+  copy(templateDir, projectDir, {
+    name: projectName,
+    title: projectName,
+    iconLibraryPackage: iconPackageName,
+    iconLibraryVersion,
+  })
+
+  generateIconsFile(projectDir, iconLibrary)
+}
+
 export async function run() {
   const pkgManager = getPackageManager()
 
@@ -74,7 +95,7 @@ export async function run() {
     return
   }
 
-  const { projectName, template, deployTarget, install } = options
+  const { projectName, template, deployTarget, install, iconLibrary } = options
   const projectDir = path.join(process.cwd(), projectName)
 
   if (fs.existsSync(projectDir)) {
@@ -104,10 +125,7 @@ export async function run() {
   }
 
   try {
-    copy(templateDir, projectDir, {
-      name: projectName,
-      title: projectName,
-    })
+    scaffoldTemplate(templateDir, projectDir, iconLibrary, projectName)
 
     stepsList[0].status = 'success'
     stepsList[1].status = 'running'

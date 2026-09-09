@@ -1,6 +1,9 @@
 import { satteriRemarkMetaPlugin } from './satteri-plugins/remark-meta-plugin'
 import { satteriRehypeSlugPlugin } from './satteri-plugins/rehype-slug-plugin'
-import { satteriRehypeShikiPlugin } from './satteri-plugins/rehype-shiki-plugin'
+import {
+  satteriRehypeShikiPlugin,
+  type ShikiCodeTheme,
+} from './satteri-plugins/rehype-shiki-plugin'
 import type { MdastPluginInput, HastPluginInput } from 'satteri'
 
 /**
@@ -19,15 +22,38 @@ export interface SatteriProcessorPlugin {
  * Creates a Sätteri processor plugin.
  * Used internally by core when --turbo flag is active.
  */
-export function createSatteriProcessorPlugin(): SatteriProcessorPlugin {
+export function createSatteriProcessorPlugin(
+  codeTheme?: ShikiCodeTheme,
+): SatteriProcessorPlugin {
   return {
     name: 'boltdocs-processor-satteri',
     version: '0.1.0',
     boltdocsVersion: '>=3.0.0',
     mdastPlugins: [satteriRemarkMetaPlugin()],
-    hastPlugins: [satteriRehypeSlugPlugin(), satteriRehypeShikiPlugin()],
+    hastPlugins: [
+      satteriRehypeSlugPlugin(),
+      satteriRehypeShikiPlugin(codeTheme),
+    ],
   }
 }
 
 // Named export for core dynamic import
-export { createSatteriMdxPlugin } from './satteri-mdx-plugin'
+export {
+  createSatteriMdxPlugin,
+  invalidateMdxFileCache,
+  resetMdxRuntimeCaches,
+} from './satteri-mdx-plugin'
+
+// P2-22: Compile pool for parallel MDX compilation
+export { CompilePool } from './compile-pool'
+export type { CompileRequest, CompileResult, PoolMetrics } from './compile-pool'
+
+// P2-21: Precompile bridge for early pipeline precompile
+export {
+  setPrecompilePromise,
+  getPrecompilePromise,
+  isPrecompileStarted,
+  resetPrecompileBridge,
+  signalEarlyPrecompile,
+  wasEarlyPrecompileSignaled,
+} from './precompile-bridge'

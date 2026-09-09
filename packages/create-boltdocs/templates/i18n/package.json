@@ -10,7 +10,7 @@
     "doctor": "boltdocs doctor"
   },
   "dependencies": {
-    "lucide-react": "^1.7.0",
+    "{{iconLibraryPackage}}": "{{iconLibraryVersion}}",
     "react": "^19.2.5",
     "react-aria-components": "^1.16.0",
     "react-dom": "^19.2.5"

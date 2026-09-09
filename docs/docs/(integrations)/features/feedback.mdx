@@ -1,38 +1,14 @@
 ---
 title: Custom Feedback
 sidebarPosition: 2
-description: Learn how to set up the native, lightweight GitHub custom feedback system to collect page-level and code-block level suggestions.
+description: Learn how to set up the native lightweight GitHub feedback system to collect page-level and code-block-level suggestions.
 badge: "New"
 ---
 
 # Custom Feedback Integration
 
-The **Custom Feedback** integration allows you to collect feedback ratings (😊, 😐, 🙁) and written suggestions from your readers directly into your **GitHub Discussions** thread registry without the overhead of heavy third-party iframe packages.
+The **Custom Feedback** integration lets you collect feedback ratings (😊, 😐, 🙁) and written suggestions from your readers directly into your **GitHub Discussions** thread record without the overhead of heavy third-party iframe packages.
 
----
-
-## Minimal Setup
-
-To enable custom feedback, register your GitHub repository coordinates under the `integrations` section of your configuration file:
-
-```ts title="boltdocs.config.ts"
-import { defineConfig } from 'boltdocs'
-
-export default defineConfig({
-  integrations: {
-    feedback: {
-      custom: {
-        enabled: true,
-        owner: 'your-github-username-or-org',
-        repo: 'your-repository-name',
-        categorySlug: 'general', // Optional: defaults to 'general'
-      },
-    },
-  },
-})
-```
-
----
 
 ## How It Works
 
@@ -47,36 +23,36 @@ graph TD
     D -->|GraphQL Mutation| E
 ```
 
-1. **Development & Preview:** When running `boltdocs dev` or `boltdocs preview`, a built-in server middleware automatically intercepts incoming POST requests to `/api/feedback`, signs a secure GitHub token or JWT, and sends the payload directly to GitHub's GraphQL API.
-2. **Production Hosting:** When deployed to a static site host (like Vercel, Netlify, or Cloudflare Pages), there is no running Vite server to handle POST requests. You must deploy a serverless function endpoint to receive feedback securely.
+1. **Development and Preview:** When you run `boltdocs dev` or `boltdocs preview`, a built-in server middleware automatically intercepts incoming POST requests to `/api/feedback`, signs a secure GitHub token or JWT, and sends the payload directly to the GitHub GraphQL API.
+2. **Production Hosting:** When deployed to a static site host (like Vercel, Netlify, or Cloudflare Pages), there's no Vite server running to handle POST requests. You must deploy a serverless function endpoint to receive the feedback securely.
 
 ---
 
-## Quick Scaffold via `create-boltdocs`
+## Quick Scaffolding via `create-boltdocs`
 
-When initializing a new Boltdocs project with the `create-boltdocs` CLI tool, the wizard prompts you to choose a deployment target. This can also be passed via the `--deploy` (or `-d`) CLI flag:
+When initializing a new Boltdocs project with the `create-boltdocs` CLI tool, the wizard asks you to choose a deployment target. This can also be passed via the `--deploy` CLI flag (or `-d`):
 
 ```bash
 # Scaffold a new project configured for Cloudflare Pages
 npm create boltdocs@latest my-docs-app -- --template base --deploy cloudflare
 ```
 
-Depending on your selection, `create-boltdocs` automatically scaffolds the correct function folder and configuration:
+Depending on your selection, `create-boltdocs` automatically scaffolds the correct functions folder and configuration:
 - **Vercel**: Creates `api/feedback.ts`.
 - **Netlify**: Creates `netlify/functions/feedback.ts` and redirects inside `netlify.toml`.
 - **Cloudflare Pages**: Creates `functions/api/feedback.ts`.
 - **AWS Lambda**: Creates `lambda/feedback.ts`.
-- **Static Only**: Scaffolds a purely static build without setting up any serverless API functions.
+- **Static Only**: Scaffolds a purely static build without configuring serverless functions.
 
 ---
 
-## Production Deployment (Runtimes & Adapters)
+## Production Deployment (Runtime Environments and Adapters)
 
-To securely submit feedback in production without exposing your GitHub credentials to the browser, Boltdocs exports pre-built **runtime adapters** for major serverless providers.
+To securely submit feedback in production without exposing your GitHub credentials to the browser, Boltdocs exports **pre-built runtime adapters** for the major serverless providers.
 
 ### 1. Vercel Serverless Functions
 
-To deploy on Vercel, create a file at `api/feedback.ts` at the root of your project:
+To deploy on Vercel, create a file at `api/feedback.ts` in the root of your project:
 
 ```ts title="api/feedback.ts"
 import { handleVercelFeedback } from 'boltdocs/server'
@@ -86,7 +62,7 @@ export default handleVercelFeedback
 
 ### 2. Cloudflare Workers / Vercel Edge
 
-For Cloudflare Workers, Pages Functions, or Edge environments utilizing the web-standard `Request`/`Response` APIs:
+For Cloudflare Workers, Pages Functions, or Edge environments using the standard web `Request`/`Response` APIs:
 
 ```ts title="worker.ts or functions/api/feedback.ts"
 import { handleWebFeedback } from 'boltdocs/server'
@@ -116,39 +92,39 @@ export const handler = async (event: any) => {
 
 ---
 
-## Environment Variables Configuration
+## Environment Variable Configuration
 
-The production API handlers securely parse GitHub authentication keys from your host's environment variables. Ensure the following keys are set up in your hosting provider's dashboard:
+The production API handlers securely parse GitHub authentication keys from your host's environment variables. Make sure the following keys are configured in your hosting provider's panel:
 
 | Variable | Description |
 | :--- | :--- |
-| **`BOLTDOCS_GITHUB_TOKEN`** | A personal access token (PAT) with `write` permission to repository discussions. |
-| **`BOLTDOCS_GITHUB_REPO_OWNER`** | Override the GitHub repository owner/org name. |
-| **`BOLTDOCS_GITHUB_REPO_NAME`** | Override the GitHub repository name. |
+| **`BOLTDOCS_GITHUB_TOKEN`** | A personal access token (PAT) with `write` permission for repository discussions. |
+| **`BOLTDOCS_GITHUB_REPO_OWNER`** | Overrides the owner/organization name of the GitHub repository. |
+| **`BOLTDOCS_GITHUB_REPO_NAME`** | Overrides the name of the GitHub repository. |
 
-If you are using a **GitHub App** for authentication, define these variables instead:
+If you're using a **GitHub App** for authentication, define these variables instead:
 
 | Variable | Description |
 | :--- | :--- |
 | **`GITHUB_APP_ID`** | The unique App ID generated by GitHub. |
-| **`GITHUB_PRIVATE_KEY`** | The RSA private key of your GitHub App (newline-escaped). |
+| **`GITHUB_PRIVATE_KEY`** | The RSA private key of your GitHub App (with escaped newlines). |
 | **`GITHUB_INSTALLATION_ID`** | The installation ID for the target repository. |
 
 ---
 
 ## Visual Presentation
 
-Once enabled, Boltdocs automatically injects premium, glassmorphic feedback forms at the bottom of standard documentation pages:
+Once enabled, Boltdocs automatically injects premium glass-effect feedback forms at the bottom of standard documentation pages:
 
 ```md
 Was this page helpful? [ Yes ]  [ Regular ]  [ No ]
 ```
 
-And thumbs-up/down feedback elements directly next to the **Copy** action inside code block headers.
+And thumb up/down feedback elements directly next to the **Copy** action inside code block headers.
 
-### Custom React Layouts (`useFeedback`)
+### Custom React Designs (`useFeedback`)
 
-If you want to construct your own custom feedback interface, import and utilize the lightweight `useFeedback` hook client-side:
+If you want to build your own custom feedback UI, import and use the lightweight client-side `useFeedback` hook:
 
 ```tsx
 import { useFeedback } from 'boltdocs/client'

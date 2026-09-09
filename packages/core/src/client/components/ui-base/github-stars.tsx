@@ -1,8 +1,15 @@
 import { useEffect, useState } from 'react'
 import { getStarsRepo } from '../../utils/github'
 import { Github } from '../icons-prod'
+import { cn } from '../../utils/cn'
 
-export function GithubStars({ repo }: { repo: string }) {
+export function GithubStars({
+  repo,
+  className,
+}: {
+  repo: string
+  className?: string
+}) {
   const [stars, setStars] = useState<string | null>(null)
 
   useEffect(() => {
@@ -18,7 +25,10 @@ export function GithubStars({ repo }: { repo: string }) {
       href={`https://github.com/${repo}`}
       target="_blank"
       rel="noopener noreferrer"
-      className="inline-flex items-center gap-2 rounded-xl border border-subtle bg-surface px-3 py-1.5 text-xs font-semibold text-muted dark:hover:bg-primary-300/50 hover:bg-primary-200/50 transition-colors duration-100 hover:border-primary-500/50 hover:text-body select-none outline-none"
+      className={cn(
+        'inline-flex items-center gap-2 rounded-xl border border-subtle bg-surface px-3 py-1.5 text-xs font-semibold text-muted dark:hover:bg-primary-300/50 hover:bg-primary-200/50 transition-colors duration-100 hover:border-primary-500/50 hover:text-body select-none outline-none',
+        className,
+      )}
     >
       <Github className="h-4 w-4 text-body" />
       {stars !== null && (

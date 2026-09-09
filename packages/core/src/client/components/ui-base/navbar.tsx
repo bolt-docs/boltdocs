@@ -6,7 +6,7 @@ import NavbarPrimitive from '../primitives/navbar'
 import { ThemeToggle } from './theme-toggle'
 import { GithubStars } from './github-stars'
 import { Tabs } from './tabs'
-import { useLocation } from 'react-router-dom'
+import { useLocation } from '../../router'
 import type { BoltdocsSocialLink } from '../../../shared/types'
 import { Button } from '../primitives/button'
 import { Menu as MenuIcon, X } from './icons'
@@ -22,10 +22,11 @@ const SearchDialog = lazy(() =>
   })),
 )
 
-export function Navbar() {
+export function Navbar({ className }: { className?: string }) {
   const { links, title, logo, logoProps, github, social, config } = useNavbar()
   const {
     routes,
+    allRoutes,
     currentRoute,
     isCollectionPage,
     currentVersion,
@@ -42,6 +43,7 @@ export function Navbar() {
       className={cn(
         'border-b border-subtle bg-main/80 backdrop-blur-md',
         hasTabs && 'border-b-0',
+        className,
       )}
     >
       <NavbarPrimitive.Content>
@@ -176,7 +178,11 @@ export function Navbar() {
 
       {isDocs && hasTabs && themeConfig?.tabs && (
         <div className="w-full border-b border-subtle bg-main">
-          <Tabs tabs={themeConfig.tabs} routes={routes || []} />
+          <Tabs
+            tabs={themeConfig.tabs}
+            routes={routes || []}
+            allRoutes={allRoutes || []}
+          />
         </div>
       )}
     </NavbarPrimitive.Root>
@@ -235,45 +241,5 @@ function NavbarMobileLinkItem({
   link: NavbarLinkType
   onClose: () => void
 }) {
-  const localizedHref = useLocalizedTo(link.href || '')
-  const { pathname } = useLocation()
-  const active = pathname === localizedHref
-  const hasItems = link.items && link.items.length > 0
-
-  if (hasItems) {
-    return (
-      <div className="flex flex-col gap-1">
-        <div
-          className={cn(
-            'px-3 py-2 text-sm transition-all',
-            active ? 'text-body' : 'text-muted/80 hover:text-body',
-          )}
-        >
-          {link.label as string}
-        </div>
-        <div className="flex flex-col gap-1 pl-4">
-          {link.items?.map((item) => (
-            <NavbarMobileLinkItem
-              key={item.href}
-              link={item}
-              onClose={onClose}
-            />
-          ))}
-        </div>
-      </div>
-    )
-  }
-
-  return (
-    <NavbarPrimitive.MobileLink
-      {...(link as any)}
-      href={localizedHref}
-      active={active}
-      onPress={onClose}
-      className={cn(
-        'transition-all',
-        active ? 'text-body' : 'text-muted/80 hover:text-body',
-      )}
-    />
-  )
+  return <NavbarPrimitive.MobileLinkItem link={link} onClose={onClose} />
 }

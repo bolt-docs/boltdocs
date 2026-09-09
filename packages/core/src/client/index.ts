@@ -13,6 +13,7 @@ export { useConfig } from './app/config-context'
 export { useTheme } from './app/theme-context'
 export { useMdxComponents } from './app/mdx-components-context'
 export { useUI } from './app/ui-context'
+export * from './router'
 export * from './hooks/index'
 export { default as DocsLayout } from './components/docs-layout-default'
 export { Navbar } from './components/ui-base/navbar'
@@ -40,8 +41,39 @@ export type {
 
 // Utilities
 export { cn } from './utils/cn'
+export { resolvePublicAssetUrl } from './utils/path'
 export { getTranslated } from './utils/i18n'
+export {
+  StructuredData,
+  defineStructuredData,
+  createArticleStructuredData,
+  createBreadcrumbStructuredData,
+  createStructuredData,
+  createWebSiteStructuredData,
+} from './components/structured-data'
+export type {
+  StructuredDataProps,
+  ArticleStructuredDataOptions,
+  BreadcrumbStructuredDataItem,
+  StructuredDataFactoryOptions,
+  WebSiteStructuredDataOptions,
+} from './components/structured-data'
+export { startViewTransition, useViewTransition } from './view-transitions'
+export type {
+  ViewTransitionHandle,
+  ViewTransitionOptions,
+  ViewTransitionRunner,
+  ViewTransitionUpdate,
+} from './view-transitions'
 export { reactToText } from './utils/react-to-text'
 export { copyToClipboard } from './utils/copy-clipboard'
 export { getStarsRepo } from './utils/github'
 export { useCodeBlock } from './components/mdx/use-code-block'
+export { useCopyButton } from './components/mdx/use-copy-button'
+export { useExpandable } from './components/mdx/use-expandable'
+export type { UseExpandableOptions } from './components/mdx/use-expandable'
+export { useCodeBlockFeedback } from './components/mdx/use-code-block-feedback'
+export type {
+  CodeBlockFeedbackPayload,
+  UseCodeBlockFeedbackOptions,
+} from './components/mdx/use-code-block-feedback'

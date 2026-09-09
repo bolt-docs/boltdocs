@@ -15,7 +15,7 @@ describe('Timeline (MDX component)', () => {
     )
     const list = container.querySelector('ol')
     expect(list).not.toBeNull()
-    expect(list?.getAttribute('role')).toBe('list')
+    expect(screen.getByRole('list')).toBe(list)
   })
 
   it('renders a hidden connector line', () => {

@@ -1,5 +1,6 @@
 const std = @import("std");
 const slugger = @import("slugger.zig");
+const yaml = @import("yaml.zig");
 
 pub const Heading = struct {
     level: u8,
@@ -13,6 +14,7 @@ pub const ParsedDoc = struct {
     headings: []Heading,
     plainText: []const u8,
     description: []const u8,
+    frontmatter: yaml.Value,
 };
 
 /// Shared parsing context for single-pass optimization.
@@ -288,6 +290,8 @@ pub fn parseDocSinglePass(allocator: std.mem.Allocator, file_content: []const u8
     // plainText is the buffer contents
     const plainText = try ctx.buffer.toOwnedSlice(allocator);
 
+    const frontmatter = try yaml.parseYaml(allocator, fm.rawMatter);
+
     // Headings already have individually allocated text and id from tryExtractHeading.
     // Just transfer ownership to the result.
     return .{
@@ -296,6 +300,7 @@ pub fn parseDocSinglePass(allocator: std.mem.Allocator, file_content: []const u8
         .headings = try ctx.headings.toOwnedSlice(allocator),
         .plainText = plainText,
         .description = description,
+        .frontmatter = frontmatter,
     };
 }
 
@@ -360,11 +365,14 @@ pub fn parseDoc(allocator: std.mem.Allocator, file_content: []const u8) !ParsedD
     const desc_len = if (plainText.len > 160) @as(usize, 160) else plainText.len;
     const description = try allocator.dupe(u8, plainText[0..desc_len]);
 
+    const frontmatter = try yaml.parseYaml(allocator, fm.rawMatter);
+
     return .{
         .rawMatter = fm.rawMatter,
         .content = fm.content,
         .headings = headings,
         .plainText = plainText,
         .description = description,
+        .frontmatter = frontmatter,
     };
 }

@@ -1,8 +1,43 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" class="dark" data-theme="dark">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <script>
+      // Boltdocs docs theme is dark-only. Ensure the dark class and
+      // data-theme are present before first paint and re-apply them if the
+      // framework's ThemeProvider ever syncs a light/system preference
+      // (the theme toggle is removed in this theme).
+      ;(function () {
+        try {
+          // Dark-only theme: seed the framework's theme store so the
+          // ThemeProvider mounts with theme='dark' (resolvedTheme='dark').
+          // This keeps Mermaid and logo selection pinned to the dark assets
+          // even when the OS prefers light.
+          localStorage.setItem('boltdocs-theme', 'dark')
+        } catch (e) {}
+        var forceDark = function () {
+          try {
+            var root = document.documentElement
+            root.classList.add('dark')
+            root.dataset.theme = 'dark'
+          } catch (e) {}
+        }
+        forceDark()
+        if (window.MutationObserver) {
+          var observer = new MutationObserver(function (mutations) {
+            var changed =
+              !document.documentElement.classList.contains('dark') ||
+              document.documentElement.dataset.theme !== 'dark'
+            if (changed) forceDark()
+          })
+          observer.observe(document.documentElement, {
+            attributes: true,
+            attributeFilter: ['class', 'data-theme'],
+          })
+        }
+      })()
+    </script>
   </head>
   <body>
     <div id="root"></div>

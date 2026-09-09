@@ -14,7 +14,10 @@ export interface TooltipProps extends Omit<RAC.TooltipProps, 'children'> {
 }
 
 // Fixed type for TooltipContentProps to match RAC's internal expectations
-export interface TooltipContentProps extends RAC.TooltipProps {}
+export interface TooltipContentProps extends RAC.TooltipProps {
+  /** Class name for the arrow svg. */
+  arrowClassName?: string
+}
 
 /**
  * Modern, accessible Tooltip component built with React Aria Components.
@@ -22,6 +25,7 @@ export interface TooltipContentProps extends RAC.TooltipProps {}
  */
 function TooltipContent({
   className,
+  arrowClassName,
   children,
   ...props
 }: TooltipContentProps) {
@@ -49,7 +53,10 @@ function TooltipContent({
               width={8}
               height={8}
               viewBox="0 0 8 8"
-              className="fill-bg-surface/90 stroke-border-subtle group-data-[placement=bottom]:rotate-180 group-data-[placement=left]:-rotate-90 group-data-[placement=right]:rotate-90"
+              className={cn(
+                'fill-bg-surface/90 stroke-border-subtle group-data-[placement=bottom]:rotate-180 group-data-[placement=left]:-rotate-90 group-data-[placement=right]:rotate-90',
+                arrowClassName,
+              )}
             >
               <title>Arrow</title>
               <path d="M0 0 L4 4 L8 0" />

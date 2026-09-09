@@ -6,15 +6,6 @@ description: Barra de navegación superior que contiene la marca del sitio, elem
 
 El componente `Navbar` muestra logos del sitio, enlaces de navegación, pestañas de documentación y disparadores de búsqueda.
 
----
-
-## Importación
-
-```tsx
-import { Navbar } from 'boltdocs/primitives'
-```
-
----
 
 ## Ejemplo de Navbar Componible
 
@@ -378,3 +369,38 @@ Hereda todas las [`Props de Navbar.Link`](#navbarlink-props) más:
 | Propiedad | Tipo | Predeterminado | Descripción |
 | :--- | :--- | :--- | :--- |
 | **`onPress`** | `() => void` | `undefined` | Callback personalizado al hacer clic (por ejemplo, para cerrar cajones automáticamente). |
+
+---
+
+## Personalización y estados
+
+La primitiva `Navbar` es **neutral en estilo**: aporta la estructura del encabezado y el comportamiento interactivo, y cada decisión visual (colores, bordes, espaciado, tamaños) pertenece al tema del sitio a través de sus ranuras `className`. Incluye un diseño estructural integrado — el `<header>` raíz es `sticky top-0` y `Navbar.Content` es una fila flex centrada — pero sin colores ni bordes. Los estados interactivos se estilizan desde CSS.
+
+| Estado / Ranura | Mecanismo |
+| :--- | :--- |
+| `Navbar` (raíz) | `<header>` aporta el diseño `sticky top-0 z-50 w-full`; alto, fondo y borde vía `className` |
+| `Navbar.Content` | Fila flex centrada integrada (`justify-between`); espaciado vía `className` |
+| Enlace activo | `Navbar.Link` no emite ningún atributo `data-*` — calcúlalo en el tema con `useLocalizedTo`/`useLocation` y aplica `className` condicionalmente |
+| `Navbar.Theme` | El `ToggleButton` de RAC emite `data-selected` cuando el modo oscuro está activo |
+| `Navbar.More` / `Navbar.SearchTrigger` | El `Button` de RAC emite `data-pressed` mientras se presiona |
+| `Navbar.MobileMenu` | La superposición modal de RAC solo se monta abierta y emite `data-entering`/`data-exiting` durante las transiciones |
+
+```tsx
+const { pathname } = useLocation()
+const href = useLocalizedTo('/docs/guides')
+const active = pathname === href || pathname.startsWith(href + '/')
+
+<Navbar className="border-b border-subtle bg-main/80 backdrop-blur-md">
+  <Navbar.Link
+    href={href}
+    label="Guías"
+    className={active ? 'text-primary font-semibold' : 'text-muted hover:text-body'}
+  />
+  <Navbar.Theme
+    theme={theme}
+    onThemeChange={toggleTheme}
+    className="data-selected:text-primary-500"
+  />
+  <Navbar.More onPress={() => setMobileOpen(true)} className="data-pressed:bg-soft lg:hidden" />
+</Navbar>
+```

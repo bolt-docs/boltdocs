@@ -4,12 +4,24 @@ import { useNavbar } from '../../src/client/hooks/use-navbar'
 import { useConfig } from '../../src/client/app/config-context'
 import { useTheme } from '../../src/client/app/theme-context'
 import { useRoutes } from '../../src/client/hooks/use-routes'
-import { useLocation } from 'react-router-dom'
+import { useLocation } from '../../src/client/router'
 
 vi.mock('../../src/client/app/config-context')
 vi.mock('../../src/client/app/theme-context')
 vi.mock('../../src/client/hooks/use-routes')
-vi.mock('react-router-dom')
+vi.mock('../../src/client/router', () => ({
+  useNavigate: vi.fn(),
+  useLocation: vi.fn(() => ({ pathname: '/', search: '', hash: '' })),
+  useRouteData: vi.fn(),
+  useLoaderData: vi.fn(),
+  useMatches: vi.fn(() => []),
+  LocationProvider: ({ children }: any) => children,
+  Outlet: () => null,
+  OutletContext: null as any,
+  RouteRenderer: ({ children }: any) => children,
+  matchRouteBranch: vi.fn(() => []),
+  resolveRouteBranch: vi.fn(async (b: any) => b),
+}))
 
 describe('useNavbar', () => {
   beforeEach(() => {

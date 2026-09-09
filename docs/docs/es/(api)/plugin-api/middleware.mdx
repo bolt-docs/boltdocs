@@ -22,23 +22,6 @@ ctx.middleware.list()                 // → readonly PluginTransformMiddleware[
 ctx.middleware.remove('mi-plugin:html')
 ```
 
----
-
-## Hooks de transformación
-
-Cada entrada de middleware puede implementar uno o más hooks de
-transformación:
-
-| Hook | Firma | Cuándo se ejecuta |
-| :--- | :--- | :--- |
-| `transformSource` | `(ctx, { code, filePath }) => { code }` | Antes de la compilación MDX |
-| `transformMdx` | `(ctx, { code, filePath }) => { code }` | Después de la compilación MDX |
-| `transformHtml` | `(ctx, { html, path }) => { html }` | Después del renderizado HTML |
-
-Los middlewares se ejecutan en orden de registro. Cada hook es una
-cadena — la salida de un middleware alimenta la entrada del siguiente.
-
----
 
 ## Ver también
 

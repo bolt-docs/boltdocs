@@ -25,7 +25,7 @@
   ],
   "packageManager": "pnpm@10.30.2",
   "dependencies": {
-    "@bdocs/dui": "^0.2.0",
+    "@bdocs/dui": "^0.6.0",
     "prompts": "^2.4.2"
   },
   "devDependencies": {
@@ -33,6 +33,7 @@
     "@types/prompts": "^2.4.9",
     "tsdown": "^0.21.7",
     "typescript": "^5.5.0",
-    "vitest": "^3.2.4"
+    "vitest": "^3.2.4",
+    "tsdown-config": "workspace:*"
   }
 }

@@ -64,14 +64,35 @@ export function Menu<T extends object>(props: RAC.MenuProps<T>) {
 /**
  * MenuItem with support for selection states and submenus.
  */
-function MenuItem(props: RAC.MenuItemProps) {
+function MenuItem(
+  props: RAC.MenuItemProps & {
+    /** Class name for the content row. */
+    contentClassName?: string
+    /** Class name for the multi-select check slot. */
+    checkClassName?: string
+    /** Class name for the submenu chevron. */
+    chevronClassName?: string
+    /** Custom multi-select check indicator. Replaces the default check. */
+    check?: React.ReactNode
+    /** Custom submenu chevron. Replaces the default chevron. */
+    chevron?: React.ReactNode
+  },
+) {
   const textValue =
     props.textValue ||
     (typeof props.children === 'string' ? props.children : undefined)
+  const {
+    contentClassName,
+    checkClassName,
+    chevronClassName,
+    check,
+    chevron,
+    ...racProps
+  } = props
 
   return (
     <RAC.MenuItem
-      {...props}
+      {...racProps}
       textValue={textValue}
       className={RAC.composeRenderProps(props.className, (className) =>
         cn(
@@ -85,12 +106,30 @@ function MenuItem(props: RAC.MenuItemProps) {
         (children, { selectionMode, isSelected, hasSubmenu }) => (
           <>
             {selectionMode === 'multiple' && (
-              <span className="flex items-center shrink-0 justify-center">
-                {isSelected && <Check className="size-3.5" />}
+              <span
+                className={cn(
+                  'flex items-center shrink-0 justify-center',
+                  checkClassName,
+                )}
+              >
+                {check ?? (isSelected ? <Check className="size-3.5" /> : null)}
               </span>
             )}
-            <div className="flex flex-row w-full items-center">{children}</div>
-            {hasSubmenu && <ChevronRight className="size-4 ml-auto" />}
+            <div
+              className={cn(
+                'flex flex-row w-full items-center',
+                contentClassName,
+              )}
+            >
+              {children}
+            </div>
+            {hasSubmenu && (
+              <span className="ml-auto">
+                {chevron ?? (
+                  <ChevronRight className={cn('size-4', chevronClassName)} />
+                )}
+              </span>
+            )}
           </>
         ),
       )}
@@ -103,10 +142,12 @@ function MenuItem(props: RAC.MenuItemProps) {
  */
 export interface MenuSectionProps<T> extends RAC.MenuSectionProps<T> {
   title?: string
+  headerClassName?: string
 }
 
 function MenuSection<T extends object>({
   title,
+  headerClassName,
   ...props
 }: MenuSectionProps<T>) {
   return (
@@ -114,7 +155,11 @@ function MenuSection<T extends object>({
       {...props}
       className={cn('flex flex-col', props.className)}
     >
-      {title && <RAC.Header className="select-none">{title}</RAC.Header>}
+      {title && (
+        <RAC.Header className={cn('select-none', headerClassName)}>
+          {title}
+        </RAC.Header>
+      )}
       <RAC.Collection items={props.items}>{props.children}</RAC.Collection>
     </RAC.MenuSection>
   )

@@ -1,28 +1,15 @@
 ---
 title: Menu
 sidebarPosition: 8
-description: Composable dropdown and nesting context menus.
+description: Composable nested dropdown and context menus.
 ---
 
-The `Menu` primitive is a modular navigation and option selector dropdown component that supports keyboard accessibility, nested sub-menus, search indexing, and selection checkboxes.
+The `Menu` primitive is a modular dropdown navigation and option-selection menu component that supports keyboard accessibility, nested submenus, search indexing, and selection checkboxes.
 
-It's a thin wrapper around [`react-aria-components` Menu](https://react-spectrum.adobe.com/react-aria/Menu.html), so you keep Roving Tabindex, type-ahead, item roles, and selection-mode handling for free. Boltdocs handles the spacing and focus ring.
-
-Reach for `Menu` when you need: a kebab "..." trigger with actions, a "Sort by" filter dropdown, a "Switch version" picker, or any list of mutually exclusive options. Prefer `Popover` for free-form content (forms, rich widgets) — menus are for *actions*.
-
----
-
-## Import
-
-```tsx
-import { Menu } from 'boltdocs/primitives'
-```
-
----
 
 ## Quick Start
 
-Compose a fully accessible actions dropdown menu:
+Compose a fully accessible dropdown actions menu:
 
 ```tsx
 import { Menu, Button } from 'boltdocs/primitives'
@@ -61,16 +48,16 @@ export default function FileActions() {
 
 ---
 
-## Composable Sub-Components
+## Composable Subcomponents
 
 Compose rich selection menus and nested layout trees using the following namespaces:
 
 | Component | HTML Tag | Description | Props |
 | :--- | :--- | :--- | :--- |
-| **`Menu.Root`** / **`Menu`** | `<div>` (menu) | Wrapper containing the menu items list viewport. | [`MenuProps`](#menuprops) |
-| **`Menu.Trigger`** | Wrapper | Wraps the trigger Button and the Menu overlay popup. | [`MenuTriggerProps`](#menutriggerprops) |
+| **`Menu.Root`** / **`Menu`** | `<div>` (menu) | Wrapper that contains the menu item list viewport. | [`MenuProps`](#menuprops) |
+| **`Menu.Trigger`** | Wrapper | Wraps the trigger button and the menu popup overlay. | [`MenuTriggerProps`](#menutriggerprops) |
 | **`Menu.SubTrigger`** | Wrapper | Wraps parent trigger items and nested child submenu layers. | [`SubmenuTriggerProps`](#submenutriggerprops) |
-| **`Menu.Item`** | `<div>` (menuitem) | A single clickable item inside the menu selection list. | [`MenuItemProps`](#menuitemprops) |
+| **`Menu.Item`** | `<div>` (menuitem) | An individual clickable item within the menu selection list. | [`MenuItemProps`](#menuitemprops) |
 | **`Menu.Section`** | `<div>` | Groups a collection of items under a specific section label. | [`MenuSectionProps`](#menusectionprops) |
 | **`Menu.Separator`** | `<hr>` | Visual separator dividing option categories. | `SeparatorProps` |
 
@@ -80,7 +67,7 @@ Compose rich selection menus and nested layout trees using the following namespa
 
 ### `MenuProps`
 
-Inherits standard React Aria `MenuProps` settings:
+Inherits the standard React Aria `MenuProps` settings:
 
 | Property | Type | Default | Description |
 | :--- | :--- | :--- | :--- |
@@ -93,26 +80,57 @@ Inherits React Aria `MenuTriggerProps` plus:
 
 | Property | Type | Default | Description |
 | :--- | :--- | :--- | :--- |
-| **`placement`** | `'bottom' \| 'top' \| 'left' \| 'right' \| 'start' \| 'end'` | `'bottom'` | Alignment position relative to trigger. |
+| **`placement`** | `'bottom' \| 'top' \| 'left' \| 'right' \| 'start' \| 'end'` | `'bottom'` | Alignment position relative to the trigger. |
 
 ### `MenuItemProps`
 
-Inherits standard React Aria `MenuItemProps` (e.g. `isDisabled`, `onAction`):
+Inherits standard React Aria `MenuItemProps` (e.g., `isDisabled`, `onAction`):
 
 | Property | Type | Default | Description |
 | :--- | :--- | :--- | :--- |
-| **`textValue`** | `string` | `undefined` | Text equivalent value matching the item for auto-suggest type-ahead. |
+| **`textValue`** | `string` | `undefined` | Equivalent text value matching the item for keyboard search autocomplete. |
+| **`check`** | `ReactNode` | *(default check)* | Custom multi-select check indicator. Replaces the default check. |
+| **`chevron`** | `ReactNode` | *(default chevron)* | Custom submenu chevron. Replaces the default chevron. |
+| **`checkClassName`** | `string` | `undefined` | Extra classes for the multi-select check slot. |
+| **`chevronClassName`** | `string` | `undefined` | Extra classes for the submenu chevron. |
+| **`contentClassName`** | `string` | `undefined` | Extra classes for the item content wrapper. |
 
 ### `MenuSectionProps`
 
 | Property | Type | Default | Description |
 | :--- | :--- | :--- | :--- |
-| **`title`** | `string` | `undefined` | Section label heading text. |
+| **`title`** | `string` | `undefined` | Section label header text. |
 
 ---
 
-## Pitfalls
+## Customization & states
 
-- **`Menu` is for actions, not navigation.** If clicking an item navigates somewhere, it's clearer to use a `Listbox` or a column of `NavLink`s. Menus imply "select and stay on the page" semantics.
-- **`<Menu.Item onAction>` versus `onPress`.** `onAction` is fired on selection (Enter / click); `onPress` fires on press start. Use `onAction` for committing the choice; use `onPress` for transient feedback like hover-previewing.
-- **Sections need an `aria-label`-equivalent.** When you use `Menu.Section`, set its `title` so screen readers announce the section change.
+`Menu` is built on React Aria's `Menu`, so it ships the interaction handling (keyboard navigation, selection, submenus) without visuals. Styling lives in the theme: the `Menu.Root` and every `Menu.Item` accept a render-function `className`, and RAC mirrors the selection and focus states onto each item as `data-*` attributes for CSS targeting.
+
+| State / Slot | Mechanism |
+| :--- | :--- |
+| `Menu.Item` `className` (function) | Receives `{ isHovered, isFocused, isFocusVisible, isPressed, isSelected, isDisabled }` |
+| `Menu.Item` children (function) | Receives `{ selectionMode, isSelected, hasSubmenu }` |
+| `data-selected` | Present on the item when selected (checkbox selection mode) |
+| `data-focused` / `data-focus-visible` | Present on keyboard-focused items |
+| `data-hovered` / `data-pressed` | Pointer interaction states |
+| `data-disabled` | Present on disabled items |
+| `Menu.Root` `className` (function) | Receives `{ isEmpty }` |
+
+Tailwind v4:
+
+```tsx
+<Menu.Item
+  className={({ isSelected, isFocused }) =>
+    `px-3 py-1.5 text-xs rounded cursor-default ${
+      isSelected
+        ? 'bg-primary-500/10 text-primary-400'
+        : isFocused
+          ? 'bg-soft text-body'
+          : 'text-body'
+    }`
+  }
+>
+  Toggle Option
+</Menu.Item>
+```

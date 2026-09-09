@@ -186,6 +186,8 @@ export default defineConfig({
 
 We welcome contributions! Check out the [Contributing Guide](CONTRIBUTING.md) to get started.
 
+> **Before writing code or opening a PR, read the [Boltdocs Spec — The Unbreakable Contract](SPEC.md).** Every change is measured against it: performance is benchmarked, the core stays opinion-free, and legacy code is temporary — never permanent.
+
 - **Branch naming**: `feat/`, `fix/`, `chore/` prefixes
 - **Commits**: Conventional Commits
 - **Tests**: Vitest — run `pnpm test`

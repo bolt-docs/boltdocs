@@ -8,21 +8,6 @@ Every AI assistant is only as smart as the context you give it. Whether you use 
 
 The skill is a set of markdown files that act as a localized knowledge base. AI tools read them to learn about `boltdocs.config.ts`, file-system routing, built-in MDX components, and the Tailwind CSS v4 styling system.
 
----
-
-## What's Inside
-
-The skill is organized into a main entrypoint file and four focused reference guides. Each guide covers one area of the framework so the AI loads only what it needs:
-
-| File | What It Teaches the AI |
-| :--- | :--- |
-| [`SKILL.md`](https://github.com/jesus-alcala/boltdocs/blob/develop/skills/boltdocs/SKILL.md) | When to activate the skill — editing config, adding docs pages, writing MDX components, or changing styles. |
-| [`configuration.md`](https://github.com/jesus-alcala/boltdocs/blob/develop/skills/boltdocs/references/configuration.md) | Writing and maintaining `boltdocs.config.ts` — `defineConfig`, site metadata, theme, plugins, and tab structure. |
-| [`routing.md`](https://github.com/jesus-alcala/boltdocs/blob/develop/skills/boltdocs/references/routing.md) | File-system routing inside `docs/`, sidebar groups, `meta.json` folder configuration, and tab alignment. |
-| [`components.md`](https://github.com/jesus-alcala/boltdocs/blob/develop/skills/boltdocs/references/components.md) | Built-in MDX components (Callout, Cards, Mermaid), code block titles, math equations, and global component injection via `mdx-components.tsx`. |
-| [`styling.md`](https://github.com/jesus-alcala/boltdocs/blob/develop/skills/boltdocs/references/styling.md) | Tailwind CSS v4 theme tokens, semantic color mappings, dark mode overrides, and Biome-safe custom variant syntax. |
-
----
 
 ## Installation
 
@@ -88,7 +73,7 @@ import { Bot, HelpCircle } from 'lucide-react'
   <Card title="Plugin System" href="/docs/plugins" icon={<Bot />}>
     Extend your project by writing custom Remark, Rehype, and Vite plugins.
   </Card>
-  <Card title="Troubleshooting" href="/docs/guides/troubleshooting" icon={<HelpCircle />}>
+  <Card title="Troubleshooting" href="/docs/guides/operations/troubleshooting" icon={<HelpCircle />}>
     Resolve common configuration mismatches or SSG bundle warnings.
   </Card>
 </Cards>

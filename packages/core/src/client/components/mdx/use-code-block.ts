@@ -1,20 +1,14 @@
-import { copyToClipboard } from '../../utils/copy-clipboard'
-import { useCallback, useEffect, useRef, useState } from 'react'
-import { useConfig } from '../../app/config-context'
+import { useCopyButton } from './use-copy-button'
+import { useExpandable } from './use-expandable'
+import { useCodeBlockFeedback } from './use-code-block-feedback'
 import type { CodeBlockProps } from './code-block'
 
+/**
+ * @deprecated Use the feature-scoped hooks instead: `useCopyButton`,
+ * `useExpandable` and `useCodeBlockFeedback`. This composition keeps the
+ * historical single-hook API and will be removed in a future major version.
+ */
 export function useCodeBlock(props: CodeBlockProps) {
-  const [copied, setCopied] = useState(false)
-  const [isExpanded, setIsExpanded] = useState(false)
-  const [isExpandable, setIsExpandable] = useState(false)
-  const [rated, setRated] = useState<'up' | 'down' | null>(null)
-  const preRef = useRef<HTMLPreElement | HTMLDivElement>(null)
-  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
-
-  const config = useConfig()
-  const customConfig = config.integrations?.feedback?.custom
-  const showCodeBlockFeedback = !!(customConfig?.enabled && !props.plain)
-
   const lang = props.lang || props['data-lang'] || ''
   const isHighlighted =
     props['data-highlighted'] === 'true' ||
@@ -31,64 +25,21 @@ export function useCodeBlock(props: CodeBlockProps) {
       : rawHighlightedHtml
   const effectiveTitle = props.title || props['data-title']
 
-  const handleRate = useCallback(
-    async (type: 'up' | 'down') => {
-      if (rated) return
-      setRated(type)
-      try {
-        const code = preRef.current?.textContent ?? ''
-        const snippet =
-          code.trim().slice(0, 100) + (code.length > 100 ? '...' : '')
-        const blockId = `Code Block (${lang || 'plain'}): \`${snippet}\``
-        const endpoint = customConfig?.endpoint || '/api/feedback'
+  const { copied, handleCopy } = useCopyButton()
+  const { isExpanded, setIsExpanded, isExpandable, shouldTruncate, preRef } =
+    useExpandable({
+      children: props.children,
+      highlightedHtml: effectiveHighlightedHtml,
+    })
+  const {
+    rated,
+    handleRate,
+    enabled: showCodeBlockFeedback,
+  } = useCodeBlockFeedback({ plain: props.plain, lang })
 
-        await fetch(endpoint, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            rating: type === 'up' ? 'good' : 'bad',
-            comment: `Rated code block: ${type === 'up' ? 'Helpful' : 'Unhelpful'}`,
-            path: window.location.pathname,
-            title: document.title,
-            blockId,
-          }),
-        })
-      } catch (err) {
-        console.error('Failed to submit code block feedback:', err)
-      }
-    },
-    [rated, lang, customConfig?.endpoint],
-  )
-
-  useEffect(() => {
-    return () => {
-      if (timerRef.current) {
-        clearTimeout(timerRef.current)
-      }
-    }
-  }, [])
-
-  const handleCopy = useCallback(async () => {
-    const code = preRef.current?.textContent ?? ''
-    copyToClipboard(code)
-    setCopied(true)
-    if (timerRef.current) {
-      clearTimeout(timerRef.current)
-    }
-    timerRef.current = setTimeout(() => {
-      setCopied(false)
-      timerRef.current = null
-    }, 2000)
-  }, [])
-
-  // biome-ignore lint/correctness/useExhaustiveDependencies: updates when content changes
-  useEffect(() => {
-    const code = preRef.current?.textContent ?? ''
-    const lines = code.trim().split('\n').length
-    setIsExpandable(lines > 6)
-  }, [props.children, props.highlightedHtml])
+  const copyFromRef = () => handleCopy(preRef.current?.textContent ?? '')
+  const rateFromRef = (type: 'up' | 'down') =>
+    handleRate(type, preRef.current?.textContent ?? '')
 
   return {
     copied,
@@ -96,14 +47,14 @@ export function useCodeBlock(props: CodeBlockProps) {
     setIsExpanded,
     isExpandable,
     preRef,
-    handleCopy,
-    shouldTruncate: isExpandable && !isExpanded,
+    handleCopy: copyFromRef,
+    shouldTruncate,
     isHighlighted,
     effectiveHighlightedHtml,
     effectiveTitle,
     lang,
     showCodeBlockFeedback,
     rated,
-    handleRate,
+    handleRate: rateFromRef,
   }
 }

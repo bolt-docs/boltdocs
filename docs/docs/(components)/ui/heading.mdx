@@ -4,25 +4,12 @@ sidebarPosition: 7
 description: Accessible document title headings with automated slug anchors.
 ---
 
-The `Heading` primitive is a wrapper element that renders HTML title headers (`<h1>` to `<h6>`) and automatically appends clipboard anchor links when provided with an `id`.
+The `Heading` primitive is a wrapper element that renders HTML title headings (`<h1>` through `<h6>`) and automatically attaches anchor copy-to-clipboard links when an `id` is provided.
 
-It maps onto a real `<h1>` through `<h6>` element (with `level` controlling which), so screen readers and SEO crawlers treat it as a real heading. The bonus is the auto-generated anchor link that copies a deep-link URL to the clipboard on click.
-
-You'll normally only use it inside MDX content where you need to inject a custom-styled heading — Boltdocs automatically generates `<Heading>` instances from `##` and `###` markdown. Reach for the primitive when you're writing a layout component or want to override heading styles.
-
----
-
-## Import
-
-```tsx
-import { Heading } from 'boltdocs/primitives'
-```
-
----
 
 ## Quick Start
 
-Render a header with automated anchor link wrapping:
+Render a heading with automated anchor link wrapping:
 
 ```tsx
 import { Heading } from 'boltdocs/primitives'
@@ -44,10 +31,10 @@ export default function SectionHeader() {
 
 ## Anchor Positions
 
-You can customize where the Lucide anchor link symbol appears:
+You can customize where the Lucide anchor link icon appears:
 
 ### Wrap Position (Default)
-Wraps the entire text content inside a router-local hyperlink, rendering the link icon at the right edge when hovered.
+Wraps the entire text content inside a local router hyperlink, rendering the link icon at the trailing edge on hover.
 
 ### Before / After Positions
 Renders the link icon as a standalone prefix or suffix:
@@ -66,19 +53,38 @@ The `Heading` component accepts standard HTML heading attributes plus:
 
 | Property | Type | Default | Description |
 | :--- | :--- | :--- | :--- |
-| **`level`** | `1 \| 2 \| 3 \| 4 \| 5 \| 6` | *Required* | Renders the corresponding HTML heading element (e.g. `1` outputs `<h1>`). |
-| **`id`** | `string` | `undefined` | Section unique slug identifier. Required to enable anchor linking. |
-| **`showAnchor`** | `boolean` | `true` | Toggles whether to output hover/click anchor symbols. |
-| **`anchorPosition`** | `'wrap' \| 'before' \| 'after'` | `'wrap'` | Determines the layout orientation of link icons. |
-| **`anchorIcon`** | `ReactNode` | `LucideLink` | Custom SVG graphics component to override default link graphics. |
-| **`anchorClassName`** | `string` | `undefined` | Custom styling overrides for the anchor anchor wrapping link element. |
-| **`className`** | `string` | `undefined` | CSS class style override for heading. |
+| **`level`** | `1 \| 2 \| 3 \| 4 \| 5 \| 6` | *Required* | Renders the corresponding HTML heading element (e.g., `1` outputs `<h1>`). |
+| **`id`** | `string` | `undefined` | Unique section slug identifier. Required to enable the anchor link. |
+| **`showAnchor`** | `boolean` | `true` | Toggles whether anchor glyphs should be displayed on hover/click. |
+| **`anchorPosition`** | `'wrap' \| 'before' \| 'after'` | `'wrap'` | Determines the layout orientation of the link icons. |
+| **`anchorIcon`** | `ReactNode` | `LucideLink` | Custom SVG graphic component to override the default link glyphs. |
+| **`anchorClassName`** | `string` | `undefined` | Custom style overrides for the wrapping anchor link element. |
+| **`className`** | `string` | `undefined` | CSS class style override for the heading. |
 | **`style`** | `CSSProperties` | `undefined` | Inline style settings. |
 
 ---
 
-## Pitfalls
+## Customization & states
 
-- **`level` is required.** Don't pass a non-existent level (`7+`) — React will warn at runtime. Use the right level for the semantic meaning, not because it looks pretty.
-- **`id` matters more than styling.** Even if you don't show the anchor link, an explicit `id` keeps deep links working for users reading the page in a renderer that hides anchors.
-- **`anchorIcon` is meant to be replaced.** The default is `Link` from `lucide-react`. If your theme uses a different visual identity (e.g. `#`), pass it through.
+`Heading` renders a semantic heading tag (`h1`–`h6`) and, when an `id` is present, wraps the content in an anchor link. It has no interactive state of its own — typography, spacing, and borders come from the theme through `className` (the heading) and `anchorClassName` (the anchor link wrapper).
+
+| State / Slot | Mechanism |
+| :--- | :--- |
+| `className` | Passthrough to the rendered `<h1>`–`<h6>`; theme controls type, size, spacing, borders |
+| `anchorClassName` | Passthrough to the anchor link wrapper (defaults to a link icon shown on hover) |
+| `level` | `1`–`6`, structural only — no visual state |
+| `id` + `showAnchor` | Enables the anchor link; `anchorPosition` picks `wrap` / `before` / `after` |
+| No state | No `data-*` attributes or interaction states |
+
+Tailwind v4:
+
+```tsx
+<Heading
+  level={2}
+  id="overview"
+  className="group text-2xl font-bold text-body border-b border-subtle pb-2"
+  anchorClassName="text-muted/50 hover:text-primary-500"
+>
+  Overview
+</Heading>
+```

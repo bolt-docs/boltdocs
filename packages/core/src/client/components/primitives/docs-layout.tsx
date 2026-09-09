@@ -1,12 +1,11 @@
-import type { ReactNode, FC } from 'react'
-import { createPortal } from 'react-dom'
+import type { CSSProperties, ReactNode, FC } from 'react'
 import { cn } from '../../utils/cn'
 import { SearchHighlight } from '../ui-base/search-highlight'
 
 interface SlotProps {
   children?: ReactNode
   className?: string
-  style?: React.CSSProperties
+  style?: CSSProperties
 }
 
 /**
@@ -55,14 +54,32 @@ function Content({ children, className, style }: SlotProps) {
   )
 }
 
-function ContentMdx({ children, className, style }: SlotProps) {
+interface ContentMdxProps extends SlotProps {
+  /**
+   * Class name for the inner reading-column wrapper. Lets themes override
+   * the default `max-w-3xl sm:max-w-4xl lg:max-w-5xl` content width.
+   */
+  contentClassName?: string
+  contentStyle?: CSSProperties
+}
+
+function ContentMdx({
+  children,
+  className,
+  style,
+  contentClassName,
+  contentStyle,
+}: ContentMdxProps) {
   return (
-    <div
-      className={cn('boltdocs-page w-full pt-4 pb-20 px-4 sm:px-8', className)}
-      style={style}
-    >
+    <div className={cn('boltdocs-page w-full', className)} style={style}>
       <SearchHighlight />
-      <div className="mx-auto w-full max-w-3xl sm:max-w-4xl lg:max-w-5xl">
+      <div
+        className={cn(
+          'mx-auto w-full max-w-3xl sm:max-w-4xl lg:max-w-5xl',
+          contentClassName,
+        )}
+        style={contentStyle}
+      >
         {children}
       </div>
     </div>
@@ -77,20 +94,11 @@ function Header({ children, className, style }: SlotProps) {
   )
 }
 
-function Footer({ children, className, style }: SlotProps) {
-  return (
-    <div className={cn('mt-20', className)} style={style}>
-      {children}
-    </div>
-  )
-}
-
 interface DocsLayoutComponent extends FC<SlotProps> {
   Body: typeof Body
   Content: typeof Content
   ContentMdx: typeof ContentMdx
   Header: typeof Header
-  Footer: typeof Footer
 }
 
 export const DocsLayout = Object.assign(DocsLayoutRoot, {
@@ -98,5 +106,4 @@ export const DocsLayout = Object.assign(DocsLayoutRoot, {
   Content,
   ContentMdx,
   Header,
-  Footer,
 }) as DocsLayoutComponent

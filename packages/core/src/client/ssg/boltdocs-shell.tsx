@@ -1,5 +1,5 @@
 import { useEffect, useMemo } from 'react'
-import { Outlet, useLocation } from 'react-router-dom'
+import { Outlet, useLocation } from '../router'
 import { BoltdocsProvider, useBoltdocsContext } from '../store/boltdocs-context'
 import { ThemeProvider } from '../app/theme-context'
 import { MdxComponentsProvider } from '../app/mdx-components-context'
@@ -11,9 +11,11 @@ import type { BoltdocsConfig } from '../../shared/types'
 import type { ComponentRoute } from '../types'
 import { UIProvider } from '../app/ui-context'
 import { Head } from '../app/head'
+import { Helmet } from '../app/helmet-compat'
 import { InternalErrorBoundary as ErrorBoundary } from '../components/internal/error-boundary'
-import { CollectionsContext } from '../collections/collections-context'
+import { CollectionsProvider } from '../collections/collections-context'
 import type { CollectionsData } from '../collections/collections-context'
+import { cn } from '../utils/cn'
 
 import virtualCustomComponents from 'virtual:boltdocs-mdx-components'
 import { normalizePath } from '../utils/path'
@@ -23,16 +25,18 @@ import { normalizePath } from '../utils/path'
  */
 function I18nUpdater({ config }: { config: BoltdocsConfig }) {
   const { currentLocale } = useBoltdocsContext()
+  const locale = currentLocale || config.i18n?.defaultLocale || 'en'
+  const localeConfig = config.i18n?.localeConfigs?.[locale]
+  const htmlLang = localeConfig?.htmlLang || locale
+  const direction = localeConfig?.direction || 'ltr'
 
   useEffect(() => {
     if (!config.i18n || typeof document === 'undefined') return
-    const locale = currentLocale || config.i18n.defaultLocale
-    const localeConfig = config.i18n.localeConfigs?.[locale]
-    document.documentElement.lang = localeConfig?.htmlLang || locale || 'en'
-    document.documentElement.dir = localeConfig?.direction || 'ltr'
-  }, [currentLocale, config.i18n])
+    document.documentElement.lang = htmlLang
+    document.documentElement.dir = direction
+  }, [config.i18n, direction, htmlLang])
 
-  return null
+  return <Helmet htmlAttributes={{ lang: htmlLang, dir: direction }} />
 }
 
 // synchronizes store with current URL pathname
@@ -44,24 +48,57 @@ function StoreSync({
   routeMap: Map<string, ComponentRoute>
 }) {
   const location = useLocation()
-  const { setLocale, setVersion } = useBoltdocsContext()
+  const { currentLocale, currentVersion, setLocale, setVersion } =
+    useBoltdocsContext()
 
   useEffect(() => {
-    const currentPath = normalizePath(location.pathname)
+    // Match against the live browser URL, not the (deferred) React location:
+    // navigate() pushes history immediately but setLocation lands on a later
+    // task. Comparing `location.pathname` here reverts an optimistic store
+    // write from a locale/version selector mid-navigation (URL already
+    // updated, React location stale) and desynchronizes the selector.
+    const currentPath = normalizePath(
+      typeof window !== 'undefined'
+        ? window.location.pathname
+        : location.pathname,
+    )
     const matchedRoute = routeMap.get(currentPath)
 
+    // Selector handlers (use-i18n / use-version) write the store optimistically
+    // BEFORE navigating — the router's locale-preserving navigation reads it
+    // synchronously. Because this effect matches the live browser URL (which
+    // navigate() updates immediately), the optimistic write is never reverted
+    // mid-navigation; the preference converges when the navigation lands.
     if (matchedRoute) {
       if (config.i18n) {
         const targetLocale = matchedRoute.locale || config.i18n.defaultLocale
-        setLocale(targetLocale)
+        if (targetLocale !== currentLocale) setLocale(targetLocale)
       }
       if (config.versions) {
         const targetVersion =
           matchedRoute.version || config.versions.defaultVersion
-        setVersion(targetVersion)
+        if (targetVersion !== currentVersion) setVersion(targetVersion)
       }
+    } else if (
+      config.versions &&
+      currentVersion !== config.versions.defaultVersion
+    ) {
+      // Reset an invalid persisted version preference only once when entering
+      // an unmatched route (e.g. the 404 splat); avoid a redundant
+      // localStorage write on every render. Locale is intentionally left
+      // untouched: the last known preference is the best guess for localizing
+      // external/404 pages where no route metadata exists.
+      setVersion(config.versions.defaultVersion)
     }
-  }, [location.pathname, config, routeMap, setLocale, setVersion])
+  }, [
+    location.pathname,
+    config,
+    routeMap,
+    currentLocale,
+    currentVersion,
+    setLocale,
+    setVersion,
+  ])
 
   return null
 }
@@ -71,11 +108,14 @@ export function BoltdocsShell({
   routes,
   components = {},
   collectionsData,
+  contentClassName,
 }: {
   config: BoltdocsConfig
   routes: ComponentRoute[]
   components?: Record<string, React.ComponentType>
   collectionsData?: CollectionsData
+  /** Class name for the shell content frame (defaults to fixed viewport). */
+  contentClassName?: string
 }) {
   const allComponents = useMemo(
     () => ({
@@ -123,7 +163,7 @@ export function BoltdocsShell({
         <UIProvider>
           <MdxComponentsProvider components={allComponents}>
             <ConfigContext.Provider value={config}>
-              <CollectionsContext.Provider value={collectionsData || {}}>
+              <CollectionsProvider collectionsData={collectionsData || {}}>
                 <ScrollHandler />
                 <BoltdocsProvider
                   initialLocale={initialData.initLocale}
@@ -137,12 +177,17 @@ export function BoltdocsShell({
                     routes={routes}
                   />
                   <ErrorBoundary>
-                    <div className="boltdocs-shell-content h-screen overflow-hidden">
+                    <div
+                      className={cn(
+                        'boltdocs-shell-content h-screen overflow-hidden',
+                        contentClassName,
+                      )}
+                    >
                       <Outlet />
                     </div>
                   </ErrorBoundary>
                 </BoltdocsProvider>
-              </CollectionsContext.Provider>
+              </CollectionsProvider>
             </ConfigContext.Provider>
           </MdxComponentsProvider>
         </UIProvider>

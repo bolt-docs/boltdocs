@@ -1,19 +1,10 @@
 ---
 title: copyToClipboard
-description: "Safely write string values to the user's system clipboard using browser APIs."
+description: "Safely write text strings to the user's system clipboard using browser APIs."
 ---
 
 The `copyToClipboard` utility attempts to write string data to the operating system clipboard, with fallbacks for older browsers.
 
----
-
-## Import
-
-```tsx
-import { copyToClipboard } from 'boltdocs/client'
-```
-
----
 
 ## Signature
 
@@ -22,7 +13,7 @@ function copyToClipboard(text: string): Promise<boolean>
 ```
 
 ### Returns
-A promise resolving to `true` if copying succeeded, and `false` if it encountered permission errors or browser capability failures.
+A promise resolving to `true` if the copy succeeded, and `false` if it encountered permission errors or failures in browser capabilities.
 
 ---
 

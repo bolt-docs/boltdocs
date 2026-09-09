@@ -139,7 +139,32 @@
 
   /* ═══ Shiki Styles ═══ */
 
-  /* Shiki Light/Dark Mode */
+  /* Boltdocs Code Block — Shiki/plain pre normalization.
+     Previously `!important` utilities baked into the code-block primitive;
+     kept here so the primitive stays style-neutral and themes can override
+     via `--code-pad` or stronger selectors. */
+  .boltdocs-code-block .shiki-wrapper > pre {
+    margin: 0 !important;
+    border-radius: 0 !important;
+    border: none !important;
+    background: inherit !important;
+  }
+
+  .boltdocs-code-block .shiki-wrapper > pre > code {
+    display: grid !important;
+    padding: var(--code-pad, 1.25rem) !important;
+    font-size: 0.875rem !important;
+    line-height: 1.6 !important;
+    white-space: pre !important;
+  }
+
+  .boltdocs-code-block .shiki-wrapper > .shiki.shiki-themes {
+    background-color: transparent !important;
+  }
+
+  /* Shiki base: font + transparent token backgrounds. Deliberately does NOT
+     override `color`, so single-theme output (inline token colors, e.g.
+     `codeTheme: 'github-dark'`) keeps its highlighting in every mode. */
   :root .shiki,
   :root .shiki span {
     font-family: var(--font-mono);
@@ -147,9 +172,19 @@
     background-color: transparent !important;
   }
 
-  :root.dark .shiki,
-  :root.dark .shiki span {
-    color: var(--shiki-dark) !important;
+  /* Shiki dual-theme (light/dark pair) output carries `shiki-themes` plus
+     inline `--shiki-light`/`--shiki-dark` variables. Only those blocks are
+     color-driven by this rule — single-theme output is left untouched. */
+  :root .shiki.shiki-themes,
+  :root .shiki.shiki-themes span {
+    color: var(--shiki-light, inherit);
+    background-color: var(--shiki-light, transparent);
+  }
+
+  :root.dark .shiki.shiki-themes,
+  :root.dark .shiki.shiki-themes span {
+    color: var(--shiki-dark, inherit);
+    background-color: var(--shiki-dark, transparent);
   }
 
   /* Base Shiki Pre & Span Styles */
@@ -161,6 +196,7 @@
 
   pre.shiki span.line {
     @apply relative block px-4 py-0;
+    white-space: pre;
     min-height: 1.6em;
   }
 

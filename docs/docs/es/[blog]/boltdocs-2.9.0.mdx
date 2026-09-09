@@ -18,18 +18,6 @@ tags: ["Release"]
   DUI ahora es su propio paquete, el feedback funciona out of the box, las matemáticas se ven hermosas con KaTeX, la API de plugins tiene un nuevo hook `transformSource`, el desarrollo tiene banderas CLI y finalmente corregí ese flash de tema que me ha estado molestando durante meses.
 </Callout>
 
----
-
-## DUI se vuelve independiente
-
-Construí `@bdocs/dui` como un toolkit interno para el CLI de Boltdocs — salida con colores, spinners, tablas, barras de progreso, lo típico de UI de terminal. Pero cuanto más lo usaba, más pensaba: ¿por qué quedarme solo con esto?
-
-Así que lo separé en su propio repositorio — [`bolt-docs/dui`](https://github.com/bolt-docs/dui) — con una API adecuada, documentación y un playground en vivo en [dui-terms.vercel.app](https://dui-terms.vercel.app). Cualquiera puede usarlo ahora, no solo Boltdocs. Mejor superficie de API, mejores tipos, mejor todo.
-
-Y sí — sigue siendo la biblioteca de UI de terminal más rápida que existe. Boltdocs simplemente tiende a hacer todo más rápido.
-
----
-
 ## Soporte nativo de feedback
 
 Quería una forma para que los lectores me digan cuando algo está mal — o cuando está bien. Así que construí un sistema de feedback directamente en Boltdocs.
@@ -57,7 +45,7 @@ $$ x = {-b \pm \sqrt{b^2-4ac} \over 2a} $$
 
 Internamente usa un hook `transformSource` para convertir esos delimitadores en componentes `<Math>` y `<BlockMath>` antes de que el parser MDX los vea. KaTeX maneja el renderizado del lado del cliente — CSS cargado desde CDN, cero configuración requerida.
 
-Instálalo con `pnpm add @bdocs/plugin-math`, agrega `mathPlugin()` a los plugins de tu configuración y listo. Lee la [documentación de plugin-math](/docs/plugins/plugin-math) para más detalles.
+Instálalo con `pnpm add @bdocs/plugin-math`, agrega `mathPlugin()` a los plugins de tu configuración y listo. Lee la [documentación de plugin-math](/docs/plugins/content/plugin-math) para más detalles.
 
 ---
 
@@ -76,10 +64,10 @@ Revisa la [documentación de plugins](/docs/plugins) para la firma completa del 
 Tres banderas que finalmente agregué a `boltdocs dev`:
 
 - **`--port <number>`** — puerto del servidor de desarrollo (por defecto 5173)
-- **`--host [address]** — vincular a una dirección específica, o `--host` sin argumentos para exponer a tu red local
+- **`--host [address]** — vincular a una dirección específica, o`--host` sin argumentos para exponer a tu red local
 - **`--force`** — forzar la re-optimización de dependencias de Vite
 
-Nada fancy — solo banderas que escribía manualmente y me cansé de hacerlo. Documentación completa en la [página de CLI](/docs/api/cli).
+Nada fancy — solo banderas que escribía manualmente y me cansé de hacerlo. Documentación completa en la [página de CLI](/docs/es/guides/getting-started/cli).
 
 ---
 
@@ -100,6 +88,7 @@ Este lanzamiento tuvo una ronda sólida de correcciones para cosas que me han es
 Un nuevo paquete interno: `@bdocs/plugin-image-optimizer`. Es un fork de [vite-plugin-image-optimizer](https://github.com/FatehAK/vite-plugin-image-optimizer/) — pero lo optimicé para Boltdocs.
 
 Qué es diferente:
+
 - **Caché persistente** — las imágenes no se re-optimizan en cada construcción. La caché se indexa por hash de contenido y sobrevive reinicios
 - **Procesamiento paralelo** — los hilos de trabajo usan todos los núcleos disponibles (menos uno) con transferencia de buffer zero-copy
 - **Integración de escala** — funciona con el sistema `AssetCache` de Boltdocs y respeta la estructura de directorio `.boltdocs/cache/`

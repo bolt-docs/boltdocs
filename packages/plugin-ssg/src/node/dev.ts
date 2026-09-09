@@ -19,47 +19,94 @@ declare global {
 
 /**
  * Creates a customized Vite development server for SSG.
+ *
+ * When `skipResolveConfig` is set in ssgOptions, the expensive Vite
+ * `resolveConfig()` call is skipped — the caller is responsible for
+ * providing a fully-formed `InlineConfig`.  Entry path resolution is
+ * performed manually (simple `join(root, entry)`) instead of going
+ * through Vite's resolver, which shaves ~100-200 ms off dev startup.
  */
 export async function createServer(
   viteConfig: InlineConfig = {},
-  ssgOptions: Partial<ViteReactSSGOptions> = {},
+  ssgOptions: Partial<ViteReactSSGOptions> & {
+    skipResolveConfig?: boolean
+  } = {},
 ): Promise<ViteDevServer> {
   try {
     const mode = process.env.NODE_ENV || ssgOptions.mode || 'development'
-    const config = await resolveConfig(viteConfig, 'serve', mode, mode)
-    const cwd = process.cwd()
-    const root = config.root || cwd
+    const { skipResolveConfig: skipResolve, ...ssgOptionsRest } = ssgOptions
 
-    // Merge options efficiently using object spread operator
-    const merged = {
-      ...config.ssgOptions,
-      ...ssgOptions,
+    const cwd = process.cwd()
+    let root: string
+    let merged: Partial<ViteReactSSGOptions>
+    let ssrEntry: string
+    let template: string
+
+    if (skipResolve) {
+      // Fast path: skip Vite's resolveConfig entirely.
+      // The caller (Boltdocs CLI) already built a complete InlineConfig.
+      root = viteConfig.root || cwd
+      merged = {
+        ...(viteConfig as any).ssgOptions,
+        ...ssgOptionsRest,
+      }
+
+      const { htmlEntry = 'index.html' } = merged
+
+      const entry = merged.entry || (await detectEntry(root, htmlEntry))
+
+      // Resolve entry manually — join with root for simple relative paths.
+      // Virtual / boltdocs entries pass through unchanged.
+      if (
+        entry.startsWith('virtual:') ||
+        entry.includes('\0') ||
+        entry.includes('boltdocs/entry') ||
+        entry.includes('boltdocs-entry')
+      ) {
+        ssrEntry = entry
+      } else {
+        ssrEntry = join(root, entry)
+      }
+
+      template = await fs.readFile(join(root, htmlEntry), 'utf-8')
+    } else {
+      // Legacy path: full Vite resolveConfig (backward compatible).
+      const config = await resolveConfig(viteConfig, 'serve', mode, mode)
+      root = config.root || cwd
+
+      merged = {
+        ...(config as any).ssgOptions,
+        ...ssgOptionsRest,
+      }
+
+      const { htmlEntry = 'index.html' } = merged
+
+      const entry = merged.entry || (await detectEntry(root, htmlEntry))
+
+      const [resolvedEntry, htmlTemplate] = await Promise.all([
+        resolveAlias(config, entry),
+        fs.readFile(join(root, htmlEntry), 'utf-8'),
+      ])
+      ssrEntry = resolvedEntry
+      template = htmlTemplate
     }
 
     const {
-      htmlEntry = 'index.html',
       onBeforePageRender,
       onPageRendered,
       rootContainerId = 'root',
       mock = false,
     } = merged
 
-    // Wait for the entry detection to allow building concurrent resolutions
-    const entry = merged.entry || (await detectEntry(root, htmlEntry))
-
-    // Parallelize file reads and alias resolutions
-    const [ssrEntry, template] = await Promise.all([
-      resolveAlias(config, entry),
-      fs.readFile(join(root, htmlEntry), 'utf-8'),
-    ])
-
     process.env.__DEV_MODE_SSR = 'true'
 
     if (mock) {
-      // @ts-expect-error dynamic mjs import
-      const { jsdomGlobal }: { jsdomGlobal: () => void } = await import(
-        './jsdomGlobal.mjs'
-      )
+      const { jsdomGlobal } = (await import('./jsdomGlobal.mjs')) as {
+        jsdomGlobal: (
+          html?: string,
+          options?: import('jsdom').ConstructorOptions,
+        ) => () => void
+      }
       jsdomGlobal()
     }
 
@@ -73,7 +120,7 @@ export async function createServer(
           ssrEntry,
           onBeforePageRender,
           onPageRendered,
-          entry,
+          entry: merged.entry || 'src/main.ts',
           rootContainerId,
         }),
       ],
@@ -127,7 +174,7 @@ export function printServerInfo(server: ViteDevServer, onlyUrl = false): void {
 
   if (globalThis.__ssr_start_time) {
     const elapsed = Math.round(performance.now() - globalThis.__ssr_start_time)
-    ssrReadyMessage += ` ready in ${colors.reset(colors.bold(`${elapsed}ms`))}`
+    ssrReadyMessage += ` ready in ${colors.bold(`${elapsed}ms`)}`
   }
 
   info(`\n ${colors.cyan(` VITE-REACT-SSG v${version} `)}`, {

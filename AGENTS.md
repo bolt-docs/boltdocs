@@ -15,7 +15,7 @@ Boltdocs is a React/Vite documentation framework. Monorepo managed by Turborepo 
 ### Packages
 
 | Package | npm name | Path | Purpose |
-|---------|----------|------|---------|
+| --------- | ---------- | ------ | --------- |
 | Core | `boltdocs` | `packages/core` | Main engine: CLI, MDX pipeline, Vite plugins, routing, config |
 | SSG | `@bdocs/ssg` | `packages/plugin-ssg` | Static Site Generator: client/server Vite builds, HTML rendering |
 | Mermaid | `@bdocs/plugin-mermaid` | `packages/plugin-mermaid` | Remark plugin + React container for Mermaid.js diagrams |
@@ -27,7 +27,7 @@ Boltdocs is a React/Vite documentation framework. Monorepo managed by Turborepo 
 
 ### Workspace Dependencies
 
-```
+```text
 boltdocs (core)
   ├── @bdocs/ssg
   ├── @bdocs/parser (workspace:*)
@@ -73,6 +73,51 @@ pnpm run format              # Format entire repo
 pnpm run format:core         # Format packages/core/src only
 pnpm exec biome check --write  # Lint + format packages/core
 ```
+
+## Documentation Content Conventions
+
+These rules apply to every `.mdx` page under `docs/`. They keep the rendered site consistent and avoid accessibility regressions.
+
+### One H1 per page — never repeat the frontmatter title
+
+The default layout already renders the page title as an `<h1>` (`<h1>{currentRoute.title}</h1>`) and the `description` under it, both sourced from frontmatter. **Do not add a `# Title` heading (or a description paragraph) to the content** — it renders as a duplicated heading with a link icon right below the theme's own title, and it is an accessibility failure. Content should start directly with prose or the first `##` section:
+
+```markdown
+---
+title: Navigation
+description: The complete navigation model.
+---
+
+# ❌ WRONG — the theme already renders this H1
+
+✅ Correct: start with prose or `## First Section` directly.
+```
+
+### Unique headings per page
+
+The OnThisPage right-rail TOC lists every `h2`–`h4` on the page. Duplicate heading text (`### Search` twice) produces duplicate TOC entries. Keep heading text unique per page; there is a Playwright regression test (`tests/a11y/on-this-page.spec.ts`) that fails on duplicates.
+
+### Canonical hrefs — never hand-write locale/version prefixes
+
+Every link (navbar, sidebar, cards, MDX) goes through `useLocalizedTo()`, which prepends the active locale and version automatically. Write **canonical, unlocalized paths**:
+
+| Href | Kind | Notes |
+| ------ | ------ | ------- |
+| `/docs/guides` | Docs page | Localized automatically — never write `/es/docs/guides` or `/v2/docs/guides` |
+| `/showcase` | External page (`pages-external/`) | Kept as-is by the resolver |
+| `https://example.com` | External URL | Passed through untouched — no `to: 'external'` flag exists in config |
+| `#section`, `?q=term` | Anchor / query | Joined to the current page |
+| `site:/path` | Site root-relative | `site:` forces resolution against the site root |
+
+`theme.navbar` items only support `{ label, href, items? }` — the `to="external"` prop exists only on the `Navbar.Link` **component**, not in config.
+
+### Markdown tables use compact separators
+
+markdownlint (MD060) requires compact table separators: `| --- |` (spaces inside), never dense `|---|`. This is enforced by CI lint.
+
+### Views: View Transitions stay OFF in the official docs
+
+The docs site (`docs/boltdocs.config.ts`) keeps `experimental.viewTransitions.enabled: false`. Keep it that way — the default layout must behave identically for every visitor. Documentation of the feature stays in the guides.
 
 ## TypeScript Conventions
 
@@ -129,9 +174,21 @@ const fs = require('fs')
 
 **Path**: `packages/core/src/client/components/`
 
+### Primitive Contract (style-neutral)
+
+`primitives/` components are **style-neutral**: they own structure, behavior, and state. **No colors, borders, or sizes** are baked into primitives. State is exposed via `data-*` attributes that are **present only when true** (e.g. `data-active`, `data-open`, `data-selected`, `data-level`, `data-collapsible`, `data-badge`). Themes style states via CSS (`[data-active]`) or Tailwind v4 variants (`data-active:...`). The framework's default look lives in `ui-base/` on top of the primitives; `ui-base/` accepts `className` slots that merge with and win over defaults. Do not add baked-in visuals to a primitive — pass a `className` slot or emit a `data-*` attribute instead.
+
+Enforcement rules (from the no-barriers refactor):
+
+- **Every styled element must be reachable**: any JSX node with baked-in classes needs a `className` slot (`cn(defaults, className)`), or an explicit slot prop (`contentClassName`, `wrapperClassName`, `dialogClassName`, etc.) for nested wrappers.
+- **No `!important` utilities in components** — override rules that beat third-party styles (e.g. Shiki's `pre`) live as scoped CSS in `client/theme/reset.css` keyed off hooks like `.boltdocs-code-block`.
+- **Layout primitives carry no spacing**: `DocsLayout.ContentMdx` renders only `boltdocs-page w-full`; the reading column inner wrapper exposes `contentClassName`/`contentStyle`. The default padding (`pt-4 pb-20 px-4 sm:px-8`) lives in `docs-layout-default.tsx`, so custom themes pass their own `className` without fighting responsive defaults.
+- **No string-inspection hacks**: behavior must not key off `className.includes(...)`; expose a typed prop (e.g. `ButtonGroup` `radius`) instead.
+- Hardcoded colors use theme tokens (`danger-500`, `success-500`, ...), never raw palettes (`rose-*`, `slate-*`).
+
 ### Directory Structure
 
-```
+```text
 components/
 ├── ui-base/           # Reusable UI primitives (exported)
 │   ├── navbar.tsx
@@ -296,7 +353,7 @@ All `virtual:boltdocs-*` modules are resolved by the `vite-plugin-boltdocs-virtu
 ### Available Virtual Modules
 
 | Module | Purpose | Invalidation |
-|--------|---------|--------------|
+| -------- | --------- | -------------- |
 | `virtual:boltdocs-routes.ts` | Route tree (JSON) | File add/unlink/change |
 | `virtual:boltdocs-config.ts` | Client config + directory meta | File add/unlink |
 | `virtual:boltdocs-search.ts` | Search index data | File add/unlink/change |
@@ -359,7 +416,7 @@ All packages use `tsdown` (Rolldown-based bundler) with `--config-loader unrun`:
 
 **File**: `packages/core/src/node/pipeline/build-pipeline.ts`
 
-```
+```text
 ConfigResolve → RouteGenerate → SEOValidate → TypeGenerate → SSGBuild → SEOWrite
 ```
 
@@ -435,7 +492,7 @@ After server start, batches of 32 files are pre-transformed via `server.transfor
 File events (`add`, `unlink`, `change`) are handled with debouncing (150ms):
 
 | Event | Action |
-|-------|--------|
+| ------- | -------- |
 | Config file change | `server.restart()` |
 | `mdx-components.{ext}` change | Invalidate `mdx-components.tsx`, full reload |
 | `icons.{ext}` change | Invalidate `icons.tsx`, full reload |
@@ -551,7 +608,7 @@ pnpm run test:a11y         # Playwright accessibility tests
 
 **File**: `packages/core/src/node/errors.ts`
 
-```
+```text
 SecurityViolationError (base)
 ├── PathTraversalError       # Directory traversal attempts
 ├── EncodingSecurityError    # Malicious character encoding
@@ -580,7 +637,7 @@ Known fields: `title`, `description`, `sidebarPosition`, `sidebarLabel`, `sideba
 
 **File**: `packages/core/src/node/schema/config.ts`
 
-Full Zod schema for `BoltdocsConfig` including theme, i18n, versions, plugins, security, robots, social links, footer, etc.
+Full Zod schema for `BoltdocsConfig` including theme, i18n, versions, plugins, security, robots, social links, and integrations.
 
 ### Path Security
 
@@ -591,7 +648,7 @@ Full Zod schema for `BoltdocsConfig` including theme, i18n, versions, plugins, s
 ## Key File Reference
 
 | File | Key Functions/Lines |
-|------|-------------------|
+| ------ | ------------------- |
 | `packages/core/src/node/index.ts` | `boltdocs()` (7), `createViteConfig()` (43) |
 | `packages/core/src/node/config.ts` | `resolveConfig()` (62), `CONFIG_FILES` (37) |
 | `packages/core/src/node/routes/index.ts` | `generateRoutes()` (57), `invalidateRouteCache()` (39) |

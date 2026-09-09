@@ -1,7 +1,9 @@
 import { Button } from 'react-aria-components'
 import { Copy, Check } from '../ui-base/icons'
 import { cn } from '../../utils/cn'
-import { useCodeBlock } from './use-code-block'
+import { useCopyButton } from './use-copy-button'
+import { useExpandable } from './use-expandable'
+import { useCodeBlockFeedback } from './use-code-block-feedback'
 import * as CodePrimitive from '../primitives/code-block'
 import { Tooltip } from '../primitives/tooltip'
 
@@ -22,25 +24,28 @@ export interface CodeBlockProps {
   wordWrap?: boolean | string
   'word-wrap'?: boolean | string
   metastring?: string
+  feedbackClassName?: string
+  copyButtonClassName?: string
 }
 
 const CopyButton = ({
   copied,
-  handleCopy,
+  onCopy,
+  className,
 }: {
   copied: boolean
-  handleCopy: () => void
+  onCopy: () => void
+  className?: string
 }) => {
   return (
     <Tooltip content={copied ? 'Copied!' : 'Copy code'}>
       <Button
-        onPress={handleCopy as any}
-        className={
-          cn(
-            'grid place-items-center size-8 bg-transparent outline-none cursor-pointer transition-all duration-200 hover:scale-110 active:scale-95 [&>svg]:size-4 [&>svg]:stroke-2 z-10',
-            copied ? 'text-emerald-400' : 'text-muted hover:text-body',
-          ) as any
-        }
+        onPress={onCopy}
+        className={cn(
+          'grid place-items-center size-8 bg-transparent outline-none cursor-pointer transition-all duration-200 hover:scale-110 active:scale-95 [&>svg]:size-4 [&>svg]:stroke-2 z-10',
+          copied ? 'text-emerald-400' : 'text-muted hover:text-body',
+          className,
+        )}
         aria-label="Copy code"
       >
         {copied ? <Check size={20} /> : <Copy size={20} />}
@@ -52,30 +57,37 @@ const CopyButton = ({
 const CodeBlockFeedback = ({
   rated,
   onRate,
+  className,
 }: {
   rated: 'up' | 'down' | null
   onRate: (type: 'up' | 'down') => void
+  className?: string
 }) => {
   return (
-    <div className="flex items-center gap-0.5 border-r border-subtle pr-1.5 mr-1">
+    <div
+      className={cn(
+        'flex items-center gap-0.5 border-r border-subtle pr-1.5 mr-1',
+        className,
+      )}
+    >
       <Tooltip content={rated === 'up' ? 'Helpful!' : 'This code is helpful'}>
         <Button
-          onPress={(() => onRate('up')) as any}
+          onPress={() => onRate('up')}
           isDisabled={rated !== null}
-          className={
-            cn(
-              'grid place-items-center size-8 bg-transparent outline-none cursor-pointer transition-all duration-200 hover:scale-110 active:scale-95 [&>svg]:size-4 [&>svg]:stroke-2 z-10',
-              rated === 'up'
-                ? 'text-emerald-500 dark:text-emerald-400'
-                : rated === 'down'
-                  ? 'opacity-30 cursor-not-allowed text-muted'
-                  : 'text-muted hover:text-body',
-            ) as any
-          }
+          className={cn(
+            'grid place-items-center size-8 bg-transparent outline-none cursor-pointer transition-all duration-200 hover:scale-110 active:scale-95 [&>svg]:size-4 [&>svg]:stroke-2 z-10',
+            rated === 'up'
+              ? 'text-emerald-500 dark:text-emerald-400'
+              : rated === 'down'
+                ? 'opacity-30 cursor-not-allowed text-muted'
+                : 'text-muted hover:text-body',
+          )}
           aria-label="Mark as helpful"
         >
           <svg
             xmlns="http://www.w3.org/2000/svg"
+            role="img"
+            aria-label="Thumb up"
             viewBox="0 0 24 24"
             fill="none"
             stroke="currentColor"
@@ -92,22 +104,22 @@ const CodeBlockFeedback = ({
         content={rated === 'down' ? 'Unhelpful' : 'This code is unhelpful'}
       >
         <Button
-          onPress={(() => onRate('down')) as any}
+          onPress={() => onRate('down')}
           isDisabled={rated !== null}
-          className={
-            cn(
-              'grid place-items-center size-8 bg-transparent outline-none cursor-pointer transition-all duration-200 hover:scale-110 active:scale-95 [&>svg]:size-4 [&>svg]:stroke-2 z-10',
-              rated === 'down'
-                ? 'text-rose-500 dark:text-rose-400'
-                : rated === 'up'
-                  ? 'opacity-30 cursor-not-allowed text-muted'
-                  : 'text-muted hover:text-body',
-            ) as any
-          }
+          className={cn(
+            'grid place-items-center size-8 bg-transparent outline-none cursor-pointer transition-all duration-200 hover:scale-110 active:scale-95 [&>svg]:size-4 [&>svg]:stroke-2 z-10',
+            rated === 'down'
+              ? 'text-rose-500 dark:text-rose-400'
+              : rated === 'up'
+                ? 'opacity-30 cursor-not-allowed text-muted'
+                : 'text-muted hover:text-body',
+          )}
           aria-label="Mark as unhelpful"
         >
           <svg
             xmlns="http://www.w3.org/2000/svg"
+            role="img"
+            aria-label="Thumb down"
             viewBox="0 0 24 24"
             fill="none"
             stroke="currentColor"
@@ -129,38 +141,56 @@ export function CodeBlock(props: CodeBlockProps) {
     hideCopy = false,
     highlightedHtml,
     'data-highlighted-html': dataHighlightedHtml,
+    'data-highlighted': dataHighlighted,
     title,
     'data-title': dataTitle,
+    lang: langProp,
     'data-lang': dataLang,
     plain = false,
+    className: shikiClassName,
     lineNumbers,
     showLineNumbers,
     wordWrap,
     'word-wrap': wordWrapHyphen,
     metastring,
+    feedbackClassName,
+    copyButtonClassName,
     ...rest
   } = props
 
-  const { className: shikiClassName, ...cleanRest } = rest
+  const lang = langProp || dataLang || ''
+  const isHighlighted =
+    dataHighlighted === 'true' ||
+    (typeof shikiClassName === 'string' && shikiClassName.includes('shiki'))
 
+  const rawHighlightedHtml = highlightedHtml || dataHighlightedHtml
+  const effectiveHighlightedHtml =
+    typeof rawHighlightedHtml === 'string'
+      ? rawHighlightedHtml.replace(
+          /<span class="line">\s*(?:<span[^>]*>\s*<\/span>)?\s*<\/span>\s*(<\/code>\s*<\/pre>)/g,
+          '$1',
+        )
+      : rawHighlightedHtml
+  const effectiveTitle = title || dataTitle
+
+  const { copied, handleCopy } = useCopyButton()
+  const { isExpanded, isExpandable, shouldTruncate, toggle, preRef } =
+    useExpandable({
+      children,
+      highlightedHtml: effectiveHighlightedHtml,
+    })
   const {
-    copied,
-    isExpanded,
-    setIsExpanded,
-    isExpandable,
-    preRef,
-    handleCopy,
-    shouldTruncate,
-    isHighlighted,
-    effectiveHighlightedHtml,
-    effectiveTitle,
-    showCodeBlockFeedback,
     rated,
     handleRate,
-  } = useCodeBlock(props)
+    enabled: showCodeBlockFeedback,
+  } = useCodeBlockFeedback({ plain, lang })
+
+  const onCopy = () => handleCopy(preRef.current?.textContent ?? '')
+  const onRate = (type: 'up' | 'down') =>
+    handleRate(type, preRef.current?.textContent ?? '')
 
   return (
-    <CodePrimitive.CodeBlock plain={plain} className={props.className}>
+    <CodePrimitive.CodeBlock plain={plain} className={shikiClassName}>
       {(effectiveTitle || !hideCopy) && (
         <CodePrimitive.CodeBlockHeader
           className={cn({
@@ -170,67 +200,44 @@ export function CodeBlock(props: CodeBlockProps) {
           <CodePrimitive.CodeBlockGroup>
             {effectiveTitle && <span>{effectiveTitle}</span>}
           </CodePrimitive.CodeBlockGroup>
-          <div className="flex items-center gap-1 bg-(--color-code-bg) pl-2 z-10">
-            {showCodeBlockFeedback && (
-              <CodeBlockFeedback rated={rated} onRate={handleRate} />
-            )}
-            {!hideCopy && (
-              <CopyButton copied={copied} handleCopy={handleCopy} />
-            )}
-          </div>
+          {(showCodeBlockFeedback || !hideCopy) && (
+            <CodePrimitive.CodeBlockActions>
+              {showCodeBlockFeedback && (
+                <CodeBlockFeedback
+                  rated={rated}
+                  onRate={onRate}
+                  className={feedbackClassName}
+                />
+              )}
+              {!hideCopy && (
+                <CopyButton
+                  copied={copied}
+                  onCopy={onCopy}
+                  className={copyButtonClassName}
+                />
+              )}
+            </CodePrimitive.CodeBlockActions>
+          )}
         </CodePrimitive.CodeBlockHeader>
       )}
 
       <CodePrimitive.CodeBlockContent shouldTruncate={shouldTruncate}>
-        {effectiveHighlightedHtml ? (
-          <div
-            ref={preRef as any}
-            className="shiki-wrapper overflow-x-auto [&>pre]:m-0! [&>pre]:rounded-none! [&>pre]:border-none! [&>pre]:bg-inherit! [&>pre>code]:grid! [&>pre>code]:p-5! [&>pre>code]:text-[0.875rem]! [&>pre>code]:leading-[1.6]! [&>.shiki.shiki-themes]:bg-transparent!"
-            dangerouslySetInnerHTML={{ __html: effectiveHighlightedHtml }}
-          />
-        ) : (
-          <pre
-            ref={preRef as any}
-            className={cn(
-              'm-0! rounded-none! border-none! bg-transparent!',
-              'text-[0.875rem] leading-[1.6] overflow-x-auto',
-              shikiClassName,
-              {
-                'p-0! [&>code]:grid! [&>code]:p-5! [&>code]:bg-transparent!':
-                  isHighlighted,
-                'p-5!': !isHighlighted,
-              },
-            )}
-            {...cleanRest}
-          >
-            {children}
-          </pre>
-        )}
+        <CodePrimitive.CodeBlockPre
+          ref={preRef}
+          highlightedHtml={effectiveHighlightedHtml}
+          isHighlighted={isHighlighted}
+          className={shikiClassName}
+          {...rest}
+        >
+          {children}
+        </CodePrimitive.CodeBlockPre>
 
-        {isExpandable && (
-          <div
-            className={cn({
-              'absolute bottom-0 inset-x-0 h-32 flex items-end justify-center pb-4 z-10':
-                shouldTruncate,
-              'relative flex justify-center pb-4 pt-1 -mt-4': !shouldTruncate,
-            })}
-            style={
-              shouldTruncate
-                ? {
-                    backgroundImage:
-                      'linear-gradient(to top, var(--color-code-bg) 10%, transparent)',
-                  }
-                : undefined
-            }
-          >
-            <Button
-              onPress={() => setIsExpanded(!isExpanded)}
-              className="rounded-full bg-surface border border-subtle px-5 py-2 text-[0.8125rem] font-medium text-body outline-none cursor-pointer transition-all hover:bg-soft hover:-translate-y-px backdrop-blur-md"
-            >
-              {isExpanded ? 'Show less' : 'Expand code'}
-            </Button>
-          </div>
-        )}
+        <CodePrimitive.CodeBlockExpand
+          isExpandable={isExpandable}
+          shouldTruncate={shouldTruncate}
+          isExpanded={isExpanded}
+          onToggle={toggle}
+        />
       </CodePrimitive.CodeBlockContent>
     </CodePrimitive.CodeBlock>
   )

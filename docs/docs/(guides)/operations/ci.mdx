@@ -1,0 +1,302 @@
+---
+title: CI/CD & Deployment
+sidebarPosition: 1
+description: Build a safe documentation pipeline — install, build, doctor checks, preview deployments, and promoting to production with GitHub Actions, GitLab CI, and other runners.
+---
+
+Documentation rots when it's deployed by hand. A CI/CD pipeline turns every merge into a verified, reviewable deployment: builds run, links are checked, previews are generated for review, and only the main branch reaches production.
+
+---
+
+## The pipeline at a glance
+
+A safe Boltdocs pipeline has five stages:
+
+```text
+install → verify → build → preview → promote
+```
+
+1. **Install** — resolve dependencies with a frozen lockfile so builds are reproducible.
+2. **Verify** — `boltdocs doctor` (broken links, missing metadata, orphaned translations) and `boltdocs audit` (plugin security) before anything is built.
+3. **Build** — `boltdocs build` produces the static `dist/` output.
+4. **Preview** — every pull request gets a preview deployment reviewers can click.
+5. **Promote** — only the default branch (or a tag) deploys to production, with rollback in mind.
+
+---
+
+## Commands for CI
+
+| Command | What it catches |
+| :--- | :--- |
+| `pnpm install --frozen-lockfile` | Reproducible dependency resolution. |
+| `boltdocs doctor` | Broken internal links, missing titles, orphaned translations. |
+| `boltdocs doctor --check-external` | Also verifies external links (slower — run nightly, not per-PR). |
+| `boltdocs doctor --budget` | Performance budgets from `doctor.json` (JS/CSS/HTML size, build time). |
+| `boltdocs audit` | Static security check of configured plugins. |
+| `boltdocs build` | Production SSG build; fails on MDX or config errors. |
+| `boltdocs preview` | Serves the production build locally for smoke tests. |
+
+---
+
+## GitHub Actions
+
+### Preview deployment on pull requests
+
+This workflow builds every PR and deploys a preview (Vercel example). The preview URL is posted to the PR so reviewers can click through the actual site:
+
+```yaml title=".github/workflows/preview.yml"
+name: Preview
+
+on:
+  pull_request:
+
+concurrency:
+  group: preview-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-and-preview:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Doctor (broken links, metadata, translations)
+        run: pnpm --filter docs doctor
+
+      - name: Audit plugins
+        run: pnpm --filter docs audit
+
+      - name: Build
+        run: pnpm --filter docs build
+
+      - name: Deploy preview
+        env:
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+        run: npx vercel deploy --prebuilt --token=$VERCEL_TOKEN
+```
+
+### Production deployment on the default branch
+
+The production workflow only runs on `main` (or a `v*` tag), builds with production env vars, deploys to production, and then smoke-tests the result:
+
+```yaml title=".github/workflows/deploy.yml"
+name: Deploy
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: production
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Doctor
+        run: pnpm --filter docs doctor
+
+      - name: Build
+        run: pnpm --filter docs build
+
+      - name: Deploy to production
+        env:
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+        run: npx vercel deploy --prebuilt --prod --token=$VERCEL_TOKEN
+
+      - name: Smoke test
+        run: |
+          curl -sfI https://docs.example.com/ > /dev/null
+          curl -sfI https://docs.example.com/docs/guides > /dev/null
+```
+
+<Callout variant="note" title="Platform-agnostic deploys">
+The build stage is identical on every host. Only the deploy step changes:
+- **Vercel** — `npx vercel deploy --prebuilt --prod --token=$VERCEL_TOKEN`
+- **Netlify** — `npx netlify deploy --prod --dir=dist` (with `NETLIFY_AUTH_TOKEN`)
+- **Cloudflare Pages** — `npx wrangler pages deploy dist --project-name=my-docs`
+- **GitHub Pages / any static host** — upload `dist/` via `actions/upload-pages-artifact` or rsync to your server.
+</Callout>
+
+---
+
+## GitLab CI
+
+The same stages as a single pipeline with environments for preview and production:
+
+```yaml title=".gitlab-ci.yml"
+image: node:22
+
+variables:
+  PNPM_VERSION: "10"
+
+cache:
+  paths:
+    - node_modules/
+
+stages:
+  - verify
+  - build
+  - preview
+  - deploy
+
+.install: &install
+  before_script:
+    - corepack enable
+    - corepack prepare pnpm@$PNPM_VERSION --activate
+    - pnpm install --frozen-lockfile
+
+verify:
+  stage: verify
+  <<: *install
+  script:
+    - pnpm --filter docs doctor
+    - pnpm --filter docs audit
+
+build:
+  stage: build
+  <<: *install
+  artifacts:
+    paths:
+      - docs/dist/
+    expire_in: 1 week
+  script:
+    - pnpm --filter docs build
+
+preview:
+  stage: preview
+  <<: *install
+  environment:
+    name: review/$CI_COMMIT_REF_SLUG
+    url: https://preview-$CI_COMMIT_REF_SLUG.example.com
+  only:
+    - merge_requests
+  script:
+    # Deploy the built artifacts to your preview host (Vercel/Netlify/etc.)
+    - npx vercel deploy --prebuilt --token=$VERCEL_TOKEN
+
+deploy:
+  stage: deploy
+  <<: *install
+  environment:
+    name: production
+    url: https://docs.example.com
+  only:
+    - main
+  script:
+    - npx vercel deploy --prebuilt --prod --token=$VERCEL_TOKEN
+    - curl -sfI https://docs.example.com/ > /dev/null
+```
+
+---
+
+## Secrets and environment variables
+
+Never commit secrets. Store them in your CI provider's secret store and reference them by name:
+
+- `VERCEL_TOKEN` / `NETLIFY_AUTH_TOKEN` / `CF_API_TOKEN` — deploy tokens with the narrowest scope (deploy-only) your platform allows.
+- `VERCEL_ORG_ID`, `VERCEL_PROJECT_ID` — project coordinates for the Vercel CLI.
+- `BOLTDOCS_GITHUB_TOKEN`, `BOLTDOCS_GITHUB_REPO_OWNER`, `BOLTDOCS_GITHUB_REPO_NAME` — required by the feedback serverless functions in production (see [Feedback → Production](/docs/integrations/features/feedback)).
+
+For builds that must stay private (staging behind auth), set `seo.indexing: 'public'` or gate the deploy with a `DOCS_ENV` variable that selects `drafts.visible` / indexing settings.
+
+---
+
+## Safe production deploys
+
+These habits keep a docs deploy boring — and boring is good:
+
+1. **Immutable, content-hashed assets.** Boltdocs hashes JS/CSS filenames, so `Cache-Control: immutable` on `/assets/*` never serves stale code (see [Headers → Cache-Control](/docs/guides/security/headers#cache-control-best-practices)).
+2. **Atomic swaps.** Vercel/Netlify/Cloudflare swap the whole deployment atomically — never delete the old site before the new one is live.
+3. **Prebuilt deploys only.** Run `boltdocs build` in CI and deploy the produced `dist/` (`--prebuilt` on Vercel). Don't let the platform build from source: fewer moving parts, same bytes everywhere.
+4. **Smoke-test after deploy.** At minimum `curl -sfI` the home page and one docs route. The GitHub/GitLab examples above do this in the deploy job.
+5. **Rollback is a click.** Every immutable deployment is a rollback point. Keep the previous deployment around and know how to promote it in your platform's dashboard.
+6. **Cache invalidation on deploy.** Vercel/Netlify purge the CDN on deploy automatically. On other hosts, invalidate `*.html`, `/sitemap.xml`, and `/robots.txt` (assets are immutable and can stay cached).
+7. **Tag releases for docs milestones.** If your docs track your product versions, deploy from a `v*` tag and enable versioned docs (`docs/v2/…`) so historical releases stay reachable. See [Versioning](/docs/integrations/globalization/versioning).
+8. **Check the headers in CI.** Before promoting, verify the security headers are actually served:
+
+```bash
+curl -sI "$URL" | grep -iE 'content-security-policy|x-frame-options|strict-transport-security'
+```
+
+---
+
+## Nightly deep checks
+
+Per-PR pipelines should be fast; deep checks belong on a schedule. Add a nightly job that runs the slow, thorough verifications:
+
+```yaml
+name: Nightly docs health
+
+on:
+  schedule:
+    - cron: "30 1 * * *"
+  workflow_dispatch:
+
+jobs:
+  health:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Doctor (including external links)
+        run: pnpm --filter docs doctor --check-external
+      - name: Performance budget
+        run: pnpm --filter docs doctor --budget
+```
+
+---
+
+## Where next
+
+- [CLI Commands](/docs/guides/getting-started/cli) — full reference for `doctor`, `audit`, `build`, and `preview`.
+- [Headers](/docs/guides/security/headers) — what to verify in CI and how to configure headers per platform.
+- [Troubleshooting](/docs/guides/operations/troubleshooting) — common build and deployment failures.
+- [Feedback → Production](/docs/integrations/features/feedback) — serverless endpoints and the env vars production needs.

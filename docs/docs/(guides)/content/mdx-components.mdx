@@ -1,0 +1,79 @@
+---
+title: MDX Components
+sidebarPosition: 1
+description: Inject custom React components globally or override default HTML tags using the mdx-components.tsx registry.
+---
+
+Boltdocs lets you register custom React components that are available in every `.mdx` file without explicit imports. This is perfect for styling default Markdown elements, introducing custom layout blocks, or using third-party components.
+
+
+## Using Registered Components
+
+Once added to `mdx-components.tsx`, you can use these components inside any `.mdx` file without importing them:
+
+```mdx
+---
+title: Sample Page
+---
+
+# Welcome
+
+This is a custom alert component:
+
+<MyCustomAlert type="success">
+  This alert is globally available!
+</MyCustomAlert>
+
+You can also use inline highlights:
+
+This is <Highlight color="yellow">important text</Highlight>.
+```
+
+---
+
+## Overriding Standard Markdown Elements
+
+You can override standard Markdown tags by mapping HTML tag names to your custom React components:
+
+| Tag | Markdown Syntax | Description |
+| :--- | :--- | :--- |
+| `h1`–`h6` | `#` to `######` | Headings |
+| `a` | `[Link]\(...\)` | Anchor links |
+| `pre` | ```` ``` ```` | Code block wrappers |
+| `code` | `` `code` `` | Inline code tags |
+| `img` | `![Alt]\(...\)` | Images |
+| `table` | Tables | Table containers |
+
+For example, to wrap all tables in a custom responsive container:
+
+```tsx title="docs/mdx-components.tsx"
+export default {
+  table: (props) => (
+    <div style={{ overflowX: 'auto' }}>
+      <table {...props} />
+    </div>
+  ),
+}
+```
+
+---
+
+## Advanced: Injection via Plugins
+
+If you're developing a reusable plugin, you can inject MDX components using the plugin's `components` config:
+
+```ts title="my-plugin.ts"
+import type { BoltdocsPlugin } from 'boltdocs'
+
+export default function myPlugin(): BoltdocsPlugin {
+  return {
+    name: 'my-plugin',
+    components: {
+      // Key: component name in MDX, Value: path to the module
+      MyComponent: './src/components/MyComponent.tsx',
+    },
+  }
+}
+```
+
+See the [Mermaid Plugin](/docs/plugins/content/plugin-mermaid) for a real-world example of plugin-based component injection.

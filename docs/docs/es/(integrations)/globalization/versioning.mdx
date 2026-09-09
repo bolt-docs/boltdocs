@@ -6,23 +6,6 @@ description: Mantén múltiples versiones de tu documentación lado a lado usand
 
 El versionado te permite mantener múltiples ediciones paralelas de tu documentación activas al mismo tiempo — una para cada versión principal de tu proyecto. Los usuarios pueden cambiar entre ellas, y las versiones más antiguas permanecen accesibles sin ningún mantenimiento manual.
 
----
-
-## Cómo Funciona
-
-Al igual que los locales, las versiones están **basadas en carpetas**. Cada versión vive en una subcarpeta en la raíz de `docs/`. Boltdocs mapea esas carpetas a prefijos de URL versionados.
-
-```
-docs/
-├── index.md            → /docs/guide (versión predeterminada / actual)
-├── guide/
-│   └── index.md        → /docs/guide
-└── v1/
-    └── guide/
-        └── index.md    → /docs/v1/guide
-```
-
----
 
 ## Inicio Rápido
 

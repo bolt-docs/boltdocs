@@ -6,15 +6,6 @@ description: El componente modal de búsqueda para realizar búsqueda de texto c
 
 El `SearchDialog` proporciona un panel de comandos superponible accesible y totalmente personalizable que permite a los usuarios buscar instantáneamente rutas, encabezados y descripciones.
 
----
-
-## Importación
-
-```tsx
-import { SearchDialog } from 'boltdocs/primitives'
-```
-
----
 
 ## Ejemplo de Diálogo de Búsqueda Componible
 
@@ -167,3 +158,32 @@ Hereda `ListBoxProps` estándar de React-Aria (por ejemplo, `items`, `selectionM
 | Propiedad | Tipo | Predeterminado | Descripción |
 | :--- | :--- | :--- | :--- |
 | **`isHeading`** | `boolean` | `false` | Si es `true`, renderiza un icono de sección de encabezado. De lo contrario, renderiza un icono de página de documento. |
+
+---
+
+## Personalización y estados
+
+La primitiva `SearchDialog` es **neutral en estilo**: aporta el comportamiento de superposición, diálogo, lista y elementos de React Aria, y cada decisión visual pertenece al tema a través de sus ranuras `className`. El estado de los elementos se expone como atributos `data-*` en `SearchDialog.Item`, presentes solo cuando es verdadero.
+
+| Estado / Ranura | Mecanismo |
+| :--- | :--- |
+| `SearchDialog` (raíz) | `<div>` de superposición de fondo; solo se monta abierta |
+| `SearchDialog.Content` / `Dialog` | Superficie modal y `<dialog>`; tamaño y colores vía `className` |
+| `SearchDialog.Input.SearchInput` | `<input>` desnudo; estilos de focus y placeholder vía `className` |
+| `SearchDialog.List` | Viewport `<ul>` de resultados; estilo del área de scroll vía `className` |
+| `SearchDialog.Item` | `ListBoxItem` de RAC; emite `data-selected` cuando el resultado está seleccionado |
+| Resaltado por teclado | El elemento enfocado expone `data-focused` (y `data-focus-visible`) |
+
+```tsx
+<SearchDialog.List className="max-h-96 overflow-y-auto p-2">
+  {results.map((item) => (
+    <SearchDialog.Item
+      key={item.path}
+      id={item.path}
+      className="rounded-lg p-2.5 text-body transition-colors data-focused:bg-surface data-focused:outline-none data-selected:bg-primary-500/10"
+    >
+      <SearchDialog.Item.Title>{item.title}</SearchDialog.Item.Title>
+    </SearchDialog.Item>
+  ))}
+</SearchDialog.List>
+```

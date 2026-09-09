@@ -9,17 +9,10 @@ export const SocialLinkSchema = z.object({
 })
 
 /**
- * Zod schema for footer configuration.
- */
-export const FooterConfigSchema = z.object({
-  text: z.string().max(2000).optional(),
-})
-
-/**
  * Zod schema for MDX configuration.
  */
 export const MdxConfigSchema = z.object({
-  processor: z.enum(['unified', 'satteri']).optional(),
+  processor: z.enum(['satteri']).default('satteri'),
 })
 
 /**
@@ -36,6 +29,14 @@ export const BoltdocsPluginSchema = z.object({
   vitePlugins: z.array(z.unknown()).optional(),
   components: z.record(z.string(), z.string()).optional(),
   metadata: z.record(z.string(), z.unknown()).optional(),
+  css: z
+    .object({
+      cssFiles: z.array(z.string()).optional(),
+      headStyles: z.array(z.string()).optional(),
+      postcssPlugins: z.array(z.unknown()).optional(),
+      preprocessorOptions: z.record(z.string(), z.unknown()).optional(),
+    })
+    .optional(),
   middleware: z
     .array(
       z
@@ -211,6 +212,22 @@ export const VerificationConfigSchema = z.object({
 /**
  * Zod schema for SEO configuration.
  */
+const JsonLdValueSchema: z.ZodType<unknown> = z.lazy(() =>
+  z.union([
+    z.string(),
+    z.number(),
+    z.boolean(),
+    z.null(),
+    z.array(JsonLdValueSchema),
+    z.record(z.string(), JsonLdValueSchema),
+  ]),
+)
+
+export const StructuredDataSchema = z.union([
+  z.record(z.string(), JsonLdValueSchema),
+  z.array(z.record(z.string(), JsonLdValueSchema)),
+])
+
 export const BoltdocsSeoConfigSchema = z.object({
   metatags: z.record(z.string(), z.string()).optional(),
   indexing: z.enum(['all', 'public']).optional(),
@@ -220,6 +237,20 @@ export const BoltdocsSeoConfigSchema = z.object({
     })
     .optional(),
   verification: VerificationConfigSchema.optional(),
+  structuredData: StructuredDataSchema.optional(),
+})
+
+export const ExperimentalConfigSchema = z.object({
+  viewTransitions: z
+    .union([
+      z.boolean(),
+      z.object({
+        enabled: z.boolean().optional(),
+        types: z.array(z.string()).optional(),
+      }),
+    ])
+    .optional(),
+  fileRouting: z.boolean().optional(),
 })
 
 /**
@@ -322,6 +353,34 @@ export const IntegrationsConfigSchema = z.object({
 })
 
 /**
+ * Zod schema for SSG-specific configuration.
+ */
+export const SsgConfigSchema = z.object({
+  /**
+   * Critical CSS processing strategy.
+   * - `'zig-critters'` (default): Use zig-critters WASM for fast critical CSS.
+   * - `'beasties'`: Use beasties JS-based critical CSS (opt-in, slower).
+   * - `'none'`: Skip critical CSS entirely.
+   * @default 'zig-critters'
+   */
+  criticalCss: z.enum(['zig-critters', 'beasties', 'none']).optional(),
+})
+
+/**
+ * Zod schema for collections configuration.
+ */
+export const CollectionsConfigSchema = z.object({
+  labels: z
+    .record(z.string(), z.union([z.string(), z.record(z.string(), z.string())]))
+    .optional(),
+  positions: z.record(z.string(), z.number()).optional(),
+  postsPerPage: z.number().int().positive().optional(),
+  defaultCollection: z.string().optional(),
+  dateFormat: z.string().optional(),
+  sortBy: z.enum(['date', 'title', 'sidebarPosition']).optional(),
+})
+
+/**
  * Zod schema for drafts configuration.
  */
 export const DraftsConfigSchema = z.object({
@@ -333,6 +392,7 @@ export const DraftsConfigSchema = z.object({
  * Root Zod schema for Boltdocs project configuration.
  */
 export const BoltdocsConfigSchema = z.object({
+  turbo: z.boolean().optional(),
   siteUrl: z.string().url().optional(),
   docsDir: z.string().optional(),
   base: z.string().optional(),
@@ -340,12 +400,16 @@ export const BoltdocsConfigSchema = z.object({
   i18n: I18nConfigSchema.optional(),
   versions: VersionsConfigSchema.optional(),
   mdx: MdxConfigSchema.optional(),
+  ssg: SsgConfigSchema.optional(),
   plugins: z.array(BoltdocsPluginSchema).optional(),
+  collections: CollectionsConfigSchema.optional(),
   robots: RobotsConfigSchema.optional(),
   security: SecurityConfigSchema.optional(),
   seo: BoltdocsSeoConfigSchema.optional(),
   integrations: IntegrationsConfigSchema.optional(),
   drafts: DraftsConfigSchema.optional(),
+  experimental: ExperimentalConfigSchema.optional(),
+  aliases: z.custom<import('vite').AliasOptions>().optional(),
   featureFlags: z
     .record(z.string(), z.union([z.boolean(), z.string()]))
     .optional(),

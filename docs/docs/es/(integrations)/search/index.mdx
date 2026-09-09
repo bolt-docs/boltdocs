@@ -6,22 +6,6 @@ description: Boltdocs incluye búsqueda sin dependencias y en tiempo de compilac
 
 Cada sitio de Boltdocs viene con búsqueda integrada. Por defecto, opera completamente offline y del lado del cliente, compilando los encabezados y texto del cuerpo de tus documentos en un índice estático en tiempo de compilación. Para proyectos más grandes, también se integra nativamente con Algolia.
 
----
-
-## Qué se Indexa
-
-Para cada página en tu documentación, Boltdocs extrae e indexa:
-
-| Datos | Fuente |
-| :--- | :--- |
-| Título de la página | Frontmatter `title` o nombre de archivo |
-| Descripción de la página | Frontmatter `description` o primer párrafo |
-| Todos los encabezados `h2`–`h6` | Elementos de encabezado Markdown |
-| Cuerpo de la página | Texto plano, sin sintaxis de Markdown |
-
-Los callouts, bloques de código y contenidos de tablas se incluyen en el texto del cuerpo. Las imágenes no se indexan.
-
----
 
 ## Comportamiento de Búsqueda Predeterminado
 

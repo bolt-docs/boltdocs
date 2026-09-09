@@ -1,0 +1,201 @@
+---
+title: HTTP Headers
+sidebarPosition: 1
+description: How Boltdocs handles HTTP headers — the default security headers, custom headers via config, cache control, and per-platform examples for Vercel, Netlify, Cloudflare, and nginx.
+---
+
+HTTP headers control how browsers, CDNs, and crawlers treat your documentation site: what they may cache, how long, what security policies they enforce, and how they handle redirects. This guide covers the headers Boltdocs sends for you, how to add your own, and how to apply them on the platform you deploy to.
+
+---
+
+## What Boltdocs sends by default
+
+In **production builds** (and `boltdocs preview`), Boltdocs applies a baseline set of hardening headers to every response, based on OWASP recommendations:
+
+| Header | Value | Purpose |
+| :--- | :--- | :--- |
+| `X-Content-Type-Options` | `nosniff` | Prevents MIME type sniffing. |
+| `X-Frame-Options` | `DENY` | Blocks the site from being embedded in iframes (anti-clickjacking). |
+| `X-XSS-Protection` | `1; mode=block` | Legacy XSS filtering for older browsers. |
+| `Referrer-Policy` | `strict-origin-when-cross-origin` | Sends referrer info only for same-origin requests. |
+| `Permissions-Policy` | `camera=(), microphone=(), geolocation=()` | Denies access to sensitive browser features. |
+| `Strict-Transport-Security` | `max-age=31536000; includeSubDomains; preload` | Enforces HTTPS for one year (HSTS). |
+
+<Callout variant="note" title="Development builds are not hardened">
+The default security headers are applied only in production mode. During `boltdocs dev` they are omitted so local tooling and mixed content stay friction-free — your own custom headers (below) still apply in dev.
+</Callout>
+
+When `security.enableCSP` is enabled, a `Content-Security-Policy` header is added on top. See the [CSP guide](/docs/guides/security/csp) for the exact policy and how to customize it.
+
+---
+
+## Configuring headers — `security`
+
+Add, override, or remove headers from `boltdocs.config.ts` with the `security` block:
+
+```ts title="boltdocs.config.ts"
+export default defineConfig({
+  security: {
+    // Headers sent on every request (dev and production).
+    headers: {
+      'X-Robots-Tag': 'index, follow',
+      'X-Permitted-Cross-Domain-Policies': 'none',
+    },
+    // Override headers applied last, so they can replace defaults.
+    customHeaders: {
+      // Keep the built-in defaults but relax HSTS for local staging.
+      'Strict-Transport-Security': 'max-age=31536000',
+    },
+  },
+})
+```
+
+### Merge order
+
+The final response headers are merged in this order (later wins):
+
+1. Built-in security headers (production only).
+2. The generated `Content-Security-Policy`, when `enableCSP` is on.
+3. `security.headers`.
+4. `security.customHeaders` — always applied last, so it can intentionally replace any default.
+
+### Removing a default header
+
+The most reliable way to drop a default header is to set it to an empty value with `customHeaders`. An empty value is sent as a zero-length header, which most platforms treat as "remove" at the edge:
+
+```ts title="boltdocs.config.ts"
+export default defineConfig({
+  security: {
+    customHeaders: {
+      'X-XSS-Protection': '',
+    },
+  },
+})
+```
+
+<Callout variant="warning" title="Headers are sent by the server, not embedded in HTML">
+Boltdocs is a static site generator: the headers above are applied by the dev/preview server and, in production, by your hosting platform. The built HTML files themselves do not carry headers — see below to wire them on your platform.
+</Callout>
+
+---
+
+## Applying headers on your platform
+
+For production, configure headers on the platform that serves the built `dist/` (or `docs/` output) folder. Below are the standard configuration files for the most common hosts.
+
+### Vercel — `vercel.json`
+
+```json title="vercel.json"
+{
+  "headers": [
+    {
+      "source": "/(.*)",
+      "headers": [
+        { "key": "X-Content-Type-Options", "value": "nosniff" },
+        { "key": "X-Frame-Options", "value": "DENY" },
+        { "key": "Referrer-Policy", "value": "strict-origin-when-cross-origin" },
+        { "key": "Permissions-Policy", "value": "camera=(), microphone=(), geolocation=()" },
+        { "key": "Strict-Transport-Security", "value": "max-age=31536000; includeSubDomains; preload" },
+        { "key": "Content-Security-Policy", "value": "default-src 'self'; img-src 'self' data: https:; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'" }
+      ]
+    },
+    {
+      "source": "/assets/(.*)",
+      "headers": [
+        { "key": "Cache-Control", "value": "public, max-age=31536000, immutable" }
+      ]
+    }
+  ]
+}
+```
+
+### Netlify — `_headers`
+
+```text title="_headers"
+/*
+  X-Content-Type-Options: nosniff
+  X-Frame-Options: DENY
+  Referrer-Policy: strict-origin-when-cross-origin
+  Permissions-Policy: camera=(), microphone=(), geolocation=()
+  Strict-Transport-Security: max-age=31536000; includeSubDomains; preload
+  Content-Security-Policy: default-src 'self'; img-src 'self' data: https:; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'
+
+/assets/*
+  Cache-Control: public, max-age=31536000, immutable
+```
+
+### Cloudflare Pages — `_headers`
+
+The same `_headers` file format works on Cloudflare Pages:
+
+```text title="_headers"
+/*
+  X-Content-Type-Options: nosniff
+  X-Frame-Options: DENY
+  Referrer-Policy: strict-origin-when-cross-origin
+  Strict-Transport-Security: max-age=31536000; includeSubDomains; preload
+
+/assets/*
+  Cache-Control: public, max-age=31536000, immutable
+```
+
+### nginx
+
+```nginx title="nginx.conf"
+server {
+  add_header X-Content-Type-Options "nosniff" always;
+  add_header X-Frame-Options "DENY" always;
+  add_header Referrer-Policy "strict-origin-when-cross-origin" always;
+  add_header Permissions-Policy "camera=(), microphone=(), geolocation=()" always;
+  add_header Strict-Transport-Security "max-age=31536000; includeSubDomains; preload" always;
+  add_header Content-Security-Policy "default-src 'self'; img-src 'self' data: https:; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'" always;
+
+  location /assets/ {
+    add_header Cache-Control "public, max-age=31536000, immutable";
+  }
+}
+```
+
+---
+
+## Cache-Control best practices
+
+Static documentation sites get most of their performance from caching. The golden rules:
+
+- **HTML documents: `no-cache` (or a short `max-age`).** You want readers to see the latest docs within minutes of a deploy, so let the browser revalidate: `Cache-Control: public, max-age=0, must-revalidate`.
+- **Hashed assets (JS/CSS/fonts/images): immutable.** Boltdocs emits content-hashed filenames, so `Cache-Control: public, max-age=31536000, immutable` is safe and makes repeat visits load instantly.
+- **Sitemap/robots: short `max-age`** (e.g. `3600`) so search engines pick up new pages quickly.
+
+| Resource | Cache-Control |
+| :--- | :--- |
+| `*.html` | `public, max-age=0, must-revalidate` |
+| `/assets/*` (hashed) | `public, max-age=31536000, immutable` |
+| `/sitemap.xml`, `/robots.txt` | `public, max-age=3600` |
+| `og-image.webp` and other static images | `public, max-age=86400` |
+
+---
+
+## Verifying headers
+
+Check what your deployed site actually sends:
+
+```bash
+# Production
+curl -sI https://docs.example.com/ | grep -iE 'content-security|x-frame|strict-transport|cache-control'
+
+# Local production build
+pnpm build && pnpm preview
+
+# Headers served by the preview server (defaults + config)
+curl -sI http://localhost:4173/ | grep -iE 'content-security|x-frame|strict-transport'
+```
+
+For a full scorecard, run your production URL through [securityheaders.com](https://securityheaders.com) — it grades your security headers and points out missing ones.
+
+---
+
+## Where next
+
+- [CSP](/docs/guides/security/csp) — the Content-Security-Policy header in depth: default policy, customization, and pitfalls.
+- [Cache & Environment](/docs/guides/performance/cache) — Boltdocs' internal disk caches and cache environment variables.
+- [CI/CD & Deployment](/docs/guides/operations/ci) — wire header verification and `boltdocs doctor` into your deploy pipeline.

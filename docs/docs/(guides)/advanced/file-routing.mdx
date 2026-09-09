@@ -1,0 +1,22 @@
+---
+title: Static File Routing
+sidebarPosition: 4
+description: Map literal files in docs/pages-external to routes with experimental.fileRouting.
+---
+
+With `experimental.fileRouting`, every literal file in `docs/pages-external/` becomes a route:
+
+```text
+docs/pages-external/
+├── home.tsx      → /home
+├── about.tsx     → /about
+└── pricing.mdx   → /pricing
+```
+
+`.tsx`, `.ts`, `.jsx`, `.js`, `.mdx`, and `.md` are supported. Dynamic segments like `[id]`, groups like `(marketing)`, `index.*`, and reserved helpers like `layout`, `icons`, and `mdx-components` are ignored. The existing object API in `pages-external/index.tsx` can coexist with file routes; avoid mapping the same URL twice.
+
+When `i18n` is configured, a top-level directory matching a configured locale provides the localized variant of a page: `es/roadmap.mdx` becomes `/es/roadmap` and wins over the fallback, while locale URLs without a localized file fall back to the default locale file — just like docs i18n fallback routes.
+
+See the [External Pages guide](/docs/guides/customization/external-pages) for the legacy API, layouts, limitations, and file-routing details.
+
+See [Experimental Features](/docs/guides/advanced/experimental) for the full opt-in setup.

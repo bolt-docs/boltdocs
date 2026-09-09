@@ -1,7 +1,6 @@
 {
   "title": "UI Primitives",
-  "icon": "Box",
   "order": 3,
-  "collapsible": true,
+  "collapsible": false,
   "collapsed": false
 }

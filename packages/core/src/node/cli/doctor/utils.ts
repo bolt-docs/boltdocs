@@ -154,7 +154,9 @@ export async function generateLinkTree(
     files = await api.withPromise()
   }
 
-  const base = config?.base || '/docs'
+  // Keep the link tree consistent with the rest of the runtime (Vite base,
+  // doctor basePrefix), which default to '/' — not '/docs'.
+  const base = config?.base || '/'
   const routes: string[] = []
 
   const CHUNK_SIZE = 100

@@ -1,0 +1,22 @@
+---
+title: File-routing Estático
+sidebarPosition: 4
+description: Mapea archivos literales de docs/pages-external a rutas con experimental.fileRouting.
+---
+
+Con `experimental.fileRouting`, cada archivo literal en `docs/pages-external/` se convierte en una ruta:
+
+```text
+docs/pages-external/
+├── home.tsx      → /home
+├── about.tsx     → /about
+└── pricing.mdx   → /pricing
+```
+
+Se admiten `.tsx`, `.ts`, `.jsx`, `.js`, `.mdx` y `.md`. Se ignoran segmentos dinámicos como `[id]`, grupos como `(marketing)`, `index.*` y auxiliares reservados como `layout`, `icons` y `mdx-components`. La API existente de objeto en `pages-external/index.tsx` puede convivir con file routes; evita asignar la misma URL dos veces.
+
+Cuando `i18n` está configurado, un directorio de primer nivel que coincida con un locale configurado proporciona la variante localizada de una página: `es/roadmap.mdx` se convierte en `/es/roadmap` y gana sobre el fallback, mientras que las URLs de locales sin archivo localizado caen al archivo del locale por defecto — igual que las rutas fallback de i18n de docs.
+
+Consulta la [guía de Páginas Externas](/docs/guides/customization/external-pages) para la API legacy, layouts, limitaciones y detalles de file-routing.
+
+Consulta [Funciones Experimentales](/docs/guides/advanced/experimental) para la configuración opt-in completa.

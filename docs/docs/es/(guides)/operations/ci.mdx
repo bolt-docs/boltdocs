@@ -1,0 +1,302 @@
+---
+title: CI/CD y despliegue
+sidebarPosition: 1
+description: Construye un pipeline de documentación seguro — install, build, checks con doctor, despliegues de preview y promoción a producción con GitHub Actions, GitLab CI y otros runners.
+---
+
+La documentación se pudre cuando se despliega a mano. Un pipeline de CI/CD convierte cada merge en un despliegue verificado y revisable: los builds corren, se comprueban los enlaces, se generan previews para revisión y solo la rama principal llega a producción.
+
+---
+
+## El pipeline de un vistazo
+
+Un pipeline seguro de Boltdocs tiene cinco etapas:
+
+```text
+install → verify → build → preview → promote
+```
+
+1. **Install** — resuelve dependencias con lockfile congelado para que los builds sean reproducibles.
+2. **Verify** — `boltdocs doctor` (enlaces rotos, metadatos faltantes, traducciones huérfanas) y `boltdocs audit` (seguridad de plugins) antes de construir nada.
+3. **Build** — `boltdocs build` produce el output estático `dist/`.
+4. **Preview** — cada pull request recibe un despliegue de preview que los revisores pueden abrir.
+5. **Promote** — solo la rama por defecto (o un tag) despliega a producción, con rollback en mente.
+
+---
+
+## Comandos para CI
+
+| Comando | Qué detecta |
+| :--- | :--- |
+| `pnpm install --frozen-lockfile` | Resolución reproducible de dependencias. |
+| `boltdocs doctor` | Enlaces internos rotos, títulos faltantes, traducciones huérfanas. |
+| `boltdocs doctor --check-external` | También verifica enlaces externos (más lento — corre de noche, no por PR). |
+| `boltdocs doctor --budget` | Presupuestos de rendimiento desde `doctor.json` (tamaño de JS/CSS/HTML, tiempo de build). |
+| `boltdocs audit` | Chequeo estático de seguridad de los plugins configurados. |
+| `boltdocs build` | Build SSG de producción; falla ante errores de MDX o config. |
+| `boltdocs preview` | Sirve el build de producción localmente para smoke tests. |
+
+---
+
+## GitHub Actions
+
+### Despliegue de preview en pull requests
+
+Este workflow construye cada PR y despliega un preview (ejemplo con Vercel). La URL del preview se publica en el PR para que los revisores puedan navegar el sitio real:
+
+```yaml title=".github/workflows/preview.yml"
+name: Preview
+
+on:
+  pull_request:
+
+concurrency:
+  group: preview-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-and-preview:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Doctor (enlaces rotos, metadatos, traducciones)
+        run: pnpm --filter docs doctor
+
+      - name: Audit de plugins
+        run: pnpm --filter docs audit
+
+      - name: Build
+        run: pnpm --filter docs build
+
+      - name: Deploy preview
+        env:
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+        run: npx vercel deploy --prebuilt --token=$VERCEL_TOKEN
+```
+
+### Despliegue de producción en la rama por defecto
+
+El workflow de producción solo corre en `main` (o un tag `v*`), construye con las env vars de producción, despliega a producción y después hace smoke test del resultado:
+
+```yaml title=".github/workflows/deploy.yml"
+name: Deploy
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: production
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Doctor
+        run: pnpm --filter docs doctor
+
+      - name: Build
+        run: pnpm --filter docs build
+
+      - name: Deploy a producción
+        env:
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+        run: npx vercel deploy --prebuilt --prod --token=$VERCEL_TOKEN
+
+      - name: Smoke test
+        run: |
+          curl -sfI https://docs.example.com/ > /dev/null
+          curl -sfI https://docs.example.com/docs/guides > /dev/null
+```
+
+<Callout variant="note" title="Despliegues independientes de la plataforma">
+La etapa de build es idéntica en cualquier host. Solo cambia el paso de deploy:
+- **Vercel** — `npx vercel deploy --prebuilt --prod --token=$VERCEL_TOKEN`
+- **Netlify** — `npx netlify deploy --prod --dir=dist` (con `NETLIFY_AUTH_TOKEN`)
+- **Cloudflare Pages** — `npx wrangler pages deploy dist --project-name=my-docs`
+- **GitHub Pages / cualquier host estático** — sube `dist/` vía `actions/upload-pages-artifact` o rsync a tu servidor.
+</Callout>
+
+---
+
+## GitLab CI
+
+Las mismas etapas en un solo pipeline, con environments para preview y producción:
+
+```yaml title=".gitlab-ci.yml"
+image: node:22
+
+variables:
+  PNPM_VERSION: "10"
+
+cache:
+  paths:
+    - node_modules/
+
+stages:
+  - verify
+  - build
+  - preview
+  - deploy
+
+.install: &install
+  before_script:
+    - corepack enable
+    - corepack prepare pnpm@$PNPM_VERSION --activate
+    - pnpm install --frozen-lockfile
+
+verify:
+  stage: verify
+  <<: *install
+  script:
+    - pnpm --filter docs doctor
+    - pnpm --filter docs audit
+
+build:
+  stage: build
+  <<: *install
+  artifacts:
+    paths:
+      - docs/dist/
+    expire_in: 1 week
+  script:
+    - pnpm --filter docs build
+
+preview:
+  stage: preview
+  <<: *install
+  environment:
+    name: review/$CI_COMMIT_REF_SLUG
+    url: https://preview-$CI_COMMIT_REF_SLUG.example.com
+  only:
+    - merge_requests
+  script:
+    # Despliega los artefactos construidos a tu host de preview (Vercel/Netlify/etc.)
+    - npx vercel deploy --prebuilt --token=$VERCEL_TOKEN
+
+deploy:
+  stage: deploy
+  <<: *install
+  environment:
+    name: production
+    url: https://docs.example.com
+  only:
+    - main
+  script:
+    - npx vercel deploy --prebuilt --prod --token=$VERCEL_TOKEN
+    - curl -sfI https://docs.example.com/ > /dev/null
+```
+
+---
+
+## Secrets y variables de entorno
+
+Nunca comprometas secrets. Guárdalos en el secret store de tu proveedor de CI y refiérelos por nombre:
+
+- `VERCEL_TOKEN` / `NETLIFY_AUTH_TOKEN` / `CF_API_TOKEN` — tokens de deploy con el alcance más restringido (solo deploy) que permita tu plataforma.
+- `VERCEL_ORG_ID`, `VERCEL_PROJECT_ID` — coordenadas del proyecto para el CLI de Vercel.
+- `BOLTDOCS_GITHUB_TOKEN`, `BOLTDOCS_GITHUB_REPO_OWNER`, `BOLTDOCS_GITHUB_REPO_NAME` — requeridos por las serverless functions de feedback en producción (consulta [Feedback → Producción](/docs/integrations/features/feedback)).
+
+Para builds que deben permanecer privados (staging detrás de auth), define `seo.indexing: 'public'` o protege el deploy con una variable `DOCS_ENV` que seleccione los ajustes de `drafts.visible` / indexing.
+
+---
+
+## Despliegues seguros a producción
+
+Estos hábitos mantienen un deploy de docs aburrido — y aburrido es bueno:
+
+1. **Assets inmutables con hash de contenido.** Boltdocs hashea los nombres de archivo JS/CSS, así que `Cache-Control: immutable` en `/assets/*` nunca sirve código obsoleto (consulta [Cabeceras → Cache-Control](/docs/guides/security/headers#buenas-prácticas-de-cache-control)).
+2. **Swaps atómicos.** Vercel/Netlify/Cloudflare intercambian todo el deployment de forma atómica — nunca borres el sitio anterior antes de que el nuevo esté vivo.
+3. **Solo builds prebuilt.** Ejecuta `boltdocs build` en CI y despliega el `dist/` producido (`--prebuilt` en Vercel). No dejes que la plataforma construya desde el fuente: menos piezas móviles, los mismos bytes en todas partes.
+4. **Smoke test después del deploy.** Como mínimo `curl -sfI` a la home y a una ruta de docs. Los ejemplos de GitHub/GitLab de arriba lo hacen en el job de deploy.
+5. **El rollback es un clic.** Cada deployment inmutable es un punto de rollback. Mantén el deployment anterior y sabe cómo promoverlo en el dashboard de tu plataforma.
+6. **Invalidación de caché al desplegar.** Vercel/Netlify purgan la CDN automáticamente al desplegar. En otros hosts, invalida `*.html`, `/sitemap.xml` y `/robots.txt` (los assets son inmutables y pueden quedar cacheados).
+7. **Usa tags para los hitos de docs.** Si tu documentación sigue las versiones de tu producto, despliega desde un tag `v*` y activa el versionado de docs (`docs/v2/…`) para que los releases históricos sigan accesibles. Consulta [Versionado](/docs/integrations/globalization/versioning).
+8. **Comprueba las cabeceras en CI.** Antes de promover, verifica que las cabeceras de seguridad se sirven de verdad:
+
+```bash
+curl -sI "$URL" | grep -iE 'content-security-policy|x-frame-options|strict-transport-security'
+```
+
+---
+
+## Chequeos profundos nocturnos
+
+Los pipelines por PR deben ser rápidos; los chequeos profundos pertenecen a un horario. Añade un job nocturno que ejecute las verificaciones lentas y exhaustivas:
+
+```yaml
+name: Nightly docs health
+
+on:
+  schedule:
+    - cron: "30 1 * * *"
+  workflow_dispatch:
+
+jobs:
+  health:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Doctor (incluyendo enlaces externos)
+        run: pnpm --filter docs doctor --check-external
+      - name: Presupuesto de rendimiento
+        run: pnpm --filter docs doctor --budget
+```
+
+---
+
+## Dónde seguir
+
+- [Comandos CLI](/docs/guides/getting-started/cli) — referencia completa de `doctor`, `audit`, `build` y `preview`.
+- [Cabeceras](/docs/guides/security/headers) — qué verificar en CI y cómo configurar cabeceras por plataforma.
+- [Solución de problemas](/docs/guides/operations/troubleshooting) — fallos comunes de build y despliegue.
+- [Feedback → Producción](/docs/integrations/features/feedback) — endpoints serverless y las env vars que producción necesita.

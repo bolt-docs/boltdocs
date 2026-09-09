@@ -33,7 +33,7 @@
   "license": "MIT",
   "type": "module",
   "dependencies": {
-    "@bdocs/dui": "^0.3.0",
+    "@bdocs/dui": "^0.6.0",
     "mermaid": "^11.12.3",
     "playwright": "^1.59.0",
     "unist-util-visit": "^5.0.0"
@@ -55,6 +55,7 @@
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "tsdown": "^0.21.7",
-    "typescript": "^5.9.3"
+    "typescript": "^5.9.3",
+    "tsdown-config": "workspace:*"
   }
 }

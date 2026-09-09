@@ -6,15 +6,6 @@ description: "Un indicador de ruta de navegación que muestra la ubicación del 
 
 El componente `Breadcrumbs` muestra una cadena horizontal de enlaces de migas de pan que indica la estructura de navegación de la página activa actual.
 
----
-
-## Importación
-
-```tsx
-import { Breadcrumbs } from 'boltdocs/primitives'
-```
-
----
 
 ## Ejemplo de Breadcrumbs Componible
 
@@ -97,3 +88,33 @@ La primitiva `Breadcrumbs` proporciona los siguientes subcomponentes para la per
 | :--- | :--- | :--- | :--- |
 | **`href`** | `string` | *Requerido* | Ruta de destino de la ruta de navegación. |
 | **`className`** | `string` | `undefined` | Sobrescritura de estilo de clase CSS. |
+
+---
+
+## Personalización y estados
+
+La primitiva `Breadcrumbs` es **neutral en estilo**: aporta el landmark `<nav aria-label="Breadcrumb">` con una jerarquía `<ol>`/`<li>` y el comportamiento del separador, y cada decisión visual pertenece al tema a través del paso de `className` en `Breadcrumbs` (raíz), `Breadcrumbs.Item`, `Breadcrumbs.Link` y `Breadcrumbs.Separator`. No pinta ningún color por sí misma — el estilo del elemento actual se basa en la marca `data-current` que recibe la última miga.
+
+| Estado / Ranura | Mecanismo |
+| :--- | :--- |
+| `Breadcrumbs` (raíz) | Renderiza `<nav aria-label="Breadcrumb">` que envuelve `<ol>`; diseño y espaciado vía `className` |
+| `Breadcrumbs.Item` | Celda `<li>`; la última miga (actual) también lleva `data-current` |
+| Miga actual | RAC marca el último elemento: `data-current` en el `<li>` y `aria-current="page"` en el enlace interno |
+| `Breadcrumbs.Separator` | Chevrón `<span>`; color y tamaño vía `className` |
+| `Breadcrumbs.Link` | `<a>` de router simple; colores hover y actuales vía `className` |
+
+```tsx
+<Breadcrumbs className="flex items-center gap-2 text-sm text-muted">
+  <Breadcrumbs.Item>
+    <Breadcrumbs.Link href="/" className="hover:text-body transition-colors">
+      Inicio
+    </Breadcrumbs.Link>
+  </Breadcrumbs.Item>
+  <Breadcrumbs.Item className="data-current:text-body data-current:font-semibold">
+    <Breadcrumbs.Separator className="text-muted/40" />
+    <Breadcrumbs.Link href="/docs/guides" className="hover:text-body transition-colors">
+      Guías
+    </Breadcrumbs.Link>
+  </Breadcrumbs.Item>
+</Breadcrumbs>
+```

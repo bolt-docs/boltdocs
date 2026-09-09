@@ -7,10 +7,6 @@ const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
 const WORKSPACE_ROOT = path.resolve(__dirname, '..', '..')
 
-const { generateRoutes, invalidateRouteCache } = await import(
-  path.join(WORKSPACE_ROOT, 'packages', 'core', 'dist', 'node', 'index.mjs')
-)
-
 type ParserType = 'JS' | 'WASM' | 'Native'
 
 type GenerateRoutesResult = {
@@ -26,11 +22,23 @@ type GenerateRoutesFn = (
 
 type InvalidateRouteCacheFn = () => void
 
-const typedGenerateRoutes = generateRoutes as unknown as GenerateRoutesFn
-const typedInvalidateRouteCache =
-  invalidateRouteCache as unknown as InvalidateRouteCacheFn
+let typedGenerateRoutes: GenerateRoutesFn
+let typedInvalidateRouteCache: InvalidateRouteCacheFn
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url))
+async function loadCore(): Promise<void> {
+  const corePath = path.join(
+    WORKSPACE_ROOT,
+    'packages',
+    'core',
+    'dist',
+    'node',
+    'index.mjs',
+  )
+  const core = await import(corePath)
+  typedGenerateRoutes = core.generateRoutes as unknown as GenerateRoutesFn
+  typedInvalidateRouteCache =
+    core.invalidateRouteCache as unknown as InvalidateRouteCacheFn
+}
 
 // Create a varied MDX file content generator
 function generateVariedMDX(index: number): string {
@@ -169,6 +177,9 @@ async function runBench(
 }
 
 async function main() {
+  // Load core module before running benchmarks
+  await loadCore()
+
   const benchDir = path.resolve(__dirname, 'temp_bench_docs')
 
   console.log('==================================================')

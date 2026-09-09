@@ -1,0 +1,211 @@
+---
+title: CodeBlock
+sidebarPosition: 9
+description: El contenedor que envuelve cada bloque de código resaltado.
+---
+
+`CodeBlock` es el contenedor visual que Boltdocs envuelve alrededor de cada bloque de código con cerca (```` ```ts ````, ```` ```tsx ````, ```` ```bash ````, etc.). Maneja el borde redondeado, la franja de encabezado con la etiqueta del lenguaje y la barra de acciones (botón de copiar + expandir / colapsar). Generalmente no lo usarás directamente en contenido `.mdx` — Boltdocs lo inyecta automáticamente a través de MDX — pero está expuesto para que puedas construir un fragmento resaltado *personalizado* dentro de tus propios componentes.
+
+
+## Cuándo usarlo
+
+Tres situaciones requieren usar `CodeBlock` directamente:
+
+1. **Resaltar un fragmento que no tiene cerca** — por ejemplo, un string devuelto por un fetch que quieres renderizar como código.
+2. **Construir un widget demo tipo `Tab`** — cada panel contiene una muestra de código que debería compartir el mismo estilo de borde/encabezado que el resto de la documentación.
+3. **Construir un componente personalizado `<Playground>` o `<LiveCode>`** — para playgrounds de editor que necesiten reflejar el aspecto de la documentación.
+
+Si solo estás escribiendo contenido de documentación, no te preocupes — escribe un bloque de código con cerca. Boltdocs lo conecta automáticamente.
+
+---
+
+## Anatomía
+
+Un bloque de código tiene tres regiones opcionales:
+
+```tsx
+<CodeBlock>
+  <CodeBlock.Header>
+    <CodeBlock.Group>{/* e.g. icono del lenguaje + "TypeScript" */}</CodeBlock.Group>
+    <CodeBlock.Actions>{/* e.g. botón de copiar, feedback de pulgares */}</CodeBlock.Actions>
+  </CodeBlock.Header>
+
+  <CodeBlock.Content>
+    <CodeBlock.Pre>{/* código resaltado o crudo */}</CodeBlock.Pre>
+    <CodeBlock.Expand />
+  </CodeBlock.Content>
+</CodeBlock>
+```
+
+- **`CodeBlock`** (raíz) — establece el borde redondeado, el color de fondo y el padding exterior. Pasa `plain` para renderizar sin borde, útil dentro de cards que ya tienen uno.
+- **`CodeBlock.Header`** — la franja sobre el código. Contiene la etiqueta del lenguaje a la izquierda y los botones de copiar/expandir a la derecha.
+- **`CodeBlock.Group`** — contenedor flex horizontal. Úsalo para agrupar el logo y la etiqueta del lenguaje dentro de `Header`.
+- **`CodeBlock.Actions`** — contenedor de la barra de acciones alineada a la derecha del encabezado (botón de copiar, feedback). Pasa `className` para teñir la superficie detrás de los encabezados flotantes.
+- **`CodeBlock.Content`** — envuelve el `<pre>` (o cualquier renderizador que elijas). Pasa `shouldTruncate` para limitar el fragmento a 300px y permitir que los usuarios lo expandan.
+- **`CodeBlock.Pre`** — renderiza el HTML de Shiki cuando se proporciona `highlightedHtml`; de lo contrario usa `children`. Acepta `highlightedHtml`, `isHighlighted` y un `ref` para que los hooks puedan medir el contenido renderizado.
+- **`CodeBlock.Expand`** — el botón de expandir/colapsar para bloques truncados. Conéctalo a `useExpandable` con `isExpandable`, `shouldTruncate`, `isExpanded` y `onToggle`. Acepta `buttonClassName` para la superficie del botón.
+
+---
+
+## Armándolo todo
+
+```tsx
+import { Button, CodeBlock } from 'boltdocs/primitives'
+import { useCopyButton, useExpandable } from 'boltdocs/client'
+import { Copy, Check } from 'lucide-react'
+
+export function RawSnippet({ lang, code, html }: { lang: string; code: string; html: string }) {
+  const { copied, handleCopy } = useCopyButton()
+  const { isExpanded, isExpandable, shouldTruncate, toggle, preRef } =
+    useExpandable({ children: code, highlightedHtml: html })
+
+  return (
+    <CodeBlock plain>
+      <CodeBlock.Header>
+        <CodeBlock.Group>
+          <span className="text-xs font-mono uppercase">{lang}</span>
+        </CodeBlock.Group>
+        <CodeBlock.Actions>
+          <Button onPress={() => handleCopy(preRef.current?.textContent ?? '')}>
+            {copied ? <Check size={16} /> : <Copy size={16} />}
+          </Button>
+        </CodeBlock.Actions>
+      </CodeBlock.Header>
+      <CodeBlock.Content shouldTruncate={shouldTruncate}>
+        <CodeBlock.Pre ref={preRef} highlightedHtml={html} isHighlighted>
+          {code}
+        </CodeBlock.Pre>
+        <CodeBlock.Expand
+          isExpandable={isExpandable}
+          shouldTruncate={shouldTruncate}
+          isExpanded={isExpanded}
+          onToggle={toggle}
+        />
+      </CodeBlock.Content>
+    </CodeBlock>
+  )
+}
+```
+
+Eso es todo — el HTML interno es la salida de Shiki pre-renderizada, así que funciona durante SSG sin ningún resaltador del lado del cliente enviado al navegador.
+
+---
+
+## Hooks
+
+Los hooks por funcionalidad te dan el comportamiento interactivo sin acoplarse al contenedor. Se exportan desde `boltdocs/client` y pueden usarse con las parts de la primitiva o de forma independiente.
+
+### `useCopyButton`
+
+Estado de copiado al portapapeles con una confirmación transitoria de 2s:
+
+```tsx
+const { copied, handleCopy } = useCopyButton()
+<CodeBlock.Actions>
+  <Button onPress={() => handleCopy(preRef.current?.textContent ?? '')}>
+    {copied ? <Check size={16} /> : <Copy size={16} />}
+  </Button>
+</CodeBlock.Actions>
+```
+
+### `useExpandable`
+
+Expandir/colapsar para bloques largos. Mide el código renderizado a través de `preRef` e informa si el bloque excede `maxLines` (predeterminado `6`):
+
+```tsx
+const { isExpanded, isExpandable, shouldTruncate, toggle, preRef } =
+  useExpandable({ children, highlightedHtml })
+
+<CodeBlock.Content shouldTruncate={shouldTruncate}>
+  <CodeBlock.Pre ref={preRef} highlightedHtml={html} isHighlighted>
+    {children}
+  </CodeBlock.Pre>
+  <CodeBlock.Expand
+    isExpandable={isExpandable}
+    shouldTruncate={shouldTruncate}
+    isExpanded={isExpanded}
+    onToggle={toggle}
+  />
+</CodeBlock.Content>
+```
+
+### `useCodeBlockFeedback`
+
+Feedback de pulgar arriba / pulgar abajo. Solo activo cuando la integración `feedback.custom` está habilitada en la configuración del sitio, y nunca para bloques `plain`. Sobrescribe el envío vía `submitFeedback`:
+
+```tsx
+const { rated, handleRate, enabled } = useCodeBlockFeedback({ plain, lang })
+```
+
+### `useCodeBlock` (deprecado)
+
+La antigua composición de un solo hook sigue funcionando pero está deprecada desde `v4`. Ahora es una composición interna de `useCopyButton`, `useExpandable` y `useCodeBlockFeedback` y se eliminará en una futura versión major. Migra componiendo tú mismo los tres hooks por funcionalidad.
+
+---
+
+## Props
+
+| Prop | Tipo | Predeterminado | Qué hace |
+| :--- | :--- | :--- | :--- |
+| `plain` (raíz) | `boolean` | `false` | Omite el borde y el padding exteriores. Útil dentro de un padre que ya los tiene. |
+| `shouldTruncate` (content) | `boolean` | `false` | Limita el código a ~300px y agrega un botón de expandir. |
+| `highlightedHtml` (pre) | `string` | — | HTML de Shiki pre-renderizado que se renderiza en lugar de `children`. |
+| `isHighlighted` (pre) | `boolean` | `false` | Marca el contenido como ya resaltado (desactiva el intercambio de fuente de resaltado). |
+| `ref` (pre) | `Ref<HTMLElement>` | — | Se reenvía al elemento de código para que los hooks puedan medir el contenido de texto. |
+| `isExpandable` / `shouldTruncate` / `isExpanded` / `onToggle` (expand) | `boolean` × 3, `() => void` | `false` / `false` / `false` / — | Estado del botón de expandir conectado desde `useExpandable`. |
+| `buttonClassName` (expand) | `string` | — | Clases Tailwind adicionales para el botón de expandir. |
+| `className` | `string` | — | Clases Tailwind adicionales. |
+| `children` | `ReactNode` | — | Sub-componentes. |
+
+Cada sub-componente hereda la forma común `children` / `className` / `style`.
+
+---
+
+## Trampas comunes
+
+- El bloque `<pre>` por defecto de Boltdocs usa [`scroll-into-view-if-needed`](https://www.npmjs.com/package/scroll-into-view-if-needed) internamente para el código que se desborda. No sobrescribas el estilo `overflow` del `<pre>` a menos que sepas lo que haces.
+- El resaltado ocurre en tiempo de build/dev, no en el navegador. El helper `highlight()` devuelve HTML pre-renderizado. Si envías un editor live pesado de RxJS, puede que necesites un resaltador de runtime diferente — `CodeBlock` en sí es solo un contenedor.
+- El botón de copiar lee del texto `code` original, no del HTML resaltado — así que los caracteres internacionales y emojis se copian limpiamente.
+
+---
+
+## Ver también
+
+- [`DocsLayout`](/docs/components/layout/docs-layout) — usa `CodeBlock` implícitamente a través del renderizado MDX.
+- [`Tabs`](/docs/components/ui/tabs) — combínalo con `CodeBlock` para construir tabs de copia multi-lenguaje.
+
+---
+
+## Personalización y estados
+
+La primitiva `CodeBlock` es **neutral en estilo**: es un contenedor — la estructura y el comportamiento vienen de la primitiva, y cada decisión visual (colores, bordes, espaciado) pertenece al tema del sitio a través del paso de `className` en cada parte. No emite atributos de estado `data-*`; el estado "copiado" se expone a través del hook `useCopyButton` (devuelve `copied`), por lo que el estilo de copiado se maneja dentro del botón del tema.
+
+| Estado / Ranura | Mecanismo |
+| :--- | :--- |
+| `CodeBlock` (raíz) | `<div>` contenedor; `plain` omite borde y padding; fondo y borde provienen de tokens del tema (`--color-code-bg`, `border-subtle`) |
+| `CodeBlock.Header` / `Group` / `Actions` | Ranuras de diseño; la alineación está integrada, los colores vía `className` |
+| `CodeBlock.Content` | Envuelve el `<pre>`; `shouldTruncate` limita el fragmento a ~300px |
+| `CodeBlock.Pre` | `<pre>` o envoltorio de Shiki; tipografía y espaciado vía `className` |
+| `CodeBlock.Expand` | Botón expandir/colapsar de `useExpandable`; `isExpanded` controla la etiqueta; estilo vía `buttonClassName` |
+| Estado copiado | Sin atributo `data-*` — `useCopyButton()` devuelve `copied`; intercambia el icono o las clases en el botón del tema |
+
+```tsx
+<CodeBlock className="my-6 rounded-xl border border-subtle bg-(--color-code-bg)">
+  <CodeBlock.Header>
+    <CodeBlock.Group>
+      <span className="text-xs font-mono uppercase text-muted">{lang}</span>
+    </CodeBlock.Group>
+    <CodeBlock.Actions>
+      <Button
+        onPress={() => handleCopy(preRef.current?.textContent ?? '')}
+        className={copied ? 'text-primary-500' : 'text-muted hover:text-body'}
+      >
+        {copied ? <Check size={16} /> : <Copy size={16} />}
+      </Button>
+    </CodeBlock.Actions>
+  </CodeBlock.Header>
+  <CodeBlock.Content>
+    <CodeBlock.Pre ref={preRef}>{code}</CodeBlock.Pre>
+  </CodeBlock.Content>
+</CodeBlock>
+```

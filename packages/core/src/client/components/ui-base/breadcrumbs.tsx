@@ -3,12 +3,14 @@ import { Home } from './icons'
 import { Breadcrumbs as BreadcrumbsRoot } from '../primitives/breadcrumbs'
 import { cn } from '../../utils/cn'
 
-export function Breadcrumbs() {
+export function Breadcrumbs({ className }: { className?: string }) {
   const { crumbs, activeRoute } = useBreadcrumbs()
   if (crumbs.length === 0) return null
 
   return (
-    <BreadcrumbsRoot.Root className="gap-2 text-xs sm:text-sm font-medium">
+    <BreadcrumbsRoot.Root
+      className={cn('gap-2 text-xs sm:text-sm font-medium', className)}
+    >
       <BreadcrumbsRoot.Item>
         <BreadcrumbsRoot.Link
           href="/"

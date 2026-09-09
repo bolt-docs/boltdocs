@@ -1,0 +1,87 @@
+---
+title: View Transitions
+sidebarPosition: 2
+description: Add native browser animations between document states during internal router navigation.
+---
+
+View Transitions add a native animation between two document states. In Boltdocs, enabling the feature makes internal router navigation use transitions automatically. Browsers without `document.startViewTransition()` continue with normal navigation without errors.
+
+## Enable automatic navigation
+
+```ts
+export default defineConfig({
+  experimental: {
+    viewTransitions: true,
+  },
+})
+```
+
+You can also configure the types sent to the browser:
+
+```ts
+export default defineConfig({
+  experimental: {
+    viewTransitions: {
+      enabled: true,
+      types: ['page'],
+    },
+  },
+})
+```
+
+Once enabled, `Link`, navbar, sidebar, and the router use the API automatically. You don't need to replace every link.
+
+## Add an explicit transition link
+
+For an external page or a link that should activate independently, use `TransitionLink` from `boltdocs/primitives`:
+
+```tsx
+import { TransitionLink } from 'boltdocs/primitives'
+
+export function NextStep() {
+  return (
+    <TransitionLink href="/docs/guides/getting-started/configuration">
+      Continue to configuration
+    </TransitionLink>
+  )
+}
+```
+
+`TransitionLink` explicitly triggers the transition for that link, even if the global experimental config is disabled. It preserves normal anchor behavior when the browser doesn't support the native API.
+
+## Run a transition around a change
+
+Use `useViewTransition()` for state changes in external pages or custom controls:
+
+```tsx
+import { useState } from 'react'
+import { useViewTransition } from 'boltdocs/client'
+
+export function PreviewToggle() {
+  const [preview, setPreview] = useState(false)
+  const transition = useViewTransition()
+
+  function toggle() {
+    transition.run(() => {
+      setPreview((value) => !value)
+    })
+  }
+
+  return (
+    <button type="button" onClick={toggle}>
+      {preview ? 'Show source' : 'Show preview'}
+    </button>
+  )
+}
+```
+
+The hook is also directly invocable for compatibility:
+
+```tsx
+transition(() => setOpen(true))
+transition.start(() => setOpen(true))
+```
+
+The runner exposes `transition.enabled` and `transition.supported` when a component needs to show a compatibility indicator. The callback can return a promise. The resulting handle exposes `ready`, `updateCallbackDone`, `finished`, and `skipTransition` when the browser provides them.
+
+See [Experimental Features](/docs/guides/advanced/experimental) for the full opt-in setup.

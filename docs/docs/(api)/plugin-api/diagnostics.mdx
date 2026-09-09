@@ -28,29 +28,6 @@ const allDiagnostics: readonly DiagnosticRecord[] = ctx.diagnostics.list()
 ctx.diagnostics.clear()
 ```
 
----
-
-## DiagnosticRecord shape
-
-```ts
-interface DiagnosticRecord {
-  readonly id: number
-  readonly severity: 'info' | 'warn' | 'error'
-  readonly code: string            // Machine-readable error code
-  readonly message: string         // Human-readable description
-  readonly pluginName: string      // Set automatically from the plugin's name
-  readonly filePath?: string
-  readonly routePath?: string
-  readonly time: Date
-}
-```
-
-### FIFO cap
-
-The queue is capped at **256 records**. When a plugin emits faster than
-the dev-server overlay drains, the oldest records are silently evicted.
-
----
 
 ## See also
 

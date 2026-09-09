@@ -1,4 +1,3 @@
-import fs from 'node:fs'
 import fsPromises from 'node:fs/promises'
 import path from 'node:path'
 import crypto from 'node:crypto'
@@ -13,6 +12,13 @@ const mkdir = fsPromises.mkdir
 const rename = fsPromises.rename
 const gzipPromise = promisify(zlib.gzip)
 const gunzipPromise = promisify(zlib.gunzip)
+
+// Transform caches own a debounced index write. Keep process-local
+// registration so `flushCache()` can force those writes before a build exits.
+const transformCacheRegistry = new Set<WeakRef<TransformCache>>()
+const transformCacheFinalizer = new FinalizationRegistry<
+  WeakRef<TransformCache>
+>((ref) => transformCacheRegistry.delete(ref))
 
 /**
  * Shards directory name.
@@ -47,13 +53,49 @@ class BackgroundQueue {
 export const globalBackgroundQueue = new BackgroundQueue()
 
 /**
+ * Run an array of tasks with bounded concurrency.
+ */
+async function runWithConcurrency<T, R>(
+  items: T[],
+  concurrency: number,
+  fn: (item: T) => Promise<R>,
+): Promise<R[]> {
+  const results = new Array<R>(items.length)
+  let index = 0
+
+  async function worker() {
+    while (index < items.length) {
+      const i = index++
+      results[i] = await fn(items[i])
+    }
+  }
+
+  await Promise.all(
+    Array.from({ length: Math.min(concurrency, items.length) }, () => worker()),
+  )
+  return results
+}
+
+/**
  * Generic file-based cache with per-file granularity and asynchronous persistence.
+ *
+ * Storage layout (when `name` is provided):
+ *   <root>/.boltdocs/cache/file-<name>/index.json
+ *   <root>/.boltdocs/cache/file-<name>/shards/<hash>.json[.gz]
+ *
+ * Each entry is persisted in its own shard keyed by a hash of the serialized
+ * value. This avoids the monolithic JSON.parse/stringify overhead of the
+ * previous single-file implementation and mirrors the proven design of
+ * `TransformCache`.
  */
 export class FileCache<T> {
   private entries = new Map<string, { data: T; mtime: number }>()
-  private readonly cachePath: string | null = null
+  private readonly baseDir: string | null = null
+  private readonly indexPath: string | null = null
+  private readonly shardsDir: string | null = null
   private readonly compress: boolean
   private loaded = false
+  private savePromise: Promise<void> | null = null
 
   constructor(
     options: { name?: string; root?: string; compress?: boolean } = {},
@@ -63,66 +105,161 @@ export class FileCache<T> {
       options.compress !== undefined ? options.compress : config.compress
     if (options.name) {
       const root = options.root || process.cwd()
-      const ext = this.compress ? 'json.gz' : 'json'
-      this.cachePath = path.resolve(root, config.dir, `${options.name}.${ext}`)
+      this.baseDir = path.resolve(root, config.dir, `file-${options.name}`)
+      this.indexPath = path.resolve(this.baseDir, 'index.json')
+      this.shardsDir = path.resolve(this.baseDir, 'shards')
     }
   }
 
+  private shardHash(data: T): string {
+    return crypto.createHash('md5').update(JSON.stringify(data)).digest('hex')
+  }
+
+  private shardPath(hash: string): string {
+    const ext = this.compress ? 'gz' : 'json'
+    return path.resolve(this.shardsDir!, `${hash}.${ext}`)
+  }
+
   /**
-   * Loads the cache.
+   * Loads the cache index and shards into memory.
    */
   async load(): Promise<void> {
     if (this.loaded) return
     const config = getCacheConfig()
     if (config.noCache) return
-    if (!this.cachePath) return
+    if (!this.indexPath || !this.shardsDir) return
 
+    let index: Record<string, { hash: string; mtime: number }> = {}
     try {
-      let raw = await readFile(this.cachePath)
-      if (this.cachePath.endsWith('.gz')) {
-        raw = await gunzipPromise(
-          new Uint8Array(raw as Buffer) as unknown as Parameters<
-            typeof gunzipPromise
-          >[0],
-        )
-      }
-      const data = JSON.parse(raw.toString('utf-8'))
-      this.entries = new Map(Object.entries(data))
-      this.loaded = true
+      const raw = await readFile(this.indexPath, 'utf-8')
+      index = JSON.parse(raw)
     } catch (e) {
-      if (e instanceof Error && (e as NodeJS.ErrnoException).code === 'ENOENT')
+      if (
+        e instanceof Error &&
+        (e as NodeJS.ErrnoException).code === 'ENOENT'
+      ) {
+        this.loaded = true
         return
-      // Fallback: ignore cache errors
+      }
+      // Corrupt or unreadable index; start fresh
+      this.loaded = true
+      return
     }
+
+    const entries = new Map<string, { data: T; mtime: number }>()
+    const keys = Object.keys(index)
+
+    await runWithConcurrency(keys, 32, async (key) => {
+      const { hash, mtime } = index[key]
+      const shardPath = this.shardPath(hash)
+      try {
+        let raw = await readFile(shardPath)
+        if (this.compress) {
+          raw = await gunzipPromise(
+            new Uint8Array(raw as Buffer) as unknown as Parameters<
+              typeof gunzipPromise
+            >[0],
+          )
+        }
+        const data = JSON.parse(raw.toString('utf-8')) as T
+        entries.set(key, { data, mtime })
+      } catch {
+        // Ignore missing/corrupt shards; they will be regenerated
+      }
+    })
+
+    this.entries = entries
+    this.loaded = true
   }
 
   /**
-   * Saves the cache in the background.
+   * Saves the cache in the background using a sharded index + shard files.
    */
   save(): void {
     const config = getCacheConfig()
     if (config.noCache) return
-    if (!this.cachePath) return
+    if (!this.indexPath || !this.shardsDir) return
 
-    const data = Object.fromEntries(this.entries)
-    const content = JSON.stringify(data)
-    const target = this.cachePath
+    // Snapshot the current in-memory state so this save task is self-consistent
+    const snapshot = Array.from(this.entries.entries()).map(([key, value]) => ({
+      key,
+      ...value,
+      hash: this.shardHash(value.data),
+    }))
+
+    const index: Record<string, { hash: string; mtime: number }> = {}
+    for (const { key, mtime, hash } of snapshot) {
+      index[key] = { hash, mtime }
+    }
+
+    const indexTarget = this.indexPath
+    const indexData = JSON.stringify(index)
     const useCompress = this.compress
+    const shardsDir = this.shardsDir
+    const activeHashes = new Set(Object.values(index).map((i) => i.hash))
 
-    globalBackgroundQueue.add(async () => {
+    // Chain saves on this instance so two overlapping saves never race on the
+    // shard directory. Each save still writes via the global background queue.
+    const run = async () => {
       try {
-        await mkdir(path.dirname(target), { recursive: true })
-        let buffer: any = Buffer.from(content)
-        if (useCompress) {
-          buffer = await gzipPromise(buffer)
+        await mkdir(shardsDir, { recursive: true })
+
+        // Write the index first so a crash never leaves an index pointing to missing shards
+        const tempIndexPath = `${indexTarget}.${crypto.randomBytes(4).toString('hex')}.tmp`
+        await writeFile(tempIndexPath, indexData)
+        await rename(tempIndexPath, indexTarget)
+
+        // Write each unique content shard with bounded concurrency
+        const uniqueShards = new Map<string, T>()
+        for (const { hash, data } of snapshot) {
+          if (!uniqueShards.has(hash)) {
+            uniqueShards.set(hash, data)
+          }
         }
-        const tempPath = `${target}.${crypto.randomBytes(4).toString('hex')}.tmp`
-        await writeFile(tempPath, buffer)
-        await rename(tempPath, target)
+
+        await runWithConcurrency(
+          Array.from(uniqueShards.entries()),
+          8,
+          async ([hash, data]) => {
+            const target = this.shardPath(hash)
+            try {
+              await fsPromises.access(target)
+              return
+            } catch {
+              // File does not exist, proceed to write
+            }
+
+            const content = JSON.stringify(data)
+            let buffer: any = Buffer.from(content)
+            if (useCompress) {
+              buffer = await gzipPromise(buffer)
+            }
+            const tempPath = `${target}.${crypto.randomBytes(4).toString('hex')}.tmp`
+            await writeFile(tempPath, buffer)
+            await rename(tempPath, target)
+          },
+        )
+
+        // Prune orphan shards that are no longer referenced by the index.
+        // This runs after the index is persisted so the index is never stale.
+        try {
+          const files = await fsPromises.readdir(shardsDir)
+          await runWithConcurrency(files, 8, async (file) => {
+            const hash = file.replace(/\.(gz|json)$/, '')
+            if (!activeHashes.has(hash)) {
+              await fsPromises.unlink(path.resolve(shardsDir, file))
+            }
+          })
+        } catch {
+          // Ignore prune errors
+        }
       } catch (e) {
         // Fallback: critical error logging skipped for performance
       }
-    })
+    }
+
+    this.savePromise = (this.savePromise || Promise.resolve()).then(run, run)
+    globalBackgroundQueue.add(() => this.savePromise!)
   }
 
   get(filePath: string): T | null {
@@ -198,6 +335,9 @@ export class TransformCache {
       ttl: config.lruTTL,
       updateAgeOnGet: true,
     })
+    const ref = new WeakRef(this)
+    transformCacheRegistry.add(ref)
+    transformCacheFinalizer.register(this, ref, this)
   }
 
   /**
@@ -223,6 +363,10 @@ export class TransformCache {
   save(): void {
     const config = getCacheConfig()
     if (config.noCache) return
+    if (this.saveTimeout) {
+      clearTimeout(this.saveTimeout)
+      this.saveTimeout = null
+    }
     const data = JSON.stringify(Object.fromEntries(this.index))
     const target = this.indexPath
 
@@ -245,7 +389,7 @@ export class TransformCache {
 
     for (const key of keys) {
       const mem = this.memoryCache.get(key)
-      if (mem) results.set(key, mem)
+      if (mem !== undefined) results.set(key, mem)
       else if (this.index.has(key)) toLoad.push(key)
     }
 
@@ -283,7 +427,7 @@ export class TransformCache {
    */
   async getAsync(key: string): Promise<string | null> {
     const mem = this.memoryCache.get(key)
-    if (mem) return mem
+    if (mem !== undefined) return mem
 
     const hash = this.index.get(key)
     if (!hash) return null
@@ -345,6 +489,7 @@ export class TransformCache {
       clearTimeout(this.saveTimeout)
     }
     this.saveTimeout = setTimeout(() => {
+      this.saveTimeout = null
       this.save()
     }, 500)
     if (typeof this.saveTimeout.unref === 'function') {
@@ -357,7 +502,27 @@ export class TransformCache {
   }
 
   async flush() {
+    // A debounced index write must be materialized before waiting for the
+    // background queue; otherwise a fast build can finish before the 500 ms
+    // timer runs and lose the latest cache index.
+    if (this.saveTimeout) {
+      clearTimeout(this.saveTimeout)
+      this.saveTimeout = null
+      this.save()
+    }
     await globalBackgroundQueue.flush()
+  }
+
+  /** Release this cache from the process-wide flush registry. */
+  dispose(): void {
+    if (this.saveTimeout) {
+      clearTimeout(this.saveTimeout)
+      this.saveTimeout = null
+    }
+    for (const ref of transformCacheRegistry) {
+      if (ref.deref() === this) transformCacheRegistry.delete(ref)
+    }
+    transformCacheFinalizer.unregister(this)
   }
 }
 
@@ -365,5 +530,12 @@ export class TransformCache {
  * Flushes all pending background cache operations.
  */
 export async function flushCache() {
+  // Flush debounced transform indexes first, then wait for their shard writes.
+  await Promise.all(
+    [...transformCacheRegistry]
+      .map((ref) => ref.deref())
+      .filter((cache): cache is TransformCache => cache !== undefined)
+      .map((cache) => cache.flush()),
+  )
   await globalBackgroundQueue.flush()
 }

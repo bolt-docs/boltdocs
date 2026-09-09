@@ -1,60 +1,59 @@
 import { Info, Lightbulb, AlertTriangle, AlertCircle } from '../ui-base/icons'
 import { cn } from '../../utils/cn'
+import { Callout as CalloutPrimitive } from '../primitives/callout'
+import type { CalloutVariant } from '../primitives/callout'
 
-export type CalloutVariant = 'note' | 'tip' | 'warning' | 'danger' | 'info'
+export type { CalloutVariant }
 
 export interface CalloutProps extends React.HTMLAttributes<HTMLDivElement> {
   variant?: CalloutVariant
   title?: string
+  iconClassName?: string
+  titleClassName?: string
+  bodyClassName?: string
 }
 
-const variantStyles: Record<
+/**
+ * Default styled callout. Built on the style-neutral Callout primitive and
+ * themed through semantic variant tokens (`--color-{danger|success|warning|info|primary}-500`),
+ * so a custom theme can restyle it entirely from CSS.
+ */
+const variantMeta: Record<
   CalloutVariant,
   {
     container: string
-    titleText: string
-    iconColor: string
-    icon: React.ComponentType<any>
+    accent: string
+    icon: React.ComponentType<{ className?: string }>
     defaultTitle: string
   }
 > = {
   note: {
-    container:
-      'bg-slate-500/5 dark:bg-slate-500/10 border-slate-500/40 text-slate-800 dark:text-slate-200',
-    titleText: 'text-slate-900 dark:text-slate-100',
-    iconColor: 'text-slate-500',
+    container: 'bg-primary-500/10 border-primary-500/50',
+    accent: 'text-primary-500',
     icon: Info,
     defaultTitle: 'Note',
   },
   info: {
-    container:
-      'bg-indigo-500/5 dark:bg-indigo-500/10 border-indigo-500/40 text-indigo-800 dark:text-indigo-200',
-    titleText: 'text-indigo-900 dark:text-indigo-100',
-    iconColor: 'text-indigo-500',
+    container: 'bg-info-500/10 border-info-500/50',
+    accent: 'text-info-500',
     icon: Info,
     defaultTitle: 'Info',
   },
   tip: {
-    container:
-      'bg-green-500/5 dark:bg-green-500/10 border-green-500/40 text-green-800 dark:text-green-200',
-    titleText: 'text-green-900 dark:text-green-100',
-    iconColor: 'text-green-500',
+    container: 'bg-success-500/10 border-success-500/50',
+    accent: 'text-success-500',
     icon: Lightbulb,
     defaultTitle: 'Tip',
   },
   warning: {
-    container:
-      'bg-amber-500/5 dark:bg-amber-500/10 border-amber-500/40 text-amber-800 dark:text-amber-200',
-    titleText: 'text-amber-900 dark:text-amber-100',
-    iconColor: 'text-amber-500',
+    container: 'bg-warning-500/10 border-warning-500/50',
+    accent: 'text-warning-500',
     icon: AlertTriangle,
     defaultTitle: 'Warning',
   },
   danger: {
-    container:
-      'bg-rose-500/5 dark:bg-rose-500/10 border-rose-500/40 text-rose-800 dark:text-rose-200',
-    titleText: 'text-rose-900 dark:text-rose-100',
-    iconColor: 'text-rose-500',
+    container: 'bg-danger-500/10 border-danger-500/50',
+    accent: 'text-danger-500',
     icon: AlertCircle,
     defaultTitle: 'Danger',
   },
@@ -65,32 +64,43 @@ export function Callout({
   className = '',
   variant = 'note',
   title,
+  iconClassName,
+  titleClassName,
+  bodyClassName,
   ...props
 }: CalloutProps) {
-  const styles = variantStyles[variant] || variantStyles.note
-  const Icon = styles.icon
+  const meta = variantMeta[variant] || variantMeta.note
+  const Icon = meta.icon
 
   return (
-    <div
+    <CalloutPrimitive
+      variant={variant}
+      icon={
+        <div className={cn('pt-0.5', meta.accent, iconClassName)}>
+          <Icon className="w-5 h-5 stroke-2" />
+        </div>
+      }
+      title={
+        <div
+          className={cn(
+            'font-bold text-sm text-body',
+            meta.accent,
+            titleClassName,
+          )}
+        >
+          {title || meta.defaultTitle}
+        </div>
+      }
       className={cn(
-        'my-6 flex gap-4 p-4 rounded-xl border-2',
-        styles.container,
+        'my-6 rounded-xl border-2 text-body prose prose-neutral dark:prose-invert max-w-none',
+        meta.container,
         className,
       )}
+      bodyClassName={cn('text-[0.875rem] leading-[1.6]', bodyClassName)}
       {...props}
     >
-      <div className={cn('shrink-0 pt-0.5', styles.iconColor)}>
-        <Icon className="w-5 h-5 stroke-2" />
-      </div>
-      <div className="flex-1 text-[0.875rem] leading-[1.6]">
-        <div className={cn('font-bold text-sm mb-1', styles.titleText)}>
-          {title || styles.defaultTitle}
-        </div>
-        <div className="prose prose-neutral dark:prose-invert max-w-none [&>p]:m-0 [&>p+p]:mt-2">
-          {children}
-        </div>
-      </div>
-    </div>
+      {children}
+    </CalloutPrimitive>
   )
 }
 

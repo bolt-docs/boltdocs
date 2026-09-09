@@ -34,6 +34,7 @@ export interface TimelineProps
   children?: ReactNode
   /** Reduce vertical padding between items. */
   compact?: boolean
+  connectorClassName?: string
 }
 
 export interface TimelineItemProps
@@ -56,6 +57,12 @@ export interface TimelineItemProps
   locale?: string
   /** Body content for the entry. Accepts Markdown/markup from MDX. */
   children?: ReactNode
+  dotClassName?: string
+  headerClassName?: string
+  timeClassName?: string
+  badgeClassName?: string
+  titleClassName?: string
+  bodyClassName?: string
 }
 
 // ───────────────────────────────────────────────────────────────────────
@@ -189,11 +196,11 @@ function TimelineRoot({
   children,
   className,
   compact = false,
+  connectorClassName,
   ...props
 }: TimelineProps) {
   return (
     <ol
-      role="list"
       className={cn(
         'relative my-8 ms-3',
         compact ? 'space-y-3' : 'space-y-7',
@@ -204,7 +211,10 @@ function TimelineRoot({
       {/* Connector line — continuous across items, hidden from AT */}
       <span
         aria-hidden="true"
-        className="pointer-events-none absolute top-3 bottom-3 start-[5.5px] w-px bg-subtle"
+        className={cn(
+          'pointer-events-none absolute top-3 bottom-3 start-[5.5px] w-px bg-subtle',
+          connectorClassName,
+        )}
       />
       {children}
     </ol>
@@ -224,6 +234,12 @@ function TimelineItem({
   locale,
   className,
   children,
+  dotClassName,
+  headerClassName,
+  timeClassName,
+  badgeClassName,
+  titleClassName,
+  bodyClassName,
   ...props
 }: TimelineItemProps) {
   const palette = VARIANT_PALETTE[variant] ?? VARIANT_PALETTE.primary
@@ -263,13 +279,19 @@ function TimelineItem({
           'absolute start-0 top-1 flex items-center justify-center w-3 h-3 rounded-full',
           'bg-surface border-2 shadow-sm',
           palette.ring,
+          dotClassName,
         )}
       >
         {dot}
       </span>
 
       {/* Header row: date + optional badge */}
-      <div className="flex items-center gap-2 flex-wrap mb-1">
+      <div
+        className={cn(
+          'flex items-center gap-2 flex-wrap mb-1',
+          headerClassName,
+        )}
+      >
         {formatted && (
           <time
             dateTime={
@@ -277,7 +299,10 @@ function TimelineItem({
                 ? date.toISOString()
                 : new Date(date as string | number).toISOString()
             }
-            className="text-[11px] uppercase tracking-wider font-mono tabular-nums text-muted select-none"
+            className={cn(
+              'text-[11px] uppercase tracking-wider font-mono tabular-nums text-muted select-none',
+              timeClassName,
+            )}
           >
             {formatted}
           </time>
@@ -289,6 +314,7 @@ function TimelineItem({
               palette.badgeBg,
               palette.badgeText,
               palette.badgeBorder,
+              badgeClassName,
             )}
           >
             {badgeCfg.text}
@@ -297,13 +323,23 @@ function TimelineItem({
       </div>
 
       {/* Title */}
-      <h3 className="text-base font-semibold text-body m-0 leading-snug">
+      <h3
+        className={cn(
+          'text-base font-semibold text-body m-0 leading-snug',
+          titleClassName,
+        )}
+      >
         {title}
       </h3>
 
       {/* Body (Markdown inside MDX) */}
       {children && (
-        <div className="mt-2 text-[0.9rem] leading-[1.6] text-paragraph prose prose-neutral dark:prose-invert max-w-none [&>p]:m-0 [&>p+p]:mt-2 [&_a]:text-primary-500 [&_a]:no-underline hover:[&_a]:underline">
+        <div
+          className={cn(
+            'mt-2 text-[0.9rem] leading-[1.6] text-paragraph prose prose-neutral dark:prose-invert max-w-none [&>p]:m-0 [&>p+p]:mt-2 [&_a]:text-primary-500 [&_a]:no-underline hover:[&_a]:underline',
+            bodyClassName,
+          )}
+        >
           {children}
         </div>
       )}

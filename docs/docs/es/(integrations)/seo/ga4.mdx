@@ -6,31 +6,6 @@ description: Rastrea vistas de página y eventos personalizados en tu documentac
 
 Boltdocs se integra con Google Analytics 4 (GA4) para darte información sobre cómo los usuarios navegan tu documentación.
 
----
-
-## Inicio Rápido
-
-### Paso 1: Obtén tu Measurement ID
-
-Crea una propiedad de GA4 en [Google Analytics](https://analytics.google.com/) y obtén tu Measurement ID (comienza con `G-`).
-
-### Paso 2: Configura en boltdocs.config.ts
-
-```ts title="boltdocs.config.ts"
-export default defineConfig({
-  integrations: {
-    ga4: {
-      measurementId: 'G-XXXXXXXXXX',
-    },
-  },
-})
-```
-
-### Paso 3: Despliega
-
-El script de GA4 se inyecta automáticamente en cada página. Las vistas de página se rastrean automáticamente.
-
----
 
 ## Qué se Rastrea
 

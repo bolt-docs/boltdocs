@@ -110,7 +110,13 @@ export async function resolveAlias(config: ResolvedConfig, entry: string) {
   const result = await resolver(entry, config.root)
   if (result) return result
 
-  if (entry.startsWith('virtual:') || entry.includes('\0')) return entry
+  if (
+    entry.startsWith('virtual:') ||
+    entry.includes('\0') ||
+    entry.includes('boltdocs/entry') ||
+    entry.includes('boltdocs-entry')
+  )
+    return entry
 
   return join(config.root, entry)
 }

@@ -1,0 +1,147 @@
+---
+title: "Mermaid"
+sidebarPosition: 1
+description: The `@bdocs/plugin-mermaid` plugin integrates Mermaid.js into Boltdocs. It automatically transforms standard `mermaid` code blocks into interactive, responsive diagrams that dynamically sync with your light and dark theme preferences.
+---
+
+## Installation & Quick Start
+
+Get started by adding the plugin package to your documentation project.
+
+### 1. Install the package
+```sh
+pnpm add @bdocs/plugin-mermaid
+```
+
+### 2. Register the plugin
+Add the plugin to the `plugins` array in your configuration file:
+
+```ts title="boltdocs.config.ts"
+import { defineConfig } from 'boltdocs'
+import mermaidPlugin from '@bdocs/plugin-mermaid'
+
+export default defineConfig({
+  plugins: [mermaidPlugin()],
+})
+```
+
+
+## API Reference
+
+### MermaidPluginOptions
+
+Configuration passed to the `mermaidPlugin()` initializer.
+
+| Property | Type | Default | Description |
+| :--- | :--- | :--- | :--- |
+| **`themes`** | [`MermaidThemes`](#mermaidthemes) | `undefined` | Custom theme variables to match your corporate branding. |
+
+### MermaidThemes
+
+Custom configurations for light and dark visualization modes.
+
+| Property | Type | Default | Description |
+| :--- | :--- | :--- | :--- |
+| **`light`** | [`MermaidThemeVariables`](#mermaidthemevariables) | `defaultLightTheme` | Theme overrides applied when the site's light mode is active. |
+| **`dark`** | [`MermaidThemeVariables`](#mermaidthemevariables) | `defaultDarkTheme` | Theme overrides applied when the site's dark mode is active. |
+
+### MermaidThemeVariables
+
+Complete list of available color variables to customize the diagram node styling.
+
+| Property | Type | Default | Description |
+| :--- | :--- | :--- | :--- |
+| **`primaryColor`** | `string` | Light: `'#f8fafc'`<br />Dark: `'#1e293b'` | Background color for primary nodes. |
+| **`primaryTextColor`** | `string` | Light: `'#0f172a'`<br />Dark: `'#f8fafc'` | Text color for primary nodes. |
+| **`primaryBorderColor`** | `string` | Light: `'#e2e8f0'`<br />Dark: `'#334155'` | Border color for primary nodes. |
+| **`lineColor`** | `string` | Light: `'#64748b'`<br />Dark: `'#94a3b8'` | Color for connecting lines and arrows. |
+| **`secondaryColor`** | `string` | Light: `'#f1f5f9'`<br />Dark: `'#0f172a'` | Background color for secondary elements. |
+| **`tertiaryColor`** | `string` | Light: `'#ffffff'`<br />Dark: `'#1e293b'` | Background color for tertiary elements. |
+| **`nodeBorder`** | `string` | Light: `'#e2e8f0'`<br />Dark: `'#334155'` | Default border color for nodes. |
+| **`mainBkg`** | `string` | Light: `'#ffffff'`<br />Dark: `'#0f172a'` | Main canvas background color. |
+| **`nodeTextColor`** | `string` | Light: `'#0f172a'`<br />Dark: `'#f8fafc'` | Default text color inside nodes. |
+| **`edgeLabelBackground`** | `string` | Light: `'#f8fafc'`<br />Dark: `'#1e293b'` | Background color for connector labels. |
+| **`clusterBkg`** | `string` | Light: `'#f8fafc'`<br />Dark: `'#1e293b'` | Background color for cluster groups. |
+| **`clusterBorder`** | `string` | Light: `'#e2e8f0'`<br />Dark: `'#334155'` | Border color for cluster groups. |
+
+### Mermaid Component Props
+
+Properties supported when using the `<Mermaid />` React component directly in MDX.
+
+| Property | Type | Default | Description |
+| :--- | :--- | :--- | :--- |
+| **`chart`** | `string` | `(Required)` | The Mermaid diagram definition markup. |
+| **`config`** | [`MermaidConfig`](#mermaidconfig) | `undefined` | Specific inline theme overrides for this single diagram instance. |
+
+---
+
+## Detailed Examples
+
+### Custom Theming
+
+You can customize themes by passing variable overrides directly:
+
+```ts title="boltdocs.config.ts"
+import { defineConfig } from 'boltdocs'
+import mermaidPlugin from '@bdocs/plugin-mermaid'
+
+export default defineConfig({
+  plugins: [
+    mermaidPlugin({
+      themes: {
+        light: {
+          primaryColor: '#e0f2fe',
+          primaryTextColor: '#0369a1',
+          primaryBorderColor: '#bae6fd',
+          lineColor: '#0284c7',
+        },
+        dark: {
+          primaryColor: '#0c4a6e',
+          primaryTextColor: '#e0f2fe',
+          primaryBorderColor: '#0284c7',
+          lineColor: '#38bdf8',
+        },
+      },
+    }),
+  ],
+})
+```
+
+### Component Syntax
+
+For advanced layouts, you can invoke the JSX component directly:
+
+```mdx
+<Mermaid chart={`
+  flowchart LR
+    A[Start] --> B[Process]
+    B --> C[End]
+`} />
+```
+
+<Callout variant="info" title="Syntax Recommendation">
+  While both markdown blocks and JSX tag variants produce matching outputs, we recommend standard markdown code blocks (```` ```mermaid ````) for maximum readability in code editors.
+</Callout>
+
+---
+
+## Troubleshooting
+
+### Diagrams fail to render
+* **Verify Configuration:** Ensure `mermaidPlugin()` is registered in your `boltdocs.config.ts` plugins array.
+* **Verify Language Identifier:** The opening of your markdown code block must be exactly ```` ```mermaid ````.
+* **Check Syntax:** Check your web browser console for syntax errors raised by the Mermaid compiler (e.g. unclosed parentheses or typos in node connections).
+
+### Themes do not sync
+The plugin hooks into the site's dark mode provider. If themes are mismatched:
+* Ensure your custom layouts consume the `useTheme()` hook exported by `boltdocs/client` to stay in sync with the global app settings.
+
+### Large diagrams are cut off
+By default, Boltdocs surrounds diagrams in a scrollable, responsive container. If you need diagrams to scale to fit the parent container instead, add the following to your custom global CSS stylesheet:
+
+```css
+.mermaid-container svg {
+  max-width: 100%;
+  height: auto;
+}
+```

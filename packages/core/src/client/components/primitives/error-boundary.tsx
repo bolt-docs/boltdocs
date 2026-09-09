@@ -1,7 +1,7 @@
-import * as React from 'react'
 import type { ErrorInfo, ComponentType, ReactNode } from 'react'
 import { Component } from 'react'
 import { Button } from './button'
+import { cn } from '../../utils/cn'
 
 export interface FallbackProps {
   error: Error
@@ -81,23 +81,44 @@ export class ErrorBoundary extends Component<
 export interface ErrorBoundaryFallbackProps {
   error: Error
   resetErrorBoundary: () => void
+  className?: string
+  titleClassName?: string
+  messageClassName?: string
+  buttonClassName?: string
 }
 
 export function ErrorBoundaryFallback({
   error,
   resetErrorBoundary,
+  className,
+  titleClassName,
+  messageClassName,
+  buttonClassName,
 }: ErrorBoundaryFallbackProps) {
   return (
-    <div className="flex flex-col items-center justify-center min-h-[40vh] text-center gap-4 px-6 py-8 border border-subtle bg-surface rounded-2xl max-w-lg mx-auto shadow-xs">
-      <div className="text-lg font-bold text-rose-600 dark:text-rose-400">
+    <div
+      className={cn(
+        'flex flex-col items-center justify-center min-h-[40vh] text-center gap-4 px-6 py-8 border border-subtle bg-surface rounded-2xl max-w-lg mx-auto shadow-xs',
+        className,
+      )}
+    >
+      <div className={cn('text-lg font-bold text-danger-500', titleClassName)}>
         Something went wrong
       </div>
-      <p className="text-sm text-muted max-w-sm leading-relaxed">
+      <p
+        className={cn(
+          'text-sm text-muted max-w-sm leading-relaxed',
+          messageClassName,
+        )}
+      >
         {error?.message ||
           'An unexpected error occurred while rendering this page.'}
       </p>
       <Button
-        className="rounded-xl border border-subtle bg-main px-6 py-2.5 text-xs font-semibold text-body hover:bg-primary-50/50 hover:border-primary-500/50 transition-all duration-300 cursor-pointer outline-none select-none"
+        className={cn(
+          'rounded-xl border border-subtle bg-main px-6 py-2.5 text-xs font-semibold text-body hover:bg-primary-50/50 hover:border-primary-500/50 transition-all duration-300 cursor-pointer outline-none select-none',
+          buttonClassName,
+        )}
         onPress={resetErrorBoundary}
       >
         Try again

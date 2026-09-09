@@ -6,30 +6,6 @@ description: Monitorea tráfico y Core Web Vitals con Vercel Analytics y Speed I
 
 Vercel proporciona analítica integrada y monitoreo de usuarios reales (RUM) para sitios desplegados en su plataforma. Boltdocs inyecta los scripts requeridos automáticamente cuando los habilitas en tu configuración.
 
----
-
-## Inicio Rápido
-
-### Paso 1: Habilita la analítica en boltdocs.config.ts
-
-```ts title="boltdocs.config.ts"
-export default defineConfig({
-  integrations: {
-    analytics: {
-      vercel: {
-        analytics: true,
-        speedInsights: true,
-      },
-    },
-  },
-})
-```
-
-### Paso 2: Despliega en Vercel
-
-Ambos scripts solo se inyectan en compilaciones de **producción** (`NODE_ENV === 'production'`). No se cargan durante el desarrollo local o despliegues de vista previa.
-
----
 
 ## Referencia de Configuración
 

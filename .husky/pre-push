@@ -1,0 +1,1 @@
+pnpm test:all && pnpm test:a11y

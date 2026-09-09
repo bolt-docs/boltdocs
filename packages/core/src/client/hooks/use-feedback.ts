@@ -30,12 +30,14 @@ export function useFeedback(options: UseFeedbackOptions = {}) {
   const [error, setError] = useState<string | null>(null)
 
   // Reset feedback state when the active page route changes
+  const routePath = currentRoute?.path
+  // biome-ignore lint/correctness/useExhaustiveDependencies: routePath is an intentional trigger — reset feedback state whenever the page route changes
   useEffect(() => {
     setRating(null)
     setComment('')
     setSubmitted(false)
     setError(null)
-  }, [currentRoute?.path])
+  }, [routePath])
 
   const submit = async (commentOverride?: string, blockId?: string) => {
     if (!rating) return

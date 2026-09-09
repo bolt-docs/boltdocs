@@ -730,7 +730,6 @@ describe('doctor unified tests', () => {
     const calls = (console.log as any).mock.calls
       .map((c: any) => c[0])
       .join('\n')
-    expect(() => JSON.parse(calls)).not.toThrow()
     const report = JSON.parse(calls)
     expect(report).toHaveProperty('summary')
     expect(report).toHaveProperty('issues')
@@ -779,5 +778,190 @@ describe('doctor unified tests', () => {
 
     await doctorAction(tempDir)
     expect(process.exit).toHaveBeenCalledWith(1)
+  })
+
+  // --- Link precision regressions ---
+
+  it('should not flag markdown links with a title', async () => {
+    const sourceFile = path.join(docsDir, 'title-link.md')
+    fs.writeFileSync(
+      sourceFile,
+      '---\ntitle: "Title Link"\n---\n[Guide](/guide "Read the guide")',
+    )
+
+    await doctorAction(tempDir)
+
+    const calls = (console.log as any).mock.calls
+      .map((c: any) => c[0])
+      .join('\n')
+    expect(calls).not.toContain('Broken internal link')
+  })
+
+  it('should not flag React <Link to="/..."> links when the route exists', async () => {
+    const sourceFile = path.join(docsDir, 'react-link.mdx')
+    fs.writeFileSync(
+      sourceFile,
+      '---\ntitle: "React Link"\n---\n<Link to="/guide">Guide</Link>',
+    )
+
+    await doctorAction(tempDir)
+
+    const calls = (console.log as any).mock.calls
+      .map((c: any) => c[0])
+      .join('\n')
+    expect(calls).not.toContain('Broken internal link')
+  })
+
+  it('should flag broken React <Link to="/..."> links', async () => {
+    const sourceFile = path.join(docsDir, 'react-broken.mdx')
+    fs.writeFileSync(
+      sourceFile,
+      '---\ntitle: "React Broken"\n---\n<Link to="/nope">Guide</Link>',
+    )
+
+    await doctorAction(tempDir)
+
+    const calls = (console.log as any).mock.calls
+      .map((c: any) => c[0])
+      .join('\n')
+    expect(calls).toContain('Broken internal link: "/nope"')
+  })
+
+  it('should resolve absolute links with a .md extension', async () => {
+    const sourceFile = path.join(docsDir, 'ext-link.md')
+    fs.writeFileSync(
+      sourceFile,
+      '---\ntitle: "Ext Link"\n---\n[Guide](/guide.md)',
+    )
+
+    await doctorAction(tempDir)
+
+    const calls = (console.log as any).mock.calls
+      .map((c: any) => c[0])
+      .join('\n')
+    expect(calls).not.toContain('Broken internal link')
+  })
+
+  it('should not flag links to existing assets', async () => {
+    fs.mkdirSync(path.join(docsDir, 'assets'), { recursive: true })
+    fs.writeFileSync(path.join(docsDir, 'assets', 'logo.png'), 'png')
+    const sourceFile = path.join(docsDir, 'asset-link.md')
+    fs.writeFileSync(
+      sourceFile,
+      '---\ntitle: "Asset Link"\n---\n![Logo](/assets/logo.png)',
+    )
+
+    await doctorAction(tempDir)
+
+    const calls = (console.log as any).mock.calls
+      .map((c: any) => c[0])
+      .join('\n')
+    expect(calls).not.toContain('Broken internal link')
+  })
+
+  it('should ignore links inside HTML comments', async () => {
+    const sourceFile = path.join(docsDir, 'comment-link.md')
+    fs.writeFileSync(
+      sourceFile,
+      '---\ntitle: "Comment Link"\n---\n<!-- [x](/totally-missing) -->\n\n[Guide](/guide)',
+    )
+
+    await doctorAction(tempDir)
+
+    const calls = (console.log as any).mock.calls
+      .map((c: any) => c[0])
+      .join('\n')
+    expect(calls).not.toContain('Broken internal link')
+  })
+
+  it('--fix should not rewrite links inside code blocks', async () => {
+    const filePath = path.join(docsDir, 'code-fix.md')
+    fs.writeFileSync(
+      filePath,
+      [
+        '---',
+        'title: "Code Fix"',
+        '---',
+        '```ts',
+        'const x = "/guido"',
+        '```',
+        '',
+        '[Guide](/guido)',
+      ].join('\n'),
+    )
+
+    await doctorAction(tempDir, { fix: true })
+
+    const content = fs.readFileSync(filePath, 'utf-8')
+    expect(content).toContain('[Guide](/guide)')
+    expect(content).toContain('"/guido"')
+  })
+
+  it('--fix should prepend the base prefix to links missing it', async () => {
+    mockConfig.base = '/docs'
+    const filePath = path.join(docsDir, 'base-fix.md')
+    fs.writeFileSync(filePath, '---\ntitle: "Base Fix"\n---\n[Guide](/guide)')
+
+    await generateLinkTree(docsDir, tempDir, mockConfig as any)
+    await doctorAction(tempDir, { fix: true })
+
+    const content = fs.readFileSync(filePath, 'utf-8')
+    expect(content).toContain('[Guide](/docs/guide)')
+    delete (mockConfig as any).base
+  })
+
+  // --- i18n root-layout regressions ---
+
+  it('should detect missing translations when the default locale lives at the root', async () => {
+    mockConfig.i18n = { defaultLocale: 'en', locales: { en: 'en', es: 'es' } }
+    fs.mkdirSync(path.join(docsDir, 'es'), { recursive: true })
+    // English files at the docs root (no en/ directory)
+    fs.writeFileSync(
+      path.join(docsDir, 'page.md'),
+      '---\ntitle: Page\n---\nContent',
+    )
+
+    await doctorAction(tempDir)
+
+    const calls = (console.log as any).mock.calls
+      .map((c: any) => c[0])
+      .join('\n')
+    expect(calls).toContain('Missing translation for locale "es"')
+    expect(calls).toContain('es/page.md')
+  })
+
+  it('should not flag orphaned translations when the default locale lives at the root', async () => {
+    mockConfig.i18n = { defaultLocale: 'en', locales: { en: 'en', es: 'es' } }
+    fs.mkdirSync(path.join(docsDir, 'es'), { recursive: true })
+    fs.writeFileSync(
+      path.join(docsDir, 'page.md'),
+      '---\ntitle: Page\n---\nContent',
+    )
+    fs.writeFileSync(
+      path.join(docsDir, 'es', 'page.md'),
+      '---\ntitle: Page ES\n---\nContenido',
+    )
+
+    await doctorAction(tempDir)
+
+    const calls = (console.log as any).mock.calls
+      .map((c: any) => c[0])
+      .join('\n')
+    expect(calls).not.toContain('Orphaned translation')
+  })
+
+  it('--fix should create root-layout translations inside the es/ dir', async () => {
+    mockConfig.i18n = { defaultLocale: 'en', locales: { en: 'en', es: 'es' } }
+    fs.mkdirSync(path.join(docsDir, 'es'), { recursive: true })
+    fs.writeFileSync(
+      path.join(docsDir, 'page.md'),
+      '---\ntitle: Page\n---\nContent',
+    )
+
+    await doctorAction(tempDir, { fix: true })
+
+    const esPath = path.join(docsDir, 'es', 'page.md')
+    expect(fs.existsSync(esPath)).toBe(true)
+    expect(fs.readFileSync(esPath, 'utf-8')).toContain('title: Page')
   })
 })

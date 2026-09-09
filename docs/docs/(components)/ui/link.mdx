@@ -1,28 +1,11 @@
 ---
 title: Link
 sidebarPosition: 6
-description: Router-integrated localized link anchors.
+description: Localized link anchors integrated with the router.
 ---
 
 The `Link` and `NavLink` primitives extend standard HTML anchor links by integrating language locales, base directories, and SPA route navigation.
 
-You almost never need them in MDX content — regular Markdown links work fine there. Reach for `Link` / `NavLink` only inside custom React components where you want:
-
-- SPA-style route transitions (no full page reload).
-- Automatic locale + version prefixing on internal `href`.
-- Active-state styling via the `NavLink`'s render function.
-
-Both render as a normal `<a>` under the hood.
-
----
-
-## Import
-
-```tsx
-import { Link, NavLink } from 'boltdocs/primitives'
-```
-
----
 
 ## Quick Start
 
@@ -39,7 +22,7 @@ export default function SidebarNav() {
         Getting Started
       </Link>
 
-      {/* 2. NavLink with automatic active state highlighting */}
+      {/* 2. NavLink with automatic active-state highlighting */}
       <NavLink
         href="/api/config-reference"
         className={({ isActive }) =>
@@ -55,10 +38,10 @@ export default function SidebarNav() {
 
 ---
 
-## Under-the-Hood Mechanics
+## Internal Mechanics
 
-* **Localization**: Direct `href` strings (like `/getting-started`) are automatically parsed and translated through the `useLocalizedTo` hook. For instance, on a Spanish localized page, `/getting-started` is transformed to `/es/getting-started` transparently.
-* **SPA Routing**: Internal link clicks intercept default browser navigation to perform fast client-side routing, preventing full page reloads.
+* **Localization**: Direct `href` strings (such as `/getting-started`) are parsed and automatically translated through the `useLocalizedTo` hook. For example, on a Spanish-localized page, `/getting-started` is transparently transformed to `/es/getting-started`.
+* **SPA Routing**: Clicks on internal links intercept the browser's default navigation to perform fast client-side routing, preventing full page reloads.
 
 ---
 
@@ -70,24 +53,55 @@ Inherits all standard HTML `anchor` (`<a>`) element attributes:
 
 | Property | Type | Default | Description |
 | :--- | :--- | :--- | :--- |
-| **`href`** | `string` | `undefined` | Target destination route path (e.g. `/docs/getting-started`). |
-| **`prefetch`** | `'hover' \| 'none'` | `'hover'` | Preloading strategy for router link targets. |
+| **`href`** | `string` | `undefined` | Target route path (e.g., `/docs/getting-started`). |
+| **`prefetch`** | `'hover' \| 'none'` | `'hover'` | Preload strategy for router link targets. |
 
 ### `NavLink` Props
 
-Extends standard `Link` properties:
+Extends the standard `Link` props:
 
 | Property | Type | Default | Description |
 | :--- | :--- | :--- | :--- |
-| **`href`** | `string` | `undefined` | Target destination path. |
-| **`end`** | `boolean` | `false` | If set to `true`, the link is only highlighted active when the route paths match exactly. |
+| **`href`** | `string` | `undefined` | Target route path. |
+| **`end`** | `boolean` | `false` | When set to `true`, the link is only highlighted as active when the routes match exactly. |
 | **`className`** | `string \| ((props: { isActive: boolean }) => string)` | `undefined` | Style class name, supporting conditional logic functions. |
-| **`children`** | `ReactNode \| ((props: { isActive: boolean }) => ReactNode)` | `undefined` | Child nodes, supporting conditional rendering functions. |
+| **`children`** | `ReactNode \| ((props: { isActive: boolean }) => ReactNode)` | `undefined` | Child nodes, supporting conditional render functions. |
 
 ---
 
-## Pitfalls
+## Customization & states
 
-- **`NavLink`'s render function isn't React-stateful.** The `isActive` boolean is evaluated synchronously per render. Don't trigger heavy side-effects in the function body — use it only for class-name computation.
-- **Hard-coding locales in `href` defeats the hook.** If the user is on `/es/docs/guide` and you pass a raw `/docs/guide` href, `useLocalizedTo` re-localizes it. If you want a *non-localized* link, prefix with `https://` or use a plain `<a>`.
-- **`end={true}` matters for index pages.** Without it, `/docs` is "active" when the current path is `/docs/installation`. Use `end` whenever the link points to a section root.
+`Link` is style-neutral — it renders a standard `<a>` with localized routing, prefetching, and SPA navigation, but no visuals. Its `data-*` props pass straight through to the anchor. `NavLink` adds route matching: when the current route matches `href`, the link is treated as active, and you receive that state through the `className` / `children` render functions (a plain `active` class is appended when you pass a string `className`).
+
+| State / Slot | Mechanism |
+| :--- | :--- |
+| `NavLink` `className` (function) | Receives `{ isActive }` — return the classes for the active / inactive states |
+| `NavLink` `children` (function) | Receives `{ isActive }` for conditional content |
+| `active` class | Appended to `NavLink` when the current route matches (when `className` is a string) |
+| `end` prop | `true` matches only the exact path; `false` (default) matches any path that starts with it |
+| `data-*` attributes | Pass through from props to the `<a>` element |
+| `ref` | Forwarded to the rendered anchor |
+
+Tailwind v4:
+
+```tsx
+<NavLink
+  href="/docs/guides"
+  className={({ isActive }) =>
+    `px-3 py-1 rounded text-sm ${
+      isActive ? 'bg-primary-500/10 text-primary-400' : 'text-muted hover:bg-soft'
+    }`
+  }
+>
+  Guides
+</NavLink>
+```
+
+Or vanilla CSS:
+
+```css
+a.active {
+  color: var(--color-primary-400);
+  background: color-mix(in srgb, var(--color-primary-500) 10%, transparent);
+}
+```

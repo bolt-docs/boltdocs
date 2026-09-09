@@ -116,7 +116,7 @@ describe('sortRoutes', () => {
       sidebarPosition: 5,
     }
 
-    // R3 and R4 have same position, should sort by title
+    // R3 and R4 have same position; title remains the first tie-breaker.
     const r3: RouteMeta = {
       path: '/c',
       title: 'Z',
@@ -135,8 +135,20 @@ describe('sortRoutes', () => {
 
     expect(sorted[0].title).toBe('B') // pos 5
     expect(sorted[1].title).toBe('A') // pos 10
-    expect(sorted[2].title).toBe('Z') // pos 15, title Z
-    expect(sorted[3].title).toBe('C') // pos 15, title C
+    expect(sorted[2].title).toBe('C') // pos 15, title C
+    expect(sorted[3].title).toBe('Z') // pos 15, title Z
+  })
+
+  it('uses the path as a deterministic tie-breaker after title', () => {
+    const routes: RouteMeta[] = [
+      { path: '/docs/z', title: 'Same', sidebarPosition: 1 },
+      { path: '/docs/a', title: 'Same', sidebarPosition: 1 },
+    ]
+
+    expect(sortRoutes(routes).map((route) => route.path)).toEqual([
+      '/docs/a',
+      '/docs/z',
+    ])
   })
 
   it('should sort ungrouped with high position after grouped folders', () => {

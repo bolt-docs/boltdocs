@@ -6,10 +6,8 @@ export default defineConfig({
     globals: true,
     environment: 'jsdom',
     include: ['tests/**/*.test.ts', 'tests/**/*.test.tsx'],
-    exclude: [
-      'tests/integration/**',
-      'tests/mdx/frontmatter-rendering.test.ts',
-    ],
+    exclude: ['tests/mdx/frontmatter-rendering.test.ts'],
+    environmentMatchGlobs: [['tests/integration/**', 'node']],
     setupFiles: ['./tests/setup.ts'],
   },
   resolve: {

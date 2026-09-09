@@ -12,6 +12,34 @@ import {
 } from './utils'
 import { getCachedSimilarity } from './similarity'
 
+/**
+ * Replace every occurrence of `target` with `replacement` outside fenced
+ * and inline code spans. Code regions are masked with unique placeholders
+ * before the swap so links inside code samples are never rewritten.
+ */
+function replaceLinkOutsideCode(
+  raw: string,
+  target: string,
+  replacement: string,
+): string {
+  const fenced = /```[\s\S]*?```/g
+  const inline = /`[^`\n]*`/g
+  let index = 0
+  const store: string[] = []
+  const mask = (re: RegExp) => {
+    raw = raw.replace(re, (m) => {
+      store.push(m)
+      return `__BD_CODE_MASK_${index++}__`
+    })
+  }
+  mask(fenced)
+  mask(inline)
+  const replaced = raw.split(target).join(replacement)
+  return replaced.replace(/__BD_CODE_MASK_(\d+)__/g, (_, i) => {
+    return store[Number(i)] ?? ''
+  })
+}
+
 // Check for frontmatter and SEO metadata issues
 export async function checkMetadata(
   ctx: DoctorContext,
@@ -178,6 +206,46 @@ export async function checkMetadata(
   return issues
 }
 
+// Link URL extraction: markdown `[label](url "title")`, HTML `href="…"`,
+// React `<Link to="/…">` and `<a href>` variants.
+const LINK_REGEX =
+  /(?:\[([^\]]*)\]\(([^)\s]+)(?:\s+["'][^"']*["'])?\))|(?:href=["']([^"']+)["'])|(?:<Link\s+[^>]*?to=["'](\/[^"']+)["'])/g
+
+// Extensions appended when probing the filesystem for an internal target.
+const TARGET_EXTENSIONS = ['', '.md', '.mdx', '/index.md', '/index.mdx']
+
+/**
+ * Build the set of route candidates for an absolute link: with/without a
+ * trailing slash, with/without a `.md`/`.mdx` extension, and index variants.
+ */
+function absoluteRouteCandidates(link: string): string[] {
+  const candidates: string[] = []
+  const add = (c: string) => {
+    if (!candidates.includes(c)) candidates.push(c)
+  }
+
+  add(link)
+  if (link.endsWith('/')) add(link.slice(0, -1))
+  else add(link + '/')
+
+  const extStripped = link.replace(/\.(md|mdx)$/i, '')
+  if (extStripped !== link) {
+    add(extStripped)
+    add(extStripped + '/')
+  }
+
+  const indexStripped = link.replace(/\/index\.(md|mdx)$/i, '')
+  if (indexStripped !== link) {
+    add(indexStripped)
+    add(indexStripped + '/')
+  }
+
+  add(link.endsWith('/') ? link + 'index' : link + '/index')
+  if (link.endsWith('/index')) add(link.replace(/\/index$/, ''))
+
+  return candidates
+}
+
 // Check for broken internal and optionally external links
 export async function checkLinks(ctx: DoctorContext): Promise<DoctorIssue[]> {
   const issues: DoctorIssue[] = []
@@ -191,7 +259,6 @@ export async function checkLinks(ctx: DoctorContext): Promise<DoctorIssue[]> {
 
   if (!internal && !external && !ctx.options.checkExternal) return issues
 
-  const combinedRegex = /(?:\[.*?\]\((.*?)\))|(?:href=["']([^"']+)["'])/g
   const externalLinks = new Set<{ url: string; file: string }>()
   const MAX_SCAN_SIZE = 500_000
 
@@ -203,19 +270,32 @@ export async function checkLinks(ctx: DoctorContext): Promise<DoctorIssue[]> {
       content.length > MAX_SCAN_SIZE ? content.slice(0, MAX_SCAN_SIZE) : content
 
     const cleanedContent = scanContent
+      .replace(/<!--[\s\S]*?-->/g, '')
       .replace(/```[\s\S]*?```/g, '')
       .replace(/`[^`\n]*`/g, '')
 
-    const matches = [...cleanedContent.matchAll(combinedRegex)]
+    const matches = [...cleanedContent.matchAll(LINK_REGEX)]
 
     for (const match of matches) {
-      const originalLink = match[1] || match[2]
-      const isMarkdown = !!match[1]
+      const originalLink = match[2] || match[3] || match[4]
+      const isMarkdown = !!match[2]
+      const isLinkTo = !!match[4]
       if (!originalLink) continue
 
       if (ignore.some((i) => originalLink.includes(i))) continue
 
-      if (/^https?:\/\//i.test(originalLink)) {
+      // External / non-page schemes
+      if (
+        /^(https?:|mailto:|tel:|data:|javascript:|blob:|ftp:)/i.test(
+          originalLink,
+        )
+      ) {
+        if (external || ctx.options.checkExternal) {
+          externalLinks.add({ url: originalLink, file })
+        }
+        continue
+      }
+      if (originalLink.startsWith('//')) {
         if (external || ctx.options.checkExternal) {
           externalLinks.add({ url: originalLink, file })
         }
@@ -223,7 +303,8 @@ export async function checkLinks(ctx: DoctorContext): Promise<DoctorIssue[]> {
       }
 
       if (!internal) continue
-      if (/^(mailto|tel|#)/i.test(originalLink)) continue
+      // Same-page anchor only
+      if (originalLink.startsWith('#')) continue
 
       let link: string
       try {
@@ -235,45 +316,53 @@ export async function checkLinks(ctx: DoctorContext): Promise<DoctorIssue[]> {
       if (!link) continue
 
       let targetExists = false
-      let resolvedInternalPath = ''
+      let detectedBaseMissing = false
+      let baseMissingCandidate = ''
 
       if (link.startsWith('/')) {
-        if (
-          ctx.routeIndex.has(link) ||
-          ctx.routeIndexWithSlash.has(link) ||
-          ctx.routeIndexWithoutSlash.has(link)
-        ) {
-          targetExists = true
-        } else {
-          const linkWithBase =
-            ctx.basePrefix + (link.startsWith('/') ? link : '/' + link)
-          if (
-            ctx.routeIndex.has(linkWithBase) ||
-            ctx.routeIndexWithSlash.has(linkWithBase)
-          ) {
-            targetExists = false
-            resolvedInternalPath = linkWithBase
-          } else {
-            const pathAfterBase =
-              ctx.config.base !== '/' && link.startsWith(ctx.config.base || '/')
-                ? link.substring((ctx.config.base || '/').length)
-                : link
+        const candidates = absoluteRouteCandidates(link)
 
-            const cleanPathAfterBase = pathAfterBase.startsWith('/')
-              ? pathAfterBase.substring(1)
-              : pathAfterBase
-            resolvedInternalPath = path.join(ctx.docsDir, cleanPathAfterBase)
-            const extensions = ['', '.md', '.mdx', '/index.md', '/index.mdx']
-            targetExists = extensions.some((ext) =>
-              cachedExists(resolvedInternalPath + ext),
-            )
+        // 1. Route lookup without the base prefix
+        for (const c of candidates) {
+          if (
+            ctx.routeIndex.has(c) ||
+            ctx.routeIndexWithSlash.has(c) ||
+            ctx.routeIndexWithoutSlash.has(c)
+          ) {
+            targetExists = true
+            break
           }
         }
+
+        // 2. The route exists but is missing the base prefix (e.g. `/guide`
+        //    when the site is served under `/docs`)
+        if (!targetExists && ctx.basePrefix) {
+          for (const c of candidates) {
+            const withBase = ctx.basePrefix + (c.startsWith('/') ? c : '/' + c)
+            if (withBase === c) continue
+            if (
+              ctx.routeIndex.has(withBase) ||
+              ctx.routeIndexWithSlash.has(withBase)
+            ) {
+              detectedBaseMissing = true
+              baseMissingCandidate = withBase
+              break
+            }
+          }
+        }
+
+        // 3. Fall back to the filesystem (assets, non-routed files, images)
+        if (!targetExists && !detectedBaseMissing) {
+          const cleanPath = link.replace(/^\/+/, '')
+          const fsPath = path.join(ctx.docsDir, cleanPath)
+          targetExists = TARGET_EXTENSIONS.some((ext) =>
+            cachedExists(fsPath + ext),
+          )
+        }
       } else {
-        resolvedInternalPath = path.resolve(path.dirname(file), link)
-        const extensions = ['', '.md', '.mdx', '/index.md', '/index.mdx']
-        targetExists = extensions.some((ext) =>
-          cachedExists(resolvedInternalPath + ext),
+        const resolvedPath = path.resolve(path.dirname(file), link)
+        targetExists = TARGET_EXTENSIONS.some((ext) =>
+          cachedExists(resolvedPath + ext),
         )
       }
 
@@ -283,16 +372,9 @@ export async function checkLinks(ctx: DoctorContext): Promise<DoctorIssue[]> {
           ctx.linkTree.routes,
         )
 
-        let detectedBaseMissing = false
-        const linkWithBase =
-          ctx.basePrefix + (link.startsWith('/') ? link : '/' + link)
-        if (
-          ctx.routeIndex.has(linkWithBase) ||
-          ctx.routeIndexWithSlash.has(linkWithBase)
-        ) {
-          bestMatch = linkWithBase
+        if (detectedBaseMissing) {
+          bestMatch = baseMissingCandidate
           maxSimilarity = 1.0
-          detectedBaseMissing = true
         }
 
         const showSuggestion = maxSimilarity > 0.6 || detectedBaseMissing
@@ -314,13 +396,20 @@ export async function checkLinks(ctx: DoctorContext): Promise<DoctorIssue[]> {
                     : ''
                   const targetToReplace = isMarkdown
                     ? `(${originalLink})`
-                    : `href="${originalLink}"`
+                    : isLinkTo
+                      ? `to="${originalLink}"`
+                      : `href="${originalLink}"`
                   const replacement = isMarkdown
                     ? `(${bestMatch}${anchor})`
-                    : `href="${bestMatch}${anchor}"`
+                    : isLinkTo
+                      ? `to="${bestMatch}${anchor}"`
+                      : `href="${bestMatch}${anchor}"`
 
                   const currentRaw = fs.readFileSync(file, 'utf-8')
-                  const fixedContent = currentRaw.replace(
+                  // Replace only occurrences outside fenced/inline code by
+                  // rebuilding the target from the cleaned content positions.
+                  const fixedContent = replaceLinkOutsideCode(
+                    currentRaw,
                     targetToReplace,
                     replacement,
                   )
@@ -417,16 +506,53 @@ export async function checkI18n(ctx: DoctorContext): Promise<DoctorIssue[]> {
   const { defaultLocale, locales } = ctx.config.i18n
   const allLocales = Object.keys(locales)
   const otherLocales = allLocales.filter((l) => l !== defaultLocale)
+  if (otherLocales.length === 0) return issues
+
+  const docsRoot = path.resolve(ctx.docsDir)
+  const defaultLocaleDir = path.join(docsRoot, defaultLocale)
+  // Two supported layouts:
+  //  - nested:  docs/en/…  +  docs/es/…
+  //  - root:    docs/…     +  docs/es/…  (default locale files at the root)
+  const hasNestedDefault =
+    fs.existsSync(defaultLocaleDir) &&
+    fs.statSync(defaultLocaleDir).isDirectory()
+
+  // Never write (copy / delete) outside the docs dir.
+  const safeInsideDocs = (targetPath: string): string => {
+    const resolved = path.resolve(targetPath)
+    if (resolved !== docsRoot && !resolved.startsWith(docsRoot + path.sep)) {
+      throw new Error(`Refusing to write outside docs dir: ${resolved}`)
+    }
+    return resolved
+  }
 
   for (const file of ctx.files) {
     const relPath = normalizePath(path.relative(ctx.docsDir, file))
     const parts = relPath.split('/')
-    const locale = parts[0]
+    const first = parts[0]
+
+    // Assign the file to a locale:
+    //  - `es/…`            → the `es` locale
+    //  - `en/…` (nested)   → the default locale
+    //  - anything else     → the default locale (root layout)
+    let locale: string
+    let pathAfterLocale: string
+    if (allLocales.includes(first) && first !== defaultLocale) {
+      locale = first
+      pathAfterLocale = parts.slice(1).join('/')
+    } else if (first === defaultLocale && hasNestedDefault) {
+      locale = defaultLocale
+      pathAfterLocale = parts.slice(1).join('/')
+    } else {
+      locale = defaultLocale
+      pathAfterLocale = relPath
+    }
+
+    if (!pathAfterLocale) continue
 
     if (locale === defaultLocale) {
-      const pathAfterLocale = parts.slice(1).join('/')
       for (const targetLocale of otherLocales) {
-        const targetPath = path.join(ctx.docsDir, targetLocale, pathAfterLocale)
+        const targetPath = path.join(docsRoot, targetLocale, pathAfterLocale)
         if (!cachedExists(targetPath)) {
           const level = getSeverity(ctx, 'missingTranslation', 'warning')
           if (level !== 'off') {
@@ -436,19 +562,27 @@ export async function checkI18n(ctx: DoctorContext): Promise<DoctorIssue[]> {
               message: `Missing translation for locale "${targetLocale}"`,
               suggestion: `Create a version at "${targetLocale}/${pathAfterLocale}".`,
               fix: async () => {
-                const targetDir = path.dirname(targetPath)
+                const safeTarget = safeInsideDocs(targetPath)
+                const targetDir = path.dirname(safeTarget)
                 if (!fs.existsSync(targetDir))
                   fs.mkdirSync(targetDir, { recursive: true })
-                fs.copyFileSync(file, targetPath)
+                fs.copyFileSync(file, safeTarget)
               },
             })
           }
         }
       }
-    } else if (allLocales.includes(locale)) {
-      const pathAfterLocale = parts.slice(1).join('/')
-      const sourcePath = path.join(ctx.docsDir, defaultLocale, pathAfterLocale)
-      if (!cachedExists(sourcePath)) {
+    } else {
+      // Non-default locale file: the source may live at the docs root
+      // (root layout) or under the default locale dir (nested layout).
+      const rootSource = path.join(docsRoot, pathAfterLocale)
+      const nestedSource = hasNestedDefault
+        ? path.join(defaultLocaleDir, pathAfterLocale)
+        : ''
+      const sourceExists =
+        cachedExists(rootSource) ||
+        (nestedSource !== '' && cachedExists(nestedSource))
+      if (!sourceExists) {
         const level = getSeverity(ctx, 'missingTranslation', 'low')
         if (level !== 'off') {
           issues.push({
@@ -457,7 +591,7 @@ export async function checkI18n(ctx: DoctorContext): Promise<DoctorIssue[]> {
             message: `Orphaned translation (source missing in "${defaultLocale}")`,
             suggestion: `Remove this file or create the source at "${defaultLocale}/${pathAfterLocale}".`,
             fix: async () => {
-              fs.unlinkSync(file)
+              fs.unlinkSync(safeInsideDocs(file))
             },
           })
         }

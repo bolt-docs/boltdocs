@@ -8,21 +8,6 @@ Cada asistente IA es tan inteligente como el contexto que le des. Ya sea que use
 
 La skill es un conjunto de archivos markdown que actúan como una base de conocimiento localizada. Las herramientas IA los leen para aprender sobre `boltdocs.config.ts`, enrutamiento por sistema de archivos, componentes MDX incorporados y el sistema de estilos Tailwind CSS v4.
 
----
-
-## Qué Contiene
-
-La skill está organizada en un archivo de entrada principal y cuatro guías de referencia enfocadas. Cada guía cubre un área del framework para que la IA solo cargue lo que necesita:
-
-| Archivo | Qué le Enseña a la IA |
-| :--- | :--- |
-| [`SKILL.md`](https://github.com/jesus-alcala/boltdocs/blob/develop/skills/boltdocs/SKILL.md) | Cuándo activar la skill — editando configuración, agregando páginas de docs, escribiendo componentes MDX o cambiando estilos. |
-| [`configuration.md`](https://github.com/jesus-alcala/boltdocs/blob/develop/skills/boltdocs/references/configuration.md) | Escribir y mantener `boltdocs.config.ts` — `defineConfig`, metadatos del sitio, tema, plugins y estructura de pestañas. |
-| [`routing.md`](https://github.com/jesus-alcala/boltdocs/blob/develop/skills/boltdocs/references/routing.md) | Enrutamiento por sistema de archivos dentro de `docs/`, grupos del sidebar, configuración de carpetas `meta.json` y alineación de pestañas. |
-| [`components.md`](https://github.com/jesus-alcala/boltdocs/blob/develop/skills/boltdocs/references/components.md) | Componentes MDX incorporados (Callout, Cards, Mermaid), títulos de bloques de código, ecuaciones matemáticas e inyección global de componentes a través de `mdx-components.tsx`. |
-| [`styling.md`](https://github.com/jesus-alcala/boltdocs/blob/develop/skills/boltdocs/references/styling.md) | Tokens de tema de Tailwind CSS v4, mapeos de colores semánticos, sobreescripciones de modo oscuro y sintaxis de variantes personalizadas segura para Biome. |
-
----
 
 ## Instalación
 
@@ -88,7 +73,7 @@ import { Bot, HelpCircle } from 'lucide-react'
   <Card title="Sistema de Plugins" href="/docs/plugins" icon={<Bot />}>
     Extiende tu proyecto escribiendo plugins personalizados de Remark, Rehype y Vite.
   </Card>
-  <Card title="Solución de Problemas" href="/docs/guides/troubleshooting" icon={<HelpCircle />}>
+  <Card title="Solución de Problemas" href="/docs/guides/operations/troubleshooting" icon={<HelpCircle />}>
     Resuelve desajustes de configuración comunes o advertencias de bundle SSG.
   </Card>
 </Cards>

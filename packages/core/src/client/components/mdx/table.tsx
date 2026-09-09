@@ -1,7 +1,16 @@
 import { cn } from '../../utils/cn'
 
-const Table = (props: React.HTMLAttributes<HTMLTableElement>) => (
-  <div className="my-6 w-full overflow-x-auto rounded-xl border border-subtle bg-surface/30">
+interface TableProps extends React.HTMLAttributes<HTMLTableElement> {
+  wrapperClassName?: string
+}
+
+const Table = ({ wrapperClassName, ...props }: TableProps) => (
+  <div
+    className={cn(
+      'my-6 w-full overflow-x-auto rounded-xl border border-subtle bg-surface/30',
+      wrapperClassName,
+    )}
+  >
     <table className="w-full border-collapse text-left text-sm" {...props} />
   </div>
 )

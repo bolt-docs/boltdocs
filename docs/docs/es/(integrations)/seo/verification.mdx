@@ -1,48 +1,11 @@
 ---
 title: Verificación de Sitio
-sidebarPosition: 5
+sidebarPosition: 6
 description: Verifica la titularidad de tu sitio con Google Search Console, Bing Webmaster Tools, Yandex, Pinterest y Facebook.
 ---
 
 Los motores de búsqueda y plataformas requieren prueba de titularidad del sitio antes de otorgar acceso a sus herramientas de webmaster. Boltdocs inyecta automáticamente las etiquetas `<meta>` de verificación correctas para los cinco proveedores más comunes.
 
----
-
-## Inicio Rápido
-
-### Paso 1: Obtén tu código de verificación
-
-Inicia sesión en la herramienta de webmaster de tu proveedor y copia el código de verificación:
-
-| Proveedor | Herramienta | Etiqueta Meta |
-| :--- | :--- | :--- |
-| **Google** | [Search Console](https://search.google.com/search-console) | `<meta name="google-site-verification">` |
-| **Bing** | [Webmaster Tools](https://www.bing.com/webmasters) | `<meta name="msvalidate.01">` |
-| **Yandex** | [Webmaster](https://webmaster.yandex.com/) | `<meta name="yandex-verification">` |
-| **Pinterest** | [Claim Site](https://www.pinterest.com/settings/claim) | `<meta name="p:domain_verify">` |
-| **Facebook** | [Business Settings](https://business.facebook.com/settings) | `<meta name="facebook-domain-verification">` |
-
-### Paso 2: Configura en boltdocs.config.ts
-
-```ts title="boltdocs.config.ts"
-export default defineConfig({
-  seo: {
-    verification: {
-      google: 'xxxxxxxxxxxxxxxxxxxxxxxxxx',
-      bing: 'xxxxxxxxxxxxxxxxxxxxxxxxxx',
-      yandex: 'xxxxxxxxxxxxxxxxxxxxxxxxxx',
-      pinterest: 'xxxxxxxxxxxxxxxxxxxxxxxxxx',
-      facebook: 'xxxxxxxxxxxxxxxxxxxxxxxxxx',
-    },
-  },
-})
-```
-
-### Paso 3: Verifica la titularidad
-
-Despliega tu sitio y haz clic en **Verify** en la herramienta de webmaster del proveedor. La etiqueta `<meta>` de verificación se inyecta automáticamente en el `<head>` de cada página.
-
----
 
 ## Referencia de Configuración
 

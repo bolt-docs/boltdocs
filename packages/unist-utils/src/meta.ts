@@ -36,14 +36,40 @@ export function parseMetaString(metaStr: string): ParsedMeta {
   const result: ParsedMeta = {}
   if (!metaStr) return result
 
-  if (/lineNumbers|showLineNumbers/.test(metaStr)) {
-    result.lineNumbers = true
-  }
-  if (/wordWrap|word-wrap/.test(metaStr)) {
-    result.wordWrap = true
+  const setBooleanFlag = (
+    key: 'lineNumbers' | 'wordWrap',
+    value?: string,
+  ): void => {
+    if (value === 'false') {
+      result[key] = false
+      return
+    }
+    if (value === 'true' || value === undefined) {
+      result[key] = true
+    }
   }
 
-  const titleMatch = metaStr.match(/title=(["'])(.*?)\1/)
+  const lineMatches = Array.from(
+    metaStr.matchAll(
+      /(?:^|\s)(?:lineNumbers|showLineNumbers|show-line-numbers|show_line_numbers|line_numbers)(?:\s*=\s*(true|false))?(?=\s|$)/gi,
+    ),
+  )
+  const lastLineMatch = lineMatches[lineMatches.length - 1]
+  if (lastLineMatch) {
+    setBooleanFlag('lineNumbers', lastLineMatch[1])
+  }
+
+  const wordMatches = Array.from(
+    metaStr.matchAll(
+      /(?:^|\s)(?:wordWrap|word-wrap|word_wrap)(?:\s*=\s*(true|false))?(?=\s|$)/gi,
+    ),
+  )
+  const lastWordMatch = wordMatches[wordMatches.length - 1]
+  if (lastWordMatch) {
+    setBooleanFlag('wordWrap', lastWordMatch[1])
+  }
+
+  const titleMatch = metaStr.match(/title=(['"])(.*?)\1/)
   if (titleMatch) {
     result.title = titleMatch[2]
   }

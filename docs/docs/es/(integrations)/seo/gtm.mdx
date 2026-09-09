@@ -6,31 +6,6 @@ description: Despliega y gestiona etiquetas de marketing, scripts personalizados
 
 Google Tag Manager (GTM) te permite gestionar etiquetas, píxeles de rastreo y scripts personalizados en tu sitio de Boltdocs sin editar código directamente.
 
----
-
-## Inicio Rápido
-
-### Paso 1: Obtén tu ID de Contenedor de GTM
-
-Inicia sesión en tu cuenta de [Google Tag Manager](https://tagmanager.google.com/) y copia tu ID de Contenedor (comienza con `GTM-`).
-
-### Paso 2: Configura en boltdocs.config.ts
-
-```ts title="boltdocs.config.ts"
-export default defineConfig({
-  integrations: {
-    gtm: {
-      tagId: 'GTM-XXXXXX',
-    },
-  },
-})
-```
-
-### Paso 3: Despliega
-
-Boltdocs inyecta automáticamente el script oficial de GTM en el `<head>` de la página y el bloque noscript de fallback de iframe en el `<body>` de la página.
-
----
 
 ## Referencia de Configuración
 

@@ -4,71 +4,68 @@ sidebarPosition: 7
 description: Previous/next page navigation buttons rendered at the bottom of pages.
 ---
 
-The `PageNav` component displays navigation controls at the bottom of pages, pointing readers to the logically preceding or following chapters.
+The `PageNav` component displays navigation controls at the bottom of pages, directing readers to the logically preceding or following chapters.
 
-It walks the sidebar `routes` tree to find the previous and next sibling — same logic that powers most docs sites — and hands them to your layout via the `usePageNav()` hook. You decide what they look like: pill buttons, full-width cards with descriptions, or just plain chevrons.
-
----
-
-## Import
-
-```tsx
-import { PageNav } from 'boltdocs/primitives'
-import { usePageNav } from 'boltdocs/client'
-```
-
-The `usePageNav` hook resolves the previous and next routes relative to `currentRoute` in the sidebar tree. Note the field names: the hook returns `{ prev, next }`, not `{ prevPage, nextPage }` — older docs sometimes carry the longer name, double-check if you're copy-pasting.
-
----
 
 ## Composable Page Navigation Example
 
-Using the primitive `PageNav` sub-components, you can compose a custom footer pager. The example below shows how to retrieve active page sibling metadata via `usePageNav` and structure the links with custom borders and layout styles:
+Using the `PageNav` primitive subcomponents, you can compose a custom paginator footer. The following example shows how to fetch active sibling page metadata via `usePageNav`, provide the directional arrows through `PageNav.Icon`, and structure the links with custom borders and layout styles:
 
 ```tsx
 // docs/components/CustomFooterNav.tsx
 import React from 'react'
+import { ChevronLeft, ChevronRight } from 'lucide-react'
 import { PageNav } from 'boltdocs/primitives'
 import { usePageNav } from 'boltdocs/client'
 
 export default function CustomFooterNav() {
-  const { prev, next } = usePageNav()
+  const { prevPage, nextPage } = usePageNav()
 
-  if (!prev && !next) return null
+  if (!prevPage && !nextPage) return null
 
   return (
     <PageNav.Root className="border-t border-subtle pt-8 mt-12 grid grid-cols-2 gap-4">
       {/* 1. Previous Page Direction */}
-      {prev ? (
+      {prevPage ? (
         <PageNav.Link
-          to={prev.path}
+          to={prevPage.path}
           direction="prev"
           className="group p-4 rounded-xl border border-zinc-200 dark:border-zinc-800 hover:border-primary-500 transition-colors"
         >
-          <PageNav.Title className="text-xs uppercase font-bold text-zinc-400 dark:text-zinc-500 group-hover:text-primary-500 transition-colors">
-            Previous Chapter
-          </PageNav.Title>
-          <PageNav.Description className="text-sm font-semibold text-zinc-800 dark:text-zinc-200 mt-1">
-            {prev.title}
-          </PageNav.Description>
+          <PageNav.Icon className="shrink-0 text-zinc-400 dark:text-zinc-500 group-hover:text-primary-500 transition-colors">
+            <ChevronLeft />
+          </PageNav.Icon>
+          <div className="flex flex-col">
+            <PageNav.Title className="text-xs uppercase font-bold text-zinc-400 dark:text-zinc-500 group-hover:text-primary-500 transition-colors">
+              Previous Chapter
+            </PageNav.Title>
+            <PageNav.Description className="text-sm font-semibold text-zinc-800 dark:text-zinc-200 mt-1">
+              {prevPage.title}
+            </PageNav.Description>
+          </div>
         </PageNav.Link>
       ) : (
         <div /> // Column offset spacer
       )}
 
       {/* 2. Next Page Direction */}
-      {next ? (
+      {nextPage ? (
         <PageNav.Link
-          to={next.path}
+          to={nextPage.path}
           direction="next"
           className="group p-4 rounded-xl border border-zinc-200 dark:border-zinc-800 hover:border-primary-500 transition-colors text-right"
         >
-          <PageNav.Title className="text-xs uppercase font-bold text-zinc-400 dark:text-zinc-500 group-hover:text-primary-500 transition-colors">
-            Next Chapter
-          </PageNav.Title>
-          <PageNav.Description className="text-sm font-semibold text-zinc-800 dark:text-zinc-200 mt-1">
-            {next.title}
-          </PageNav.Description>
+          <div className="flex flex-col">
+            <PageNav.Title className="text-xs uppercase font-bold text-zinc-400 dark:text-zinc-500 group-hover:text-primary-500 transition-colors">
+              Next Chapter
+            </PageNav.Title>
+            <PageNav.Description className="text-sm font-semibold text-zinc-800 dark:text-zinc-200 mt-1">
+              {nextPage.title}
+            </PageNav.Description>
+          </div>
+          <PageNav.Icon className="shrink-0 text-zinc-400 dark:text-zinc-500 group-hover:text-primary-500 transition-colors">
+            <ChevronRight />
+          </PageNav.Icon>
         </PageNav.Link>
       ) : (
         <div /> // Column offset spacer
@@ -80,25 +77,17 @@ export default function CustomFooterNav() {
 
 ---
 
-## Common pitfalls
+## Composable Subcomponents
 
-- **`usePageNav` is route-aware**, not block-aware. It does not match by `frontmatter.tags` or any other field — strictly the order in the sidebar tree. If you need richer "related pages" behaviour, build it manually with `useRoutes()` + `currentRoute.frontmatter.tags`.
-- **`prevPage` / `nextPage` are nullable** at the boundaries of the route graph. Don't render a `<PageNav.Link>` for a missing direction — render an empty `<div />` (as in the example) so the surviving link doesn't lose its grid column.
-- **The dispatch event is SPA, not hard navigation.** Boltdocs routes the click through React Router — clicking next-page works without a full reload.
-
----
-
-## Composable Sub-Components
-
-The `PageNav` primitive provides the following sub-components for structure customization:
+The `PageNav` primitive provides the following subcomponents for structure customization:
 
 | Component | HTML Tag | Description | Props |
 | :--- | :--- | :--- | :--- |
-| **`PageNav.Root`** / **`PageNav`** | `<nav>` | The main outer flex grid container holding pager links. | [`ComponentBaseProps`](#componentbaseprops-common) |
-| **`PageNav.Link`** | `<a>` | An optimized anchor element linking to adjacent pages. Renders chevron arrows automatically. | [`PageNav.Link Props`](#pagenavlink-props) |
-| **`PageNav.Title`** | `<span>` | Directional helper label text (e.g. "Next" or "Previous"). | [`ComponentBaseProps`](#componentbaseprops-common) |
-| **`PageNav.Description`** | `<div>` | Heading title text of the target sibling page document. | [`ComponentBaseProps`](#componentbaseprops-common) |
-| **`PageNav.Icon`** | `<span>` | A layout container used to house custom arrow or caret graphics. | [`ComponentBaseProps`](#componentbaseprops-common) |
+| **`PageNav.Root`** / **`PageNav`** | `<nav>` | The main outer flex grid container holding the pagination links. | [`ComponentBaseProps`](#componentbaseprops-common) |
+| **`PageNav.Link`** | `<a>` | An optimized anchor element linking to adjacent pages. The directional arrow is supplied by the theme through `PageNav.Icon`. | [`PageNav.Link Props`](#pagenavlink-props) |
+| **`PageNav.Title`** | `<span>` | Directional helper label text (e.g., "Next" or "Previous"). | [`ComponentBaseProps`](#componentbaseprops-common) |
+| **`PageNav.Description`** | `<div>` | The target sibling page's document header title text. | [`ComponentBaseProps`](#componentbaseprops-common) |
+| **`PageNav.Icon`** | `<span>` | The slot for the directional arrow or caret graphic (e.g., a chevron pointing to the adjacent page). | [`ComponentBaseProps`](#componentbaseprops-common) |
 
 ---
 
@@ -108,14 +97,50 @@ The `PageNav` primitive provides the following sub-components for structure cust
 
 | Property | Type | Default | Description |
 | :--- | :--- | :--- | :--- |
-| **`children`** | `ReactNode` | `undefined` | Children content elements. |
-| **`className`** | `string` | `undefined` | Custom CSS utility classes. |
+| **`children`** | `ReactNode` | `undefined` | Child content elements. |
+| **`className`** | `string` | `undefined` | Custom utility CSS classes. |
 | **`style`** | `CSSProperties` | `undefined` | Inline style settings. |
 
 ### `PageNav.Link` Props
 
 | Property | Type | Default | Description |
 | :--- | :--- | :--- | :--- |
-| **`to`** | `string` | *Required* | Sibling routing destination path. |
-| **`direction`** | `'prev' \| 'next'` | *Required* | Direction indicator to control flex ordering and chevrons. |
+| **`to`** | `string` | *Required* | Target sibling page path. |
+| **`direction`** | `'prev' \| 'next'` | *Required* | Direction indicator controlling flex alignment. |
 | **`className`** | `string` | `undefined` | Custom utility classes. |
+
+---
+
+## Customization & states
+
+The `PageNav` primitive is **style-neutral**: the root renders a `<nav>`, `PageNav.Link` renders a plain router `<a>`, and the directional arrow is passed by the theme through `PageNav.Icon`. Every visual decision (colors, borders, spacing) belongs to the theme through its `className` slots. It emits no `data-*` state attributes — current-page and hover treatments are styled from CSS in your theme.
+
+| State / Slot | Mechanism |
+| :--- | :--- |
+| `PageNav` (root) | `<nav>` with a baked-in `grid sm:grid-cols-2 gap-4` layout; borders and spacing via `className` |
+| `PageNav.Link` | Plain router `<a>` — no state attributes; hover and focus treatments via `className` |
+| `direction` | `prev` / `next` controls flex alignment; place `PageNav.Icon` first for `prev` and last for `next` |
+| `PageNav.Icon` | `<span>` slot for the arrow graphic; size and color via `className`, inherits `currentColor` |
+| `PageNav.Title` / `PageNav.Description` | Text slots; typography and color via `className` |
+
+```tsx
+<PageNav className="mt-12 grid gap-4 border-t border-subtle pt-8 sm:grid-cols-2">
+  <PageNav.Link
+    to={prevPage.path}
+    direction="prev"
+    className="group rounded-xl border border-subtle p-4 transition-colors hover:border-primary-500 hover:bg-surface"
+  >
+    <PageNav.Icon className="shrink-0 text-muted/60">
+      <ChevronLeft />
+    </PageNav.Icon>
+    <div className="flex flex-col">
+      <PageNav.Title className="text-xs font-semibold uppercase text-muted group-hover:text-primary-500">
+        Previous
+      </PageNav.Title>
+      <PageNav.Description className="mt-1 text-sm font-medium text-body">
+        {prevPage.title}
+      </PageNav.Description>
+    </div>
+  </PageNav.Link>
+</PageNav>
+```

@@ -23,30 +23,6 @@ const todos: readonly DiagnosticRecord[] = ctx.diagnostics.list()
 ctx.diagnostics.clear()
 ```
 
----
-
-## Forma de DiagnosticRecord
-
-```ts
-interface DiagnosticRecord {
-  readonly id: number
-  readonly severity: 'info' | 'warn' | 'error'
-  readonly code: string
-  readonly message: string
-  readonly pluginName: string
-  readonly filePath?: string
-  readonly routePath?: string
-  readonly time: Date
-}
-```
-
-### Límite FIFO
-
-La cola está limitada a **256 registros**. Cuando un plugin emite más
-rápido de lo que la overlay del dev-server drena, los registros más
-antiguos se eliminan silenciosamente.
-
----
 
 ## Ver también
 

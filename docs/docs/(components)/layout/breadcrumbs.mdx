@@ -1,26 +1,15 @@
 ---
 title: Breadcrumbs
 sidebarPosition: 6
-description: "A navigation path indicator showing the user's location in the documentation hierarchy."
+description: "A navigation trail indicator that shows the user's location in the documentation hierarchy."
 ---
 
-The `Breadcrumbs` component displays a horizontal chain of breadcrumb links indicating the navigation structure of the current active page.
+The `Breadcrumbs` component displays a horizontal chain of breadcrumb links that indicates the navigation structure of the current active page.
 
-It's a thin wrapper around `react-aria-components`' `Breadcrumbs`, so it inherits proper `<nav>` semantics, keyboard navigation (Tab moves between crumbs), and screen-reader friendliness for free. Boltdocs fills in the route hierarchy from `useBreadcrumbs()` — you just compose the visual treatment.
-
----
-
-## Import
-
-```tsx
-import { Breadcrumbs } from 'boltdocs/primitives'
-```
-
----
 
 ## Composable Breadcrumbs Example
 
-Using the primitive `Breadcrumbs` sub-components, you can design a custom breadcrumbs indicator. The example below shows how to fetch the path segments via `useBreadcrumbs` and render them with custom icons and separators:
+Using the primitive `Breadcrumbs` subcomponents, you can design a custom breadcrumb indicator. The following example shows how to fetch the route segments via `useBreadcrumbs` and render them with custom icons and separators:
 
 ```tsx
 // docs/components/CustomBreadcrumbs.tsx
@@ -70,16 +59,16 @@ export default function CustomBreadcrumbs() {
 
 ---
 
-## Composable Sub-Components
+## Composable Subcomponents
 
-The `Breadcrumbs` primitive provides the following sub-components for structure customization:
+The `Breadcrumbs` primitive provides the following subcomponents for structure customization:
 
 | Component | HTML Tag | Description | Props |
 | :--- | :--- | :--- | :--- |
-| **`Breadcrumbs.Root`** / **`Breadcrumbs`** | `<nav>` | The main wrapping inline nav container shell. | [`ComponentBaseProps`](#componentbaseprops-common) |
+| **`Breadcrumbs.Root`** / **`Breadcrumbs`** | `<nav>` | The main inline nav wrapper container. | [`ComponentBaseProps`](#componentbaseprops-common) |
 | **`Breadcrumbs.Item`** | `<li>` | The individual breadcrumb cell container. | [`ComponentBaseProps`](#componentbaseprops-common) |
-| **`Breadcrumbs.Link`** | `<a>` | An optimized anchor element linking to a parent routing category. | [`Breadcrumbs.Link Props`](#breadcrumbslink-props) |
-| **`Breadcrumbs.Separator`** | `<span>` | Renders a directional separation icon (defaults to Chevron Right icon). | [`ComponentBaseProps`](#componentbaseprops-common) |
+| **`Breadcrumbs.Link`** | `<a>` | An optimized anchor element linking to a parent route category. | [`Breadcrumbs.Link Props`](#breadcrumbslink-props) |
+| **`Breadcrumbs.Separator`** | `<span>` | Renders a directional separation icon (defaults to the Chevron Right icon). | [`ComponentBaseProps`](#componentbaseprops-common) |
 
 ---
 
@@ -89,13 +78,51 @@ The `Breadcrumbs` primitive provides the following sub-components for structure 
 
 | Property | Type | Default | Description |
 | :--- | :--- | :--- | :--- |
-| **`children`** | `ReactNode` | `undefined` | Children content elements. |
-| **`className`** | `string` | `undefined` | Custom CSS utility classes. |
-| **`style`** | `CSSProperties` | `undefined` | Inline styling overrides. |
+| **`children`** | `ReactNode` | `undefined` | Child content elements. |
+| **`className`** | `string` | `undefined` | Custom utility CSS classes. |
+| **`style`** | `CSSProperties` | `undefined` | Inline style overrides. |
 
 ### `Breadcrumbs.Link` Props
 
 | Property | Type | Default | Description |
 | :--- | :--- | :--- | :--- |
-| **`href`** | `string` | *Required* | Navigation route destination path. |
+| **`href`** | `string` | *Required* | Target navigation route path. |
 | **`className`** | `string` | `undefined` | CSS class style override. |
+
+### `Breadcrumbs.Separator` Props
+
+Inherits `ComponentBaseProps` plus:
+
+| Property | Type | Default | Description |
+| :--- | :--- | :--- | :--- |
+| **`separator`** | `ReactNode` | *(chevron right)* | Custom separator icon/component that replaces the default chevron. |
+
+---
+
+## Customization & states
+
+The `Breadcrumbs` primitive is **style-neutral**: it ships the `<nav aria-label="Breadcrumb">` landmark with an `<ol>`/`<li>` hierarchy and the separator behavior, and every visual decision belongs to the theme through the `className` passthrough on `Breadcrumbs` (root), `Breadcrumbs.Item`, `Breadcrumbs.Link`, and `Breadcrumbs.Separator`. It paints no colors itself — current-item styling is driven by the `data-current` flag the final crumb receives.
+
+| State / Slot | Mechanism |
+| :--- | :--- |
+| `Breadcrumbs` (root) | Renders `<nav aria-label="Breadcrumb">` wrapping `<ol>`; layout and spacing via `className` |
+| `Breadcrumbs.Item` | `<li>` cell; the final (current) crumb also carries `data-current` |
+| Current crumb | RAC flags the last item: `data-current` on the `<li>` and `aria-current="page"` on the inner link |
+| `Breadcrumbs.Separator` | `<span>` chevron; color and size via `className` |
+| `Breadcrumbs.Link` | Plain router `<a>`; hover and current colors via `className` |
+
+```tsx
+<Breadcrumbs className="flex items-center gap-2 text-sm text-muted">
+  <Breadcrumbs.Item>
+    <Breadcrumbs.Link href="/" className="hover:text-body transition-colors">
+      Home
+    </Breadcrumbs.Link>
+  </Breadcrumbs.Item>
+  <Breadcrumbs.Item className="data-current:text-body data-current:font-semibold">
+    <Breadcrumbs.Separator className="text-muted/40" />
+    <Breadcrumbs.Link href="/docs/guides" className="hover:text-body transition-colors">
+      Guides
+    </Breadcrumbs.Link>
+  </Breadcrumbs.Item>
+</Breadcrumbs>
+```

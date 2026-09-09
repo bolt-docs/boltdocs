@@ -1,6 +1,7 @@
 const std = @import("std");
 const builtin = @import("builtin");
 const parser = @import("parser.zig");
+const yaml = @import("yaml.zig");
 
 /// Appends a JSON-escaped representation of a string to the list.
 fn appendEscapedJsonString(list: *std.ArrayList(u8), allocator: std.mem.Allocator, s: []const u8) !void {
@@ -70,7 +71,8 @@ fn workerFn(context: WorkerContext, thread_idx: usize, arena: *std.heap.ArenaAll
         };
         defer file.close(context.init.io);
 
-        var read_tmp_buf: [4096]u8 = undefined;
+        // Use a 64KB read buffer so most MDX files are read in a single syscall.
+        var read_tmp_buf: [65536]u8 = undefined;
         var r = file.reader(context.init.io, &read_tmp_buf);
         const file_content = r.interface.allocRemaining(arena_allocator, .unlimited) catch |err| {
             task.err = err;
@@ -266,6 +268,10 @@ pub fn main(init: std.process.Init) !void {
 
         try output_list.appendSlice(allocator, "  \"description\": ");
         try appendEscapedJsonString(&output_list, allocator, doc.description);
+        try output_list.appendSlice(allocator, ",\n");
+
+        try output_list.appendSlice(allocator, "  \"frontmatter\": ");
+        try appendYamlValue(&output_list, allocator, doc.frontmatter);
         try output_list.appendSlice(allocator, "\n}");
 
         _ = print_arena.reset(.retain_capacity);
@@ -274,4 +280,49 @@ pub fn main(init: std.process.Init) !void {
     try output_list.appendSlice(allocator, "\n}\n");
 
     try std.Io.File.stdout().writeStreamingAll(init.io, output_list.items);
+}
+
+/// Appends a JSON representation of a YAML value to the list.
+fn appendYamlValue(list: *std.ArrayList(u8), allocator: std.mem.Allocator, value: yaml.Value) !void {
+    switch (value) {
+        .null_value => try list.appendSlice(allocator, "null"),
+        .bool_value => |b| try list.appendSlice(allocator, if (b) "true" else "false"),
+        .int_value => |i| {
+            var buf: [64]u8 = undefined;
+            const formatted = try std.fmt.bufPrint(&buf, "{}", .{i});
+            try list.appendSlice(allocator, formatted);
+        },
+        .float_value => |f| {
+            var buf: [64]u8 = undefined;
+            if (std.math.isNan(f) or std.math.isInf(f)) {
+                // NaN and Infinity are not valid JSON
+                try list.appendSlice(allocator, "null");
+            } else {
+                const formatted = try std.fmt.bufPrint(&buf, "{d}", .{f});
+                try list.appendSlice(allocator, formatted);
+            }
+        },
+        .string => |s| try appendEscapedJsonString(list, allocator, s),
+        .array => |items| {
+            try list.appendSlice(allocator, "[");
+            for (items, 0..) |item, i| {
+                if (i > 0) try list.appendSlice(allocator, ",");
+                try appendYamlValue(list, allocator, item);
+            }
+            try list.appendSlice(allocator, "]");
+        },
+        .object => |obj| {
+            try list.appendSlice(allocator, "{");
+            var iter = obj.iterator();
+            var first = true;
+            while (iter.next()) |entry| {
+                if (!first) try list.appendSlice(allocator, ",");
+                first = false;
+                try appendEscapedJsonString(list, allocator, entry.key_ptr.*);
+                try list.appendSlice(allocator, ":");
+                try appendYamlValue(list, allocator, entry.value_ptr.*);
+            }
+            try list.appendSlice(allocator, "}");
+        },
+    }
 }

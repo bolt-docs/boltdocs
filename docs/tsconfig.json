@@ -10,7 +10,15 @@
     "noEmit": true,
     "resolveJsonModule": true,
     "isolatedModules": true,
-    "baseUrl": "."
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["./src/*"]
+    }
   },
-  "include": ["boltdocs.config.ts", ".boltdocs/generated/types.d.ts"]
+  "include": [
+    "boltdocs.config.ts",
+    "src/**/*",
+    "docs/**/*",
+    ".boltdocs/generated/types.d.ts"
+  ]
 }

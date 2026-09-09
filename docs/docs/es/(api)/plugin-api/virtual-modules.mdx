@@ -22,17 +22,6 @@ ctx.virtualModules.has('virtual:mi-plugin/theme.css')
 const todos: readonly RegisteredVirtualModule[] = ctx.virtualModules.list()
 ```
 
----
-
-## Reglas de registro
-
-| Regla | Detalle |
-| :--- | :------ |
-| **Ids duplicados lanzan error** | Dos plugins no pueden registrar el mismo id virtual. Prefija con el nombre de tu plugin. |
-| **Prefijo `virtual:boltdocs-` reservado** | Los virtuales del core (routes, config, search, etc.) mantienen el namespace `virtual:boltdocs-`. |
-| **Flag `eager`** | Se acepta en registro pero no se consulta en carga — reservado para futura auto-inyección. |
-
----
 
 ## Ver también
 

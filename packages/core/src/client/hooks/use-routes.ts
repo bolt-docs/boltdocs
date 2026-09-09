@@ -1,5 +1,5 @@
 import { useMemo } from 'react'
-import { useLocation } from 'react-router-dom'
+import { useLocation } from '../router'
 import { useConfig } from '../app/config-context'
 import { useRoutesContext } from '../app/routes-context'
 import { useBoltdocsContext } from '../store/boltdocs-context'
@@ -11,27 +11,46 @@ import { normalizePath } from '../utils/path'
  * version and locale.
  */
 export function useRoutes() {
-  const { routes: allRoutes } = useRoutesContext()
+  const routeContext = useRoutesContext()
+  const allRoutes = routeContext.routes
+  const routeIndex = routeContext.index || {
+    byPath: new Map(
+      allRoutes.map((route) => [normalizePath(route.path), route]),
+    ),
+    hintsByPath: new Map(),
+    collectionNames: [],
+  }
   const config = useConfig()
   const location = useLocation()
+  const { pathname } = location
 
   const {
     currentLocale: currentLocaleStore,
     currentVersion: currentVersionStore,
   } = useBoltdocsContext()
 
-  const currentPath = normalizePath(location.pathname)
+  const currentPath = normalizePath(pathname)
 
-  const currentRoute = allRoutes?.find?.(
-    (r) => normalizePath(r.path) === currentPath,
-  )
+  const currentRoute = routeIndex.byPath.get(currentPath)
 
-  const currentLocale = config.i18n
-    ? currentLocaleStore || config.i18n.defaultLocale
+  const pathParts = pathname.split('/').filter(Boolean)
+  const urlLocale = config.i18n
+    ? pathParts.find((part) =>
+        Array.isArray(config.i18n?.locales)
+          ? config.i18n?.locales.includes(part)
+          : part in (config.i18n?.locales || {}),
+      )
     : undefined
 
+  const currentLocale = config.i18n
+    ? urlLocale || currentLocaleStore || config.i18n.defaultLocale
+    : undefined
+
+  const configuredVersions = config.versions?.versions || []
   const currentVersion = config.versions
-    ? currentVersionStore || config.versions.defaultVersion
+    ? configuredVersions.some((version) => version.path === currentVersionStore)
+      ? currentVersionStore
+      : config.versions.defaultVersion
     : undefined
 
   const routes = useMemo(() => {
@@ -58,16 +77,15 @@ export function useRoutes() {
 
       if (!(localeMatch && versionMatch)) return false
 
-      const pathParts = location.pathname.split('/').filter(Boolean)
+      const pathParts = pathname.split('/').filter(Boolean)
       const isCurrentLocalePrefixed = !!(
         config.i18n &&
         pathParts.includes(currentLocaleStore || config.i18n.defaultLocale)
       )
       const isCurrentVersionPrefixed = !!(
         config.versions &&
-        pathParts.includes(
-          currentVersionStore || config.versions.defaultVersion,
-        )
+        !!currentVersion &&
+        pathParts.includes(currentVersion)
       )
 
       const isRouteLocalePrefixed = !!r.locale
@@ -94,26 +112,27 @@ export function useRoutes() {
   }, [
     allRoutes,
     config,
+    pathname,
     currentLocale,
     currentVersion,
-    location.pathname,
     currentLocaleStore,
-    currentVersionStore,
   ])
 
-  const collections = useMemo(() => {
-    return new Set(
-      (allRoutes || []).map((r) => r.collection).filter(Boolean) as string[],
-    )
-  }, [allRoutes])
+  const collections = useMemo(
+    () => new Set(routeIndex.collectionNames),
+    [routeIndex.collectionNames],
+  )
 
-  const currentSegment = location.pathname
-    .split('/')
-    .filter(Boolean)[0]
-    ?.toLowerCase()
+  // Collection post routes are registered without the docs base (e.g.
+  // `/blog/post`), while the browser URL includes it (`/docs/blog/post`),
+  // so `currentRoute` is undefined on post pages. Detect collection pages
+  // from any path segment instead of relying on the route index alone.
   const isCollectionPage =
     !!currentRoute?.collection ||
-    (currentSegment ? collections.has(currentSegment) : false)
+    location.pathname
+      .split('/')
+      .filter(Boolean)
+      .some((segment) => collections.has(segment.toLowerCase()))
 
   return {
     routes,

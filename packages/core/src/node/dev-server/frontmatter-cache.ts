@@ -1,8 +1,12 @@
 import crypto from 'node:crypto'
 import { parseFrontmatterAsync } from '../utils'
-import { docCache } from '../routes/cache'
+import {
+  docCache,
+  type RouteCacheContext,
+  type RouteCacheVariant,
+} from '../routes/cache'
 
-const frontmatterHashes = new Map<string, string>()
+const legacyFrontmatterHashes = new Map<string, string>()
 
 function hashFrontmatterData(data: Record<string, unknown>): string {
   const { lastUpdated: _, ...rest } = data
@@ -20,22 +24,48 @@ export async function computeFrontmatterHash(
   }
 }
 
-export function getFrontmatterHash(filePath: string): string | undefined {
-  let hash = frontmatterHashes.get(filePath)
+export function getFrontmatterHash(
+  filePath: string,
+  context?: RouteCacheContext,
+  variant?: RouteCacheVariant,
+): string | undefined {
+  const hashes =
+    variant?.frontmatterHashes ??
+    context?.frontmatterHashes ??
+    legacyFrontmatterHashes
+  let hash = hashes.get(filePath)
   if (hash === undefined) {
-    const cachedDoc = docCache.getStale(filePath)
+    const cache = variant?.docCache ?? context?.docCache ?? docCache
+    const cachedDoc = cache.getStale(filePath)
     if (cachedDoc?.route?.frontmatter) {
       hash = hashFrontmatterData(cachedDoc.route.frontmatter)
-      frontmatterHashes.set(filePath, hash)
+      hashes.set(filePath, hash)
     }
   }
   return hash
 }
 
-export function setFrontmatterHash(filePath: string, hash: string): void {
-  frontmatterHashes.set(filePath, hash)
+export function setFrontmatterHash(
+  filePath: string,
+  hash: string,
+  context?: RouteCacheContext,
+  variant?: RouteCacheVariant,
+): void {
+  ;(
+    variant?.frontmatterHashes ??
+    context?.frontmatterHashes ??
+    legacyFrontmatterHashes
+  ).set(filePath, hash)
 }
 
-export function removeFrontmatterHash(filePath: string): void {
-  frontmatterHashes.delete(filePath)
+export function removeFrontmatterHash(
+  filePath: string,
+  context?: RouteCacheContext,
+  variant?: RouteCacheVariant,
+): void {
+  ;(
+    variant?.frontmatterHashes ??
+    context?.frontmatterHashes ??
+    legacyFrontmatterHashes
+  ).delete(filePath)
 }

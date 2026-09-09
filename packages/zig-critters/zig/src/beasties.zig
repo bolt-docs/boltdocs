@@ -148,7 +148,7 @@ pub fn extractCriticalCss(
         var iter = selector_cache.iterator();
         while (iter.next()) |entry| {
             if (entry.value_ptr.*) |tokens| {
-                allocator.free(tokens);
+                selector.freeSelectorTokens(allocator, tokens);
             }
         }
         selector_cache.deinit();

@@ -6,15 +6,6 @@ description: Componente de marcador de posición de estado de carga con pulso.
 
 La primitiva `Skeleton` renderiza formas de marcador de posición con animación de pulso para representar bloques de contenido (como encabezados de texto, tarjetas multimedia o fotos de perfil) mientras se obtienen los recursos.
 
----
-
-## Importación
-
-```tsx
-import { Skeleton } from 'boltdocs/primitives'
-```
-
----
 
 ## Inicio Rápido
 
@@ -50,3 +41,24 @@ El componente `Skeleton` acepta propiedades estándar del elemento HTML `div` m�
 | **`variant`** | `'rect' \| 'circle'` | `'rect'` | Estilo de estructura de forma. Renderiza `rounded-full` para `'circle'` y `rounded-md` para `'rect'`. |
 | **`className`** | `string` | `undefined` | Sobrescrituras de clases CSS utilitarias personalizadas (por ejemplo, mapeando dimensiones como `w-full h-8`). |
 | **`style`** | `CSSProperties` | `undefined` | Configuraciones de estilo en línea. |
+
+---
+
+## Personalización y estados
+
+`Skeleton` es un marcador de posición de presentación sin estado y sin atributos `data-*`. Sus únicos visuales integrados son un relleno suave `bg-soft`, una animación de pulso (`animate-pulse`) y la forma elegida por `variant` — todo lo demás (tamaño, color, radio, duración) viene del tema mediante `className`, que también puede sobrescribir o deshabilitar los valores predeterminados.
+
+| Estado / Slot | Mecanismo |
+| :--- | :--- |
+| `className` | Passthrough; el tema controla tamaño, color, radio y sobrescrituras de animación |
+| `variant` | `rect` → `rounded-md`, `circle` → `rounded-full` |
+| `animate-pulse` | Animación de pulso integrada; sobrescribir con `animate-none` o tu propio `animate-*` |
+| `bg-soft` | Color de relleno base; sobrescribir con cualquier utilidad `bg-*` |
+| Sin estado | Sin interacción ni atributos `data-*` |
+
+Tailwind v4:
+
+```tsx
+<Skeleton variant="rect" className="h-4 w-2/3 rounded-md bg-muted/20" />
+<Skeleton variant="circle" className="size-12 rounded-full animate-none" />
+```

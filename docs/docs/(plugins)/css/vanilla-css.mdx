@@ -1,0 +1,45 @@
+---
+title: Vanilla CSS
+description: Native zero-configuration support for Vanilla CSS in Boltdocs.
+sidebarPosition: 1
+---
+
+Boltdocs is **100% CSS-Framework Agnostic** by design. The core natively supports **Vanilla CSS** and **CSS Modules** files with no configuration or external plugins needed.
+
+## Features
+
+- **Zero-Config Vanilla CSS**: Import any `.css` file in your components or layout.
+- **CSS Modules**: Full support for scoped `[name].module.css` styles.
+- **Native Theme Tokens**: `:root` variables and `[data-theme='dark']` / `.dark` dark theme tokens included in `base-theme.css`.
+- **Extremely Fast**: Powered by Vite and PostCSS native CSS bundling.
+
+
+## Base CSS Variables
+
+Boltdocs ships standard CSS variables in `base-theme.css`:
+
+```css
+:root {
+  --bdocs-font-family: system-ui, sans-serif;
+  --bdocs-font-mono: ui-monospace, monospace;
+
+  --bdocs-bg: #ffffff;
+  --bdocs-bg-secondary: #f8fafc;
+  --bdocs-text: #0f172a;
+  --bdocs-text-muted: #64748b;
+  --bdocs-border: #e2e8f0;
+  --bdocs-primary: #2563eb;
+  --bdocs-primary-hover: #1d4ed8;
+}
+
+[data-theme='dark'],
+.dark {
+  --bdocs-bg: #0b0f19;
+  --bdocs-bg-secondary: #111827;
+  --bdocs-text: #f8fafc;
+  --bdocs-text-muted: #94a3b8;
+  --bdocs-border: #1e293b;
+  --bdocs-primary: #3b82f6;
+  --bdocs-primary-hover: #60a5fa;
+}
+```

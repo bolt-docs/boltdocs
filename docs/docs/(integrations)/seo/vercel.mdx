@@ -1,35 +1,11 @@
 ---
 title: Vercel Analytics & Speed Insights
 sidebarPosition: 4
-description: Monitor traffic and Core Web Vitals with zero-config Vercel Analytics and Speed Insights.
+description: Monitor traffic and Core Web Vitals with Vercel Analytics and Speed Insights without configuration.
 ---
 
-Vercel provides built-in analytics and real-user monitoring (RUM) for sites deployed on their platform. Boltdocs injects the required scripts automatically when you enable them in your config.
+Vercel provides built-in analytics and real-user monitoring (RUM) for sites deployed on their platform. Boltdocs injects the required scripts automatically when you enable them in your configuration.
 
----
-
-## Quick Start
-
-### Step 1: Enable analytics in boltdocs.config.ts
-
-```ts title="boltdocs.config.ts"
-export default defineConfig({
-  integrations: {
-    analytics: {
-      vercel: {
-        analytics: true,
-        speedInsights: true,
-      },
-    },
-  },
-})
-```
-
-### Step 2: Deploy to Vercel
-
-Both scripts are only injected in **production** builds (`NODE_ENV === 'production'`). They will not load during local development or preview deployments.
-
----
 
 ## Configuration Reference
 
@@ -67,23 +43,23 @@ integrations: {
 
 ## How It Works
 
-When enabled, Boltdocs injects two script snippets into the `<head>` of every page at build time:
+When enabled, Boltdocs injects two script fragments into the `<head>` of every page at build time:
 
 1. **Vercel Analytics** — `<script defer src="/_vercel/insights/script.js">`
 2. **Speed Insights** — `<script defer src="/_vercel/speed-insights/script.js">`
 
-Vercel automatically handles the data collection pipeline on their edge network. No additional API keys or configuration are required.
+Vercel automatically handles the data collection pipeline on their edge network. No additional API keys or configuration required.
 
 ---
 
 ## Troubleshooting
 
-### Scripts not appearing in development
+### Scripts don't appear in development
 
 This is expected. Both scripts are only injected in production builds. Run `boltdocs build && boltdocs preview` to test locally.
 
-### Data not showing in Vercel dashboard
+### Data doesn't appear in the Vercel dashboard
 
-- Ensure your project is deployed on Vercel's production environment
-- Verify the scripts are present by checking the page source of your deployed site
-- Allow up to 24 hours for data to appear in the dashboard
+- Make sure your project is deployed to the Vercel production environment
+- Verify the scripts are present by viewing the page source of your deployed site
+- Wait up to 24 hours for data to appear in the dashboard

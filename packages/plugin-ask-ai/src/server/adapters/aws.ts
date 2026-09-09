@@ -1,6 +1,7 @@
 import { streamLLMResponse } from '../handler'
-import type { StreamContext, StreamEvent } from '../handler'
+import type { StreamEvent } from '../handler'
 import { headers } from './headers'
+import { pickClientContext } from '../../node/context'
 import type { AdapterConfig, AdapterEnv } from './types'
 
 function eventToSse(event: StreamEvent): string {
@@ -16,22 +17,6 @@ function eventToSse(event: StreamEvent): string {
     default:
       return ''
   }
-}
-
-function pickContext(body: any, contextChars: number): StreamContext | null {
-  const c = body?.context
-  if (
-    c &&
-    typeof c === 'object' &&
-    typeof c.page === 'string' &&
-    typeof c.content === 'string'
-  ) {
-    return {
-      page: c.page.slice(0, 256),
-      content: c.content.slice(0, contextChars),
-    }
-  }
-  return null
 }
 
 export async function handleAwsAskAi(
@@ -60,7 +45,7 @@ export async function handleAwsAskAi(
         body: JSON.stringify({ error: 'Missing question in request body' }),
       }
     }
-    const ctx = pickContext(payload, config.contextChars ?? 6_000)
+    const ctx = pickClientContext(payload, config.contextChars ?? 6_000)
 
     const parts: string[] = []
     await streamLLMResponse(

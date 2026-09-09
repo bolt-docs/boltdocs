@@ -1,5 +1,9 @@
 import { describe, it, expect, vi } from 'vitest'
 import { PluginLifecycleManager } from '../../src/node/plugins/plugin-lifecycle'
+import {
+  createPluginMiddlewareAPI,
+  invalidateMiddlewareCache,
+} from '../../src/node/plugins/plugin-context'
 import type { SecureBoltdocsPlugin } from '../../src/node/plugins/plugin-types'
 
 describe('PluginLifecycleManager', () => {
@@ -371,6 +375,37 @@ describe('PluginLifecycleManager', () => {
     })
 
     expect(result.html).toContain('<meta name="seo" content="ok">')
+  })
+
+  it('should log middleware errors and preserve the current params', async () => {
+    const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
+    const middleware = createPluginMiddlewareAPI()
+
+    middleware.add({
+      name: 'failing-middleware',
+      transformMdx: async () => {
+        throw new Error('middleware failure')
+      },
+    })
+
+    try {
+      const manager = new PluginLifecycleManager([], mockConfig)
+      const result = await manager.runMiddlewareChain('transformMdx', {
+        code: 'unchanged',
+        filePath: 'test.mdx',
+      })
+
+      expect(result).toEqual({
+        code: 'unchanged',
+        filePath: 'test.mdx',
+      })
+      expect(errorSpy).toHaveBeenCalledWith(
+        expect.stringContaining("Middleware 'failing-middleware' threw"),
+      )
+    } finally {
+      invalidateMiddlewareCache()
+      errorSpy.mockRestore()
+    }
   })
 
   it('should handle multiple plugins with different hooks', async () => {

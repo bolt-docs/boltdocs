@@ -1,6 +1,5 @@
-import { describe, it, expect, afterEach } from 'vitest'
+import { describe, it, expect, beforeEach, afterEach } from 'vitest'
 import { adaptersDeploy } from '../src/deploy/adapters'
-import { beforeEach } from 'node:test'
 import fs from 'node:fs'
 import path from 'node:path'
 import os from 'node:os'

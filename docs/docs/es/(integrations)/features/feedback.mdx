@@ -9,30 +9,6 @@ badge: "New"
 
 La integración de **Retroalimentación Personalizada** te permite recopilar calificaciones de retroalimentación (😊, 😐, 🙁) y sugerencias escritas de tus lectores directamente en tu registro de hilos de **GitHub Discussions** sin la sobrecarga de paquetes de iframes pesados de terceros.
 
----
-
-## Configuración Mínima
-
-Para habilitar la retroalimentación personalizada, registra las coordenadas de tu repositorio de GitHub en la sección `integrations` de tu archivo de configuración:
-
-```ts title="boltdocs.config.ts"
-import { defineConfig } from 'boltdocs'
-
-export default defineConfig({
-  integrations: {
-    feedback: {
-      custom: {
-        enabled: true,
-        owner: 'your-github-username-or-org',
-        repo: 'your-repository-name',
-        categorySlug: 'general', // Opcional: predeterminado a 'general'
-      },
-    },
-  },
-})
-```
-
----
 
 ## Cómo Funciona
 

@@ -6,15 +6,6 @@ description: Primitiva de botón interactivo envuelta en React Aria Components.
 
 La primitiva `Button` es un componente de botón interactivo sin estilos y totalmente accesible que soporta navegación por teclado, accesibilidad para lectores de pantalla y estados de hover/foco/presión.
 
----
-
-## Importación
-
-```tsx
-import { Button } from 'boltdocs/primitives'
-```
-
----
 
 ## Inicio Rápido
 
@@ -49,3 +40,30 @@ El componente `Button` acepta todas las propiedades de `ButtonProps` de React Ar
 | **`className`** | `string` | `undefined` | Sobrescrituras de clases CSS utilitarias personalizadas. |
 | **`style`** | `CSSProperties` | `undefined` | Sobrescrituras de estilo en línea. |
 | **`children`** | `ReactNode` | `undefined` | El texto de la etiqueta o elementos gráficos a renderizar dentro del botón. |
+
+---
+
+## Personalización y estados
+
+`Button` es neutral en estilos: la primitiva aporta la estructura, el comportamiento y el manejo de la interacción, y toda decisión visual (colores, bordes, radios, tamaños) pertenece al tema. Como es un `RAC.Button` puro, el estado de interacción se expone de dos formas — mediante la función `className` y mediante atributos `data-*` que RAC refleja en el elemento —, por lo que los estilos de presión, hover y foco vienen del CSS de tu tema.
+
+| Estado / Slot | Mecanismo |
+| :--- | :--- |
+| `className` (función de renderizado) | Recibe `{ isHovered, isPressed, isFocused, isFocusVisible, isDisabled }` para estilo condicional |
+| `data-hovered` | Presente en el botón mientras el puntero está sobre él |
+| `data-pressed` | Presente mientras el botón está siendo presionado (mouse, toque o teclado) |
+| `data-focused` / `data-focus-visible` | Presentes mientras tiene foco; `data-focus-visible` solo para foco por teclado |
+| `data-disabled` | Presente cuando se establece `isDisabled` |
+| `isDisabled` / `aria-disabled` | Deshabilita la interacción; `data-disabled` y `aria-disabled` se establecen automáticamente |
+
+Tailwind v4:
+
+```tsx
+<Button
+  className="px-4 py-2 rounded-lg text-white bg-primary-500 transition-colors
+             hover:bg-primary-600 data-pressed:bg-primary-700
+             data-focus-visible:outline-2 data-focus-visible:outline-primary-500"
+>
+  Haz clic aquí
+</Button>
+```

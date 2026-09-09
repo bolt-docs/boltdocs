@@ -1,65 +1,55 @@
 ---
 title: Sidebar
 sidebarPosition: 3
-description: The left navigation directory — grouped, collapsible, with optional badges and icons.
+description: The collapsible left-side navigation bar for listing nested pages and guides.
 ---
 
-# Sidebar
+The `Sidebar` component displays the site directory structure, listing nested folders, page routes, category headers, and navigation labels.
 
-`Sidebar` is the vertical navigation panel on the left side of the docs page. It's a composition of a few small pieces: a `Header` slot for branding or search input, a scrollable `Content` area, and an automated `Items` renderer that walks the route graph for you.
+The `Sidebar` primitive is **style-neutral**: it provides structure, accessibility (ARIA), behavior (scroll restore, auto-open active groups, scroll-to-active) and a set of `data-*` state attributes. **Every visual decision belongs to your theme** — colors, spacing, borders, active/hover treatments. Style states with Tailwind v4 variants (`data-active:bg-primary-500/10`) or plain CSS (`[data-active] { ... }`).
 
-Two flavors ship:
+## Composable Sidebar Example
 
-- **Default** — `import { Sidebar } from 'boltdocs'`. Fully styled, ready to drop in.
-- **Primitive** — `import { Sidebar } from 'boltdocs/primitives'`. Same composition API, fully unstyled.
-
-This page is about the primitive. Use it when you want full control over the visual treatment, but still want automated route → link rendering.
-
----
-
-## Import
+Build a custom responsive sidebar using the primitive containers and the automatic routing hook:
 
 ```tsx
-import { Sidebar } from 'boltdocs/primitives'
-```
-
----
-
-## Anatomy
-
-| Sub-component | Purpose |
-| :--- | :--- |
-| `Sidebar` (root) | The desktop `<aside>`. Sticky, full-height, scoped to `lg+` viewports. |
-| `Sidebar.Mobile` | A modal drawer. Same contents as desktop, dismissed via backdrop or close button. |
-| `Sidebar.Header` | Optional strip at the top of the panel. Good place for a search input or logo. |
-| `Sidebar.Content` | The scrollable list area. Restores scroll position across SPA navigations. |
-| `Sidebar.Group` | A category wrapper with optional title + icon + collapsible toggle. |
-| `Sidebar.Link` | A single navigation anchor with optional icon and badge. |
-| `Sidebar.SubGroup` | A nested collapsible group. Useful for two-level hierarchies. |
-| `Sidebar.Item` | Recursive renderer for a single `ComponentRoute`. Picks between `Link` or `SubGroup` automatically. |
-| `Sidebar.Items` | The high-level "render everything" loop. Pass the `routes` array from `useRoutes()`. |
-
----
-
-## Minimal example
-
-```tsx
+// docs/components/CustomSidebar.tsx
 import { Sidebar } from 'boltdocs/primitives'
 import { useRoutes } from 'boltdocs/client'
 
-export function MySidebar() {
+export default function CustomSidebar() {
   const { routes } = useRoutes()
 
   return (
     <>
-      <Sidebar className="border-r border-subtle">
-        <Sidebar.Content>
-          <Sidebar.Items routes={routes} />
+      {/* 1. Desktop Sidebar Container */}
+      <Sidebar className="hidden lg:flex flex-col w-sidebar sticky top-navbar h-[calc(100vh-var(--spacing-navbar))] border-r border-subtle bg-main">
+        <Sidebar.Header className="px-4 py-3 flex items-center justify-between border-b border-subtle">
+          <span className="text-xs font-bold uppercase tracking-wider text-muted">Navigation</span>
+        </Sidebar.Header>
+        <Sidebar.Content className="flex-1 overflow-y-auto p-4 flex flex-col gap-6">
+          {/* Active items are exposed via data-active; style them in your theme. */}
+          <Sidebar.Items
+            routes={routes}
+            classNames={{
+              item: 'rounded-md px-2.5 py-1.5 text-sm transition-colors text-muted hover:bg-surface hover:text-body data-active:bg-primary-500/10 data-active:text-primary-500 data-active:font-medium',
+              groupHeader: 'px-2 mb-2 text-xs font-bold uppercase tracking-widest text-muted/50',
+              groupContent: 'flex flex-col gap-0.5',
+              subgroupContent: 'ml-4 pl-3 border-l border-subtle/50 mt-0.5 flex flex-col gap-0.5',
+            }}
+          />
         </Sidebar.Content>
       </Sidebar>
 
-      <Sidebar.Mobile>
-        <Sidebar.Content>
+      {/* 2. Responsive Mobile Drawer Container */}
+      <Sidebar.Mobile
+        overlayClassName="fixed inset-0 z-50 bg-black/20 backdrop-blur-sm lg:hidden"
+        className="fixed top-0 left-0 bottom-0 w-80 bg-main border-r border-subtle shadow-2xl outline-none"
+      >
+        <Sidebar.Header className="px-4 py-3 flex items-center justify-between border-b border-subtle">
+          <span className="text-xs font-bold uppercase tracking-wider text-muted">Menu</span>
+        </Sidebar.Header>
+        <Sidebar.Content className="flex-1 overflow-y-auto p-4 flex flex-col gap-6">
           <Sidebar.Items routes={routes} />
         </Sidebar.Content>
       </Sidebar.Mobile>
@@ -68,39 +58,27 @@ export function MySidebar() {
 }
 ```
 
-Two copies of the same content, one for desktop and one for the mobile drawer. Boltdocs mounts both — the show/hide logic lives entirely in Tailwind breakpoints (`hidden lg:flex` on the desktop one, `lg:hidden` on the mobile one).
-
-`Sidebar.Items` walks the `routes` array, finds groups via frontmatter, and renders each one as a collapsible section. Active route highlighting works automatically.
-
 ---
 
-## Real-world Sidebar
+## Real-World Production Reference
 
-The version that ships with Boltdocs by default — branded header, mobile close button, and version/language pickers in the mobile drawer.
-
-> **Rules of Hooks reminder** — keep `useLocalizedTo` and any other hook at the top of the component. Don't call it inside `.map()` callbacks or conditionals.
+Below is a complete, production-ready reference implementation demonstrating how to build a fully-featured sidebar navigation system (similar to the built-in theme sidebar). It integrates logo branding, mobile sidebar close controls, desktop vs. mobile structures, and combines version and translation dropdowns inside the mobile menu drawer:
 
 ```tsx
-// src/components/ProductionSidebar.tsx
-import { Sidebar, Button } from 'boltdocs/primitives'
-import {
-  useRoutes,
-  useNavbar,
-  useUI,
-  useVersion,
-  useI18n,
-} from 'boltdocs/client'
-import { X } from 'lucide-react'
+// docs/components/ProductionSidebar.tsx
+import { Sidebar, Button, Menu } from 'boltdocs/primitives'
+import { useRoutes, useNavbar, useUI, useVersion, useI18n } from 'boltdocs/client'
+import { X, ChevronDown, Languages } from 'lucide-react'
 
-export function ProductionSidebar() {
-  const { routes } = useRoutes()
+export default function ProductionSidebar() {
+  const { routes, config } = useRoutes()
   const { logo, title, logoProps } = useNavbar()
-  const { isSidebarOpen, closeSidebar } = useUI()
+  const { closeSidebar } = useUI()
 
   const { currentVersionLabel, availableVersions, handleVersionChange } = useVersion()
   const { currentLocale, availableLocales, handleLocaleChange } = useI18n()
 
-  const SidebarLogo = logo && (
+  const SidebarLogo = logo ? (
     <img
       src={logo}
       alt={logoProps?.alt || title}
@@ -108,64 +86,83 @@ export function ProductionSidebar() {
       height={24}
       className="rounded-lg"
     />
+  ) : null
+
+  // 1. Version Switch Selector for Mobile Layouts
+  const MobileVersionSelector = availableVersions.length > 0 && (
+    <select
+      value={availableVersions.find(v => v.isCurrent)?.value}
+      onChange={(e) => handleVersionChange(e.target.value)}
+      className="flex-1 bg-surface border border-subtle rounded-lg px-3 py-2 text-xs font-semibold"
+    >
+      {availableVersions.map(v => (
+        <option key={v.key} value={v.value}>{v.label}</option>
+      ))}
+    </select>
   )
 
-  const hasPickers = availableVersions.length > 0 || availableLocales.length > 0
+  // 2. Language Selector for Mobile Layouts
+  const MobileLocaleSelector = availableLocales.length > 0 && (
+    <select
+      value={currentLocale}
+      onChange={(e) => handleLocaleChange(e.target.value)}
+      className="flex-1 bg-surface border border-subtle rounded-lg px-3 py-2 text-xs font-semibold"
+    >
+      {availableLocales.map(loc => (
+        <option key={loc.key} value={loc.value}>{loc.label}</option>
+      ))}
+    </select>
+  )
+
+  const hasMobileSelectors = availableVersions.length > 0 || availableLocales.length > 0
 
   return (
     <>
-      {/* ── Desktop ──────────────────────────────────────────── */}
-      <Sidebar className="border-r border-subtle bg-main">
-        <Sidebar.Content>
-          <Sidebar.Items routes={routes} />
+      {/* A. Desktop Sidebar Panel */}
+      <Sidebar className="hidden lg:flex flex-col w-sidebar sticky top-navbar h-[calc(100vh-var(--spacing-navbar))] border-r border-subtle bg-main">
+        <Sidebar.Content className="flex-1 overflow-y-auto p-4 flex flex-col gap-6">
+          <Sidebar.Items
+            routes={routes}
+            classNames={{
+              item: 'rounded-md px-2.5 py-1.5 text-sm transition-colors text-muted hover:bg-surface hover:text-body data-active:bg-primary-500/10 data-active:text-primary-500',
+            }}
+          />
         </Sidebar.Content>
       </Sidebar>
 
-      {/* ── Mobile drawer ────────────────────────────────────── */}
-      <Sidebar.Mobile className="bg-main">
+      {/* B. Mobile Drawer Panel */}
+      <Sidebar.Mobile
+        overlayClassName="fixed inset-0 z-50 bg-black/20 backdrop-blur-sm lg:hidden"
+        className="fixed top-0 left-0 bottom-0 w-80 bg-main border-r border-subtle shadow-2xl outline-none"
+      >
         <Sidebar.Header className="flex items-center justify-between border-b border-subtle px-4 py-3">
-          <div className="flex items-center gap-3 min-w-0">
+          <div className="flex items-center gap-3">
             {SidebarLogo}
-            <span className="font-bold text-base truncate max-w-[140px]">
+            <span className="font-bold text-base text-body truncate max-w-[140px]">
               {title}
             </span>
           </div>
+
           <Button
             onPress={closeSidebar}
-            className="h-8 w-8 flex items-center justify-center text-muted hover:text-body rounded hover:bg-surface"
-            aria-label="Close sidebar"
+            className="h-8 w-8 flex items-center justify-center text-muted hover:text-body rounded-lg hover:bg-surface transition-colors"
           >
             <X size={18} />
           </Button>
         </Sidebar.Header>
 
-        <Sidebar.Content className="p-4">
-          {hasPickers && (
-            <div className="grid grid-cols-2 gap-2 mb-4">
-              {availableVersions.length > 0 && (
-                <select
-                  value={currentVersionLabel}
-                  onChange={(e) => handleVersionChange(e.target.value)}
-                  className="bg-surface border border-subtle rounded-lg px-3 py-2 text-xs font-semibold"
-                >
-                  {availableVersions.map((v) => (
-                    <option key={v.key} value={v.value}>{v.label}</option>
-                  ))}
-                </select>
-              )}
-              {availableLocales.length > 0 && (
-                <select
-                  value={currentLocale}
-                  onChange={(e) => handleLocaleChange(e.target.value)}
-                  className="bg-surface border border-subtle rounded-lg px-3 py-2 text-xs font-semibold"
-                >
-                  {availableLocales.map((l) => (
-                    <option key={l.key} value={l.value}>{l.label}</option>
-                  ))}
-                </select>
-              )}
+        <Sidebar.Content className="flex-1 overflow-y-auto p-4 flex flex-col gap-6">
+          {/* Version/Language dropdowns embedded inside the mobile drawer */}
+          {hasMobileSelectors && (
+            <div className="flex flex-col gap-3 mb-6">
+              <div className="flex gap-2">
+                {MobileVersionSelector}
+                {MobileLocaleSelector}
+              </div>
+              <div className="border-b border-subtle my-2" />
             </div>
           )}
+
           <Sidebar.Items routes={routes} />
         </Sidebar.Content>
       </Sidebar.Mobile>
@@ -176,149 +173,199 @@ export function ProductionSidebar() {
 
 ---
 
-## Manual composition (no `Items`)
+## State Attributes (`data-*`)
 
-When you don't want the automated loop — for instance, when you're embedding the sidebar inside an iframe or a CMS preview pane — you can compose the routes yourself:
+The `Sidebar` primitives expose state exclusively through `data-*` attributes. They are **present only when true**, so presence-based CSS works out of the box. Decide your own colors (`primary`, `secondary`, `success`, ...) from CSS — the primitive never paints anything itself.
 
-```tsx
-import { Sidebar } from 'boltdocs/primitives'
-import {
-  House,
-  Rocket,
-  Wrench,
-  GitBranch,
-  Puzzle,
-} from 'lucide-react'
+| Attribute | Emitted On | Present When |
+| :--- | :--- | :--- |
+| **`data-active`** | `Sidebar.Link` anchor, `Sidebar.Group` container | The link / group contains the current route |
+| **`data-open`** | Collapsible group button + chevron, `Sidebar.SubGroup` toggle + chevron | The section is expanded |
+| **`data-collapsible`** | `Sidebar.Group` container | The group renders a toggle button |
+| **`data-depth`** | `Sidebar.Link` anchor | Nesting depth (number) |
+| **`data-badge`** | Badge span | Badge text / type (e.g. `new`, `updated`, `deprecated`) |
+| **`aria-current`** | `Sidebar.Link` anchor | `"page"` when active |
+| **`aria-expanded`** | Toggle buttons | `"true"` / `"false"` |
 
-export function ManualSidebar() {
-  return (
-    <Sidebar className="border-r border-subtle">
-      <Sidebar.Header className="px-4 py-3 flex items-center justify-between">
-        <span className="text-xs font-bold uppercase tracking-wider text-muted">
-          Documentation
-        </span>
-      </Sidebar.Header>
-
-      <Sidebar.Content>
-        {/* Optional ungrouped section */}
-        <Sidebar.Group title="Getting Started">
-          <Sidebar.Link href="/" label="Home" icon={House} />
-          <Sidebar.Link href="/docs/installation" label="Installation" icon={Rocket} />
-          <Sidebar.Link href="/docs/configuration" label="Configuration" icon={Wrench} />
-        </Sidebar.Group>
-
-        {/* Section with badge — "Updated" badge shows up next to the link */}
-        <Sidebar.Group title="Plugins">
-          <Sidebar.Link
-            href="/docs/plugins/ask-ai"
-            label="Ask AI"
-            icon={Puzzle}
-            badge="updated"
-          />
-          <Sidebar.Link
-            href="/docs/plugins/mermaid"
-            label="Mermaid"
-            icon={Puzzle}
-            badge="new"
-          />
-        </Sidebar.Group>
-      </Sidebar.Content>
-    </Sidebar>
-  )
-}
-```
-
-Note the differences:
-
-- `Sidebar.Link` accepts `icon`, which renders the icon inline before the label.
-- `badge` is either a string `'new' | 'updated' | 'deprecated'` or `{ text: ..., variant?: ... }` for custom messages.
-- `Sidebar.Group` becomes collapsible automatically when you add `collapsible` and a `collapsed` initial state.
-
----
-
-## Sub-components
-
-### `Sidebar.Group`
+Styling the active item from your theme — Tailwind v4:
 
 ```tsx
-<Sidebar.Group
-  title="Plugins"
-  icon={Puzzle}
-  collapsible
-  collapsed={false}
->
-  {/* links */}
-</Sidebar.Group>
-```
-
-- **`title`** — displayed above the children. Hidden if omitted.
-- **`icon`** — small Lucide icon component to render next to the title.
-- **`collapsible`** + **`collapsed`** — makes the group a chevron toggle. `collapsed` is the *initial* state; Boltdocs auto-expands the group if it contains the active route.
-
-### `Sidebar.Link`
-
-```tsx
-<Sidebar.Link
-  href="/docs/plugins/ask-ai"
-  label="Ask AI"
-  icon={Puzzle}
-  active={pathname === '/docs/plugins/ask-ai'}
-  badge="updated"
+<Sidebar.Items
+  routes={routes}
+  classNames={{
+    item: 'rounded-md px-2.5 py-1.5 text-sm transition-colors text-muted hover:bg-soft hover:text-body data-active:bg-primary-500/10 data-active:text-primary-400',
+  }}
 />
 ```
 
-`active` is auto-detected when using `Sidebar.Item` / `Sidebar.Items`. For manual composition, set it from `useLocation()` if you want highlight styling.
+Or vanilla CSS:
 
-### `Sidebar.SubGroup`
-
-A nested collapsible group. Renders a `Link` on the left with a chevron toggle on the right:
-
-```tsx
-<Sidebar.SubGroup
-  label="Plugins"
-  href="/docs/plugins"
-  isOpen={open}
-  onToggle={() => setOpen(!open)}
-  active={pathname.startsWith('/docs/plugins')}
->
-  <Sidebar.Link ... />
-  <Sidebar.Link ... />
-</Sidebar.SubGroup>
+```css
+[data-sidebar-root] a[data-active] {
+  color: var(--color-primary-400);
+  background: color-mix(in srgb, var(--color-primary-500) 10%, transparent);
+}
 ```
 
-You rarely need this when using `Sidebar.Items` — the recursive renderer picks `Link` or `SubGroup` automatically based on `route.routes` / `route.subRoutes`.
-
-### `Sidebar.Header`
-
-Best home for a *local* search input or branding inside the sidebar. It's just a `<div>` with padding + a bottom border by default — pass any `className` to override.
+Icons rendered inside a link inherit `currentColor`, so coloring the anchor colors the icon automatically — no per-icon state classes needed.
 
 ---
 
-## How groups get detected
+## Composable Subcomponents
 
-`Sidebar.Items` reads the `group` and `groupTitle` fields from each `RouteMeta`. Routes with the same `group` end up under the same `Sidebar.Group`; routes without a `group` are rendered in an implicit "main" group above all others.
+The `Sidebar` primitive provides the following subcomponents for structure customization:
 
-Each group can also carry:
-
-- `sidebarPosition`/`groupPosition` — sort order within the sidebar.
-- `collapsible`/`collapsed` — initial collapsed state.
-- `icon` — group-level icon (looked up from `boltdocs.config.ts` icons or something you set yourself via `routes:[].icon`).
-
-If you set `groupIcon` on a route, it shows up as the icon for the parent group instead of the link icon.
-
----
-
-## Common pitfalls
-
-- **Calling `useLocalizedTo` inside `.map()`** — pre-compute values with `useMemo` or a one-pass `for` loop.
-- **Forgetting `Sidebar.Mobile`** — the mobile drawer is not auto-rendered; mount a copy yourself.
-- **Custom scroll containers** — `Sidebar.Content` uses a hard-coded `custom-scrollbar` class. Wrap your own with the same class for visual consistency.
-- **Sticky positioning breaks inside flex parents** — `position: sticky` doesn't behave well when an ancestor has `overflow: hidden`. If you're nesting sidebars, check the chain.
+| Component | HTML Tag | Description | Props |
+| :--- | :--- | :--- | :--- |
+| **`Sidebar.Root`** / **`Sidebar`** | `<aside>` | Main outer desktop sidebar container. | [`ComponentBaseProps`](#componentbaseprops-common) |
+| **`Sidebar.Mobile`** | `<div>` (Modal) | Mobile sidebar drawer container using accessible overlays. | [`ComponentBaseProps`](#componentbaseprops-common) |
+| **`Sidebar.Header`** | `<div>` | Padded top section container (ideal for logos, search inputs, or headers). | [`ComponentBaseProps`](#componentbaseprops-common) |
+| **`Sidebar.Content`** | `<nav>` | Scrollable navigation wrapper preserving scroll positions. | [`ComponentBaseProps`](#componentbaseprops-common) |
+| **`Sidebar.Group`** | `<div>` | Groups a set of related navigation links under a common title. | [`Sidebar.Group Props`](#sidebargroup-props) |
+| **`Sidebar.Link`** | `<a>` | An optimized navigation link to a specific page route. | [`Sidebar.Link Props`](#sidebarlink-props) |
+| **`Sidebar.SubGroup`** | `<div>` | A collapsible section container for nested sub-routes. | [`Sidebar.SubGroup Props`](#sidebarsubgroup-props) |
+| **`Sidebar.Item`** | Varies | Recursive router mapping utility rendering links or subgroups automatically. | [`Sidebar.Item Props`](#sidebaritem-props) |
+| **`Sidebar.Items`** | Varies | Automated loop container mapping and rendering a collection of routes. | [`Sidebar.Items Props`](#sidebaritems-props) |
 
 ---
 
-## See also
+## Component Props
 
-- [`Navbar`](/docs/components/layout/navbar) — top nav that pairs with `Sidebar` for the full directory.
-- [`useRoutes`](/docs/api/hooks/use-routes) — returns the route array you pass to `Sidebar.Items`.
-- [`useUI`](/docs/api/hooks/use-ui) — exposes `isSidebarOpen` and `closeSidebar` to coordinate with mobile.
+### ComponentBaseProps (Common)
+
+| Property | Type | Default | Description |
+| :--- | :--- | :--- | :--- |
+| **`children`** | `ReactNode` | `undefined` | Child content elements. |
+| **`className`** | `string` | `undefined` | Custom utility CSS classes. |
+| **`style`** | `CSSProperties` | `undefined` | Inline style settings. |
+
+### `Sidebar.Mobile` Props
+
+| Property | Type | Default | Description |
+| :--- | :--- | :--- | :--- |
+| **`overlayClassName`** | `string` | `undefined` | Classes for the full-screen overlay behind the drawer. |
+
+### `Sidebar.Group` Props
+
+| Property | Type | Default | Description |
+| :--- | :--- | :--- | :--- |
+| **`title`** | `string` | `undefined` | Group category title text. |
+| **`icon`** | `ElementType` | `undefined` | Custom leading icon component. |
+| **`children`** | `ReactNode` | *Required* | Sidebar child elements. |
+| **`collapsible`** | `boolean` | `false` | Renders the header as a toggle button instead of a heading. |
+| **`collapsed`** | `boolean` | `false` | Initial collapsed state for collapsible groups. |
+| **`active`** | `boolean` | `false` | Keeps the group open when it contains the active route. |
+| **`headerClassName`** | `string` | `undefined` | Extra classes for the group header (button or heading). |
+| **`iconClassName`** | `string` | `undefined` | Extra classes for the leading group icon. |
+| **`titleClassName`** | `string` | `undefined` | Extra classes for the title wrapper. |
+| **`contentClassName`** | `string` | `undefined` | Extra classes for the children wrapper. |
+| **`trailing`** | `ReactNode` | `undefined` | Custom content rendered at the end of the header. |
+| **`renderTitle`** | `({ title, isOpen }) => ReactNode` | `undefined` | Full replacement for the header content. |
+
+### `Sidebar.Link` Props
+
+| Property | Type | Default | Description |
+| :--- | :--- | :--- | :--- |
+| **`label`** | `string` | *Required* | Display name label of the link. |
+| **`href`** | `string` | *Required* | Link route target path. |
+| **`active`** | `boolean` | `false` | Active state — reflected via `data-active` + `aria-current="page"`. |
+| **`icon`** | `ElementType` | `undefined` | Leading icon element wrapper. |
+| **`badge`** | `string \| BadgeConfig` | `undefined` | Notification status label. |
+| **`children`** | `ReactNode` | `undefined` | When provided, overrides the `label` content. |
+| **`iconClassName`** | `string` | `undefined` | Extra classes for the leading icon. |
+| **`labelClassName`** | `string` | `undefined` | Extra classes for the label text. |
+| **`trailing`** | `ReactNode` | `undefined` | Custom content rendered after the label. |
+| **`depth`** | `number` | `undefined` | Nesting depth — reflected via `data-depth`. |
+
+### `Sidebar.SubGroup` Props
+
+Inherits all [`Sidebar.Link` props](#sidebarlink-props) plus:
+
+| Property | Type | Default | Description |
+| :--- | :--- | :--- | :--- |
+| **`isOpen`** | `boolean` | `false` | Collapsed state visibility indicator. |
+| **`onToggle`** | `() => void` | `undefined` | Toggle trigger callback handler. |
+| **`children`** | `ReactNode` | *Required* | Subgroup navigation links. |
+| **`rootClassName`** | `string` | `undefined` | Extra classes for the subgroup wrapper. |
+| **`linkClassName`** | `string` | `undefined` | Extra classes for the subgroup link. |
+| **`contentClassName`** | `string` | `undefined` | Extra classes for the nested children wrapper. |
+| **`toggleClassName`** | `string` | `undefined` | Extra classes for the expand/collapse toggle. |
+| **`renderToggle`** | `({ isOpen }) => ReactNode` | `undefined` | Full replacement for the toggle button. |
+
+### `Sidebar.Item` Props
+
+| Property | Type | Default | Description |
+| :--- | :--- | :--- | :--- |
+| **`route`** | `ComponentRoute` | *Required* | Route configuration object to parse. |
+| **`activePath`** | `string` | *Required* | Active window URL path. |
+| **`activeRoute`** | `ComponentRoute` | `undefined` | The resolved active route (enables file-path matching). |
+| **`depth`** | `number` | `0` | Current nesting depth, used by `renderItem`. |
+| **`renderItem`** | `(route, depth) => ReactNode` | `undefined` | Recursive render override for child routes. |
+| **`classNames`** | [`SidebarSlots`](#sidebarslots) | `undefined` | Per-piece class overrides merged over the defaults. |
+
+### `Sidebar.Items` Props
+
+| Property | Type | Default | Description |
+| :--- | :--- | :--- | :--- |
+| **`routes`** | `ComponentRoute[]` | *Required* | Array of route configurations to render recursively. |
+| **`classNames`** | [`SidebarSlots`](#sidebarslots) | `undefined` | Per-piece class overrides merged over the defaults. |
+| **`componentItem`** | `(props: SidebarItemRenderProps) => ReactNode` | `undefined` | Full render replacement for a route node (runs recursively for nested routes). |
+| **`componentGroup`** | `(props: SidebarGroupRenderProps) => ReactNode` | `undefined` | Full render replacement for a top-level group wrapper. |
+
+---
+
+## Slots (`classNames`)
+
+`Sidebar.Items` accepts a `classNames` map that merges over the primitive defaults using `tailwind-merge`, so theme overrides win without `!` important markers. Each key maps to a single piece of the automated tree. The defaults are **structural only** — layout and states are yours to style:
+
+| Key | Applied To | Default |
+| :--- | :--- | :--- |
+| **`item`** | Leaf route link root | `group flex items-center gap-2.5 outline-none` |
+| **`itemIcon`** | Leaf route leading icon | `shrink-0` |
+| **`itemLabel`** | Leaf route label | `truncate` |
+| **`group`** | Group wrapper | `undefined` |
+| **`groupHeader`** | Group header (button or heading) | `undefined` |
+| **`groupIcon`** | Group leading icon | `undefined` |
+| **`groupTitle`** | Group title wrapper | `flex items-center gap-2` |
+| **`groupContent`** | Group children wrapper | `flex flex-col` |
+| **`subgroup`** | Subgroup wrapper | `flex flex-col` |
+| **`subgroupLink`** | Subgroup link | `flex-1 pr-8` |
+| **`subgroupContent`** | Subgroup children wrapper | `flex flex-col` |
+| **`toggle`** | Subgroup expand/collapse toggle | `absolute right-1` |
+
+```tsx
+<Sidebar.Items
+  routes={routes}
+  classNames={{
+    item: 'rounded-md px-2.5 py-1.5 text-sm transition-colors text-muted hover:bg-soft hover:text-body data-active:bg-primary-500/10 data-active:text-primary-400',
+    groupHeader: 'px-2 mb-2 text-xs font-bold uppercase tracking-widest text-muted/60',
+    toggle: 'size-7 rounded-md hover:bg-soft',
+  }}
+/>
+```
+
+---
+
+## Render Props
+
+`componentItem` and `componentGroup` are structural replacements: when provided, the default piece is not rendered at all, giving you full control over the markup (for example custom navigation wrappers or route-specific icons).
+
+| Render Prop | Props Received |
+| :--- | :--- |
+| **`componentItem`** | `{ route, activePath, activeRoute, isActive, depth }` |
+| **`componentGroup`** | `{ group, isGroupActive, children }` |
+
+```tsx
+<Sidebar.Items
+  routes={routes}
+  componentItem={({ route, isActive, depth }) => (
+    <CustomLink active={isActive} depth={depth} route={route} />
+  )}
+  componentGroup={({ group, isGroupActive, children }) => (
+    <nav aria-label={group.title}>
+      <h2>{group.title}</h2>
+      {children}
+    </nav>
+  )}
+/>
+```

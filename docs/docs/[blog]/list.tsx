@@ -1,105 +1,200 @@
-import { useState } from 'react'
-import { useI18n, usePosts } from 'boltdocs/client'
-import { Button, Link } from 'boltdocs/primitives'
+import { useMemo, useState } from 'react'
+import { useConfig, useI18n, usePosts } from 'boltdocs/client'
+import type { CollectionPost } from 'boltdocs/client'
+import { Link } from 'boltdocs/primitives'
+import { Button } from '@/theme/button'
+import { Section } from '@/theme'
+import { ArrowLeft, ArrowRight, ArrowUpRight } from 'lucide-react'
 
 const translations = {
   es: {
-    blogs: 'Blogs',
+    blogs: 'Blog',
     previous: 'Anterior',
     next: 'Siguiente',
     pageof: 'Página {page} de {totalPages}',
+    description:
+      'Release notes, deep dives and announcements — ordenados cronológicamente.',
   },
   en: {
-    blogs: 'Blogs',
+    blogs: 'Blog',
     previous: 'Previous',
     next: 'Next',
     pageof: 'Page {page} of {totalPages}',
+    description:
+      'Release notes, deep dives and announcements — in chronological order.',
   },
+}
+
+/** Number of most recent posts shown as the featured hero cards. */
+const FEATURED_COUNT = 2
+
+function formatDate(date: string | Date | undefined, locale: string) {
+  if (!date) return null
+  const d = new Date(date)
+  return d.toLocaleDateString(locale, {
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric',
+  })
+}
+
+interface PostCardProps {
+  post: CollectionPost
+  href: string
+  locale: string
+  featured?: boolean
+  base: string | undefined
+}
+
+function PostCard({ post, href, locale, featured = false }: PostCardProps) {
+  return (
+    <Link
+      href={href}
+      className="group flex flex-col text-left outline-none h-full focus-visible:bg-soft"
+    >
+      <div className="relative aspect-video w-full overflow-hidden bg-soft">
+        {post.coverImage ? (
+          <img
+            src={post.coverImage}
+            alt={post.title}
+            loading="lazy"
+            referrerPolicy="no-referrer"
+            className="absolute inset-0 h-full w-full object-cover"
+          />
+        ) : (
+          <div
+            aria-hidden="true"
+            className="absolute inset-0 flex items-center justify-center bg-surface group-hover:bg-soft"
+          >
+            <span className="text-4xl font-black text-strong transition-colors group-hover:text-primary-400">
+              {post.title.charAt(0)}
+            </span>
+          </div>
+        )}
+      </div>
+
+      <div
+        className={`flex flex-1 flex-col bg-surface transition-colors duration-200 group-hover:bg-soft ${
+          featured ? 'gap-2.5 p-6' : 'gap-2 p-5'
+        }`}
+      >
+        <h2
+          className={`font-black tracking-tight text-body transition-colors group-hover:text-primary-300 ${
+            featured ? 'text-xl md:text-2xl' : 'text-base'
+          }`}
+        >
+          {post.title}
+        </h2>
+
+        {featured && post.excerpt && (
+          <p className="line-clamp-2 text-sm leading-relaxed text-paragraph">
+            {post.excerpt}
+          </p>
+        )}
+
+        <div className="mt-auto flex items-center justify-between gap-4 pt-1">
+          <time className="text-xs font-medium uppercase tracking-wide text-muted">
+            {formatDate(post.date, locale) ?? ''}
+          </time>
+          <ArrowUpRight
+            aria-hidden="true"
+            className="size-16 shrink-0 text-muted transition-colors group-hover:text-primary-400"
+          />
+        </div>
+      </div>
+    </Link>
+  )
 }
 
 export default function BlogList() {
   const allPosts = usePosts()
   const { currentLocale } = useI18n()
+  const config = useConfig()
   const [page, setPage] = useState(1)
-  const perPage = 20
-  const posts = allPosts.slice((page - 1) * perPage, page * perPage)
-  const totalPages = Math.ceil(allPosts.length / perPage)
+  const perPage = 15
+  const totalPages = Math.max(1, Math.ceil(allPosts.length / perPage))
+  const locale = currentLocale === 'es' ? 'es' : 'en'
+  const t = translations[locale] || translations.en
 
-  const t = translations[currentLocale] || translations.en
+  const { featured, rest } = useMemo(() => {
+    const featuredPosts = allPosts.slice(0, FEATURED_COUNT)
+    const restPosts = allPosts.slice(FEATURED_COUNT)
+    return { featured: featuredPosts, rest: restPosts }
+  }, [allPosts])
+
+  const restStartIndex = (page - 1) * perPage
+  const restPosts = rest.slice(restStartIndex, restStartIndex + perPage)
 
   return (
-    <div className="py-8 max-w-2xl mx-auto px-4">
-      <h1 className="text-3xl font-bold mb-6">{t.blogs}</h1>
+    <Section>
+      <div className="mx-auto max-w-6xl">
+        <header className="mb-12 mx-auto text-center">
+          <h1 className="text-3xl font-black tracking-tighter text-body sm:text-5xl">
+            {t.blogs}
+          </h1>
+          <p className="mt-4 text-base text-paragraph md:text-lg">
+            {t.description}
+          </p>
+        </header>
 
-      <ul className="flex flex-col gap-28">
-        {posts.map((post) => (
-          <Link
-            key={post.path}
-            href={`site:${post.path}`}
-            className="flex flex-row"
-          >
-            <div className="w-[25%] border-r border-r-subtle px-2">
-              {post.date && (
-                <time className="text-xs text-muted block mb-2">
-                  {new Date(post.date).toLocaleDateString(currentLocale, {
-                    year: 'numeric',
-                    month: 'long',
-                    day: 'numeric',
-                  })}
-                </time>
-              )}
-              <ul className="flex flex-row flex-wrap gap-2">
-                {post.tags?.map((tag, index) => (
-                  <li
-                    className="px-2 py-1 text-xs border-subtle rounded-md border"
-                    key={`${tag}-${index}`}
-                  >
-                    {tag}
-                  </li>
-                ))}
-              </ul>
-            </div>
-            <div className="w-[75%] px-5">
-              <img
-                src={post.coverImage}
-                alt={post.title}
-                className="w-full h-auto mb-4"
+        {/* Featured: the two newest posts side by side at 50% / 50%. */}
+        <div className="grid grid-cols-1 sm:grid-cols-2">
+          {featured.map((post) => (
+            <div key={post.path} className="border-b border-r border-subtle">
+              <PostCard
+                post={post}
+                href={`site:${post.path}`}
+                locale={locale}
+                featured
+                base={config.base}
               />
-              <h2 className="text-xl font-semibold mb-2">{post.title}</h2>
-
-              {post.excerpt && (
-                <p className="text-sm text-body/70">{post.excerpt}</p>
-              )}
             </div>
-          </Link>
-        ))}
-      </ul>
+          ))}
+        </div>
+
+        <div className="grid grid-cols-2 md:grid-cols-3">
+          {restPosts.map((post) => (
+            <div key={post.path} className="border-b border-r border-subtle">
+              <PostCard
+                post={post}
+                href={`site:${post.path}`}
+                locale={locale}
+                base={config.base}
+              />
+            </div>
+          ))}
+        </div>
+      </div>
 
       {totalPages > 1 && (
-        <div className="mt-20 flex flex-row items-center gap-4 text-sm">
+        <div className="mt-8 flex flex-row items-center justify-center gap-4 text-sm">
           {page > 1 && (
             <Button
-              onClick={() => setPage(page - 1)}
-              className="text-primary-600 border-subtle rounded-md border px-3 py-1 hover:cursor-pointer"
+              variant="outline"
+              size="md"
+              onPress={() => setPage(page - 1)}
             >
+              <ArrowLeft className="size-4" />
               {t.previous}
             </Button>
           )}
-          <span>
+          <span className="text-paragraph">
             {t.pageof
-              .replace('{page}', page)
-              .replace('{totalPages}', totalPages)}
+              .replace('{page}', String(page))
+              .replace('{totalPages}', String(totalPages))}
           </span>
           {page < totalPages && (
             <Button
-              className="text-primary-600 border-subtle rounded-md border px-3 py-1 hover:cursor-pointer"
-              onClick={() => setPage(page + 1)}
+              variant="outline"
+              size="md"
+              onPress={() => setPage(page + 1)}
             >
               {t.next}
+              <ArrowRight className="size-4" />
             </Button>
           )}
         </div>
       )}
-    </div>
+    </Section>
   )
 }

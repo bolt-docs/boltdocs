@@ -60,3 +60,20 @@ declare module 'virtual:boltdocs-entry' {
   const code: string
   export default code
 }
+
+declare module 'virtual:boltdocs-search' {
+  export interface SearchDataItem {
+    id: string
+    title: string
+    content: string
+    url: string
+    display: string
+    locale?: string
+    version?: string
+  }
+
+  const fetchSearchData: (options?: {
+    bustCache?: boolean
+  }) => Promise<SearchDataItem[]>
+  export default fetchSearchData
+}

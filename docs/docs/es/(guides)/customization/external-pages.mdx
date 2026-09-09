@@ -1,0 +1,148 @@
+---
+title: Páginas Externas
+sidebarPosition: 3
+description: Registra páginas React que no son MDX en el router de Boltdocs usando la convención pages-external.
+---
+
+Boltdocs te permite registrar páginas React personalizadas que viven fuera del pipeline MDX. Esto es útil para landing pages, layouts completamente personalizados o páginas que necesitan interactividad del lado del cliente más allá de lo que Markdown ofrece.
+
+
+## Definiendo Páginas
+
+En `pages-external/index.tsx`, exporta un objeto `pages` que mapee rutas de URL a componentes React:
+
+```tsx title="pages-external/index.tsx"
+import HomePage from '../../src/pages/home-page'
+
+export const pages = {
+  '/': HomePage,
+  '/custom': MyCustomPage,
+}
+```
+
+<Callout variant="info">
+  Las páginas externas NO se envuelven en el layout de docs por defecto. Tú controlas el layout completamente a través del export `layout`.
+</Callout>
+
+---
+
+## Layout Personalizado
+
+También puedes exportar una función `layout` para envolver todas las páginas externas:
+
+```tsx title="pages-external/index.tsx"
+import { Navbar, Sidebar } from 'boltdocs/client'
+import HomePage from '../../src/pages/home-page'
+
+export const pages = {
+  '/': HomePage,
+}
+
+export const layout = ({ children }: { children: React.ReactNode }) => (
+  <div className="min-h-screen">
+    <Navbar />
+    <div className="flex">
+      <Sidebar />
+      <main className="flex-1 p-8">
+        {children}
+      </main>
+    </div>
+  </div>
+)
+```
+
+---
+
+## Ejemplo Completo
+
+Aquí hay un `pages-external/index.tsx` completo con landing page y layout personalizado:
+
+```tsx title="pages-external/index.tsx"
+import { Navbar, Sidebar, SearchDialog } from 'boltdocs/client'
+import LandingPage from '../../src/pages/landing-page'
+import PricingPage from '../../src/pages/pricing-page'
+
+export const pages = {
+  '/': LandingPage,
+  '/pricing': PricingPage,
+}
+
+export const layout = ({ children }: { children: React.ReactNode }) => (
+  <div className="min-h-screen bg-white dark:bg-zinc-900">
+    <Navbar />
+    <SearchDialog />
+    {children}
+  </div>
+)
+```
+
+---
+
+## Usando Componentes de Boltdocs
+
+Las páginas externas pueden importar cualquier componente exportado de `boltdocs/client`:
+
+```tsx title="pages-external/index.tsx"
+import { Navbar, Sidebar, SearchDialog, Breadcrumbs } from 'boltdocs/client'
+```
+
+Esto te da acceso a las mismas primitivas de UI usadas en el layout de docs por defecto.
+
+---
+
+## File-routing estático (experimental)
+
+Para páginas literales puedes activar el routing externo basado en archivos en lugar de mantener un objeto `pages`. Configura `experimental.fileRouting` en `boltdocs.config.ts`:
+
+```ts
+export default defineConfig({
+  experimental: {
+    fileRouting: true,
+  },
+})
+```
+
+```text
+docs/pages-external/
+├── home.tsx      → /home
+├── about.tsx     → /about
+└── pricing.mdx   → /pricing
+```
+
+El nombre del archivo se convierte en la ruta. Se admiten `.tsx`, `.ts`, `.jsx`, `.js`, `.mdx` y `.md`. `index.*` queda reservado para el objeto `pages` legacy. Los segmentos dinámicos como `[id]`, los grupos como `(marketing)` y los archivos auxiliares reservados (`layout`, `icons` y `mdx-components`) se ignoran. Las rutas existentes de `pages-external/index.tsx` pueden convivir con file routes; evita asignar la misma URL a ambas APIs.
+
+### Archivos localizados
+
+Cuando `i18n` está configurado, un directorio de primer nivel cuyo nombre coincida con un locale configurado proporciona la versión localizada de una página — la misma convención que usa el contenido de docs (`docs/es/…`):
+
+```text
+docs/pages-external/
+├── roadmap.mdx      → /roadmap        (locale por defecto)
+└── es/
+    └── roadmap.mdx  → /es/roadmap     (español)
+```
+
+Cada URL de locale se sirve con el archivo localizado cuando existe y, si no, con el archivo del locale por defecto — igual que las rutas fallback de i18n de docs. Para componentes React que se traducen internamente (p. ej. con `useI18n()`), el fallback es suficiente: cambiar de idioma re-renderiza el componente por defecto con el locale activo derivado de la URL. Crea un archivo `.tsx` localizado solo cuando necesites un componente realmente distinto por idioma.
+
+Los directorios que no coinciden con un locale configurado siguen siendo segmentos de URL literales (`guides/start.mdx` → `/guides/start`).
+
+Consulta [File-routing estático](/docs/guides/advanced/file-routing) para la API opt-in completa.
+
+---
+
+## Limitaciones
+
+- Las páginas externas **no** soportan características MDX como `<Callout>` o `<Card>`
+- Frontmatter no está disponible — todos los metadatos deben manejarse en React
+- El comportamiento de indexación de las páginas externas depende de los metadatos de ruta generados por el proyecto; agrega metadatos explícitos cuando necesites encabezados buscables
+
+---
+
+## Cuándo Usar Páginas Externas
+
+| Caso de Uso | Enfoque Recomendado |
+| :--- | :--- |
+| Landing page | Página externa con layout personalizado |
+| Página de precios | Página externa |
+| Tema de docs completamente personalizado | `layout.tsx` personalizado en la raíz de docs |
+| Blog con contenido MDX | Rutas MDX (no se necesita página externa) |

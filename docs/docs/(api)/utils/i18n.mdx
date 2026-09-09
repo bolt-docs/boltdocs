@@ -1,19 +1,10 @@
 ---
 title: getTranslated
-description: Extract translated values from a locale mapping dictionary.
+description: Extract translated values from a language mapping dictionary.
 ---
 
-The `getTranslated` utility extracts localized strings or pages depending on the active locale code.
+The `getTranslated` utility extracts localized strings or pages depending on the active language code.
 
----
-
-## Import
-
-```tsx
-import { getTranslated } from 'boltdocs/client'
-```
-
----
 
 ## Signature
 
@@ -29,9 +20,9 @@ function getTranslated(
 
 | Name | Type | Description |
 | :--- | :--- | :--- |
-| **`value`** | `string \| Record<string, string> \| undefined` | A key-value localization map or a plain default string. |
-| **`locale`** | `string` | The active locale language key (e.g. `'es'`). |
-| **`fallback`** | `string` | Fallback label returned if the current locale matches no key in the dictionary. |
+| **`value`** | `string \| Record<string, string> \| undefined` | A key-value localization map or a simple default string. |
+| **`locale`** | `string` | The active region language key (e.g., `'es'`). |
+| **`fallback`** | `string` | Fallback label returned if the current region doesn't match any key in the dictionary. |
 
 ---
 

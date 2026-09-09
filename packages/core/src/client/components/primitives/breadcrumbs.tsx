@@ -44,8 +44,18 @@ function BreadcrumbsLink({
   )
 }
 
-function BreadcrumbsSeparator({ className }: ComponentBase) {
-  return <ChevronRight size={14} className={cn('shrink-0', className)} />
+function BreadcrumbsSeparator({
+  className,
+  separator,
+}: ComponentBase & {
+  /** Custom separator icon/component. Replaces the default chevron. */
+  separator?: React.ReactNode
+}) {
+  return (
+    <span className={className}>
+      {separator ?? <ChevronRight size={14} className="shrink-0" />}
+    </span>
+  )
 }
 
 Breadcrumbs.Root = Breadcrumbs

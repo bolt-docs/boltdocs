@@ -1,7 +1,6 @@
 {
   "title": "Getting Started",
-  "icon": "Rocket",
   "order": 1,
-  "collapsible": true,
+  "collapsible": false,
   "collapsed": false
 }

@@ -11,10 +11,11 @@ export function satteriRemarkMetaPlugin(): MdastPluginDefinition {
     name: 'boltdocs-remark-meta',
     code(node, ctx) {
       if (node.meta) {
+        const data = (node.data || {}) as Record<string, unknown>
         ctx.setProperty(node, 'data', {
-          ...(node.data || {}),
+          ...data,
           hProperties: {
-            ...(node.data?.hProperties || {}),
+            ...((data.hProperties as Record<string, unknown>) || {}),
             metastring: node.meta,
           },
         })

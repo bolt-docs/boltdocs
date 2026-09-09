@@ -1,0 +1,188 @@
+---
+title: Content Security Policy (CSP)
+sidebarPosition: 2
+description: How to enable and customize Content Security Policy in Boltdocs — the default policy, development vs production differences, common pitfalls with MDX and analytics, and per-platform setup.
+---
+
+A Content Security Policy (CSP) tells the browser which origins are allowed to load scripts, styles, images, fonts, and connections on your site. It's the strongest defense against cross-site scripting (XSS): even if an attacker injects markup, the browser refuses to execute anything the policy doesn't allow.
+
+---
+
+## Enabling CSP
+
+Set `enableCSP` in the `security` block of `boltdocs.config.ts`:
+
+```ts title="boltdocs.config.ts"
+export default defineConfig({
+  security: {
+    enableCSP: true,
+  },
+})
+```
+
+That's it — a `Content-Security-Policy` header is now served with every response, in development and production.
+
+---
+
+## The default policy
+
+Boltdocs generates a conservative, working policy tuned for MDX documentation sites:
+
+```text
+default-src 'self';
+script-src 'self' 'unsafe-inline';
+style-src 'self' 'unsafe-inline';
+img-src 'self' data: https:;
+font-src 'self';
+connect-src 'self'
+```
+
+| Directive | Value | Why |
+| :--- | :--- | :--- |
+| `default-src` | `'self'` | Fallback for everything not listed below: only your own origin. |
+| `script-src` | `'self' 'unsafe-inline'` | Allows the framework's inline bootstrap scripts (theme init, hydration payloads). |
+| `style-src` | `'self' 'unsafe-inline'` | Allows inline styles used by MDX components and injected CSS variables. |
+| `img-src` | `'self' data: https:` | Images from your origin, inline `data:` URLs, and any HTTPS image host (badges, screenshots, OpenGraph). |
+| `font-src` | `'self'` | Fonts only from your origin. |
+| `connect-src` | `'self'` | Fetch/XHR/WebSocket only to your own origin. |
+
+### Development vs production
+
+During `boltdocs dev`, the policy adds `'unsafe-eval'` to `script-src` so Vite's HMR client can work:
+
+```text
+script-src 'self' 'unsafe-eval' 'unsafe-inline'   ← development
+script-src 'self' 'unsafe-inline'                 ← production
+```
+
+You never need to configure this — the dev policy is generated automatically and never ships to production.
+
+---
+
+## Customizing the policy
+
+`enableCSP` generates the default policy, but you can replace it entirely with your own via `security.customHeaders`. Because custom headers are merged last, a hand-written `Content-Security-Policy` fully overrides the generated one:
+
+```ts title="boltdocs.config.ts"
+export default defineConfig({
+  security: {
+    enableCSP: true,
+    customHeaders: {
+      'Content-Security-Policy': [
+        "default-src 'self'",
+        "script-src 'self' 'unsafe-inline' https://www.googletagmanager.com",
+        "style-src 'self' 'unsafe-inline'",
+        "img-src 'self' data: https:",
+        "font-src 'self'",
+        "connect-src 'self' https://www.google-analytics.com https://analytics.google.com https://region1.google-analytics.com",
+      ].join('; '),
+    },
+  },
+})
+```
+
+<Callout variant="warning" title="Two CSP headers are AND-combined">
+If you keep `enableCSP: true` *and* set a `Content-Security-Policy` in `security.headers`, both policies are sent and the browser enforces the **intersection** of both. Use `security.customHeaders` (merged last) or disable `enableCSP` when you write your own policy, so the generated one doesn't fight it.
+</Callout>
+
+---
+
+## Common integrations that need extra allowances
+
+### Google Analytics 4
+
+GA4 needs `connect-src` entries for its endpoints and (if you load it via GTM) a `script-src` entry:
+
+```text
+script-src 'self' 'unsafe-inline' https://www.googletagmanager.com
+connect-src 'self' https://www.google-analytics.com https://analytics.google.com https://region1.google-analytics.com
+```
+
+### Google Tag Manager
+
+```text
+script-src 'self' 'unsafe-inline' https://www.googletagmanager.com
+img-src 'self' data: https: https://www.googletagmanager.com
+connect-src 'self' https://www.google-analytics.com
+```
+
+### PostHog
+
+```text
+script-src 'self' 'unsafe-inline' https://us-assets.i.posthog.com
+connect-src 'self' https://us.i.posthog.com https://us-assets.i.posthog.com
+```
+
+### Mermaid / math plugins
+
+The [mermaid](/docs/plugins/content/plugin-mermaid) and [math](/docs/plugins/content/plugin-math) plugins render client-side but ship their JavaScript with your bundle, so the default policy already covers them. If you load them from a CDN instead, add that origin to `script-src`.
+
+### Feedback & search APIs
+
+`connect-src 'self'` already covers same-origin API routes (`/api/feedback`, search endpoints). If your search provider is remote (e.g. Algolia), add its host to `connect-src`:
+
+```text
+connect-src 'self' https://{your-app-id}-dsn.algolia.net https://{your-app-id}.algolia.net
+```
+
+---
+
+## Going stricter: hashes and nonces
+
+The default policy uses `'unsafe-inline'` because the framework ships small inline scripts. If you want a strict, no-`unsafe-inline` policy, you must switch to **hashes or nonces** for the inline scripts/styles Boltdocs emits:
+
+1. Generate your policy on the server or at build time, computing `sha256-…` hashes of the inline blocks.
+2. Serve it via `security.customHeaders` or your platform's headers configuration.
+3. Rebuild the hashes whenever the inline scripts change (every release of Boltdocs may change them).
+
+```text
+script-src 'self' 'sha256-9fPv2kT3dQv3...' 'sha256-8dUz9sHxTq4...'
+```
+
+Because hashes are version-specific, most teams keep `'unsafe-inline'` for scripts (as the default does) and reserve strict policies for the outermost edge (nginx, Cloudflare Transform Rules), where they can be updated independently of a rebuild.
+
+---
+
+## Applying the policy on your platform
+
+CSP is a response header — in production your hosting platform sends it. Configure it in the same files as your other headers:
+
+- **Vercel** — `vercel.json` `headers` (see the [Headers guide](/docs/guides/security/headers) for the file shape).
+- **Netlify / Cloudflare Pages** — `_headers`:
+
+```text title="_headers"
+/*
+  Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self'; connect-src 'self'
+```
+
+- **nginx** — `add_header Content-Security-Policy "…" always;`.
+
+For the full per-platform examples, see [Headers → Applying headers on your platform](/docs/guides/security/headers#applying-headers-on-your-platform).
+
+---
+
+## Testing and debugging
+
+CSP violations never break the page — the browser blocks the request and logs a report to the console. When something looks broken after enabling CSP:
+
+1. Open DevTools → **Console** and look for `Refused to … violates the following Content Security Policy directive`.
+2. The message names the exact directive and resource — add the missing origin to that directive.
+3. Verify what your site actually sends:
+
+```bash
+curl -sI https://docs.example.com/ | grep -i content-security-policy
+```
+
+4. Paste your policy into [CSP Evaluator](https://csp-evaluator.withgoogle.com) to catch weak or misconfigured directives.
+
+<Callout variant="note" title="Use report-only first for big changes">
+To roll out a strict policy safely, deploy it as `Content-Security-Policy-Report-Only` first, watch the browser reports for violations, then switch to enforced mode once the report stream is clean.
+</Callout>
+
+---
+
+## Where next
+
+- [Headers](/docs/guides/security/headers) — the full set of security headers, cache control, and per-platform examples.
+- [CI/CD & Deployment](/docs/guides/operations/ci) — verify headers in CI before they reach production.
+- [Troubleshooting](/docs/guides/operations/troubleshooting) — resolve common build and deployment issues.

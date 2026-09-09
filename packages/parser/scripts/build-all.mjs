@@ -81,7 +81,7 @@ for (const target of TARGETS) {
 
     if (fs.existsSync(src)) {
       fs.copyFileSync(src, dest)
-      fs.chmodSync(dest, 0o755)
+      fs.chmodSync(dest, 0o755) // Set read, write, and execute permissions for the owner, and read/execute for others
       console.log(`  ✓ Copied to releases/${target.binary}`)
     } else {
       console.log(`  ⚠ Source not found: ${src}`)

@@ -69,10 +69,12 @@ export function Giscus({ className }: GiscusProps) {
           script.parentNode.removeChild(script)
         }
         const iframes = ref.current?.querySelectorAll('iframe')
-        iframes?.forEach((iframe) => iframe.remove())
+        iframes?.forEach((iframe) => {
+          iframe.remove()
+        })
       }
     }
-  }, [giscusConfig])
+  }, [giscusConfig, resolvedTheme])
 
   useEffect(() => {
     if (!giscusConfig || !initializedRef.current) return

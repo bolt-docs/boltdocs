@@ -142,6 +142,19 @@ fn isCombinator(c: u8) bool {
 /// Supports: tag, .class, #id, [attr], [attr="v"], [attr~="v"], [attr|="v"], [attr^="v"], [attr$="v"], [attr*="v"],
 /// combinators: > + ~ and descendant (space), universal *, comma groups.
 /// Pseudo-classes/elements are stripped before parsing (Beasties behavior).
+/// Release selector tokens and any decoded class/id names owned by the token list.
+/// Attribute and tag slices borrow from the original selector input.
+pub fn freeSelectorTokens(allocator: Allocator, tokens: []SelectorToken) void {
+    for (tokens) |token| {
+        switch (token) {
+            .class => |value| allocator.free(value),
+            .id => |value| allocator.free(value),
+            else => {},
+        }
+    }
+    allocator.free(tokens);
+}
+
 pub fn parseSelector(allocator: Allocator, sel: []const u8) ![]SelectorToken {
     const stripped = stripPseudo(sel);
     if (stripped.len == 0) return &[_]SelectorToken{};
@@ -540,7 +553,7 @@ fn matchSelectorRightToLeft(tokens: []const SelectorToken, elem: Element, elem_i
 test "parse tag selector" {
     const allocator = std.testing.allocator;
     const tokens = try parseSelector(allocator, "div");
-    defer allocator.free(tokens);
+    defer freeSelectorTokens(allocator, tokens);
     try std.testing.expectEqual(@as(usize, 1), tokens.len);
     try std.testing.expectEqual(SelectorTokenType.tag, @as(SelectorTokenType, tokens[0]));
 }
@@ -548,7 +561,7 @@ test "parse tag selector" {
 test "parse class selector" {
     const allocator = std.testing.allocator;
     const tokens = try parseSelector(allocator, ".foo");
-    defer allocator.free(tokens);
+    defer freeSelectorTokens(allocator, tokens);
     try std.testing.expectEqual(@as(usize, 1), tokens.len);
     try std.testing.expectEqual(SelectorTokenType.class, @as(SelectorTokenType, tokens[0]));
 }
@@ -556,7 +569,7 @@ test "parse class selector" {
 test "parse id selector" {
     const allocator = std.testing.allocator;
     const tokens = try parseSelector(allocator, "#bar");
-    defer allocator.free(tokens);
+    defer freeSelectorTokens(allocator, tokens);
     try std.testing.expectEqual(@as(usize, 1), tokens.len);
     try std.testing.expectEqual(SelectorTokenType.id, @as(SelectorTokenType, tokens[0]));
 }
@@ -564,7 +577,7 @@ test "parse id selector" {
 test "strip pseudo-classes" {
     const allocator = std.testing.allocator;
     const tokens = try parseSelector(allocator, "div:hover");
-    defer allocator.free(tokens);
+    defer freeSelectorTokens(allocator, tokens);
     try std.testing.expectEqual(@as(usize, 1), tokens.len);
     try std.testing.expectEqual(SelectorTokenType.tag, @as(SelectorTokenType, tokens[0]));
 }
@@ -572,7 +585,7 @@ test "strip pseudo-classes" {
 test "parse compound selector" {
     const allocator = std.testing.allocator;
     const tokens = try parseSelector(allocator, "div.foo#bar");
-    defer allocator.free(tokens);
+    defer freeSelectorTokens(allocator, tokens);
     try std.testing.expectEqual(@as(usize, 3), tokens.len);
 }
 

@@ -237,9 +237,15 @@ export function fileToRoutePath(relativePath: string): string {
 
   routePath = routePath.replace(/\.mdx?$/, '')
 
-  // Handle index files → directory root
-  if (routePath === 'index' || routePath.endsWith('/index')) {
-    routePath = routePath.replace(/index$/, '')
+  // Handle index files → directory root. `_index.md` is the documented
+  // collection landing-page convention and shares the same canonical URL.
+  if (
+    routePath === 'index' ||
+    routePath === '_index' ||
+    routePath.endsWith('/index') ||
+    routePath.endsWith('/_index')
+  ) {
+    routePath = routePath.replace(/_?index$/, '')
   }
 
   // Ensure leading slash

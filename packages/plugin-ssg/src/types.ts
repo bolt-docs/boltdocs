@@ -1,13 +1,13 @@
 import type { Options as BeastiesOptions } from 'beasties'
 import type { ReactElement, ReactNode } from 'react'
-import type {
-  FutureConfig as CompFutureConfig,
-  createBrowserRouter,
-  IndexRouteObject,
-  NonIndexRouteObject,
-} from 'react-router-dom'
+import type { RouterRouteRecord } from './router-contract'
 
-type Router = ReturnType<typeof createBrowserRouter>
+/** Minimal router shape kept for the public SSG context without a DOM-router dependency. */
+export interface Router {
+  navigate?: (...args: any[]) => unknown
+  state?: unknown
+  [key: string]: unknown
+}
 
 export interface ViteReactSSGOptions<Context = ViteReactSSGContext> {
   /**
@@ -75,10 +75,22 @@ export interface ViteReactSSGOptions<Context = ViteReactSSGContext> {
    */
   beastiesOptions?: BeastiesOptions | false
   /**
+   * Critical CSS processing strategy.
+   *
+   * - `'zig-critters'` (default): Use zig-critters WASM for fast critical CSS inlining.
+   *   Falls back to **no critical CSS** if WASM is unavailable (no beasties fallback).
+   * - `'beasties'`: Use beasties (JS-based) for critical CSS. Slower but always available.
+   * - `false`: Skip critical CSS entirely.
+   *
+   * @default 'zig-critters'
+   */
+  criticalCss?: 'zig-critters' | 'beasties' | false
+  /**
    * Enable turbo mode: use zig-critters WASM instead of beasties JS for critical CSS.
    * Falls back to beasties if the WASM binary is unavailable.
    *
    * @default false
+   * @deprecated Use `criticalCss` instead. `turbo=true` is equivalent to `criticalCss: 'zig-critters'`.
    */
   turbo?: boolean
   /**
@@ -216,15 +228,16 @@ interface CommonRouteOptions {
   getStaticPaths?: () => string[] | Promise<string[]>
 }
 
-export type NonIndexRouteRecord = Omit<NonIndexRouteObject, 'children'> & {
+export type NonIndexRouteRecord = Omit<RouterRouteRecord, 'children'> & {
   children?: RouteRecord[]
 } & CommonRouteOptions
 
-export type IndexRouteRecord = IndexRouteObject & CommonRouteOptions
+export type IndexRouteRecord = NonIndexRouteRecord & { index: true }
 
 export type RouteRecord = NonIndexRouteRecord | IndexRouteRecord
 
 export interface RouterFutureConfig {
+  [key: string]: boolean | undefined
   v7_fetcherPersist?: boolean
   v7_normalizeFormMethod?: boolean
   v7_partialHydration?: boolean
@@ -235,8 +248,8 @@ export interface RouterFutureConfig {
 export interface RouterOptions {
   routes: RouteRecord[]
   basename?: string
-  future?: Partial<RouterFutureConfig & CompFutureConfig>
-  customCreateRouter?: typeof createBrowserRouter
+  future?: Partial<RouterFutureConfig>
+  customCreateRouter?: (...args: any[]) => Router
 }
 
 export interface StyleCollector {

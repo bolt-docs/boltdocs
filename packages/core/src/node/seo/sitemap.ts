@@ -1,5 +1,5 @@
 import type { BoltdocsConfig } from '../config'
-import type { SSGRouteData } from '../routes/route-adapter'
+import type { RouteMeta } from '../routes/types'
 import { escapeXml } from '../utils'
 
 /**
@@ -10,7 +10,7 @@ import { escapeXml } from '../utils'
  * @returns The XML sitemap as a search engine crawlable string.
  */
 export function generateSitemap(
-  routes: SSGRouteData[],
+  routes: RouteMeta[],
   config: BoltdocsConfig,
 ): string {
   const siteUrl = (config.siteUrl || '').replace(/\/$/, '')
@@ -30,15 +30,20 @@ export function generateSitemap(
       )
         return false
       // If the overall configuration isn't allowing indexing (unless explicitly defined)
-      if (isPrivate && !route.seo?.index) return true // assuming default true unless noindex, wait, if it's not all then maybe allow only explicitly indexed? Let's just follow Mintlify logic: if indexing=public/all, index everything. Else, default to everything if config.seo?.indexing is undefined. We'll simply let noindex drive it.
+      if (isPrivate && !route.seo?.index) return true
       return true
     })
     .map((route) => {
-      // Normalize path for the loc tag
+      // Normalize path for the loc tag before sorting so every build emits
+      // the same sitemap regardless of route discovery order.
       const normalizedPath = route.path.startsWith('/')
         ? route.path
         : `/${route.path}`
-      const loc = escapeXml(`${siteUrl}${normalizedPath}`)
+      return `${siteUrl}${normalizedPath}`
+    })
+    .sort((left, right) => (left < right ? -1 : left > right ? 1 : 0))
+    .map((url) => {
+      const loc = escapeXml(url)
 
       return `  <url>
     <loc>${loc}</loc>

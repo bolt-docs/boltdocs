@@ -1,28 +1,15 @@
 ---
 title: Tabs
 sidebarPosition: 3
-description: Composable layout tabs container for toggling between views.
+description: Composable layout tab container for switching between views.
 ---
 
-The `Tabs` primitive provides a modular, keyboard-navigable component structure for organizing content into discrete pane directories.
+The `Tabs` primitive provides a modular, keyboard-navigable component structure for organizing content into discrete panel directories.
 
-It's built on `react-aria-components` `Tabs`, so you keep roving tabindex, arrow-key navigation, focus management, and the right aria roles for free. Boltdocs wires Tailwind classes that match the design system — you bring the structure.
-
-Reach for `Tabs` when you want a small set of mutually exclusive views. For 2–6 short pieces of related content, `Tabs` is usually right; for navigation between full pages, use [Sidebar](/docs/components/layout/sidebar) + [OnThisPage](/docs/components/layout/on-this-page) instead.
-
----
-
-## Import
-
-```tsx
-import { Tabs } from 'boltdocs/primitives'
-```
-
----
 
 ## Quick Start
 
-Compose tab buttons and panels using sub-components:
+Compose tab buttons and panels using subcomponents:
 
 ```tsx
 import React, { useState } from 'react'
@@ -53,7 +40,7 @@ export default function CustomTabs() {
       </Tabs.List>
 
       <Tabs.Content>
-        {activeTab === 'tab-1' && <div>Overview content dashboard...</div>}
+        {activeTab === 'tab-1' && <div>Overview content panel...</div>}
         {activeTab === 'tab-2' && <div>Detailed API reference description...</div>}
       </Tabs.Content>
     </Tabs>
@@ -63,17 +50,17 @@ export default function CustomTabs() {
 
 ---
 
-## Composable Sub-Components
+## Composable Subcomponents
 
-The `Tabs` primitive provides the following namespaces for layout customisation:
+The `Tabs` primitive provides the following namespaces for layout customization:
 
 | Component | HTML Tag | Description | Props |
 | :--- | :--- | :--- | :--- |
-| **`Tabs.Root`** / **`Tabs`** | `<div>` | Top-level tabs block wrapper. | [`ComponentBaseProps`](#componentbaseprops-common) |
-| **`Tabs.List`** | `<div>` (tablist) | Holds tab category triggers. | [`ComponentBaseProps`](#componentbaseprops-common) |
+| **`Tabs.Root`** / **`Tabs`** | `<div>` | Main wrapper of the top-level tabs block. | [`ComponentBaseProps`](#componentbaseprops-common) |
+| **`Tabs.List`** | `<div>` (tablist) | Contains the tab category triggers. | [`ComponentBaseProps`](#componentbaseprops-common) |
 | **`Tabs.Item`** | `<button>` (tab) | The individual tab button selector cell. | [`Tabs.Item Props`](#tabsitem-props) |
-| **`Tabs.Content`** | `<div>` (tabpanel) | View container wrapping active content sections. | [`ComponentBaseProps`](#componentbaseprops-common) |
-| **`Tabs.Indicator`** | `<div>` | An absolute positioning highlight line showing the active tab. | [`Tabs.Indicator Props`](#tabsindicator-props) |
+| **`Tabs.Content`** | `<div>` (tabpanel) | View container wrapping the active content sections. | [`ComponentBaseProps`](#componentbaseprops-common) |
+| **`Tabs.Indicator`** | `<div>` | An absolutely-positioned highlight line showing the active tab. | [`Tabs.Indicator Props`](#tabsindicator-props) |
 
 ---
 
@@ -83,8 +70,8 @@ The `Tabs` primitive provides the following namespaces for layout customisation:
 
 | Property | Type | Default | Description |
 | :--- | :--- | :--- | :--- |
-| **`children`** | `ReactNode` | `undefined` | Children content elements. |
-| **`className`** | `string` | `undefined` | Custom CSS utility classes. |
+| **`children`** | `ReactNode` | `undefined` | Child content elements. |
+| **`className`** | `string` | `undefined` | Custom utility CSS classes. |
 | **`style`** | `CSSProperties` | `undefined` | Inline style settings. |
 
 ### `Tabs.Item` Props
@@ -92,21 +79,41 @@ The `Tabs` primitive provides the following namespaces for layout customisation:
 | Property | Type | Default | Description |
 | :--- | :--- | :--- | :--- |
 | **`id`** | `string` | *Required* | Unique selector key matching the tab content panel. |
-| **`selected`** | `boolean` | `false` | Highlight active selection state. |
+| **`selected`** | `boolean` | `false` | Active highlighted selection state. |
 | **`disabled`** | `boolean` | `false` | Prevents selection click triggers. |
-| **`onClick`** | `() => void` | `undefined` | Triggered selection callback handler. |
-| **`onKeyDown`** | `(e: KeyboardEvent) => void` | `undefined` | Keypress trigger callback handler. |
+| **`onClick`** | `() => void` | `undefined` | Active selection callback handler. |
+| **`onKeyDown`** | `(e: KeyboardEvent) => void` | `undefined` | Key press activation callback handler. |
 
 ### `Tabs.Indicator` Props
 
 | Property | Type | Default | Description |
 | :--- | :--- | :--- | :--- |
-| **`style`** | `CSSProperties` | `undefined` | Dynamic coordinates mapping styles (e.g. `transform`, `width`). |
+| **`style`** | `CSSProperties` | `undefined` | Dynamic coordinate mapping styles (e.g., `transform`, `width`). |
 
 ---
 
-## Pitfalls
+## Customization & states
 
-- **`Tabs.Item` is `selected`, not `isSelected`.** React Aria's lower-level API uses `isSelected`; this primitive aliases it to `selected` for the common controlled-state flow.
-- **Keyboard navigation is automatic.** You don't need to wire arrow-key handlers. If you have to, you're probably fighting the primitive — switch to `Tabs` from `react-aria-components` directly.
-- **Each `Tabs.Item` needs an id.** The id matches a `<Tabs.Panel id="...">` for the accessible label association; the example above uses `activeTab` state to drive the panel manually because the layout decoupled panels from tabs.
+`Tabs` is a self-contained primitive (not React Aria) and fully style-neutral. `Tabs.Item` is a `<button role="tab">` that exposes its selection through `data-selected` and `aria-selected`, so the active tab is styled from CSS with Tailwind v4 `data-[selected=true]:` variants. `Tabs.Indicator` is the themed moving highlight — position it with `style` and color it through `className`.
+
+| State / Slot | Mechanism |
+| :--- | :--- |
+| `data-selected` | On `Tabs.Item`, `"true"` / `"false"` — style with `data-[selected=true]:` |
+| `aria-selected` | Accessibility mirror of the selection state on `Tabs.Item` |
+| `Tabs.Item` `className` | Passthrough; tab visuals (color, borders, padding) from the theme |
+| `Tabs.Indicator` `className` | Passthrough; color and height of the active underline |
+| `Tabs.Indicator` `style` | Dynamic positioning (`transform`, `width`) of the highlight |
+| `Tabs.List` / `Tabs.Content` | `className` passthrough, no state |
+
+Tailwind v4:
+
+```tsx
+<Tabs.Item
+  id="overview"
+  selected={activeTab === 'overview'}
+  className="px-4 py-2 text-sm border-b-2 border-transparent text-muted
+             data-[selected=true]:text-primary-500 data-[selected=true]:border-primary-500"
+>
+  Overview
+</Tabs.Item>
+```

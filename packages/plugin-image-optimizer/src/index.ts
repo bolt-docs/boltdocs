@@ -219,8 +219,8 @@ function ViteImageOptimizer(optionsParam: Options = {}): Plugin {
 
   return {
     name: VITE_PLUGIN_NAME,
-    enforce: 'post',
     apply: 'build',
+    enforce: 'post',
     configResolved(c) {
       rootConfig = c
       outputPath = c.build.outDir

@@ -1,4 +1,4 @@
-import { useLocation } from 'react-router-dom'
+import { useLocation } from '../router'
 import { useEffect, useState, useRef } from 'react'
 import type { ComponentRoute, BoltdocsTab } from '../types'
 import { normalizePath } from '../utils/path'

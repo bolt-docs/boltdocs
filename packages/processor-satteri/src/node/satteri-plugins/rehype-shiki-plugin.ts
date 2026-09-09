@@ -8,12 +8,50 @@ interface ParsedMeta {
   wordWrap?: boolean
 }
 
+/** Resolved `codeTheme` from the user config (single theme or light/dark pair). */
+export type ShikiCodeTheme =
+  | string
+  | { light: string; dark: string }
+  | undefined
+
 function parseMetaString(metaStr: string): ParsedMeta {
   const result: ParsedMeta = {}
   if (!metaStr) return result
-  if (/lineNumbers|showLineNumbers/.test(metaStr)) result.lineNumbers = true
-  if (/wordWrap|word-wrap/.test(metaStr)) result.wordWrap = true
-  const titleMatch = metaStr.match(/title=(["'])(.*?)\1/)
+
+  const setBooleanFlag = (
+    key: 'lineNumbers' | 'wordWrap',
+    value?: string,
+  ): void => {
+    if (value === 'false') {
+      result[key] = false
+      return
+    }
+    if (value === 'true' || value === undefined) {
+      result[key] = true
+    }
+  }
+
+  const lineMatches = Array.from(
+    metaStr.matchAll(
+      /(?:^|\s)(?:lineNumbers|showLineNumbers|show-line-numbers|show_line_numbers|line_numbers)(?:\s*=\s*(true|false))?(?=\s|$)/gi,
+    ),
+  )
+  const lastLineMatch = lineMatches[lineMatches.length - 1]
+  if (lastLineMatch) {
+    setBooleanFlag('lineNumbers', lastLineMatch[1])
+  }
+
+  const wordMatches = Array.from(
+    metaStr.matchAll(
+      /(?:^|\s)(?:wordWrap|word-wrap|word_wrap)(?:\s*=\s*(true|false))?(?=\s|$)/gi,
+    ),
+  )
+  const lastWordMatch = wordMatches[wordMatches.length - 1]
+  if (lastWordMatch) {
+    setBooleanFlag('wordWrap', lastWordMatch[1])
+  }
+
+  const titleMatch = metaStr.match(/title=(['"])(.*?)\1/)
   if (titleMatch) result.title = titleMatch[2]
   return result
 }
@@ -42,9 +80,15 @@ interface ShikiAdapter {
       code: string,
       options: Record<string, unknown>,
     ) => { type: string; children: (Element | { type: string })[] } | Element
+    codeToHtml: (
+      code: string,
+      options: Record<string, unknown>,
+    ) => Promise<string>
   }>
   getOptions(lang: string, meta: ParsedMeta): Record<string, unknown>
 }
+
+type EnsureLanguageFn = (lang?: string) => Promise<boolean>
 
 /**
  * Syntax highlighting via Shiki.
@@ -59,8 +103,9 @@ interface ShikiAdapter {
  *
  * This plugin returns a replacement node containing the Shiki-highlighted HAST.
  */
-export function satteriRehypeShikiPlugin() {
+export function satteriRehypeShikiPlugin(codeTheme?: ShikiCodeTheme) {
   let adapter: ShikiAdapter | null = null
+  let ensureLang: EnsureLanguageFn | null = null
   let highlighterPromise: Promise<
     ReturnType<ShikiAdapter['getHighlighter']> extends Promise<infer T>
       ? T
@@ -75,8 +120,19 @@ export function satteriRehypeShikiPlugin() {
         // Lazy load adapter and highlighter (atomic init to prevent race conditions)
         if (!adapter) {
           const mod = await import('boltdocs/node/mdx/shiki-adapter')
-          adapter = mod.getShikiAdapter() as unknown as ShikiAdapter
+          // Pass the resolved codeTheme so the adapter honors the user config
+          // instead of falling back to the default light/dark pair. This is
+          // what makes `codeTheme: 'github-dark'` produce single-theme inline
+          // colors rather than dual-theme CSS variables.
+          adapter = mod.getShikiAdapter(
+            codeTheme
+              ? ({ theme: { codeTheme } } as Parameters<
+                  typeof mod.getShikiAdapter
+                >[0])
+              : undefined,
+          ) as unknown as ShikiAdapter
           highlighterPromise = adapter.getHighlighter()
+          ensureLang = mod.ensureLanguage as unknown as EnsureLanguageFn
         }
         const highlighter = await highlighterPromise!
 
@@ -108,6 +164,13 @@ export function satteriRehypeShikiPlugin() {
 
         const parsedMeta = parseMetaString(metaStr)
         const options = adapter.getOptions(lang, parsedMeta)
+
+        // Load the grammar on demand for languages outside the eager
+        // common set. No-op for plaintext-like or already-loaded languages;
+        // failures keep the existing plaintext/fallback paths below.
+        if (lang !== 'text') {
+          await ensureLang?.(lang)
+        }
 
         const codeText =
           (codeNode.children?.[0] as { value?: string } | undefined)?.value ??
@@ -151,13 +214,90 @@ export function satteriRehypeShikiPlugin() {
             properties['data-title'] = parsedMeta.title
           }
 
+          // Generate HTML string and pass via data-highlighted-html so the
+          // CodeBlock component renders it via dangerouslySetInnerHTML. This
+          // bypasses JSX whitespace normalization (esbuild trims leading
+          // whitespace from text nodes), preserving indentation in code blocks.
+          try {
+            const html = await highlighter.codeToHtml(codeText, options)
+            properties['data-highlighted-html'] = html
+          } catch {
+            // If codeToHtml fails, fall back to HAST children (JSX path).
+            // Whitespace may be trimmed but the block still renders.
+          }
+
           return {
             type: 'element',
             tagName: 'pre',
             properties,
             children: preElement.children,
           } as unknown as Element
-        } catch {
+        } catch (highlightError) {
+          // Language not bundled (or transient Shiki failure). Degrade
+          // gracefully: retry as plaintext so the block keeps its Shiki
+          // styling instead of silently falling back to an unformatted pre.
+          if (lang !== 'plaintext') {
+            try {
+              const plainHast = highlighter.codeToHast(codeText, {
+                ...options,
+                lang: 'plaintext',
+              })
+              const plainPre: Element =
+                plainHast.type === 'root'
+                  ? (plainHast.children[0] as Element)
+                  : (plainHast as Element)
+
+              const properties: Properties = {}
+              const originalProps = node.properties ?? {}
+              for (const key of Object.keys(originalProps)) {
+                if (key === 'class' || key === 'className') continue
+                properties[key] = originalProps[key]
+              }
+              const plainProps = plainPre.properties ?? {}
+              for (const [key, value] of Object.entries(plainProps)) {
+                if (key === 'class' || key === 'className') continue
+                properties[key] = value
+              }
+              properties.className = mergeClassArrays(
+                node.properties,
+                plainPre.properties,
+              )
+              properties['data-highlighted'] = 'true'
+              properties['data-lang'] = lang
+
+              console.warn(
+                `[boltdocs] Shiki language "${lang}" is not bundled; falling back to plaintext highlighting for this code block.`,
+                highlightError instanceof Error
+                  ? highlightError.message
+                  : highlightError,
+              )
+
+              if (parsedMeta.title) {
+                properties['data-title'] = parsedMeta.title
+              }
+
+              // Generate HTML for plaintext fallback too.
+              try {
+                const plainHtml = await highlighter.codeToHtml(codeText, {
+                  ...options,
+                  lang: 'plaintext',
+                })
+                properties['data-highlighted-html'] = plainHtml
+              } catch {
+                // Ignore — fall back to HAST children.
+              }
+
+              return {
+                type: 'element',
+                tagName: 'pre',
+                properties,
+                children: plainPre.children,
+              } as unknown as Element
+            } catch {
+              // Fall through to the shiki-fallback path below.
+            }
+          }
+
           // Fallback: add shiki-fallback class
           const properties: Properties = {}
           const originalProps = node.properties ?? {}

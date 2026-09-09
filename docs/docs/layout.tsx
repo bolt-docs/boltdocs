@@ -1,11 +1,5 @@
-import { DocsLayout } from 'boltdocs/client'
-import { NoiseOverlay } from '../src/noise-overlay'
+import { DocsThemeLayout } from '@/theme'
 
 export default function Layout({ children }: { children: React.ReactNode }) {
-  return (
-    <div className="relative">
-      <NoiseOverlay />
-      <DocsLayout>{children}</DocsLayout>
-    </div>
-  )
+  return <DocsThemeLayout>{children}</DocsThemeLayout>
 }

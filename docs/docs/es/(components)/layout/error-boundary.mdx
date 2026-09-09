@@ -6,15 +6,6 @@ description: Contenedor de límite de errores para capturar errores de renderiza
 
 El componente `ErrorBoundary` captura excepciones inesperadas de JavaScript en sus componentes descendientes y muestra una vista alternativa limpia y amigable para el usuario en lugar de bloquear toda la página.
 
----
-
-## Importación
-
-```tsx
-import { ErrorBoundary, ErrorBoundaryFallback } from 'boltdocs/primitives'
-```
-
----
 
 ## Ejemplo de Fallback Componible
 
@@ -102,3 +93,35 @@ El componente alternativo especificado en `FallbackComponent` recibe las siguien
 | :--- | :--- | :--- |
 | **`error`** | `Error` | El objeto de excepción de JavaScript capturado. |
 | **`resetErrorBoundary`** | `() => void` | Activa la limpieza de estado para reintentar la renderización del componente. |
+
+---
+
+## Personalización y estados
+
+La primitiva `ErrorBoundary` es **neutral en estilo**: no aporta estructura DOM ni atributos de estado propios — captura errores de renderizado y reemplaza `children` por la UI alternativa que tú proporcionas. Cada decisión visual pertenece al tema, porque el `FallbackComponent` (o `fallback`) que pasas es responsabilidad completa de tu tema.
+
+| Estado / Ranura | Mecanismo |
+| :--- | :--- |
+| `ErrorBoundary` | Componente de clase; renderiza `children` normalmente y no monta ningún elemento envoltorio |
+| Error capturado | Reemplaza `children` por `FallbackComponent` (o el nodo estático `fallback`) |
+| `FallbackComponent` | Recibe `error` y `resetErrorBoundary`; el markup y `className` son tuyos |
+| Reintentar | `resetErrorBoundary` limpia el estado de error y vuelve a renderizar `children` — estiliza el control de reintento en tu fallback |
+| `onError` / `onReset` | Callbacks para logging y efectos secundarios de reinicio; sin salida visual |
+
+```tsx
+function MyFallback({ error, resetErrorBoundary }: FallbackProps) {
+  return (
+    <div className="rounded-xl border border-subtle bg-surface p-6 text-center">
+      <p className="text-sm text-muted">{error.message}</p>
+      <button
+        onClick={resetErrorBoundary}
+        className="mt-3 rounded-lg bg-primary-500 px-4 py-2 text-xs font-semibold text-white hover:bg-primary-600"
+      >
+        Reintentar
+      </button>
+    </div>
+  )
+}
+
+<ErrorBoundary FallbackComponent={MyFallback}>{children}</ErrorBoundary>
+```

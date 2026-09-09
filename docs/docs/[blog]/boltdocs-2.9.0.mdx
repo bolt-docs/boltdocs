@@ -8,7 +8,7 @@ author:
   avatar: /avatar.jpeg
 excerpt: "2.9.0 ships the DUI toolkit as a standalone package, native feedback support, a proper math plugin with KaTeX, the transformSource lifecycle hook, CLI flags for dev, a long list of bug fixes, and a brand-new image optimizer."
 tags: ["Release"]
-
+tab: "2.9.0"
 ---
 
 ## This one's about sharing
@@ -18,18 +18,6 @@ tags: ["Release"]
 <Callout type="info">
   DUI is now its own package, feedback works out of the box, math looks beautiful with KaTeX, the plugin API has a new `transformSource` hook, dev gets CLI flags, and I finally squashed that theme flash that's been annoying me for months.
 </Callout>
-
----
-
-## DUI Goes Independent
-
-I built `@bdocs/dui` as an internal toolkit for Boltdocs' CLI — colored output, spinners, tables, progress bars, the usual terminal UI stuff. But the more I used it, the more I thought: why keep this to myself?
-
-So I split it into its own repository — [`bolt-docs/dui`](https://github.com/bolt-docs/dui) — with a proper API, documentation, and a live playground at [dui-terms.vercel.app](https://dui-terms.vercel.app). Anyone can use it now, not just Boltdocs. Better API surface, better types, better everything.
-
-And yeah — it's still the fastest terminal UI library out there. Boltdocs just tends to make everything faster.
-
----
 
 ## Native Feedback Support
 
@@ -58,7 +46,7 @@ $$ x = {-b \pm \sqrt{b^2-4ac} \over 2a} $$
 
 Under the hood it uses a `transformSource` hook to convert those delimiters into `<Math>` and `<BlockMath>` components before the MDX parser even sees them. KaTeX handles the rendering on the client side — CSS loaded from CDN, zero configuration required.
 
-Install it with `pnpm add @bdocs/plugin-math`, add `mathPlugin()` to your config plugins, and you're done. Read the [plugin-math docs](/docs/plugins/plugin-math) for details.
+Install it with `pnpm add @bdocs/plugin-math`, add `mathPlugin()` to your config plugins, and you're done. Read the [plugin-math docs](/docs/plugins/content/plugin-math) for details.
 
 ---
 
@@ -80,7 +68,7 @@ Three flags I finally added to `boltdocs dev`:
 - **`--host [address]`** — bind to a specific address, or bare `--host` to expose to your local network
 - **`--force`** — force Vite dependency re-optimization
 
-Nothing fancy — just flags I kept typing manually and got tired of it. Full docs on the [CLI page](/docs/api/cli).
+Nothing fancy — just flags I kept typing manually and got tired of it. Full docs on the [CLI page](/docs/guides/getting-started/cli).
 
 ---
 
@@ -101,6 +89,7 @@ This release had a solid round of fixes for things that have been bothering me:
 A new internal package: `@bdocs/plugin-image-optimizer`. It's a fork of [vite-plugin-image-optimizer](https://github.com/FatehAK/vite-plugin-image-optimizer/) — but I optimized it for Boltdocs.
 
 What's different:
+
 - **Persistent caching** — images aren't re-optimized on every build. Cache is keyed by content hash and survives restarts
 - **Parallel processing** — worker threads use all available cores (minus one) with zero-copy buffer transfer
 - **Scale integration** — works with Boltdocs' `AssetCache` system and respects the `.boltdocs/cache/` directory structure

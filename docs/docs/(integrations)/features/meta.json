@@ -1,6 +1,6 @@
 {
   "title": "Content Features",
   "order": 4,
-  "collapsible": true,
+  "collapsible": false,
   "collapsed": false
 }

@@ -1,6 +1,7 @@
 import { describe, it, expect, afterEach } from 'vitest'
 import { SECURITY_HEADERS } from '../../src/node/security/headers'
 import { getCSPHeader } from '../../src/node/security/csp'
+import { resolveSecurityHeaders } from '../../src/node/security/resolve'
 import type { BoltdocsConfig } from '../../src/node/config'
 
 describe('Security: Headers and CSP', () => {
@@ -85,6 +86,77 @@ describe('Security: Headers and CSP', () => {
       const prodCsp = getCSPHeader(mockConfig)
       expect(prodCsp).toContain("script-src 'self' 'unsafe-inline'")
       expect(prodCsp).toContain("style-src 'self' 'unsafe-inline'")
+    })
+  })
+
+  describe('resolveSecurityHeaders', () => {
+    it('applies the default security headers only in production', () => {
+      const prod = resolveSecurityHeaders(mockConfig, true)
+      expect(prod['X-Content-Type-Options']).toBe('nosniff')
+      expect(prod['Strict-Transport-Security']).toContain('preload')
+
+      const dev = resolveSecurityHeaders(mockConfig, false)
+      expect(dev['X-Content-Type-Options']).toBeUndefined()
+    })
+
+    it('includes the generated CSP when enableCSP is set', () => {
+      const headers = resolveSecurityHeaders(mockConfig, true)
+      expect(headers['Content-Security-Policy']).toContain("default-src 'self'")
+    })
+
+    it('does not generate a CSP when enableCSP is off', () => {
+      const headers = resolveSecurityHeaders({ docsDir: 'docs' }, true)
+      expect(headers['Content-Security-Policy']).toBeUndefined()
+    })
+
+    it('merges custom headers after the defaults', () => {
+      const config: BoltdocsConfig = {
+        docsDir: 'docs',
+        security: {
+          headers: { 'X-Custom': 'yes', 'X-Frame-Options': 'SAMEORIGIN' },
+        },
+      }
+      const headers = resolveSecurityHeaders(config, true)
+      expect(headers['X-Custom']).toBe('yes')
+      // security.headers can relax a default.
+      expect(headers['X-Frame-Options']).toBe('SAMEORIGIN')
+    })
+
+    it('lets customHeaders override security.headers', () => {
+      const config: BoltdocsConfig = {
+        docsDir: 'docs',
+        security: {
+          headers: { 'X-Frame-Options': 'SAMEORIGIN' },
+          customHeaders: { 'X-Frame-Options': 'DENY' },
+        },
+      }
+      const headers = resolveSecurityHeaders(config, true)
+      expect(headers['X-Frame-Options']).toBe('DENY')
+    })
+
+    it('lets customHeaders replace the generated CSP', () => {
+      const config: BoltdocsConfig = {
+        docsDir: 'docs',
+        security: {
+          enableCSP: true,
+          customHeaders: {
+            'Content-Security-Policy': "default-src 'none'",
+          },
+        },
+      }
+      const headers = resolveSecurityHeaders(config, true)
+      expect(headers['Content-Security-Policy']).toBe("default-src 'none'")
+    })
+
+    it('applies custom headers in development too', () => {
+      const config: BoltdocsConfig = {
+        docsDir: 'docs',
+        security: {
+          customHeaders: { 'X-Robots-Tag': 'noindex' },
+        },
+      }
+      const headers = resolveSecurityHeaders(config, false)
+      expect(headers['X-Robots-Tag']).toBe('noindex')
     })
   })
 })

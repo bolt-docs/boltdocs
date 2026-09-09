@@ -1,6 +1,6 @@
 {
-  "title": "Plugin API Reference",
-  "icon": "Puzzle",
-  "collapsible": true,
+  "title": "Plugin API",
+  "order": 2,
+  "collapsible": false,
   "collapsed": false
 }

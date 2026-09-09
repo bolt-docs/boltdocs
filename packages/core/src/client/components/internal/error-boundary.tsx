@@ -3,11 +3,23 @@ import {
   type FallbackProps,
 } from '../primitives/error-boundary'
 import type { ReactNode } from 'react'
+import { cn } from '../../utils/cn'
 
-function InternalFallback({ error, resetErrorBoundary }: FallbackProps) {
+function InternalFallback({
+  error,
+  resetErrorBoundary,
+  className,
+}: FallbackProps & { className?: string }) {
   return (
-    <div className="p-2 font-mono flex flex-col items-center justify-between min-h-[30vh]">
-      <p className="text-lg font-semibold text-red-500">Something went wrong</p>
+    <div
+      className={cn(
+        'p-2 font-mono flex flex-col items-center justify-between min-h-[30vh]',
+        className,
+      )}
+    >
+      <p className="text-lg font-semibold text-danger-500">
+        Something went wrong
+      </p>
       {error?.message && (
         <pre className="text-sm mt-2 max-w-md overflow-auto whitespace-pre-wrap break-word">
           {error.message}
@@ -16,7 +28,7 @@ function InternalFallback({ error, resetErrorBoundary }: FallbackProps) {
       <button
         type="button"
         onClick={resetErrorBoundary}
-        className="px-2 py-3 mt-2 bg-slate-100 rounded border-slate-200 border font-mono font-semibold text-slate-700 hover:scale-105 transition-transform active:scale-95 cursor-pointer"
+        className="px-2 py-3 mt-2 bg-soft rounded border-subtle border font-mono font-semibold text-body hover:scale-105 transition-transform active:scale-95 cursor-pointer"
       >
         Try again
       </button>

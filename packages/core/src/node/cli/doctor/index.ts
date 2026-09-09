@@ -4,20 +4,24 @@ import { fdir } from 'fdir'
 import picomatch from 'picomatch'
 import {
   colors,
-  double,
-  single,
-  round,
-  bullet,
+  badge,
+  section,
   tasks,
   confirm,
   info,
   success,
   warn,
   error,
-  dividerLog,
+  colorize,
 } from '@bdocs/dui'
 import { resolveConfig } from '../../config'
 import { notifyUpdateAvailable } from '../../update-check'
+import {
+  gradientWordmark,
+  brandBadge,
+  BOLTDOCS_VERSION,
+  BRAND,
+} from '../../ui-utils'
 import {
   type DoctorContext,
   type DoctorIssue,
@@ -90,14 +94,15 @@ export async function doctorAction(
     }
 
     if (reportFormat === 'pretty') {
+      const versionBadge = BOLTDOCS_VERSION
+        ? ` ${brandBadge(`v${BOLTDOCS_VERSION}`)}`
+        : ''
       console.log(
-        double(
-          [
-            `  ${colors.dim('Docs dir:')} ${docsDir}`,
-            `  ${colors.dim('Reports:')} ${root}/.boltdocs/reports/`,
-          ],
-          { title: '✦ DOCTOR — Documentation Health Check' },
-        ),
+        `\n  ${colors.bold('⚡')} ${gradientWordmark('boltdocs')}${versionBadge} ${colors.dim('—')} ${colors.bold('doctor')} ${colors.dim('· documentation health check')}\n`,
+      )
+      console.log(
+        `  ${colors.dim(`Docs dir  ${docsDir}`)}\n` +
+          `  ${colors.dim(`Reports   ${root}/.boltdocs/reports/`)}\n`,
       )
     }
 
@@ -188,31 +193,35 @@ export async function doctorAction(
     ]
 
     if (reportFormat === 'pretty') {
+      const countLabel = (count: number) =>
+        count > 0
+          ? colors.red(`${count} issue${count !== 1 ? 's' : ''}`)
+          : colors.green('OK')
       const taskItems = [
         {
-          label: `Metadata checks ${metadataIssues.length > 0 ? `— ${metadataIssues.length} issue${metadataIssues.length !== 1 ? 's' : ''}` : '— OK'}`,
+          label: `Metadata checks   ${countLabel(metadataIssues.length)}`,
           done: metadataIssues.length === 0,
         },
         {
-          label: `Link checks ${linkIssues.length > 0 ? `— ${linkIssues.length} issue${linkIssues.length !== 1 ? 's' : ''}` : '— OK'}`,
+          label: `Link checks       ${countLabel(linkIssues.length)}`,
           done: linkIssues.length === 0,
         },
         {
-          label: `i18n checks ${i18nIssues.length > 0 ? `— ${i18nIssues.length} issue${i18nIssues.length !== 1 ? 's' : ''}` : '— OK'}`,
+          label: `i18n checks       ${countLabel(i18nIssues.length)}`,
           done: i18nIssues.length === 0,
         },
         {
-          label: `Sidebar checks ${sidebarIssues.length > 0 ? `— ${sidebarIssues.length} issue${sidebarIssues.length !== 1 ? 's' : ''}` : '— OK'}`,
+          label: `Sidebar checks    ${countLabel(sidebarIssues.length)}`,
           done: sidebarIssues.length === 0,
         },
       ]
       if (options.budget) {
         taskItems.push({
-          label: `Performance budget ${performanceIssues.length > 0 ? `— ${performanceIssues.length} issue${performanceIssues.length !== 1 ? 's' : ''}` : '— OK'}`,
+          label: `Performance budget ${countLabel(performanceIssues.length)}`,
           done: performanceIssues.length === 0,
         })
       }
-      console.log(`\n${tasks(taskItems)}`)
+      console.log(`\n${tasks(taskItems)}\n`)
     }
 
     // 1. Handle Automatic Fixes
@@ -280,76 +289,76 @@ export async function doctorAction(
       )
 
       if (issues.length > 0) {
-        dividerLog()
+        console.log(section({ title: 'Issues', colors: { title: BRAND } }))
         for (const [file, fileIssues] of Object.entries(groupedIssues)) {
-          const issueLines: string[] = []
+          const maxLevel: 'high' | 'warning' | 'low' = fileIssues.some(
+            (i) => i.level === 'high',
+          )
+            ? 'high'
+            : fileIssues.some((i) => i.level === 'warning')
+              ? 'warning'
+              : 'low'
+          const badgeLabel = maxLevel.toUpperCase()
+          const badgeChip =
+            maxLevel === 'high'
+              ? badge({ label: badgeLabel, status: 'error' })
+              : maxLevel === 'warning'
+                ? badge({ label: badgeLabel, status: 'warning' })
+                : badge({
+                    label: badgeLabel,
+                    colors: { text: '#ffffff', bg: BRAND },
+                  })
+          console.log(`\n  ${badgeChip}  ${colors.bold(file)}`)
           for (const issue of fileIssues) {
             const icon =
               issue.level === 'high'
-                ? '❌'
+                ? '✖'
                 : issue.level === 'warning'
-                  ? '⚠️'
-                  : 'ℹ️'
+                  ? '⚠'
+                  : 'ℹ'
             const color =
               issue.level === 'high'
                 ? colors.red
                 : issue.level === 'warning'
                   ? colors.yellow
-                  : colors.blue
-            issueLines.push(
-              `${icon} ${color(issue.level.toUpperCase())}: ${issue.message}`,
-            )
+                  : (s: string) => colorize(s, BRAND, 'fg')
+            console.log(`      ${color(icon)} ${issue.message}`)
             if (issue.suggestion) {
-              issueLines.push(`   ${colors.dim(`💡 ${issue.suggestion}`)}`)
+              console.log(`        ${colors.dim(`💡 ${issue.suggestion}`)}`)
             }
             if (options.fix && issue.fix) {
-              issueLines.push(`   ${colors.green('✅ Fixed automatically')}`)
+              console.log(`        ${colors.green('✅ Fixed automatically')}`)
             }
           }
-          console.log(`\n${single(issueLines, { title: `📄 ${file}` })}`)
         }
-        dividerLog()
+        console.log('')
       }
 
       if (issues.length === 0) {
         console.log(
-          round(
-            [
-              '  Everything looks perfect!',
-              '  Your documentation is in great shape.',
-              '',
-              `  ${colors.dim(`Scanned ${files.length} file${files.length !== 1 ? 's' : ''} in ${duration}s`)}`,
-            ],
-            { title: '✨ Documentation Health Check' },
-          ),
+          `  ${colors.green.bold('✨ Everything looks perfect!')} ${colors.dim('— your documentation is in great shape.')}`,
+        )
+        console.log(
+          `  ${colors.dim(`Scanned ${files.length} file${files.length !== 1 ? 's' : ''} in ${duration}s`)}`,
         )
       } else {
-        const summaryBullets: string[] = []
+        console.log(
+          `\n${section({ title: 'Summary', colors: { title: BRAND } })}`,
+        )
         if (high > 0)
-          summaryBullets.push(
-            colors.red(`${high} Critical Error${high !== 1 ? 's' : ''}`),
+          console.log(
+            `  ${badge({ label: String(high), status: 'error' })}  ${colors.bold('high')}`,
           )
         if (warning > 0)
-          summaryBullets.push(
-            colors.yellow(`${warning} Warning${warning !== 1 ? 's' : ''}`),
+          console.log(
+            `  ${badge({ label: String(warning), status: 'warning' })}  ${colors.bold('warning')}${warning !== 1 ? 's' : ''}`,
           )
         if (low > 0)
-          summaryBullets.push(
-            colors.blue(`${low} Improvement${low !== 1 ? 's' : ''}`),
+          console.log(
+            `  ${badge({ label: String(low), colors: { text: '#ffffff', bg: BRAND } })}  ${colors.bold('low')}`,
           )
-
-        const summaryLines: string[] = [
-          ...bullet(summaryBullets)
-            .split('\n')
-            .map((l) => l.trimStart()),
-          '',
-          colors.dim(
-            `Scanned ${files.length} file${files.length !== 1 ? 's' : ''} in ${duration}s`,
-          ),
-        ]
-
         console.log(
-          `\n${double(summaryLines, { title: 'Diagnosis Results' })}\n`,
+          `  ${colors.dim(`Scanned ${files.length} file${files.length !== 1 ? 's' : ''} in ${duration}s`)}`,
         )
 
         if (fixedCount > 0) {

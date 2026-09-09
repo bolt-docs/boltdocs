@@ -1,6 +1,6 @@
 {
   "title": "Utilities",
-  "icon": "Wrench",
-  "collapsible": true,
+  "order": 3,
+  "collapsible": false,
   "collapsed": false
 }

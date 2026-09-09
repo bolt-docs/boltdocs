@@ -7,36 +7,6 @@ badge: "New"
 
 Giscus es un widget de comentarios impulsado por la API de GitHub Discussions. Los visitantes pueden dejar comentarios usando su cuenta de GitHub sin ninguna base de datos externa ni sobrecarga de moderación.
 
----
-
-## Inicio Rápido
-
-### Paso 1: Instala la App de Giscus en GitHub
-
-Ve a la página de la [App de Giscus en GitHub](https://github.com/apps/giscus) e instálala en el repositorio donde deseas almacenar las discusiones.
-
-### Paso 2: Configura en boltdocs.config.ts
-
-```ts title="boltdocs.config.ts"
-export default defineConfig({
-  integrations: {
-    feedback: {
-      giscus: {
-        repo: 'your-org/your-repo',
-        repoId: 'R_kgDOXXXXXXXX',
-        category: 'General',
-        categoryId: 'DIC_kwDOXXXXXXXX',
-      },
-    },
-  },
-})
-```
-
-### Paso 3: Los comentarios de Giscus aparecen automáticamente
-
-Una vez configurado, el widget de comentarios de Giscus se renderiza en la parte inferior de cada página de documentación. El tema se sincroniza automáticamente con el modo oscuro/claro de tu sitio.
-
----
 
 ## Encontrando tu ID de Repositorio
 

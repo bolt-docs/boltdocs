@@ -1,24 +1,11 @@
 ---
 title: Popover
 sidebarPosition: 4
-description: Overlay container primitive displaying contextual popups.
+description: Overlay container primitive that shows contextual popup windows.
 ---
 
-The `Popover` primitive is an overlay container used to render custom menus, tooltips, selection forms, or contextual popup widgets triggered by anchor buttons.
+The `Popover` primitive is an overlay container used to render menus, tooltips, selection forms, or custom contextual popup widgets triggered by anchor buttons.
 
-It's the *free-form* sibling of `Menu` — pick this when your popover content isn't a list of choices (e.g. a settings form, an inline editor, a color picker). The `Menu` primitive gives you list semantics for free; `Popover` doesn't, but neither does it lock you into one.
-
-Use `Popover` when you want: an editor popovers anchored to a button, a colour picker palette, an inline `+ New` widget, or any other content that doesn't fit the menu listbox model.
-
----
-
-## Import
-
-```tsx
-import { Popover } from 'boltdocs/primitives'
-```
-
----
 
 ## Quick Start
 
@@ -36,8 +23,8 @@ export default function ConfigPopover() {
       </Button>
       <Popover className="p-4 bg-surface border border-subtle rounded-xl shadow-xl max-w-sm">
         <div>
-          <h4 className="font-bold mb-2">Workspace Config</h4>
-          <p className="text-xs text-muted mb-4">Adjust project compiler flags and targets below.</p>
+          <h4 className="font-bold mb-2">Workspace Settings</h4>
+          <p className="text-xs text-muted mb-4">Adjust the compiler flags and project targets below.</p>
           <button className="px-3 py-1 bg-soft rounded text-xs font-semibold">Done</button>
         </div>
       </Popover>
@@ -50,22 +37,39 @@ export default function ConfigPopover() {
 
 ## Component Props
 
-The `Popover` component wraps React Aria's `Popover` properties:
+The `Popover` component wraps React Aria `Popover` props:
 
 | Property | Type | Default | Description |
 | :--- | :--- | :--- | :--- |
 | **`placement`** | `'bottom' \| 'top' \| 'left' \| 'right' \| 'start' \| 'end'` | `'bottom'` | Target side of the trigger element to position the popover. |
-| **`offset`** | `number` | `8` | Spacing distance in pixels between the trigger element and the popover overlay. |
-| **`crossOffset`** | `number` | `0` | Cross-axis offset alignment offset in pixels. |
-| **`isDismissable`** | `boolean` | `true` | Closes the popover automatically when clicking outside or pressing Escape. |
+| **`offset`** | `number` | `8` | Pixel spacing distance between the trigger element and the popover overlay. |
+| **`crossOffset`** | `number` | `0` | Cross-axis alignment offset in pixels. |
+| **`isDismissable`** | `boolean` | `true` | Automatically closes the popover when clicking outside or pressing Escape. |
 | **`children`** | `ReactNode` | *Required* | Child elements to render inside the popover overlay content frame. |
-| **`className`** | `string` | `undefined` | Custom CSS utility class overrides. |
-| **`style`** | `CSSProperties` | `undefined` | Inline styling overrides. |
+| **`className`** | `string` | `undefined` | Custom utility CSS class overrides. |
+| **`style`** | `CSSProperties` | `undefined` | Inline style overrides. |
 
 ---
 
-## Pitfalls
+## Customization & states
 
-- **Popovers render inside a React portal.** `position: fixed` works as expected; `transform: translate(...)` doesn't compose with React Aria's positioning math — use the `placement` / `offset` props instead.
-- **Focus trap** is on by default. Use `DialogTrigger` (already in the example) — `Popover` alone is *not* a dialog and won't lock focus, so for interactive long-form content prefer `<Dialog>`.
-- **Clicks outside close the popover.** Set `isDismissable={false}` if you want explicit close behaviour — but then `Escape` *still* closes it. React Aria consistency wins.
+`Popover` is a floating overlay with no visuals of its own — colors, borders, radius, and shadows all come from the theme through `className`, which is a plain string passthrough (this primitive does not unwrap the render-function form). React Aria mirrors the open/close animation and placement onto the element as `data-*` attributes, so enter/exit transitions are styled purely from CSS.
+
+| State / Slot | Mechanism |
+| :--- | :--- |
+| `className` | Plain string passthrough merged onto the overlay; theme controls colors, borders, radius, shadow |
+| `data-entering` | Present while the popover animates in — use `data-entering:` variants |
+| `data-exiting` | Present while the popover animates out — use `data-exiting:` variants |
+| `data-placement` | `top` / `bottom` / `left` / `right` — placement-aware offsets |
+| `data-trigger` | Name of the trigger component (e.g. `DialogTrigger`) |
+| `placement` / `offset` / `crossOffset` | Positioning behavior only, no visuals |
+
+Tailwind v4:
+
+```tsx
+<Popover className="data-entering:animate-in data-entering:fade-in data-entering:zoom-in-95
+                   data-exiting:animate-out data-exiting:fade-out
+                   rounded-xl bg-surface border border-subtle shadow-xl p-4">
+  <div>Popover content</div>
+</Popover>
+```

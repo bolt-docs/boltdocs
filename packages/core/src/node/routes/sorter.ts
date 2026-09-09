@@ -26,15 +26,24 @@ export function sortRoutes(routes: RouteMeta[]): RouteMeta[] {
       return (a.groupTitle || a.group).localeCompare(b.groupTitle || b.group)
     }
 
-    // Same group or both ungrouped: sort by item position/title
+    // Same group or both ungrouped: sort by item position/title/path.
+    // The path tie-breaker makes the order total even when two routes share
+    // the same title/position and were discovered by concurrent parsing.
     return compareByPosition(a, b)
   })
 }
 
 function compareByPosition(a: RouteMeta, b: RouteMeta): number {
-  if (a.sidebarPosition !== undefined && b.sidebarPosition !== undefined)
-    return a.sidebarPosition - b.sidebarPosition
-  if (a.sidebarPosition !== undefined) return -1
-  if (b.sidebarPosition !== undefined) return 1
-  return a.title.localeCompare(b.title)
+  if (a.sidebarPosition !== undefined && b.sidebarPosition !== undefined) {
+    const positionOrder = a.sidebarPosition - b.sidebarPosition
+    if (positionOrder !== 0) return positionOrder
+  } else if (a.sidebarPosition !== undefined) {
+    return -1
+  } else if (b.sidebarPosition !== undefined) {
+    return 1
+  }
+
+  const titleOrder = a.title.localeCompare(b.title)
+  if (titleOrder !== 0) return titleOrder
+  return a.path.localeCompare(b.path)
 }

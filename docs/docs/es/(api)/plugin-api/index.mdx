@@ -48,60 +48,6 @@ a continuación para navegar.
   </Card>
 </Cards>
 
----
-
-## PluginContext
-
-Cada hook del lifecycle recibe un `PluginContext` como primer argumento:
-
-```ts
-interface PluginContext {
-  readonly config: BoltdocsConfig
-  readonly logger: PluginLogger
-  readonly store: PluginStore
-  readonly meta: PluginMeta
-  readonly docsDir: string
-  readonly rootDir: string
-  readonly outDir: string
-  readonly routes: RouteMeta[]
-
-  // --- Nuevo en 3.2.0 ---
-  readonly caches: PluginCachesAPI
-  readonly diagnostics: PluginDiagnosticsAPI
-  readonly paths: PluginPathsAPI
-  readonly virtualModules: PluginVirtualModulesAPI
-  readonly middleware: PluginMiddlewareAPI  // Registrar middleware transform
-  readonly server: PluginServerAPI         // Registrar middleware HTTP
-  readonly hmr: PluginHmrAPI               // Hooks de HMR
-}
-```
-
-### Campos base
-
-| Campo | Tipo | Descripción |
-| :--- | :--- | :--- |
-| `config` | `BoltdocsConfig` | Objeto de configuración resuelto y de solo lectura. |
-| `logger` | `PluginLogger` | Logging estructurado — `info()`, `warn()`, `error()`, `debug()`. |
-| `store` | `PluginStore` | Almacén clave-valor con namespace para comunicación entre plugins. |
-| `meta` | `PluginMeta` | Identidad del plugin actual (`name`, `version`, `boltdocsVersion`). |
-| `docsDir` | `string` | Ruta absoluta al directorio `docs/`. |
-| `rootDir` | `string` | Ruta absoluta a la raíz del proyecto. |
-| `outDir` | `string` | Directorio de salida del build (ej. `dist/`). |
-| `routes` | `RouteMeta[]` | Todas las rutas de documentación generadas. |
-
-### Namespaces enriquecidos (3.2.0+)
-
-| Campo | Página | Descripción |
-| :--- | :--- | :--- |
-| `caches` | [Caches](/docs/es/api/plugin-api/caches) | Caché de transformación, rutas y FIFO en memoria. |
-| `diagnostics` | [Diagnostics](/docs/es/api/plugin-api/diagnostics) | Canal de diagnóstico estructurado con niveles de severidad. |
-| `paths` | [Paths](/docs/es/api/plugin-api/paths) | Resolución segura de rutas dentro del workspace. |
-| `virtualModules` | [Virtual Modules](/docs/es/api/plugin-api/virtual-modules) | Declara módulos virtuales para resolución por Vite. |
-| `middleware` | [Middleware](/docs/es/api/plugin-api/middleware) | Registra middleware de transformación en runtime. |
-| `server` | [Server](/docs/es/api/plugin-api/server) | Registra middleware HTTP y callbacks del ciclo de vida. |
-| `hmr` | [HMR](/docs/es/api/plugin-api/hmr) | Conéctate al file-watching del dev server y envía eventos. |
-
----
 
 ## Ejemplo completo
 
@@ -109,32 +55,33 @@ Un plugin real que cachea una transformación costosa, reporta progreso,
 resuelve una ruta y registra un módulo virtual:
 
 ```ts
-import { createPlugin } from 'boltdocs'
+import { definePlugin } from 'boltdocs'
 
-export default createPlugin({
+export default definePlugin<MisOpciones>((options) => ({
   name: 'mi-plugin-inteligente',
+  client: {
+    slots: {
+      'header:right': './components/HeaderActions.tsx',
+      'search:dialog': './components/SearchModal.tsx',
+    },
+    providers: ['./providers/SearchProvider.tsx'],
+    mdxComponents: { Callout: './components/Callout.tsx' },
+  },
   hooks: {
-    async beforeBuild(ctx) {
-      ctx.virtualModules.add('virtual:mi-plugin/config', () =>
-        JSON.stringify({ mode: 'production' }),
-      )
+    'frontmatter:transform'(ctx, { frontmatter, rawContent }) {
+      return {
+        ...frontmatter,
+        readingTime: Math.ceil(rawContent.split(/\s+/).length / 200),
+      }
     },
-    async transformMdx(ctx, { code, filePath }) {
-      const cache = ctx.caches.memory<string>('mi-plugin', { max: 200 })
-      const cached = cache.get(filePath)
-      if (cached) return { code: cached }
-
-      ctx.diagnostics.report('info', 'TRANSFORM_START', `Transformando ${filePath}`)
-      const transformed = code.replace(/foo/g, 'bar')
-      cache.set(filePath, transformed)
-      return { code: transformed }
+    'search:index'(ctx, { documents }) {
+      ctx.logger.info(`Indexados ${documents.length} documentos de búsqueda.`)
     },
-    afterBuild(ctx) {
-      const diagPath = ctx.paths.resolveDocs('diagnostics.json')
-      ctx.logger.info(`Snapshot de diagnósticos en: ${diagPath}`)
+    'build:generate'(ctx, { routes, outDir }) {
+      ctx.logger.info(`Assets generados para ${routes.length} rutas en ${outDir}.`)
     },
   },
-})
+}))
 ```
 
 ---
@@ -142,5 +89,6 @@ export default createPlugin({
 ## Ver también
 
 - [Descripción general del Sistema de Plugins](/docs/es/plugins/) — arquitectura, conceptos, inicio rápido
-- [@bdocs/unist-utils](/docs/es/plugins/unist-utils) — Utilidades AST para remark/rehype
-- [Boltdocs 3.2.0 changelog](/docs/es/blog/boltdocs-3.2.0) — notas de la versión
+- [@bdocs/unist-utils](/docs/es/plugins/content/unist-utils) — Utilidades AST para remark/rehype
+- [Releases](/docs/releases) — historial de releases
+- [Post de lanzamiento de Boltdocs 3.3.0](/docs/es/blog/boltdocs-3.3.0) — notas detalladas de la versión

@@ -1,5 +1,4 @@
 import { Link } from './link'
-import { ChevronLeft, ChevronRight } from '../ui-base/icons'
 import { cn } from '../../utils/cn'
 import type { ComponentBase } from './types'
 import type { BoltdocsRoutePathWithFallback } from '../../../shared/types'
@@ -26,9 +25,7 @@ function PageNavLink({ children, to, direction, className }: PageNavProps) {
         className,
       )}
     >
-      {!isNext && <ChevronLeft className="shrink-0" />}
-      <div className="flex flex-col flex-1">{children}</div>
-      {isNext && <ChevronRight className="shrink-0" />}
+      {children}
     </Link>
   )
 }
@@ -41,8 +38,8 @@ function PageNavDescription({ children, className }: ComponentBase) {
   return <span className={cn('truncate', className)}>{children}</span>
 }
 
-function PageNavIcon({ children }: ComponentBase) {
-  return <>{children}</>
+function PageNavIcon({ children, className }: ComponentBase) {
+  return <span className={cn('shrink-0', className)}>{children}</span>
 }
 
 PageNav.Root = PageNav

@@ -47,60 +47,6 @@ cards below to navigate.
   </Card>
 </Cards>
 
----
-
-## PluginContext
-
-Every lifecycle hook receives a `PluginContext` as its first argument:
-
-```ts
-interface PluginContext {
-  readonly config: BoltdocsConfig      // Read-only resolved config
-  readonly logger: PluginLogger        // info / warn / error / debug
-  readonly store: PluginStore          // Namespaced key-value store
-  readonly meta: PluginMeta            // Current plugin identity
-  readonly docsDir: string             // Absolute path to docs/
-  readonly rootDir: string             // Absolute path to project root
-  readonly outDir: string              // Build output (e.g. 'dist/')
-  readonly routes: RouteMeta[]         // All generated routes
-
-  // --- Enriched in 3.2.0 ---
-  readonly caches: PluginCachesAPI         // Transform, routes, memory
-  readonly diagnostics: PluginDiagnosticsAPI
-  readonly paths: PluginPathsAPI
-  readonly virtualModules: PluginVirtualModulesAPI
-  readonly middleware: PluginMiddlewareAPI  // Register transform middleware
-  readonly server: PluginServerAPI         // Register HTTP middleware
-  readonly hmr: PluginHmrAPI               // Hook into HMR events
-}
-```
-
-### Base fields
-
-| Field | Type | Description |
-| :--- | :--- | :--- |
-| `config` | `BoltdocsConfig` | Read-only resolved configuration object. |
-| `logger` | `PluginLogger` | Structured logging — `info()`, `warn()`, `error()`, `debug()`. |
-| `store` | `PluginStore` | Namespaced key-value store for inter-plugin communication. |
-| `meta` | `PluginMeta` | Current plugin identity (`name`, `version`, `boltdocsVersion`). |
-| `docsDir` | `string` | Absolute path to the `docs/` directory. |
-| `rootDir` | `string` | Absolute path to the project root. |
-| `outDir` | `string` | Build output directory (e.g. `dist/`). |
-| `routes` | `RouteMeta[]` | All generated documentation routes. |
-
-### Enriched namespaces (3.2.0+)
-
-| Field | Page | Description |
-| :--- | :--- | :--- |
-| `caches` | [Caches](/docs/api/plugin-api/caches) | Transform cache, routes cache, and in-memory FIFO cache. |
-| `diagnostics` | [Diagnostics](/docs/api/plugin-api/diagnostics) | Structured diagnostic channel with severity levels. |
-| `paths` | [Paths](/docs/api/plugin-api/paths) | Safe path resolution inside the workspace boundary. |
-| `virtualModules` | [Virtual Modules](/docs/api/plugin-api/virtual-modules) | Declare virtual modules for Vite resolution. |
-| `middleware` | [Middleware](/docs/api/plugin-api/middleware) | Register transform middleware at runtime. |
-| `server` | [Server](/docs/api/plugin-api/server) | Register HTTP middleware and lifecycle callbacks. |
-| `hmr` | [HMR](/docs/api/plugin-api/hmr) | Hook into dev-server file watching and send custom events. |
-
----
 
 ## Putting it all together
 
@@ -108,36 +54,33 @@ A real-world plugin that caches an expensive transform, reports progress,
 resolves a path, and registers a virtual module:
 
 ```ts
-import { createPlugin } from 'boltdocs'
+import { definePlugin } from 'boltdocs'
 
-export default createPlugin({
+export default definePlugin<MyOptions>((options) => ({
   name: 'my-smart-plugin',
+  client: {
+    slots: {
+      'header:right': './components/HeaderActions.tsx',
+      'search:dialog': './components/SearchModal.tsx',
+    },
+    providers: ['./providers/SearchProvider.tsx'],
+    mdxComponents: { Callout: './components/Callout.tsx' },
+  },
   hooks: {
-    async beforeBuild(ctx) {
-      // Register a virtual module for runtime
-      ctx.virtualModules.add('virtual:my-smart-plugin/config', () =>
-        JSON.stringify({ mode: 'production' }),
-      )
+    'frontmatter:transform'(ctx, { frontmatter, rawContent }) {
+      return {
+        ...frontmatter,
+        readingTime: Math.ceil(rawContent.split(/\s+/).length / 200),
+      }
     },
-    async transformMdx(ctx, { code, filePath }) {
-      const cache = ctx.caches.memory<string>('my-smart-plugin', { max: 200 })
-
-      const cached = cache.get(filePath)
-      if (cached) return { code: cached }
-
-      ctx.diagnostics.report('info', 'TRANSFORM_START', `Transforming ${filePath}`)
-
-      const transformed = code.replace(/foo/g, 'bar')
-
-      cache.set(filePath, transformed)
-      return { code: transformed }
+    'search:index'(ctx, { documents }) {
+      ctx.logger.info(`Indexed ${documents.length} search documents.`)
     },
-    afterBuild(ctx) {
-      const diagPath = ctx.paths.resolveDocs('diagnostics.json')
-      ctx.logger.info(`Diagnostics snapshot at: ${diagPath}`)
+    'build:generate'(ctx, { routes, outDir }) {
+      ctx.logger.info(`Generated assets for ${routes.length} routes in ${outDir}.`)
     },
   },
-})
+}))
 ```
 
 ---
@@ -145,5 +88,6 @@ export default createPlugin({
 ## See also
 
 - [Plugin System overview](/docs/plugins/) — architecture, concepts, quick start
-- [@bdocs/unist-utils](/docs/plugins/unist-utils) — AST utilities for remark/rehype
-- [Boltdocs 3.2.0 changelog](/docs/blog/boltdocs-3.2.0) — release notes
+- [@bdocs/unist-utils](/docs/plugins/content/unist-utils) — AST utilities for remark/rehype
+- [Releases](/docs/releases) — release history
+- [Boltdocs 3.3.0 release post](/docs/blog/boltdocs-3.3.0) — detailed release notes

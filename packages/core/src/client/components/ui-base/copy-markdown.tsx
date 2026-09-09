@@ -10,6 +10,7 @@ export interface CopyMarkdownProps {
   content?: string
   mdxRaw?: string
   route?: ComponentRoute
+  className?: string
 }
 
 const useCopyMarkdown = (content: string) => {
@@ -49,14 +50,18 @@ const useCopyMarkdown = (content: string) => {
   }
 }
 
-export function CopyMarkdown({ content, mdxRaw }: CopyMarkdownProps) {
+export function CopyMarkdown({
+  content,
+  mdxRaw,
+  className,
+}: CopyMarkdownProps) {
   const displayContent = mdxRaw || content || ''
   const { copied, handleCopy, handleOpenRaw } = useCopyMarkdown(displayContent)
 
   if (!displayContent) return null
 
   return (
-    <div className="relative inline-flex z-100 shrink-0 w-max">
+    <div className={cn('relative inline-flex z-100 shrink-0 w-max', className)}>
       <ButtonGroup className="rounded-xl border border-subtle bg-surface transition-all duration-300 hover:border-primary-500/50 group overflow-hidden">
         {/* Mobile: icon-only copy button */}
         <Button

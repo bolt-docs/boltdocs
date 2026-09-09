@@ -1,144 +1,130 @@
 ---
 title: Navbar
 sidebarPosition: 2
-description: The top header bar — branding, links, search trigger, theme toggle, social icons, and mobile drawer.
+description: Top navigation bar containing site branding, tab items, and search actions.
 ---
 
-# Navbar
+The `Navbar` component displays site logos, navigation links, documentation tabs, and search triggers.
 
-`Navbar` is the sticky header at the top of every Boltdocs page. It hosts branding (logo + title), primary navigation links, an optional search trigger, theme toggle, social icons, and a mobile drawer.
 
-Two flavors ship:
+## Composable Navbar Example
 
-- **Default** — `import { Navbar } from 'boltdocs'` (or `'boltdocs/client'`). It's styled and reads config from `boltdocs.config.ts`.
-- **Primitive** — `import { Navbar } from 'boltdocs/primitives'`. Same composition API, fully unstyled. This page is about the primitive.
-
----
-
-## Import
+Using the `Navbar` primitive and its subcomponents, you can design a fully custom navigation bar. The following example shows how to build a header with active tab matching, search triggers, social integrations, and theme toggling:
 
 ```tsx
+// docs/components/CustomNavbar.tsx
+import React, { useState } from 'react'
 import { Navbar } from 'boltdocs/primitives'
-```
+import { useNavbar, useTheme, useSearch } from 'boltdocs/client'
 
----
+export default function CustomNavbar() {
+  const { links, theme, logo, title } = useNavbar()
+  const { toggleTheme } = useTheme()
+  const { openSearch } = useSearch()
+  const [mobileOpen, setMobileOpen] = useState(false)
 
-## Anatomy
-
-The `Navbar` primitive exposes a small set of sub-components you string together:
-
-| Sub-component | Purpose |
-| :--- | :--- |
-| `Navbar` (root) | The `<header>` container. Sticky, full-width, top `z-50`. |
-| `Navbar.Content` | Centered inner flex row. Caps at `max-w-3xl`. |
-| `Navbar.Left` / `Navbar.Center` / `Navbar.Right` | Three flex zones. Center is hidden on mobile; left+right always show. |
-| `Navbar.Logo` | Wraps `src` + `alt` + optional `width`/`height` inside a router link. |
-| `Navbar.Title` | Plain-text branding label. |
-| `Navbar.Links` | Inline nav row, hidden on mobile. |
-| `Navbar.Link` | A single nav link. Optional external icon. |
-| `Navbar.Dropdown` | Hover-open popover with sub-items. |
-| `Navbar.DropdownItem` | A single sub-item inside a `Navbar.Dropdown`. |
-| `Navbar.SearchTrigger` | Button that opens the search dialog. Auto-renders desktop & mobile variants. |
-| `Navbar.SearchTrigger.Kbd` | The ⌘K hint alongside the desktop search trigger. |
-| `Navbar.Theme` | Sun/Moon toggle button. Stateless — pair with `useTheme()`. |
-| `Navbar.Socials` | Single-icon social link (`github`, `discord`, `x`, `bluesky`). |
-| `Navbar.Split` | Thin vertical divider between zones. |
-| `Navbar.More` | "⋯" button (mobile only) that opens the drawer. |
-| `Navbar.MobileMenu` | Full-screen modal drawer for mobile. |
-| `Navbar.MobileLink` | Big touch-friendly link for inside the drawer. |
-
----
-
-## The simplest Navbar
-
-```tsx
-import { Navbar } from 'boltdocs/primitives'
-
-export function MyNavbar() {
   return (
     <Navbar className="bg-white/80 dark:bg-black/80 backdrop-blur-md border-b border-subtle">
       <Navbar.Content>
+        {/* Left Section: Branding */}
         <Navbar.Left>
-          <Navbar.Logo src="/logo.svg" alt="My Docs" />
-          <Navbar.Title>My Docs</Navbar.Title>
+          {logo && <Navbar.Logo src={logo} alt={title} href="/" />}
+          <Navbar.Title className="font-bold text-lg">{title}</Navbar.Title>
         </Navbar.Left>
 
+        {/* Center Section: Main Navigation Links */}
+        <Navbar.Center>
+          {links.map((link) => (
+            <Navbar.Link
+              key={link.href}
+              href={link.href}
+              label={link.label}
+              className={link.active ? 'text-primary font-medium' : 'text-muted'}
+            />
+          ))}
+        </Navbar.Center>
+
+        {/* Right Section: Actions */}
         <Navbar.Right>
-          <a href="/docs" className="text-sm font-medium">Docs</a>
-          <a href="/blog" className="text-sm font-medium">Blog</a>
+          {/* Custom Search Dialog Trigger */}
+          <Navbar.SearchTrigger onPress={openSearch} />
+
+          {/* Theme Toggle Button */}
+          <Navbar.Theme
+            theme={theme}
+            onThemeChange={(isDark) => toggleTheme()}
+          />
+
+          {/* Github Social Button */}
+          <Navbar.Socials icon="github" link="https://github.com/myorg/myrepo" />
+
+          {/* Mobile Drawer Trigger (More Vertical Icon) */}
+          <Navbar.More onPress={() => setMobileOpen(true)} className="lg:hidden" />
         </Navbar.Right>
       </Navbar.Content>
-    </Navbar>
-  )
-}
-```
 
-That's the entire shape — three zones, plenty of room to put whatever you want inside.
+      {/* Responsive Mobile Drawer Menu */}
+      <Navbar.MobileMenu isOpen={mobileOpen} onClose={() => setMobileOpen(false)}>
+        {links.map((link) => (
+          <Navbar.MobileLink
+            key={link.href}
+            href={link.href}
+            label={link.label}
+            onPress={() => setMobileOpen(false)}
+            className="text-lg py-2"
+          />
+        ))}
+      </Navbar.MobileMenu>
+    </Navbar>
+```
 
 ---
 
-## Production-ready Navbar
+## Real-World Production Reference
 
-A fuller example with search, theme toggle, social links, and a mobile drawer. It uses Boltdocs' hooks to stay in sync with `boltdocs.config.ts`.
-
-> **A note on React Hooks** — always call hooks at the **top level** of a component, never inside `.map()` callbacks or loops. The example below pre-computes localized hrefs *before* the JSX so the rules of hooks aren't violated.
+Below is a complete, production-ready reference implementation demonstrating how to build a fully-featured navigation bar (similar to the built-in theme navbar). It integrates version-switching dropdowns, language translation selectors, responsive sidebar toggling, sub-link menus, theme modes, and a responsive mobile menu:
 
 ```tsx
-// src/components/ProductionNavbar.tsx
-import { useState, useMemo } from 'react'
+// docs/components/ProductionNavbar.tsx
+import React, { useState } from 'react'
 import { Navbar, Menu, Button } from 'boltdocs/primitives'
 import {
   useNavbar,
   useTheme,
   useSearch,
-  useUI,
   useVersion,
   useI18n,
+  useUI,
   useLocation,
-  useLocalizedTo,
+  useLocalizedTo
 } from 'boltdocs/client'
-import { Menu as MenuIcon, X, ChevronDown, Languages, Github } from 'lucide-react'
+import { Menu as MenuIcon, X, ChevronDown, Languages } from 'lucide-react'
 
-export function ProductionNavbar() {
-  // ── Hooks — always at the top of the component body ─────────────────────
-  const { links, title, logo, logoProps, github } = useNavbar()
+export default function ProductionNavbar() {
+  const { links, title, logo, logoProps, github, social, config } = useNavbar()
   const { theme, toggleTheme } = useTheme()
   const { openSearch } = useSearch()
   const { isSidebarOpen, toggleSidebar } = useUI()
   const { pathname } = useLocation()
-  const { currentVersionLabel, availableVersions, handleVersionChange } = useVersion()
-  const { currentLocale, availableLocales, handleLocaleChange } = useI18n()
-  const localize = useLocalizedTo
-
-  // Pre-compute localized hrefs ONCE per render, indexed by link href.
-  const toPath = useMemo(
-    () => Object.fromEntries(
-      links.map((l) => [l.href, localize(l.href ?? '/')]),
-    ),
-    [links, localize],
-  )
-
-  const isActive = (path: string) =>
-    pathname === path || pathname.startsWith(`${path}/`)
-
   const [mobileOpen, setMobileOpen] = useState(false)
 
-  // ── Reusable inline dropdowns ──────────────────────────────────────────
+  // 1. Version Switch Dropdown Menu
+  const { currentVersionLabel, availableVersions, handleVersionChange } = useVersion()
   const VersionDropdown = availableVersions.length > 0 && (
     <Menu.Trigger>
-      <Button className="flex items-center gap-1 px-3 py-1.5 border rounded-lg text-xs bg-surface font-semibold hover:bg-zinc-50 dark:hover:bg-zinc-900">
-        {currentVersionLabel}
+      <Button className="flex items-center gap-1.5 px-3 py-1.5 border rounded-xl text-xs bg-surface font-semibold text-body hover:bg-zinc-50 dark:hover:bg-zinc-900 transition-all">
+        <span>{currentVersionLabel}</span>
         <ChevronDown size={14} className="opacity-60" />
       </Button>
-      <Menu.Root className="w-44 mt-2 bg-white dark:bg-zinc-900 border border-subtle rounded-lg p-1 shadow-lg">
+      <Menu.Root className="w-40 bg-white dark:bg-zinc-900 border border-subtle rounded-xl p-1.5 shadow-md flex flex-col gap-0.5">
         <Menu.Section items={availableVersions}>
-          {(v) => (
+          {(version) => (
             <Menu.Item
-              key={v.value}
-              onPress={() => handleVersionChange(v.value)}
-              className="px-3 py-2 text-xs rounded outline-none hover:bg-zinc-100 dark:hover:bg-zinc-800"
+              key={version.value}
+              onPress={() => handleVersionChange(version.value)}
+              className="px-3 py-2 text-xs rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800 cursor-pointer outline-none"
             >
-              {v.label}
+              {version.label}
             </Menu.Item>
           )}
         </Menu.Section>
@@ -146,22 +132,24 @@ export function ProductionNavbar() {
     </Menu.Trigger>
   )
 
+  // 2. Language/i18n Dropdown Selector
+  const { currentLocale, availableLocales, handleLocaleChange } = useI18n()
   const LocaleDropdown = availableLocales.length > 0 && (
     <Menu.Trigger>
-      <Button className="flex items-center gap-1 px-3 py-1.5 border bg-surface rounded-lg text-xs font-semibold hover:bg-zinc-50 dark:hover:bg-zinc-900">
+      <Button className="flex items-center gap-1.5 px-3 py-1.5 border border-subtle bg-surface rounded-xl text-xs font-semibold text-body hover:bg-zinc-50 dark:hover:bg-zinc-900 transition-all">
         <Languages size={14} className="text-primary-500" />
         <span className="uppercase">{currentLocale}</span>
         <ChevronDown size={14} className="opacity-60" />
       </Button>
-      <Menu.Root className="w-44 mt-2 bg-white dark:bg-zinc-900 border border-subtle rounded-lg p-1 shadow-lg">
+      <Menu.Root className="w-40 bg-white dark:bg-zinc-900 border border-subtle rounded-xl p-1.5 shadow-md flex flex-col gap-0.5">
         <Menu.Section items={availableLocales}>
-          {(l) => (
+          {(locale) => (
             <Menu.Item
-              key={l.value}
-              onPress={() => handleLocaleChange(l.value)}
-              className="px-3 py-2 text-xs rounded outline-none hover:bg-zinc-100 dark:hover:bg-zinc-800"
+              key={locale.value}
+              onPress={() => handleLocaleChange(locale.value)}
+              className="px-3 py-2 text-xs rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800 cursor-pointer outline-none"
             >
-              {l.label}
+              {locale.label}
             </Menu.Item>
           )}
         </Menu.Section>
@@ -169,251 +157,268 @@ export function ProductionNavbar() {
     </Menu.Trigger>
   )
 
-  // ── JSX ────────────────────────────────────────────────────────────────
   return (
-    <>
-      <Navbar className="bg-main/80 backdrop-blur-md border-b border-subtle">
-        <Navbar.Content>
+    <Navbar className="bg-main/80 backdrop-blur-md border-b border-subtle">
+      <Navbar.Content>
+        
+        {/* Left Section: Mobile sidebar toggler, Logo, Title and Version Selection */}
+        <Navbar.Left>
+          {pathname.startsWith('/docs') && (
+            <Button
+              onPress={toggleSidebar}
+              className="mr-2 lg:hidden p-1.5 text-muted hover:text-body rounded-lg hover:bg-surface transition-colors"
+            >
+              {isSidebarOpen ? <X size={20} /> : <MenuIcon size={20} />}
+            </Button>
+          )}
 
-          <Navbar.Left>
-            {/* Sidebar opener on mobile */}
-            {pathname.startsWith('/docs') && (
-              <Button
-                onPress={toggleSidebar}
-                className="lg:hidden p-1.5 mr-1 text-muted hover:text-body"
-                aria-label="Toggle sidebar"
-              >
-                {isSidebarOpen ? <X size={20} /> : <MenuIcon size={20} />}
-              </Button>
-            )}
+          {logo && <Navbar.Logo src={logo} alt={logoProps?.alt || title} href="/" />}
+          <Navbar.Title href="/">{title}</Navbar.Title>
+          
+          <div className="hidden sm:block">
+            {VersionDropdown}
+          </div>
+        </Navbar.Left>
 
-            {logo && <Navbar.Logo src={logo} alt={logoProps?.alt || title} href="/" />}
-            <Navbar.Title href="/">{title}</Navbar.Title>
+        {/* Center Section: Search dialog trigger bar */}
+        <Navbar.Center>
+          <Navbar.SearchTrigger onPress={openSearch} />
+        </Navbar.Center>
 
-            <div className="hidden sm:block">{VersionDropdown}</div>
-          </Navbar.Left>
+        {/* Right Section: Navigation Links, i18n switcher, theme toggle, Github stars and socials */}
+        <Navbar.Right>
+          {/* Main Desktop Links */}
+          <Navbar.Links>
+            {links.map((link) => {
+              const localizedHref = useLocalizedTo(link.href || '')
+              const active = pathname === localizedHref || pathname.startsWith(localizedHref + '/')
+              const hasItems = link.items && link.items.length > 0
 
-          <Navbar.Center>
-            <Navbar.SearchTrigger onPress={openSearch}>
-              <span className="text-muted text-sm truncate">
-                Search the docs…
-              </span>
-              <Navbar.SearchTrigger.Kbd />
-            </Navbar.SearchTrigger>
-          </Navbar.Center>
-
-          <Navbar.Right>
-            <Navbar.Links>
-              {links.map((link) => {
-                const href = toPath[link.href ?? '/']
-                const active = isActive(href)
-                const items = link.items
-
-                if (items?.length) {
-                  return (
-                    <Navbar.Dropdown
-                      key={link.href}
-                      label={
-                        <span className={active ? 'text-primary font-semibold' : 'text-muted hover:text-body'}>
-                          {link.label}
-                        </span>
-                      }
-                    >
-                      {items.map((sub) => (
-                        <Navbar.DropdownItem
-                          key={sub.href}
-                          href={toPath[sub.href ?? '/']}
-                          label={sub.label}
-                        />
-                      ))}
-                    </Navbar.Dropdown>
-                  )
-                }
-
+              if (hasItems) {
                 return (
-                  <Navbar.Link
+                  <Navbar.Dropdown
                     key={link.href}
-                    href={href}
-                    label={link.label}
-                    active={active}
-                    className={active ? 'text-primary font-semibold' : 'text-muted hover:text-body'}
-                  />
+                    label={
+                      <span className={`px-2 py-1 font-medium transition-colors cursor-pointer ${
+                        active ? 'text-primary' : 'text-muted hover:text-body'
+                      }`}>
+                        {link.label}
+                      </span>
+                    }
+                  >
+                    {link.items?.map((sub) => (
+                      <Navbar.DropdownItem
+                        key={sub.href}
+                        href={useLocalizedTo(sub.href || '')}
+                        label={sub.label}
+                      />
+                    ))}
+                  </Navbar.Dropdown>
                 )
-              })}
-            </Navbar.Links>
+              }
 
-            <div className="hidden sm:flex items-center gap-2">
-              {LocaleDropdown}
-              <Navbar.Split className="bg-subtle" />
-            </div>
+              return (
+                <Navbar.Link
+                  key={link.href}
+                  href={localizedHref}
+                  label={link.label}
+                  active={active}
+                  className={active ? 'text-primary font-semibold' : 'text-muted hover:text-body'}
+                />
+              )
+            })}
+          </Navbar.Links>
 
-            <Navbar.Theme theme={theme} onThemeChange={toggleTheme} />
+          {/* Desktop utility settings */}
+          <div className="hidden sm:flex items-center gap-2">
+            {LocaleDropdown}
+            <Navbar.Split className="bg-subtle" />
+          </div>
 
-            {github && (
-              <Navbar.Socials icon="github" link={github} />
-            )}
+          <Navbar.Theme theme={theme} onThemeChange={toggleTheme} />
 
-            <Navbar.More onPress={() => setMobileOpen(true)} className="lg:hidden" />
-          </Navbar.Right>
-        </Navbar.Content>
-      </Navbar>
+          {/* Social connections (e.g., GitHub link button) */}
+          {github && (
+            <Navbar.Socials icon="github" link={github} />
+          )}
 
-      {/* Mobile drawer */}
+          {/* "More" trigger for mobile drawers */}
+          <Navbar.More onPress={() => setMobileOpen(true)} className="lg:hidden" />
+        </Navbar.Right>
+      </Navbar.Content>
+
+      {/* Mobile drawer menu overlay */}
       <Navbar.MobileMenu isOpen={mobileOpen} onClose={() => setMobileOpen(false)}>
         <div className="flex flex-col gap-1">
-          {links.map((link) => (
-            <Navbar.MobileLink
-              key={link.href}
-              href={toPath[link.href ?? '/']}
-              label={link.label}
-              onPress={() => setMobileOpen(false)}
-              className="text-lg py-2"
-            />
-          ))}
+          {links.map((link) => {
+            const localizedHref = useLocalizedTo(link.href || '')
+            const active = pathname === localizedHref
+
+            return (
+              <Navbar.MobileLink
+                key={link.href}
+                href={localizedHref}
+                label={link.label}
+                active={active}
+                onPress={() => setMobileOpen(false)}
+                className="text-lg py-2"
+              />
+            )
+          })}
         </div>
 
-        <div className="mt-6 pt-6 border-t border-subtle flex flex-col gap-4">
-          {availableVersions.length > 0 && (
-            <div className="flex items-center justify-between px-4">
-              <span className="text-xs font-semibold uppercase text-muted">Version</span>
-              {VersionDropdown}
-            </div>
-          )}
-          {availableLocales.length > 0 && (
-            <div className="flex items-center justify-between px-4">
-              <span className="text-xs font-semibold uppercase text-muted">Language</span>
-              {LocaleDropdown}
-            </div>
-          )}
+        {/* Unified version and language selection list in mobile view */}
+        <div className="mt-6 border-t border-subtle pt-6 flex flex-col gap-4">
+          <div className="flex justify-between items-center px-4">
+            <span className="text-xs text-muted font-semibold uppercase">Version</span>
+            {VersionDropdown}
+          </div>
+          <div className="flex justify-between items-center px-4">
+            <span className="text-xs text-muted font-semibold uppercase">Language</span>
+            {LocaleDropdown}
+          </div>
         </div>
       </Navbar.MobileMenu>
-    </>
+    </Navbar>
   )
 }
 ```
 
 ---
 
-## Sub-components in depth
+## Composable Subcomponents
 
-### `Navbar.Logo` — branding
+The `Navbar` primitive provides the following subcomponents for structure customization:
 
-```tsx
-<Navbar.Logo
-  src="/logo-light.svg"
-  alt="MyDocs"
-  width={28}
-  height={28}
-  href="/"
-/>
-```
-
-The logo is wrapped in a router-aware `<Link>`, so clicking the logo navigates home without a full page load. If you pass a dark-mode logo, supply it via `boltdocs.config.ts` instead — the `Logo` primitive only handles the light variant.
-
-### `Navbar.Title` — text branding
-
-```tsx
-<Navbar.Title>MyDocs</Navbar.Title>
-```
-
-Hidden on small screens (`< sm`); pair it with a logo if you want branding at every breakpoint.
-
-### `Navbar.Link` & `Navbar.Links`
-
-`Links` is just a flex row. `Link` is a single anchor wrapped in a router `Link`. Pass `active` to flip the styling when the path matches.
-
-```tsx
-<Navbar.Links>
-  <Navbar.Link href="/docs" label="Docs" active={true} />
-  <Navbar.Link href="/blog" label="Blog" />
-  <Navbar.Link href="https://github.com/me" label="GitHub" to="external" />
-</Navbar.Links>
-```
-
-`to="external"` renders a small outbound arrow after the label and adds `target="_blank"`.
-
-### `Navbar.Dropdown` & `Navbar.DropdownItem`
-
-Hover-open popovers for nested nav items. The `Dropdown` accepts any `ReactNode` as `label` — pass a `<span>` and style it however you like.
-
-```tsx
-<Navbar.Dropdown label={<span>Products</span>}>
-  <Navbar.DropdownItem href="/products/boltdocs" label="Boltdocs" />
-  <Navbar.DropdownItem href="/products/nevermined" label="Nevermined" />
-</Navbar.Dropdown>
-```
-
-### `Navbar.SearchTrigger`
-
-A pre-styled button that opens the search dialog. Pass `onPress` (which you wire up to `useSearch().openSearch`) and an arbitrary label. The Kbd hint (`⌘K` / `Ctrl+K`) is rendered automatically via the nested `Navbar.SearchTrigger.Kbd`.
-
-```tsx
-<Navbar.SearchTrigger onPress={openSearch}>
-  Search…
-  <Navbar.SearchTrigger.Kbd />
-</Navbar.SearchTrigger>
-```
-
-### `Navbar.Theme`
-
-```tsx
-<Navbar.Theme theme={theme} onChange={toggleTheme} />
-```
-
-`theme` is a literal `'dark' | 'light'`. Boltdocs' `useTheme()` hook returns exactly that signature, so it's a drop-in.
-
-### `Navbar.Socials`
-
-A pre-styled icon link. The supported icons are `'github' | 'discord' | 'x' | 'bluesky'`:
-
-```tsx
-<Navbar.Socials icon="github" link="https://github.com/me" />
-<Navbar.Socials icon="discord" link="https://discord.gg/..." />
-```
-
-### `Navbar.Split`
-
-A thin vertical line. Use it between sub-zones inside `Navbar.Right` to separate utility widgets from primary nav:
-
-```tsx
-<Navbar.Right>
-  <Navbar.Links>...</Navbar.Links>
-  <Navbar.Split className="bg-subtle" />
-  <Navbar.Theme theme={theme} onChange={toggleTheme} />
-</Navbar.Right>
-```
-
-### `Navbar.MobileMenu` & `Navbar.MobileLink`
-
-`MobileMenu` is a fullscreen modal drawer. It's mounted globally with `position: fixed`; toggle visibility via `isOpen` / `onClose`. Inside the menu, use `MobileLink` for big tap targets:
-
-```tsx
-const [open, setOpen] = useState(false)
-
-<>
-  <Navbar.More onPress={() => setOpen(true)} />
-  <Navbar.MobileMenu isOpen={open} onClose={() => setOpen(false)}>
-    <Navbar.MobileLink href="/" label="Home" onPress={() => setOpen(false)} />
-    <Navbar.MobileLink href="/docs" label="Docs" onPress={() => setOpen(false)} />
-  </Navbar.MobileMenu>
-</>
-```
-
-> The menu handles `env(safe-area-inset-*)` automatically so it works on iOS notched devices without extra CSS.
+| Component | HTML Tag | Description | Props |
+| :--- | :--- | :--- | :--- |
+| **`Navbar.Root`** / **`Navbar`** | `<header>` | Main outer navbar container. | [`ComponentBaseProps`](#componentbaseprops-common) |
+| **`Navbar.Content`** | `<div>` | Centered layout container holding the inner flex elements. | [`ComponentBaseProps`](#componentbaseprops-common) |
+| **`Navbar.Left`** / **`Navbar.Center`** / **`Navbar.Right`** | `<div>` | Flex row alignment zones for logos, navigation links, and action buttons. | [`ComponentBaseProps`](#componentbaseprops-common) |
+| **`Navbar.Logo`** | `<img>` wrapped in `<a>` | Renders a brand image logo wrapped in a client Router link. | [`Navbar.Logo Props`](#navbarlogo-props) |
+| **`Navbar.Title`** | `<span>` | Renders a plain text typographic brand label. | [`ComponentBaseProps`](#componentbaseprops-common) |
+| **`Navbar.Link`** | `<a>` | Renders an optimized anchor link to a page route. | [`Navbar.Link Props`](#navbarlink-props) |
+| **`Navbar.Dropdown`** | `<div>` | Collapsible trigger with an open/close state, optionally controlled. | [`Navbar.Dropdown Props`](#navbardropdown-props) |
+| **`Navbar.DropdownItem`** | `<a>` | A single item rendered inside a dropdown panel. | [`Navbar.Link Props`](#navbarlink-props) |
+| **`Navbar.SearchTrigger`** | `<button>` | A fully accessible button to activate the search dialog. | [`Navbar.SearchTrigger Props`](#navbarsearchtrigger-props) |
+| **`Navbar.Theme`** | `<button>` | Renders an icon button to toggle light/dark mode. | [`Navbar.Theme Props`](#navbartheme-props) |
+| **`Navbar.Socials`** | `<a>` | An icon social link shortcut (e.g., GitHub, Discord, Twitter). | [`Navbar.Socials Props`](#navbarsocials-props) |
+| **`Navbar.MobileMenu`** | `<div>` (Modal) | Responsive sliding modal drawer overlay for mobile screens. | [`Navbar.MobileMenu Props`](#navbarmobilemenu-props) |
+| **`Navbar.MobileLink`** | `<a>` | Sized navigation items designed for mobile drawer menus. | [`Navbar.MobileLink Props`](#navbarmobilelink-props) |
 
 ---
 
-## Common pitfalls
+## Component Props
 
-- **Calling hooks inside `.map()`** — pre-compute values with `useMemo` or a plain `for` loop, then read from the result inside the JSX. React's rules of hooks require hooks at the top level only.
-- **Forgetting `onPress` on the search trigger** — without it the button does nothing on click. Always wire it to `useSearch().openSearch`.
-- **Wrapping `MobileMenu` conditionally** — putting `<Navbar.MobileMenu />` inside `if (open)` will unmount the dialog state when you close it. Keep it mounted and toggle via `isOpen` instead.
+### ComponentBaseProps (Common)
+
+| Property | Type | Default | Description |
+| :--- | :--- | :--- | :--- |
+| **`children`** | `ReactNode` | `undefined` | Child content elements. |
+| **`className`** | `string` | `undefined` | Custom utility CSS classes. |
+| **`style`** | `CSSProperties` | `undefined` | Inline style settings. |
+
+### `Navbar.Logo` Props
+
+| Property | Type | Default | Description |
+| :--- | :--- | :--- | :--- |
+| **`src`** | `string` | *Required* | Path to the logo image file. |
+| **`alt`** | `string` | *Required* | Accessibility alternative text. |
+| **`href`** | `string` | `'/'` | Target path when clicking the logo. |
+| **`width`** | `number` | `24` | Image width dimension. |
+| **`height`** | `number` | `24` | Image height dimension. |
+
+### `Navbar.Link` Props
+
+| Property | Type | Default | Description |
+| :--- | :--- | :--- | :--- |
+| **`label`** | `ReactNode` | *Required* | Label content text to display. |
+| **`href`** | `string` | *Required* | Routing destination path. |
+| **`to`** | `'internal' \| 'external'` | `'internal'` | Whether the navigation is internal routing or an external link. |
+
+### `Navbar.Dropdown` Props
+
+| Property | Type | Default | Description |
+| :--- | :--- | :--- | :--- |
+| **`label`** | `ReactNode` | *Required* | The visible trigger text. |
+| **`children`** | `ReactNode` | *Required* | The dropdown panel content, e.g. one or more `<Navbar.DropdownItem>` rows. |
+| **`icon`** | `ReactNode` | *(down chevron)* | Custom indicator icon that replaces the default chevron. |
+| **`iconClassName`** | `string` | `undefined` | Extra classes for the indicator wrapper. |
+| **`open`** | `boolean` | `undefined` | Controlled open state. When omitted, the dropdown manages its own state. |
+| **`onOpenChange`** | `(open: boolean) => void` | `undefined` | Callback fired when the dropdown open state changes. |
+| **`triggerClassName`** | `string` | `undefined` | Extra classes for the dropdown trigger row. |
+| **`panelClassName`** | `string` | `undefined` | Extra classes for the absolute-positioned popup wrapper. |
+| **`menuClassName`** | `string` | `undefined` | Extra classes for the styled dropdown panel. |
 
 ---
 
-## See also
+### `Navbar.SearchTrigger` Props
 
-- [`Sidebar`](/docs/components/layout/sidebar) — the directory navigation that complements the navbar.
-- [`useSearch`](/docs/api/hooks/use-search) — pairs with `Navbar.SearchTrigger`.
-- [`useTheme`](/docs/api/hooks/use-theme) — drives `Navbar.Theme` and the global CSS variables.
-- [Theming guide](/docs/guides/styling) — how to vary navbar styling per route, locale, or version.
+| Property | Type | Default | Description |
+| :--- | :--- | :--- | :--- |
+| **`onPress`** | `() => void` | *Required* | Press trigger action callback. |
+
+### `Navbar.Theme` Props
+
+| Property | Type | Default | Description |
+| :--- | :--- | :--- | :--- |
+| **`theme`** | `'dark' \| 'light'` | *Required* | Active theme selection. |
+| **`onThemeChange`** | `(isSelected: boolean) => void` | *Required* | Theme toggle change callback. |
+
+### `Navbar.Socials` Props
+
+| Property | Type | Default | Description |
+| :--- | :--- | :--- | :--- |
+| **`icon`** | `'github' \| 'discord' \| 'twitter'` | *Required* | Target social network graphic icon. |
+| **`link`** | `string` | *Required* | URL link path. |
+
+### `Navbar.MobileMenu` Props
+
+| Property | Type | Default | Description |
+| :--- | :--- | :--- | :--- |
+| **`isOpen`** | `boolean` | `false` | Active sliding visibility state. |
+| **`onClose`** | `() => void` | *Required* | Close trigger callback. |
+| **`children`** | `ReactNode` | *Required* | Mobile drawer menu content cells. |
+
+### `Navbar.MobileLink` Props
+
+Inherits all [`Navbar.Link` props](#navbarlink-props) plus:
+
+| Property | Type | Default | Description |
+| :--- | :--- | :--- | :--- |
+| **`onPress`** | `() => void` | `undefined` | Custom click callback (e.g., to auto-close drawers). |
+
+---
+
+## Customization & states
+
+The `Navbar` primitive is **style-neutral**: it ships the header structure and interactive behavior, and every visual decision (colors, borders, spacing, sizes) belongs to the site theme through its `className` slots. It bakes in structural layout — the root `<header>` is `sticky top-0` and `Navbar.Content` is a centered flex row — but no colors or borders. Interactive states are styled from CSS.
+
+| State / Slot | Mechanism |
+| :--- | :--- |
+| `Navbar` (root) | `<header>` ships the `sticky top-0 z-50 w-full` layout; height, background, and border via `className` |
+| `Navbar.Content` | Baked-in centered flex row (`justify-between`); spacing via `className` |
+| Active link | `Navbar.Link` emits no `data-*` attribute — compute it in the theme with `useLocalizedTo`/`useLocation` and apply `className` conditionally |
+| `Navbar.Theme` | The RAC `ToggleButton` emits `data-selected` when dark mode is active |
+| `Navbar.More` / `Navbar.SearchTrigger` | The RAC `Button` emits `data-pressed` while pressed |
+| `Navbar.MobileMenu` | The RAC modal overlay mounts only while open and emits `data-entering`/`data-exiting` during transitions |
+
+```tsx
+const { pathname } = useLocation()
+const href = useLocalizedTo('/docs/guides')
+const active = pathname === href || pathname.startsWith(href + '/')
+
+<Navbar className="border-b border-subtle bg-main/80 backdrop-blur-md">
+  <Navbar.Link
+    href={href}
+    label="Guides"
+    className={active ? 'text-primary font-semibold' : 'text-muted hover:text-body'}
+  />
+  <Navbar.Theme
+    theme={theme}
+    onThemeChange={toggleTheme}
+    className="data-selected:text-primary-500"
+  />
+  <Navbar.More onPress={() => setMobileOpen(true)} className="data-pressed:bg-soft lg:hidden" />
+</Navbar>
+```

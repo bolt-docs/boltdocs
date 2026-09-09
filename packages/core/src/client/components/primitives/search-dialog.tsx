@@ -9,11 +9,23 @@ export interface SearchDialogItemProps
   extends Omit<RAC.ListBoxItemProps, 'children'> {
   className?: string
   children: React.ReactNode
+  /** Class name for the focused/selected "Select" hint. */
+  hintClassName?: string
+  /**
+   * Custom render for the trailing keyboard-hint area shown while the item is
+   * focused/selected. Replaces the default "Select" + key indicator.
+   */
+  renderHint?: (state: {
+    focused: boolean
+    selected: boolean
+  }) => React.ReactNode
 }
 
 export interface SearchDialogItemIconProps {
   isHeading?: boolean
   className?: string
+  /** Custom leading icon. Replaces the default hash/file icon. */
+  icon?: React.ReactNode
 }
 
 /**
@@ -94,19 +106,18 @@ function SearchDialogClearButton({ className, ...props }: RAC.ButtonProps) {
 function SearchDialogAutocomplete<T extends object>({
   children,
   className,
-  onSelectionChange,
+  innerClassName,
   ...props
 }: RAC.AutocompleteProps<T> & {
   className?: string
-  onSelectionChange?: (key: RAC.Key) => void
+  innerClassName?: string
 }) {
   const Autocomplete = RAC.Autocomplete as any
   return (
     <div className={cn('flex-1 min-h-0', className)}>
       <Autocomplete
         {...props}
-        onSelectionChange={onSelectionChange}
-        className="flex flex-col min-h-0"
+        className={cn('flex flex-col min-h-0', innerClassName)}
       >
         {children}
       </Autocomplete>
@@ -138,6 +149,8 @@ function SearchDialogList<T extends object>({
 function SearchDialogItemRoot({
   children,
   className,
+  hintClassName,
+  renderHint,
   ...props
 }: SearchDialogItemProps) {
   return (
@@ -151,12 +164,22 @@ function SearchDialogItemRoot({
       {(itemProps) => (
         <>
           {children}
-          {(itemProps.isFocused || itemProps.isSelected) && (
-            <div className="ml-auto opacity-50 flex items-center gap-1">
+          {renderHint ? (
+            renderHint({
+              focused: itemProps.isFocused,
+              selected: itemProps.isSelected,
+            })
+          ) : itemProps.isFocused || itemProps.isSelected ? (
+            <div
+              className={cn(
+                'ml-auto opacity-50 flex items-center gap-1',
+                hintClassName,
+              )}
+            >
               <span className="text-[10px]">Select</span>
               <CornerDownLeft size={10} />
             </div>
-          )}
+          ) : null}
         </>
       )}
     </RAC.ListBoxItem>
@@ -166,10 +189,11 @@ function SearchDialogItemRoot({
 function SearchDialogItemIcon({
   isHeading,
   className,
+  icon,
 }: SearchDialogItemIconProps) {
   return (
     <div className={cn('shrink-0', className)}>
-      {isHeading ? <Hash size={18} /> : <FileText size={18} />}
+      {icon ?? (isHeading ? <Hash size={18} /> : <FileText size={18} />)}
     </div>
   )
 }

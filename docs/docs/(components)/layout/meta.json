@@ -1,7 +1,6 @@
 {
   "title": "Layout Primitives",
-  "icon": "Layout",
   "order": 2,
-  "collapsible": true,
+  "collapsible": false,
   "collapsed": false
 }

@@ -1,5 +1,5 @@
 import { useMemo } from 'react'
-import { useMatches } from 'react-router-dom'
+import { useMatches } from '../router'
 
 /**
  * Returns the headings of the current page, extracted from the route loader data.

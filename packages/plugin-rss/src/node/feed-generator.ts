@@ -81,7 +81,7 @@ export function generateRssXml(
     <link>${escapeXml(siteUrl)}</link>
     <description>${escapeXml(config.description)}</description>
     <language>${escapeXml(config.language)}</language>
-    <atom:link href="${escapeXml(siteUrl + `/rss/feed-${config.locale}.xml`)}" rel="self" type="application/rss+xml"/>
+    <atom:link href="${escapeXml(siteUrl + `/rss/rss-${config.locale}.xml`)}" rel="self" type="application/rss+xml"/>
 ${itemsXml}
   </channel>
 </rss>`

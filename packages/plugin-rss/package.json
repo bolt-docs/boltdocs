@@ -27,12 +27,13 @@
     "zod": "^4.3.6"
   },
   "peerDependencies": {
-    "boltdocs": "workspace:*"
+    "boltdocs": "workspace:^"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",
-    "boltdocs": "workspace:*",
+    "boltdocs": "workspace:^",
     "tsdown": "^0.21.7",
-    "typescript": "^5.9.3"
+    "typescript": "^5.9.3",
+    "tsdown-config": "workspace:*"
   }
 }

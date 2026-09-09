@@ -1,0 +1,182 @@
+/**
+ * Boltdocs Docs Theme — Design Tokens
+ *
+ * Dark-only token system extracted from the official Bolt.docs Figma board.
+ * OpenAI-inspired: near-black canvas, subtle hairline borders, azure-blue
+ * primary accent. No light mode, no theme toggle.
+ */
+@theme {
+  --font-display: "Geist", "ui-sans-serif", "system-ui", sans-serif;
+  --font-sans: "Geist", "ui-sans-serif", "system-ui", sans-serif;
+  --font-mono:
+    "Geist Mono", "ui-monospace", "SFMono-Regular", Menlo, Monaco, Consolas,
+    "liberation mono", "courier new", monospace;
+
+  /* ── Gray Scale (main) ─────────────────────────────── */
+  --color-gray-50: #f1f1f1;
+  --color-gray-100: #e2e2e2;
+  --color-gray-200: #c4c4c4;
+  --color-gray-300: #a8a8a8;
+  --color-gray-400: #8e8e8e;
+  --color-gray-500: #727272;
+  --color-gray-600: #595959;
+  --color-gray-700: #424242;
+  --color-gray-800: #2a2a2a;
+  --color-gray-900: #151515;
+  --color-gray-950: #060606;
+
+  /* ── Primary (Azure-blue brand) ────────────────────── */
+  --color-primary-50: #eef6ff;
+  --color-primary-100: #e0edff;
+  --color-primary-200: #c3dbff;
+  --color-primary-300: #95c0ff;
+  --color-primary-400: #66a2ff;
+  --color-primary-500: #3d8bfa;
+  --color-primary-600: #2769db;
+  --color-primary-700: #1d4fa9;
+  --color-primary-800: #193a77;
+  --color-primary-900: #12264d;
+  --color-primary-950: #0c1830;
+
+  /* ── Success ───────────────────────────────────────── */
+  --color-success-50: #eafeef;
+  --color-success-100: #d3fedd;
+  --color-success-200: #8afdaa;
+  --color-success-300: #44f886;
+  --color-success-400: #40eb7f;
+  --color-success-500: #3cdd77;
+  --color-success-600: #2dae5c;
+  --color-success-700: #1f8042;
+  --color-success-800: #11542a;
+  --color-success-900: #062f14;
+  --color-success-950: #021c0a;
+
+  /* ── Warning ───────────────────────────────────────── */
+  --color-warning-50: #fdd3a1;
+  --color-warning-100: #fdcf97;
+  --color-warning-200: #fdc883;
+  --color-warning-300: #fdc16a;
+  --color-warning-400: #fdba49;
+  --color-warning-500: #fbb529;
+  --color-warning-600: #c68e1e;
+  --color-warning-700: #926813;
+  --color-warning-800: #614409;
+  --color-warning-900: #372403;
+  --color-warning-950: #221501;
+
+  /* ── Error ─────────────────────────────────────────── */
+  --color-error-50: #fdeded;
+  --color-error-100: #fbdbdb;
+  --color-error-200: #f9b9b9;
+  --color-error-300: #f69292;
+  --color-error-400: #f46464;
+  --color-error-500: #ed2c2c;
+  --color-error-600: #bc2121;
+  --color-error-700: #911717;
+  --color-error-800: #680d0d;
+  --color-error-900: #3e0505;
+  --color-error-950: #2a0202;
+
+  /* ── Accent (cyan) ─────────────────────────────────── */
+  --color-accent-50: #eef8ff;
+  --color-accent-100: #e3f3ff;
+  --color-accent-200: #bde5fe;
+  --color-accent-300: #99dafe;
+  --color-accent-400: #6acffd;
+  --color-accent-500: #22c2f7;
+  --color-accent-600: #1999c4;
+  --color-accent-700: #0f7191;
+  --color-accent-800: #074a61;
+  --color-accent-900: #022938;
+  --color-accent-950: #011822;
+
+  /* Semantic status aliases (Figma swatches) */
+  --color-danger-500: #ed2c2c;
+  --color-danger-600: #bc2121;
+  --color-success-500: #3cdd77;
+  --color-warning-500: #fbb529;
+  --color-info-500: #22c2f7;
+
+  /* ── Border Radius ─────────────────────────────────── */
+  --radius-xs: 0.25rem; /* 4px */
+  --radius-sm: 0.375rem; /* 6px */
+  --radius-md: 0.625rem; /* 10px */
+  --radius-lg: 0.875rem; /* 14px */
+  --radius-xl: 1.125rem; /* 18px */
+  --radius-full: 999999rem;
+
+  /* ── Spacing scale ─────────────────────────────────── */
+  --spacing-4: 0.25rem;
+  --spacing-8: 0.5rem;
+  --spacing-12: 0.75rem;
+  --spacing-16: 1rem;
+  --spacing-24: 1.5rem;
+  --spacing-32: 2rem;
+  --spacing-40: 2.5rem;
+  --spacing-48: 3rem;
+  --spacing-64: 4rem;
+
+  /* ── Typography scale (Geist) ──────────────────────── */
+  --text-h1: 2.5rem; /* 40px */
+  --text-h1--line-height: 3.25rem; /* 52px */
+  --text-h2: 2rem; /* 32px */
+  --text-h2--line-height: 2.625rem; /* 42px */
+  --text-h3: 1.5rem; /* 24px */
+  --text-h3--line-height: 1.9375rem; /* 31px */
+  --text-h4: 1.25rem; /* 20px */
+  --text-h4--line-height: 1.625rem; /* 26px */
+  --text-body-l: 1.125rem; /* 18px */
+  --text-body-l--line-height: 1.4375rem; /* 23px */
+  --text-body-m: 1rem; /* 16px */
+  --text-body-m--line-height: 1.3125rem; /* 21px */
+  --text-caption-s: 0.75rem; /* 12px */
+  --text-caption-s--line-height: 1rem; /* 16px */
+  --text-caption-xs: 0.625rem; /* 10px */
+  --text-caption-xs--line-height: 0.8125rem; /* 13px */
+
+  /* ── Layout dimensions ─────────────────────────────── */
+  --spacing-navbar: 3.5rem;
+  --spacing-sidebar: 16.5rem;
+  --spacing-toc: 15.5rem;
+  --spacing-content-max: 48rem;
+  --breakpoint-3xl: 120rem;
+
+  --ease-fluid: cubic-bezier(0.3, 0, 0, 1);
+  --ease-snappy: cubic-bezier(0.2, 0, 0, 1);
+
+  /* ── Semantic colors — dark only ───────────────────── */
+  --color-main: var(--color-gray-950); /* #060606 canvas */
+  --color-surface: var(--color-gray-900); /* #151515 cards */
+  --color-soft: var(--color-gray-800); /* #2a2a2a hover */
+  --color-body: var(--color-gray-50); /* #f1f1f1 text */
+  --color-paragraph: var(--color-gray-300); /* #a8a8a8 body copy */
+  --color-muted: var(--color-gray-400); /* #8e8e8e secondary */
+  --color-dim: var(--color-gray-500); /* #727272 tertiary */
+  --color-subtle: var(--color-gray-800); /* #2a2a2a hairline */
+  --color-strong: var(--color-gray-700); /* #424242 stronger */
+  --color-code-bg: var(--color-gray-900);
+  --color-code-text: var(--color-gray-100);
+  --color-default: var(--color-gray-50);
+}
+
+@custom-variant dark {
+  &:where(.dark, .dark *) {
+    @slot;
+  }
+}
+
+/* Dark canvas is the only mode — keep color-scheme consistent even if
+   the (removed) theme toggle left a stray light preference behind. */
+:root {
+  color-scheme: dark;
+}
+
+/* Headings use the Figma line-height (1.25) */
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  line-height: 1.25;
+}

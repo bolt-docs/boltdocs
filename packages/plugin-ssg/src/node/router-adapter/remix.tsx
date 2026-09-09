@@ -1,9 +1,19 @@
 import type { IncomingMessage, ServerResponse } from 'node:http'
 import type { FilledContext } from 'react-helmet-async'
-import type { LoaderFunction, LoaderFunctionArgs } from 'react-router-dom'
-import type { StaticHandlerContext } from 'react-router-dom'
+import type {
+  LoaderFunction,
+  LoaderFunctionArgs,
+  RequiredRouterEntryModule,
+} from '../../router-contract'
 import type { Connect } from 'vite'
-import type { IRouterAdapter } from './interface'
+import type {
+  IRouterAdapter,
+  RouterEntryModule,
+  RouterRenderResult,
+  RouterRouteMatch,
+  RouterRouteRecord,
+} from './interface'
+import { requireRouterEntryModule, withRouteIds } from '../../router-contract'
 import type { ViteReactSSGContext } from '../../types'
 // Use the HelmetProvider from helmet-compat.tsx's globalThis bridge to ensure
 // the same React context as the bundled ESM react-helmet-async instance.
@@ -14,14 +24,27 @@ import type { ViteReactSSGContext } from '../../types'
 let _cachedHelmetProvider: any = null
 function getHelmetProvider() {
   if (_cachedHelmetProvider) return _cachedHelmetProvider
-  _cachedHelmetProvider =
-    (globalThis as any).__BOLTDOCS_HELMET_PROVIDER__ ||
-    (() => {
+  const fromGlobal = (globalThis as any).__BOLTDOCS_HELMET_PROVIDER__
+  if (fromGlobal) {
+    _cachedHelmetProvider =
+      fromGlobal.HelmetProvider ||
+      fromGlobal.default?.HelmetProvider ||
+      fromGlobal
+  } else {
+    try {
       const { createRequire } =
         require('node:module') as typeof import('node:module')
       const _require = createRequire(import.meta.url)
-      return _require('react-helmet-async').HelmetProvider
-    })()
+      const pkg = _require('react-helmet-async')
+      _cachedHelmetProvider =
+        pkg.HelmetProvider || pkg.default?.HelmetProvider || pkg.default || pkg
+    } catch {
+      _cachedHelmetProvider = ({ children }: any) => <>{children}</>
+    }
+  }
+  if (typeof _cachedHelmetProvider !== 'function') {
+    _cachedHelmetProvider = ({ children }: any) => <>{children}</>
+  }
   return _cachedHelmetProvider
 }
 import {
@@ -30,114 +53,175 @@ import {
   toNodeRequest,
 } from '../../polyfill/node-adapter'
 import { withLeadingSlash } from '../../utils/path'
-import { convertRoutesToDataRoutes } from '../../utils/remix-router'
 import { renderStaticApp } from '../serverRenderer'
 import { extractHelmet } from './utils'
 
-// Hoist react-router-dom imports to module scope (avoid per-page dynamic import)
-let _reactRouterDom: typeof import('react-router-dom') | null = null
-
-async function getReactRouterDom() {
-  if (!_reactRouterDom) {
-    _reactRouterDom = await import('react-router-dom')
-  }
-  return _reactRouterDom
-}
-
 export class RemixAdapter implements IRouterAdapter<ViteReactSSGContext> {
   context: ViteReactSSGContext<true>
-  private _dataRoutes: ReturnType<typeof convertRoutesToDataRoutes> | null =
-    null
-  private _staticHandler: {
-    query: (request: Request) => Promise<unknown>
-  } | null = null
-  constructor(context: ViteReactSSGContext) {
+  entryMod?: RouterEntryModule
+  private readonly routerApi: RequiredRouterEntryModule
+  private readonly base: string
+  private readonly coreRoutes: RouterRouteRecord[]
+  private readonly getStyleCollector: ViteReactSSGContext['getStyleCollector']
+  private readonly RouteRenderer: RequiredRouterEntryModule['RouteRenderer']
+  private readonly matchRouteBranchWithParams: RequiredRouterEntryModule['matchRouteBranchWithParams']
+  private readonly resolveRouteBranch: RequiredRouterEntryModule['resolveRouteBranch']
+  private readonly matchedBranches = new Map<string, RouterRouteMatch[]>()
+  private readonly resolvedBranches = new Map<
+    string,
+    Promise<RouterRouteRecord[]>
+  >()
+
+  constructor(context: ViteReactSSGContext, entryMod?: RouterEntryModule) {
     this.context = context
+    this.entryMod = entryMod
+    this.routerApi = requireRouterEntryModule(entryMod)
+    this.base = context.base
+    this.getStyleCollector = context.getStyleCollector
+
+    const app = context.app as any
+    this.coreRoutes = ((app?.routes ||
+      (Array.isArray(app) ? app : context.routes)) ??
+      []) as RouterRouteRecord[]
+    this.RouteRenderer = this.routerApi.RouteRenderer
+    this.matchRouteBranchWithParams = this.routerApi.matchRouteBranchWithParams
+    this.resolveRouteBranch = this.routerApi.resolveRouteBranch
   }
 
-  async render(path: string) {
-    const { base, routes, getStyleCollector, routerOptions } = this.context
+  private getMatchedBranch(routePath: string): RouterRouteMatch[] {
+    const cacheKey = `${this.base}\0${routePath}`
+    const cached = this.matchedBranches.get(cacheKey)
+    if (cached) return cached
+
+    const matched = this.matchRouteBranchWithParams(
+      this.coreRoutes,
+      routePath,
+      this.base,
+    )
+    this.matchedBranches.set(cacheKey, matched)
+    return matched
+  }
+
+  private async getResolvedBranch(
+    cacheKey: string,
+    branch: RouterRouteRecord[],
+  ): Promise<RouterRouteRecord[]> {
+    const cached = this.resolvedBranches.get(cacheKey)
+    if (cached) return cached
+
+    const pending = this.resolveRouteBranch(branch).catch((error) => {
+      this.resolvedBranches.delete(cacheKey)
+      throw error
+    })
+    this.resolvedBranches.set(cacheKey, pending)
+    return pending
+  }
+
+  async render(path: string): Promise<RouterRenderResult> {
+    const renderStart = performance.now()
     const leading = withLeadingSlash(path)
-    let fullPath = leading
-    if (base !== '/') {
-      const prefix = withLeadingSlash(base).replace(/\/$/, '')
-      if (!leading.startsWith(prefix + '/') && leading !== prefix) {
-        fullPath = `${prefix}${leading}`
-      }
-    }
+    const fullPath =
+      this.base === '/' ||
+      leading.startsWith(
+        `${withLeadingSlash(this.base).replace(/\/$/, '')}/`,
+      ) ||
+      leading === withLeadingSlash(this.base).replace(/\/$/, '')
+        ? leading
+        : `${withLeadingSlash(this.base).replace(/\/$/, '')}${leading}`
     const fetchUrl = `http://localhost${fullPath}`
     const request = new Request(fetchUrl)
-    const styleCollector = getStyleCollector ? await getStyleCollector() : null
+    const styleCollector = this.getStyleCollector
+      ? await this.getStyleCollector()
+      : null
     const helmetContext = {} as FilledContext
-    let routerContext: StaticHandlerContext | null = null
-    const { StaticRouterProvider, createStaticHandler, createStaticRouter } =
-      await getReactRouterDom()
-    const dataRoutes = (this._dataRoutes ??= convertRoutesToDataRoutes(
-      [...routes],
-      (route) => route,
-    ))
-    this._staticHandler ??= createStaticHandler(dataRoutes, { basename: base })
-    const { query } = this._staticHandler
-    let _context = await query(request)
+    const routePath = new URL(request.url).pathname
 
-    // Follow redirects (e.g., /docs -> /docs/guides) during SSR
-    let redirectCount = 0
-    const maxRedirects = 10
-    while (_context instanceof Response && redirectCount < maxRedirects) {
-      const location = _context.headers.get('Location')
-      if (!location) break
+    const matchStart = performance.now()
+    const matchedBranch = this.getMatchedBranch(routePath)
+    const matchMs = performance.now() - matchStart
+    const branch = matchedBranch.map((match) => match.route)
 
-      let nextUrl: string
-      if (/^https?:\/\//i.test(location)) {
+    let loaderData: Record<string, unknown> = {}
+    let hasLoaderData = false
+    let resolvedBranch: RouterRouteRecord[] = []
+    let resolveMs = 0
+    let loadersMs = 0
+
+    if (branch.length > 0) {
+      const resolveStart = performance.now()
+      resolvedBranch = await this.getResolvedBranch(
+        `${this.base}\0${routePath}`,
+        branch,
+      )
+      resolveMs = performance.now() - resolveStart
+
+      const loadersStart = performance.now()
+      const loaderValues: Record<string, unknown>[] = []
+      for (const [index, match] of matchedBranch.entries()) {
+        const route = resolvedBranch[index]
+        if (!route || typeof route.loader !== 'function') continue
         try {
-          const parsedLoc = new URL(location)
-          if (parsedLoc.hostname === 'localhost' || parsedLoc.hostname === '') {
-            nextUrl = `http://localhost${withLeadingSlash(parsedLoc.pathname + parsedLoc.search + parsedLoc.hash)}`
-          } else {
-            break
+          const result = await route.loader({
+            request,
+            // Keep loader params isolated even though the static match is cached.
+            params: { ...match.params },
+          })
+          if (result && typeof result === 'object' && 'data' in result) {
+            hasLoaderData = true
+            loaderValues.push(
+              (result as { data: Record<string, unknown> }).data,
+            )
+          } else if (result && typeof result === 'object') {
+            hasLoaderData = true
+            loaderValues.push(result as Record<string, unknown>)
           }
         } catch {
-          break
+          // Keep rendering with data from the other matched loaders.
         }
-      } else {
-        nextUrl = `http://localhost${withLeadingSlash(location)}`
       }
 
-      _context = await query(new Request(nextUrl))
-      redirectCount++
+      loaderData = loaderValues.reduce<Record<string, unknown>>(
+        (merged, value) => ({ ...merged, ...value }),
+        {},
+      )
+      loadersMs = performance.now() - loadersStart
     }
 
-    if (_context instanceof Response) throw _context
-
-    routerContext = _context
-    const router = createStaticRouter(dataRoutes, routerContext, {
-      future: routerOptions.future,
-    })
     const HP = getHelmetProvider()
-
-    // Force canUseDOM = false on HelmetProvider so react-helmet-async uses
-    // server-side state mapping and populates helmetContext.helmet. Without
-    // this, HelmetData skips server-side extraction and htmlAttributes/bodyAttributes
-    // come back as null. We set it directly here instead of relying on
-    // helmet-compat.tsx's __BOLTDOCS_SSG_RENDERING__ check because that check
-    // runs at module load time (before the flag is set).
     const hpAny = HP as any
-    if (hpAny && typeof hpAny === 'function') {
-      hpAny.canUseDOM = false
-    }
-
+    if (hpAny && typeof hpAny === 'function') hpAny.canUseDOM = false
+    const RouteRenderer = this.RouteRenderer
+    const helmetRenderStart = performance.now()
     let app = (
       <HP context={helmetContext}>
-        <StaticRouterProvider router={router} context={routerContext} />
+        <RouteRenderer
+          routes={this.coreRoutes}
+          pathname={routePath}
+          loaderData={loaderData}
+          hasLoaderData={hasLoaderData}
+          resolvedBranch={resolvedBranch}
+          basename={this.base}
+        />
       </HP>
     )
-
     if (styleCollector) app = styleCollector.collect(app)
 
-    const appHTML = await renderStaticApp(app)
+    let appHTML = ''
+    try {
+      appHTML = await renderStaticApp(app)
+    } catch (err: any) {
+      console.error(
+        `[SSG Render Error] routePath="${routePath}":`,
+        err?.stack || err,
+      )
+      throw err
+    }
+    const renderMs = performance.now() - helmetRenderStart
 
+    const helmetExtractStart = performance.now()
     const { htmlAttributes, bodyAttributes, metaAttributes, styleTag } =
       extractHelmet(appHTML, helmetContext, styleCollector)
+    const helmetMs = performance.now() - helmetExtractStart
 
     return {
       appHTML,
@@ -145,43 +229,52 @@ export class RemixAdapter implements IRouterAdapter<ViteReactSSGContext> {
       bodyAttributes,
       metaAttributes,
       styleTag,
-      routerContext,
+      timings: {
+        matchMs,
+        resolveMs,
+        loadersMs,
+        renderMs,
+        helmetMs,
+        totalMs: performance.now() - renderStart,
+      },
+      routerContext: { loaderData: { root: loaderData } },
     }
   }
 
-  handleLoader: (
+  async handleLoader(
     req: Connect.IncomingMessage,
     res: ServerResponse<IncomingMessage>,
-  ) => void = async (req, res) => {
+  ) {
     const { routes, base } = this.context
-    const { matchRoutes } = await getReactRouterDom()
+    const { matchRouteBranchWithParams, resolveRouteBranch } = this.routerApi
     const request = fromNodeRequest(req)
     const url = new URL(request.url)
-    const routeId = decodeURIComponent(url.searchParams.get('_data')!)
-    const matches = matchRoutes(
-      convertRoutesToDataRoutes([...routes], (route) => route),
-      {
-        pathname: url.pathname,
-        search: url.search,
-        hash: url.hash,
-        state: null,
-        key: 'default',
-      },
+    const routeId = decodeURIComponent(url.searchParams.get('_data') || '')
+    const routesWithIds = withRouteIds([...routes] as RouterRouteRecord[])
+    const matches = matchRouteBranchWithParams(
+      routesWithIds,
+      url.pathname,
       base,
     )
-    if (!matches) {
+    if (matches.length === 0) {
       res.statusCode = 404
       res.end(`Route not found: ${routeId}`)
       return
     }
-    const match = matches.find((m) => m.route.id === routeId)
+    const match = matches.find((m, index) => {
+      const id = m.route.id || String(index)
+      return id === routeId
+    })
     if (!match) {
       res.statusCode = 404
       res.end(`Route not found: ${routeId}`)
       return
     }
-    const loader =
-      match.route.loader ?? (await match.route.lazy?.().then((m) => m.loader))
+    const branch = matches.map((item) => item.route)
+    const resolvedBranch = await resolveRouteBranch(branch)
+    const matchIndex = matches.indexOf(match)
+    const resolvedRoute = resolvedBranch[matchIndex] || match.route
+    const loader = resolvedRoute.loader
     if (!loader) {
       res.statusCode = 200
       res.end(`There is no loader for the route: ${routeId}`)
@@ -209,11 +302,10 @@ export async function callRouteLoader({
   params: LoaderFunctionArgs['params']
   routeId: string
 }) {
-  const { json } = await getReactRouterDom()
   const result = await loader({
     request: stripDataParam(stripIndexParam(request)),
     params,
-  })
+  } as LoaderFunctionArgs)
 
   if (result === undefined) {
     throw new Error(
@@ -222,7 +314,12 @@ export async function callRouteLoader({
     )
   }
 
-  return isResponse(result) ? result : json(result)
+  if (isResponse(result)) return result
+
+  return new Response(JSON.stringify(result), {
+    status: 200,
+    headers: { 'Content-Type': 'application/json' },
+  })
 }
 
 function isResponse(value: any): value is Response {

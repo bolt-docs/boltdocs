@@ -1,35 +1,20 @@
 ---
 title: Componentes
-sidebarPosition: 1
+sidebarPosition: 2
+sidebarHidden: true
 description: Referencia completa de los componentes de Boltdocs — componentes de contenido MDX y primitivas de diseño.
 ---
 
 Boltdocs proporciona tres categorías de componentes:
 
 1. **Componentes MDX** — Disponibles dentro de los archivos de contenido `.mdx`.
-2. **Primitivas de Diseño** — Componentes estructurales para componer diseños personalizados de páginas de documentación.
+2. **Primitivas de Diseño** — Componentes estructurales neutros de estilo para componer diseños personalizados de páginas de documentación.
 3. **Primitivas de UI** — Controles de interfaz modulares y totalmente accesibles.
 
----
-
-## Componentes MDX
-
-Estos componentes se registran automáticamente de forma global y están disponibles en cada archivo `.mdx`:
-
-| Componente | Descripción |
-| :--- | :--- |
-| **`<Callout>`** | Cajas de alerta con variantes: note, info, tip, warning, danger. |
-| **`<Card>` / `<Cards>`** | Cuadrícula de tarjetas clickeables para navegación de tipo dashboard. |
-| **`<Field>`** | Filas descriptivas de propiedades API en línea. |
-| **`<Image>`** | Imágenes adaptables al tema, con diseño responsivo y leyendas. |
-| **`<Mermaid>`** | Bloque de renderizado de diagramas (requiere el plugin mermaid). |
-| **`<Timeline>`** | Línea de tiempo vertical con entradas fechadas para changelogs y notas de publicación. |
-
----
 
 ## Primitivas de Diseño
 
-Componentes estructurales exportados desde `'boltdocs/primitives'` utilizados para construir diseños personalizados de documentación:
+Componentes estructurales exportados desde `'boltdocs/primitives'` utilizados para construir diseños personalizados de documentación. Las primitivas aportan estructura, comportamiento y atributos de estado `data-*`; los colores, bordes y tamaños los decide tu tema vía CSS:
 
 | Componente | Descripción |
 | :--- | :--- |
@@ -105,8 +90,9 @@ Changelogs, actualizaciones de estado, notas de publicación — cualquier lista
 
 ```mdx
 <Timeline>
-  <Timeline.Item date="2026-07-20" title="Plugin v3.2 API" badge="Major" icon={<Sparkles />}>
-    Nuevos hooks para caches, diagnostics, paths, virtual modules, middleware, server y HMR.
+  <Timeline.Item date="2026-07-28" title="Boltdocs 3.3.0" badge="Major" icon={<Sparkles />}>
+    Nueva API de Plugins (`definePlugin`), Core Agnóstico a CSS, slots de UI para
+    plugins y plugins oficiales de Tailwind v4 / SASS / UnoCSS.
   </Timeline.Item>
   <Timeline.Item date="2026-06-01" title="Soporte de i18n" badge={{ text: 'Minor', variant: 'success' }}>
     Convención de internacionalización por filesystem y rutas conscientes de versión.
@@ -117,7 +103,7 @@ Changelogs, actualizaciones de estado, notas de publicación — cualquier lista
 </Timeline>
 ```
 
-La referencia completa (props, paleta de variantes, accesibilidad, patrones comunes) está en [`Timeline`](/es/components/mdx/timeline).
+La referencia completa (props, paleta de variantes, accesibilidad, patrones comunes) está en [`Timeline`](/docs/es/components/mdx/timeline).
 
 ---
 
@@ -126,4 +112,5 @@ La referencia completa (props, paleta de variantes, accesibilidad, patrones comu
 - [Componentes MDX](/docs/components/mdx/callout) — Referencias de componentes Callout, Card, Field, Image y Mermaid.
 - [Primitivas de Diseño](/docs/components/layout/docs-layout) — Componentes estructurales principales como Navbar, Sidebar y DocsLayout.
 - [Primitivas de UI](/docs/components/ui/button) — Primitivas accesibles genéricas como Button, Tabs, Menu y Popover.
-- [Diseños Personalizados](/docs/guides/advanced/custom-layout) — Construye tu propio diseño de documentación desde cero.
+- [Diseños Personalizados](/docs/guides/customization/layout) — Construye tu propio diseño de documentación desde cero.
+- [Primitivas del Tema](/docs/es/guides/customization/theme-primitives) — Estiliza cada primitiva a través de sus estados `data-*`.

@@ -1,6 +1,7 @@
 ---
 title: Integrations
-sidebarPosition: 1
+sidebarPosition: 3
+sidebarHidden: true
 description: Connect Boltdocs with external services — analytics, search, i18n, versioning, SEO, and more.
 ---
 
@@ -8,71 +9,10 @@ import { BarChart, Tag, Globe, Search, GitBranch, Bot, FolderOpen, MessageSquare
 
 Boltdocs integrates with popular services and provides built-in features for search, localization, versioning, and SEO. This section covers all available integrations.
 
----
-
-## Available Integrations
-
-### SEO & Analytics
-<Cards cols={3}>
-  <Card title="SEO & Robots" icon={<Bot />} href="/docs/integrations/seo">
-    Automatic sitemap, robots.txt, and meta tags.
-  </Card>
-  <Card title="Google Analytics 4" icon={<BarChart />} href="/docs/integrations/seo/ga4">
-    Track page views and custom events with GA4.
-  </Card>
-  <Card title="Google Tag Manager" icon={<Tag />} href="/docs/integrations/seo/gtm">
-    Deploy and manage tags, analytics, and custom scripts with GTM.
-  </Card>
-  <Card title="Vercel Analytics" icon={<BarChart />} href="/docs/integrations/seo/vercel">
-    Monitor traffic and Core Web Vitals with zero-config Vercel Analytics.
-  </Card>
-  <Card title="Site Verification" icon={<Tag />} href="/docs/integrations/seo/verification">
-    Verify ownership with Google, Bing, Yandex, Pinterest, and Facebook.
-  </Card>
-</Cards>
-
-### Search
-<Cards cols={3}>
-  <Card title="Search Overview" icon={<Search />} href="/docs/integrations/search">
-    Built-in search architecture and customization options.
-  </Card>
-  <Card title="FlexSearch Custom UI" icon={<Search />} href="/docs/integrations/search/flexsearch">
-    Query offline indices programmatically and build custom search UIs.
-  </Card>
-  <Card title="Algolia DocSearch" icon={<Search />} href="/docs/integrations/search/algolia">
-    Integrate Algolia cloud search for advanced synonyms and analytics.
-  </Card>
-</Cards>
-
-### Globalization
-<Cards cols={2}>
-  <Card title="Internationalization" icon={<Globe />} href="/docs/integrations/globalization/i18n">
-    Multi-language docs with folder-based routing and RTL layouts.
-  </Card>
-  <Card title="Versioning" icon={<GitBranch />} href="/docs/integrations/globalization/versioning">
-    Maintain and switch between multiple parallel release versions.
-  </Card>
-</Cards>
-
-### Content Features
-<Cards cols={3}>
-  <Card title="Collections" icon={<FolderOpen />} href="/docs/integrations/features/collections">
-    Group documents into blogs, release notes, or tutorials with custom views.
-  </Card>
-  <Card title="Custom Feedback" icon={<MessageSquare />} href="/docs/integrations/features/feedback">
-    Native GitHub Discussion ratings and page-level comments.
-  </Card>
-  <Card title="Giscus Comments" icon={<MessageSquare />} href="/docs/integrations/features/giscus">
-    Add GitHub Discussions-powered comments to your docs.
-  </Card>
-</Cards>
-
-
----
 
 ## Built-in Features
 
-### Search
+### Built-in Search
 
 Boltdocs ships with zero-dependency full-text search. The search index is built at compile time and embedded in the client bundle. No API keys, no external services.
 

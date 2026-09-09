@@ -6,15 +6,6 @@ description: Menús desplegables y de contexto anidados componibles.
 
 La primitiva `Menu` es un componente de menú desplegable modular de navegación y selector de opciones que soporta accesibilidad por teclado, submenús anidados, indexación de búsqueda y casillas de verificación de selección.
 
----
-
-## Importación
-
-```tsx
-import { Menu } from 'boltdocs/primitives'
-```
-
----
 
 ## Inicio Rápido
 
@@ -104,3 +95,37 @@ Hereda `MenuItemProps` estándar de React Aria (por ejemplo, `isDisabled`, `onAc
 | Propiedad | Tipo | Predeterminado | Descripción |
 | :--- | :--- | :--- | :--- |
 | **`title`** | `string` | `undefined` | Texto del encabezado de la etiqueta de sección. |
+
+---
+
+## Personalización y estados
+
+`Menu` está construido sobre el `Menu` de React Aria, por lo que aporta el manejo de la interacción (navegación por teclado, selección, submenús) sin visuales. El estilo vive en el tema: el `Menu.Root` y cada `Menu.Item` aceptan un `className` como función de renderizado, y RAC refleja los estados de selección y foco en cada elemento como atributos `data-*` para apuntar desde CSS.
+
+| Estado / Slot | Mecanismo |
+| :--- | :--- |
+| `className` de `Menu.Item` (función) | Recibe `{ isHovered, isFocused, isFocusVisible, isPressed, isSelected, isDisabled }` |
+| `children` de `Menu.Item` (función) | Recibe `{ selectionMode, isSelected, hasSubmenu }` |
+| `data-selected` | Presente en el elemento cuando está seleccionado (modo de selección con casillas) |
+| `data-focused` / `data-focus-visible` | Presentes en elementos enfocados por teclado |
+| `data-hovered` / `data-pressed` | Estados de interacción con el puntero |
+| `data-disabled` | Presente en elementos deshabilitados |
+| `className` de `Menu.Root` (función) | Recibe `{ isEmpty }` |
+
+Tailwind v4:
+
+```tsx
+<Menu.Item
+  className={({ isSelected, isFocused }) =>
+    `px-3 py-1.5 text-xs rounded cursor-default ${
+      isSelected
+        ? 'bg-primary-500/10 text-primary-400'
+        : isFocused
+          ? 'bg-soft text-body'
+          : 'text-body'
+    }`
+  }
+>
+  Opción de Alternar
+</Menu.Item>
+```

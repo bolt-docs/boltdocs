@@ -1,0 +1,33 @@
+---
+title: Funciones Experimentales
+sidebarPosition: 1
+description: APIs opt-in útiles hoy que pueden evolucionar en futuras versiones de Boltdocs.
+---
+
+Las APIs experimentales están desactivadas por defecto. Se documentan como funciones de primera clase, pero sus contratos pueden evolucionar antes de estabilizarse.
+
+<Callout variant="warning" title="Activa con intención">
+  Activa solo las funciones que necesites. Si publicas un theme o plugin reutilizable, conserva un fallback para proyectos que todavía no las hayan activado.
+</Callout>
+
+```ts title="boltdocs.config.ts"
+import { defineConfig } from 'boltdocs'
+
+export default defineConfig({
+  experimental: {
+    viewTransitions: {
+      enabled: true,
+      types: ['page'],
+    },
+    fileRouting: true,
+  },
+})
+```
+
+## En esta sección
+
+La superficie experimental está dividida en tres áreas de funcionalidad, cada una documentada en su propia página:
+
+- [View Transitions](/docs/guides/advanced/view-transitions) — animaciones nativas del navegador entre estados del router, además del componente `TransitionLink` y el hook `useViewTransition()`.
+- [Datos Estructurados](/docs/guides/advanced/structured-data) — graphs JSON-LD tipados para website, artículos y breadcrumbs.
+- [File-routing estático](/docs/guides/advanced/file-routing) — mapea archivos literales en `docs/pages-external/` a rutas sin un objeto `pages`.

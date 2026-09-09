@@ -1,0 +1,79 @@
+---
+title: Componentes MDX
+sidebarPosition: 1
+description: Inyecta componentes React personalizados globalmente o sobreescribe etiquetas HTML predeterminadas usando el registro mdx-components.tsx.
+---
+
+Boltdocs te permite registrar componentes React personalizados que están disponibles en cada archivo `.mdx` sin imports explícitos. Esto es perfecto para estilizar elementos Markdown predeterminados, introducir bloques de layout personalizados o usar componentes de terceros.
+
+
+## Usando Componentes Registrados
+
+Una vez agregados a `mdx-components.tsx`, puedes usar estos componentes dentro de cualquier archivo `.mdx` sin importarlos:
+
+```mdx
+---
+title: Sample Page
+---
+
+# Welcome
+
+This is a custom alert component:
+
+<MyCustomAlert type="success">
+  This alert is globally available!
+</MyCustomAlert>
+
+You can also use inline highlights:
+
+This is <Highlight color="yellow">important text</Highlight>.
+```
+
+---
+
+## Sobreescribiendo Elementos Markdown Estándar
+
+Puedes sobreescribir etiquetas Markdown estándar mapeando los nombres de etiquetas HTML a tus componentes React personalizados:
+
+| Etiqueta | Sintaxis Markdown | Descripción |
+| :--- | :--- | :--- |
+| `h1`–`h6` | `#` a `######` | Encabezados |
+| `a` | `[Link]\(...\)` | Enlaces de anclaje |
+| `pre` | ```` ``` ```` | Envoltorios de bloques de código |
+| `code` | `` `code` `` | Tags de código inline |
+| `img` | `![Alt]\(...\)` | Imágenes |
+| `table` | Tables | Contenedores de tablas |
+
+Por ejemplo, para envolver todas las tablas en un contenedor responsive personalizado:
+
+```tsx title="docs/mdx-components.tsx"
+export default {
+  table: (props) => (
+    <div style={{ overflowX: 'auto' }}>
+      <table {...props} />
+    </div>
+  ),
+}
+```
+
+---
+
+## Avanzado: Inyección a través de Plugins
+
+Si estás desarrollando un plugin reutilizable, puedes inyectar componentes MDX usando la configuración `components` del plugin:
+
+```ts title="my-plugin.ts"
+import type { BoltdocsPlugin } from 'boltdocs'
+
+export default function myPlugin(): BoltdocsPlugin {
+  return {
+    name: 'my-plugin',
+    components: {
+      // Key: component name in MDX, Value: path to the module
+      MyComponent: './src/components/MyComponent.tsx',
+    },
+  }
+}
+```
+
+Consulta el [Plugin Mermaid](/docs/plugins/content/plugin-mermaid) para un ejemplo real de inyección de componentes basada en plugins.

@@ -17,6 +17,9 @@ vi.mock('../node/index', () => ({
       },
     ],
   }),
+  isPrecompileStarted: () => false,
+  getPrecompilePromise: () => null,
+  CompilePool: vi.fn(),
 }))
 
 vi.mock('../node/user-plugins', () => ({
@@ -41,8 +44,10 @@ vi.mock('../node/compiler', () => ({
 vi.mock('node:fs', () => ({
   default: {
     readFileSync: vi.fn(),
+    existsSync: vi.fn(() => false),
   },
   readFileSync: vi.fn(),
+  existsSync: vi.fn(() => false),
 }))
 
 vi.mock('satteri', () => ({
@@ -50,7 +55,10 @@ vi.mock('satteri', () => ({
   defineHastPlugin: (def: unknown) => def,
 }))
 
-import { createSatteriMdxPlugin } from '../node/satteri-mdx-plugin'
+import {
+  createSatteriMdxPlugin,
+  resetMdxRuntimeCaches,
+} from '../node/satteri-mdx-plugin'
 import { MdxCompiler } from '../node/compiler'
 import fs from 'node:fs'
 
@@ -61,6 +69,7 @@ describe('createSatteriMdxPlugin', () => {
 
   beforeEach(() => {
     vi.clearAllMocks()
+    resetMdxRuntimeCaches()
     mockGetLifecycle.mockReturnValue(undefined)
     plugin = createSatteriMdxPlugin(mockConfig, mockGetLifecycle)
   })
@@ -84,7 +93,50 @@ describe('createSatteriMdxPlugin', () => {
         expect.objectContaining({ name: 'mock-shiki-plugin' }),
         expect.objectContaining({ name: 'user-rehype-plugin' }),
       ]),
+      expect.any(String),
     )
+  })
+
+  it('does not bulk-precompile during Vite serve, including production-mode preview', async () => {
+    const previousNodeEnv = process.env.NODE_ENV
+    process.env.NODE_ENV = 'production'
+
+    try {
+      const configResolved = plugin.configResolved as unknown as (
+        config: unknown,
+      ) => void
+      configResolved({ command: 'serve', root: '/tmp/project' })
+
+      await (
+        plugin as unknown as { buildStart: () => Promise<void> }
+      ).buildStart()
+
+      expect(vi.mocked(fs.existsSync)).not.toHaveBeenCalled()
+    } finally {
+      if (previousNodeEnv === undefined) delete process.env.NODE_ENV
+      else process.env.NODE_ENV = previousNodeEnv
+    }
+  })
+
+  it('keeps bulk precompile enabled for Vite production builds', async () => {
+    const previousNodeEnv = process.env.NODE_ENV
+    delete process.env.NODE_ENV
+
+    try {
+      const configResolved = plugin.configResolved as unknown as (
+        config: unknown,
+      ) => void
+      configResolved({ command: 'build', root: '/tmp/project' })
+
+      await (
+        plugin as unknown as { buildStart: () => Promise<void> }
+      ).buildStart()
+
+      expect(vi.mocked(fs.existsSync)).toHaveBeenCalled()
+    } finally {
+      if (previousNodeEnv === undefined) delete process.env.NODE_ENV
+      else process.env.NODE_ENV = previousNodeEnv
+    }
   })
 
   describe('load hook', () => {
@@ -138,15 +190,14 @@ describe('createSatteriMdxPlugin', () => {
       })
     })
 
-    it('falls back to raw source when compile returns null', async () => {
+    it('throws when compile returns null', async () => {
       vi.mocked(fs.readFileSync).mockReturnValue('# Hello World')
       const mockCompile = vi.mocked(MdxCompiler).mock.results[0]?.value?.compile
       mockCompile.mockResolvedValue(null)
 
-      const result = await (
-        plugin as { load: (id: string) => Promise<unknown> }
-      ).load('test.mdx')
-      expect(result).toBe('# Hello World')
+      await expect(
+        (plugin as { load: (id: string) => Promise<unknown> }).load('test.mdx'),
+      ).rejects.toThrow('Failed to compile test.mdx')
     })
 
     it('handles lifecycle runChain error gracefully in load hook', async () => {
@@ -156,16 +207,16 @@ describe('createSatteriMdxPlugin', () => {
       }
       mockGetLifecycle.mockReturnValue(lifecycleMock)
       const mockCompile = vi.mocked(MdxCompiler).mock.results[0]?.value?.compile
-      mockCompile.mockResolvedValue(null)
+      mockCompile.mockResolvedValue('export default function MDXContent() {}')
 
       const result = await (
         plugin as { load: (id: string) => Promise<unknown> }
       ).load('test.mdx')
-      // Should fall through to raw source without propagating the error
-      expect(result).toBe('# Hello World')
+      // Should still compile the raw source when lifecycle transform fails
+      expect(result).toContain('MDXContent')
     })
 
-    it('falls back to lifecycle-modified source when compile returns null', async () => {
+    it('throws when compile returns null even after lifecycle transform', async () => {
       vi.mocked(fs.readFileSync).mockReturnValue('# Hello World')
       const lifecycleMock = {
         runChain: vi.fn().mockResolvedValue({ code: '# modified content' }),
@@ -174,11 +225,9 @@ describe('createSatteriMdxPlugin', () => {
       const mockCompile = vi.mocked(MdxCompiler).mock.results[0]?.value?.compile
       mockCompile.mockResolvedValue(null)
 
-      const result = await (
-        plugin as { load: (id: string) => Promise<unknown> }
-      ).load('test.mdx')
-      // When compile fails, the plugin returns sourceCode (which was modified by lifecycle)
-      expect(result).toBe('# modified content')
+      await expect(
+        (plugin as { load: (id: string) => Promise<unknown> }).load('test.mdx'),
+      ).rejects.toThrow('Failed to compile test.mdx')
     })
   })
 
@@ -213,7 +262,7 @@ describe('createSatteriMdxPlugin', () => {
         'export default function MDXContent() { return null }',
       )
 
-      const result = await (
+      await (
         plugin as {
           transform: (code: string, id: string) => Promise<unknown>
         }
@@ -233,7 +282,7 @@ describe('createSatteriMdxPlugin', () => {
       }
       mockGetLifecycle.mockReturnValue(lifecycleMock)
 
-      const result = await (
+      await (
         plugin as {
           transform: (code: string, id: string) => Promise<unknown>
         }

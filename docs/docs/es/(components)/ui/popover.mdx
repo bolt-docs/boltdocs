@@ -6,15 +6,6 @@ description: Primitiva contenedor superponible que muestra ventanas emergentes c
 
 La primitiva `Popover` es un contenedor superponible utilizado para renderizar menús, tooltips, formularios de selección o widgets de ventana emergente contextuales personalizados activados por botones de anclaje.
 
----
-
-## Importación
-
-```tsx
-import { Popover } from 'boltdocs/primitives'
-```
-
----
 
 ## Inicio Rápido
 
@@ -57,3 +48,28 @@ El componente `Popover` envuelve las propiedades de `Popover` de React Aria:
 | **`children`** | `ReactNode` | *Requerido* | Elementos hijos a renderizar dentro del marco de contenido de la superposición del popover. |
 | **`className`** | `string` | `undefined` | Sobrescrituras de clases CSS utilitarias personalizadas. |
 | **`style`** | `CSSProperties` | `undefined` | Sobrescrituras de estilo en línea. |
+
+---
+
+## Personalización y estados
+
+`Popover` es un overlay flotante sin visuales propias — colores, bordes, radios y sombras vienen del tema mediante `className`, que es un passthrough de cadena simple (esta primitiva no desempaqueta la forma de función de renderizado). React Aria refleja la animación de apertura/cierre y la colocación en el elemento como atributos `data-*`, por lo que las transiciones de entrada/salida se estilizan puramente desde CSS.
+
+| Estado / Slot | Mecanismo |
+| :--- | :--- |
+| `className` | Passthrough de cadena simple fusionado en el overlay; el tema controla colores, bordes, radios, sombras |
+| `data-entering` | Presente mientras el popover anima su entrada — usa variantes `data-entering:` |
+| `data-exiting` | Presente mientras el popover anima su salida — usa variantes `data-exiting:` |
+| `data-placement` | `top` / `bottom` / `left` / `right` — offsets sensibles a la colocación |
+| `data-trigger` | Nombre del componente disparador (p. ej. `DialogTrigger`) |
+| `placement` / `offset` / `crossOffset` | Solo comportamiento de posicionamiento, sin visuales |
+
+Tailwind v4:
+
+```tsx
+<Popover className="data-entering:animate-in data-entering:fade-in data-entering:zoom-in-95
+                   data-exiting:animate-out data-exiting:fade-out
+                   rounded-xl bg-surface border border-subtle shadow-xl p-4">
+  <div>Contenido del popover</div>
+</Popover>
+```

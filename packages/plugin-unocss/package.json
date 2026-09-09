@@ -1,0 +1,37 @@
+{
+  "name": "@bdocs/plugin-unocss",
+  "version": "0.0.1",
+  "description": "UnoCSS atomic engine plugin for Boltdocs",
+  "main": "./dist/index.mjs",
+  "module": "./dist/index.mjs",
+  "types": "./dist/index.d.mts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.mts",
+      "import": "./dist/index.mjs"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsdown --config-loader unrun",
+    "dev": "tsdown --watch --config-loader unrun",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "unocss": "^66.7.5"
+  },
+  "peerDependencies": {
+    "boltdocs": "workspace:^",
+    "vite": "^7.0.0 || ^8.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "boltdocs": "workspace:^",
+    "tsdown": "^0.21.7",
+    "typescript": "^5.9.3",
+    "tsdown-config": "workspace:*",
+    "vitest": "^3.0.0"
+  }
+}

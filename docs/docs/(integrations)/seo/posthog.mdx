@@ -1,49 +1,22 @@
 ---
 title: PostHog
 sidebarPosition: 5
-description: Track page views, custom events, and session replays with PostHog product analytics.
+description: Track page views, custom events, and session recordings with PostHog.
 ---
 
 PostHog is an open-source product analytics platform that gives you full control over your data. Boltdocs injects the PostHog JavaScript snippet automatically when you configure it.
 
----
-
-## Quick Start
-
-### Step 1: Get your API key
-
-Create a project in [PostHog](https://app.posthog.com/) and copy your project API key (starts with `phc_`).
-
-### Step 2: Configure in boltdocs.config.ts
-
-```ts title="boltdocs.config.ts"
-export default defineConfig({
-  integrations: {
-    analytics: {
-      posthog: {
-        apiKey: 'phc_xxxxxxxxxxxxxxxxxxxx',
-      },
-    },
-  },
-})
-```
-
-### Step 3: Deploy
-
-The PostHog snippet is automatically injected into every page. Page views and page leaves are tracked by default.
-
----
 
 ## Configuration Reference
 
 | Property | Type | Default | Description |
 | :--- | :--- | :--- | :--- |
-| **`apiKey`** | `string` | ✓ | Your PostHog project API key (e.g., `'phc_xxx'`) |
-| **`host`** | `string` | `'https://us.i.posthog.com'` | PostHog API host. Use `'https://eu.i.posthog.com'` for EU cloud |
-| **`capturePageview`** | `boolean` | `true` | Automatically capture page views |
-| **`capturePageleave`** | `boolean` | `true` | Automatically capture page leave events |
+| **`apiKey`** | `string` | ✓ | Your PostHog project API key (e.g. `'phc_xxx'`) |
+| **`host`** | `string` | `'https://us.i.posthog.com'` | PostHog API host. Use `'https://eu.i.posthog.com'` for the EU cloud |
+| **`capturePageview`** | `boolean` | `true` | Capture page views automatically |
+| **`capturePageleave`** | `boolean` | `true` | Capture page leave events automatically |
 | **`sessionRecording`** | `boolean` | `false` | Enable session recording |
-| **`autocapture`** | `boolean` | `false` | Enable autocapture of click events |
+| **`autocapture`** | `boolean` | `false` | Enable automatic click capture |
 
 ### Minimal Example
 
@@ -59,7 +32,7 @@ integrations: {
 
 ### EU Cloud
 
-If your PostHog instance is hosted in the EU region:
+If your PostHog instance is in the EU region:
 
 ```ts
 integrations: {
@@ -93,8 +66,8 @@ integrations: {
 
 | Event | Description |
 | :--- | :--- |
-| **`$pageview`** | Fired on every page navigation (including client-side navigation) |
-| **`$pageleave`** | Fired when the user leaves a page |
+| **`$pageview`** | Fires on every page navigation (including client-side navigation) |
+| **`$pageleave`** | Fires when the user leaves a page |
 
 ### Custom Events
 
@@ -179,7 +152,7 @@ function SearchBox() {
 
 ## Respecting User Privacy
 
-PostHog supports opt-out of data capture. You can use the PostHog API to respect user consent:
+PostHog supports opting out of data capture. You can use the PostHog API to respect user consent:
 
 ```tsx
 import { useEffect } from 'react'
@@ -203,20 +176,20 @@ function ConsentHandler({ hasConsent }) {
 
 ## Troubleshooting
 
-### Events not appearing
+### Events don't appear
 
 1. Verify the API key is correct (starts with `phc_`)
-2. Check browser console for errors
-3. Use PostHog's Live Events panel to see events in real-time
+2. Check the browser console for errors
+3. Use PostHog's Live Events panel to see real-time events
 
-### Scripts not appearing in development
+### Scripts don't appear in development
 
 PostHog scripts are only injected in **production** builds. Run `boltdocs build && boltdocs preview` to test locally.
 
 ### Duplicate page views
 
-Page views are tracked automatically on navigation. Don't call `trackPageView` manually unless needed.
+Page views are tracked automatically on navigation. Don't call `trackPageView` manually unless necessary.
 
 ### Build errors
 
-Ensure `integrations.analytics.posthog.apiKey` is a non-empty string.
+Make sure `integrations.analytics.posthog.apiKey` is a non-empty string.

@@ -6,23 +6,15 @@ description: Botones de navegación de página anterior/siguiente renderizados e
 
 El componente `PageNav` muestra controles de navegación en la parte inferior de las páginas, dirigiendo a los lectores a los capítulos lógicamente precedentes o siguientes.
 
----
-
-## Importación
-
-```tsx
-import { PageNav } from 'boltdocs/primitives'
-```
-
----
 
 ## Ejemplo de Navegación de Página Componible
 
-Usando los subcomponentes primitivos de `PageNav`, puedes componer un pie de página paginador personalizado. El siguiente ejemplo muestra cómo recuperar metadatos de páginas hermanas activas a través de `usePageNav` y estructurar los enlaces con bordes y estilos de diseño personalizados:
+Usando los subcomponentes primitivos de `PageNav`, puedes componer un pie de página paginador personalizado. El siguiente ejemplo muestra cómo recuperar metadatos de páginas hermanas activas a través de `usePageNav`, proporcionar las flechas direccionales mediante `PageNav.Icon` y estructurar los enlaces con bordes y estilos de diseño personalizados:
 
 ```tsx
 // docs/components/CustomFooterNav.tsx
 import React from 'react'
+import { ChevronLeft, ChevronRight } from 'lucide-react'
 import { PageNav } from 'boltdocs/primitives'
 import { usePageNav } from 'boltdocs/client'
 
@@ -40,12 +32,17 @@ export default function CustomFooterNav() {
           direction="prev"
           className="group p-4 rounded-xl border border-zinc-200 dark:border-zinc-800 hover:border-primary-500 transition-colors"
         >
-          <PageNav.Title className="text-xs uppercase font-bold text-zinc-400 dark:text-zinc-500 group-hover:text-primary-500 transition-colors">
-            Capítulo Anterior
-          </PageNav.Title>
-          <PageNav.Description className="text-sm font-semibold text-zinc-800 dark:text-zinc-200 mt-1">
-            {prevPage.title}
-          </PageNav.Description>
+          <PageNav.Icon className="shrink-0 text-zinc-400 dark:text-zinc-500 group-hover:text-primary-500 transition-colors">
+            <ChevronLeft />
+          </PageNav.Icon>
+          <div className="flex flex-col">
+            <PageNav.Title className="text-xs uppercase font-bold text-zinc-400 dark:text-zinc-500 group-hover:text-primary-500 transition-colors">
+              Capítulo Anterior
+            </PageNav.Title>
+            <PageNav.Description className="text-sm font-semibold text-zinc-800 dark:text-zinc-200 mt-1">
+              {prevPage.title}
+            </PageNav.Description>
+          </div>
         </PageNav.Link>
       ) : (
         <div /> // Espaciador de compensación de columna
@@ -58,12 +55,17 @@ export default function CustomFooterNav() {
           direction="next"
           className="group p-4 rounded-xl border border-zinc-200 dark:border-zinc-800 hover:border-primary-500 transition-colors text-right"
         >
-          <PageNav.Title className="text-xs uppercase font-bold text-zinc-400 dark:text-zinc-500 group-hover:text-primary-500 transition-colors">
-            Siguiente Capítulo
-          </PageNav.Title>
-          <PageNav.Description className="text-sm font-semibold text-zinc-800 dark:text-zinc-200 mt-1">
-            {nextPage.title}
-          </PageNav.Description>
+          <div className="flex flex-col">
+            <PageNav.Title className="text-xs uppercase font-bold text-zinc-400 dark:text-zinc-500 group-hover:text-primary-500 transition-colors">
+              Siguiente Capítulo
+            </PageNav.Title>
+            <PageNav.Description className="text-sm font-semibold text-zinc-800 dark:text-zinc-200 mt-1">
+              {nextPage.title}
+            </PageNav.Description>
+          </div>
+          <PageNav.Icon className="shrink-0 text-zinc-400 dark:text-zinc-500 group-hover:text-primary-500 transition-colors">
+            <ChevronRight />
+          </PageNav.Icon>
         </PageNav.Link>
       ) : (
         <div /> // Espaciador de compensación de columna
@@ -82,10 +84,10 @@ La primitiva `PageNav` proporciona los siguientes subcomponentes para la persona
 | Componente | Etiqueta HTML | Descripción | Props |
 | :--- | :--- | :--- | :--- |
 | **`PageNav.Root`** / **`PageNav`** | `<nav>` | El contenedor principal exterior de cuadrícula flex que contiene los enlaces de paginación. | [`ComponentBaseProps`](#componentbaseprops-common) |
-| **`PageNav.Link`** | `<a>` | Un elemento de anclaje optimizado que enlaza a páginas adyacentes. Renderiza flechas de chevrón automáticamente. | [`PageNav.Link Props`](#pagenavlink-props) |
+| **`PageNav.Link`** | `<a>` | Un elemento de anclaje optimizado que enlaza a páginas adyacentes. La flecha direccional la proporciona el tema a través de `PageNav.Icon`. | [`PageNav.Link Props`](#pagenavlink-props) |
 | **`PageNav.Title`** | `<span>` | Etiqueta de texto auxiliar direccional (por ejemplo, "Siguiente" o "Anterior"). | [`ComponentBaseProps`](#componentbaseprops-common) |
 | **`PageNav.Description`** | `<div>` | Texto del título del encabezado del documento de la página hermana de destino. | [`ComponentBaseProps`](#componentbaseprops-common) |
-| **`PageNav.Icon`** | `<span>` | Un contenedor de diseño utilizado para albergar gráficos de flecha o caret personalizados. | [`ComponentBaseProps`](#componentbaseprops-common) |
+| **`PageNav.Icon`** | `<span>` | La ranura para el gráfico de flecha o caret direccional (por ejemplo, un chevrón que apunta a la página adyacente). | [`ComponentBaseProps`](#componentbaseprops-common) |
 
 ---
 
@@ -104,5 +106,41 @@ La primitiva `PageNav` proporciona los siguientes subcomponentes para la persona
 | Propiedad | Tipo | Predeterminado | Descripción |
 | :--- | :--- | :--- | :--- |
 | **`to`** | `string` | *Requerido* | Ruta de destino de la página hermana. |
-| **`direction`** | `'prev' \| 'next'` | *Requerido* | Indicador de dirección para controlar el orden flex y los chevrones. |
+| **`direction`** | `'prev' \| 'next'` | *Requerido* | Indicador de dirección que controla la alineación flex. |
 | **`className`** | `string` | `undefined` | Clases utilitarias personalizadas. |
+
+---
+
+## Personalización y estados
+
+La primitiva `PageNav` es **neutral en estilo**: la raíz renderiza un `<nav>`, `PageNav.Link` renderiza un `<a>` de router simple y la flecha direccional la pasa el tema a través de `PageNav.Icon`. Cada decisión visual (colores, bordes, espaciado) pertenece al tema a través de sus ranuras `className`. No emite atributos de estado `data-*` — los tratamientos de página actual y hover se estilizan desde CSS en tu tema.
+
+| Estado / Ranura | Mecanismo |
+| :--- | :--- |
+| `PageNav` (raíz) | `<nav>` con un diseño integrado `grid sm:grid-cols-2 gap-4`; bordes y espaciado vía `className` |
+| `PageNav.Link` | `<a>` de router simple — sin atributos de estado; tratamientos hover y focus vía `className` |
+| `direction` | `prev` / `next` controla la alineación flex; coloca `PageNav.Icon` primero para `prev` y al final para `next` |
+| `PageNav.Icon` | Ranura `<span>` para el gráfico de flecha; tamaño y color vía `className`, hereda de `currentColor` |
+| `PageNav.Title` / `PageNav.Description` | Ranuras de texto; tipografía y color vía `className` |
+
+```tsx
+<PageNav className="mt-12 grid gap-4 border-t border-subtle pt-8 sm:grid-cols-2">
+  <PageNav.Link
+    to={prevPage.path}
+    direction="prev"
+    className="group rounded-xl border border-subtle p-4 transition-colors hover:border-primary-500 hover:bg-surface"
+  >
+    <PageNav.Icon className="shrink-0 text-muted/60">
+      <ChevronLeft />
+    </PageNav.Icon>
+    <div className="flex flex-col">
+      <PageNav.Title className="text-xs font-semibold uppercase text-muted group-hover:text-primary-500">
+        Anterior
+      </PageNav.Title>
+      <PageNav.Description className="mt-1 text-sm font-medium text-body">
+        {prevPage.title}
+      </PageNav.Description>
+    </div>
+  </PageNav.Link>
+</PageNav>
+```

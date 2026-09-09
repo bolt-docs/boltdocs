@@ -1,6 +1,6 @@
 {
   "title": "React Hooks",
-  "icon": "Workflow",
-  "collapsible": true,
+  "order": 1,
+  "collapsible": false,
   "collapsed": false
 }

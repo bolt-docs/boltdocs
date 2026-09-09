@@ -81,7 +81,7 @@ export function useSearchHighlight(
       observer.disconnect()
       clearHighlights(containerSelector)
     }
-  }, [query, search, containerSelector])
+  }, [query, containerSelector])
 }
 
 function clearHighlights(selector: string) {
@@ -120,9 +120,10 @@ function highlightTerms(container: Element, terms: string[]) {
   })
 
   const nodes: Text[] = []
-  let node: Node | null
-  while ((node = walker.nextNode())) {
+  let node: Node | null = walker.nextNode()
+  while (node) {
     nodes.push(node as Text)
+    node = walker.nextNode()
   }
 
   // Create a combined regex for all terms

@@ -6,15 +6,6 @@ description: Superposición emergente que muestra detalles suplementarios al hac
 
 La primitiva `Tooltip` proporciona superposiciones de etiquetas auxiliares accesibles y conscientes del teclado que aparecen al hacer hover del mouse o al enfocar un elemento.
 
----
-
-## Importación
-
-```tsx
-import { Tooltip } from 'boltdocs/primitives'
-```
-
----
 
 ## Inicio Rápido
 
@@ -67,3 +58,32 @@ Hereda las propiedades estándar de `TooltipProps` de React Aria:
 | :--- | :--- | :--- | :--- |
 | **`className`** | `string` | `undefined` | Sobrescrituras de clases CSS utilitarias personalizadas. |
 | **`style`** | `CSSProperties` | `undefined` | Sobrescrituras de estilo en línea. |
+
+---
+
+## Personalización y estados
+
+`Tooltip` envuelve el `Tooltip` de React Aria. El disparador (`Tooltip.Root` / `Tooltip`) solo posee el comportamiento — demoras de hover, colocación y apertura/cierre. Todos los visuales pertenecen al tema mediante el `className` de `Tooltip.Content` (una cadena simple o una función de renderizado que recibe la colocación), y RAC refleja los estados de animación y colocación en el contenido como atributos `data-*`.
+
+| Estado / Slot | Mecanismo |
+| :--- | :--- |
+| `className` de `Tooltip.Content` | Passthrough de cadena (o función que recibe `{ placement, isEntering, isExiting }`) |
+| `data-entering` / `data-exiting` | Presentes durante la apertura/cierre — usa variantes de animación `data-entering:` / `data-exiting:` |
+| `data-placement` | `top` / `bottom` / `left` / `right` — offsets sensibles a la colocación mediante `data-[placement=top]:` |
+| Props de `Tooltip` | `delay`, `closeDelay`, `placement` — solo comportamiento |
+| `OverlayArrow` | Flecha temática renderizada dentro de `Tooltip.Content` |
+
+Tailwind v4:
+
+```tsx
+<Tooltip.Root>
+  <Button className="px-4 py-2 rounded-lg bg-primary-500 text-white">
+    Pásame el mouse
+  </Button>
+  <Tooltip.Content className="data-entering:animate-in data-entering:fade-in data-entering:zoom-in-95
+                              data-[placement=top]:slide-in-from-bottom-1
+                              rounded-md bg-surface text-body ring-1 ring-subtle px-2.5 py-1.5">
+    Detalle útil
+  </Tooltip.Content>
+</Tooltip.Root>
+```

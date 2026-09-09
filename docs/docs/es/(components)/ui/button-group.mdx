@@ -6,15 +6,6 @@ description: Envoltorio de diseño para agrupar y alinear botones de acción rel
 
 La primitiva `ButtonGroup` te permite agrupar múltiples botones adyacentes en una sola unidad horizontal o vertical, manejando automáticamente la fusión de bordes y el recorte de radio de esquina.
 
----
-
-## Importación
-
-```tsx
-import { ButtonGroup } from 'boltdocs/primitives'
-```
-
----
 
 ## Inicio Rápido
 
@@ -70,3 +61,30 @@ El componente `ButtonGroup` acepta estas propiedades de configuración de diseñ
 | **`children`** | `ReactNode` | *Requerido* | Los botones o nodos de lista interactivos a agrupar. |
 | **`className`** | `string` | `undefined` | Sobrescrituras de clases CSS utilitarias personalizadas. |
 | **`style`** | `CSSProperties` | `undefined` | Sobrescrituras de estilo en línea. |
+
+---
+
+## Personalización y estados
+
+`ButtonGroup` es puramente de diseño y no tiene estado propio. Solo compone a sus hijos — une botones adyacentes, fusiona sus bordes y recorta los radios de esquina. Toda decisión visual pertenece al tema: los colores, bordes y radios del contenedor mediante `className`, y la apariencia de cada botón hijo mediante su propio `className`.
+
+| Estado / Slot | Mecanismo |
+| :--- | :--- |
+| Propiedad `vertical` | Cambia el diseño entre `flex-row` (predeterminado) y `flex-col` |
+| `className` | Passthrough al contenedor flex (p. ej. `rounded-lg border border-subtle`) |
+| Primer / último hijo | Radios de esquina recortados (`rounded-r-none`, `rounded-l-none`); las esquinas exteriores siguen tu `rounded-*` |
+| Hijos adyacentes | Bordes compartidos fusionados mediante `-ml-px` (horizontal) o `-mt-px` (vertical) |
+| Sin estado | No hay atributos `data-*` ni estados de interacción — los hijos son dueños de sus propios estados |
+
+Tailwind v4:
+
+```tsx
+<ButtonGroup className="rounded-lg border border-subtle overflow-hidden">
+  <Button className="px-4 py-2 bg-surface hover:bg-soft text-body border-r border-subtle">
+    Izquierda
+  </Button>
+  <Button className="px-4 py-2 bg-surface hover:bg-soft text-body">
+    Derecha
+  </Button>
+</ButtonGroup>
+```

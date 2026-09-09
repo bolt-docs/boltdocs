@@ -1,11 +1,12 @@
 ---
 title: FlexSearch
-description: Boltdocs bundles **FlexSearch** as its default offline search engine. During the build phase, Boltdocs scans all markdown files, parses their HTML/headings, and compiles a highly compressed index JSON file. The client-side runtime loads this index and performs high-speed local matches with zero network queries
+sidebarPosition: 2
+description: Boltdocs ships with **FlexSearch** as its default offline search engine. During the build phase, Boltdocs scans all markdown files, parses their HTML/headings, and compiles a highly compressed index JSON file. The client-side runtime loads this index and performs high-speed local matching with no network queries
 ---
 
 ## The `useSearch()` Hook
 
-To build a custom search bar, query inputs, or inline list search, use the `useSearch()` hook from `boltdocs`. It exposes the live query state, search results, and dialog control callbacks.
+To build a custom search bar, query inputs, or inline list search, use the `useSearch()` hook from `boltdocs`. It exposes live query state, search results, and dialog control callbacks.
 
 ```tsx
 import { useSearch } from 'boltdocs'
@@ -36,35 +37,19 @@ export function MySearchBar() {
 }
 ```
 
----
-
-## API Reference
-
-### `useSearch()` Return Values
-
-| Property | Type | Description |
-| :--- | :--- | :--- |
-| **`query`** | `string` | The active search text query. |
-| **`setQuery`** | `(q: string) => void` | Updates the search string and queries the FlexSearch offline index. |
-| **`results`** | [`SearchResult[]`](#searchresult) | Array of matching page routes, sorted by relevance score. |
-| **`isOpen`** | `boolean` | `true` if the search modal is currently open. |
-| **`open`** | `() => void` | Opens the search modal state. |
-| **`close`** | `() => void` | Closes the search modal state and resets the query string. |
-
----
 
 ### `SearchResult`
 
 | Property | Type | Description |
 | :--- | :--- | :--- |
-| **`path`** | `string` | The resolved absolute route path (e.g. `'/docs/guides/getting-started'`). |
-| **`title`** | `string` | The matching page's title. |
-| **`description`** | `string` | The description of the page (from frontmatter or excerpt). |
-| **`headings`** | `HeadingMatch[]` | Sub-headings (`h2`–`h6`) inside the page that matched the search query. |
+| **`path`** | `string` | The resolved absolute path (e.g. `'/docs/guides/getting-started'`). |
+| **`title`** | `string` | The matching page title. |
+| **`description`** | `string` | The page description (from frontmatter or excerpt). |
+| **`headings`** | `HeadingMatch[]` | Sub-headings (`h2`–`h6`) within the page that matched the search query. |
 
 ---
 
 ## Local Development vs. Production
 
-* **Local Dev:** The search index is updated incrementally via Vite HMR as you edit files, making testing live search changes seamless.
-* **Production:** The index is bundled in a separate chunks-splitting bundle that loads asynchronously only when the user interacts with the search input, keeping initial bundle load size extremely minimal.
+* **Local Development:** The search index updates incrementally via Vite HMR as you edit files, making live search change testing seamless.
+* **Production:** The index is bundled into a separate chunk-split package that loads asynchronously only when the user interacts with the search input, keeping the initial bundle load size extremely minimal.

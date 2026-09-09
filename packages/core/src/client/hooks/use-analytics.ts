@@ -226,18 +226,19 @@ export function useAnalytics(options: UseAnalyticsOptions = {}) {
   const analytics = useMemo(() => createAnalyticsInstance(config), [config])
 
   const previousPath = useRef<string>('')
-  const location = useLocation()
+  const { pathname, search } = location
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: pathname/search are intentional triggers — dedupe page-view tracking per navigation
   useEffect(() => {
     if (!autoTrackPageViews || !analytics.isEnabled) return
 
-    const path = location.pathname + location.search
+    const path = pathname + search
 
     if (path !== previousPath.current) {
       previousPath.current = path
       analytics.trackPageView(path, document.title)
     }
-  }, [location.pathname, autoTrackPageViews, analytics])
+  }, [pathname, search, autoTrackPageViews, analytics])
 
   useEffect(() => {
     if (!autoTrackDownloads || !analytics.isEnabled) return
@@ -265,7 +266,7 @@ export function useAnalytics(options: UseAnalyticsOptions = {}) {
 
     document.addEventListener('click', handleClick)
     return () => document.removeEventListener('click', handleClick)
-  }, [autoTrackDownloads, autoTrackExternalLinks, analytics, excludePatterns])
+  }, [autoTrackDownloads, analytics, excludePatterns])
 
   useEffect(() => {
     if (!autoTrackExternalLinks || !analytics.isEnabled) return

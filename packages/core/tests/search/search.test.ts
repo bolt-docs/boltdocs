@@ -177,5 +177,105 @@ describe('search', () => {
       expect(documents[1].url).toBe('/docs/guide#step-one')
       expect(documents[2].url).toBe('/docs/guide#step-two')
     })
+
+    it('truncates page content to the first 500 characters', () => {
+      const longContent = 'x'.repeat(1200)
+      const documents = generateSearchData([
+        { path: '/docs/long', title: 'Long', _content: longContent },
+      ] as any)
+
+      expect(documents[0].content).toHaveLength(500)
+      expect(documents[0].content).toBe('x'.repeat(500))
+    })
+
+    it('indexes custom frontmatter values into the page content', () => {
+      const documents = generateSearchData([
+        {
+          path: '/docs/tagged',
+          title: 'Tagged',
+          _content: 'Base content',
+          frontmatter: {
+            tags: ['vite', 'plugin'],
+            author: 'Jane Doe',
+            rating: 5,
+            seo: { keywords: 'ignored-standard-key' },
+          },
+        },
+      ] as any)
+
+      const doc = documents[0]
+      expect(doc.content).toContain('Base content')
+      expect(doc.content).toContain('vite plugin')
+      expect(doc.content).toContain('Jane Doe')
+      // Standard keys (title, seo, ...) must NOT be indexed as custom text.
+      expect(doc.content).not.toContain('ignored-standard-key')
+      expect(doc.content).not.toContain('tagged')
+    })
+
+    it('recursively flattens nested custom frontmatter objects and arrays', () => {
+      const documents = generateSearchData([
+        {
+          path: '/docs/nested',
+          title: 'Nested',
+          _content: '',
+          frontmatter: {
+            meta: {
+              custom: ['a', { deep: 'b' }],
+            },
+          },
+        },
+      ] as any)
+
+      const content = documents[0].content
+      expect(content).toContain('a')
+      expect(content).toContain('b')
+    })
+
+    it('produces a strict full document shape for a page with headings', () => {
+      const documents = generateSearchData([
+        {
+          path: '/docs/guide',
+          title: 'Guide',
+          _content: 'Some guide content',
+          groupTitle: 'Basics',
+          locale: 'en',
+          version: 'v2',
+          headings: [
+            { level: 2, text: 'Setup', id: 'setup' },
+            { level: 3, text: 'Troubleshooting', id: 'troubleshooting' },
+          ],
+        },
+      ] as any)
+
+      expect(documents).toEqual([
+        {
+          id: '/docs/guide',
+          title: 'Guide',
+          content: 'Some guide content',
+          url: '/docs/guide',
+          display: 'Basics > Guide',
+          locale: 'en',
+          version: 'v2',
+        },
+        {
+          id: '/docs/guide#setup',
+          title: 'Setup',
+          content: 'Setup in Guide',
+          url: '/docs/guide#setup',
+          display: 'Guide > Setup',
+          locale: 'en',
+          version: 'v2',
+        },
+        {
+          id: '/docs/guide#troubleshooting',
+          title: 'Troubleshooting',
+          content: 'Troubleshooting in Guide',
+          url: '/docs/guide#troubleshooting',
+          display: 'Guide > Troubleshooting',
+          locale: 'en',
+          version: 'v2',
+        },
+      ])
+    })
   })
 })

@@ -10,14 +10,23 @@ import { resolveConfig, type BoltdocsConfig } from '../config'
 import { generateProjectTypes, writeLinkTree } from '../types-generator'
 import { normalizePath } from '../utils'
 import { injectHtmlMeta } from './html'
+import { validatePlugins, type BoltdocsPlugin } from '../plugins'
+import { PluginLifecycleManager } from '../plugins/plugin-lifecycle'
+import type { IPluginLifecycleManager } from '../../shared/types'
 import {
-  PluginLifecycleManager,
-  validatePlugins,
-  type SecureBoltdocsPlugin,
-} from '../plugins'
-import { createVirtualModulesPlugin } from './virtual-modules'
+  createVirtualModuleState,
+  createVirtualModulesPlugin,
+  getSearchDataExport,
+  type VirtualModuleState,
+} from './virtual-modules'
 import { createDevServerPlugin } from '../dev-server/index'
-import { boltdocsMdxPlugin } from '../mdx/index'
+import {
+  createPublicAssetRedirectMiddleware,
+  createPublicAssetResolver,
+  rewriteHtmlPublicAssetUrls,
+  type PublicAssetResolver,
+} from '../public-assets'
+import { createSatteriMdxPlugin } from '@bdocs/processor-satteri/node'
 import type { BoltdocsPluginOptions } from './types'
 
 import {
@@ -34,60 +43,334 @@ import {
 import {
   applyPluginServerMiddleware,
   runPluginServerStartCallbacks,
+  createPluginRuntimeState,
 } from '../plugins/plugin-context'
+import { getRouteCacheContext } from '../routes/cache'
 
 export * from './types'
 
 const req = createRequire(import.meta.url)
+// Fast externals matching: Set for exact, prefixes array for startsWith
+const EXACT_EXTERNALS = new Set([
+  'react',
+  'react-dom',
+  'react-router-dom',
+  'react-helmet-async',
+  '@bdocs/ssg',
+  'lucide-react',
+  'react-fast-compare',
+  'invariant',
+  'scheduler',
+])
+const EXTERNALS_PREFIXES = [
+  'react/',
+  'react-dom/',
+  'react-router-dom/',
+  'react-helmet-async/',
+  '@bdocs/ssg/',
+  'lucide-react/',
+  'scheduler/',
+]
+// Subset that need SSR external resolution (not react/react-dom which are handled by Vite)
+const SSR_RESOLVE_EXTERNALS = new Set([
+  '@bdocs/ssg',
+  'react-router-dom',
+  'react-helmet-async',
+])
+
+// Memoize resolveId results keyed by `${id}::${ssr}`.
+//
+// The `importer` was deliberately excluded from the key because the
+// resolution result for **every** code path (non-matching, exact external,
+// prefix match, node_modules match, pre-resolved SSR external) is
+// invariant with respect to the importer.  Only the unreachable fallback
+// branch (SSR + no pre-resolved entry + dynamic require.resolve) could
+// theoretically depend on the importer, and that branch never runs once
+// configResolved has populated _preResolvedExternals.
+//
+// On a cold build with 2000 modules and ~50 imports each this reduces the
+// cache from ~100 000 entries to ~1000 entries, and turns ~100 000 full
+// resolution passes into ~1000 — the remaining 99 000 calls are O(1) Map
+// hits that return immediately.
+let _resolveIdCache: Map<
+  string,
+  { id: string; external: boolean } | null
+> | null = null
+
+function getResolveIdCache() {
+  if (!_resolveIdCache) {
+    _resolveIdCache = new Map<
+      string,
+      { id: string; external: boolean } | null
+    >()
+  }
+  return _resolveIdCache
+}
+
+function cacheKey(id: string, ssr: boolean | undefined) {
+  return `${id}::${ssr ? '1' : '0'}`
+}
+
 const EXTERNALS = [
   'react',
   'react-dom',
   'react-router-dom',
   'react-helmet-async',
   '@bdocs/ssg',
+  'lucide-react',
+  'react-fast-compare',
+  'invariant',
+  'scheduler',
 ]
+
+// Cache boltdocs version read once per process — avoids redundant fs.readFileSync + JSON.parse
+// on every boltdocsPlugin() construction call.
+let _cachedBoltdocsVersion: string | null = null
+
+function _getBoltdocsVersion(): string {
+  if (!_cachedBoltdocsVersion) {
+    const packageJson = JSON.parse(
+      fs.readFileSync(
+        path.resolve(__dirname, '../../../package.json'),
+        'utf-8',
+      ),
+    ) as { version?: string }
+    _cachedBoltdocsVersion = packageJson.version ?? '0.0.0'
+  }
+  return _cachedBoltdocsVersion
+}
+
+// Memoize plugin validation by config.plugins JSON hash.
+// validatePlugins reads package.json for every plugin, checks version
+// compatibility, and validates the plugin schema.  On cold builds where
+// boltdocsPlugin() is called multiple times (client + SSR builds),
+// this avoids duplicating the ~500ms validation work.
+//
+// On cold start (empty in-memory cache), the disk cache at
+// .boltdocs/cache/plugin-validation.json is checked first.  If the
+// cache key (sorted plugin names + versions + boltdocsVersion) matches,
+// the entire validatePlugins() call — including Zod parsing — is skipped.
+const _pluginValidationCache = new Map<
+  string,
+  { validated: BoltdocsPlugin[] }
+>()
+
+// Disk cache for plugin validation — persists across process restarts.
+interface PluginValidationDiskEntry {
+  key: string
+  boltdocsVersion: string
+  validatedNames: string[]
+  timestamp: number
+}
+
+function _getPluginValidationCachePath(root: string): string {
+  return path.join(root, '.boltdocs', 'cache', 'plugin-validation.json')
+}
+
+function _tryLoadPluginValidationDiskCache(
+  root: string,
+  expectedKey: string,
+): boolean {
+  try {
+    const cachePath = _getPluginValidationCachePath(root)
+    if (!fs.existsSync(cachePath)) return false
+    const raw = fs.readFileSync(cachePath, 'utf-8')
+    const entry = JSON.parse(raw) as PluginValidationDiskEntry
+    return entry.key === expectedKey
+  } catch {
+    return false
+  }
+}
+
+function _writePluginValidationDiskCache(
+  root: string,
+  key: string,
+  boltdocsVersion: string,
+  validatedNames: string[],
+): void {
+  try {
+    const cachePath = _getPluginValidationCachePath(root)
+    fs.mkdirSync(path.dirname(cachePath), { recursive: true })
+    const entry: PluginValidationDiskEntry = {
+      key,
+      boltdocsVersion,
+      validatedNames,
+      timestamp: Date.now(),
+    }
+    fs.writeFileSync(cachePath, JSON.stringify(entry), 'utf-8')
+  } catch {}
+}
+
+// Cache for SSR external resolution — pre-resolves once, serves per-import cache hits
+let _preResolvedExternals: Map<string, string> | null = null
+
+/**
+ * Vite's Plugin type is not stable across major Vite versions (notably the
+ * Rollup/Rolldown `hotUpdate` context). Plugins are runtime-compatible here,
+ * so keep this unavoidable compatibility boundary in one helper.
+ */
+function adaptVitePlugins(plugins: unknown[] | undefined): Plugin[] {
+  return (plugins ?? []) as unknown as Plugin[]
+}
 
 export function boltdocsPlugin(
   options: BoltdocsPluginOptions = {},
   passedConfig?: BoltdocsConfig,
 ): Plugin[] {
-  const docsDir = path.resolve(process.cwd(), options.docsDir || 'docs')
+  const projectRoot = path.resolve(options.root || process.cwd())
+  const docsDir = path.resolve(projectRoot, options.docsDir || 'docs')
   const normalizedDocsDir = normalizePath(docsDir)
 
   let config: BoltdocsConfig = passedConfig!
   let viteConfig: ResolvedConfig
   let isBuild = false
+  const runtime = createPluginRuntimeState()
+  let routeCacheContext = getRouteCacheContext(docsDir)
+  const virtualModuleState: VirtualModuleState =
+    createVirtualModuleState(routeCacheContext)
   let lifecycle: PluginLifecycleManager
-  let routes: RouteMeta[] = []
+  // Pre-computed routes supplied by the pipeline / createViteConfig.
+  let routes: RouteMeta[] = options.routes ?? []
+  // Cache routes between client and server build config() invocations
+  let _routesCachePromise: Promise<RouteMeta[]> | null = null
+
+  // Framework fix for base-prefixed deployments: user-authored absolute URLs
+  // pointing at files in the public directory must carry Vite's `base`, both
+  // in the prerendered HTML (SSG) and in dev requests. The resolver is built
+  // lazily from the resolved Vite config (publicDir + base) and is a no-op
+  // when base is '/' or publicDir is disabled.
+  let _publicAssetResolver: PublicAssetResolver | null = null
+  const getPublicAssetResolver = (): PublicAssetResolver | null => {
+    if (_publicAssetResolver) return _publicAssetResolver
+    _publicAssetResolver = createPublicAssetResolver(
+      viteConfig?.publicDir,
+      viteConfig?.base,
+    )
+    return _publicAssetResolver
+  }
 
   // Validate plugins and extract vitePlugins synchronously at creation time
   // so they're available when the plugins array is returned to Vite.
   // The config() hook runs AFTER Vite receives the array, so we can't
   // populate resolvedExtraVitePlugins there.
+  //    // Memoize plugin validation by plugins array hash.
+  // On cold builds, boltdocsPlugin() is called twice (client + SSR),
+  // but the plugins array is identical.  The cache avoids re-reading
+  // each plugin's package.json and re-validating the schema (~500ms saved).
+  //
+  // Also cache the package.json read per process (the version doesn't
+  // change within a single Node.js process).
   let resolvedExtraVitePlugins: Plugin[] = []
   if (config?.plugins?.length) {
     try {
-      const { version } = JSON.parse(
-        fs.readFileSync(
-          path.resolve(__dirname, '../../../package.json'),
-          'utf-8',
-        ),
+      const version = _getBoltdocsVersion()
+      const cacheKey = JSON.stringify(
+        config.plugins
+          .map((p: any) =>
+            [p.name || '', p.version || '', p.boltdocsVersion || ''].join(':'),
+          )
+          .sort(),
       )
-      const validated = validatePlugins(config.plugins, version)
-      config.plugins = validated as any
-      lifecycle = new PluginLifecycleManager(validated, config)
-      resolvedExtraVitePlugins = validated.flatMap(
-        (p) => (p.vitePlugins || []) as Plugin[],
-      )
+      const cached = _pluginValidationCache.get(cacheKey)
+      if (cached) {
+        const validated = cached.validated
+        config.plugins = validated as any
+        lifecycle = new PluginLifecycleManager(
+          validated,
+          config,
+          docsDir,
+          undefined,
+          undefined,
+          undefined,
+          runtime,
+          routeCacheContext,
+        )
+        resolvedExtraVitePlugins = validated.flatMap((p) =>
+          adaptVitePlugins(p.vitePlugins),
+        )
+      } else if (_tryLoadPluginValidationDiskCache(projectRoot, cacheKey)) {
+        // Disk cache hit — skip validatePlugins() entirely.
+        // The plugins were validated on a previous cold start and the
+        // cache key (names + versions + boltdocsVersion) hasn't changed.
+        const validated = config.plugins as unknown as BoltdocsPlugin[]
+        lifecycle = new PluginLifecycleManager(
+          validated,
+          config,
+          docsDir,
+          undefined,
+          undefined,
+          undefined,
+          runtime,
+          routeCacheContext,
+        )
+        resolvedExtraVitePlugins = validated.flatMap((p) =>
+          adaptVitePlugins(p.vitePlugins),
+        )
+        _pluginValidationCache.set(cacheKey, { validated })
+      } else {
+        const validated = validatePlugins(config.plugins, version)
+        config.plugins = validated as any
+        lifecycle = new PluginLifecycleManager(
+          validated,
+          config,
+          docsDir,
+          undefined,
+          undefined,
+          undefined,
+          runtime,
+          routeCacheContext,
+        )
+        resolvedExtraVitePlugins = validated.flatMap((p) =>
+          adaptVitePlugins(p.vitePlugins),
+        )
+        _pluginValidationCache.set(cacheKey, { validated })
+        _writePluginValidationDiskCache(
+          projectRoot,
+          cacheKey,
+          version,
+          validated.map((p) => p.name),
+        )
+      }
     } catch {}
   }
+
+  // Cache ssgOptions object so it's not rebuilt per `config()` hook call.
+  // The object contains callbacks (onPageRendered) that reference the same
+  // lifecycle and config — those are stable within a single process.
+  let _ssgOptionsCache: Record<string, unknown> | null = null
+
+  // Path → RouteMeta lookup cache for the onPageRendered transform chain.
+  // Filled lazily on first render of each path; route paths are unique so
+  // the initial linear scan is the only one that runs.
+  const _routeMetaByPathCache = new Map<string, RouteMeta>()
 
   const getConfig = () => config
   const setConfig = (c: BoltdocsConfig) => {
     config = c
   }
   const getViteConfig = () => viteConfig
-  const getLifecycle = (): PluginLifecycleManager | undefined => lifecycle
+  const getLifecycle = (): IPluginLifecycleManager | undefined => {
+    if (routeCacheContext.disposed) {
+      routeCacheContext = getRouteCacheContext(docsDir)
+      virtualModuleState.routeCacheContext = routeCacheContext
+      virtualModuleState.routeCacheVariant = undefined
+      virtualModuleState.routeGenerationFingerprint = undefined
+      virtualModuleState.routesDataMap.clear()
+      virtualModuleState.collectionsDataMap.clear()
+      virtualModuleState.searchDataMap.clear()
+      lifecycle = new PluginLifecycleManager(
+        config.plugins || [],
+        config,
+        docsDir,
+        undefined,
+        routes,
+        viteConfig?.build?.outDir || 'dist',
+        runtime,
+        routeCacheContext,
+      )
+    }
+    return lifecycle
+  }
 
   return [
     {
@@ -97,6 +380,38 @@ export function boltdocsPlugin(
       async config(userConfig, env) {
         isBuild = env.command === 'build'
         const isSsr = !!(env.isSsrBuild || userConfig.build?.ssr)
+
+        // SSR build: config + routes + lifecycle are already set from the
+        // client build's config() call (Vite calls this hook once per build,
+        // but for SSG there are two builds: client + SSR).  Skip everything
+        // except the essential SSR-specific overrides.
+        //
+        // IMPORTANT: `build.ssrManifest: true` must be included because
+        // the SSG build reads `ssr-manifest.json` from the SSR output dir.
+        // ctx.viteConfig (from createViteConfig) has `build: {}` — it does
+        // NOT include ssrManifest, so the SSR build MUST set it here.
+        if (isSsr && config && routes.length > 0 && lifecycle) {
+          return {
+            build: { ssrManifest: true },
+            ssr: {
+              external: [
+                'react',
+                'react-dom',
+                'react-helmet-async',
+                'react-router-dom',
+                '@bdocs/ssg',
+                'jsdom',
+                'lucide-react',
+                'react-fast-compare',
+                'invariant',
+                'scheduler',
+                ...getExternalAbsolutePaths(req),
+              ],
+              optimizeDeps: { include: ['react-fast-compare'] },
+              noExternal: [],
+            },
+          }
+        }
 
         // Cargar variables de entorno globales
         Object.assign(
@@ -108,8 +423,12 @@ export function boltdocsPlugin(
           config = await resolveConfig(docsDir)
         }
 
-        if (routes.length === 0) {
-          routes = await generateRoutes(docsDir, config)
+        if (routes.length === 0 && isBuild) {
+          // Cache routes to avoid re-generating in SSR build
+          if (!_routesCachePromise) {
+            _routesCachePromise = generateRoutes(docsDir, config)
+          }
+          routes = await _routesCachePromise
           const routePaths = routes.map((r) => r.path)
           const basePath = (config.base || '/docs').replace(/\/$/, '')
 
@@ -123,71 +442,107 @@ export function boltdocsPlugin(
           generateProjectTypes(config, docsDir, undefined, routePaths)
           writeLinkTree(routePaths)
         }
+        // If routes were pre-computed by the pipeline, skip generation here.
+        // The pipeline (ConfigResolveStep) already wrote types/link-tree.
 
-        // Pre-warm Shiki highlighter during plugin load
-        import('../mdx/shiki-adapter')
-          .then(({ getShikiAdapter }) => {
-            const adapter = getShikiAdapter(config)
-            adapter.getHighlighter().catch(() => {})
-          })
-          .catch(() => {})
-
-        // Inicializar ecosistema de subplugins
-        const { version } = await import('../../../package.json')
-        const validated = validatePlugins(
-          config.plugins || ([] as SecureBoltdocsPlugin[]),
-          version,
-        )
-
-        config.plugins = validated as any
-        lifecycle = new PluginLifecycleManager(
-          validated,
-          config,
-          docsDir,
-          undefined,
-          routes,
-          viteConfig?.build?.outDir || 'dist',
-        )
-        resolvedExtraVitePlugins = validated.flatMap(
-          (p) => (p.vitePlugins || []) as Plugin[],
-        )
-
-        if (isBuild) await lifecycle.runHook('beforeBuild')
-
-        // Build the ssgOptions. We add `onPageRendered` so the SSG page
-        // renderer calls `transformHtml` lifecycle hooks on every generated
-        // page. The callback is a no-op when lifecycle is unavailable.
-        const ssgOptions: Record<string, unknown> = {
-          entry: 'boltdocs/entry',
-          htmlEntry: 'index.html',
-          dirStyle: 'flat',
-          includeAllRoutes: true,
-          mock: true,
-          script: 'async',
-          beastiesOptions: false,
-          onPageRendered: async (
-            path: string,
-            renderedHTML: string,
-          ): Promise<string> => {
-            if (!lifecycle) return renderedHTML
-            try {
-              const result = await lifecycle.runChain('transformHtml', {
-                html: renderedHTML,
-                path,
-              })
-              let html = result.html
-              // Run middleware chain after lifecycle hooks
-              const middlewareResult = await lifecycle.runMiddlewareChain(
-                'transformHtml',
-                { html, path },
-              )
-              html = middlewareResult.html
-              return html
-            } catch {
-              return renderedHTML
-            }
-          },
+        // Pre-warm Shiki highlighter only for builds. In dev it is deferred
+        // to post-listen (dev-server plugin) because the highlighter build is
+        // ~2.5s of synchronous CPU that otherwise blocks Vite's server setup.
+        if (isBuild) {
+          import('../mdx/shiki-adapter')
+            .then(({ prewarmShiki }) => prewarmShiki(config))
+            .catch(() => {})
         }
+
+        // Initialize plugin lifecycle (already validated in constructor — skip
+        // duplicate validatePlugins call which is expensive). If lifecycle
+        // wasn't already created (no plugins at construction time), create it now.
+        if (!lifecycle) {
+          const { version } = await import('../../../package.json')
+          const validated = validatePlugins(
+            config.plugins || ([] as BoltdocsPlugin[]),
+            version,
+          )
+          config.plugins = validated as any
+          lifecycle = new PluginLifecycleManager(
+            validated,
+            config,
+            docsDir,
+            undefined,
+            routes,
+            viteConfig?.build?.outDir || 'dist',
+            runtime,
+            routeCacheContext,
+          )
+          resolvedExtraVitePlugins = validated.flatMap((p) =>
+            adaptVitePlugins(p.vitePlugins),
+          )
+        }
+
+        if (isBuild) await lifecycle?.runHook('build:before')
+
+        // Build the ssgOptions once and cache it.  The `onPageRendered`
+        // callback references the same lifecycle instance for the entire
+        // process, so it's safe to reuse.
+        if (!_ssgOptionsCache) {
+          // Map config `ssg.criticalCss: 'none'` → `criticalCss: false` for the SSG build
+          const configCriticalCss = config.ssg?.criticalCss
+          const resolvedCriticalCss: 'zig-critters' | 'beasties' | false =
+            configCriticalCss === 'none'
+              ? false
+              : configCriticalCss === 'beasties'
+                ? 'beasties'
+                : 'zig-critters'
+
+          _ssgOptionsCache = {
+            entry: 'boltdocs/entry',
+            htmlEntry: 'index.html',
+            dirStyle: 'flat',
+            includeAllRoutes: true,
+            mock: true,
+            script: 'async',
+            beastiesOptions: false,
+            criticalCss: resolvedCriticalCss,
+            onPageRendered: async (
+              path: string,
+              renderedHTML: string,
+            ): Promise<string> => {
+              if (!lifecycle) return renderedHTML
+              try {
+                // Resolve the RouteMeta for this page so transform chains
+                // receive the documented `route` context (locale, version,
+                // collection, ...). Route paths are unique, so a linear
+                // lookup cached per path is fine.
+                const routeMeta =
+                  _routeMetaByPathCache.get(path) ??
+                  routes.find((r) => r.path === path)
+                if (routeMeta) _routeMetaByPathCache.set(path, routeMeta)
+                const result = await lifecycle.runChain('transformHtml', {
+                  html: renderedHTML,
+                  path,
+                  route: routeMeta,
+                })
+                let html = result.html
+                // Run middleware chain after lifecycle hooks
+                const middlewareResult = await lifecycle.runMiddlewareChain(
+                  'transformHtml',
+                  { html, path },
+                )
+                html = middlewareResult.html
+                // Normalize user-authored public-asset URLs to the configured
+                // base so prerendered pages resolve under base deployments.
+                const publicAssetResolver = getPublicAssetResolver()
+                if (publicAssetResolver) {
+                  html = rewriteHtmlPublicAssetUrls(html, publicAssetResolver)
+                }
+                return html
+              } catch {
+                return renderedHTML
+              }
+            },
+          }
+        }
+        const ssgOptions = _ssgOptionsCache
 
         return {
           ssgOptions,
@@ -201,6 +556,10 @@ export function boltdocsPlugin(
               'react-helmet-async',
               'react-fast-compare',
               'invariant',
+              // Default docs themes import lucide-react statically; without
+              // this entry its late discovery triggers a full-page reload on
+              // cold starts.
+              'lucide-react',
             ],
             exclude: ['boltdocs', 'boltdocs/client'],
           },
@@ -234,6 +593,10 @@ export function boltdocsPlugin(
               'react-router-dom',
               '@bdocs/ssg',
               'jsdom',
+              'lucide-react',
+              'react-fast-compare',
+              'invariant',
+              'scheduler',
               ...getExternalAbsolutePaths(req),
             ],
             optimizeDeps: { include: ['react-fast-compare'] },
@@ -246,17 +609,85 @@ export function boltdocsPlugin(
 
       configResolved(resolved) {
         viteConfig = resolved
+
+        // Pre-resolve all SSR externals once (avoids redundant resolveEsm + realpathSync per import)
+        if (!_preResolvedExternals) {
+          _preResolvedExternals = new Map()
+          for (const ext of SSR_RESOLVE_EXTERNALS) {
+            try {
+              const resolved = resolveEsm(ext)
+              const real = fs.realpathSync(resolved)
+              _preResolvedExternals.set(ext, real)
+            } catch {}
+          }
+          for (const ext of [
+            'react',
+            'react-dom',
+            'jsdom',
+            'lucide-react',
+            'react-fast-compare',
+            'invariant',
+            'scheduler',
+          ]) {
+            try {
+              const resolved = req.resolve(ext)
+              const real = fs.realpathSync(resolved)
+              _preResolvedExternals.set(ext, real)
+            } catch {}
+          }
+        }
       },
 
       resolveId(id, _importer, options) {
-        const match = EXTERNALS.find(
-          (ext) =>
-            id === ext ||
-            id.startsWith(`${ext}/`) ||
-            id.includes(`/node_modules/${ext}/`) ||
-            (ext.startsWith('@') &&
-              id.includes(`/node_modules/${ext.replace('/', path.sep)}/`)),
-        )
+        // Fast path: cache by id + ssr.  importer is excluded from the key
+        // because the resolution result is invariant wrt the importer (see
+        // the comment on getResolveIdCache).  The key change reduced cache
+        // entries from ~100k to ~1k on cold builds.
+        const cache = getResolveIdCache()
+        const key = cacheKey(id, options?.ssr)
+        const cached = cache.get(key)
+        if (cached !== undefined) {
+          return cached
+        }
+
+        // Quick rejection for non-matching bare specifiers.
+        // Most imports don't match EXTERNALS, so skip early.
+        if (!path.isAbsolute(id) && !id.startsWith('.')) {
+          if (
+            !EXACT_EXTERNALS.has(id) &&
+            !id.startsWith('react') &&
+            !id.startsWith('@bdocs')
+          ) {
+            cache.set(key, null)
+            return null
+          }
+        }
+
+        // Determine if id matches any external
+        let match: string | null = null
+
+        // Exact match (bare specifier like 'react-router-dom')
+        if (EXACT_EXTERNALS.has(id)) {
+          match = id
+        }
+
+        // Prefix match (bare specifier with sub-path like 'react-router-dom/xxx')
+        if (!match && !path.isAbsolute(id) && !id.startsWith('.')) {
+          const prefix = EXTERNALS_PREFIXES.find((p) => id.startsWith(p))
+          if (prefix) {
+            match = prefix.slice(0, -1) // Remove trailing '/'
+          }
+        }
+
+        // node_modules match (resolved path like /path/node_modules/react-router-dom/xxx)
+        if (!match && id.includes('/node_modules/')) {
+          for (const ext of EXTERNALS) {
+            if (id.includes(`/node_modules/${ext}/`)) {
+              match = ext
+              break
+            }
+          }
+        }
 
         if (
           match &&
@@ -265,34 +696,36 @@ export function boltdocsPlugin(
           match !== 'react' &&
           match !== 'react-dom'
         ) {
+          // Use pre-resolved cache — resolves once, serves all subsequent imports
+          const preResolved = _preResolvedExternals?.get(match)
+          if (preResolved) {
+            const result = { id: preResolved, external: true }
+            cache.set(key, result)
+            return result
+          }
+
+          // Fallback: resolve on-the-fly (should rarely happen)
           const loader = getBaseRequire(req)
           let resolvedId = id
-
           try {
-            resolvedId = [
-              '@bdocs/ssg',
-              'react-router-dom',
-              'react-helmet-async',
-            ].includes(match)
+            resolvedId = SSR_RESOLVE_EXTERNALS.has(match)
               ? resolveEsm(id, loader)
               : loader.resolve(id)
           } catch {
             try {
-              resolvedId = [
-                '@bdocs/ssg',
-                'react-router-dom',
-                'react-helmet-async',
-              ].includes(match)
+              resolvedId = SSR_RESOLVE_EXTERNALS.has(match)
                 ? resolveEsm(id, req)
                 : req.resolve(id)
             } catch {}
           }
-
           try {
             resolvedId = fs.realpathSync(resolvedId)
           } catch {}
-          return { id: resolvedId, external: true }
+          const result = { id: resolvedId, external: true }
+          cache.set(key, result)
+          return result
         }
+        cache.set(key, null)
         return null
       },
 
@@ -301,10 +734,60 @@ export function boltdocsPlugin(
         handler: (html) => injectHtmlMeta(html, config),
       },
 
+      configureServer(server) {
+        // Serve public assets authored without the base prefix: redirect
+        // `/cover.webp` → `<base>/cover.webp` when the file exists in the
+        // resolved publicDir. Without this, user references to public files
+        // 404 in dev on base-prefixed deployments.
+        server.middlewares.use(
+          createPublicAssetRedirectMiddleware(
+            viteConfig?.publicDir,
+            viteConfig?.base,
+          ),
+        )
+
+        // Serve search.json dynamically in dev so the client can fetch the
+        // index lazily without bundling it into the JS payload.
+        server.middlewares.use((req, res, next) => {
+          const url = req.url?.split('?')[0]
+          if (url === '/search.json' || url?.endsWith('/search.json')) {
+            import('./virtual-modules')
+              .then(() => {
+                const data = getSearchDataExport(virtualModuleState)
+                res.setHeader('Content-Type', 'application/json')
+                res.end(JSON.stringify(data))
+              })
+              .catch((err) => {
+                console.error('[boltdocs] Failed to serve search.json:', err)
+                res.statusCode = 500
+                res.end('[]')
+              })
+            return
+          }
+          next()
+        })
+      },
+
+      async generateBundle() {
+        // Emit search.json as a static asset in production builds so the
+        // client can fetch it lazily instead of embedding it in the bundle.
+        if (!isBuild || viteConfig?.build?.ssr) return
+        try {
+          const data = getSearchDataExport(virtualModuleState)
+          this.emitFile({
+            type: 'asset',
+            fileName: 'search.json',
+            source: JSON.stringify(data),
+          })
+        } catch (err) {
+          console.error('[boltdocs] Failed to emit search.json:', err)
+        }
+      },
+
       async closeBundle() {
         if (!isBuild || viteConfig?.build?.ssr) return
-        await lifecycle?.runHook('afterBuild')
-        await lifecycle?.runHook('buildEnd')
+        await lifecycle?.runHook('build:after')
+        await lifecycle?.runHook('build:end')
       },
 
       configurePreviewServer(server) {
@@ -313,73 +796,38 @@ export function boltdocsPlugin(
         server.middlewares.use(createStaticHtmlMiddleware(getViteConfig))
 
         // Apply plugin-registered server middleware on preview too
-        applyPluginServerMiddleware(server)
-        runPluginServerStartCallbacks().catch(() => {})
+        applyPluginServerMiddleware(server, runtime)
+        runPluginServerStartCallbacks(runtime).catch(() => {})
       },
     },
 
-    createVirtualModulesPlugin(options, getConfig, getViteConfig, docsDir),
+    createVirtualModulesPlugin(
+      options,
+      getConfig,
+      getViteConfig,
+      docsDir,
+      runtime,
+      virtualModuleState,
+    ),
     createDevServerPlugin(
       docsDir,
       normalizedDocsDir,
       getConfig,
       setConfig,
       getLifecycle,
+      runtime,
+      virtualModuleState,
     ),
 
-    // Unified MDX plugin (default) — always included, skips if turbo is active
-    ...(!options.turbo ? [boltdocsMdxPlugin(config, getLifecycle)] : []),
+    // Sätteri MDX processor — Rust-based, fast, always active
+    // (replaced the old @mdx-js/rollup pipeline entirely)
+    ...adaptVitePlugins([
+      createSatteriMdxPlugin(config, getLifecycle, {
+        docsDir: options.docsDir || 'docs',
+      }),
+    ]),
 
-    // Sätteri MDX plugin (turbo) — lazy-loaded, skips if turbo is off
-    ...(options.turbo
-      ? [
-          (() => {
-            let resolved: any = null
-
-            async function ensure() {
-              if (!resolved) {
-                try {
-                  const { createSatteriMdxPlugin } = await import(
-                    '@bdocs/processor-satteri/node'
-                  )
-                  resolved = createSatteriMdxPlugin(config, getLifecycle)
-                } catch {
-                  // Sätteri not available — return null for all hooks
-                }
-              }
-              return resolved
-            }
-
-            const plugin: Plugin = {
-              name: 'vite-plugin-boltdocs-satteri-mdx',
-              enforce: 'pre',
-
-              async load(id: string) {
-                const p = await ensure()
-                if (!p) return null
-                if (p.load) return p.load(id)
-                return null
-              },
-
-              async transform(code: string, id: string) {
-                const p = await ensure()
-                if (!p) return null
-                if (p.transform) return p.transform(code, id)
-                return null
-              },
-
-              async buildEnd() {
-                const p = await ensure()
-                if (p && p.buildEnd) await p.buildEnd()
-              },
-            }
-
-            return plugin
-          })(),
-        ]
-      : []),
-
-    ViteImageOptimizer({ includePublic: true }),
+    ...adaptVitePlugins([ViteImageOptimizer({ includePublic: true })]),
 
     ...resolvedExtraVitePlugins,
   ]

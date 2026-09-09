@@ -205,6 +205,28 @@ regex: ^\\d+$
       regex: '^\\d+$',
     })
   })
+
+  it('should allow apostrophes inside plain values', () => {
+    const input = `---
+title: page's guide
+description: Don't break on the user's browser.
+---
+# Content`
+    const result = parseFrontmatterFast(input)
+    expect(result.data).toEqual({
+      title: "page's guide",
+      description: "Don't break on the user's browser.",
+    })
+  })
+
+  it('should allow apostrophes in quoted values', () => {
+    const input = `---
+title: "It's fine"
+---
+# Content`
+    const result = parseFrontmatterFast(input)
+    expect(result.data).toEqual({ title: "It's fine" })
+  })
 })
 
 describe('MAX_FRONTMATTER_SIZE', () => {

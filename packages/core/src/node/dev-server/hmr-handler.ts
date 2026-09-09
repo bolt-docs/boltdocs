@@ -1,12 +1,24 @@
-import type { ViteDevServer, Plugin } from 'vite'
+import type { ModuleNode, ViteDevServer, Plugin } from 'vite'
 import { invalidateRouteCache, invalidateFile } from '../routes'
+import {
+  getRouteGenerationFingerprint,
+  getRouteCacheContext,
+  getRouteCacheVariant,
+  invalidateDirectoryMetaFile,
+  type RouteCacheContext,
+  type RouteCacheVariant,
+} from '../routes/cache'
 import { type BoltdocsConfig, CONFIG_FILES } from '../config'
 import { generateProjectTypes } from '../types-generator'
 import { normalizePath, isDocFile } from '../utils'
-import { invalidateDirectoryMetaCache } from '../plugin/virtual-modules'
 import {
-  invalidateVirtualModulesCache,
+  computeFrontmatterDelta,
+  invalidateDirectoryMetaCache,
+  type VirtualModuleState,
+} from '../plugin/virtual-modules'
+import {
   runPluginHmrHandlers,
+  type PluginRuntimeState,
 } from '../plugins/plugin-context'
 import {
   computeFrontmatterHash,
@@ -17,13 +29,25 @@ import {
 import { generateLinkTree } from '../cli/doctor'
 import path from 'node:path'
 import { error } from '@bdocs/dui'
+import { invalidateMdxFileCache } from '@bdocs/processor-satteri/node'
 
 const DEBOUNCE_MS = 150
 const MDX_COMP_EXTENSIONS = ['tsx', 'ts', 'jsx', 'js']
 
 function invalidateVirtualModule(server: ViteDevServer, name: string): void {
-  const mod = server.moduleGraph.getModuleById(`\0virtual:boltdocs-${name}.ts`)
-  if (mod) server.moduleGraph.invalidateModule(mod)
+  // The entry resolves with a `.tsx` extension while other virtual modules use
+  // `.ts`; probe the exact id so invalidation actually hits the module graph.
+  const candidates = [
+    `\0virtual:boltdocs-${name}.ts`,
+    `\0virtual:boltdocs-${name}.tsx`,
+  ]
+  for (const id of candidates) {
+    const mod = server.moduleGraph.getModuleById(id)
+    if (mod) {
+      server.moduleGraph.invalidateModule(mod)
+      break
+    }
+  }
 }
 
 export function setupHmr(
@@ -31,18 +55,39 @@ export function setupHmr(
   docsDir: string,
   normalizedDocsDir: string,
   getConfig: () => BoltdocsConfig,
+  runtime?: PluginRuntimeState,
+  virtualModuleState?: VirtualModuleState,
+  routeCacheContext?: RouteCacheContext,
+  routeCacheVariant?: RouteCacheVariant,
 ): void {
+  const cacheContext =
+    routeCacheContext && !routeCacheContext.disposed
+      ? routeCacheContext
+      : virtualModuleState?.routeCacheContext &&
+          !virtualModuleState.routeCacheContext.disposed
+        ? virtualModuleState.routeCacheContext
+        : getRouteCacheContext(docsDir)
+  const cacheVariant =
+    routeCacheVariant ??
+    getRouteCacheVariant(
+      cacheContext,
+      getRouteGenerationFingerprint(getConfig()),
+    )
   const pendingChanges = new Map<string, ReturnType<typeof setTimeout>>()
-  const lowerDocsDir = normalizedDocsDir.toLowerCase()
+  const changeQueues = new Map<string, Promise<void>>()
+  const fileGenerations = new Map<string, number>()
+  const lowerDocsDir = normalizedDocsDir.replace(/\/+$/, '').toLowerCase()
   // Pre-built lowercase index for O(1) module graph fallback lookup
-  let lowerModuleIndex: Map<string, any> | null = null
+  let lowerModuleIndex: Map<string, Set<ModuleNode>> | null = null
 
-  function getLowerModuleIndex(): Map<string, any> {
+  function getLowerModuleIndex(): Map<string, Set<ModuleNode>> {
     if (lowerModuleIndex) return lowerModuleIndex
     lowerModuleIndex = new Map()
     for (const [key, value] of server.moduleGraph.fileToModulesMap.entries()) {
       try {
-        lowerModuleIndex.set(decodeURIComponent(key).toLowerCase(), value)
+        if (value) {
+          lowerModuleIndex.set(decodeURIComponent(key).toLowerCase(), value)
+        }
       } catch {}
     }
     return lowerModuleIndex
@@ -53,12 +98,62 @@ export function setupHmr(
     lowerModuleIndex = null
   })
 
+  function isCurrentGeneration(file: string, generation: number): boolean {
+    return fileGenerations.get(file) === generation
+  }
+
+  function invalidateMdxModules(normalized: string): boolean {
+    let mods = server.moduleGraph.getModulesByFile(normalized)
+    if (!mods || mods.size === 0) {
+      mods = getLowerModuleIndex().get(normalized.toLowerCase())
+    }
+    if (mods && mods.size > 0) {
+      for (const mod of mods) {
+        server.moduleGraph.invalidateModule(mod)
+      }
+      return true
+    }
+    return false
+  }
+
+  function sendMdxContentUpdate(
+    file: string,
+    normalized: string,
+    generation: number,
+  ): void {
+    if (!isCurrentGeneration(normalized, generation)) return
+
+    const relative = path.relative(docsDir, file)
+    const relPath = normalizePath(relative)
+    const found = invalidateMdxModules(normalized)
+    if (!isCurrentGeneration(normalized, generation)) return
+    if (found) {
+      server.ws.send({
+        type: 'custom',
+        event: 'boltdocs:mdx-update',
+        data: { file: normalized, relPath },
+      })
+    } else {
+      server.ws.send({ type: 'full-reload' })
+    }
+  }
+
   const handleFileEvent = async (
     file: string,
     type: 'add' | 'unlink' | 'change',
   ) => {
     try {
       const normalized = normalizePath(file)
+      const generation = (fileGenerations.get(normalized) ?? 0) + 1
+      fileGenerations.set(normalized, generation)
+
+      if (type === 'add' || type === 'unlink') {
+        const pending = pendingChanges.get(normalized)
+        if (pending) {
+          clearTimeout(pending)
+          pendingChanges.delete(normalized)
+        }
+      }
 
       if (CONFIG_FILES.some((c) => normalized.endsWith(c))) {
         server.restart()
@@ -114,7 +209,10 @@ export function setupHmr(
         return
       }
 
-      const isInsideDocs = normalized.toLowerCase().startsWith(lowerDocsDir)
+      const lowerNormalized = normalized.toLowerCase()
+      const isInsideDocs =
+        lowerNormalized === lowerDocsDir ||
+        lowerNormalized.startsWith(`${lowerDocsDir}/`)
       if (!isInsideDocs) return
 
       const isMetaJson =
@@ -123,14 +221,32 @@ export function setupHmr(
 
       if (type === 'add' || type === 'unlink' || isMetaJson) {
         if (type === 'unlink') {
-          removeFrontmatterHash(file)
+          removeFrontmatterHash(file, cacheContext, cacheVariant)
         }
-        invalidateRouteCache()
-        invalidateDirectoryMetaCache()
-        invalidateVirtualModulesCache()
+        if (isMetaJson) {
+          invalidateDirectoryMetaFile(file, cacheContext)
+        }
+        // A deleted-and-recreated file keeps its old compiled output in the
+        // Sätteri MDX cache and in Vite's module graph unless it is
+        // invalidated here: the `change` path below clears both, but `add`
+        // regenerates routes and sends a full reload, after which the
+        // browser re-fetches the module and would otherwise receive the
+        // stale compiled content. (`unlink` alone needs no invalidation:
+        // the file is gone, and a later re-add goes through this branch.)
+        if (type === 'add') {
+          invalidateMdxFileCache(file)
+          invalidateMdxModules(normalized)
+        }
+        invalidateRouteCache(cacheContext)
+        invalidateDirectoryMetaCache(virtualModuleState)
 
-        // Notify plugin HMR handlers after core processing
-        runPluginHmrHandlers(type, normalized).catch((e) => {
+        // Notify plugin HMR handlers after core processing. Preserve the
+        // two-argument legacy call for isolated consumers that do not provide
+        // an explicit runtime.
+        const hmrResult = runtime
+          ? runPluginHmrHandlers(type, normalized, runtime)
+          : runPluginHmrHandlers(type, normalized)
+        hmrResult.catch((e) => {
           error('Plugin HMR handler error:', e)
         })
 
@@ -161,56 +277,121 @@ export function setupHmr(
       }
 
       if (pendingChanges.has(normalized)) {
-        clearTimeout(pendingChanges.get(normalized)!)
+        const pending = pendingChanges.get(normalized)
+        if (pending) clearTimeout(pending)
       }
 
       pendingChanges.set(
         normalized,
-        setTimeout(async () => {
+        setTimeout(() => {
           pendingChanges.delete(normalized)
 
-          try {
-            const prevHash = getFrontmatterHash(file)
-            const newHash = await computeFrontmatterHash(file)
-            setFrontmatterHash(file, newHash)
+          const previousChange =
+            changeQueues.get(normalized) ?? Promise.resolve()
+          const currentChange = previousChange.then(async () => {
+            if (fileGenerations.get(normalized) !== generation) return
 
-            invalidateFile(file)
+            try {
+              const prevHash = getFrontmatterHash(
+                file,
+                cacheContext,
+                cacheVariant,
+              )
+              const newHash = await computeFrontmatterHash(file)
+              if (fileGenerations.get(normalized) !== generation) return
 
-            if (prevHash !== undefined && prevHash !== newHash) {
-              invalidateDirectoryMetaCache()
-              invalidateVirtualModule(server, 'routes')
-              invalidateVirtualModule(server, 'search')
-              invalidateVirtualModule(server, 'collections')
-              server.ws.send({ type: 'full-reload' })
-              return
-            }
+              if (!isCurrentGeneration(normalized, generation)) return
 
-            const relative = path.relative(docsDir, file)
-            const relPath = normalizePath(relative)
+              // Invalidate the route/parser caches first, then persist the
+              // new hash as the baseline for the next change. Storing before
+              // invalidating would wipe the just-written entry (invalidateFile
+              // clears frontmatterHashes), leaving prevHash undefined on the
+              // next edit and silently disabling frontmatter-delta HMR.
+              invalidateFile(file, cacheContext)
+              invalidateMdxFileCache(file)
+              setFrontmatterHash(file, newHash, cacheContext, cacheVariant)
 
-            let mods = server.moduleGraph.getModulesByFile(normalized)
-            if (!mods || mods.size === 0) {
-              // O(1) lookup via pre-built lowercase index instead of O(N) scan
-              mods = getLowerModuleIndex().get(normalized.toLowerCase()) || null
-            }
-
-            if (mods && mods.size > 0) {
-              for (const mod of mods) {
-                server.moduleGraph.invalidateModule(mod)
+              // Regular document changes are debounced below, so notify
+              // plugin handlers here after the change has been validated and
+              // the parser/MDX caches have been invalidated.
+              if (runtime) {
+                await runPluginHmrHandlers('change', normalized, runtime)
+              } else {
+                await runPluginHmrHandlers('change', normalized)
               }
-            } else {
-              server.ws.send({ type: 'full-reload' })
-              return
-            }
 
-            server.ws.send({
-              type: 'custom',
-              event: 'boltdocs:mdx-update',
-              data: { file: normalized, relPath },
-            })
-          } catch (e) {
-            error('HMR error processing content change:', e)
+              if (prevHash !== undefined && prevHash !== newHash) {
+                if (!isCurrentGeneration(normalized, generation)) return
+
+                invalidateVirtualModule(server, 'routes')
+                invalidateVirtualModule(server, 'search')
+                invalidateVirtualModule(server, 'collections')
+
+                const currentConfig = getConfig()
+
+                try {
+                  const delta = await computeFrontmatterDelta(
+                    docsDir,
+                    currentConfig,
+                    virtualModuleState,
+                    cacheContext,
+                    cacheVariant,
+                  )
+                  if (!isCurrentGeneration(normalized, generation)) return
+                  // Structural changes (route deletions) still require a full
+                  // reload because React Router's route tree is built from the
+                  // static virtual module entry point.
+                  if (delta.routes.deleted.length > 0) {
+                    if (isCurrentGeneration(normalized, generation)) {
+                      server.ws.send({ type: 'full-reload' })
+                    }
+                    return
+                  }
+
+                  if (!isCurrentGeneration(normalized, generation)) return
+                  server.ws.send({
+                    type: 'custom',
+                    event: 'boltdocs:frontmatter-update',
+                    data: delta,
+                  })
+                } catch (e) {
+                  // Internal sentinel symbols (e.g. route-generation-invalidated)
+                  // are expected under concurrent edits: the generation was
+                  // superseded by a newer one. A full reload is the safe
+                  // fallback and no error needs to be surfaced for it.
+                  if (typeof e === 'symbol') {
+                    if (isCurrentGeneration(normalized, generation)) {
+                      server.ws.send({ type: 'full-reload' })
+                    }
+                    return
+                  }
+                  error('Failed to compute frontmatter delta:', e)
+                  if (isCurrentGeneration(normalized, generation)) {
+                    server.ws.send({ type: 'full-reload' })
+                  }
+                  return
+                }
+
+                // Frontmatter-only changes may also include body edits; send the
+                // same content HMR event so the page module re-renders without
+                // requiring a separate save cycle.
+                sendMdxContentUpdate(file, normalized, generation)
+                return
+              }
+
+              sendMdxContentUpdate(file, normalized, generation)
+            } catch (e) {
+              error('HMR error processing content change:', e)
+            }
+          })
+
+          changeQueues.set(normalized, currentChange)
+          const clearCurrentChange = () => {
+            if (changeQueues.get(normalized) === currentChange) {
+              changeQueues.delete(normalized)
+            }
           }
+          void currentChange.then(clearCurrentChange, clearCurrentChange)
         }, DEBOUNCE_MS),
       )
     } catch (e) {
@@ -226,13 +407,24 @@ export function setupHmr(
 export function createHotUpdateHandler(
   normalizedDocsDir: string,
 ): Plugin['hotUpdate'] {
-  const lowerDocsDir = normalizedDocsDir.toLowerCase()
+  const lowerDocsDir = normalizePath(normalizedDocsDir)
+    .replace(/\/+$/, '')
+    .toLowerCase()
   return ({ file }) => {
-    const normalized = file.toLowerCase()
+    const normalized = normalizePath(file).toLowerCase()
+    const isInsideDocs =
+      normalized === lowerDocsDir || normalized.startsWith(`${lowerDocsDir}/`)
+    const isExternalPage =
+      normalized.includes('/pages-external/') ||
+      normalized.includes('\\pages-external\\')
     if (
-      normalized.startsWith(lowerDocsDir) &&
-      (isDocFile(file) || normalized.endsWith('meta.json'))
+      isInsideDocs &&
+      (isDocFile(file) || normalized.endsWith('meta.json') || isExternalPage)
     ) {
+      // Suppress Vite's default module-graph HMR for docs content and
+      // pages-external files — the watcher-driven handler owns their
+      // reload/update so a single change produces a single reload instead
+      // of a full-reload plus Vite's own full-reload.
       return []
     }
   }

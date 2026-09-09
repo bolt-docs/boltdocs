@@ -6,15 +6,6 @@ description: Contenedor de pestañas de diseño componible para alternar entre v
 
 La primitiva `Tabs` proporciona una estructura de componente modular y navegable por teclado para organizar contenido en directorios de paneles discretos.
 
----
-
-## Importación
-
-```tsx
-import { Tabs } from 'boltdocs/primitives'
-```
-
----
 
 ## Inicio Rápido
 
@@ -98,3 +89,31 @@ La primitiva `Tabs` proporciona los siguientes espacios de nombres para personal
 | Propiedad | Tipo | Predeterminado | Descripción |
 | :--- | :--- | :--- | :--- |
 | **`style`** | `CSSProperties` | `undefined` | Estilos de mapeo de coordenadas dinámicas (por ejemplo, `transform`, `width`). |
+
+---
+
+## Personalización y estados
+
+`Tabs` es una primitiva autocontenida (no es React Aria) y totalmente neutral en estilos. `Tabs.Item` es un `<button role="tab">` que expone su selección mediante `data-selected` y `aria-selected`, por lo que la pestaña activa se estiliza desde CSS con variantes `data-[selected=true]:` de Tailwind v4. `Tabs.Indicator` es el elemento de resaltado temático — posiciona con `style` y colorea mediante `className`.
+
+| Estado / Slot | Mecanismo |
+| :--- | :--- |
+| `data-selected` | En `Tabs.Item`, `"true"` / `"false"` — estiliza con `data-[selected=true]:` |
+| `aria-selected` | Espejo de accesibilidad del estado de selección en `Tabs.Item` |
+| `className` de `Tabs.Item` | Passthrough; los visuales de la pestaña (color, bordes, padding) desde el tema |
+| `className` de `Tabs.Indicator` | Passthrough; color y altura de la línea activa |
+| `style` de `Tabs.Indicator` | Posicionamiento dinámico (`transform`, `width`) del resaltado |
+| `Tabs.List` / `Tabs.Content` | Passthrough de `className`, sin estado |
+
+Tailwind v4:
+
+```tsx
+<Tabs.Item
+  id="overview"
+  selected={activeTab === 'overview'}
+  className="px-4 py-2 text-sm border-b-2 border-transparent text-muted
+             data-[selected=true]:text-primary-500 data-[selected=true]:border-primary-500"
+>
+  Descripción General
+</Tabs.Item>
+```

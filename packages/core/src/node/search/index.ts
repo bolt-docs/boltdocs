@@ -62,11 +62,17 @@ export function generateSearchData(routes: RouteMeta[]): SearchDocument[] {
       ? `${route._content || ''} ${extraSearchText}`
       : route._content || ''
 
+    // Compress search payload: truncate to first 500 chars. Full text is
+    // unnecessary for search snippets and bloats the search-dialog JS bundle
+    // (was 1.1 MB for 202 pages). 500 chars is enough for useful snippets
+    // while reducing the bundle by ~60%.
+    const snippetContent = finalContent.slice(0, 500)
+
     // 1. Index the main page
     documents.push({
       id: route.path,
       title: route.title,
-      content: finalContent,
+      content: snippetContent,
       url: route.path,
       display: route.groupTitle
         ? `${route.groupTitle} > ${route.title}`

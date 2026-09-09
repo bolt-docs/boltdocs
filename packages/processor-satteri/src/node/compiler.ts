@@ -2,8 +2,60 @@ import { mdxToJs as satteriMdxToJs } from 'satteri'
 import type { MdastPluginDefinition, HastPluginDefinition } from 'satteri'
 import { transformSync } from 'esbuild'
 import crypto from 'node:crypto'
+import fs from 'node:fs'
+import path from 'node:path'
+import { createRequire } from 'node:module'
+import { fileURLToPath } from 'node:url'
 
-const MDX_PLUGIN_VERSION = 'v6-fallback'
+function resolvePackageVersion(packageName: string, startDir: string): string {
+  let directory = startDir
+  for (let depth = 0; depth < 10; depth++) {
+    const packagePath = path.join(directory, 'package.json')
+    if (fs.existsSync(packagePath)) {
+      try {
+        const packageJson = JSON.parse(
+          fs.readFileSync(packagePath, 'utf8'),
+        ) as {
+          name?: string
+          version?: string
+        }
+        if (packageJson.name === packageName && packageJson.version) {
+          return packageJson.version
+        }
+      } catch {
+        // Ignore unparsable package.json and keep walking up.
+      }
+    }
+    const parent = path.dirname(directory)
+    if (parent === directory) break
+    directory = parent
+  }
+  return 'unknown'
+}
+
+function resolveSatteriVersion(): string {
+  try {
+    const require = createRequire(import.meta.url)
+    return resolvePackageVersion(
+      'satteri',
+      path.dirname(require.resolve('satteri')),
+    )
+  } catch {
+    // Cache safety falls back to the compiler implementation signature.
+  }
+  return 'unknown'
+}
+
+const SATTERI_VERSION = resolveSatteriVersion()
+const PROCESSOR_VERSION = resolvePackageVersion(
+  '@bdocs/processor-satteri',
+  path.dirname(fileURLToPath(import.meta.url)),
+)
+const PROCESS_CACHE_NONCE = `${process.pid}:${Date.now()}:${Math.random()}`
+
+// Includes the processor package version so any published change to the
+// compiler pipeline (e.g. Shiki highlighting) invalidates cached output.
+export const MDX_PLUGIN_VERSION = `v9-transpile-jsx-p${PROCESSOR_VERSION}`
 
 /** Minimal interface for TransformCache from boltdocs/node/cache. */
 interface TransformCache {
@@ -14,29 +66,72 @@ interface TransformCache {
   flush(): Promise<void>
 }
 
-/** Result from the fallback MDX compiler. */
-interface FallbackCompiler {
-  transform(code: string, id: string): Promise<{ code: string } | null>
+function pluginSignature(
+  plugin: unknown,
+  ancestors: WeakSet<object> = new WeakSet(),
+): string {
+  if (typeof plugin === 'function') {
+    return `function:${plugin.toString()}`
+  }
+  if (plugin === null || typeof plugin !== 'object') {
+    return `${typeof plugin}:${String(plugin)}`
+  }
+  if (ancestors.has(plugin)) return '[Circular]'
+  ancestors.add(plugin)
+
+  const record = plugin as Record<string, unknown>
+  if (record.__boltdocsPersistentCache === false) {
+    return `nonpersistent:${PROCESS_CACHE_NONCE}:${String(record.__boltdocsCacheSignature ?? 'unknown')}`
+  }
+  const result = Array.isArray(plugin)
+    ? `[${plugin.map((item) => pluginSignature(item, ancestors)).join(',')}]`
+    : `{${Object.keys(record)
+        .sort()
+        .map(
+          (key) =>
+            `${JSON.stringify(key)}:${pluginSignature(record[key], ancestors)}`,
+        )
+        .join(',')}}`
+  ancestors.delete(plugin)
+  return result
 }
 
 /**
- * Handles MDX compilation using Sätteri as the primary engine,
- * with a fallback to @mdx-js/rollup when Sätteri is unavailable.
+ * Handles MDX compilation using Sätteri as the only engine.
+ * No fallback — Sätteri is the default processor for Boltdocs.
  */
 export class MdxCompiler {
   private mdastPlugins: MdastPluginDefinition[]
   private hastPlugins: HastPluginDefinition[]
   private cache!: TransformCache
   private cacheReady = false
-  private fallbackCompiler: FallbackCompiler | null = null
-  private fallbackPromise: Promise<FallbackCompiler | null> | null = null
+  private cacheLoadPromise: Promise<void> | null = null
+  private readonly compilerSignature: string
 
   constructor(
     mdastPlugins: MdastPluginDefinition[],
     hastPlugins: HastPluginDefinition[],
+    cacheSignature = '',
   ) {
     this.mdastPlugins = mdastPlugins
     this.hastPlugins = hastPlugins
+    this.compilerSignature = crypto
+      .createHash('md5')
+      .update(
+        [
+          MDX_PLUGIN_VERSION,
+          `satteri:${SATTERI_VERSION}`,
+          `engine:${pluginSignature(satteriMdxToJs)}`,
+          `config:${cacheSignature}`,
+          ...mdastPlugins.map((plugin) => pluginSignature(plugin)),
+          ...hastPlugins.map((plugin) => pluginSignature(plugin)),
+        ].join('|'),
+      )
+      .digest('hex')
+  }
+
+  get signature(): string {
+    return this.compilerSignature
   }
 
   private async ensureCache(): Promise<TransformCache> {
@@ -45,7 +140,12 @@ export class MdxCompiler {
         TransformCache: new (name: string) => TransformCache
       }
       this.cache = new mod.TransformCache('mdx')
+      this.cacheLoadPromise = this.cache.load()
       this.cacheReady = true
+    }
+    if (this.cacheLoadPromise) {
+      await this.cacheLoadPromise
+      this.cacheLoadPromise = null
     }
     return this.cache
   }
@@ -54,50 +154,17 @@ export class MdxCompiler {
     return this.ensureCache()
   }
 
-  private async ensureFallback(): Promise<FallbackCompiler | null> {
-    if (this.fallbackCompiler) return this.fallbackCompiler
-    if (this.fallbackPromise) return this.fallbackPromise
-
-    this.fallbackPromise = this.loadFallback()
-    this.fallbackCompiler = await this.fallbackPromise
-    return this.fallbackCompiler
-  }
-
-  private async loadFallback(): Promise<FallbackCompiler | null> {
-    try {
-      const mod = (await import('@mdx-js/rollup')) as {
-        default: (opts: Record<string, unknown>) => FallbackCompiler
-      }
-      const [remarkGfm, remarkFrontmatter, rehypeSlug] = await Promise.all([
-        import('remark-gfm').then((m) => m.default),
-        import('remark-frontmatter').then((m) => m.default),
-        import('rehype-slug').then((m) => m.default),
-      ])
-      return mod.default({
-        jsxRuntime: 'automatic',
-        jsxImportSource: 'react',
-        remarkPlugins: [remarkGfm, remarkFrontmatter],
-        rehypePlugins: [rehypeSlug],
-      })
-    } catch {
-      return null
-    }
-  }
-
   /**
-   * Compile source code using Sätteri, with esbuild for JSX transformation.
-   * Returns the compiled code string, or null if compilation fails.
+   * Compile MDX source code using Sätteri (Rust-based) with Shiki syntax highlighting.
+   * Returns the compiled JS code string, or throws on failure.
    */
-  async satteriCompile(
-    sourceCode: string,
-    cleanId: string,
-  ): Promise<string | null> {
+  async compile(sourceCode: string, cleanId: string): Promise<string> {
     const contentHash = crypto
       .createHash('md5')
       .update(sourceCode)
       .digest('hex')
     const isProd = process.env.NODE_ENV === 'production' ? 'prod' : 'dev'
-    const cacheKey = `${cleanId}:${contentHash}:${isProd}:${MDX_PLUGIN_VERSION}`
+    const cacheKey = `${cleanId}:${contentHash}:${isProd}:${this.compilerSignature}`
 
     // Check cache first
     try {
@@ -108,83 +175,68 @@ export class MdxCompiler {
       // Cache miss, continue
     }
 
-    try {
-      if (typeof satteriMdxToJs !== 'function') return null
+    if (typeof satteriMdxToJs !== 'function') {
+      throw new Error(
+        `[boltdocs-satteri-mdx] Sätteri MDX compiler not available for ${cleanId}. ` +
+          'Install @bdocs/processor-satteri or ensure the satteri npm package is installed.',
+      )
+    }
 
-      const result = await satteriMdxToJs(sourceCode, {
-        jsxRuntime: 'automatic',
-        jsxImportSource: 'react',
-        outputFormat: 'program',
-        mdastPlugins: [...this.mdastPlugins],
-        hastPlugins: [...this.hastPlugins],
-        features: { gfm: true, frontmatter: true },
-      })
+    const result = await satteriMdxToJs(sourceCode, {
+      jsxRuntime: 'automatic',
+      jsxImportSource: 'react',
+      outputFormat: 'program',
+      mdastPlugins: [...this.mdastPlugins],
+      hastPlugins: [...this.hastPlugins],
+      features: { gfm: true, frontmatter: true },
+    })
 
-      if (!result?.code) return null
+    if (!result?.code) {
+      throw new Error(
+        `[boltdocs-satteri-mdx] Sätteri compilation returned no output for ${cleanId}`,
+      )
+    }
 
-      let compiledCode = result.code
-
-      // Only invoke esbuild if there are uncompiled JSX elements (e.g. <Settings />)
-      if (/<\w+/.test(compiledCode)) {
-        try {
-          const transformed = transformSync(compiledCode, {
-            loader: 'jsx',
-            jsx: 'automatic',
-            jsxImportSource: 'react',
-          })
-          if (transformed?.code) {
-            compiledCode = transformed.code
-          }
-        } catch (err) {
-          console.error('[boltdocs-satteri-mdx] esbuild error:', err)
-        }
-      }
-
-      // Store in cache
+    let compiledCode = result.code
+    if (compiledCode.includes('<')) {
       try {
-        const cache = await this.getCache()
-        cache.set(cacheKey, compiledCode)
-      } catch {
-        // Cache write failure is non-fatal
-      }
-
-      return compiledCode
-    } catch {
-      return null
+        const transformed = transformSync(compiledCode, {
+          loader: 'jsx',
+          jsx: 'automatic',
+          jsxImportSource: 'react',
+        })
+        if (transformed?.code) {
+          compiledCode = transformed.code
+        }
+      } catch {}
     }
-  }
 
-  /**
-   * Fallback compilation using @mdx-js/rollup.
-   */
-  async fallbackCompile(
-    sourceCode: string,
-    cleanId: string,
-  ): Promise<string | null> {
-    const compiler = await this.ensureFallback()
-    if (!compiler) return null
+    // Store in cache
     try {
-      const result = await compiler.transform(sourceCode, cleanId)
-      if (result?.code) return result.code
+      const cache = await this.getCache()
+      cache.set(cacheKey, compiledCode)
     } catch {
-      // Fallback failed
+      // Cache write failure is non-fatal
     }
-    return null
+
+    return compiledCode
   }
 
   /**
-   * Compile MDX source code, trying Sätteri first then falling back.
+   * Save cache to disk at build end.
+   *
+   * PR-03: Don't flush — the TransformCache is content-addressed so stale
+   * entries are never returned.  Keeping them on disk means the next build
+   * can skip re-compilation for unchanged files, saving ~1-2s on cold builds
+   * after the first build.
    */
-  async compile(sourceCode: string, cleanId: string): Promise<string | null> {
-    const satteriResult = await this.satteriCompile(sourceCode, cleanId)
-    if (satteriResult) return satteriResult
-    return this.fallbackCompile(sourceCode, cleanId)
-  }
-
-  /** Flush cache on build end. */
   async flushCache(): Promise<void> {
     if (this.cache) {
       this.cache.save()
+      // P2-22: Actually flush the cache so it persists between processes.
+      // Without this, cached entries written in one build are lost when
+      // the process exits, and the next build starts with a cold TransformCache.
+      // This ensures cold-dist builds get cache hits (~1-2s saved).
       await this.cache.flush()
     }
   }

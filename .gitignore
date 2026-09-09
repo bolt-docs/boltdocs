@@ -4,6 +4,7 @@ jspm_packages/
 bower_components/
 
 .agents/
+.freebuff
 
 # Build outputs
 dist/
@@ -48,6 +49,7 @@ yarn-debug.log*
 yarn-error.log*
 coverage/
 .boltdocs/
+.benchmark-temp/
 
 # Lock
 package-lock.json
@@ -63,3 +65,5 @@ env/
 
 
 .qwen/
+test-results/
+packages/plugin-tailwindcss/.tmp-tailwind-*

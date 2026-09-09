@@ -1,197 +1,97 @@
 import { describe, it, expect } from 'vitest'
 import mathPlugin from '../src/node/index'
+import { transformSource } from '../src/node/source-transform'
 
-describe('remarkMathToMdx', () => {
-  it('transform $$...$$ to BlockMath mdxJsxFlowElement', () => {
+describe('mathPlugin', () => {
+  it('exposes the plugin contract', () => {
     const plugin = mathPlugin()
-    const transform = plugin.remarkPlugins?.[0]
-    expect(transform).toBeDefined()
-
-    const tree = {
-      type: 'root',
-      children: [
-        {
-          type: 'paragraph',
-          children: [
-            {
-              type: 'text',
-              value: '$$\\sum_{i=1}^{n} i = \\frac{n(n+1)}{2}$$',
-            },
-          ],
-        },
-      ],
-    }
-
-    transform(tree)
-
-    expect(tree.children[0]).toMatchObject({
-      type: 'mdxJsxFlowElement',
-      name: 'BlockMath',
-    })
-    expect(tree.children[0].children[0].value).toBe(
-      '\\sum_{i=1}^{n} i = \\frac{n(n+1)}{2}',
-    )
+    expect(plugin.name).toBe('boltdocs-plugin-math')
+    expect(plugin.version).toBe('0.1.0')
+    expect(typeof plugin.hooks?.transformSource).toBe('function')
   })
 
-  it('transform $...$ to Math mdxJsxTextElement', () => {
+  it('registers the Math, MathComponent and BlockMath components', () => {
     const plugin = mathPlugin()
-    const transform = plugin.remarkPlugins?.[0]
-    expect(transform).toBeDefined()
-
-    const tree = {
-      type: 'root',
-      children: [
-        {
-          type: 'paragraph',
-          children: [
-            { type: 'text', value: 'The equation $E = mc^2$ is famous.' },
-          ],
-        },
-      ],
-    }
-
-    transform(tree)
-
-    const children = tree.children[0].children
-    expect(children).toHaveLength(3)
-    expect(children[0]).toMatchObject({ type: 'text', value: 'The equation ' })
-    expect(children[1]).toMatchObject({
-      type: 'mdxJsxTextElement',
-      name: 'Math',
-    })
-    expect(children[1].children[0].value).toBe('E = mc^2')
-    expect(children[2]).toMatchObject({ type: 'text', value: ' is famous.' })
-  })
-
-  it('handle multiple inline math in same text', () => {
-    const plugin = mathPlugin()
-    const transform = plugin.remarkPlugins?.[0]
-    expect(transform).toBeDefined()
-
-    const tree = {
-      type: 'root',
-      children: [
-        {
-          type: 'paragraph',
-          children: [{ type: 'text', value: '$a$ and $b$ are numbers' }],
-        },
-      ],
-    }
-
-    transform(tree)
-
-    const children = tree.children[0].children
-    expect(children).toHaveLength(4)
-    expect(children[0].children[0].value).toBe('a')
-    expect(children[2].children[0].value).toBe('b')
-  })
-
-  it('handle multiple block math in same tree', () => {
-    const plugin = mathPlugin()
-    const transform = plugin.remarkPlugins?.[0]
-    expect(transform).toBeDefined()
-
-    const tree = {
-      type: 'root',
-      children: [
-        {
-          type: 'paragraph',
-          children: [{ type: 'text', value: '$$\\alpha$$' }],
-        },
-        {
-          type: 'paragraph',
-          children: [{ type: 'text', value: '$$\\beta$$' }],
-        },
-      ],
-    }
-
-    transform(tree)
-
-    expect(tree.children[0]).toMatchObject({
-      type: 'mdxJsxFlowElement',
-      name: 'BlockMath',
-    })
-    expect(tree.children[1]).toMatchObject({
-      type: 'mdxJsxFlowElement',
-      name: 'BlockMath',
+    expect(plugin.components).toMatchObject({
+      Math: '@bdocs/plugin-math/client',
+      MathComponent: '@bdocs/plugin-math/client',
+      BlockMath: '@bdocs/plugin-math/client',
     })
   })
 
-  it('not transform double dollar as inline math', () => {
+  it('wires the shared transformSource hook', () => {
     const plugin = mathPlugin()
-    const transform = plugin.remarkPlugins?.[0]
-    expect(transform).toBeDefined()
-
-    const tree = {
-      type: 'root',
-      children: [
-        {
-          type: 'paragraph',
-          children: [
-            { type: 'text', value: 'Inline $a$ and block $$b$$ are different' },
-          ],
-        },
-      ],
-    }
-
-    transform(tree)
-
-    const children = tree.children[0].children
-    const mathCount = children.filter((c: any) => c.name === 'Math').length
-    expect(mathCount).toBe(1)
-    expect(children.some((c: any) => c.value?.includes('$$b$$'))).toBe(true)
+    expect(plugin.hooks?.transformSource).toBe(transformSource)
   })
+})
 
-  it('handle undefined or null tree gracefully', () => {
+describe('mathPlugin transformSource end-to-end', () => {
+  it('transforms block math to BlockMath mdxJsxFlowElement-style output', () => {
     const plugin = mathPlugin()
-    const transform = plugin.remarkPlugins?.[0]
-    expect(transform).toBeDefined()
-
-    expect(() => transform(undefined)).not.toThrow()
-    expect(() => transform(null)).not.toThrow()
-  })
-
-  it('leave paragraph without math unchanged', () => {
-    const plugin = mathPlugin()
-    const transform = plugin.remarkPlugins?.[0]
-    expect(transform).toBeDefined()
-
-    const tree = {
-      type: 'root',
-      children: [
-        {
-          type: 'paragraph',
-          children: [{ type: 'text', value: 'Normal text without math.' }],
-        },
-      ],
-    }
-
-    const original = JSON.parse(JSON.stringify(tree))
-    transform(tree)
-    expect(tree).toEqual(original)
-  })
-
-  it('handle block math with multiline content', () => {
-    const plugin = mathPlugin()
-    const transform = plugin.remarkPlugins?.[0]
-    expect(transform).toBeDefined()
-
-    const tree = {
-      type: 'root',
-      children: [
-        {
-          type: 'paragraph',
-          children: [{ type: 'text', value: '$$\n\\sum_{i=1}^{n} i\n$$' }],
-        },
-      ],
-    }
-
-    transform(tree)
-
-    expect(tree.children[0]).toMatchObject({
-      type: 'mdxJsxFlowElement',
-      name: 'BlockMath',
+    const { code } = plugin.hooks!.transformSource!(null as any, {
+      code: '$$\n\\sum_{i=1}^{n} i = \\frac{n(n+1)}{2}\n$$',
+      filePath: 'math.mdx',
     })
-    expect(tree.children[0].children[0].value).toBe('\\sum_{i=1}^{n} i')
+    expect(code).toContain('<BlockMath>')
+    expect(code).not.toContain('$$')
+  })
+
+  it('transforms inline math to MathComponent output', () => {
+    const plugin = mathPlugin()
+    const { code } = plugin.hooks!.transformSource!(null as any, {
+      code: 'The value $x$ is positive.',
+      filePath: 'math.mdx',
+    })
+    expect(code).toContain('<MathComponent>{"x"}</MathComponent>')
+  })
+
+  it('handles multiple inline math occurrences in the same source', () => {
+    const plugin = mathPlugin()
+    const { code } = plugin.hooks!.transformSource!(null as any, {
+      code: 'A $a$ and B $b$ and C $c$.',
+      filePath: 'math.mdx',
+    })
+    const matches = code.match(/<MathComponent>/g) || []
+    expect(matches).toHaveLength(3)
+  })
+
+  it('handles multiple block math blocks in the same source', () => {
+    const plugin = mathPlugin()
+    const { code } = plugin.hooks!.transformSource!(null as any, {
+      code: '$$\nA\n$$\n\ntext\n\n$$\nB\n$$',
+      filePath: 'math.mdx',
+    })
+    const matches = code.match(/<BlockMath>/g) || []
+    expect(matches).toHaveLength(2)
+  })
+
+  it('treats a double dollar as block math, not inline math', () => {
+    const plugin = mathPlugin()
+    const { code } = plugin.hooks!.transformSource!(null as any, {
+      code: 'Cost: $$50$$ is display math.',
+      filePath: 'math.mdx',
+    })
+    expect(code).toContain('<BlockMath>{"50"}</BlockMath>')
+    expect(code).not.toContain('<MathComponent>')
+  })
+
+  it('leaves source without math unchanged', () => {
+    const plugin = mathPlugin()
+    const input = 'Just plain text with no math here.'
+    const { code } = plugin.hooks!.transformSource!(null as any, {
+      code: input,
+      filePath: 'math.mdx',
+    })
+    expect(code).toBe(input)
+  })
+
+  it('handles multiline block math content', () => {
+    const plugin = mathPlugin()
+    const { code } = plugin.hooks!.transformSource!(null as any, {
+      code: '$$\n\\begin{aligned}\nx &= 1 \\\\\ny &= 2\n\\end{aligned}\n$$',
+      filePath: 'math.mdx',
+    })
+    expect(code).toContain('<BlockMath>')
+    expect(code).toContain('x &= 1')
   })
 })

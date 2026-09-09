@@ -1,5 +1,11 @@
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect, beforeEach } from 'vitest'
 import mermaidPlugin, { type MermaidThemeVariables } from '../src/node/index'
+
+beforeEach(() => {
+  // Keep the transform synchronous and deterministic: these tests exercise
+  // the node-shape mutation, not the Playwright pre-render branch.
+  process.env.BOLTDOCS_SKIP_MERMAID = 'true'
+})
 
 function configAttr() {
   const defaultLight: MermaidThemeVariables = {
@@ -34,7 +40,7 @@ function configAttr() {
 }
 
 describe('mermaidPlugin remark compiler', () => {
-  it('should transform mermaid code blocks to Mermaid MDX components', () => {
+  it('should transform mermaid code blocks to Mermaid MDX components', async () => {
     const plugin = mermaidPlugin()
     const pluginEntry = plugin.remarkPlugins?.[0]
     expect(pluginEntry).toBeDefined()
@@ -72,7 +78,7 @@ describe('mermaidPlugin remark compiler', () => {
     }
 
     // Run the transform
-    transform(tree)
+    await transform(tree)
 
     // Check that the code block has been transformed
     expect(tree.children[1]).toEqual({
@@ -94,7 +100,7 @@ describe('mermaidPlugin remark compiler', () => {
     })
   })
 
-  it('should handle multiple mermaid blocks in the same tree', () => {
+  it('should handle multiple mermaid blocks in the same tree', async () => {
     const plugin = mermaidPlugin()
     const pluginEntry = plugin.remarkPlugins?.[0]
     expect(pluginEntry).toBeDefined()
@@ -122,7 +128,7 @@ describe('mermaidPlugin remark compiler', () => {
       ],
     }
 
-    transform(tree)
+    await transform(tree)
 
     expect(tree.children[0]).toEqual({
       type: 'mdxJsxFlowElement',
@@ -144,7 +150,7 @@ describe('mermaidPlugin remark compiler', () => {
     })
   })
 
-  it('should handle nested mermaid blocks in blockquotes or lists', () => {
+  it('should handle nested mermaid blocks in blockquotes or lists', async () => {
     const plugin = mermaidPlugin()
     const pluginEntry = plugin.remarkPlugins?.[0]
     expect(pluginEntry).toBeDefined()
@@ -168,7 +174,7 @@ describe('mermaidPlugin remark compiler', () => {
       ],
     }
 
-    transform(tree)
+    await transform(tree)
 
     expect(tree.children[0].children[0]).toEqual({
       type: 'mdxJsxFlowElement',

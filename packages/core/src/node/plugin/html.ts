@@ -84,9 +84,28 @@ function resolveMeta(config: BoltdocsConfig): ResolvedMeta {
   }
 }
 
-function buildMetaTags(meta: ResolvedMeta): string {
+function resolvePublicUrl(value: string, config: BoltdocsConfig): string {
+  if (
+    !value.startsWith('/') ||
+    value.startsWith('//') ||
+    (() => {
+      const base = (config.base || '').replace(/^\/+|\/+$/g, '')
+      return !!base && (value === `/${base}` || value.startsWith(`/${base}/`))
+    })()
+  ) {
+    return value
+  }
+
+  const base = (config.base || '/').replace(/\/+$/, '')
+  return base && base !== '/' ? `${base}${value}` : value
+}
+
+function buildMetaTags(meta: ResolvedMeta, config: BoltdocsConfig): string {
+  const favicon = meta.favicon
+    ? resolvePublicUrl(meta.favicon, config)
+    : undefined
   const tags = [
-    meta.favicon ? `<link rel="icon" href="${escapeHtml(meta.favicon)}">` : '',
+    favicon ? `<link rel="icon" href="${escapeHtml(favicon)}">` : '',
     meta.robotsContent
       ? `<meta name="robots" content="${escapeHtml(meta.robotsContent)}">`
       : '',
@@ -152,7 +171,7 @@ function buildPreloadLinks(config: BoltdocsConfig): string {
     }
     const type = typeMap[ext || ''] || 'image/png'
     links.push(
-      `<link rel="preload" as="image" href="${logoSrc}" type="${type}" fetchpriority="high">`,
+      `<link rel="preload" as="image" href="${resolvePublicUrl(logoSrc, config)}" type="${type}" fetchpriority="high">`,
     )
   }
 
@@ -247,21 +266,23 @@ function buildVercelScript(
     NonNullable<BoltdocsConfig['integrations']>['analytics']
   >['vercel'],
   isProd: boolean,
+  config: BoltdocsConfig,
 ): string {
   if (!vercel || !isProd) return ''
   // If was not able to find the vercel analytics script, we can skip it
   const { analytics, speedInsights } = vercel
+  const assetUrl = (value: string) => resolvePublicUrl(value, config)
   let script = ''
   if (analytics) {
     script += `
     <script>window.va=window.va||function(){(window.vaq=window.vaq||[]).push(arguments)};</script>
-    <script defer src="/_vercel/insights/script.js"></script>
+    <script defer src="${assetUrl('/_vercel/insights/script.js')}"></script>
 `
   }
   if (speedInsights) {
     script += `
     <script>window.si=window.si||function(){(window.siq=window.siq||[]).push(arguments)};</script>
-    <script defer src="/_vercel/speed-insights/script.js"></script>
+    <script defer src="${assetUrl('/_vercel/speed-insights/script.js')}"></script>
 `
   }
   return script
@@ -322,14 +343,14 @@ function injectEntryScript(html: string): string {
 }
 
 export function injectHtmlMeta(html: string, config: BoltdocsConfig): string {
-  if (!html || !html.includes('<body') || !html.includes('<head')) {
+  if (!html?.includes('<body') || !html.includes('<head')) {
     html = getHtmlTemplate(config)
   }
 
   const isProd = process.env.NODE_ENV === 'production'
   const meta = resolveMeta(config)
 
-  const metaTags = buildMetaTags(meta)
+  const metaTags = buildMetaTags(meta, config)
   const verificationTags = buildVerificationTags(config.seo?.verification)
   const preloadLinks = buildPreloadLinks(config)
   const themeScript = buildThemeScript()
@@ -338,6 +359,7 @@ export function injectHtmlMeta(html: string, config: BoltdocsConfig): string {
   const vercelScript = buildVercelScript(
     config.integrations?.analytics?.vercel,
     isProd,
+    config,
   )
   const posthogScript = buildPostHogScript(
     config.integrations?.analytics?.posthog,

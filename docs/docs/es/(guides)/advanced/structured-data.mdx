@@ -1,0 +1,51 @@
+---
+title: Datos Estructurados
+sidebarPosition: 3
+description: Genera y renderiza graphs JSON-LD tipados para website, artículos y breadcrumbs.
+---
+
+Los datos estructurados son para buscadores y crawlers, no para el diálogo de búsqueda interno. La factory cómoda combina los graphs comunes de website, article y breadcrumbs en una sola llamada tipada. Lanza un error claro si no proporcionas ningún graph:
+
+```ts
+import { createStructuredData, defineConfig, defineStructuredData } from 'boltdocs'
+
+export default defineConfig({
+  siteUrl: 'https://example.com',
+  seo: {
+    structuredData: defineStructuredData(
+      createStructuredData({
+        website: {
+          name: 'Example Docs',
+          url: 'https://example.com',
+          description: 'Documentación del producto',
+          searchUrl: 'https://example.com/search?q=',
+        },
+      }),
+    ),
+  },
+})
+```
+
+Para una release o artículo, compón todos los nodos relevantes sin ensamblar manualmente `@context`, `@type` y las posiciones:
+
+```ts
+const data = createStructuredData({
+  article: {
+    headline: 'Primeros pasos',
+    url: 'https://example.com/docs/start',
+    description: 'Instala y configura el proyecto.',
+    datePublished: '2026-08-01',
+    author: { name: 'Example Team', url: 'https://example.com/team' },
+  },
+  breadcrumbs: [
+    { name: 'Docs', url: 'https://example.com/docs' },
+    { name: 'Primeros pasos', url: 'https://example.com/docs/start' },
+  ],
+})
+```
+
+Usa `seo.structuredData` en el frontmatter MDX para nodos específicos de una página, o renderiza `<StructuredData data={data} />` desde una página React externa. Los helpers especializados (`createWebSiteStructuredData`, `createArticleStructuredData` y `createBreadcrumbStructuredData`) siguen disponibles.
+
+Structured Data es una API estable de SEO. Consulta la [referencia de API de Structured Data](/docs/api/structured-data) para todas las opciones y la [guía de integración SEO](/docs/integrations/seo) para recomendaciones de buscadores.
+
+Consulta [Funciones Experimentales](/docs/guides/advanced/experimental) para la configuración opt-in completa.

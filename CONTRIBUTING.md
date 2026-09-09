@@ -4,6 +4,20 @@ First off, thank you for considering contributing to Boltdocs! It's researchers 
 
 For a deeper dive into the philosophy and advanced architecture of the project, please visit the [Boltdocs DeepWiki](https://deepwiki.com/bolt-docs/boltdocs).
 
+## The Contract
+
+Before you write code or open a PR, read the [Boltdocs Spec — The Unbreakable Contract](SPEC.md). It defines what the project commits to — performance, compatibility, security, and the clean-core boundaries — and every change is measured against it. A change that breaks the spec is wrong, no matter how fast it builds or how nice the demo looks.
+
+Key points to keep in mind:
+
+- **Performance is benchmarked, not promised** (§2.2) — a claim without a measurement is a bug.
+- **The core is CSS-agnostic** (§2.1) and **React is the UI framework by default** (§2.8).
+- **Opt-ins stay opt-ins** (§2.5) — experimental features start off and graduate to stable only under §2.5.1.
+- **Breaking changes only in majors**, with a migration guide (§2.6).
+- **Legacy code is temporary, never permanent** (§2.9) — a major upgrade is all-or-nothing: stay on your major or migrate to the next.
+
+Read the full [SPEC.md](SPEC.md) before contributing.
+
 ## How Boltdocs Works
 
 Boltdocs is not just a static site generator; it's a **documentation engine** built on top of modern web standards. Understanding the core architecture will help you contribute better:

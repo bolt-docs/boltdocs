@@ -9,6 +9,7 @@ import { CopyMarkdown } from './ui-base/copy-markdown'
 import { OnThisPage } from './ui-base/on-this-page'
 import { useRoutes } from '../hooks/use-routes'
 import { useConfig } from '../app/config-context'
+import { Outlet } from '../router'
 import { Feedback, Giscus } from './ui-base'
 import type { ComponentRoute } from '../types'
 
@@ -36,7 +37,7 @@ function DocsLayoutComponent({ children }: DocsLayoutThemeProps) {
           <Sidebar routes={filteredRoutes || []} config={config} />
         )}
         <DocsLayoutPrimitive.Content>
-          <DocsLayoutPrimitive.ContentMdx>
+          <DocsLayoutPrimitive.ContentMdx className="pt-4 pb-20 px-4 sm:px-8">
             {!isCollectionPage && (
               <DocsLayoutPrimitive.Header>
                 <div className="mb-4 border-b border-subtle pb-4 flex flex-wrap items-center justify-between gap-3">
@@ -48,12 +49,12 @@ function DocsLayoutComponent({ children }: DocsLayoutThemeProps) {
                 </div>
 
                 {currentRoute?.title && (
-                  <h1 className="text-4xl font-bold tracking-tight text-default mb-3">
+                  <h1 className="text-4xl font-bold tracking-tight text-body mb-3">
                     {currentRoute.title}
                   </h1>
                 )}
                 {currentRoute?.description && (
-                  <p className="text-lg text-muted-foreground mb-6 leading-relaxed">
+                  <p className="text-lg text-muted mb-6 leading-relaxed">
                     {currentRoute.description}
                   </p>
                 )}
@@ -62,16 +63,18 @@ function DocsLayoutComponent({ children }: DocsLayoutThemeProps) {
 
             <ErrorBoundary>
               <div className="prose prose-neutral dark:prose-invert max-w-none">
-                {children}
+                {children ?? <Outlet />}
               </div>
             </ErrorBoundary>
 
             {!isCollectionPage && <Feedback />}
             {!isCollectionPage && <Giscus />}
 
-            <DocsLayoutPrimitive.Footer>
-              {!isCollectionPage && <PageNav />}
-            </DocsLayoutPrimitive.Footer>
+            {!isCollectionPage && (
+              <div className="mt-20">
+                <PageNav />
+              </div>
+            )}
           </DocsLayoutPrimitive.ContentMdx>
         </DocsLayoutPrimitive.Content>
         <div className="overflow-y-auto sticky">

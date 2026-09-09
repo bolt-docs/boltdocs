@@ -1,13 +1,14 @@
 ---
-title: "Boltdocs 3.1.0 — Turbo Mode, Sätteri MDX, and Zig Critical CSS"
-description: "Experimental --turbo flag with Rust-powered MDX, Zig-compiled critical CSS extraction, and single-pass parser — the first phase of Project Nitro"
+title: "Boltdocs 3.1.0 — Project Nitro begins: turbo pipeline, Sätteri MDX, and more"
+description: "Project Nitro begins: the experimental --turbo pipeline, Sätteri MDX compilation, Zig/WASM critical CSS extraction, single-pass parsing, feature flags, drafts, collection hooks, PostHog support, and an RSS feed plugin."
 date: 2026-06-26
 cover: /blog-covers/Boltdocs-3.1.0.webp
 author:
   name: Jesús Alcalá
   avatar: /avatar.jpeg
-excerpt: "3.1.0 ships the --turbo flag: a Rust-based MDX compiler, Zig-compiled critical CSS extraction, and a single-pass parser. Phase 1 of the road to 4x faster builds."
+excerpt: "Project Nitro begins: the experimental --turbo pipeline, Sätteri MDX compilation, Zig/WASM critical CSS extraction, single-pass parsing, feature flags, drafts, collection hooks, PostHog support, and an RSS feed plugin."
 tags: ["Release"]
+tab: "3.1.0"
 ---
 
 ## This one's about the foundation
@@ -21,36 +22,6 @@ tags: ["Release"]
 <Callout type="info">
   **Build output optimized**: Beasties critical CSS inlining has been disabled by default, reducing total HTML output by ~7.3 MB. The default locale duplication bug has also been fixed, saving an additional ~8 MB. Combined, the build output is now ~60% smaller.
 </Callout>
-
----
-
-## `--turbo` — Experimental Build Mode
-
-The new `--turbo` flag activates three native-powered optimizations in a single command:
-
-```bash
-pnpm boltdocs build --turbo
-```
-
-Or set it permanently via environment variable:
-
-```bash
-BOLTDOCS_TURBO=true pnpm boltdocs build
-```
-
-What changes under the hood:
-
-| Component | Without `--turbo` | With `--turbo` |
-|-----------|-------------------|----------------|
-| MDX compilation | `@mdx-js/rollup` + remark/rehype JS plugins | Sätteri (Rust) + native plugins |
-| Critical CSS | None (external CSS only) | `@bdocs/zig-critters` (Zig/WASM) |
-| Parser | Multi-pass mode | Single-pass with shared buffer |
-
-<Callout type="warning">
-  This flag is experimental. You may encounter CSS compatibility issues from zig-critters or MDX compilation differences from Sätteri. If something breaks, remove `--turbo` and report the issue — your standard build is unaffected.
-</Callout>
-
----
 
 ## Sätteri MDX — Rust-Powered Compilation
 
@@ -67,7 +38,7 @@ The pipeline:
 Benchmarks from the Boltdocs docs site (241 pages):
 
 | Metric | Default (`@mdx-js/rollup`) | Turbo (Sätteri) | Difference |
-|--------|---------------------------|-----------------|------------|
+| -------- | --------------------------- | ----------------- | ------------ |
 | Build Time | 97.3s | 43.9s | **2.2x faster** |
 | SSG Total | 98.7s | 45.1s | **54% faster** |
 | JavaScript Output | 10.5 MB | 8.4 MB | **20% smaller** |
@@ -220,15 +191,15 @@ I chose option 2. The CSS file is only 99 KB and compresses well with gzip. Mode
 
 Previously, `generateI18nFallbacks()` created locale-prefixed copies of the default locale's content. For a site with `en` (default) and `es` locales, every English page existed twice:
 
-- `/docs/api/cli` — the original
-- `/docs/en/api/cli` — an identical copy
+- `/docs/api/structured-data` — the original
+- `/docs/en/api/structured-data` — an identical copy
 
 This resulted in **74 duplicate HTML files** totaling **~8 MB** of wasted space. The fix skips generating fallback routes for the default locale — its content already exists at the root level.
 
 ### Results
 
 | Metric | Before | After | Savings |
-|--------|--------|-------|---------|
+| -------- | -------- | ------- | --------- |
 | HTML output (total) | 25.4 MB | ~10.1 MB | **~15.3 MB (60%)** |
 | Per-page size (avg) | ~217 KB | ~180 KB | ~37 KB per page |
 | Duplicate pages | 74 | 0 | **74 files eliminated** |
@@ -252,7 +223,7 @@ The `@bdocs/plugin-rss` plugin generates RSS 2.0 and Atom feeds from your docume
 
 Feeds include all routes by default, organized into a clean `rss/` directory:
 
-```
+```text
 dist/
   rss/
     feed-en.xml
@@ -284,7 +255,7 @@ export default defineConfig({
 | `collections` | `string[]` | all collections | Filter by collection name |
 | `format` | `'rss' \| 'atom' \| 'both'` | `'rss'` | Feed format(s) to generate |
 
-See the [full RSS plugin docs](/docs/plugins/plugin-rss) for details.
+See the [full RSS plugin docs](/docs/plugins/content/plugin-rss) for details.
 
 ---
 

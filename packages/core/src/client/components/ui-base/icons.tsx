@@ -49,6 +49,81 @@ export const Lightbulb = createIcon(
   </>,
 )
 
+export const BookOpen = createIcon(
+  'BookOpen',
+  <>
+    <path d="M2 4v16a2 2 0 0 0 2 2h16" />
+    <path d="M22 18V4a2 2 0 0 0-2-2H6a4 4 0 0 0-4 4" />
+    <path d="M6 2v16" />
+    <path d="M6 18h16" />
+  </>,
+)
+
+export const Rocket = createIcon(
+  'Rocket',
+  <>
+    <path d="M4.5 16.5c-1.5 1.5-2 4-2 4s2.5-.5 4-2c.7-.7.7-1.8 0-2.5s-1.3-.2-2 0Z" />
+    <path d="m12 15-3-3a22 22 0 0 1 3-5c2-2.5 5-4 9-4 0 4-1.5 7-4 9a22 22 0 0 1-5 3Z" />
+    <path d="M9 12H4l-2 2 5 1" />
+    <path d="M12 15v5l2-2 1-5" />
+    <circle cx="16" cy="8" r="1" />
+  </>,
+)
+
+export const Code2 = createIcon(
+  'Code2',
+  <>
+    <path d="m18 16 4-4-4-4" />
+    <path d="m6 8-4 4 4 4" />
+    <path d="m14.5 4-5 16" />
+  </>,
+)
+
+export const FlaskConical = createIcon(
+  'FlaskConical',
+  <>
+    <path d="M9 3h6" />
+    <path d="M10 3v7.5L4.5 19a2 2 0 0 0 1.7 3h11.6a2 2 0 0 0 1.7-3L14 10.5V3" />
+    <path d="M7 16h10" />
+  </>,
+)
+
+export const FileCode2 = createIcon(
+  'FileCode2',
+  <>
+    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z" />
+    <path d="M14 2v6h6" />
+    <path d="m10 13-2 2 2 2" />
+    <path d="m14 13 2 2-2 2" />
+  </>,
+)
+
+export const Paintbrush = createIcon(
+  'Paintbrush',
+  <>
+    <path d="m14 6 4 4" />
+    <path d="M3 21c3 0 5-1 6-4l8-8a2.8 2.8 0 1 0-4-4l-8 8c-3 1-4 4-2 8Z" />
+  </>,
+)
+
+export const Gauge = createIcon(
+  'Gauge',
+  <>
+    <path d="m12 14 4-4" />
+    <path d="M3.3 17a9 9 0 1 1 17.4 0" />
+    <path d="M5 19h14" />
+  </>,
+)
+
+export const LifeBuoy = createIcon(
+  'LifeBuoy',
+  <>
+    <circle cx="12" cy="12" r="10" />
+    <circle cx="12" cy="12" r="4" />
+    <path d="m4.9 4.9 4.3 4.3M14.8 14.8l4.3 4.3M19.1 4.9l-4.3 4.3M9.2 14.8l-4.3 4.3" />
+  </>,
+)
+
 export const AlertTriangle = createIcon(
   'AlertTriangle',
   <>

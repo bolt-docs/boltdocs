@@ -1,0 +1,188 @@
+---
+title: Política de Seguridad de Contenido (CSP)
+sidebarPosition: 2
+description: Cómo activar y personalizar Content Security Policy en Boltdocs — la política por defecto, diferencias entre desarrollo y producción, trampas comunes con MDX y analytics, y configuración por plataforma.
+---
+
+Una Política de Seguridad de Contenido (CSP) le dice al navegador qué orígenes pueden cargar scripts, estilos, imágenes, fuentes y conexiones en tu sitio. Es la defensa más fuerte contra el cross-site scripting (XSS): aunque un atacante inyecte markup, el navegador se niega a ejecutar cualquier cosa que la política no permita.
+
+---
+
+## Activar CSP
+
+Define `enableCSP` en el bloque `security` de `boltdocs.config.ts`:
+
+```ts title="boltdocs.config.ts"
+export default defineConfig({
+  security: {
+    enableCSP: true,
+  },
+})
+```
+
+Eso es todo — una cabecera `Content-Security-Policy` se sirve ahora con cada respuesta, en desarrollo y en producción.
+
+---
+
+## La política por defecto
+
+Boltdocs genera una política conservadora que funciona, ajustada a sitios de documentación MDX:
+
+```text
+default-src 'self';
+script-src 'self' 'unsafe-inline';
+style-src 'self' 'unsafe-inline';
+img-src 'self' data: https:;
+font-src 'self';
+connect-src 'self'
+```
+
+| Directiva | Valor | Por qué |
+| :--- | :--- | :--- |
+| `default-src` | `'self'` | Respaldo para todo lo no listado abajo: solo tu propio origen. |
+| `script-src` | `'self' 'unsafe-inline'` | Permite los scripts inline de bootstrap del framework (init de tema, payloads de hidratación). |
+| `style-src` | `'self' 'unsafe-inline'` | Permite estilos inline usados por los componentes MDX y las variables CSS inyectadas. |
+| `img-src` | `'self' data: https:` | Imágenes de tu origen, URLs `data:` inline y cualquier host de imágenes HTTPS (badges, screenshots, OpenGraph). |
+| `font-src` | `'self'` | Fuentes solo de tu origen. |
+| `connect-src` | `'self'` | Fetch/XHR/WebSocket solo hacia tu propio origen. |
+
+### Desarrollo vs producción
+
+Durante `boltdocs dev`, la política añade `'unsafe-eval'` a `script-src` para que el cliente HMR de Vite pueda funcionar:
+
+```text
+script-src 'self' 'unsafe-eval' 'unsafe-inline'   ← desarrollo
+script-src 'self' 'unsafe-inline'                 ← producción
+```
+
+Nunca necesitas configurar esto — la política de dev se genera automáticamente y nunca llega a producción.
+
+---
+
+## Personalizar la política
+
+`enableCSP` genera la política por defecto, pero puedes reemplazarla por completo con la tuya vía `security.customHeaders`. Como las cabeceras personalizadas se fusionan al final, una `Content-Security-Policy` escrita a mano sobrescribe totalmente la generada:
+
+```ts title="boltdocs.config.ts"
+export default defineConfig({
+  security: {
+    enableCSP: true,
+    customHeaders: {
+      'Content-Security-Policy': [
+        "default-src 'self'",
+        "script-src 'self' 'unsafe-inline' https://www.googletagmanager.com",
+        "style-src 'self' 'unsafe-inline'",
+        "img-src 'self' data: https:",
+        "font-src 'self'",
+        "connect-src 'self' https://www.google-analytics.com https://analytics.google.com https://region1.google-analytics.com",
+      ].join('; '),
+    },
+  },
+})
+```
+
+<Callout variant="warning" title="Dos CSP se combinan con AND">
+Si mantienes `enableCSP: true` *y* defines una `Content-Security-Policy` en `security.headers`, se envían ambas políticas y el navegador aplica la **intersección** de las dos. Usa `security.customHeaders` (fusionado al final) o desactiva `enableCSP` cuando escribas tu propia política, para que la generada no luche contra ella.
+</Callout>
+
+---
+
+## Integraciones comunes que necesitan permisos extra
+
+### Google Analytics 4
+
+GA4 necesita entradas `connect-src` para sus endpoints y (si lo cargas vía GTM) una entrada `script-src`:
+
+```text
+script-src 'self' 'unsafe-inline' https://www.googletagmanager.com
+connect-src 'self' https://www.google-analytics.com https://analytics.google.com https://region1.google-analytics.com
+```
+
+### Google Tag Manager
+
+```text
+script-src 'self' 'unsafe-inline' https://www.googletagmanager.com
+img-src 'self' data: https: https://www.googletagmanager.com
+connect-src 'self' https://www.google-analytics.com
+```
+
+### PostHog
+
+```text
+script-src 'self' 'unsafe-inline' https://us-assets.i.posthog.com
+connect-src 'self' https://us.i.posthog.com https://us-assets.i.posthog.com
+```
+
+### Plugins de mermaid / math
+
+Los plugins [mermaid](/docs/plugins/content/plugin-mermaid) y [math](/docs/plugins/content/plugin-math) se renderizan en cliente pero envían su JavaScript con tu bundle, así que la política por defecto ya los cubre. Si los cargas desde una CDN en su lugar, añade ese origen a `script-src`.
+
+### APIs de feedback y búsqueda
+
+`connect-src 'self'` ya cubre las rutas API del mismo origen (`/api/feedback`, endpoints de búsqueda). Si tu proveedor de búsqueda es remoto (p. ej. Algolia), añade su host a `connect-src`:
+
+```text
+connect-src 'self' https://{tu-app-id}-dsn.algolia.net https://{tu-app-id}.algolia.net
+```
+
+---
+
+## Endurecer más: hashes y nonces
+
+La política por defecto usa `'unsafe-inline'` porque el framework envía pequeños scripts inline. Si quieres una política estricta sin `unsafe-inline`, debes cambiar a **hashes o nonces** para los scripts/estilos inline que emite Boltdocs:
+
+1. Genera tu política en el servidor o en build time, calculando los hashes `sha256-…` de los bloques inline.
+2. Sírvela vía `security.customHeaders` o con la configuración de cabeceras de tu plataforma.
+3. Recalcula los hashes cada vez que cambien los scripts inline (cada release de Boltdocs puede cambiarlos).
+
+```text
+script-src 'self' 'sha256-9fPv2kT3dQv3...' 'sha256-8dUz9sHxTq4...'
+```
+
+Como los hashes son específicos de versión, la mayoría de equipos mantienen `'unsafe-inline'` para scripts (como hace el default) y reservan políticas estrictas para el edge más externo (nginx, Cloudflare Transform Rules), donde se pueden actualizar independientemente de un rebuild.
+
+---
+
+## Aplicar la política en tu plataforma
+
+CSP es una cabecera de respuesta — en producción la envía tu plataforma de hosting. Configúrala en los mismos archivos que tus otras cabeceras:
+
+- **Vercel** — `vercel.json` `headers` (consulta la [guía de Cabeceras](/docs/guides/security/headers) para la forma del archivo).
+- **Netlify / Cloudflare Pages** — `_headers`:
+
+```text title="_headers"
+/*
+  Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self'; connect-src 'self'
+```
+
+- **nginx** — `add_header Content-Security-Policy "…" always;`.
+
+Para los ejemplos completos por plataforma, consulta [Cabeceras → Aplicar cabeceras en tu plataforma](/docs/guides/security/headers#aplicar-cabeceras-en-tu-plataforma).
+
+---
+
+## Probar y depurar
+
+Las violaciones de CSP nunca rompen la página — el navegador bloquea la petición y registra un reporte en la consola. Cuando algo parezca roto tras activar CSP:
+
+1. Abre DevTools → **Console** y busca `Refused to … violates the following Content Security Policy directive`.
+2. El mensaje nombra la directiva y el recurso exactos — añade el origen que falta a esa directiva.
+3. Verifica qué envía realmente tu sitio:
+
+```bash
+curl -sI https://docs.example.com/ | grep -i content-security-policy
+```
+
+4. Pega tu política en [CSP Evaluator](https://csp-evaluator.withgoogle.com) para detectar directivas débiles o mal configuradas.
+
+<Callout variant="note" title="Usa report-only primero para cambios grandes">
+Para lanzar una política estricta de forma segura, despliégala primero como `Content-Security-Policy-Report-Only`, observa los reportes de violaciones en el navegador y cambia a modo forzado cuando el flujo de reportes esté limpio.
+</Callout>
+
+---
+
+## Dónde seguir
+
+- [Cabeceras](/docs/guides/security/headers) — el conjunto completo de cabeceras de seguridad, control de caché y ejemplos por plataforma.
+- [CI/CD y despliegue](/docs/guides/operations/ci) — verifica las cabeceras en CI antes de que lleguen a producción.
+- [Solución de problemas](/docs/guides/operations/troubleshooting) — resuelve problemas comunes de build y despliegue.

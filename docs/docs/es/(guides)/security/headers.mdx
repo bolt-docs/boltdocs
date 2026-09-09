@@ -1,0 +1,201 @@
+---
+title: Cabeceras HTTP
+sidebarPosition: 1
+description: Cómo maneja Boltdocs las cabeceras HTTP — las cabeceras de seguridad por defecto, cabeceras personalizadas vía config, control de caché y ejemplos por plataforma para Vercel, Netlify, Cloudflare y nginx.
+---
+
+Las cabeceras HTTP controlan cómo los navegadores, las CDNs y los crawlers tratan tu sitio de documentación: qué pueden cachear, por cuánto tiempo, qué políticas de seguridad aplican y cómo manejan los redirects. Esta guía cubre las cabeceras que Boltdocs envía por ti, cómo añadir las tuyas y cómo aplicarlas en la plataforma donde despliegas.
+
+---
+
+## Qué envía Boltdocs por defecto
+
+En **builds de producción** (y en `boltdocs preview`), Boltdocs aplica a cada respuesta un conjunto base de cabeceras de endurecimiento, basado en las recomendaciones de OWASP:
+
+| Cabecera | Valor | Propósito |
+| :--- | :--- | :--- |
+| `X-Content-Type-Options` | `nosniff` | Evita el sniffing de MIME types. |
+| `X-Frame-Options` | `DENY` | Bloquea que el sitio se incruste en iframes (anti-clickjacking). |
+| `X-XSS-Protection` | `1; mode=block` | Filtrado XSS heredado para navegadores antiguos. |
+| `Referrer-Policy` | `strict-origin-when-cross-origin` | Envía info de referrer solo para peticiones del mismo origen. |
+| `Permissions-Policy` | `camera=(), microphone=(), geolocation=()` | Deniega el acceso a funciones sensibles del navegador. |
+| `Strict-Transport-Security` | `max-age=31536000; includeSubDomains; preload` | Fuerza HTTPS durante un año (HSTS). |
+
+<Callout variant="note" title="Los builds de desarrollo no están endurecidos">
+Las cabeceras de seguridad por defecto solo se aplican en modo producción. Durante `boltdocs dev` se omiten para que el tooling local y el contenido mixto no tengan fricción — tus cabeceras personalizadas (abajo) sí se aplican en dev.
+</Callout>
+
+Cuando `security.enableCSP` está activado, se añade encima una cabecera `Content-Security-Policy`. Consulta la [guía de CSP](/docs/guides/security/csp) para la política exacta y cómo personalizarla.
+
+---
+
+## Configurar cabeceras — `security`
+
+Añade, sobrescribe o elimina cabeceras desde `boltdocs.config.ts` con el bloque `security`:
+
+```ts title="boltdocs.config.ts"
+export default defineConfig({
+  security: {
+    // Cabeceras enviadas en cada petición (dev y producción).
+    headers: {
+      'X-Robots-Tag': 'index, follow',
+      'X-Permitted-Cross-Domain-Policies': 'none',
+    },
+    // Cabeceras de override aplicadas al final, para poder reemplazar defaults.
+    customHeaders: {
+      // Mantén los defaults pero relaja HSTS para staging local.
+      'Strict-Transport-Security': 'max-age=31536000',
+    },
+  },
+})
+```
+
+### Orden de merge
+
+Las cabeceras finales de la respuesta se fusionan en este orden (el último gana):
+
+1. Cabeceras de seguridad integradas (solo producción).
+2. La `Content-Security-Policy` generada, cuando `enableCSP` está activo.
+3. `security.headers`.
+4. `security.customHeaders` — siempre se aplican al final, así pueden reemplazar intencionalmente cualquier default.
+
+### Eliminar una cabecera por defecto
+
+La forma más fiable de quitar una cabecera por defecto es ponerla con valor vacío en `customHeaders`. Un valor vacío se envía como cabecera de longitud cero, que la mayoría de plataformas tratan como "eliminar" en el edge:
+
+```ts title="boltdocs.config.ts"
+export default defineConfig({
+  security: {
+    customHeaders: {
+      'X-XSS-Protection': '',
+    },
+  },
+})
+```
+
+<Callout variant="warning" title="Las cabeceras las envía el servidor, no se incrustan en el HTML">
+Boltdocs es un generador de sitios estáticos: las cabeceras de arriba las aplica el servidor dev/preview y, en producción, tu plataforma de hosting. Los archivos HTML generados no llevan cabeceras — consulta abajo cómo conectarlas en tu plataforma.
+</Callout>
+
+---
+
+## Aplicar cabeceras en tu plataforma
+
+En producción, configura las cabeceras en la plataforma que sirve la carpeta `dist/` generada. Estos son los archivos de configuración estándar de los hosts más comunes.
+
+### Vercel — `vercel.json`
+
+```json title="vercel.json"
+{
+  "headers": [
+    {
+      "source": "/(.*)",
+      "headers": [
+        { "key": "X-Content-Type-Options", "value": "nosniff" },
+        { "key": "X-Frame-Options", "value": "DENY" },
+        { "key": "Referrer-Policy", "value": "strict-origin-when-cross-origin" },
+        { "key": "Permissions-Policy", "value": "camera=(), microphone=(), geolocation=()" },
+        { "key": "Strict-Transport-Security", "value": "max-age=31536000; includeSubDomains; preload" },
+        { "key": "Content-Security-Policy", "value": "default-src 'self'; img-src 'self' data: https:; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'" }
+      ]
+    },
+    {
+      "source": "/assets/(.*)",
+      "headers": [
+        { "key": "Cache-Control", "value": "public, max-age=31536000, immutable" }
+      ]
+    }
+  ]
+}
+```
+
+### Netlify — `_headers`
+
+```text title="_headers"
+/*
+  X-Content-Type-Options: nosniff
+  X-Frame-Options: DENY
+  Referrer-Policy: strict-origin-when-cross-origin
+  Permissions-Policy: camera=(), microphone=(), geolocation=()
+  Strict-Transport-Security: max-age=31536000; includeSubDomains; preload
+  Content-Security-Policy: default-src 'self'; img-src 'self' data: https:; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'
+
+/assets/*
+  Cache-Control: public, max-age=31536000, immutable
+```
+
+### Cloudflare Pages — `_headers`
+
+El mismo formato de archivo `_headers` funciona en Cloudflare Pages:
+
+```text title="_headers"
+/*
+  X-Content-Type-Options: nosniff
+  X-Frame-Options: DENY
+  Referrer-Policy: strict-origin-when-cross-origin
+  Strict-Transport-Security: max-age=31536000; includeSubDomains; preload
+
+/assets/*
+  Cache-Control: public, max-age=31536000, immutable
+```
+
+### nginx
+
+```nginx title="nginx.conf"
+server {
+  add_header X-Content-Type-Options "nosniff" always;
+  add_header X-Frame-Options "DENY" always;
+  add_header Referrer-Policy "strict-origin-when-cross-origin" always;
+  add_header Permissions-Policy "camera=(), microphone=(), geolocation=()" always;
+  add_header Strict-Transport-Security "max-age=31536000; includeSubDomains; preload" always;
+  add_header Content-Security-Policy "default-src 'self'; img-src 'self' data: https:; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'" always;
+
+  location /assets/ {
+    add_header Cache-Control "public, max-age=31536000, immutable";
+  }
+}
+```
+
+---
+
+## Buenas prácticas de Cache-Control
+
+Los sitios de documentación estáticos obtienen la mayor parte de su rendimiento del caching. Las reglas de oro:
+
+- **Documentos HTML: `no-cache` (o un `max-age` corto).** Quieres que los lectores vean la documentación más reciente a los pocos minutos de un deploy, así que deja que el navegador revalide: `Cache-Control: public, max-age=0, must-revalidate`.
+- **Assets con hash (JS/CSS/fonts/imágenes): immutable.** Boltdocs emite nombres de archivo con hash de contenido, así que `Cache-Control: public, max-age=31536000, immutable` es seguro y hace que las visitas repetidas carguen al instante.
+- **Sitemap/robots: `max-age` corto** (p. ej. `3600`) para que los buscadores encuentren pronto las páginas nuevas.
+
+| Recurso | Cache-Control |
+| :--- | :--- |
+| `*.html` | `public, max-age=0, must-revalidate` |
+| `/assets/*` (con hash) | `public, max-age=31536000, immutable` |
+| `/sitemap.xml`, `/robots.txt` | `public, max-age=3600` |
+| `og-image.webp` y otras imágenes estáticas | `public, max-age=86400` |
+
+---
+
+## Verificar cabeceras
+
+Comprueba qué envía realmente tu sitio desplegado:
+
+```bash
+# Producción
+curl -sI https://docs.example.com/ | grep -iE 'content-security|x-frame|strict-transport|cache-control'
+
+# Build de producción local
+pnpm build && pnpm preview
+
+# Cabeceras servidas por el servidor de preview (defaults + config)
+curl -sI http://localhost:4173/ | grep -iE 'content-security|x-frame|strict-transport'
+```
+
+Para una evaluación completa, pasa tu URL de producción por [securityheaders.com](https://securityheaders.com) — puntúa tus cabeceras de seguridad y señala las que faltan.
+
+---
+
+## Dónde seguir
+
+- [CSP](/docs/guides/security/csp) — la cabecera Content-Security-Policy en profundidad: política por defecto, personalización y trampas.
+- [Caché y entorno](/docs/guides/performance/cache) — los caches de disco internos de Boltdocs y sus variables de entorno.
+- [CI/CD y despliegue](/docs/guides/operations/ci) — conecta la verificación de cabeceras y `boltdocs doctor` a tu pipeline de deploy.

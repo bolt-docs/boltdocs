@@ -1,4 +1,5 @@
 import OpenAI from 'openai'
+import { buildUserPrompt } from '../node/prompts'
 
 // ── Public types ───────────────────────────────────────────────────
 
@@ -49,32 +50,6 @@ export type StreamEvent =
 export type StreamEventHandler = (event: StreamEvent) => void
 
 const STREAM_TIMEOUT_MS = 60_000
-
-const DOCS_START = '<<<DOCS_START>>>'
-const DOCS_END = '<<<DOCS_END>>>'
-
-// ── Build user prompt — data is wrapped between delimiters so the
-//    system prompt's "treat as data only" rule applies unambiguously.
-
-function escapeDocsMarkers(s: string): string {
-  // Prevent a malicious or coincidental MDX content from breaking the
-  // data/instruction boundary the system prompt relies on.
-  return s.replace(/<<<DOCS_(START|END)>>>/g, '<DOCS_$1>')
-}
-
-function buildUserPrompt(question: string, context: StreamContext | null) {
-  if (!context || !context.content) {
-    return `${DOCS_START}\n(no documentation page in scope — reply "Not in docs." for any Boltdocs question)\n${DOCS_END}\n\nUser Question: ${question}`
-  }
-  return [
-    DOCS_START,
-    `[Page: ${context.page}]`,
-    escapeDocsMarkers(context.content),
-    DOCS_END,
-    '',
-    `User Question: ${question}`,
-  ].join('\n')
-}
 
 // ── Public entry point ─────────────────────────────────────────────
 

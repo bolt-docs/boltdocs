@@ -27,6 +27,20 @@ describe('parseMetaString', () => {
     expect(parseMetaString('word-wrap')).toEqual({ wordWrap: true })
   })
 
+  it('respects explicit false values and normalized aliases', () => {
+    expect(parseMetaString('showLineNumbers=false wordWrap=false')).toEqual({
+      lineNumbers: false,
+      wordWrap: false,
+    })
+    expect(
+      parseMetaString('show-line-numbers title="X" word_wrap=true'),
+    ).toEqual({
+      lineNumbers: true,
+      title: 'X',
+      wordWrap: true,
+    })
+  })
+
   it('combines multiple flags without re-extracting them as keys', () => {
     expect(parseMetaString('title="X" lineNumbers wordWrap')).toEqual({
       title: 'X',

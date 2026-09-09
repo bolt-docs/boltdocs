@@ -1,6 +1,8 @@
 const std = @import("std");
 const parser = @import("parser.zig");
 const slugger = @import("slugger.zig");
+const yaml = @import("yaml.zig");
+const napi = @import("napi.zig");
 
 test "parser - stripAndDecode" {
     const testing = std.testing;
@@ -127,7 +129,7 @@ test "parser - parseDoc integration" {
         \\Welcome to the document!
     ;
 
-    const doc = try parser.parseDoc(allocator, input);
+    var doc = try parser.parseDoc(allocator, input);
     defer {
         for (doc.headings) |h| {
             allocator.free(h.text);
@@ -136,6 +138,7 @@ test "parser - parseDoc integration" {
         allocator.free(doc.headings);
         allocator.free(doc.plainText);
         allocator.free(doc.description);
+        doc.frontmatter.deinit(allocator);
     }
 
     try testing.expectEqualStrings("title: Integration Test", doc.rawMatter);
@@ -170,7 +173,7 @@ test "parser - parseDocSinglePass produces identical results" {
     ;
 
     // Parse with original function
-    const doc_old = try parser.parseDoc(allocator, input);
+    var doc_old = try parser.parseDoc(allocator, input);
     defer {
         for (doc_old.headings) |h| {
             allocator.free(h.text);
@@ -179,10 +182,11 @@ test "parser - parseDocSinglePass produces identical results" {
         allocator.free(doc_old.headings);
         allocator.free(doc_old.plainText);
         allocator.free(doc_old.description);
+        doc_old.frontmatter.deinit(allocator);
     }
 
     // Parse with single-pass function
-    const doc_new = try parser.parseDocSinglePass(allocator, input);
+    var doc_new = try parser.parseDocSinglePass(allocator, input);
     defer {
         for (doc_new.headings) |h| {
             allocator.free(h.text);
@@ -191,6 +195,7 @@ test "parser - parseDocSinglePass produces identical results" {
         allocator.free(doc_new.headings);
         allocator.free(doc_new.plainText);
         allocator.free(doc_new.description);
+        doc_new.frontmatter.deinit(allocator);
     }
 
     // Compare results
@@ -213,7 +218,7 @@ test "parser - parseDocSinglePass with empty content" {
     const allocator = testing.allocator;
 
     const input = "";
-    const doc = try parser.parseDocSinglePass(allocator, input);
+    var doc = try parser.parseDocSinglePass(allocator, input);
     defer {
         for (doc.headings) |h| {
             allocator.free(h.text);
@@ -222,6 +227,7 @@ test "parser - parseDocSinglePass with empty content" {
         allocator.free(doc.headings);
         allocator.free(doc.plainText);
         allocator.free(doc.description);
+        doc.frontmatter.deinit(allocator);
     }
 
     try testing.expectEqualStrings("", doc.rawMatter);
@@ -244,7 +250,7 @@ test "parser - parseDocSinglePass with only headings" {
         \\### Sub Section
     ;
 
-    const doc = try parser.parseDocSinglePass(allocator, input);
+    var doc = try parser.parseDocSinglePass(allocator, input);
     defer {
         for (doc.headings) |h| {
             allocator.free(h.text);
@@ -253,6 +259,7 @@ test "parser - parseDocSinglePass with only headings" {
         allocator.free(doc.headings);
         allocator.free(doc.plainText);
         allocator.free(doc.description);
+        doc.frontmatter.deinit(allocator);
     }
 
     try testing.expectEqual(@as(usize, 3), doc.headings.len);
@@ -286,6 +293,122 @@ test "parser - stripAndDecodeInto shared buffer" {
     last_was_space = true;
     try parser.stripAndDecodeInto(&ctx.buffer, allocator, input2, &last_was_space);
     try testing.expectEqualStrings("Second document with HTML.", ctx.buffer.items);
+}
+
+test "yaml - parse empty frontmatter" {
+    const testing = std.testing;
+    const allocator = testing.allocator;
+
+    const input = "---\n---\n# Content\n";
+
+    var doc = try parser.parseDoc(allocator, input);
+    defer {
+        for (doc.headings) |h| {
+            allocator.free(h.text);
+            allocator.free(h.id);
+        }
+        allocator.free(doc.headings);
+        allocator.free(doc.plainText);
+        allocator.free(doc.description);
+        doc.frontmatter.deinit(allocator);
+    }
+
+    // Empty frontmatter should return an object with no keys
+    try testing.expectEqual(@as(usize, 0), doc.frontmatter.object.count());
+}
+
+test "yaml - URLs in block arrays treated as strings" {
+    const testing = std.testing;
+    const allocator = testing.allocator;
+
+    // URLs in block arrays should be parsed as strings, not inline objects
+    const yaml_input = "sites:\n" ++
+        "  - https://example.com\n" ++
+        "  - http://test.org/path\n" ++
+        "  - ftp://files.example.net\n";
+
+    var result = try yaml.parseYaml(allocator, yaml_input);
+    defer result.deinit(allocator);
+
+    const sites = result.object.get("sites").?;
+    try testing.expect(sites == .array);
+    try testing.expectEqual(@as(usize, 3), sites.array.len);
+
+    // Each URL should be a plain string
+    try testing.expect(sites.array[0] == .string);
+    try testing.expectEqualStrings("https://example.com", sites.array[0].string);
+    try testing.expect(sites.array[1] == .string);
+    try testing.expectEqualStrings("http://test.org/path", sites.array[1].string);
+    try testing.expect(sites.array[2] == .string);
+    try testing.expectEqualStrings("ftp://files.example.net", sites.array[2].string);
+}
+
+test "yaml - mixed arrays with URLs and inline objects" {
+    const testing = std.testing;
+    const allocator = testing.allocator;
+
+    // Mixed: URLs should be strings, "key: value" should be inline objects
+    const yaml_input = "items:\n" ++
+        "  - https://example.com\n" ++
+        "  - name: test\n" ++
+        "  - http://other.site\n";
+
+    var result = try yaml.parseYaml(allocator, yaml_input);
+    defer result.deinit(allocator);
+
+    const items = result.object.get("items").?;
+    try testing.expectEqual(@as(usize, 3), items.array.len);
+
+    // First item: URL → string
+    try testing.expect(items.array[0] == .string);
+    try testing.expectEqualStrings("https://example.com", items.array[0].string);
+
+    // Second item: key:value → inline object
+    try testing.expect(items.array[1] == .object);
+    try testing.expectEqualStrings("test", items.array[1].object.get("name").?.string);
+
+    // Third item: another URL → string
+    try testing.expect(items.array[2] == .string);
+    try testing.expectEqualStrings("http://other.site", items.array[2].string);
+}
+
+test "yaml - parse frontmatter data" {
+    const testing = std.testing;
+    const allocator = testing.allocator;
+
+    // Use simple string concatenation to avoid backslash escaping confusion
+    const input = "---\n" ++
+        "title: YAML Test\n" ++
+        "draft: true\n" ++
+        "count: 42\n" ++
+        "ratio: 3.14\n" ++
+        "tags:\n" ++
+        "  - zig\n" ++
+        "  - docs\n" ++
+        "author:\n" ++
+        "  name: Jesus\n" ++
+        "  url: https://example.com\n" ++
+        "---\n" ++
+        "# Content\n";
+
+    var doc = try parser.parseDoc(allocator, input);
+    defer {
+        for (doc.headings) |h| {
+            allocator.free(h.text);
+            allocator.free(h.id);
+        }
+        allocator.free(doc.headings);
+        allocator.free(doc.plainText);
+        allocator.free(doc.description);
+        doc.frontmatter.deinit(allocator);
+    }
+
+    try testing.expectEqualStrings("YAML Test", doc.frontmatter.object.get("title").?.string);
+    try testing.expectEqual(true, doc.frontmatter.object.get("draft").?.bool_value);
+    try testing.expectEqual(@as(i64, 42), doc.frontmatter.object.get("count").?.int_value);
+    try testing.expectApproxEqAbs(@as(f64, 3.14), doc.frontmatter.object.get("ratio").?.float_value, 0.001);
+    try testing.expectEqual(@as(usize, 2), doc.frontmatter.object.get("tags").?.array.len);
+    try testing.expectEqualStrings("Jesus", doc.frontmatter.object.get("author").?.object.get("name").?.string);
 }
 
 test "slug - basic conversions" {

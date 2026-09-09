@@ -1,9 +1,12 @@
+import { cn } from '../../utils/cn'
+
 export interface FieldProps {
   children?: React.ReactNode
   name: string
   type?: string
   description?: string
   required?: boolean
+  className?: string
 }
 
 export const Field = ({
@@ -12,8 +15,14 @@ export const Field = ({
   type,
   description,
   required,
+  className,
 }: FieldProps) => (
-  <div className="my-4 border border-subtle bg-surface/50 p-4 rounded-xl flex flex-col gap-1 text-sm select-none">
+  <div
+    className={cn(
+      'my-4 border border-subtle bg-surface/50 p-4 rounded-xl flex flex-col gap-1 text-sm select-none',
+      className,
+    )}
+  >
     <div className="flex items-center gap-2">
       <span className="font-mono font-bold text-primary-500">{name}</span>
       {type && (
@@ -22,7 +31,7 @@ export const Field = ({
         </span>
       )}
       {required && (
-        <span className="text-xs text-rose-500 font-semibold">required</span>
+        <span className="text-xs text-danger-500 font-semibold">required</span>
       )}
     </div>
     {description && (

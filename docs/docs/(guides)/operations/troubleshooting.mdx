@@ -1,0 +1,112 @@
+---
+title: Troubleshooting
+sidebarPosition: 3
+description: Common issues and how to resolve them when working with Boltdocs.
+---
+
+### `ERR_PNPM_IGNORED_BUILDS` when running `pnpm install`
+
+After creating a project with `create-boltdocs`, running `pnpm install` fails with:
+
+```
+[ERR_PNPM_IGNORED_BUILDS] Ignored build scripts: esbuild@0.14.47, sharp@0.34.5
+```
+
+**Why it happens**
+
+pnpm 10+ blocks lifecycle scripts (`preinstall`, `postinstall`, `install`) of dependencies by default. Packages like `esbuild`, `sharp`, and `@swc/core` need native build scripts to compile platform-specific binaries. Without explicit approval, pnpm refuses to run them.
+
+**Solution**
+
+If you used `create-boltdocs`, the template already includes the required configuration. If you're adding Boltdocs to an existing project, add the following to your `package.json`:
+
+```json title="package.json"
+{
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "@swc/core",
+      "esbuild",
+      "sharp"
+    ]
+  }
+}
+```
+
+Then run `pnpm install` again. This tells pnpm to allow build scripts for these specific packages.
+
+Alternatively, you can run `pnpm approve-builds` interactively to select which dependencies should be allowed to run scripts.
+
+
+### Custom feedback throws "body stream already read" error
+
+If your page or code block feedback form throws a red validation error saying `Failed to execute 'text' on 'Response': body stream already read`.
+
+**Why it happens**
+
+This is caused by client-side response parsing bugs in old versions of the `boltdocs` core package. When an API route failed (for example, returning `404` or `500`), the client hook tried to parse the error payload as JSON first and then immediately read it as plain text if that failed, exhausting the response stream.
+
+**Solution**
+
+Update your `boltdocs` dependency in `package.json` to `v2.8.4` or later, which clones or reads the stream correctly once:
+
+```bash
+pnpm add boltdocs@latest
+```
+
+---
+
+### Feedback fails with `404` or `405` in production
+
+When you submit a rating or comment on your deployed site, the network tab shows the POST request to `/api/feedback` failing with `404 Not Found` or `405 Method Not Allowed`.
+
+**Why it happens**
+
+Because Boltdocs builds fully static sites (SSG), there's no backend server running in production to receive POST requests.
+
+**Solution**
+
+To resolve this, you must configure a serverless function endpoint on your hosting platform to receive the feedback request and forward it to GitHub securely.
+- **For Vercel:** Create a file at `api/feedback.ts` containing:
+  ```ts title="api/feedback.ts"
+  import { handleVercelFeedback } from 'boltdocs/server'
+  export default handleVercelFeedback
+  ```
+- **For Cloudflare Workers:** Create a file at `functions/feedback/index.ts` containing:
+  ```ts title="functions/feedback/index.ts"
+  import { handleWebFeedback } from 'boltdocs/server'
+  export default handleWebFeedback
+  ```
+- **For Netlify:** Create a file at `netlify/functions/feedback.ts` containing:
+  ```ts title="netlify/functions/feedback.ts"
+  import { handleNetlifyFeedback } from 'boltdocs/server'
+  export default handleNetlifyFeedback
+  ```
+- **For AWS Lambda:** Create a file at `lambda/feedback/index.ts` containing:
+  ```ts title="lambda/feedback/index.ts"
+  import { handleAwsFeedback } from 'boltdocs/server'
+  export default handleAwsFeedback
+  ```
+- **Environment Variables:** Make sure you've configured `BOLTDOCS_GITHUB_TOKEN`, `BOLTDOCS_GITHUB_REPO_OWNER`, and `BOLTDOCS_GITHUB_REPO_NAME` in your deployment settings.
+- **Local Testing:** Test your production builds locally using `boltdocs preview` (which automatically supports the `/api/feedback` endpoint) instead of a fake static server like the `serve` package.
+
+---
+
+### Custom feedback throws "GitHub repository coordinates (owner and repo name) are missing"
+
+If your feedback form shows the red validation error: `GitHub repository coordinates (owner and repo name) are missing. Please set GITHUB_REPO_OWNER and GITHUB_REPO_NAME.`:
+
+**Why it happens**
+
+The production serverless function runs standalone and does not compile or parse `boltdocs.config.ts` (to keep the runtime container light and avoid loading heavy dev tools like Vite). Therefore, the function can't read the coordinates from your config file at runtime.
+
+**Solution**
+
+You must configure the repository owner and name as environment variables in your hosting provider's settings panel (e.g., Vercel, Netlify, Cloudflare):
+- **`BOLTDOCS_GITHUB_REPO_OWNER`** (or `GITHUB_REPO_OWNER`)
+- **`BOLTDOCS_GITHUB_REPO_NAME`** (or `GITHUB_REPO_NAME`)
+
+And make sure your local `.env` file contains:
+```plain
+BOLTDOCS_GITHUB_REPO_OWNER=your-github-user-or-org
+BOLTDOCS_GITHUB_REPO_NAME=your-repo-name
+```

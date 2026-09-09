@@ -14,6 +14,8 @@ export interface HeadingProps extends React.HTMLAttributes<HTMLHeadingElement> {
   anchorIcon?: React.ReactNode
   /** Custom classes for the anchor link wrapper. */
   anchorClassName?: string
+  /** Custom classes for the default anchor icon. */
+  anchorIconClassName?: string
 }
 
 export const Heading = React.forwardRef<HTMLHeadingElement, HeadingProps>(
@@ -27,6 +29,7 @@ export const Heading = React.forwardRef<HTMLHeadingElement, HeadingProps>(
       anchorPosition = 'wrap',
       anchorIcon,
       anchorClassName,
+      anchorIconClassName,
       ...props
     },
     ref,
@@ -50,6 +53,7 @@ export const Heading = React.forwardRef<HTMLHeadingElement, HeadingProps>(
           anchorPosition === 'wrap'
             ? 'opacity-0 ml-2 text-muted/50 group-hover:text-primary-500 group-hover:opacity-100'
             : 'text-muted/50 hover:text-primary-500',
+          anchorIconClassName,
         )}
         size={16}
       />

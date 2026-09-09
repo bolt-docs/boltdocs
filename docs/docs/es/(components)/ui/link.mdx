@@ -6,15 +6,6 @@ description: Anclas de enlace localizadas integradas con el router.
 
 Las primitivas `Link` y `NavLink` extienden los enlaces de anclaje HTML estándar integrando locales de idioma, directorios base y navegación de rutas SPA.
 
----
-
-## Importación
-
-```tsx
-import { Link, NavLink } from 'boltdocs/primitives'
-```
-
----
 
 ## Inicio Rápido
 
@@ -75,3 +66,42 @@ Extiende las propiedades estándar de `Link`:
 | **`end`** | `boolean` | `false` | Si se establece en `true`, el enlace solo se resalta como activo cuando las rutas coinciden exactamente. |
 | **`className`** | `string \| ((props: { isActive: boolean }) => string)` | `undefined` | Nombre de clase de estilo, soportando funciones de lógica condicional. |
 | **`children`** | `ReactNode \| ((props: { isActive: boolean }) => ReactNode)` | `undefined` | Nodos hijos, soportando funciones de renderizado condicional. |
+
+---
+
+## Personalización y estados
+
+`Link` es neutral en estilos — renderiza un `<a>` estándar con enrutamiento localizado, precarga y navegación SPA, pero sin visuales. Sus propiedades `data-*` pasan directamente al ancla. `NavLink` agrega la coincidencia de rutas: cuando la ruta actual coincide con `href`, el enlace se considera activo y recibes ese estado a través de las funciones de renderizado de `className` / `children` (se agrega una clase `active` simple cuando pasas un `className` como cadena).
+
+| Estado / Slot | Mecanismo |
+| :--- | :--- |
+| `className` de `NavLink` (función) | Recibe `{ isActive }` — devuelve las clases para los estados activo / inactivo |
+| `children` de `NavLink` (función) | Recibe `{ isActive }` para contenido condicional |
+| Clase `active` | Se agrega a `NavLink` cuando la ruta actual coincide (cuando `className` es una cadena) |
+| Propiedad `end` | `true` coincide solo con la ruta exacta; `false` (predeterminado) coincide con cualquier ruta que comience con ella |
+| Atributos `data-*` | Pasan desde las props al elemento `<a>` |
+| `ref` | Se reenvía al ancla renderizada |
+
+Tailwind v4:
+
+```tsx
+<NavLink
+  href="/docs/guides"
+  className={({ isActive }) =>
+    `px-3 py-1 rounded text-sm ${
+      isActive ? 'bg-primary-500/10 text-primary-400' : 'text-muted hover:bg-soft'
+    }`
+  }
+>
+  Guías
+</NavLink>
+```
+
+O CSS puro:
+
+```css
+a.active {
+  color: var(--color-primary-400);
+  background: color-mix(in srgb, var(--color-primary-500) 10%, transparent);
+}
+```

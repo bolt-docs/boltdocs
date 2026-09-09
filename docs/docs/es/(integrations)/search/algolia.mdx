@@ -8,29 +8,6 @@ Para sitios de documentación grandes, puedes reemplazar el índice local predet
 
 Algolia DocSearch es gratuito para proyectos de código abierto públicos. Puedes solicitar un contenedor en [docsearch.algolia.com](https://docsearch.algolia.com/).
 
----
-
-## Configurando Algolia
-
-Para habilitar Algolia, registra tus credenciales bajo la clave `integrations.algolia` en `boltdocs.config.ts`:
-
-```ts title="boltdocs.config.ts"
-import { defineConfig } from 'boltdocs'
-
-export default defineConfig({
-  integrations: {
-    algolia: {
-      appId: 'YOUR_APP_ID',
-      apiKey: 'YOUR_SEARCH_ONLY_API_KEY', // Clave pública de solo búsqueda
-      indexName: 'YOUR_INDEX_NAME',
-    },
-  },
-})
-```
-
-Una vez configurado, Boltdocs conecta automáticamente los componentes de la barra de búsqueda (`SearchDialog` y el hook `useSearch`) para obtener las coincidencias de consultas desde Algolia en lugar de parsear el índice offline local de FlexSearch.
-
----
 
 ## Referencia de Configuración
 

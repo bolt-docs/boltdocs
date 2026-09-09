@@ -1,0 +1,116 @@
+---
+title: Primitivas del Tema
+sidebarPosition: 5
+description: Personaliza cada primitiva — Sidebar, OnThisPage, Navbar, Tabs — con tu propio CSS. Las primitivas son neutras de estilo: estructura, comportamiento y atributos de estado data-* vienen del framework; los colores y tamaños pertenecen a tu tema.
+---
+
+Toda primitiva en Boltdocs es **neutra de estilo**. El framework posee la **estructura**, el **comportamiento** y el **estado**, mientras que tu tema posee **toda decisión visual**. Esto es lo que permite que dos sitios completamente diferentes corran sobre el mismo código de componentes.
+
+```text
+primitiva  →  <aside data-sidebar-root> + data-active, data-open, data-depth …
+              estructura + comportamiento + estado (sin colores, sin tamaños)
+
+tema       →  clases Tailwind v4 o CSS dirigido a esos atributos data-*
+              colores, bordes, espaciado, transiciones — todo tuyo
+```
+
+## El Contrato
+
+Una primitiva renderiza HTML semántico, conecta el comportamiento (seguimiento de scroll, abrir/cerrar, detección de ruta activa) y expone su **estado a través de atributos `data-*` que están presentes solo cuando son verdaderos**. Tu tema nunca necesita saber *cómo* se calcula el estado — solo *que* existe.
+
+```tsx
+// Lo que el framework renderiza cuando un enlace del sidebar es la página activa:
+<a href="/docs/guides" data-active data-depth="1" aria-current="page" …>
+  Guías
+</a>
+```
+
+```css
+/* Lo que tu tema hace con ello: */
+a[data-active] {
+  color: var(--color-primary-500);
+  background-color: color-mix(in oklab, var(--color-primary-500) 10%, transparent);
+}
+```
+
+Prefiere las variantes de Tailwind v4 cuando estén disponibles:
+
+```tsx
+<Sidebar.Link className="data-active:bg-primary-500/10 data-active:text-primary-400" />
+```
+
+## ¿Qué Estados Expone Cada Primitiva?
+
+| Primitiva | Atributos de Estado | Comportamiento en la primitiva |
+| :--- | :--- | :--- |
+| **`Sidebar`** | `data-active`, `data-open`, `data-collapsible`, `data-depth`, `data-badge` + `aria-current`, `aria-expanded` | Colapsar/expandir grupos, detección de ruta activa, scroll-into-view del elemento activo |
+| **`OnThisPage`** | `data-active`, `data-level`, `data-otp-*` + `aria-current` | Seguimiento de scroll con IntersectionObserver, matemática del indicador de pista activa, auto-scroll del elemento activo |
+| **`Navbar`** | `data-open` (drawer móvil + menú more) + `aria-expanded` | Drawer móvil, dropdown "more", manejo de click fuera |
+| **`Tabs`** | `data-selected` + `aria-selected` | Roving-tabindex con teclado, posición del indicador |
+
+Como el estado vive en atributos, también puedes apuntar a **combinaciones padre–hijo** donde CSS brilla:
+
+```css
+/* Sangría para elementos de nivel 3 (valor del atributo) */
+li[data-level='3'] a { padding-left: 1rem; }
+
+/* Rotar el chevron de un grupo solo cuando está abierto */
+a[data-open] svg { transform: rotate(90deg); }
+```
+
+## Los Defaults Viven en `ui-base`
+
+El aspecto que obtienes de fábrica — el sidebar de `DocsLayout`, la TOC de la columna derecha, el navbar sticky — está implementado **sobre las primitivas** en `packages/core/src/client/components/ui-base/`. Cada clase ahí es solo el tema del propio framework y es **totalmente sobreescribible**: las primitivas aceptan slots `className` (o `itemClassName` / `linkClassName` / `indicatorClassName` / `fadeClassName` cuando el slot se repite por elemento) que se fusionan con, y ganan sobre, los defaults.
+
+```tsx
+// ui-base/sidebar.tsx — el look default del framework (el tuyo será distinto)
+<Sidebar.Link className={cn('w-full text-sm font-medium py-2 pl-3 pr-3 …', isActive && 'data-active:bg-primary-500/10 …')} />
+
+// tu tema — lo sobreescribe por completo
+<Sidebar.Link className="text-[13px] data-active:bg-accent data-active:text-accent-foreground" />
+```
+
+## Construyendo Tu Propio Archivo de Tema
+
+El patrón más limpio es un módulo `docs/src/theme/` que re-exporte versiones estilizadas de las primitivas y luego pasarlas a `DocsLayout` (o componerlas tú mismo):
+
+```tsx
+// docs/src/theme/on-this-page.tsx
+import { OnThisPage as Primitive } from 'boltdocs/primitives'
+
+export function OnThisPage() {
+  return (
+    <Primitive.Root className="sticky top-navbar hidden xl:flex flex-col shrink-0 w-toc py-4 pl-6 pr-4">
+      <Primitive.Header className="text-xs font-bold uppercase tracking-wider text-muted mb-4">
+        En esta página
+      </Primitive.Header>
+      <Primitive.Tree
+        headings={currentRoute.headings}
+        className="space-y-0.5 text-sm border-l border-subtle"
+        itemClassName="data-[level=3]:pl-3"
+        linkClassName="block py-0.5 pl-4 text-[13px] transition-colors text-muted hover:text-body data-active:text-primary-500"
+        indicatorClassName="-left-px w-0.5 rounded-full bg-primary-500"
+        fadeClassName="bg-linear-to-b from-transparent to-main"
+      />
+    </Primitive.Root>
+  )
+}
+```
+
+Las clases de utilidad `w-*` de arriba son **tokens del tema**, no API del framework: `w-toc`, `w-sidebar`, `top-navbar`, `text-muted`, `border-subtle`, `bg-main` y las variantes de color `data-active:*` las define el tema del sitio (en Tailwind v4, vía tokens `@theme` y variantes personalizadas) — tu sitio define las suyas.
+
+## Estilizado con CSS Puro
+
+Si no usas Tailwind, el mismo contrato funciona con una hoja de estilos:
+
+```css
+.sidebar-link { padding: 0.5rem 0.75rem; font-size: 0.875rem; }
+.sidebar-link[data-active] {
+  color: #6366f1;
+  background: rgba(99, 102, 241, 0.1);
+  font-weight: 600;
+}
+.sidebar-group[data-open] > button { color: currentColor; }
+```
+
+No hay nombres de clase generados por el framework que debas ingeniarte para replicar — los atributos `data-*` son un contrato estable y documentado.

@@ -1,0 +1,5 @@
+# Benchmark fixture generated output
+.boltdocs
+dist
+node_modules
+*.log

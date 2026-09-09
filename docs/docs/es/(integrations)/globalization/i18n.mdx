@@ -6,22 +6,6 @@ description: Configura documentación multilingüe con enrutamiento de locales b
 
 Boltdocs tiene soporte de primera clase para documentación multilingüe. Los locales están impulsados por **convenciones de carpetas** — coloca tus páginas traducidas en subcarpetas con nombre de locale y Boltdocs maneja el enrutamiento, los respaldos y el cambio de locale automáticamente.
 
----
-
-## Cómo Funciona
-
-La detección de locale se basa en el sistema de archivos. Cuando un archivo vive bajo una carpeta cuyo nombre coincide con un código de locale configurado, Boltdocs asigna ese locale a la ruta:
-
-```
-docs/
-├── index.md           → /docs          (locale predeterminado: 'en')
-├── guide.md           → /docs/guide    (locale predeterminado: 'en')
-└── es/
-    ├── index.md       → /docs/es       (locale: 'es')
-    └── guide.md       → /docs/es/guide (locale: 'es')
-```
-
----
 
 ## Inicio Rápido
 

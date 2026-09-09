@@ -1,7 +1,11 @@
 import path from 'node:path'
 
 import { TransformCache } from '../cache'
-import { docCache } from '../routes/cache'
+import {
+  docCache,
+  type RouteCacheContext,
+  type RouteCacheVariant,
+} from '../routes/cache'
 import { normalizePath } from '../utils'
 import type {
   DiagnosticRecord,
@@ -23,8 +27,6 @@ import type {
   PluginHmrEvent,
 } from '../../shared/types'
 
-let diagnosticIdCounter = 0
-
 /** Reserved namespace for core-emitted virtual modules. */
 const CORE_VIRTUAL_PREFIX = 'virtual:boltdocs-'
 
@@ -35,6 +37,45 @@ const CORE_VIRTUAL_PREFIX = 'virtual:boltdocs-'
  */
 const MAX_DIAGNOSTIC_RECORDS = 256
 
+export interface PluginRuntimeState {
+  virtualModuleRegistry: Map<string, RegisteredVirtualModule>
+  middlewareRegistry: Map<string, PluginTransformMiddleware>
+  diagnosticRecords: DiagnosticRecord[]
+  diagnosticIdCounter: number
+  hmrFileHandlers: Map<
+    PluginHmrEvent,
+    Set<(filePath: string) => void | Promise<void>>
+  >
+  hmrSender: ((event: string, data?: unknown) => void) | null
+  pluginServerMiddleware: PluginServerMiddleware[]
+  serverStartCallbacks: Array<() => void | Promise<void>>
+  serverEndCallbacks: Array<() => void | Promise<void>>
+}
+
+export function createPluginRuntimeState(): PluginRuntimeState {
+  return {
+    virtualModuleRegistry: new Map(),
+    middlewareRegistry: new Map(),
+    diagnosticRecords: [],
+    diagnosticIdCounter: 0,
+    hmrFileHandlers: new Map(),
+    hmrSender: null,
+    pluginServerMiddleware: [],
+    serverStartCallbacks: [],
+    serverEndCallbacks: [],
+  }
+}
+
+const defaultRuntime = createPluginRuntimeState()
+
+export function getDefaultPluginRuntimeState(): PluginRuntimeState {
+  return defaultRuntime
+}
+
+function getRuntime(runtime?: PluginRuntimeState): PluginRuntimeState {
+  return runtime ?? defaultRuntime
+}
+
 /**
  * Singleton registry of plugin-declared virtual modules, read by
  * `packages/core/src/node/plugin/virtual-modules.ts` when resolving the
@@ -43,7 +84,7 @@ const MAX_DIAGNOSTIC_RECORDS = 256
  * Wired into the HMR pipeline by `packages/core/src/node/dev-server/hmr-handler.ts`
  * so config changes flush the registry.
  */
-export const virtualModuleRegistry = new Map<string, RegisteredVirtualModule>()
+export const virtualModuleRegistry = defaultRuntime.virtualModuleRegistry
 
 /**
  * Singleton registry of plugin-declared transform middleware entries.
@@ -51,14 +92,14 @@ export const virtualModuleRegistry = new Map<string, RegisteredVirtualModule>()
  * or declared statically via `BoltdocsPlugin.middleware`. The registry is
  * consumed by `PluginLifecycleManager.runMiddlewareChain()`.
  */
-export const middlewareRegistry = new Map<string, PluginTransformMiddleware>()
+export const middlewareRegistry = defaultRuntime.middlewareRegistry
 
 /**
  * Diagnostic record book kept across the lifetime of the dev server. The
  * registry is process-local; for multi-instance deployments front this with
  * a remote sink (todo in a later phase).
  */
-const diagnosticRecords: DiagnosticRecord[] = []
+const diagnosticRecords = defaultRuntime.diagnosticRecords
 
 function nowIsoDate(): Date {
   return new Date()
@@ -69,11 +110,15 @@ function nowIsoDate(): Date {
  * returned object does not leak implementation details (no `TransformCache`
  * or `FileCache` references cross the surface).
  */
-export function createPluginCachesAPI(): PluginCachesAPI {
+export function createPluginCachesAPI(
+  routeCacheContext?: RouteCacheContext,
+  rootDir: string = process.cwd(),
+  routeCacheVariant?: RouteCacheVariant,
+): PluginCachesAPI {
   return {
     transform(namespace: string): PluginTransformCacheAPI {
       // Namespace prevents cross-plugin collisions on the same directory.
-      const cache = new TransformCache(`plugin:${namespace}`)
+      const cache = new TransformCache(`plugin:${namespace}`, rootDir)
       return {
         async get(key: string): Promise<string | null> {
           return cache.getAsync(key)
@@ -86,7 +131,7 @@ export function createPluginCachesAPI(): PluginCachesAPI {
         },
       }
     },
-    routes: createRoutesCacheAPI(),
+    routes: createRoutesCacheAPI(routeCacheContext, routeCacheVariant),
     memory<V>(
       namespace: string,
       opts?: { max?: number; ttl?: number },
@@ -151,23 +196,34 @@ export function createPluginCachesAPI(): PluginCachesAPI {
  * should not expect their `set` to round-trip beyond the next file
  * watcher tick.
  */
-function createRoutesCacheAPI(): PluginRoutesCacheAPI {
+function createRoutesCacheAPI(
+  routeCacheContext?: RouteCacheContext,
+  routeCacheVariant?: RouteCacheVariant,
+): PluginRoutesCacheAPI {
   return {
     get(filePath: string): RouteMeta | null {
-      const parsed = docCache.get(filePath) as { route: RouteMeta } | null
+      const cache =
+        routeCacheVariant?.docCache ?? routeCacheContext?.docCache ?? docCache
+      const parsed = cache.get(filePath) as { route: RouteMeta } | null
       return parsed?.route ?? null
     },
     set(filePath: string, route: RouteMeta): void {
       // We deliberately project just the route. See function JSDoc above.
-      docCache.set(filePath, { route } as unknown as Parameters<
-        typeof docCache.set
+      const cache =
+        routeCacheVariant?.docCache ?? routeCacheContext?.docCache ?? docCache
+      cache.set(filePath, { route } as unknown as Parameters<
+        typeof cache.set
       >[1])
     },
     invalidate(filePath: string): void {
-      docCache.invalidate(filePath)
+      const cache =
+        routeCacheVariant?.docCache ?? routeCacheContext?.docCache ?? docCache
+      cache.invalidate(filePath)
     },
     invalidateAll(): void {
-      docCache.invalidateAll()
+      const cache =
+        routeCacheVariant?.docCache ?? routeCacheContext?.docCache ?? docCache
+      cache.invalidateAll()
     },
   }
 }
@@ -183,7 +239,9 @@ function createRoutesCacheAPI(): PluginRoutesCacheAPI {
  */
 export function createPluginDiagnosticsAPI(
   pluginName: string,
+  runtime?: PluginRuntimeState,
 ): PluginDiagnosticsAPI {
+  const state = getRuntime(runtime)
   return {
     report(
       severity: DiagnosticRecord['severity'],
@@ -191,7 +249,7 @@ export function createPluginDiagnosticsAPI(
       message: string,
       where?: { filePath?: string; routePath?: string },
     ): void {
-      const id = ++diagnosticIdCounter
+      const id = ++state.diagnosticIdCounter
       const record: DiagnosticRecord = {
         id,
         severity,
@@ -202,17 +260,17 @@ export function createPluginDiagnosticsAPI(
         routePath: where?.routePath,
         time: nowIsoDate(),
       }
-      diagnosticRecords.push(record)
-      if (diagnosticRecords.length > MAX_DIAGNOSTIC_RECORDS) {
-        const evicted = diagnosticRecords.length - MAX_DIAGNOSTIC_RECORDS
-        diagnosticRecords.splice(0, evicted)
+      state.diagnosticRecords.push(record)
+      if (state.diagnosticRecords.length > MAX_DIAGNOSTIC_RECORDS) {
+        const evicted = state.diagnosticRecords.length - MAX_DIAGNOSTIC_RECORDS
+        state.diagnosticRecords.splice(0, evicted)
       }
     },
     list(): readonly DiagnosticRecord[] {
-      return Object.freeze([...diagnosticRecords])
+      return Object.freeze([...state.diagnosticRecords])
     },
     clear(): void {
-      diagnosticRecords.length = 0
+      state.diagnosticRecords.length = 0
     },
   }
 }
@@ -274,10 +332,13 @@ function resolveInside(base: string, ...parts: string[]): string {
  *     load. It exists so a future Phase can auto-inject imports of the
  *     virtual into `boltdocs-entry.tsx`.
  */
-export function createPluginVirtualModulesAPI(): PluginVirtualModulesAPI {
+export function createPluginVirtualModulesAPI(
+  runtime?: PluginRuntimeState,
+): PluginVirtualModulesAPI {
+  const state = getRuntime(runtime)
   return {
     add(id, loader, opts): void {
-      if (virtualModuleRegistry.has(id)) {
+      if (state.virtualModuleRegistry.has(id)) {
         throw new Error(
           `[boltdocs] Virtual module '${id}' is already registered. Pick a unique id (e.g. prefix it with your plugin name) so two plugins do not collide.`,
         )
@@ -287,17 +348,17 @@ export function createPluginVirtualModulesAPI(): PluginVirtualModulesAPI {
           `[boltdocs] Virtual module id '${id}' starts with the reserved prefix '${CORE_VIRTUAL_PREFIX}'. Use your own plugin namespace (e.g. 'virtual:my-plugin/...').`,
         )
       }
-      virtualModuleRegistry.set(id, {
+      state.virtualModuleRegistry.set(id, {
         id,
         eager: opts?.eager ?? false,
         loader,
       })
     },
     has(id: string): boolean {
-      return virtualModuleRegistry.has(id)
+      return state.virtualModuleRegistry.has(id)
     },
     list(): readonly RegisteredVirtualModule[] {
-      return Object.freeze([...virtualModuleRegistry.values()])
+      return Object.freeze([...state.virtualModuleRegistry.values()])
     },
   }
 }
@@ -308,16 +369,21 @@ export function createPluginVirtualModulesAPI(): PluginVirtualModulesAPI {
  * their virtuals on the next `beforeBuild`/`beforeDev` pass. Wired into the
  * HMR pipeline at `packages/core/src/node/dev-server/hmr-handler.ts`.
  */
-export function invalidateVirtualModulesCache(): void {
-  virtualModuleRegistry.clear()
+export function invalidateVirtualModulesCache(
+  runtime?: PluginRuntimeState,
+): void {
+  getRuntime(runtime).virtualModuleRegistry.clear()
 }
 
 /**
  * Drop a single registered virtual. Useful when a plugin's content change
  * requires its previously-emitted source to be regenerated.
  */
-export function invalidateVirtualModule(id: string): void {
-  virtualModuleRegistry.delete(id)
+export function invalidateVirtualModule(
+  id: string,
+  runtime?: PluginRuntimeState,
+): void {
+  getRuntime(runtime).virtualModuleRegistry.delete(id)
 }
 
 /**
@@ -329,12 +395,13 @@ export function invalidateVirtualModule(id: string): void {
  * The `send()` method uses the global `_hmrSender` function set by the
  * dev server at setup time via `setHmrSender()`.
  */
-export function createPluginHmrAPI(): PluginHmrAPI {
+export function createPluginHmrAPI(runtime?: PluginRuntimeState): PluginHmrAPI {
+  const state = getRuntime(runtime)
   function ensureHandlers(eventType: PluginHmrEvent) {
-    if (!hmrFileHandlers.has(eventType)) {
-      hmrFileHandlers.set(eventType, new Set())
+    if (!state.hmrFileHandlers.has(eventType)) {
+      state.hmrFileHandlers.set(eventType, new Set())
     }
-    return hmrFileHandlers.get(eventType)!
+    return state.hmrFileHandlers.get(eventType)!
   }
 
   return {
@@ -354,7 +421,7 @@ export function createPluginHmrAPI(): PluginHmrAPI {
       ensureHandlers('unlink').add(handler)
     },
     send(event: string, data?: unknown): void {
-      _hmrSender?.(`boltdocs:plugin:${event}`, data)
+      state.hmrSender?.(`boltdocs:plugin:${event}`, data)
     },
   }
 }
@@ -366,11 +433,23 @@ export function createPluginHmrAPI(): PluginHmrAPI {
 export async function runPluginHmrHandlers(
   eventType: PluginHmrEvent,
   filePath: string,
+  runtime?: PluginRuntimeState,
 ): Promise<void> {
-  const registry = hmrFileHandlers.get(eventType)
+  const registry = getRuntime(runtime).hmrFileHandlers.get(eventType)
   if (!registry) return
-  for (const handler of registry) {
-    await handler(filePath)
+
+  // Snapshot the handlers so registration/removal during a callback cannot
+  // change the current dispatch. Isolate failures so one plugin never
+  // prevents another plugin from receiving the same HMR event.
+  for (const handler of [...registry]) {
+    try {
+      await handler(filePath)
+    } catch (error) {
+      console.error(
+        `[boltdocs] Plugin HMR handler failed for '${filePath}':`,
+        error,
+      )
+    }
   }
 }
 
@@ -395,7 +474,7 @@ const hmrFileHandlers: Map<
  * Global WebSocket send function, set by the dev server at setup time.
  * Used by `PluginHmrAPI.send()` to broadcast to connected clients.
  */
-let _hmrSender: ((event: string, data?: unknown) => void) | null = null
+const _hmrSender: ((event: string, data?: unknown) => void) | null = null
 
 /**
  * Set the global HMR sender function. Called by the dev server during
@@ -403,8 +482,9 @@ let _hmrSender: ((event: string, data?: unknown) => void) | null = null
  */
 export function setHmrSender(
   sender: (event: string, data?: unknown) => void,
+  runtime?: PluginRuntimeState,
 ): void {
-  _hmrSender = sender
+  getRuntime(runtime).hmrSender = sender
 }
 
 /**
@@ -425,10 +505,13 @@ const serverEndCallbacks: Array<() => void | Promise<void>> = []
  * server. Called during server setup after all plugins have had their
  * `beforeDev` hooks run.
  */
-export function applyPluginServerMiddleware(server: {
-  middlewares: { use: (fn: (req: any, res: any, next: any) => void) => void }
-}): void {
-  for (const mw of pluginServerMiddleware) {
+export function applyPluginServerMiddleware(
+  server: {
+    middlewares: { use: (fn: (req: any, res: any, next: any) => void) => void }
+  },
+  runtime?: PluginRuntimeState,
+): void {
+  for (const mw of getRuntime(runtime).pluginServerMiddleware) {
     server.middlewares.use(mw)
   }
 }
@@ -436,8 +519,10 @@ export function applyPluginServerMiddleware(server: {
 /**
  * Run all registered server `onStart` callbacks.
  */
-export async function runPluginServerStartCallbacks(): Promise<void> {
-  for (const cb of serverStartCallbacks) {
+export async function runPluginServerStartCallbacks(
+  runtime?: PluginRuntimeState,
+): Promise<void> {
+  for (const cb of getRuntime(runtime).serverStartCallbacks) {
     await cb()
   }
 }
@@ -445,8 +530,10 @@ export async function runPluginServerStartCallbacks(): Promise<void> {
 /**
  * Run all registered server `onEnd` callbacks.
  */
-export async function runPluginServerEndCallbacks(): Promise<void> {
-  for (const cb of serverEndCallbacks) {
+export async function runPluginServerEndCallbacks(
+  runtime?: PluginRuntimeState,
+): Promise<void> {
+  for (const cb of getRuntime(runtime).serverEndCallbacks) {
     await cb()
   }
 }
@@ -459,10 +546,13 @@ export async function runPluginServerEndCallbacks(): Promise<void> {
  * `applyPluginServerMiddleware()`, `runPluginServerStartCallbacks()`,
  * and `runPluginServerEndCallbacks()` during server setup.
  */
-export function createPluginServerAPI(): PluginServerAPI {
+export function createPluginServerAPI(
+  runtime?: PluginRuntimeState,
+): PluginServerAPI {
+  const state = getRuntime(runtime)
   return {
     use(middleware: PluginServerMiddleware): void {
-      pluginServerMiddleware.push(middleware)
+      state.pluginServerMiddleware.push(middleware)
     },
     useAt(path: string, handler: PluginServerMiddleware): void {
       const wrapped: PluginServerMiddleware = (req, res, next) => {
@@ -471,13 +561,13 @@ export function createPluginServerAPI(): PluginServerAPI {
         }
         next()
       }
-      pluginServerMiddleware.push(wrapped)
+      state.pluginServerMiddleware.push(wrapped)
     },
     onStart(callback): void {
-      serverStartCallbacks.push(callback)
+      state.serverStartCallbacks.push(callback)
     },
     onEnd(callback): void {
-      serverEndCallbacks.push(callback)
+      state.serverEndCallbacks.push(callback)
     },
   }
 }
@@ -487,25 +577,28 @@ export function createPluginServerAPI(): PluginServerAPI {
  * `middlewareRegistry`. The registry is consumed by
  * `PluginLifecycleManager.runMiddlewareChain()` during the build pipeline.
  */
-export function createPluginMiddlewareAPI(): PluginMiddlewareAPI {
+export function createPluginMiddlewareAPI(
+  runtime?: PluginRuntimeState,
+): PluginMiddlewareAPI {
+  const state = getRuntime(runtime)
   return {
     add(middleware: PluginTransformMiddleware): void {
       const key = middleware.name ?? `_unnamed_${unnamedMiddlewareCounter++}`
-      if (middlewareRegistry.has(key)) {
+      if (state.middlewareRegistry.has(key)) {
         throw new Error(
           `[boltdocs] Middleware '${middleware.name ?? '<unnamed>'}' is already registered.`,
         )
       }
-      middlewareRegistry.set(key, middleware)
+      state.middlewareRegistry.set(key, middleware)
     },
     remove(name: string): void {
-      middlewareRegistry.delete(name)
+      state.middlewareRegistry.delete(name)
     },
     has(name: string): boolean {
-      return middlewareRegistry.has(name)
+      return state.middlewareRegistry.has(name)
     },
     list(): readonly PluginTransformMiddleware[] {
-      return Object.freeze([...middlewareRegistry.values()])
+      return Object.freeze([...state.middlewareRegistry.values()])
     },
   }
 }
@@ -514,8 +607,27 @@ export function createPluginMiddlewareAPI(): PluginMiddlewareAPI {
  * Drop all registered middleware from the in-process registry. Use when
  * the plugin set or config changes.
  */
-export function invalidateMiddlewareCache(): void {
-  middlewareRegistry.clear()
+export function invalidateMiddlewareCache(runtime?: PluginRuntimeState): void {
+  getRuntime(runtime).middlewareRegistry.clear()
+}
+
+/**
+ * Reset runtime registrations before a dev-server lifecycle starts again.
+ * Document HMR must not call this: plugin virtual modules, middleware and
+ * callbacks are valid across ordinary document changes. A config/server
+ * restart is the boundary where plugins are re-run and must re-register.
+ */
+export function resetPluginRuntimeRegistries(
+  runtime?: PluginRuntimeState,
+): void {
+  const state = getRuntime(runtime)
+  state.virtualModuleRegistry.clear()
+  state.middlewareRegistry.clear()
+  state.hmrFileHandlers.clear()
+  state.pluginServerMiddleware.length = 0
+  state.serverStartCallbacks.length = 0
+  state.serverEndCallbacks.length = 0
+  state.hmrSender = null
 }
 
 /**
@@ -523,12 +635,6 @@ export function invalidateMiddlewareCache(): void {
  * Not exported through the public surface.
  */
 export function __resetPluginContextStateForTests(): void {
-  diagnosticRecords.length = 0
-  virtualModuleRegistry.clear()
-  middlewareRegistry.clear()
-  hmrFileHandlers.clear()
-  pluginServerMiddleware.length = 0
-  serverStartCallbacks.length = 0
-  serverEndCallbacks.length = 0
-  _hmrSender = null
+  defaultRuntime.diagnosticRecords.length = 0
+  resetPluginRuntimeRegistries(defaultRuntime)
 }

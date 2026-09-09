@@ -1,9 +1,15 @@
 import { ArrowLeft } from './icons'
 import { Link } from '../primitives/link'
+import { cn } from '../../utils/cn'
 
-export function NotFound() {
+export function NotFound({ className }: { className?: string }) {
   return (
-    <div className="flex items-center justify-center min-h-[65vh] text-center px-4">
+    <div
+      className={cn(
+        'flex items-center justify-center min-h-[65vh] text-center px-4',
+        className,
+      )}
+    >
       <div className="space-y-6 max-w-md mx-auto p-8 border border-subtle bg-surface rounded-2xl shadow-xs">
         <span className="block text-7xl font-extrabold tracking-tight text-primary-500">
           404

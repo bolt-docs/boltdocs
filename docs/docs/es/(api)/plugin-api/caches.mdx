@@ -9,25 +9,6 @@ description: PluginCachesAPI — caché de transformación, caché de rutas y ca
 Tres tipos de caché, cada uno vinculado a un scope namespaced para
 evitar colisiones entre plugins.
 
----
-
-## `caches.transform(namespace)`
-
-Caché sharded con clave hash, respaldada por el `TransformCache` del
-core. Se recomienda un namespace por plugin.
-
-```ts
-const cache = ctx.caches.transform('mi-plugin')
-
-const cached = await cache.get('una-clave-unica')
-// → string | null
-
-cache.set('una-clave-unica', `<transformado>...</transformado>`)
-
-await cache.flush()
-```
-
----
 
 ## `caches.routes`
 

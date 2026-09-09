@@ -1,6 +1,6 @@
 {
-  "title": "Referencia de la API de Plugins",
-  "icon": "Puzzle",
-  "collapsible": true,
+  "title": "API de Plugins",
+  "order": 2,
+  "collapsible": false,
   "collapsed": false
 }

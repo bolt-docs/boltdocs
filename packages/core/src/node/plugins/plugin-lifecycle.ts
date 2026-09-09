@@ -1,9 +1,16 @@
 import type { BoltdocsConfig } from '../config'
 import type { RouteMeta } from '../routes/types'
+import {
+  getRouteGenerationFingerprint,
+  getRouteCacheContext,
+  getRouteCacheVariant,
+  type RouteCacheContext,
+  type RouteCacheVariant,
+} from '../routes/cache'
 import { PluginHookError } from './plugin-errors'
 import type {
   PluginLifecycleHooks,
-  SecureBoltdocsPlugin,
+  BoltdocsPlugin,
   PluginContext,
   PluginLogger,
 } from './plugin-types'
@@ -18,26 +25,68 @@ import {
   createPluginPathsAPI,
   createPluginServerAPI,
   createPluginVirtualModulesAPI,
-  middlewareRegistry,
+  createPluginRuntimeState,
+  getDefaultPluginRuntimeState,
+  type PluginRuntimeState,
 } from './plugin-context'
-import type { PluginTransformMiddleware } from '../../shared/types'
+import type { IPluginLifecycleManager } from '../../shared/types'
 
-export class PluginLifecycleManager {
-  private plugins: SecureBoltdocsPlugin[]
+const HOOK_ALIASES: Record<string, string> = {
+  'build:before': 'beforeBuild',
+  'build:after': 'afterBuild',
+  'build:end': 'buildEnd',
+  'dev:before': 'beforeDev',
+  'dev:after': 'afterDev',
+  'transform:source': 'transformSource',
+  'transform:mdx': 'transformMdx',
+  'transform:html': 'transformHtml',
+  beforeBuild: 'build:before',
+  afterBuild: 'build:after',
+  buildEnd: 'build:end',
+  beforeDev: 'dev:before',
+  afterDev: 'dev:after',
+  transformSource: 'transform:source',
+  transformMdx: 'transform:mdx',
+  transformHtml: 'transform:html',
+}
+
+export function resolvePluginHook(
+  plugin: BoltdocsPlugin,
+  hookName: keyof PluginLifecycleHooks | string,
+): Function | undefined {
+  if (!plugin.hooks) return undefined
+  const direct = plugin.hooks[hookName as keyof PluginLifecycleHooks]
+  if (typeof direct === 'function') return direct as Function
+  const alias = HOOK_ALIASES[hookName]
+  if (alias) {
+    const aliasFn = plugin.hooks[alias as keyof PluginLifecycleHooks]
+    if (typeof aliasFn === 'function') return aliasFn as Function
+  }
+  return undefined
+}
+
+export class PluginLifecycleManager implements IPluginLifecycleManager {
+  private plugins: BoltdocsPlugin[]
   private config: BoltdocsConfig
   private store: BoltdocsPluginStore
   private docsDir: string
   private rootDir: string
   private routes: RouteMeta[]
   private outDir: string
+  private runtime: PluginRuntimeState
+  private routeCacheContext: RouteCacheContext
+  private routeCacheVariant: RouteCacheVariant
 
   constructor(
-    plugins: SecureBoltdocsPlugin[],
+    plugins: BoltdocsPlugin[],
     config: BoltdocsConfig,
     docsDir?: string,
     rootDir?: string,
     routes?: RouteMeta[],
     outDir?: string,
+    runtime?: PluginRuntimeState,
+    routeCacheContext?: RouteCacheContext,
+    routeCacheVariant?: RouteCacheVariant,
   ) {
     this.plugins = plugins
     this.config = config
@@ -46,6 +95,15 @@ export class PluginLifecycleManager {
     this.rootDir = rootDir || process.cwd()
     this.routes = routes || []
     this.outDir = outDir || 'dist'
+    this.runtime = runtime ?? getDefaultPluginRuntimeState()
+    this.routeCacheContext =
+      routeCacheContext ?? getRouteCacheContext(this.docsDir)
+    this.routeCacheVariant =
+      routeCacheVariant ??
+      getRouteCacheVariant(
+        this.routeCacheContext,
+        getRouteGenerationFingerprint(config, config.base),
+      )
   }
 
   public async runHook(
@@ -56,7 +114,7 @@ export class PluginLifecycleManager {
     const pipeline = new Pipeline<Record<string, unknown>>()
 
     for (const plugin of sortedPlugins) {
-      if (!plugin.hooks?.[hookName]) continue
+      if (!resolvePluginHook(plugin, hookName)) continue
 
       pipeline.addStep(this.createStep(plugin, hookName, args))
     }
@@ -72,11 +130,11 @@ export class PluginLifecycleManager {
     let params = initialParams
 
     for (const plugin of sortedPlugins) {
-      if (!plugin.hooks?.[hookName]) continue
+      const hookFn = resolvePluginHook(plugin, hookName)
+      if (!hookFn) continue
 
       const context = this.createContext(plugin)
       try {
-        const hookFn = plugin.hooks[hookName] as Function
         const result = await hookFn(context, params)
         if (result !== undefined) {
           // Check for chain control signals (backwards-compatible — hooks
@@ -121,13 +179,52 @@ export class PluginLifecycleManager {
    * hooks or declared statically via `BoltdocsPlugin.middleware` are all
    * collected. Execution respects `__signal: 'skip'` and `__signal: 'break'`.
    */
+  public hasHook(
+    hookName:
+      | keyof PluginLifecycleHooks
+      | 'transformSource'
+      | 'transformMdx'
+      | 'transformHtml',
+  ): boolean {
+    // Lifecycle hooks
+    if (this.plugins.some((p) => resolvePluginHook(p, hookName))) {
+      return true
+    }
+
+    // Static middleware declarations
+    const staticMiddleware = this.plugins.flatMap((p) => p.middleware ?? [])
+    if (
+      staticMiddleware.some(
+        (m) =>
+          m[hookName as 'transformSource' | 'transformMdx' | 'transformHtml'],
+      )
+    ) {
+      return true
+    }
+
+    // Programmatic middleware registrations
+    if (
+      (hookName === 'transformSource' ||
+        hookName === 'transformMdx' ||
+        hookName === 'transformHtml') &&
+      [...this.runtime.middlewareRegistry.values()].some(
+        (m) =>
+          m[hookName as 'transformSource' | 'transformMdx' | 'transformHtml'],
+      )
+    ) {
+      return true
+    }
+
+    return false
+  }
+
   public async runMiddlewareChain<TParams extends Record<string, unknown>>(
     hookName: 'transformSource' | 'transformMdx' | 'transformHtml',
     initialParams: TParams,
   ): Promise<TParams> {
     // Collect middleware: static declarations + programmatic registrations.
     const staticMiddleware = this.plugins.flatMap((p) => p.middleware ?? [])
-    const programmaticMiddleware = [...middlewareRegistry.values()]
+    const programmaticMiddleware = [...this.runtime.middlewareRegistry.values()]
     const all = [...staticMiddleware, ...programmaticMiddleware]
 
     // Sort by enforce: pre → normal → post
@@ -158,20 +255,18 @@ export class PluginLifecycleManager {
         }
       } catch (error) {
         const mwName = mw.name ?? '<unnamed>'
-        context.diagnostics.report(
-          'error',
-          `MIDDLEWARE_ERROR`,
-          `Middleware '${mwName}' threw: ${
-            error instanceof Error ? error.message : String(error)
-          }`,
-        )
+        const message = `Middleware '${mwName}' threw: ${
+          error instanceof Error ? error.message : String(error)
+        }`
+        context.logger.error(message)
+        context.diagnostics.report('error', 'MIDDLEWARE_ERROR', message)
       }
     }
 
     return params
   }
 
-  private getSortedPlugins(): SecureBoltdocsPlugin[] {
+  private getSortedPlugins(): BoltdocsPlugin[] {
     const pre = this.plugins.filter((p) => p.enforce === 'pre')
     const normal = this.plugins.filter((p) => !p.enforce)
     const post = this.plugins.filter((p) => p.enforce === 'post')
@@ -179,7 +274,7 @@ export class PluginLifecycleManager {
   }
 
   private createStep(
-    plugin: SecureBoltdocsPlugin,
+    plugin: BoltdocsPlugin,
     hookName: keyof PluginLifecycleHooks,
     args: unknown[],
   ): PipelineStep {
@@ -188,8 +283,10 @@ export class PluginLifecycleManager {
       execute: async () => {
         const context = this.createContext(plugin)
         try {
-          const hookFn = plugin.hooks![hookName] as Function
-          await hookFn(context, ...args)
+          const hookFn = resolvePluginHook(plugin, hookName)
+          if (hookFn) {
+            await hookFn(context, ...args)
+          }
         } catch (error) {
           const hookError = new PluginHookError(
             plugin.name,
@@ -200,7 +297,7 @@ export class PluginLifecycleManager {
         }
       },
       rollback: async () => {
-        const rollbackHook = plugin.hooks?.buildEnd
+        const rollbackHook = resolvePluginHook(plugin, 'build:end')
         if (rollbackHook) {
           const context = this.createContext(plugin)
           try {
@@ -213,7 +310,7 @@ export class PluginLifecycleManager {
     }
   }
 
-  private createContext(plugin: SecureBoltdocsPlugin): PluginContext {
+  private createContext(plugin: BoltdocsPlugin): PluginContext {
     return {
       config: Object.freeze({ ...this.config }),
       docsDir: this.docsDir,
@@ -231,13 +328,17 @@ export class PluginLifecycleManager {
         has: (p, k) => this.store.has(p, k),
       },
       logger: this.createLogger(plugin.name),
-      caches: createPluginCachesAPI(),
-      diagnostics: createPluginDiagnosticsAPI(plugin.name),
+      caches: createPluginCachesAPI(
+        this.routeCacheContext,
+        this.rootDir,
+        this.routeCacheVariant,
+      ),
+      diagnostics: createPluginDiagnosticsAPI(plugin.name, this.runtime),
       paths: createPluginPathsAPI(this.docsDir, this.rootDir),
-      virtualModules: createPluginVirtualModulesAPI(),
-      middleware: createPluginMiddlewareAPI(),
-      hmr: createPluginHmrAPI(),
-      server: createPluginServerAPI(),
+      virtualModules: createPluginVirtualModulesAPI(this.runtime),
+      middleware: createPluginMiddlewareAPI(this.runtime),
+      hmr: createPluginHmrAPI(this.runtime),
+      server: createPluginServerAPI(this.runtime),
     }
   }
 
@@ -256,13 +357,17 @@ export class PluginLifecycleManager {
         has: (p, k) => this.store.has(p, k),
       },
       logger: this.createLogger(name),
-      caches: createPluginCachesAPI(),
-      diagnostics: createPluginDiagnosticsAPI(name),
+      caches: createPluginCachesAPI(
+        this.routeCacheContext,
+        this.rootDir,
+        this.routeCacheVariant,
+      ),
+      diagnostics: createPluginDiagnosticsAPI(name, this.runtime),
       paths: createPluginPathsAPI(this.docsDir, this.rootDir),
-      virtualModules: createPluginVirtualModulesAPI(),
-      middleware: createPluginMiddlewareAPI(),
-      hmr: createPluginHmrAPI(),
-      server: createPluginServerAPI(),
+      virtualModules: createPluginVirtualModulesAPI(this.runtime),
+      middleware: createPluginMiddlewareAPI(this.runtime),
+      hmr: createPluginHmrAPI(this.runtime),
+      server: createPluginServerAPI(this.runtime),
     }
   }
 

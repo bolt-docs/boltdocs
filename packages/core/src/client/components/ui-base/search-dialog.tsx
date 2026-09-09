@@ -4,6 +4,7 @@ import { SearchDialog as SearchDialogPrimitive } from '../primitives/search-dial
 import Navbar from '../primitives/navbar'
 import type { ComponentRoute } from '../../types'
 import { InternalErrorBoundary as ErrorBoundary } from '../internal/error-boundary'
+import { cn } from '../../utils/cn'
 
 interface SearchResult {
   id: string
@@ -14,7 +15,15 @@ interface SearchResult {
   isHeading?: boolean
 }
 
-function Highlight({ text, query }: { text: string; query: string }) {
+function Highlight({
+  text,
+  query,
+  markClassName,
+}: {
+  text: string
+  query: string
+  markClassName?: string
+}) {
   if (!query || !text) return <>{text}</>
   const escapedQuery = query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
   const regex = new RegExp(`(${escapedQuery})`, 'gi')
@@ -25,7 +34,10 @@ function Highlight({ text, query }: { text: string; query: string }) {
         regex.test(part) ? (
           <mark
             key={i}
-            className="bg-primary-500/20 text-primary-600 dark:text-primary-400 font-bold px-0.5 rounded-sm"
+            className={cn(
+              'bg-primary-500/20 text-primary-600 dark:text-primary-400 font-bold px-0.5 rounded-sm',
+              markClassName,
+            )}
           >
             {part}
           </mark>
@@ -37,9 +49,25 @@ function Highlight({ text, query }: { text: string; query: string }) {
   )
 }
 
-export function SearchDialog({ routes }: { routes: ComponentRoute[] }) {
-  const { isOpen, setIsOpen, query, setQuery, list, handleSelect } =
-    useSearch(routes)
+export function SearchDialog({
+  routes,
+  className,
+  markClassName,
+}: {
+  routes: ComponentRoute[]
+  className?: string
+  markClassName?: string
+}) {
+  const {
+    isOpen,
+    setIsOpen,
+    query,
+    setQuery,
+    list,
+    searchDataLoading,
+    searchDataError,
+    handleSelect,
+  } = useSearch(routes)
 
   return (
     <>
@@ -66,17 +94,17 @@ export function SearchDialog({ routes }: { routes: ComponentRoute[] }) {
           isOpen={isOpen}
           isDismissable
           onOpenChange={() => setIsOpen(false)}
-          className="fixed inset-0 z-100 flex items-center justify-center p-4 bg-black/40 backdrop-blur-xs animate-fade-in"
+          className={cn(
+            'fixed inset-0 z-100 flex items-center justify-center p-4 bg-black/40 backdrop-blur-xs animate-fade-in',
+            className,
+          )}
         >
           <SearchDialogPrimitive.Content className="w-full max-w-lg bg-main border border-subtle shadow-md rounded-2xl overflow-hidden p-6">
             <SearchDialogPrimitive.Dialog
               aria-label="Search documentation"
               className="flex flex-col min-h-0 h-[450px]"
             >
-              <SearchDialogPrimitive.Autocomplete
-                onSelectionChange={handleSelect}
-                className="flex flex-col min-h-0"
-              >
+              <SearchDialogPrimitive.Autocomplete className="flex flex-col min-h-0">
                 <SearchDialogPrimitive.Input
                   value={query}
                   onChange={setQuery}
@@ -96,29 +124,53 @@ export function SearchDialog({ routes }: { routes: ComponentRoute[] }) {
                   )}
                 </SearchDialogPrimitive.Input>
 
-                <SearchDialogPrimitive.List items={list as SearchResult[]}>
-                  {(item: SearchResult) => (
-                    <SearchDialogPrimitive.Item
-                      key={item.id}
-                      onPress={() => handleSelect(item.id)}
-                      textValue={item.title}
-                      className="flex items-center gap-3 px-4 py-2 rounded-xl group dark:hover:bg-primary-300/40 hover:bg-primary-200/50 transition-colors duration-100"
-                    >
-                      <SearchDialogPrimitive.Item.Icon
-                        isHeading={item.isHeading}
-                        className="text-muted group-hover:text-primary-500 group-focus:text-primary-500"
-                      />
-                      <div className="flex flex-col justify-center min-w-0">
-                        <SearchDialogPrimitive.Item.Title className="text-sm font-medium text-body truncate dark:group-hover:text-primary-100">
-                          <Highlight text={item.title} query={query} />
-                        </SearchDialogPrimitive.Item.Title>
-                        <SearchDialogPrimitive.Item.Bio className="text-xs text-muted truncate">
-                          <Highlight text={item.bio} query={query} />
-                        </SearchDialogPrimitive.Item.Bio>
-                      </div>
-                    </SearchDialogPrimitive.Item>
-                  )}
-                </SearchDialogPrimitive.List>
+                {searchDataLoading ? (
+                  <div className="flex flex-1 items-center justify-center px-4 py-8 text-sm text-muted">
+                    Loading search index…
+                  </div>
+                ) : searchDataError ? (
+                  <div className="flex flex-1 items-center justify-center px-4 py-8 text-center text-sm text-muted">
+                    Search is temporarily unavailable.
+                  </div>
+                ) : query && list.length === 0 ? (
+                  <div className="flex flex-1 items-center justify-center px-4 py-8 text-sm text-muted">
+                    No results found.
+                  </div>
+                ) : (
+                  <SearchDialogPrimitive.List
+                    items={list as SearchResult[]}
+                    onAction={handleSelect}
+                  >
+                    {(item: SearchResult) => (
+                      <SearchDialogPrimitive.Item
+                        key={item.id}
+                        textValue={item.title}
+                        className="flex items-center gap-3 px-4 py-2 rounded-xl group dark:hover:bg-primary-300/40 hover:bg-primary-200/50 transition-colors duration-100"
+                      >
+                        <SearchDialogPrimitive.Item.Icon
+                          isHeading={item.isHeading}
+                          className="text-muted group-hover:text-primary-500 group-focus:text-primary-500"
+                        />
+                        <div className="flex flex-col justify-center min-w-0">
+                          <SearchDialogPrimitive.Item.Title className="text-sm font-medium text-body truncate dark:group-hover:text-primary-100">
+                            <Highlight
+                              text={item.title}
+                              query={query}
+                              markClassName={markClassName}
+                            />
+                          </SearchDialogPrimitive.Item.Title>
+                          <SearchDialogPrimitive.Item.Bio className="text-xs text-muted truncate">
+                            <Highlight
+                              text={item.bio}
+                              query={query}
+                              markClassName={markClassName}
+                            />
+                          </SearchDialogPrimitive.Item.Bio>
+                        </div>
+                      </SearchDialogPrimitive.Item>
+                    )}
+                  </SearchDialogPrimitive.List>
+                )}
               </SearchDialogPrimitive.Autocomplete>
             </SearchDialogPrimitive.Dialog>
           </SearchDialogPrimitive.Content>

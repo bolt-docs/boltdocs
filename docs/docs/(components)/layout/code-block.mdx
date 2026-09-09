@@ -4,19 +4,8 @@ sidebarPosition: 9
 description: The shell around every highlighted code fence.
 ---
 
-# CodeBlock
-
 `CodeBlock` is the visual container Boltdocs wraps around every fenced code block (```` ```ts ````, ```` ```tsx ````, ```` ```bash ````, etc.). It handles the rounded border, the header strip with the language label, and the action toolbar (copy button + expand / collapse). You generally won't reach for it directly in `.mdx` content — Boltdocs injects it automatically through MDX — but it's exposed so you can build a *custom* highlighted snippet inside your own components.
 
----
-
-## Import
-
-```tsx
-import { CodeBlock } from 'boltdocs/primitives'
-```
-
----
 
 ## When to reach for it
 
@@ -38,11 +27,12 @@ A code block has three optional regions:
 <CodeBlock>
   <CodeBlock.Header>
     <CodeBlock.Group>{/* e.g. language icon + "TypeScript" */}</CodeBlock.Group>
-    {/* e.g. copy button */}
+    <CodeBlock.Actions>{/* e.g. copy button, feedback thumbs */}</CodeBlock.Actions>
   </CodeBlock.Header>
 
   <CodeBlock.Content>
-    <pre>...</pre>
+    <CodeBlock.Pre>{/* highlighted or raw code */}</CodeBlock.Pre>
+    <CodeBlock.Expand />
   </CodeBlock.Content>
 </CodeBlock>
 ```
@@ -50,29 +40,47 @@ A code block has three optional regions:
 - **`CodeBlock`** (root) — sets the rounded border, background color, and outer padding. Pass `plain` to render without a border, useful inside cards that already have one.
 - **`CodeBlock.Header`** — the strip above the code. Holds the language label on the left and copy/expand buttons on the right.
 - **`CodeBlock.Group`** — horizontal flex container. Use it to group the language logo and label together inside `Header`.
+- **`CodeBlock.Actions`** — toolbar container for the header's right-aligned actions (copy button, feedback). Pass `className` to tint the surface behind floating headers.
 - **`CodeBlock.Content`** — wraps the `<pre>` (or whatever renderer you choose). Pass `shouldTruncate` to clamp the snippet to 300px and let users expand it.
+- **`CodeBlock.Pre`** — renders the Shiki HTML when `highlightedHtml` is provided, otherwise falls back to `children`. Accepts `highlightedHtml`, `isHighlighted`, and a `ref` so hooks can measure the rendered content.
+- **`CodeBlock.Expand`** — the expand/collapse button for truncated blocks. Wire it to `useExpandable` with `isExpandable`, `shouldTruncate`, `isExpanded`, and `onToggle`. Accepts `buttonClassName` for the button surface.
 
 ---
 
 ## Putting it together
 
 ```tsx
-import { CodeBlock } from 'boltdocs/primitives'
-import { highlight } from 'boltdocs'
+import { Button, CodeBlock } from 'boltdocs/primitives'
+import { useCopyButton, useExpandable } from 'boltdocs/client'
+import { Copy, Check } from 'lucide-react'
 
-export function RawSnippet({ language, code }: { language: string; code: string }) {
-  // `highlight` runs Shiki at build time and returns HTML.
-  const html = highlight(code, language)
+export function RawSnippet({ lang, code, html }: { lang: string; code: string; html: string }) {
+  const { copied, handleCopy } = useCopyButton()
+  const { isExpanded, isExpandable, shouldTruncate, toggle, preRef } =
+    useExpandable({ children: code, highlightedHtml: html })
 
   return (
     <CodeBlock plain>
       <CodeBlock.Header>
         <CodeBlock.Group>
-          <span className="text-xs font-mono uppercase">{language}</span>
+          <span className="text-xs font-mono uppercase">{lang}</span>
         </CodeBlock.Group>
+        <CodeBlock.Actions>
+          <Button onPress={() => handleCopy(preRef.current?.textContent ?? '')}>
+            {copied ? <Check size={16} /> : <Copy size={16} />}
+          </Button>
+        </CodeBlock.Actions>
       </CodeBlock.Header>
-      <CodeBlock.Content>
-        <div dangerouslySetInnerHTML={{ __html: html }} />
+      <CodeBlock.Content shouldTruncate={shouldTruncate}>
+        <CodeBlock.Pre ref={preRef} highlightedHtml={html} isHighlighted>
+          {code}
+        </CodeBlock.Pre>
+        <CodeBlock.Expand
+          isExpandable={isExpandable}
+          shouldTruncate={shouldTruncate}
+          isExpanded={isExpanded}
+          onToggle={toggle}
+        />
       </CodeBlock.Content>
     </CodeBlock>
   )
@@ -83,12 +91,72 @@ That's it — the inner HTML is the pre-rendered Shiki output, so it works durin
 
 ---
 
+## Hooks
+
+Feature-scoped hooks give you the interactive behavior without coupling to the shell. They are exported from `boltdocs/client` and can be used with the primitive parts or standalone.
+
+### `useCopyButton`
+
+Copy-to-clipboard state with a transient 2s "copied" confirmation:
+
+```tsx
+const { copied, handleCopy } = useCopyButton()
+<CodeBlock.Actions>
+  <Button onPress={() => handleCopy(preRef.current?.textContent ?? '')}>
+    {copied ? <Check size={16} /> : <Copy size={16} />}
+  </Button>
+</CodeBlock.Actions>
+```
+
+### `useExpandable`
+
+Expand/collapse for long blocks. Measures the rendered code through `preRef` and reports whether the block overflows `maxLines` (default `6`):
+
+```tsx
+const { isExpanded, isExpandable, shouldTruncate, toggle, preRef } =
+  useExpandable({ children, highlightedHtml })
+
+<CodeBlock.Content shouldTruncate={shouldTruncate}>
+  <CodeBlock.Pre ref={preRef} highlightedHtml={html} isHighlighted>
+    {children}
+  </CodeBlock.Pre>
+  <CodeBlock.Expand
+    isExpandable={isExpandable}
+    shouldTruncate={shouldTruncate}
+    isExpanded={isExpanded}
+    onToggle={toggle}
+  />
+</CodeBlock.Content>
+```
+
+### `useCodeBlockFeedback`
+
+Thumbs-up / thumbs-down feedback. Only active when the `feedback.custom` integration is enabled in the site config, and never for `plain` blocks. Override submission via `submitFeedback`:
+
+```tsx
+const { rated, handleRate, enabled } = useCodeBlockFeedback({ plain, lang })
+```
+
+### `useCodeBlock` (deprecated)
+
+The old single-hook composition still works but is deprecated since `v4`. It is now an internal composition of `useCopyButton`, `useExpandable`, and `useCodeBlockFeedback` and will be removed in a future major version. Migrate by composing the three feature hooks yourself.
+
+---
+
 ## Props
 
 | Prop | Type | Default | What it does |
 | :--- | :--- | :--- | :--- |
 | `plain` (root) | `boolean` | `false` | Skip the outer border and padding. Useful inside a parent that already has them. |
 | `shouldTruncate` (content) | `boolean` | `false` | Cap the code at ~300px and add an expand button. |
+| `highlightedHtml` (pre) | `string` | — | Pre-rendered Shiki HTML rendered instead of `children`. |
+| `isHighlighted` (pre) | `boolean` | `false` | Marks the content as already-highlighted (disables the highlight source-swap). |
+| `ref` (pre) | `Ref<HTMLElement>` | — | Forwarded to the code element so hooks can measure text content. |
+| `isExpandable` / `shouldTruncate` / `isExpanded` / `onToggle` (expand) | `boolean` × 3, `() => void` | `false` / `false` / `false` / — | Expand-button state wired from `useExpandable`. |
+| `buttonClassName` (expand) | `string` | — | Extra Tailwind classes for the expand button. |
+| `expandLabel` (expand) | `ReactNode` | `'Expand code'` | Label shown when the collapsed button asks to expand. |
+| `collapseLabel` (expand) | `ReactNode` | `'Show less'` | Label shown when the expanded toggle asks to collapse. |
+| `expandIcon` (expand) | `ReactNode` | — | Custom leading icon for the expand/collapse toggle button. |
 | `className` | `string` | — | Extra Tailwind classes. |
 | `children` | `ReactNode` | — | Sub-components. |
 
@@ -108,3 +176,39 @@ Every sub-component inherits the common `children` / `className` / `style` shape
 
 - [`DocsLayout`](/docs/components/layout/docs-layout) — uses `CodeBlock` implicitly via MDX rendering.
 - [`Tabs`](/docs/components/ui/tabs) — pair with `CodeBlock` to build multi-language copy tabs.
+
+---
+
+## Customization & states
+
+The `CodeBlock` primitive is **style-neutral**: it is a shell — structure and behavior come from the primitive, and every visual decision (colors, borders, spacing) belongs to the site theme through `className` passthrough on every part. It emits no `data-*` state attributes; the copy "copied" state is exposed by the `useCopyButton` hook (it returns `copied`), so the copied styling is handled inside the theme's button.
+
+| State / Slot | Mechanism |
+| :--- | :--- |
+| `CodeBlock` (root) | Shell `<div>`; `plain` skips border and padding; background and border come from theme tokens (`--color-code-bg`, `border-subtle`) |
+| `CodeBlock.Header` / `Group` / `Actions` | Layout slots; alignment is baked in, colors via `className` |
+| `CodeBlock.Content` | Wraps the `<pre>`; `shouldTruncate` clamps the snippet to ~300px |
+| `CodeBlock.Pre` | `<pre>` or Shiki wrapper; typography and spacing via `className` |
+| `CodeBlock.Expand` | Expand/collapse button from `useExpandable`; `isExpanded` drives the label; styling via `buttonClassName` |
+| Copied state | No `data-*` attribute — `useCopyButton()` returns `copied`; swap the icon or classes in the theme's button |
+
+```tsx
+<CodeBlock className="my-6 rounded-xl border border-subtle bg-(--color-code-bg)">
+  <CodeBlock.Header>
+    <CodeBlock.Group>
+      <span className="text-xs font-mono uppercase text-muted">{lang}</span>
+    </CodeBlock.Group>
+    <CodeBlock.Actions>
+      <Button
+        onPress={() => handleCopy(preRef.current?.textContent ?? '')}
+        className={copied ? 'text-primary-500' : 'text-muted hover:text-body'}
+      >
+        {copied ? <Check size={16} /> : <Copy size={16} />}
+      </Button>
+    </CodeBlock.Actions>
+  </CodeBlock.Header>
+  <CodeBlock.Content>
+    <CodeBlock.Pre ref={preRef}>{code}</CodeBlock.Pre>
+  </CodeBlock.Content>
+</CodeBlock>
+```

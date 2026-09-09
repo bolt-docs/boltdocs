@@ -4,36 +4,18 @@ sidebarPosition: 1
 description: Install Boltdocs and run your first documentation site in under two minutes.
 ---
 
-Boltdocs requires **Node.js 18+** and a package manager. We recommend `pnpm` for its speed and disk efficiency, but `npm` and `yarn` work just as well. (Refined)
+Boltdocs requires **Node.js 18+** and a package manager. We recommend `pnpm` for its speed and disk efficiency, but `npm` and `yarn` work perfectly too.
 
-If you're starting from scratch, use `create-boltdocs` to generate a complete project with all the boilerplate in place:
+If you're starting from scratch, use `create-boltdocs` to generate a complete project with all the boilerplate ready:
 ```sh
 pnpm create boltdocs@latest my-docs
 ```
-Then skip straight to [running the dev server](#run-the-dev-server).
+Then jump straight to [running the dev server](#run-the-dev-server).
 
-<Callout variant="note" title="pnpm 10+ build scripts">
-  pnpm 10+ blocks lifecycle scripts (preinstall/postinstall) from dependencies by default. The `create-boltdocs` template already includes the required `pnpm.onlyBuiltDependencies` configuration, so `pnpm install` works out of the box. If you're adding Boltdocs to an existing project manually, see the [troubleshooting guide](/docs/guides/troubleshooting#err_pnpm_ignored_builds) for the required configuration.
+<Callout variant="note" title="Build scripts on pnpm 10+">
+  pnpm 10+ blocks lifecycle scripts (preinstall/postinstall) of dependencies by default. The `create-boltdocs` template already includes the required `pnpm.onlyBuiltDependencies` configuration, so `pnpm install` works out of the box. If you're adding Boltdocs to an existing project manually, see the [troubleshooting guide](/docs/guides/operations/troubleshooting#err_pnpm_ignored_builds) for the required configuration.
 </Callout>
 
----
-
-## Manual Installation
-
-If you're adding Boltdocs to an existing project, install it as a dev dependency:
-
-```sh
-# pnpm
-pnpm add -D boltdocs
-
-# npm
-npm install --save-dev boltdocs
-
-# yarn
-yarn add --dev boltdocs
-```
-
----
 
 ## Create the Docs Directory
 
@@ -46,9 +28,9 @@ echo "# Hello, Boltdocs!" > docs/index.md
 
 ---
 
-## Add a Config File
+## Add a Configuration File
 
-Create `boltdocs.config.ts` in the root of your project:
+Create `boltdocs.config.ts` at the root of your project:
 
 ```ts title="boltdocs.config.ts"
 import { defineConfig } from 'boltdocs'
@@ -89,7 +71,7 @@ pnpm docs:dev
 Open [http://localhost:5173](http://localhost:5173) and you'll see your documentation site running locally with hot reload.
 
 <Callout variant="note">
-  The first startup is slightly slower as Boltdocs builds its internal route map and warms the file cache. Subsequent restarts are near-instant.
+  The first start is a bit slower while Boltdocs builds its internal route map and warms up the file cache. Subsequent restarts are nearly instant.
 </Callout>
 
 ---
@@ -100,7 +82,7 @@ Open [http://localhost:5173](http://localhost:5173) and you'll see your document
 pnpm docs:build
 ```
 
-The output lands in `dist/`. Every page is pre-rendered as static HTML, with a client bundle for navigation and search.
+The output is generated in `dist/`. Every page is pre-rendered as static HTML, with a client bundle for navigation and search.
 
 ---
 
@@ -110,9 +92,9 @@ import { Route, Settings } from 'lucide-react'
 
 <Cards cols={2}>
   <Card title="Configuration" href="/docs/guides/getting-started/configuration" icon={<Settings />}>
-    Learn how to customize the title, logo, navigation, and every other option in your config file.
+    Learn how to customize the title, logo, navigation, and every other option in your configuration file.
   </Card>
-  <Card title="File-System Routing" href="/docs/guides/getting-started/file-routing" icon={<Route />}>
-    Learn how Boltdocs turns your `docs/` folder into a full navigation structure.
+  <Card title="File-System Routing" href="/docs/guides/getting-started/routing" icon={<Route />}>
+    Learn how Boltdocs turns your `docs/` folder into a complete navigation structure.
   </Card>
 </Cards>

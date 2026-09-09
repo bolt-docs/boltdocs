@@ -30,22 +30,6 @@ ctx.hmr.send('my-plugin:update', { reason: 'regenerated' })
 // Clients listen with: import.meta.hot.on('boltdocs:plugin:my-plugin:update', ...)
 ```
 
----
-
-## Event types
-
-| Method | Event type | When it fires |
-| :--- | :--- | :--- |
-| `onFileAdd` | `'add'` | New file created inside `docs/` |
-| `onFileChange` | `'change'` | Existing file modified |
-| `onFileUnlink` | `'unlink'` | File deleted from `docs/` |
-| `onFileEvent(type, fn)` | any | Low-level — listen to a specific event type |
-
-All handlers receive the **normalized absolute file path** and run after
-the core's own HMR processing. Errors in plugin handlers are caught and
-logged — they never crash the dev server.
-
----
 
 ## See also
 

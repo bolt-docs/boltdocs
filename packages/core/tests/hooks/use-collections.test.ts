@@ -31,12 +31,14 @@ const mockCollectionData = {
       title: 'First Post ES',
       locale: 'es',
       filePath: 'docs/blog/first-post.md',
+      date: '2025-01-01',
     },
     {
       path: '/blog/es/second-post',
       title: 'Second Post ES',
       locale: 'es',
       filePath: 'docs/blog/second-post.md',
+      date: '2025-02-01',
     },
   ],
 }
@@ -67,6 +69,7 @@ describe('collection hooks', () => {
 
     expect(result.current).toHaveLength(2)
     expect(result.current[0].locale).toBe('es')
+    expect(result.current[0].title).toBe('Second Post ES')
     expect(result.current[1].locale).toBe('es')
   })
 
@@ -80,7 +83,7 @@ describe('collection hooks', () => {
 
     expect(result.current).toHaveLength(1)
     expect(result.current[0].locale).toBe('es')
-    expect(result.current[0].title).toBe('First Post ES')
+    expect(result.current[0].title).toBe('Second Post ES')
   })
 
   it('should return a translated post by slug', () => {

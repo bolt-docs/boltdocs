@@ -1,0 +1,38 @@
+/**
+ * Docs theme — non-component CSS overrides.
+ *
+ * The MDX typography that used to live in the `.bdocs-prose` layer now lives
+ * in the MDX components themselves (`src/theme/mdx/typographics.tsx`,
+ * `table.tsx`, `code-block.tsx`) as Tailwind classes. This file only keeps
+ * the global overrides that cannot be expressed as element classes: Shiki
+ * token styling and Mermaid text alignment.
+ */
+
+/* ═══ Shiki (dark-only, Geist Mono) ═══════════════════════════════
+   The core reset.css ships 12px shiki text and .shiki-themes CSS vars.
+   With codeTheme set to a single dark theme, shiki emits inline colors,
+   so only the font family/size need to be realigned to the theme. These
+   are unlayered + !important to beat the reset's unlayered rules. */
+:root .shiki,
+:root .shiki span {
+  font-family: var(--font-mono) !important;
+  font-size: 0.8125rem !important; /* 13px */
+  line-height: 1.7 !important;
+  background-color: transparent !important;
+}
+
+/* Code token selection: primary-tinted like the rest of the theme */
+.shiki code::selection,
+.shiki span::selection {
+  background: color-mix(in srgb, var(--color-primary-500) 22%, transparent);
+}
+
+/* ═══ Mermaid (OpenAI dark canvas) ════════════════════════════════ */
+.mermaid-rendered svg text,
+.mermaid-rendered svg tspan {
+  font-family: var(--font-sans) !important;
+}
+
+.mermaid-rendered {
+  color: var(--color-body);
+}

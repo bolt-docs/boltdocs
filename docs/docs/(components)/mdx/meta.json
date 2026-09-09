@@ -1,7 +1,6 @@
 {
   "title": "MDX Components",
-  "icon": "Layers",
   "order": 1,
-  "collapsible": true,
+  "collapsible": false,
   "collapsed": false
 }

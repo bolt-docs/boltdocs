@@ -1,8 +1,8 @@
-import { useI18n } from '@/client/hooks'
+import { useI18n } from '../../hooks'
 import { Button } from '../primitives/button'
 import { Menu } from '../primitives/menu'
 import { ChevronDown, Languages } from './icons'
-import { cn } from '@/client/utils/cn'
+import { cn } from '../../utils/cn'
 
 export function I18nSelector({ className }: { className?: string }) {
   const { currentLocale, availableLocales, handleLocaleChange } = useI18n()
