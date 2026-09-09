@@ -208,6 +208,34 @@ describe('rssPlugin transformHtml', () => {
     )
   })
 
+  it('derives the feed locale from the page path when no route is provided', () => {
+    const plugin = rssPlugin()
+    const { html } = plugin.hooks!.transformHtml!(createContext(tempDir), {
+      html: '<html><head></head></html>',
+      path: '/es/docs/guides',
+    } as any)
+    expect(html).toContain('href="https://example.com/rss/rss-es.xml"')
+
+    const { html: defaultHtml } = plugin.hooks!.transformHtml!(
+      createContext(tempDir),
+      { html: '<html><head></head></html>', path: '/docs/guides' } as any,
+    )
+    expect(defaultHtml).toContain('href="https://example.com/rss/rss-en.xml"')
+
+    // Translated docs pages live under the shared `/docs` base, so the
+    // locale segment is not the first one. It must still be resolved.
+    const { html: sharedBaseHtml } = plugin.hooks!.transformHtml!(
+      createContext(tempDir),
+      {
+        html: '<html><head></head></html>',
+        path: '/docs/es/plugins/content/plugin-rss',
+      } as any,
+    )
+    expect(sharedBaseHtml).toContain(
+      'href="https://example.com/rss/rss-es.xml"',
+    )
+  })
+
   it('leaves the html untouched when siteUrl is not configured', () => {
     const plugin = rssPlugin()
     const ctx = createContext(tempDir, {
@@ -219,5 +247,99 @@ describe('rssPlugin transformHtml', () => {
       route: {} as RouteMeta,
     })
     expect(result.html).toBe(html)
+  })
+})
+describe('rssPlugin build:generate', () => {
+  it('writes feeds using the absolute outDir from the pipeline params', async () => {
+    const plugin = rssPlugin()
+    await plugin.hooks!['build:generate']!(createContext(tempDir), {
+      routes,
+      outDir: tempDir,
+      siteUrl: 'https://example.com',
+    })
+
+    const enXml = fs.readFileSync(
+      path.join(tempDir, 'rss', 'rss-en.xml'),
+      'utf-8',
+    )
+    expect(enXml).toContain('Get Started')
+  })
+
+  it('does not rewrite identical output when both build:generate and afterBuild run', async () => {
+    const ctx = createContext(tempDir)
+    const plugin = rssPlugin()
+
+    await plugin.hooks!['build:generate']!(ctx, { routes, outDir: tempDir })
+    const writesAfterGenerate = (ctx.logger.info as any).mock.calls.length
+
+    await plugin.hooks!.afterBuild!(ctx)
+    const writesAfterCompat = (ctx.logger.info as any).mock.calls.length
+
+    expect(writesAfterGenerate).toBeGreaterThan(0)
+    expect(writesAfterCompat).toBe(writesAfterGenerate)
+  })
+
+  it('rewrites when the route set changes between hook invocations', async () => {
+    const ctx = createContext(tempDir)
+    const plugin = rssPlugin()
+
+    await plugin.hooks!['build:generate']!(ctx, {
+      routes: routes.slice(0, 1),
+      outDir: tempDir,
+    })
+    const writesAfterGenerate = (ctx.logger.info as any).mock.calls.length
+
+    await plugin.hooks!.afterBuild!(ctx)
+    const writesAfterCompat = (ctx.logger.info as any).mock.calls.length
+
+    expect(writesAfterCompat).toBeGreaterThan(writesAfterGenerate)
+  })
+
+  it('buckets default-locale routes (locale: undefined) into the default feed', async () => {
+    const plugin = rssPlugin()
+    const ctx = createContext(tempDir, {
+      routes: [
+        {
+          path: '/docs/start',
+          title: 'No Locale Route',
+          date: '2026-01-15T10:00:00.000Z',
+        } as RouteMeta,
+        {
+          path: '/es/docs/start',
+          title: 'Spanish Route',
+          locale: 'es',
+        } as RouteMeta,
+      ],
+    })
+    await plugin.hooks!['build:generate']!(ctx, {
+      routes: ctx.routes,
+      outDir: tempDir,
+    })
+
+    const enXml = fs.readFileSync(
+      path.join(tempDir, 'rss', 'rss-en.xml'),
+      'utf-8',
+    )
+    expect(enXml).toContain('No Locale Route')
+
+    const esXml = fs.readFileSync(
+      path.join(tempDir, 'rss', 'rss-es.xml'),
+      'utf-8',
+    )
+    expect(esXml).toContain('Spanish Route')
+    expect(esXml).not.toContain('No Locale Route')
+  })
+
+  it('afterBuild resolves a relative ctx.outDir against ctx.rootDir', async () => {
+    const plugin = rssPlugin()
+    const ctx = createContext(tempDir, {
+      outDir: 'dist',
+      rootDir: tempDir,
+    })
+    await plugin.hooks!.afterBuild!(ctx)
+
+    expect(fs.existsSync(path.join(tempDir, 'dist', 'rss', 'rss-en.xml'))).toBe(
+      true,
+    )
   })
 })
