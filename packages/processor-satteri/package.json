@@ -1,7 +1,7 @@
 {
   "name": "@bdocs/processor-satteri",
-  "version": "0.2.0",
-  "description": "S\u00e4tteri MDX processor for Boltdocs (Rust-based)",
+  "version": "0.3.0",
+  "description": "Sätteri MDX processor for Boltdocs (Rust-based)",
   "type": "module",
   "publishConfig": {
     "access": "public"

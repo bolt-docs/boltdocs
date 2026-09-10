@@ -1,5 +1,47 @@
 # boltdocs
 
+## 3.3.0
+
+### Minor Changes
+
+- [`8a5c519`](https://github.com/bolt-docs/boltdocs/commit/8a5c5195907b77825f364a8195cd0ae8554a69d6) Thanks [@jesusalcaladev](https://github.com/jesusalcaladev)! - Add locale support to `experimental.fileRouting`: a top-level `pages-external/{locale}/` directory matching a configured locale now provides the localized variant of a page (`es/roadmap.mdx` → `/es/roadmap`). Each locale URL is served by its localized file when it exists and falls back to the default-locale file otherwise, mirroring the docs i18n fallback routes. For React pages that translate internally with `useI18n()`, the fallback re-renders the default component with the active locale from the URL context.
+
+- [`6472b84`](https://github.com/bolt-docs/boltdocs/commit/6472b841ef18aa92033a0b64d8fd70281ce954dc) Thanks [@jesusalcaladev](https://github.com/jesusalcaladev)! - Add a first-class `aliases` configuration API for project-specific module aliases while preserving Boltdocs' internal aliases. User-defined aliases are merged into the generated Vite configuration, so configuring `vite.resolve` no longer removes framework aliases such as `boltdocs/entry` and `boltdocs/client`.
+
+- [`dffb1d0`](https://github.com/bolt-docs/boltdocs/commit/dffb1d0c70b5da1ddf53484c1b43d0c141eacdad) Thanks [@jesusalcaladev](https://github.com/jesusalcaladev)! - **Sidebar primitives**: `Sidebar.Items` now accepts `classNames` (per-piece `SidebarSlots` merged over the defaults with `tailwind-merge`) plus `componentItem` and `componentGroup` render props for full structural replacement. `Sidebar.Link`, `Sidebar.Group` and `Sidebar.SubGroup` gained the corresponding slot props (`iconClassName`, `labelClassName`, `trailing`, `headerClassName`, `renderTitle`, `toggleClassName`, `renderToggle`, etc.). `Sidebar.Item` accepts `depth`, `renderItem` and `classNames`. `useSidebar` now exposes `merged`, `tree`, `isActive` and `isGroupActive`, alongside pure helpers `isRouteActive` and `hasChildren`. Fixed a latent bug where `SidebarItems` declared a `componentItem` prop that was never used.
+
+  **CodeBlock primitives**: new `CodeBlock.Actions`, `CodeBlock.Pre` and `CodeBlock.Expand` parts. Feature-scoped hooks `useCopyButton`, `useExpandable` and `useCodeBlockFeedback` are exported from `boltdocs/client`; the historical `useCodeBlock` hook is now a deprecated composition of them and will be removed in a future major.
+
+- [`36c959e`](https://github.com/bolt-docs/boltdocs/commit/36c959e922b491fa0e0de16f53be4dd6f894ba4b) Thanks [@jesusalcaladev](https://github.com/jesusalcaladev)! - Every CLI command now uses the brand terracotta palette (`#eb5828` / `#d34013`) — dev, preview, build, doctor, and audit outputs share the same wordmark gradient, borders, bullets, and badges instead of mixing generic cyan/sky/blue status colors. The `DEV`, `PREVIEW`, version, and `UPDATE` chips are brand-colored, the doctor header carries the branded wordmark with version badge and terracotta section titles (low-severity chips also match the brand; high/warning keep their semantic red/yellow), and the audit renders plugin names, low-risk tags, and the summary table borders in terracotta while staying dependency-free. The build summary was rewritten as a single compact block (header with version badge, per-phase timings, and a one-line metrics summary — pages, JS, CSS, output dir), replacing the previous steps + divider + total + table + box sequence and cutting the number of stdout writes during a build. The SSG worker-pool diagnostics log is now emitted only in benchmark mode so ordinary builds stay quiet.
+
+  Two sidebar-related fixes land with it: `meta.json` resolution is now scoped per tab and per locale (so groups that share a directory name across tabs, like `(guides)/content` vs `(plugins)/content`, no longer clobber each other, and localized sites resolve their own translated meta instead of falling back to English titles), and an explicit `meta.json` `order` takes precedence over an index page's own `sidebarPosition` for group ordering. Collection pages (blog lists and posts) are also detected from any URL path segment rather than only the first one, which stops the docs sidebar from rendering on collection posts whose routes are registered without the docs base (e.g. `/blog/post` vs `/docs/blog/post`).
+
+- [`9c5251c`](https://github.com/bolt-docs/boltdocs/commit/9c5251c4fba6efee8d9d1920495be9c731bab8b2) Thanks [@jesusalcaladev](https://github.com/jesusalcaladev)! - Release 3.3.0: replace react-router-dom with a custom micro-router, make the core CSS-agnostic (Tailwind is no longer assumed), add the `definePlugin` API with typed lifecycle hooks, opt-in JSON-LD structured data, View Transitions, and `experimental.fileRouting` for literal `pages-external/` files. Collection posts now sort by descending publication date, and the plugin security audit (`boltdocs audit`) gained accurate plugin resolution, bounded scans, fail-closed summaries, and faster startup.
+
+### Patch Changes
+
+- [`a33d512`](https://github.com/bolt-docs/boltdocs/commit/a33d512b965bcc701ed76e98db632dcf45fd8bd9) Thanks [@jesusalcaladev](https://github.com/jesusalcaladev)! - Fix a dev-server race where a `server.restart()` could dispose the shared route-cache context while the new server's virtual modules still held a reference to it, surfacing as "Route cache context has been disposed" errors on reload. The route cache context is now re-created defensively when a disposed context is detected during route regeneration.
+
+  Fix code highlighting when a single `codeTheme` string (e.g. `codeTheme: 'github-dark'`) is configured: the Sätteri rehype-shiki plugin now receives the resolved `codeTheme` and passes it to the Shiki adapter, instead of silently falling back to the default light/dark dual theme (which produced dual-theme CSS variables that broke single-theme color rendering).
+
+  Fix stale compiled-MDX output after processor changes: the compiled-pages cache key now includes the `@bdocs/processor-satteri` package version and the manifest version is bumped, so any published change to the compiler pipeline (e.g. Shiki highlighting) invalidates previously cached pages instead of serving pre-fix output.
+
+  Fix code-block syntax highlighting disappearing in dark mode: the theme's Shiki light/dark color rules were applied to every `.shiki` block via `color: var(--shiki-dark) !important`, which wiped single-theme inline token colors (e.g. `codeTheme: 'github-dark'`) because `--shiki-dark` is undefined on that output. Those rules are now scoped to dual-theme output (`.shiki.shiki-themes`) and cover both light and dark modes, leaving single-theme inline colors intact.
+
+  Fix code blocks in languages outside the bundled grammar list (e.g. `nginx`, `apache`) silently rendering as unformatted plain text: the Sätteri rehype-shiki plugin now retries unknown languages as `plaintext` so the block keeps its Shiki styling instead of falling back to an unstyled pre, and the bundled language list is expanded with common documentation-site languages (`nginx`, `apache`, `dockerfile`, `docker`, `json5`, `scss`, `less`, `python`, `go`, `java`, `php`, `sql`, `graphql`, `http`, `xml`, `vue`, `svelte`, `ruby`, `kotlin`, `swift`, `powershell`, `c`, `cpp`, `elixir`).
+
+- [`d07e49d`](https://github.com/bolt-docs/boltdocs/commit/d07e49d48ac2ab3f0ab289541b37610bd54247a8) Thanks [@jesusalcaladev](https://github.com/jesusalcaladev)! - Rebrand the CLI output (dev/preview server boxes, build summary, doctor, update prompt) from the former terracotta brand color to an azure-blue accent (`#3d8bfa`), matching the updated primary palette. The `TERRACOTTA`/`TERRACOTTA_DEEP` exports in `ui-utils` are renamed to `BRAND`/`BRAND_DEEP`.
+
+- [`33a4e4b`](https://github.com/bolt-docs/boltdocs/commit/33a4e4b6d7e95552e0f16228a045b41a02f82e33) Thanks [@jesusalcaladev](https://github.com/jesusalcaladev)! - Fix locale selector becoming unresponsive after switching languages. An optimistic store write re-rendered the shell's route sync while the router location was still stale (navigation lands on a later task), reverting the locale preference mid-navigation; the next selector interaction compared against the rolled-back value and silently no-op'd. The store write is now propagated synchronously to the router's locale registry and route syncing matches against the live browser URL, also fixing EN↔ES switching from localized external pages (e.g. `/es` → `/`).
+
+- [`8a5c519`](https://github.com/bolt-docs/boltdocs/commit/8a5c5195907b77825f364a8195cd0ae8554a69d6) Thanks [@jesusalcaladev](https://github.com/jesusalcaladev)! - Fix dev server HMR for `pages-external/` files: explicitly watching `pages-external/index.*` raced with chokidar's initial recursive scan, so files such as `roadmap.mdx` and underscore-prefixed section components were never watched and edits had no effect. The watcher now only extends the watch to paths outside the Vite root, and Vite's default HMR is suppressed for `pages-external/` so changes trigger a single reload. Also wrap file-routed MDX pages in a proper page container (title + prose) inside the external layout.
+
+- Updated dependencies [[`97af04d`](https://github.com/bolt-docs/boltdocs/commit/97af04da95657e1e72ecee548b1c1cc55c3d5f81), [`a33d512`](https://github.com/bolt-docs/boltdocs/commit/a33d512b965bcc701ed76e98db632dcf45fd8bd9), [`36c959e`](https://github.com/bolt-docs/boltdocs/commit/36c959e922b491fa0e0de16f53be4dd6f894ba4b), [`9c5251c`](https://github.com/bolt-docs/boltdocs/commit/9c5251c4fba6efee8d9d1920495be9c731bab8b2), [`9c5251c`](https://github.com/bolt-docs/boltdocs/commit/9c5251c4fba6efee8d9d1920495be9c731bab8b2), [`9c5251c`](https://github.com/bolt-docs/boltdocs/commit/9c5251c4fba6efee8d9d1920495be9c731bab8b2), [`9c5251c`](https://github.com/bolt-docs/boltdocs/commit/9c5251c4fba6efee8d9d1920495be9c731bab8b2)]:
+  - @bdocs/processor-satteri@0.3.0
+  - @bdocs/ssg@0.4.0
+  - @bdocs/plugin-image-optimizer@0.2.2
+  - @bdocs/parser@1.2.0
+
 ## 3.2.2
 
 ### Patch Changes
@@ -68,6 +110,7 @@
 - [`46e288d`](https://github.com/bolt-docs/boltdocs/commit/46e288d485bf50ae226a3b3c70c0a93040b8ae0c) Thanks [@jesusalcaladev](https://github.com/jesusalcaladev)! - Boltdocs 3.2.0 — Nitro Phase 1 performance optimizations
 
   ### Cache & Build Performance
+
   - **SSR output consolidated**: Moved from `.vite-react-ssg-temp/` to `.boltdocs/build/ssr/` — all build artifacts now live under a single `.boltdocs/` directory
   - **Server build skip preserved**: SSR output no longer deleted when client code hasn't changed, making warm builds skip the expensive SSR Vite bundle (~40s saved)
   - **Mtime cache in memory**: `getFileMtime()` now uses an in-memory TTL cache (2s) instead of `fs.statSync()` on every call — 5.9x faster for repeated stat calls
@@ -76,15 +119,18 @@
   - **Dev gzip skipped**: `TransformCache` no longer gzips cache shards in dev mode
 
   ### MDX & Routes
+
   - **MDX cache key for dev**: Uses file path + mtime instead of content hash in dev mode — cache survives restarts when files haven't changed
   - **Bounded route parsing**: `Promise.all` replaced with `runWithConcurrency(32)` to prevent memory pressure and I/O contention
   - **docCache loaded flag**: `docCache.load()` skips disk read when already in memory
 
   ### Dev Server & HMR
+
   - **HMR O(1) module graph lookup**: Pre-built lowercase index replaces brute-force O(N) scan for faster content edits
   - **Prewarming with route priority**: Index pages and getting-started are prewarmed first; 150ms delay to avoid CPU contention with first page request
 
   ### Pipeline & Syntax Highlighting
+
   - **Pipeline parallel steps**: SEO validation and type generation run concurrently via `addParallelSteps()`
   - **Pipeline timing logs**: Per-step timing reported after build completion
   - **Critical CSS concurrency**: Beasties processor runs at `concurrency: min(cpus, 4)` instead of 1
@@ -149,6 +195,7 @@
   inside Boltdocs core.
 
   ### Internal changes (no public surface for users)
+
   - `packages/core/src/node/plugins/plugin-context.ts` — new module
     implementing the four APIs.
   - `PluginLifecycleManager.createContext()` — extended to inject them.
@@ -168,6 +215,7 @@
   (`virtual:@my-plugin/...` or `virtual:my-plugin-...`).
 
   ### Out of scope (called out, parked for a later phase)
+
   - The `eager` flag on `add()` is accepted but not yet wired into the
     generated `boltdocs-entry.tsx`. Phase 7 (MDX transformer API) or a
     later Phase will pick it up to auto-inject plugin virtual imports.
@@ -227,6 +275,7 @@
   boolean field.
 
   ### Internal changes
+
   - `packages/core/src/shared/types.ts` — `PluginTransformMiddleware`,
     `PluginMiddlewareAPI`, `lazy?: boolean` on `SlotDeclaration`,
     `middleware` field on `BoltdocsPlugin`, `middleware` field on
@@ -356,6 +405,7 @@
 - [`3cc3b45`](https://github.com/bolt-docs/boltdocs/commit/3cc3b451e59f533910b11fe69452f6d2720a2f0d) Thanks [@jesusalcaladev](https://github.com/jesusalcaladev)! - feat: Boltdocs v3.0.0 - Native Parser, Vercel Analytics, Giscus, and More
 
   ## Native Parser Acceleration (@bdocs/parser)
+
   - Zig-compiled binary for markdown parsing with WASM fallback
   - 5-6x faster than JS parser (10.5x on 75-file dataset)
   - Cold start reduced from 3.67s to 349ms (90.5% reduction)
@@ -363,23 +413,27 @@
   - Auto-download via postinstall script from GitHub Releases
 
   ## Vercel Analytics + Speed Insights
+
   - Zero-config integration via `integrations.vercel.analytics` and `integrations.vercel.speedInsights`
   - Scripts injected only in production builds
   - Full documentation in English and Spanish
 
   ## Giscus Comment System
+
   - Complete component with theme sync (dark/light)
   - Configurable via `integrations.feedback.giscus`
   - Support for repo, category, mapping, reactions, custom themes
   - Full documentation in English and Spanish
 
   ## Custom Feedback System
+
   - GitHub Discussions-powered feedback
   - Middleware for dev/preview environments
   - Adapters for Vercel, Netlify, AWS, and Web platforms
   - Full documentation in English and Spanish
 
   ## Ask AI Plugin Overhaul
+
   - Complete handler and adapter rewrite
   - New sidebar panel + floating bubble UI
   - Dedicated MarkdownRenderer component
@@ -387,6 +441,7 @@
   - SSE streaming with batching and AbortSignal support
 
   ## UI/UX Improvements
+
   - Card component: mouse spotlight effect
   - Navbar: Ask AI button integration
   - Search: Cmd+J shortcut, result highlighting
@@ -395,6 +450,7 @@
   - Breadcrumbs: typed routing
 
   ## SEO/Meta Improvements
+
   - OG image resolution with siteUrl
   - Canonical URLs
   - Structured SEO tags
@@ -402,16 +458,19 @@
   - Twitter card dynamic selection
 
   ## Cache System Refactor
+
   - TransformCache with LRU + gzipped shards
   - BackgroundQueue for async persistence
   - Image optimizer cache with stale pruning
 
   ## Dev Server/HMR Improvements
+
   - Link tree regeneration on file events
   - boltdocs:config-update custom event
   - Case-insensitive module invalidation
 
   ## Node 26+ Compatibility
+
   - DEP0205 warning suppression in CLI
 
 - [`bbd7954`](https://github.com/bolt-docs/boltdocs/commit/bbd79543b8a8dbe17695c68e1791a2e38607ab9c) Thanks [@jesusalcaladev](https://github.com/jesusalcaladev)! - Restructure integrations config into sections (breaking change)
