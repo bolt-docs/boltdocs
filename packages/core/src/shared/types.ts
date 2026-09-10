@@ -59,7 +59,7 @@ export interface RouteMeta {
   /** The raw markdown content of the page */
   _rawContent?: string
   /** Extracted SEO and Open Graph metadata from frontmatter */
-  seo?: Record<string, any>
+  seo?: Record<string, unknown>
   /** The publication date */
   date?: string | Date
   /** The last updated timestamp or date */
@@ -73,7 +73,7 @@ export interface RouteMeta {
   /** Whether the page is hidden from the sidebar */
   sidebarHidden?: boolean
   /** Raw extensible frontmatter data for custom components and formatters */
-  frontmatter?: Record<string, any>
+  frontmatter?: Record<string, unknown>
   /** Optional recursive child routes for deep sidebar hierarchies */
   subRoutes?: RouteMeta[]
   /** Clean URL segments stripped of locale/version prefixes */
@@ -702,13 +702,13 @@ export interface PluginLifecycleHooks {
       filePath: string
       rawContent: string
     },
-  ) => Record<string, unknown> | Promise<Record<string, unknown>> | void
+  ) => Record<string, unknown> | Promise<Record<string, unknown>> | undefined
 
   /** Fired after routes are crawled, normalized, and resolved */
   'routes:resolved'?: (
     ctx: PluginContext,
     params: { routes: RouteMeta[] },
-  ) => RouteMeta[] | Promise<RouteMeta[]> | void
+  ) => RouteMeta[] | Promise<RouteMeta[]> | undefined
 
   /** Agnostic search index hook: core passes SearchDocument[], plugin returns index payload */
   'search:index'?: (
@@ -1017,9 +1017,20 @@ export type BoltdocsTypes = Boltdocs.Types
 
 export type BoltdocsRoutePath = keyof Boltdocs.RoutePaths
 
-export type BoltdocsRoutePathWithFallback = BoltdocsRoutePath extends never
-  ? string
-  : BoltdocsRoutePath
+export type ExternalRouteReference =
+  | `/${string}`
+  | `#${string}`
+  | `?${string}`
+  | `site:/${string}`
+  | `site:${string}`
+  | `http://${string}`
+  | `https://${string}`
+  | `//${string}`
+
+export type BoltdocsRoutePathWithFallback =
+  | BoltdocsRoutePath
+  | ExternalRouteReference
+  | string
 
 export type BoltdocsLocale = Boltdocs.Types extends { Locale: infer L }
   ? L
@@ -1042,6 +1053,6 @@ export type BoltdocsMdxComponents = Boltdocs.Types extends {
   MdxComponents: infer M
 }
   ? TransformMdxComponents<UnpackMdxComponents<M>>
-  : Omit<Record<string, ComponentType<any>>, 'Frontmatter'> & {
-      Frontmatter: Record<string, ComponentType<any>>
+  : Omit<Record<string, ComponentType<unknown>>, 'Frontmatter'> & {
+      Frontmatter: Record<string, ComponentType<unknown>>
     }

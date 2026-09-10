@@ -8,6 +8,7 @@ import { useRoutesContext } from '../../src/client/app/routes-context'
 import { useBoltdocsContext } from '../../src/client/store/boltdocs-context'
 import { SidebarMobile } from '../../src/client/components/primitives/sidebar'
 import { useUI } from '../../src/client/app/ui-context'
+import type { ComponentRoute } from '../../src/client/types'
 
 vi.mock('react-aria-components', () => ({
   ModalOverlay: ({
@@ -92,24 +93,27 @@ vi.mock('../../src/client/view-transitions', () => ({
   useViewTransition: () => () => null,
 }))
 
-const nestedRoutes = [
+const nestedRoutes: ComponentRoute[] = [
   {
     path: '/docs/guides',
     filePath: 'guides/index.md',
     title: 'Guides',
     slugParts: ['guides'],
+    componentPath: 'guides/index.md',
   },
   {
     path: '/docs/guides/getting-started',
     filePath: 'guides/getting-started/index.md',
     title: 'Getting Started',
     slugParts: ['guides', 'getting-started'],
+    componentPath: 'guides/getting-started/index.md',
   },
   {
     path: '/docs/guides/getting-started/install',
     filePath: 'guides/getting-started/install.md',
     title: 'Install',
     slugParts: ['guides', 'getting-started'],
+    componentPath: 'guides/getting-started/install.md',
   },
 ]
 
@@ -119,17 +123,17 @@ describe('SidebarItems', () => {
       isSidebarOpen: true,
       toggleSidebar: vi.fn(),
       closeSidebar: vi.fn(),
-    })
+    } as ReturnType<typeof useUI>)
     vi.mocked(useConfig).mockReturnValue({
       base: '/docs',
       directoryMeta: {},
       theme: {},
-    } as any)
+    } as ReturnType<typeof useConfig>)
     vi.mocked(useLocation).mockReturnValue({
       pathname: '/docs/guides/getting-started/install',
       search: '',
       hash: '',
-    })
+    } as ReturnType<typeof useLocation>)
     vi.mocked(useRoutesContext).mockReturnValue({
       routes: [],
       index: {
@@ -137,17 +141,17 @@ describe('SidebarItems', () => {
         hintsByPath: new Map(),
         collectionNames: [],
       },
-    } as any)
+    } as ReturnType<typeof useRoutesContext>)
     vi.mocked(useBoltdocsContext).mockReturnValue({
       currentLocale: '',
       currentVersion: '',
-    } as any)
+    } as ReturnType<typeof useBoltdocsContext>)
   })
 
   it('replaces each route node via componentItem render prop', () => {
     render(
       <SidebarItems
-        routes={nestedRoutes as any}
+        routes={nestedRoutes}
         componentItem={({ route, isActive, depth }) => (
           <div
             data-testid="custom-item"
@@ -172,7 +176,7 @@ describe('SidebarItems', () => {
   it('replaces the group wrapper via componentGroup render prop', () => {
     render(
       <SidebarItems
-        routes={nestedRoutes as any}
+        routes={nestedRoutes}
         componentGroup={({ group, isGroupActive, children }) => (
           <section data-testid="custom-group" data-active={isGroupActive}>
             <h2>{group.title}</h2>
@@ -196,7 +200,7 @@ describe('SidebarItems', () => {
   it('merges classNames slots over the default styles', () => {
     const { container } = render(
       <SidebarItems
-        routes={nestedRoutes as any}
+        routes={nestedRoutes}
         classNames={{
           item: 'theme-item',
           groupHeader: 'theme-group-header',
@@ -210,15 +214,27 @@ describe('SidebarItems', () => {
     expect(heading?.textContent).toContain('Guides')
     expect(heading?.className).toContain('theme-group-header')
 
-    const installLink = screen.getByText('Install').closest('a')!
+    const installLink = screen.getByText('Install').closest('a')
+    expect(installLink).not.toBeNull()
+    if (!installLink) {
+      throw new Error('Install link not found')
+    }
     expect(installLink.className).toContain('theme-item')
     expect(installLink.className).not.toContain('bg-primary-500/10')
     expect(installLink.dataset.active).toBe('true')
 
-    const toggle = container.querySelector('button')!
+    const toggle = container.querySelector('button')
+    expect(toggle).not.toBeNull()
+    if (!toggle) {
+      throw new Error('Sidebar toggle not found')
+    }
     expect(toggle.className).toContain('theme-toggle')
 
-    const subgroupContent = installLink.parentElement!
+    const subgroupContent = installLink.parentElement
+    expect(subgroupContent).not.toBeNull()
+    if (!subgroupContent) {
+      throw new Error('Sidebar subgroup wrapper not found')
+    }
     expect(subgroupContent.className).toContain('theme-subgroup-content')
   })
 
@@ -240,20 +256,32 @@ describe('SidebarItems', () => {
   })
 
   it('exposes state via data-* attributes for CSS theming', () => {
-    const { container } = render(<SidebarItems routes={nestedRoutes as any} />)
+    const { container } = render(<SidebarItems routes={nestedRoutes} />)
 
     // The active leaf link carries data-active + aria-current="page".
-    const installLink = screen.getByText('Install').closest('a')!
+    const installLink = screen.getByText('Install').closest('a')
+    expect(installLink).not.toBeNull()
+    if (!installLink) {
+      throw new Error('Install link not found')
+    }
     expect(installLink.dataset.active).toBe('true')
     expect(installLink.getAttribute('aria-current')).toBe('page')
     expect(installLink.dataset.depth).toBe('2')
 
     // Non-active links must NOT carry data-active (presence = active).
-    const gettingStarted = screen.getByText('Getting Started').closest('a')!
+    const gettingStarted = screen.getByText('Getting Started').closest('a')
+    expect(gettingStarted).not.toBeNull()
+    if (!gettingStarted) {
+      throw new Error('Getting Started link not found')
+    }
     expect(gettingStarted.dataset.active).toBeUndefined()
 
     // The group container exposes group state.
-    const group = container.querySelector('[data-group]')!
+    const group = container.querySelector('[data-group]')
+    expect(group).not.toBeNull()
+    if (!group) {
+      throw new Error('Sidebar group not found')
+    }
     expect(group.getAttribute('data-active')).toBe('true')
     expect(group.getAttribute('data-collapsible')).toBeNull()
 

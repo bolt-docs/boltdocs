@@ -9,6 +9,7 @@
     "jsx": "react-jsx",
     "declaration": true,
     "outDir": "dist",
+    "ignoreDeprecations": "5.0",
     "baseUrl": "./",
     "paths": {
       "@/*": ["src/*"],

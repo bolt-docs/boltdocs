@@ -41,7 +41,11 @@ const hexToRgb = (hex: string): [number, number, number] => {
     : [1, 1, 1]
 }
 
-const getAnchorAndDir = (origin: RaysOrigin, w: number, h: number) => {
+const getAnchorAndDir = (
+  origin: RaysOrigin,
+  w: number,
+  h: number,
+): { anchor: [number, number]; dir: [number, number] } => {
   const outside = 0.2
   switch (origin) {
     case 'top-left':

@@ -9,7 +9,7 @@ import tailwindcssPlugin from '@bdocs/plugin-tailwindcss'
 const rootDir = path.dirname(import.meta.filename)
 
 export default defineConfig({
-  base: '/',
+  base: '/docs',
   aliases: {
     '@': path.resolve(rootDir, 'src'),
   },

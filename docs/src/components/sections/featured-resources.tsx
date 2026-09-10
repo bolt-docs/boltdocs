@@ -10,7 +10,7 @@ function PostCard({
   post: {
     path: string
     title: string
-    date?: string
+    date?: string | Date
     coverImage?: string
     excerpt?: string
     tags?: string[]

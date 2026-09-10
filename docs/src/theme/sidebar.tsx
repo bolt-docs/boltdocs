@@ -60,7 +60,7 @@ export function Sidebar({ routes, config }: SidebarProps) {
       {/* Mobile Version */}
       <SidebarPrimitive.Mobile
         overlayClassName="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm lg:hidden"
-        className="fixed top-0 left-0 bottom-0 w-80 bg-main border-r border-subtle shadow-2xl outline-none z-9999"
+        className="fixed top-0 left-0 bottom-0 w-80 bg-main border-r border-subtle shadow-2xl outline-none z-9999 lg:hidden"
       >
         <SidebarPrimitive.Header className="flex items-center justify-between p-4 border-b border-subtle">
           <div className="flex items-center gap-3">
