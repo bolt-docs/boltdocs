@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "boltdocs",
     "audit": "boltdocs audit",
-    "build": "boltdocs build",
+    "build": "boltdocs build && node scripts/prepare-deployment-dist.mjs",
     "preview": "boltdocs preview",
     "doctor": "boltdocs doctor",
     "generate-changelog": "boltdocs generate-changelog ../packages/core/CHANGELOG.md"
