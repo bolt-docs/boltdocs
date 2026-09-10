@@ -1,5 +1,11 @@
 # create-boltdocs
 
+## 0.5.0
+
+### Minor Changes
+
+- [`9c5251c`](https://github.com/bolt-docs/boltdocs/commit/9c5251c4fba6efee8d9d1920495be9c731bab8b2) Thanks [@jesusalcaladev](https://github.com/jesusalcaladev)! - Add a blog template and an icon library prompt that auto-generates `docs/icons.tsx` with named exports.
+
 ## 0.4.3
 
 ### Patch Changes

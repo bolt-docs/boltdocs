@@ -1,5 +1,20 @@
 # @bdocs/ssg
 
+## 0.4.0
+
+### Minor Changes
+
+- [`9c5251c`](https://github.com/bolt-docs/boltdocs/commit/9c5251c4fba6efee8d9d1920495be9c731bab8b2) Thanks [@jesusalcaladev](https://github.com/jesusalcaladev)! - Add a cache/render pipeline with benchmark-gated metrics, include framework dist code in the client cache hash, and parallelize client/server Vite builds for faster cold builds.
+
+### Patch Changes
+
+- [`36c959e`](https://github.com/bolt-docs/boltdocs/commit/36c959e922b491fa0e0de16f53be4dd6f894ba4b) Thanks [@jesusalcaladev](https://github.com/jesusalcaladev)! - Every CLI command now uses the brand terracotta palette (`#eb5828` / `#d34013`) — dev, preview, build, doctor, and audit outputs share the same wordmark gradient, borders, bullets, and badges instead of mixing generic cyan/sky/blue status colors. The `DEV`, `PREVIEW`, version, and `UPDATE` chips are brand-colored, the doctor header carries the branded wordmark with version badge and terracotta section titles (low-severity chips also match the brand; high/warning keep their semantic red/yellow), and the audit renders plugin names, low-risk tags, and the summary table borders in terracotta while staying dependency-free. The build summary was rewritten as a single compact block (header with version badge, per-phase timings, and a one-line metrics summary — pages, JS, CSS, output dir), replacing the previous steps + divider + total + table + box sequence and cutting the number of stdout writes during a build. The SSG worker-pool diagnostics log is now emitted only in benchmark mode so ordinary builds stay quiet.
+
+  Two sidebar-related fixes land with it: `meta.json` resolution is now scoped per tab and per locale (so groups that share a directory name across tabs, like `(guides)/content` vs `(plugins)/content`, no longer clobber each other, and localized sites resolve their own translated meta instead of falling back to English titles), and an explicit `meta.json` `order` takes precedence over an index page's own `sidebarPosition` for group ordering. Collection pages (blog lists and posts) are also detected from any URL path segment rather than only the first one, which stops the docs sidebar from rendering on collection posts whose routes are registered without the docs base (e.g. `/blog/post` vs `/docs/blog/post`).
+
+- Updated dependencies [[`9c5251c`](https://github.com/bolt-docs/boltdocs/commit/9c5251c4fba6efee8d9d1920495be9c731bab8b2)]:
+  - @bdocs/zig-critters@0.2.1
+
 ## 0.3.1
 
 ### Patch Changes
@@ -13,6 +28,7 @@
 - [`46e288d`](https://github.com/bolt-docs/boltdocs/commit/46e288d485bf50ae226a3b3c70c0a93040b8ae0c) Thanks [@jesusalcaladev](https://github.com/jesusalcaladev)! - Boltdocs 3.2.0 — Nitro Phase 1 performance optimizations
 
   ### Cache & Build Performance
+
   - **SSR output consolidated**: Moved from `.vite-react-ssg-temp/` to `.boltdocs/build/ssr/` — all build artifacts now live under a single `.boltdocs/` directory
   - **Server build skip preserved**: SSR output no longer deleted when client code hasn't changed, making warm builds skip the expensive SSR Vite bundle (~40s saved)
   - **Mtime cache in memory**: `getFileMtime()` now uses an in-memory TTL cache (2s) instead of `fs.statSync()` on every call — 5.9x faster for repeated stat calls
@@ -21,15 +37,18 @@
   - **Dev gzip skipped**: `TransformCache` no longer gzips cache shards in dev mode
 
   ### MDX & Routes
+
   - **MDX cache key for dev**: Uses file path + mtime instead of content hash in dev mode — cache survives restarts when files haven't changed
   - **Bounded route parsing**: `Promise.all` replaced with `runWithConcurrency(32)` to prevent memory pressure and I/O contention
   - **docCache loaded flag**: `docCache.load()` skips disk read when already in memory
 
   ### Dev Server & HMR
+
   - **HMR O(1) module graph lookup**: Pre-built lowercase index replaces brute-force O(N) scan for faster content edits
   - **Prewarming with route priority**: Index pages and getting-started are prewarmed first; 150ms delay to avoid CPU contention with first page request
 
   ### Pipeline & Syntax Highlighting
+
   - **Pipeline parallel steps**: SEO validation and type generation run concurrently via `addParallelSteps()`
   - **Pipeline timing logs**: Per-step timing reported after build completion
   - **Critical CSS concurrency**: Beasties processor runs at `concurrency: min(cpus, 4)` instead of 1

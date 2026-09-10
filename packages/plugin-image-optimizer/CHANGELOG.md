@@ -1,5 +1,11 @@
 # @bdocs/plugin-image-optimizer
 
+## 0.2.2
+
+### Patch Changes
+
+- [`9c5251c`](https://github.com/bolt-docs/boltdocs/commit/9c5251c4fba6efee8d9d1920495be9c731bab8b2) Thanks [@jesusalcaladev](https://github.com/jesusalcaladev)! - Refresh build configs and package metadata.
+
 ## 0.2.1
 
 ### Patch Changes
