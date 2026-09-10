@@ -1,11 +1,55 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen } from '@testing-library/react'
-import React from 'react'
+import type React from 'react'
 import { SidebarItems } from '../../src/client/components/primitives/sidebar'
 import { useConfig } from '../../src/client/app/config-context'
 import { useLocation } from '../../src/client/router'
 import { useRoutesContext } from '../../src/client/app/routes-context'
 import { useBoltdocsContext } from '../../src/client/store/boltdocs-context'
+import { SidebarMobile } from '../../src/client/components/primitives/sidebar'
+import { useUI } from '../../src/client/app/ui-context'
+
+vi.mock('react-aria-components', () => ({
+  ModalOverlay: ({
+    children,
+    className,
+    isOpen,
+    ...props
+  }: {
+    children?: React.ReactNode
+    className?: string
+    isOpen?: boolean
+  }) =>
+    isOpen ? (
+      <div data-testid="modal-overlay" className={className} {...props}>
+        {children}
+      </div>
+    ) : null,
+  Modal: ({
+    children,
+    className,
+    ...props
+  }: {
+    children?: React.ReactNode
+    className?: string
+  }) => (
+    <div data-testid="modal" className={className} {...props}>
+      {children}
+    </div>
+  ),
+  Dialog: ({
+    children,
+    className,
+    ...props
+  }: {
+    children?: React.ReactNode
+    className?: string
+  }) => (
+    <div data-testid="dialog" className={className} {...props}>
+      {children}
+    </div>
+  ),
+}))
 
 vi.mock('../../src/client/router', () => ({
   useLocation: vi.fn(),
@@ -33,6 +77,10 @@ vi.mock('../../src/client/app/routes-context', () => ({
 
 vi.mock('../../src/client/store/boltdocs-context', () => ({
   useBoltdocsContext: vi.fn(),
+}))
+
+vi.mock('../../src/client/app/ui-context', () => ({
+  useUI: vi.fn(),
 }))
 
 vi.mock('../../src/client/components/ui-base/icon-renderer', () => ({
@@ -67,6 +115,11 @@ const nestedRoutes = [
 
 describe('SidebarItems', () => {
   beforeEach(() => {
+    vi.mocked(useUI).mockReturnValue({
+      isSidebarOpen: true,
+      toggleSidebar: vi.fn(),
+      closeSidebar: vi.fn(),
+    })
     vi.mocked(useConfig).mockReturnValue({
       base: '/docs',
       directoryMeta: {},
@@ -167,6 +220,23 @@ describe('SidebarItems', () => {
 
     const subgroupContent = installLink.parentElement!
     expect(subgroupContent.className).toContain('theme-subgroup-content')
+  })
+
+  it('hides the mobile sidebar on desktop layouts', () => {
+    render(
+      <SidebarMobile
+        overlayClassName="fixed inset-0 z-50 bg-black/20"
+        className="fixed left-0 top-0 h-full w-80 bg-main"
+      >
+        <div>Sidebar</div>
+      </SidebarMobile>,
+    )
+
+    const overlay = screen.getByTestId('modal-overlay')
+    const modal = screen.getByTestId('modal')
+
+    expect(overlay.className).toContain('lg:hidden')
+    expect(modal.className).toContain('lg:hidden')
   })
 
   it('exposes state via data-* attributes for CSS theming', () => {

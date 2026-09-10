@@ -81,9 +81,9 @@ export function SidebarMobile({
       isOpen={isSidebarOpen}
       onOpenChange={(open) => !open && closeSidebar()}
       isDismissable={true}
-      className={overlayClassName}
+      className={cn('lg:hidden', overlayClassName)}
     >
-      <RAC.Modal className={className}>
+      <RAC.Modal className={cn('lg:hidden', className)}>
         <RAC.Dialog
           className={cn(
             'h-full flex flex-col outline-none focus:outline-none',
