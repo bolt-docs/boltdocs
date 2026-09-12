@@ -3,6 +3,9 @@ export interface AdapterConfig {
   systemPrompt: string
   maxOutputTokens?: number
   contextChars?: number
+  secretKey?: string
+  allowClientContext?: boolean
+  rateLimitPerMinute?: number
 }
 
 export type AdapterEnv = Record<string, string | undefined>

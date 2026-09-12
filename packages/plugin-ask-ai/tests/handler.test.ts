@@ -101,6 +101,27 @@ describe('streamLLMResponse (openai SDK)', () => {
     expect(opts).toHaveProperty('signal')
   })
 
+  it('forwards temperature/topP to the SDK create call', async () => {
+    mockCreate.mockResolvedValue(fakeStream([{ content: 'ok' }]))
+
+    await streamLLMResponse(
+      baseOptions({ temperature: 0.7, topP: 0.9 }),
+      () => {},
+    )
+
+    const [params] = mockCreate.mock.calls[0]
+    expect(params.temperature).toBe(0.7)
+    expect(params.top_p).toBe(0.9)
+  })
+
+  it('applies default temperature/topP when not provided', async () => {
+    mockCreate.mockResolvedValue(fakeStream([{ content: 'ok' }]))
+    await streamLLMResponse(baseOptions(), () => {})
+    const [params] = mockCreate.mock.calls[0]
+    expect(params.temperature).toBe(0.3)
+    expect(params.top_p).toBe(1)
+  })
+
   it('wraps the page context in DOCS_START/DOCS_END markers', async () => {
     mockCreate.mockResolvedValue(fakeStream([{ content: 'ok' }]))
     await streamLLMResponse(baseOptions(), () => {})

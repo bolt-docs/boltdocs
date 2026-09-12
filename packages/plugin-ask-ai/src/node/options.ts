@@ -98,6 +98,8 @@ export const PROVIDER_PRESETS: Record<Provider, ProviderPreset> = {
 }
 
 export const AskAiPluginOptionsSchema = z.object({
+  /** Automatically mount the floating assistant in the docs shell. */
+  autoInject: z.boolean().default(true),
   provider: z.enum(PROVIDERS).default('openai'),
   model: z
     .string()
@@ -112,6 +114,13 @@ export const AskAiPluginOptionsSchema = z.object({
    * over `systemPrompt` if both are provided.
    */
   systemPrompts: z.record(z.enum(PROVIDERS), z.string().optional()).optional(),
+  /**
+   * Custom identity/tone instructions. When set (and no `systemPrompt`/
+   * `systemPrompts[provider]` full override is given) these are prepended to
+   * the default prompt, letting you brand the assistant without weakening the
+   * scoping/refusal rules.
+   */
+  persona: z.string().min(1).max(4_000).optional(),
   maxInputChars: z.number().int().positive().max(20_000).default(2_000),
   maxOutputTokens: z.number().int().positive().max(4_000).default(600),
   contextChars: z.number().int().positive().max(40_000).default(6_000),
@@ -125,6 +134,66 @@ export const AskAiPluginOptionsSchema = z.object({
   secretKey: z.string().min(8).optional(),
   customModels: z.array(z.string().min(1).max(120)).max(20).optional(),
   devMode: z.boolean().default(false),
+
+  // ── Generation params ────────────────────────────────────────────
+  /** Sampling temperature for completions. 0 = deterministic. */
+  temperature: z.number().min(0).max(2).default(0.3),
+  /** Nucleus sampling cutoff (1 = no restriction). */
+  topP: z.number().min(0).max(1).default(1),
+
+  // ── Client UI copy (surfaced to the widget via plugin metadata) ──
+  title: z.string().min(1).max(80).default('Ask Assistant'),
+  placeholder: z.string().min(1).max(120).default('Ask about this page…'),
+  emptyTitle: z.string().min(1).max(80).default('How can I help you today?'),
+  emptyDescription: z
+    .string()
+    .min(1)
+    .max(240)
+    .default(
+      'Ask anything about the current documentation page. The assistant only answers using the page you are viewing.',
+    ),
+  buttonTooltip: z.string().min(1).max(80).default('Ask AI assistant'),
+  composerHint: z
+    .string()
+    .min(1)
+    .max(120)
+    .default('Enter to send · Shift+Enter for a new line'),
 })
 
 export type AskAiPluginOptions = z.input<typeof AskAiPluginOptionsSchema>
+
+/** Client-facing slice of the options, shipped through plugin metadata. */
+export interface AskAiClientMetadata {
+  provider?: string
+  model?: string
+  endpoint?: string
+  devMode?: boolean
+  title?: string
+  placeholder?: string
+  emptyTitle?: string
+  emptyDescription?: string
+  buttonTooltip?: string
+  composerHint?: string
+}
+
+/**
+ * Builds the public metadata record the widget reads at runtime. Kept as a
+ * single source of truth so the client-facing shape stays in lock-step with
+ * the schema defaults.
+ */
+export function buildClientMetadata(
+  parsed: z.output<typeof AskAiPluginOptionsSchema>,
+): AskAiClientMetadata {
+  return {
+    provider: parsed.provider,
+    model: parsed.model,
+    endpoint: parsed.endpoint,
+    devMode: parsed.devMode,
+    title: parsed.title,
+    placeholder: parsed.placeholder,
+    emptyTitle: parsed.emptyTitle,
+    emptyDescription: parsed.emptyDescription,
+    buttonTooltip: parsed.buttonTooltip,
+    composerHint: parsed.composerHint,
+  }
+}

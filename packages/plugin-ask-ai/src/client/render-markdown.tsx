@@ -1,3 +1,4 @@
+import { memo } from 'react'
 import { Streamdown } from 'streamdown'
 
 interface MarkdownRendererProps {
@@ -6,7 +7,7 @@ interface MarkdownRendererProps {
   parseIncompleteMarkdown?: boolean
 }
 
-export function MarkdownRenderer({
+function MarkdownRendererImpl({
   content,
   className,
   parseIncompleteMarkdown = true,
@@ -21,3 +22,10 @@ export function MarkdownRenderer({
     </div>
   )
 }
+
+/**
+ * Memoized: while the message streams the same buffered content can be
+ * re-rendered (e.g. a status flip reading → streaming) — this skips the
+ * heavy markdown re-parse when nothing changed.
+ */
+export const MarkdownRenderer = memo(MarkdownRendererImpl)

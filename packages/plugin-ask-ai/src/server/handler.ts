@@ -20,6 +20,8 @@ export interface StreamLLMResponseOptions {
   provider?: string
   providerEnvKey?: string
   devMode?: boolean
+  temperature?: number
+  topP?: number
 }
 
 export type StreamEvent =
@@ -69,6 +71,8 @@ export async function streamLLMResponse(
     provider = 'openai',
     providerEnvKey = 'OPENAI_API_KEY',
     devMode = false,
+    temperature = 0.3,
+    topP = 1,
   } = options
 
   const apiKey = env[providerEnvKey]
@@ -117,6 +121,8 @@ export async function streamLLMResponse(
       {
         model,
         max_tokens: maxOutputTokens,
+        temperature,
+        top_p: topP,
         stream: true,
         stream_options: { include_usage: true },
         messages: [

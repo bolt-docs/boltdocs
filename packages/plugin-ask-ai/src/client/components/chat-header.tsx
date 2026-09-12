@@ -39,7 +39,7 @@ export function ChatHeader({
         {canClear && (
           <button
             onClick={onClear}
-            className="p-1 text-muted hover:text-red-500 hover:bg-surface rounded-lg transition-colors cursor-pointer"
+            className="p-1 text-muted hover:text-danger-500 hover:bg-surface rounded-lg transition-colors cursor-pointer"
             title="Clear chat"
             aria-label="Clear chat"
           >

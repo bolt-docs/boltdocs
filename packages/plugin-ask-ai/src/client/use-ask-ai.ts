@@ -1,7 +1,14 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useConfig } from 'boltdocs/client'
+import type { ClientController } from './abort'
+import { createClientController } from './abort'
 
-export type MessageStatus = 'reading' | 'streaming' | 'done' | 'error'
+export type MessageStatus =
+  | 'reading'
+  | 'streaming'
+  | 'done'
+  | 'cancelled'
+  | 'error'
 
 export interface Message {
   role: 'user' | 'assistant'
@@ -29,7 +36,43 @@ export interface UseAskAiOptions {
   currentPage?: string
 }
 
-const READING_TIMEOUT_MS = 30_000
+/** User-facing copy for the widget, configurable via plugin options. */
+export interface AskAiUiCopy {
+  title: string
+  placeholder: string
+  emptyTitle: string
+  emptyDescription: string
+  buttonTooltip: string
+  composerHint: string
+}
+
+export const DEFAULT_ASK_AI_UI_COPY: AskAiUiCopy = {
+  title: 'Ask Assistant',
+  placeholder: 'Ask about this page…',
+  emptyTitle: 'How can I help you today?',
+  emptyDescription:
+    'Ask anything about the current documentation page. The assistant only answers using the page you are viewing.',
+  buttonTooltip: 'Ask AI assistant',
+  composerHint: 'Enter to send · Shift+Enter for a new line',
+}
+
+function readUiCopy(meta: Record<string, unknown> | undefined): AskAiUiCopy {
+  if (!meta) return DEFAULT_ASK_AI_UI_COPY
+  const str = (key: keyof AskAiUiCopy): string => {
+    const v = meta[key]
+    return typeof v === 'string' && v.length > 0
+      ? v
+      : DEFAULT_ASK_AI_UI_COPY[key]
+  }
+  return {
+    title: str('title'),
+    placeholder: str('placeholder'),
+    emptyTitle: str('emptyTitle'),
+    emptyDescription: str('emptyDescription'),
+    buttonTooltip: str('buttonTooltip'),
+    composerHint: str('composerHint'),
+  }
+}
 
 export function useAskAi(options: UseAskAiOptions = {}) {
   const [messages, setMessages] = useState<Message[]>([])
@@ -39,18 +82,24 @@ export function useAskAi(options: UseAskAiOptions = {}) {
 
   // Shared mutable state across the per-submission submit() and the
   // top-level stopStreaming(). Lifted to refs so both can reach them.
-  const submitAbortRef = useRef<AbortController | null>(null)
+  const submitAbortRef = useRef<ClientController | null>(null)
   const pendingTextRef = useRef<{ value: string }>({ value: '' })
   const pendingRafRef = useRef<number | null>(null)
 
   const boltdocsConfig = useConfig()
   const askAiPluginMeta = boltdocsConfig?.plugins?.find(
     (p) => p.name === 'boltdocs-plugin-ask-ai',
-  )?.metadata as { endpoint?: string; devMode?: boolean } | undefined
+  )?.metadata as
+    | (Record<string, unknown> & {
+        endpoint?: string
+        devMode?: boolean
+      })
+    | undefined
 
   const customEndpoint =
     options.endpoint || askAiPluginMeta?.endpoint || '/api/ask-ai'
   const devMode = askAiPluginMeta?.devMode ?? false
+  const ui = readUiCopy(askAiPluginMeta)
 
   useEffect(() => {
     const handleOpen = () => setIsOpen(true)
@@ -80,9 +129,14 @@ export function useAskAi(options: UseAskAiOptions = {}) {
     const chunk = pendingTextRef.current.value
     pendingTextRef.current.value = ''
     setMessages((prev) => {
-      const next = [...prev]
-      const last = next[next.length - 1]
-      if (last && last.role === 'assistant') last.content += chunk
+      const next = prev.slice()
+      const i = next.length - 1
+      const last = next[i]
+      // Replace (don't mutate) the last assistant message so memoized
+      // siblings keep their identity and only this message re-renders.
+      if (last && last.role === 'assistant') {
+        next[i] = { ...last, content: last.content + chunk }
+      }
       return next
     })
   }, [])
@@ -106,8 +160,13 @@ export function useAskAi(options: UseAskAiOptions = {}) {
       setMessages((prev) => {
         const next = [...prev]
         const last = next[next.length - 1]
-        if (last && last.role === 'assistant' && last.status !== 'done') {
-          last.status = last.content ? 'done' : 'error'
+        if (
+          last &&
+          last.role === 'assistant' &&
+          last.status !== 'done' &&
+          last.status !== 'cancelled'
+        ) {
+          last.status = opts.kind === 'cancel' ? 'cancelled' : 'error'
           if (last.status === 'error' && opts.message) {
             last.errorMessage = opts.message
           }
@@ -155,7 +214,20 @@ export function useAskAi(options: UseAskAiOptions = {}) {
       setInput('')
       setIsLoading(true)
 
-      const controller = new AbortController()
+      // Replaces the trailing assistant message with a new object so the
+      // memoized ChatMessage re-renders exactly the message that changed.
+      const replaceLastAssistant = (
+        prev: Message[],
+        apply: (msg: Message) => Message,
+      ): Message[] => {
+        const next = prev.slice()
+        const i = next.length - 1
+        const last = next[i]
+        if (last && last.role === 'assistant') next[i] = apply(last)
+        return next
+      }
+
+      const controller = createClientController()
       submitAbortRef.current = controller
 
       try {
@@ -163,26 +235,38 @@ export function useAskAi(options: UseAskAiOptions = {}) {
           options.currentPage ||
           (typeof window !== 'undefined' ? window.location.pathname : '/')
 
-        const response = await fetch(customEndpoint, {
+        const init: RequestInit = {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ question: trimmed, currentPage }),
-          signal: controller.signal,
-        })
+        }
+        // Only attach a signal when the host can provide a real AbortSignal.
+        if (controller.signal) init.signal = controller.signal
+
+        const response = await fetch(customEndpoint, init)
 
         if (!response.ok) {
-          throw new Error(`Server returned ${response.status}`)
+          const errorBody = await response.text()
+          let errorMessage = `Server returned ${response.status}`
+          try {
+            const parsed = JSON.parse(errorBody) as { error?: unknown }
+            if (typeof parsed.error === 'string') errorMessage = parsed.error
+          } catch {
+            // Keep the HTTP status when the adapter returns a non-JSON error.
+          }
+          throw new Error(errorMessage)
         }
         if (!response.body) {
           throw new Error('No streaming body from endpoint')
         }
 
         const reader = response.body.getReader()
+        controller.attachReader(reader)
         const decoder = new TextDecoder()
         let lineBuffer = ''
         let firstTextSeen = false
 
-        while (true) {
+        while (!controller.aborted) {
           const { value, done } = await reader.read()
           if (done) break
           lineBuffer += decoder.decode(value, { stream: true })
@@ -195,7 +279,12 @@ export function useAskAi(options: UseAskAiOptions = {}) {
             const dataStr = cleaned.slice(5).trim()
             if (!dataStr || dataStr === '[DONE]') continue
 
-            let parsed: any
+            let parsed: {
+              context?: Message['contextChip']
+              usage?: Message['usage']
+              text?: unknown
+              error?: unknown
+            }
             try {
               parsed = JSON.parse(dataStr)
             } catch {
@@ -203,35 +292,43 @@ export function useAskAi(options: UseAskAiOptions = {}) {
             }
 
             if (parsed.context) {
-              setMessages((prev) => {
-                const next = [...prev]
-                const last = next[next.length - 1]
-                if (last && last.role === 'assistant') {
-                  last.contextChip = parsed.context
+              setMessages((prev) =>
+                replaceLastAssistant(prev, (last) => {
                   startTimeRef.current = Date.now()
-                }
-                return next
-              })
+                  return { ...last, contextChip: parsed.context }
+                }),
+              )
             } else if (parsed.usage) {
               usageRef.current = parsed.usage
             } else if (typeof parsed.text === 'string') {
               if (!firstTextSeen) {
                 firstTextSeen = true
-                setMessages((prev) => {
-                  const next = [...prev]
-                  const last = next[next.length - 1]
-                  if (last && last.role === 'assistant') {
-                    last.status = 'streaming'
-                  }
-                  return next
-                })
+                setMessages((prev) =>
+                  replaceLastAssistant(prev, (last) => ({
+                    ...last,
+                    status: 'streaming',
+                  })),
+                )
               }
               pendingTextRef.current.value += parsed.text
               scheduleFlush()
-            } else if (parsed.error) {
+            } else if (typeof parsed.error === 'string') {
               throw new Error(parsed.error)
             }
           }
+        }
+
+        // Cooperative abort (e.g. no native AbortController): the flag was
+        // checked above, so if we exit the loop aborted, finalize as a
+        // cancellation without running the normal-completion path.
+        if (controller.aborted) {
+          pendingTextRef.current.value = ''
+          if (pendingRafRef.current !== null) {
+            cancelAnimationFrame(pendingRafRef.current)
+            pendingRafRef.current = null
+          }
+          finalizeAssistantTerminal({ kind: 'cancel' })
+          return
         }
 
         // Successful end-of-stream — drain pending text and decide terminal
@@ -239,25 +336,29 @@ export function useAskAi(options: UseAskAiOptions = {}) {
         // solely for its drain behaviour; the terminal semantics for a
         // normal completion is "done with content" or "error: no response".
         flushPendingText()
-        setMessages((prev) => {
-          const next = [...prev]
-          const last = next[next.length - 1]
-          if (last && last.role === 'assistant') {
-            last.status = last.content ? 'done' : 'error'
-            if (last.status === 'error' && !last.errorMessage) {
-              last.errorMessage = 'No response received.'
+        setMessages((prev) =>
+          replaceLastAssistant(prev, (last) => {
+            const status = last.content ? 'done' : 'error'
+            const usage =
+              usageRef.current && devMode
+                ? {
+                    ...usageRef.current,
+                    elapsedMs: startTimeRef.current
+                      ? Date.now() - startTimeRef.current
+                      : usageRef.current.elapsedMs,
+                  }
+                : last.usage
+            return {
+              ...last,
+              status,
+              errorMessage:
+                status === 'error' && !last.errorMessage
+                  ? 'No response received.'
+                  : last.errorMessage,
+              usage,
             }
-            if (usageRef.current && devMode) {
-              last.usage = {
-                ...usageRef.current,
-                elapsedMs: startTimeRef.current
-                  ? Date.now() - startTimeRef.current
-                  : usageRef.current.elapsedMs,
-              }
-            }
-          }
-          return next
-        })
+          }),
+        )
       } catch (error) {
         if (error instanceof DOMException && error.name === 'AbortError') {
           finalizeAssistantTerminal({
@@ -266,7 +367,23 @@ export function useAskAi(options: UseAskAiOptions = {}) {
           })
         } else {
           const msg = error instanceof Error ? error.message : 'Unknown error'
+          const userMessage = msg.includes('API_KEY')
+            ? 'The AI assistant is not configured on this server.'
+            : msg.includes('RATE_LIMITED')
+              ? 'Too many requests. Please try again shortly.'
+              : msg.includes('UNAUTHORIZED')
+                ? 'This assistant requires authorization.'
+                : msg.includes('CLIENT_CONTEXT_NOT_ALLOWED')
+                  ? 'This deployment does not accept client-provided context.'
+                  : msg
           finalizeAssistantTerminal({ kind: 'error', message: msg })
+          setMessages((prev) =>
+            replaceLastAssistant(prev, (last) =>
+              last.status === 'error'
+                ? { ...last, errorMessage: userMessage }
+                : last,
+            ),
+          )
           console.error('[Ask AI] failed:', error)
         }
       } finally {
@@ -286,6 +403,8 @@ export function useAskAi(options: UseAskAiOptions = {}) {
       isLoading,
       scheduleFlush,
       finalizeAssistantTerminal,
+      devMode,
+      flushPendingText,
     ],
   )
 
@@ -300,5 +419,6 @@ export function useAskAi(options: UseAskAiOptions = {}) {
     isOpen,
     setIsOpen,
     devMode,
+    ui,
   }
 }

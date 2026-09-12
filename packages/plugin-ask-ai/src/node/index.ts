@@ -1,19 +1,22 @@
 import type { BoltdocsPlugin } from 'boltdocs'
 import { info, warn } from '@bdocs/dui'
-import { DEFAULT_SYSTEM_PROMPT } from './prompts'
+import { buildSystemPrompt } from './prompts'
 import { DEFAULT_DENY_PATTERNS } from './safety'
 import { createAskAiMiddleware, type MiddlewareConfig } from './middleware'
 import {
   AskAiPluginOptionsSchema,
   PROVIDER_PRESETS,
+  buildClientMetadata,
   type AskAiPluginOptions,
 } from './options'
 
-export { DEFAULT_SYSTEM_PROMPT } from './prompts'
+export { DEFAULT_SYSTEM_PROMPT, buildSystemPrompt } from './prompts'
 export {
   PROVIDERS,
   PROVIDER_PRESETS,
   AskAiPluginOptionsSchema,
+  buildClientMetadata,
+  type AskAiClientMetadata,
   type AskAiPluginOptions,
   type Provider,
   type ProviderPreset,
@@ -26,12 +29,16 @@ export default function askAiPlugin(
 ): BoltdocsPlugin {
   const options = AskAiPluginOptionsSchema.parse(rawOptions)
   const {
+    autoInject,
     provider,
     model,
     endpoint,
     baseURL,
     systemPrompt,
     systemPrompts,
+    persona,
+    temperature,
+    topP,
     maxInputChars,
     maxOutputTokens,
     contextChars,
@@ -43,8 +50,10 @@ export default function askAiPlugin(
   const providerPreset = PROVIDER_PRESETS[provider]
   const effectiveBaseURL = baseURL || providerPreset.baseURL
   const providerEnvKey = providerPreset.envKey
-  const effectiveSystemPrompt =
-    systemPrompts?.[provider] ?? systemPrompt ?? DEFAULT_SYSTEM_PROMPT
+  // A per-provider prompt wins, then a global override, then the default —
+  // optionally composed with the custom `persona` identity/tone block.
+  const promptOverride = systemPrompts?.[provider] ?? systemPrompt
+  const effectiveSystemPrompt = promptOverride ?? buildSystemPrompt(persona)
   const effectiveDevMode = devMode || process.env.NODE_ENV !== 'production'
 
   if (!process.env[providerEnvKey]) {
@@ -71,21 +80,21 @@ export default function askAiPlugin(
     rateLimitPerMinute,
     secretKey,
     devMode: effectiveDevMode,
+    temperature,
+    topP,
   }
 
   return {
     name: 'boltdocs-plugin-ask-ai',
     version: '0.3.0',
-    components: {
-      AskAiBubble: CLIENT_PACKAGE,
-      AskAiDialog: CLIENT_PACKAGE,
+    client: {
+      slots: autoInject
+        ? {
+            'floating:after': `${CLIENT_PACKAGE}#AskAiBubble`,
+          }
+        : undefined,
     },
-    metadata: {
-      provider,
-      model,
-      endpoint,
-      devMode: effectiveDevMode,
-    } as Record<string, unknown>,
+    metadata: buildClientMetadata(options) as Record<string, unknown>,
     vitePlugins: [
       {
         name: 'vite-plugin-boltdocs-ask-ai-middleware',

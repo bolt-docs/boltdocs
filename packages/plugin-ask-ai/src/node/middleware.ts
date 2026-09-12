@@ -28,6 +28,10 @@ export interface MiddlewareConfig {
   rateLimitPerMinute: number
   secretKey?: string
   devMode: boolean
+  /** Sampling temperature (forwarded to streamLLMResponse). */
+  temperature?: number
+  /** Nucleus sampling cutoff (forwarded to streamLLMResponse). */
+  topP?: number
 }
 
 function setSseHeaders(res: ServerResponse): void {
@@ -43,6 +47,7 @@ function sendEvent(res: ServerResponse, payload: object): void {
 function sendErrorAndDone(res: ServerResponse, message: string): void {
   sendEvent(res, { error: message })
   res.write('data: [DONE]\n\n')
+  res.end()
 }
 
 function isAuthorized(
@@ -72,7 +77,9 @@ export function createAskAiMiddleware(
     const abortController = new AbortController()
     // Abort upstream on client disconnect so we stop paying LLM tokens.
     req.on('close', () => {
-      if (!abortController.signal.aborted) abortController.abort()
+      if (!req.complete && !abortController.signal.aborted) {
+        abortController.abort()
+      }
     })
 
     let body = ''
@@ -94,7 +101,10 @@ export function createAskAiMiddleware(
           return
         }
 
-        if (abortController.signal.aborted) return
+        if (abortController.signal.aborted) {
+          res.end()
+          return
+        }
 
         const payload: AskAiRequest = body ? JSON.parse(body) : {}
         const safety = checkInputSafety(
@@ -110,7 +120,9 @@ export function createAskAiMiddleware(
         const safeQuestion = payload.question ?? ''
 
         const resolution = await resolvePageContext({
-          body: payload,
+          // Vite/preview resolves context from the local route tree. Never
+          // trust a client-provided context in this server-side path.
+          body: { currentPage: payload.currentPage },
           currentPage: payload.currentPage || '/',
           contextChars: config.contextChars,
           docsDir,
@@ -135,7 +147,10 @@ export function createAskAiMiddleware(
           })
         }
 
-        if (abortController.signal.aborted) return
+        if (abortController.signal.aborted) {
+          res.end()
+          return
+        }
 
         const { streamLLMResponse } = await import('../server/index')
 
@@ -152,6 +167,8 @@ export function createAskAiMiddleware(
             provider: config.provider,
             providerEnvKey: config.providerEnvKey,
             devMode: config.devMode,
+            temperature: config.temperature,
+            topP: config.topP,
           },
           (event) => {
             if (event.type === 'text') {

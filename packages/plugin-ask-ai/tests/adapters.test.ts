@@ -26,6 +26,11 @@ const baseConfig: AdapterConfig = {
   systemPrompt: 'Test prompt',
 }
 
+const clientContextConfig: AdapterConfig = {
+  ...baseConfig,
+  allowClientContext: true,
+}
+
 beforeEach(() => {
   vi.mocked(streamLLMResponse).mockClear()
 })
@@ -81,12 +86,22 @@ describe('handleVercelAskAi', () => {
       question: 'q',
       context: { page: '/docs/x', content: 'page content here' },
     })
-    await handleVercelAskAi(req, res, baseConfig)
+    await handleVercelAskAi(req, res, clientContextConfig)
     const opts = vi.mocked(streamLLMResponse).mock.calls[0][0]
     expect(opts.context).toEqual({
       page: '/docs/x',
       content: 'page content here',
     })
+  })
+
+  it('rejects client-supplied context unless explicitly allowed', async () => {
+    const { req, res } = mockReqRes('POST', {
+      question: 'q',
+      context: { page: '/docs/x', content: 'untrusted' },
+    })
+    await handleVercelAskAi(req, res, baseConfig)
+    expect(res.status).toHaveBeenCalledWith(403)
+    expect(streamLLMResponse).not.toHaveBeenCalled()
   })
 })
 

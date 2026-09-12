@@ -18,6 +18,7 @@ export function AskAiBubble() {
     isOpen,
     setIsOpen,
     devMode,
+    ui,
   } = useAskAi()
 
   const messagesEndRef = useRef<HTMLDivElement>(null)
@@ -27,11 +28,11 @@ export function AskAiBubble() {
   }, [isOpen])
 
   return (
-    <div className="fixed bottom-6 right-6 z-50 flex flex-col items-end">
+    <div className="fixed inset-x-0 bottom-0 z-50 flex flex-col items-stretch md:inset-x-auto md:bottom-6 md:right-6 md:items-end">
       {isOpen && (
-        <div className="mb-4 w-[380px] max-w-[calc(100vw-2rem)] h-[min(520px,calc(100vh-8rem))] bg-main/90 backdrop-blur-md border border-subtle rounded-2xl shadow-xl flex flex-col overflow-hidden animate-in fade-in slide-in-from-bottom-5 duration-200">
+        <div className="mb-0 h-[min(100dvh,680px)] w-full bg-main/95 backdrop-blur-md border border-subtle rounded-t-2xl shadow-xl flex flex-col overflow-hidden animate-in fade-in slide-in-from-bottom-5 duration-200 md:mb-4 md:h-[min(520px,calc(100vh-8rem))] md:w-[380px] md:max-w-[calc(100vw-2rem)] md:rounded-2xl">
           <ChatHeader
-            title="Ask Assistant"
+            title={ui.title}
             canClear={messages.length > 0}
             onClear={clearChat}
             onClose={() => setIsOpen(false)}
@@ -39,7 +40,10 @@ export function AskAiBubble() {
 
           <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-4">
             {messages.length === 0 && (
-              <ChatEmptyState description="Ask questions about the current documentation page. The assistant only answers using the page you're viewing." />
+              <ChatEmptyState
+                title={ui.emptyTitle}
+                description={ui.emptyDescription}
+              />
             )}
             {messages.map((msg, i) => (
               <ChatMessage key={i} message={msg} devMode={devMode} />
@@ -53,6 +57,8 @@ export function AskAiBubble() {
             onSubmit={submitQuestion}
             onStop={stopStreaming}
             isLoading={isLoading}
+            placeholder={ui.placeholder}
+            hint={ui.composerHint}
           />
         </div>
       )}
@@ -61,8 +67,8 @@ export function AskAiBubble() {
       <button
         onClick={() => setIsOpen((prev) => !prev)}
         className="w-12 h-12 bg-primary-500 hover:bg-primary-600 active:scale-95 text-white rounded-full flex items-center justify-center shadow-lg transition-all cursor-pointer select-none"
-        title="Ask AI assistant"
-        aria-label="Ask AI assistant"
+        title={ui.buttonTooltip}
+        aria-label={ui.buttonTooltip}
       >
         {isOpen ? (
           <CloseIcon size={20} strokeWidth={2.5} />

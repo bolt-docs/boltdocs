@@ -17,10 +17,11 @@ export function AskAiDialog() {
     isOpen,
     setIsOpen,
     devMode,
+    ui,
   } = useAskAi()
 
   const messagesEndRef = useRef<HTMLDivElement>(null)
-  const inputRef = useRef<HTMLInputElement>(null)
+  const inputRef = useRef<HTMLTextAreaElement>(null)
 
   useEffect(() => {
     if (isOpen) {
@@ -37,7 +38,7 @@ export function AskAiDialog() {
   return (
     <div className="hidden xl:flex flex-col shrink-0 w-[320px] border-l border-subtle bg-main overflow-hidden">
       <ChatHeader
-        title="AI Assistant"
+        title={ui.title}
         variant="dialog"
         canClear={messages.length > 0}
         onClear={clearChat}
@@ -48,7 +49,8 @@ export function AskAiDialog() {
         {messages.length === 0 && (
           <ChatEmptyState
             variant="dialog"
-            description="Ask anything about the current documentation page"
+            title={ui.emptyTitle}
+            description={ui.emptyDescription}
           />
         )}
         {messages.map((msg, i) => (
@@ -70,6 +72,8 @@ export function AskAiDialog() {
         onStop={stopStreaming}
         isLoading={isLoading}
         inputRef={inputRef}
+        placeholder={ui.placeholder}
+        hint={ui.composerHint}
       />
     </div>
   )

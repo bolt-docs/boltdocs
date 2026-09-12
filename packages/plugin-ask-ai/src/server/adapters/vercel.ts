@@ -3,6 +3,11 @@ import type { StreamEvent } from '../handler'
 import { headers } from './headers'
 import { pickClientContext } from '../../node/context'
 import type { AdapterConfig, AdapterEnv } from './types'
+import {
+  checkAdapterRateLimit,
+  isAuthorized,
+  validateClientContext,
+} from './security'
 
 function writeVercelEvent(res: any, event: StreamEvent): void {
   switch (event.type) {
@@ -27,7 +32,9 @@ export async function handleVercelAskAi(
   config: AdapterConfig,
   env: AdapterEnv = process.env as Record<string, string | undefined>,
 ): Promise<void> {
-  Object.entries(headers).forEach(([key, value]) => res.setHeader(key, value))
+  Object.entries(headers).forEach(([key, value]) => {
+    res.setHeader(key, value)
+  })
 
   if (req.method === 'OPTIONS') {
     res.status(200).end()
@@ -39,6 +46,31 @@ export async function handleVercelAskAi(
   }
 
   try {
+    const requestHeaders = new Headers(req.headers)
+    const requestUrl = req.url || '/'
+    if (!isAuthorized(config, requestHeaders, requestUrl)) {
+      res.status(401).json({ error: 'UNAUTHORIZED' })
+      return
+    }
+    const contextError = validateClientContext(
+      config,
+      req.body,
+      requestHeaders,
+      requestUrl,
+    )
+    if (contextError) {
+      res.status(403).json({ error: contextError })
+      return
+    }
+    const rate = checkAdapterRateLimit(
+      config,
+      requestHeaders.get('x-forwarded-for') || 'unknown',
+    )
+    if (!rate.ok) {
+      res.setHeader('Retry-After', String(rate.retryAfter))
+      res.status(429).json({ error: 'RATE_LIMITED' })
+      return
+    }
     const { question } = req.body || {}
     if (!question) {
       res.status(400).json({ error: 'Missing question in request body' })

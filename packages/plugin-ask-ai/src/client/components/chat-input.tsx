@@ -1,4 +1,4 @@
-import type { FormEvent, Ref } from 'react'
+import type { FormEvent, KeyboardEvent, Ref } from 'react'
 import type { ChatVariant } from './chat-header'
 import { SendIcon, StopIcon } from './icons'
 
@@ -9,8 +9,9 @@ interface ChatInputProps {
   onStop: () => void
   isLoading: boolean
   placeholder?: string
+  hint?: string
   variant?: ChatVariant
-  inputRef?: Ref<HTMLInputElement>
+  inputRef?: Ref<HTMLTextAreaElement>
 }
 
 export function ChatInput({
@@ -20,65 +21,75 @@ export function ChatInput({
   onStop,
   isLoading,
   placeholder = 'Ask about this page…',
+  hint = 'Enter to send · Shift+Enter for a new line',
   variant = 'bubble',
   inputRef,
 }: ChatInputProps) {
   const compact = variant === 'dialog'
+  const canSubmit = Boolean(input.trim()) && !isLoading
+  // Auto-grow composer: one row per line break, capped so long inputs scroll.
+  const rows = Math.min(Math.max(input.split('\n').length, 1), 6)
+
+  const handleKeyDown = (e: KeyboardEvent) => {
+    // Enter to send, Shift+Enter for a new line.
+    if (e.key !== 'Enter' || e.shiftKey) return
+    e.preventDefault()
+    if (canSubmit) onSubmit(input)
+  }
 
   const handleSubmit = (e: FormEvent) => {
     e.preventDefault()
-    if (!input.trim() || isLoading) return
-    onSubmit(input)
+    if (canSubmit) onSubmit(input)
   }
 
-  const inputClass = `flex-1 bg-surface border border-subtle outline-none text-body transition-colors ${
-    compact
-      ? 'rounded-lg px-2.5 py-1.5 text-xs focus-within:border-primary-500 min-w-0'
-      : 'rounded-xl px-3 py-1.5 text-sm focus-visible:border-primary-500'
-  }`
-
-  const actionClass = `font-semibold flex items-center justify-center transition-colors cursor-pointer select-none ${
-    compact
-      ? 'px-2.5 py-1.5 text-xs rounded-lg shrink-0'
-      : 'px-3 py-1.5 text-sm rounded-xl'
-  }`
+  const buttonSize = compact ? 'size-8' : 'size-9'
 
   return (
-    <form
-      onSubmit={handleSubmit}
-      className={`p-3 border-t border-subtle bg-surface/30 flex gap-2${
-        compact ? ' shrink-0' : ''
-      }`}
-    >
-      <input
-        ref={inputRef}
-        type="text"
-        value={input}
-        onChange={(e) => onInputChange(e.target.value)}
-        placeholder={placeholder}
-        className={inputClass}
-        disabled={isLoading}
-      />
-      {isLoading ? (
-        <button
-          type="button"
-          onClick={onStop}
-          className={`bg-red-500 hover:bg-red-600 text-white ${actionClass}`}
-          title="Stop generating"
-          aria-label="Stop generating"
-        >
-          <StopIcon size={compact ? 12 : 16} />
-        </button>
-      ) : (
-        <button
-          type="submit"
-          disabled={!input.trim()}
-          className={`bg-primary-500 hover:bg-primary-600 disabled:opacity-50 text-white ${actionClass}`}
-          aria-label="Send question"
-        >
-          <SendIcon size={compact ? 12 : 16} />
-        </button>
-      )}
-    </form>
+    <div className={`${compact ? 'shrink-0 ' : ''}flex flex-col gap-1.5`}>
+      <form
+        onSubmit={handleSubmit}
+        className={`flex items-end gap-2 rounded-xl border border-subtle bg-surface focus-within:border-primary-500 transition-colors ${compact ? 'px-2 py-1' : 'px-3 py-1.5'}`}
+      >
+        <textarea
+          ref={inputRef}
+          rows={rows}
+          value={input}
+          onChange={(e) => onInputChange(e.target.value)}
+          onKeyDown={handleKeyDown}
+          placeholder={placeholder}
+          disabled={isLoading}
+          aria-label="Ask the assistant"
+          className={`flex-1 resize-none bg-transparent outline-none placeholder:text-muted text-body leading-relaxed ${
+            compact ? 'px-1.5 py-0.5 text-xs' : 'px-2 py-1.5 text-sm'
+          }`}
+        />
+        {isLoading ? (
+          <button
+            type="button"
+            onClick={onStop}
+            title="Stop generating"
+            aria-label="Stop generating"
+            className={`${buttonSize} shrink-0 rounded-full bg-danger-500 hover:opacity-90 text-white flex items-center justify-center cursor-pointer select-none transition-opacity`}
+          >
+            <StopIcon size={compact ? 12 : 16} />
+          </button>
+        ) : (
+          <button
+            type="submit"
+            disabled={!input.trim()}
+            title="Send question"
+            aria-label="Send question"
+            className={`${buttonSize} shrink-0 rounded-full bg-primary-500 hover:bg-primary-600 disabled:opacity-40 text-white flex items-center justify-center cursor-pointer select-none transition-colors`}
+          >
+            <SendIcon size={compact ? 12 : 16} />
+          </button>
+        )}
+      </form>
+      <p
+        className={`${compact ? 'text-[10px]' : 'text-[11px]'} text-muted select-none`}
+      >
+        {hint}
+      </p>
+    </div>
   )
 }

@@ -1,3 +1,4 @@
+import { memo } from 'react'
 import type { Message } from '../use-ask-ai'
 import { MarkdownRenderer } from '../render-markdown'
 import type { ChatVariant } from './chat-header'
@@ -19,7 +20,7 @@ function UsageChip({
 }) {
   return (
     <div className="flex items-center gap-1.5 px-2 py-1 mb-1 text-[11px] text-muted font-mono">
-      <span className="px-1 py-0.5 rounded bg-amber-500/10 text-amber-600 dark:text-amber-400 text-[10px] font-bold uppercase tracking-wide">
+      <span className="px-1 py-0.5 rounded bg-warning-500/15 text-warning-500 text-[10px] font-bold uppercase tracking-wide">
         DEV
       </span>
       <span title="Provider / model">
@@ -77,7 +78,7 @@ function ContextChip({
   )
 }
 
-export function ChatMessage({
+function ChatMessageImpl({
   message: msg,
   variant = 'bubble',
   devMode,
@@ -93,7 +94,7 @@ export function ChatMessage({
     isUser
       ? `bg-primary-500 text-white rounded-br-none${compact ? ' max-w-[90%]' : ''}`
       : msg.status === 'error'
-        ? 'bg-red-500/10 border border-red-500/30 text-red-600 dark:text-red-400 rounded-bl-none'
+        ? 'bg-danger-500/12 border border-danger-500/30 text-danger-500 rounded-bl-none'
         : 'bg-surface border border-subtle text-body rounded-bl-none'
   }`
 
@@ -117,6 +118,10 @@ export function ChatMessage({
             <strong>Error:</strong>{' '}
             {msg.errorMessage || 'Something went wrong.'}
           </p>
+        ) : msg.status === 'cancelled' ? (
+          <p className={compact ? 'text-xs text-muted' : 'text-sm text-muted'}>
+            Generation stopped.
+          </p>
         ) : (
           <div className="ask-ai-streamdown">
             {msg.content ? (
@@ -132,3 +137,11 @@ export function ChatMessage({
     </div>
   )
 }
+
+/**
+ * Memoized so that during streaming only the message whose content actually
+ * changed re-renders. The hook structurally shares the array and replaces the
+ * final assistant message with a new object, so all older siblings keep their
+ * identity and are skipped by the default shallow comparison.
+ */
+export const ChatMessage = memo(ChatMessageImpl)

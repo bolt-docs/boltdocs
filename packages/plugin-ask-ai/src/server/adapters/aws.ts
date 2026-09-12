@@ -3,6 +3,11 @@ import type { StreamEvent } from '../handler'
 import { headers } from './headers'
 import { pickClientContext } from '../../node/context'
 import type { AdapterConfig, AdapterEnv } from './types'
+import {
+  checkAdapterRateLimit,
+  isAuthorized,
+  validateClientContext,
+} from './security'
 
 function eventToSse(event: StreamEvent): string {
   switch (event.type) {
@@ -37,6 +42,39 @@ export async function handleAwsAskAi(
 
   try {
     const payload = event.body ? JSON.parse(event.body) : {}
+    const requestHeaders = new Headers(event.headers || {})
+    const requestUrl = event.rawPath || event.path || '/'
+    if (!isAuthorized(config, requestHeaders, requestUrl)) {
+      return {
+        statusCode: 401,
+        headers,
+        body: JSON.stringify({ error: 'UNAUTHORIZED' }),
+      }
+    }
+    const contextError = validateClientContext(
+      config,
+      payload,
+      requestHeaders,
+      requestUrl,
+    )
+    if (contextError) {
+      return {
+        statusCode: 403,
+        headers,
+        body: JSON.stringify({ error: contextError }),
+      }
+    }
+    const rate = checkAdapterRateLimit(
+      config,
+      requestHeaders.get('x-forwarded-for') || 'unknown',
+    )
+    if (!rate.ok) {
+      return {
+        statusCode: 429,
+        headers: { ...headers, 'Retry-After': String(rate.retryAfter) },
+        body: JSON.stringify({ error: 'RATE_LIMITED' }),
+      }
+    }
     const { question } = payload
     if (!question) {
       return {
