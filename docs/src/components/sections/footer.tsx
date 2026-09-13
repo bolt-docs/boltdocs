@@ -1,6 +1,5 @@
 import { Link } from 'boltdocs/primitives'
 import { Github, Instagram, Twitter } from '@/theme/icons'
-import { X } from 'lucide-react'
 import { useTranslations } from '@/i18n/index'
 import { Section } from '@/theme/section'
 
@@ -45,7 +44,7 @@ export const Footer = () => {
   ]
 
   return (
-    <Section maxWidth="lg">
+    <Section maxWidth="xl">
       <div className="flex flex-row gap-28 ">
         <FooterColumns title="Documentation" links={docs} />
         <FooterColumns title="Resources" links={resources} />
@@ -53,7 +52,7 @@ export const Footer = () => {
       </div>
 
       <div className="mt-14 mb-5 flex flex-col items-center justify-between gap-4 pt-6 sm:flex-row">
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-6">
           <Link
             href="https://github.com/jesusalcaladev/boltdocs"
             aria-label="GitHub"

@@ -55,7 +55,7 @@ export function FeaturedResources() {
   const t = useTranslations()
 
   return (
-    <Section maxWidth="lg">
+    <Section maxWidth="xl">
       <div className="mx-auto mb-12 flex max-w-7xl flex-col justify-between gap-6 md:flex-row md:items-end">
         <div className="max-w-xl">
           <h2 className="text-3xl md:text-4xl font-black tracking-tighter text-body mb-2">
@@ -67,7 +67,7 @@ export function FeaturedResources() {
           className="group hover:opacity-80 inline-flex h-11 shrink-0 items-center justify-center px-6 text-sm font-medium text-body transition-all duration-300"
         >
           {t.featuredAll}
-          <ArrowRight className="size-16 ml-2 transition-transform group-hover:translate-x-0.5" />
+          <ArrowRight className="size-5 ml-2 transition-transform group-hover:translate-x-0.5" />
         </Link>
       </div>
       <div className="mx-auto flex max-w-7xl gap-6 overflow-x-auto scrollbar-hide">

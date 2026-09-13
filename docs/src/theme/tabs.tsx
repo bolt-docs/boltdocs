@@ -31,7 +31,7 @@ export function DocsTabs({
   }, [activeIndex, tabRefs])
 
   return (
-    <div className="mx-auto max-w-(--breakpoint-3xl) px-4 md:px-6 max-sm:px-10 select-none">
+    <div className="mx-auto w-full px-5 md:px-6 max-sm:px-10 select-none">
       <T.List className="border-none py-0 scrollbar-hide relative flex flex-row gap-5 items-center overflow-x-auto">
         {tabs.map((tab, index) => {
           const isActive = index === activeIndex

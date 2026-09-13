@@ -51,7 +51,7 @@ export default function AboutPage() {
                 href="https://github.com/jesusalcaladev"
                 className="group inline-flex items-center gap-2 px-6 py-3 bg-primary-500/10 hover:bg-primary-500/20 text-body font-semibold rounded-full border border-primary-500/25 hover:border-primary-500/50 transition-all duration-300 text-sm cursor-pointer"
               >
-                <Github className="size-24 text-primary-400" />
+                <Github className="size-5 text-primary-400" />
                 {t.aboutFollowGithub}
               </Link>
             </div>

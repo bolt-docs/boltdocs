@@ -18,9 +18,9 @@ const paddingClasses = {
 const maxWidthClasses = {
   sm: 'max-w-2xl',
   md: 'max-w-4xl',
-  lg: 'max-w-6xl',
-  xl: 'max-w-7xl',
-  '2xl': 'max-w-8xl',
+  lg: 'max-w-7xl',
+  xl: 'max-w-8xl',
+  '2xl': 'max-w-9xl',
   full: 'max-w-full',
 }
 

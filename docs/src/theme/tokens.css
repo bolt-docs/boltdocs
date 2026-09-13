@@ -105,17 +105,6 @@
   --radius-xl: 1.125rem; /* 18px */
   --radius-full: 999999rem;
 
-  /* ── Spacing scale ─────────────────────────────────── */
-  --spacing-4: 0.25rem;
-  --spacing-8: 0.5rem;
-  --spacing-12: 0.75rem;
-  --spacing-16: 1rem;
-  --spacing-24: 1.5rem;
-  --spacing-32: 2rem;
-  --spacing-40: 2.5rem;
-  --spacing-48: 3rem;
-  --spacing-64: 4rem;
-
   /* ── Typography scale (Geist) ──────────────────────── */
   --text-h1: 2.5rem; /* 40px */
   --text-h1--line-height: 3.25rem; /* 52px */
@@ -140,6 +129,8 @@
   --spacing-toc: 15.5rem;
   --spacing-content-max: 48rem;
   --breakpoint-3xl: 120rem;
+
+  --container-8xl: 85rem; /* 1360px*/
 
   --ease-fluid: cubic-bezier(0.3, 0, 0, 1);
   --ease-snappy: cubic-bezier(0.2, 0, 0, 1);

@@ -18,7 +18,7 @@ function DocsThemeLayout({ children }: { children?: ReactNode }) {
   return (
     <DocsLayoutPrimitive className="selection:bg-primary-500/15 selection:text-primary-400">
       <Navbar />
-      <DocsLayoutPrimitive.Body className="bg-main">
+      <DocsLayoutPrimitive.Body className="bg-main md:px-5">
         {!isCollectionPage && (
           <Sidebar routes={filteredRoutes || []} config={config} />
         )}

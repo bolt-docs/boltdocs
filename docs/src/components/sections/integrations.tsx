@@ -45,7 +45,7 @@ export const Integrations = () => {
   const t = useTranslations()
 
   return (
-    <Section maxWidth="lg">
+    <Section maxWidth="xl">
       <div className="mb-8">
         <h2 className="text-center text-4xl font-extrabold tracking-tighter text-body">
           {t.integrationsTitle}

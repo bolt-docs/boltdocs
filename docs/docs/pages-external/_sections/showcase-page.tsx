@@ -137,7 +137,7 @@ export default function ShowcasePage() {
       className="font-sans antialiased min-h-screen text-body flex flex-col justify-start relative"
     >
       <div className="max-w-4xl mx-auto text-center">
-        <h1 className="text-4xl md:text-6xl font-black tracking-tighter text-body mb-6">
+        <h1 className="text-4xl md:text-6xl font-semibold tracking-tighter text-body mb-6">
           {t.showcaseTitle}
         </h1>
       </div>
@@ -171,14 +171,14 @@ export default function ShowcasePage() {
                     href={item.href}
                     className="px-3 py-3 hover:opacity-90 transition-opacity font-semibold bg-primary-500 rounded-full inline-flex gap-2 items-center text-sm"
                   >
-                    <ExternalLink className="size-16" />
+                    <ExternalLink className="size-5" />
                     {t.showcaseVisitDocs}
                   </Link>
                   <Link
                     href={item.repo}
                     className="px-3 py-3 hover:opacity-90 transition-opacity font-semibold bg-surface rounded-full inline-flex gap-2 items-center text-sm"
                   >
-                    <Github className="size-16" />
+                    <Github className="size-5" />
                     {t.showcaseViewGithub}
                   </Link>
                 </div>
@@ -189,7 +189,7 @@ export default function ShowcasePage() {
       </section>
 
       {/* CTA Section */}
-      <section className="py-20 px-6 border-t border-white/5">
+      <section className="py-20 px-6">
         <div className="max-w-3xl mx-auto text-center">
           <h2 className="text-2xl md:text-3xl font-bold tracking-tight text-body mb-4">
             {t.showcaseCtaTitle}
@@ -201,7 +201,7 @@ export default function ShowcasePage() {
             href="https://github.com/jesusalcaladev/boltdocs/issues/new"
             className="inline-flex items-center gap-2 px-5 rounded-full py-2 bg-subtle text-body font-bold hover:scale-105 transition-all duration-300"
           >
-            {t.showcaseOpenIssue} <ArrowRight className="size-16" />
+            {t.showcaseOpenIssue} <ArrowRight className="size-5" />
           </Link>
         </div>
       </section>

@@ -179,11 +179,11 @@ function RoadmapItemCard({ item }: { item: RoadmapItem }) {
       <span className="hidden sm:inline-flex h-6 shrink-0 items-center rounded-full px-3 text-xs font-medium">
         {item.status === 'in-progress' ? (
           <span className="flex items-center gap-1.5 rounded-full bg-accent-500/10  px-2.5 py-0.5 text-accent-400">
-            <LoaderCircle className="w-3 h-3 animate-spin" /> Active
+            <LoaderCircle className="size-3 animate-spin" /> Active
           </span>
         ) : (
           <span className="flex items-center gap-1.5 rounded-full bg-subtle px-2.5 py-0.5 text-muted">
-            <Clock className="w-3 h-3" /> Planned
+            <Clock className="size-3" /> Planned
           </span>
         )}
       </span>
@@ -210,9 +210,9 @@ export default function RoadmapPage() {
 
   return (
     <div className="font-sans antialiased min-h-screen text-body relative overflow-hidden">
-      <Section padding="xl" maxWidth="lg">
+      <Section padding="sm" maxWidth="xl">
         <div className="text-center mb-6">
-          <h1 className="text-4xl md:text-6xl font-black tracking-tighter text-body mb-6">
+          <h1 className="text-4xl md:text-6xl font-semibold tracking-tighter text-body mb-6">
             What&apos;s coming next
           </h1>
           <div className="mt-8 flex items-center justify-center gap-6 text-sm">
@@ -236,8 +236,7 @@ export default function RoadmapPage() {
                 className={cn(
                   `px-5 py-2 rounded-full text-sm font-medium transition-all duration-300 cursor-pointer`,
                   {
-                    'bg-primary-500/15 text-primary-300 border border-primary-500/25':
-                      tab === t.key,
+                    'bg-primary-500/15 text-primary-30': tab === t.key,
                     'text-muted hover:text-body border border-transparent':
                       tab !== t.key,
                   },
@@ -253,8 +252,8 @@ export default function RoadmapPage() {
           <div className="flex flex-col">
             <section className="mb-14">
               <div className="flex items-center gap-3 mb-6">
-                <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-accent-500/10 border border-accent-500/25 text-accent-400 text-sm font-semibold">
-                  <Hammer className="size-16" />
+                <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-accent-500/10 text-accent-400 text-sm font-semibold">
+                  <Hammer className="size-5" />
                   In Progress
                 </div>
                 <div className="h-px flex-1 bg-subtle" />
@@ -268,8 +267,8 @@ export default function RoadmapPage() {
 
             <section>
               <div className="flex items-center gap-3 mb-6">
-                <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-surface border border-subtle text-muted text-sm font-semibold">
-                  <CheckCircle2 className="size-16" />
+                <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-surface text-muted text-sm font-semibold">
+                  <CheckCircle2 className="size-5" />
                   Planning
                 </div>
                 <div className="h-px flex-1 bg-subtle" />

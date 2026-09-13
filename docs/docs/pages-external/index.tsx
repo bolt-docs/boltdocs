@@ -33,7 +33,7 @@ export const layout = ({ children }: { children: React.ReactNode }) => {
           {t.bannerReadPost}
         </Link>
         <span>
-          <ArrowRight className="size-16 group-hover:translate-x-2 transition-transform " />
+          <ArrowRight className="size-5 group-hover:translate-x-2 transition-transform " />
         </span>
       </Banner>
       <Navbar />

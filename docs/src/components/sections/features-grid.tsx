@@ -60,7 +60,7 @@ export const FeaturesGrid = () => {
   const t = useTranslations()
 
   return (
-    <Section maxWidth="lg" className="relative">
+    <Section maxWidth="xl" className="relative">
       <div className="text-center mb-16">
         <h2 className="text-3xl md:text-5xl font-black tracking-tighter text-body">
           {t.featuresTitle}

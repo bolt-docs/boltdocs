@@ -63,7 +63,7 @@ export function Feedback({ className }: FeedbackProps) {
                     : 'text-muted hover:border-strong hover:bg-soft hover:text-body',
                 )}
               >
-                <ThumbsUp className="size-16" />
+                <ThumbsUp className="size-5" />
                 <span>Yes</span>
               </Button>
 
@@ -79,7 +79,7 @@ export function Feedback({ className }: FeedbackProps) {
                     : 'text-muted hover:border-strong hover:bg-soft hover:text-body',
                 )}
               >
-                <Minus className="size-16" />
+                <Minus className="size-5" />
                 <span>Regular</span>
               </Button>
 
@@ -95,7 +95,7 @@ export function Feedback({ className }: FeedbackProps) {
                     : 'text-muted hover:border-strong hover:bg-soft hover:text-body',
                 )}
               >
-                <ThumbsDown className="size-16" />
+                <ThumbsDown className="size-5" />
                 <span>No</span>
               </Button>
             </div>

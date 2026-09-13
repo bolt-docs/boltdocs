@@ -19,7 +19,7 @@ El plugin es un **pipeline de tres niveles** que se ejecuta completamente dentro
 ```mermaid
 flowchart LR
   A[Visitante hace una pregunta] --> B[Hook cliente: useAskAi]
-  B -->|POST /api/ask-ai| C[Middleware del servidor]
+  B -->|POST /api/ask-ai| C[Middleware del servidor o handler serverless]
   C --> D[Resolver la página actual]
   D -->|contenido de la página| E[Envolver en <<<DOCS_START>>> / <<<DOCS_END>>>]
   E --> F[OpenAI SDK chat.completions.stream]
@@ -31,7 +31,7 @@ flowchart LR
 
 - **`useAskAi()`** — Hook de React que posee el estado del chat, el lector SSE del stream y el `AbortController` cooperativo. Devuelve `messages`, `input`, `isLoading`, `submitQuestion`, `stopStreaming`, `clearChat`, `isOpen`, `setIsOpen`.
 - **`<AskAiBubble />`** — botón flotante auto-inyectado + diálogo emergente (esquina inferior derecha en cada página).
-- **`<AskAiDialog />`** — companion de sidebar auto-inyectado en viewports `xl:` (≥ 1280 px).
+- **`<AskAiDialog />`** — panel lateral opcional para composición manual en viewports `xl:` (≥ 1280 px).
 - **`<MarkdownRenderer />`** — wrapper delgado de `Streamdown` que activa `parseIncompleteMarkdown` por defecto para una visualización de streaming fluida y sin parpadeos.
 
 El hook también escucha eventos globales para que otras partes de tu sitio puedan manejarlo:
@@ -46,7 +46,7 @@ window.dispatchEvent(new CustomEvent('boltdocs:ask-ai:close'))
 
 Un middleware de `vite` montado sobre `dev` y `preview`. Este:
 
-1. Lee el contenido de la página renderizada (Vite dev) **o** acepta `{ page, content }` pre-extraído del cliente (modo adaptador serverless).
+1. Resuelve el contenido de la página en el servidor en Vite/preview. Los adaptadores serverless solo aceptan `{ page, content }` con `allowClientContext: true` o un `secretKey` autorizado.
 2. Valida la pregunta contra los caps configurados y la denylist.
 3. Envuelve el contenido de la página en marcadores `<<<DOCS_START>>>` / `<<<DOCS_END>>>` — y **escapa las ocurrencias literales de esos tokens dentro de la página** para que un autor de MDX no pueda romper la frontera.
 4. Hace streaming de eventos `chat.completions.create({ stream: true })` de vuelta como Server-Sent Events (`text/event-stream`).
@@ -74,12 +74,17 @@ askAiPlugin({
   endpoint: '/api/ask-ai',
   baseURL: undefined,
   systemPrompt: undefined,
+  persona: undefined,
   maxInputChars: 2_000,
   maxOutputTokens: 600,
   contextChars: 6_000,
   rateLimitPerMinute: 30,
   secretKey: undefined,
   customModels: [],
+  temperature: 0.3,
+  topP: 1,
+  title: 'Ask Assistant',
+  placeholder: 'Ask about this page…',
 })
 ```
 
@@ -95,6 +100,15 @@ askAiPlugin({
 | **`rateLimitPerMinute`** | `number` (≥ 0) | `30` | Peticiones por minuto por IP. Pon `0` para desactivar (no recomendado en deployments abiertos). |
 | **`secretKey`** | `string` (≥ 8 caracteres) | `undefined` | Secreto compartido requerido. Los llamantes deben incluir `?secret=<key>` o el header `x-boltdocs-ask-ai-key: <key>`. Cualquier otro origen recibe `UNAUTHORIZED`. |
 | **`customModels`** | `string[]` (≤ 20 entradas, ≤ 120 caracteres cada una) | `[]` | Comodín para usuarios avanzados. Añade nombres de modelos a la allowlist runtime sin tocar el schema. |
+| **`persona`** | `string` (≤ 4 000 caracteres) | `undefined` | Identidad/tono personalizado del asistente. Se antepone al prompt por defecto dentro de marcadores `<<<PERSONA>>>` — moldea *cómo* habla, pero no puede debilitar las reglas de alcance/rechazo. Se ignora si `systemPrompt` (o `systemPrompts[provider]`) lo sobrescribe por completo. |
+| **`temperature`** | `number` (0–2) | `0.3` | Temperatura de muestreo. `0` = determinista (recomendado para Q&A de docs). |
+| **`topP`** | `number` (0–1) | `1` | Corte de nucleus sampling. `1` = sin restricción. |
+| **`title`** | `string` (≤ 80) | `'Ask Assistant'` | Título del header del widget (burbuja y diálogo). |
+| **`placeholder`** | `string` (≤ 120) | `'Ask about this page…'` | Placeholder del compositor. |
+| **`emptyTitle`** | `string` (≤ 80) | `'How can I help you today?'` | Saludo antes del primer mensaje (solo burbuja). |
+| **`emptyDescription`** | `string` (≤ 240) | `'Ask anything about the current documentation page…'` | Texto bajo el saludo. |
+| **`buttonTooltip`** | `string` (≤ 80) | `'Ask AI assistant'` | Tooltip/aria-label del lanzador flotante. |
+| **`composerHint`** | `string` (≤ 120) | `'Enter to send · Shift+Enter for a new line'` | Pista bajo el input. |
 
 > Las páginas que excedan `contextChars` se truncan al inicio. Si necesitas usar la última sección de un documento largo, plantéate exponer un punto de anclaje o dividir el contenido en piezas más pequeñas.
 
@@ -253,9 +267,9 @@ export function HelpButton() {
 
 ---
 
-## Composición Manual de Componentes
+## Montaje Automático y Composición Manual
 
-El plugin **no** auto-monta su UI. Compón `<AskAiBubble />` y/o `<AskAiDialog />` directamente en tu `layout.tsx`:
+El plugin monta automáticamente `<AskAiBubble />` mediante el slot `floating:after`. Para componer la UI manualmente, configura `autoInject: false` y añade los componentes que necesites en tu `layout.tsx`:
 
 ```tsx title="src/layout.tsx"
 import { AskAiBubble, AskAiDialog } from '@bdocs/plugin-ask-ai/client'
@@ -343,7 +357,7 @@ Excediste `rateLimitPerMinute` (predeterminado 30). Sube el límite, desactíval
 
 ### La burbuja no aparece
 
-- `autoInject: true` (predeterminado) registra `<AskAiBubble />` y `<AskAiDialog />` globalmente vía el registro `components` del plugin. Si escribiste `<AskAiBubble />` manualmente en tu layout Y pusiste `autoInject: false`, está bien — si no, pasa a `autoInject: false`.
+- `autoInject: true` (predeterminado) monta `<AskAiBubble />` globalmente mediante el slot `floating:after`. Si escribiste componentes manualmente en tu layout, usa `autoInject: false` para evitar duplicados.
 - Comprueba que tu layout personalizado extiende el shell de Boltdocs (`<BoltdocsShell />`) o de algún modo incluye el registro global de componentes de Boltdocs.
 
 ### El streaming se detiene a mitad de frase

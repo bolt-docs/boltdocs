@@ -27,7 +27,7 @@ export function Navbar() {
   return (
     <NavbarPrimitive.Root className={cn('bg-main', hasTabs && 'border-b-0')}>
       <NavbarPrimitive.Content
-        className={cn('max-w-7xl max-sm:px-10 px-0', {
+        className={cn('max-w-8xl max-sm:px-10 px-6 md:px-12', {
           'max-w-full': isDocs && hasTabs,
         })}
       >
@@ -129,7 +129,7 @@ export function Navbar() {
       </NavbarPrimitive.MobileMenu>
 
       {isDocs && hasTabs && themeConfig?.tabs && (
-        <div className="w-full bg-main">
+        <div className="w-full px-6 md:px-5 bg-main">
           <DocsTabs
             tabs={themeConfig.tabs as never}
             routes={routes || []}

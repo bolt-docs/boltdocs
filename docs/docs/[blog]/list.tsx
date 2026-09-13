@@ -52,7 +52,7 @@ function PostCard({ post, href, locale, featured = false }: PostCardProps) {
       href={href}
       className="group flex flex-col text-left outline-none h-full focus-visible:bg-soft"
     >
-      <div className="relative aspect-video w-full overflow-hidden bg-soft">
+      <div className="relative aspect-video w-full overflow-hidden bg-surface">
         {post.coverImage ? (
           <img
             src={post.coverImage}
@@ -93,12 +93,12 @@ function PostCard({ post, href, locale, featured = false }: PostCardProps) {
         )}
 
         <div className="mt-auto flex items-center justify-between gap-4 pt-1">
-          <time className="text-xs font-medium uppercase tracking-wide text-muted">
+          <time className="text-xs font-medium tracking-wide text-muted">
             {formatDate(post.date, locale) ?? ''}
           </time>
           <ArrowUpRight
             aria-hidden="true"
-            className="size-16 shrink-0 text-muted transition-colors group-hover:text-primary-400"
+            className="size-5 shrink-0 text-muted transition-colors group-hover:text-primary-400"
           />
         </div>
       </div>
@@ -129,7 +129,7 @@ export default function BlogList() {
     <Section>
       <div className="mx-auto max-w-6xl">
         <header className="mb-12 mx-auto text-center">
-          <h1 className="text-3xl font-black tracking-tighter text-body sm:text-5xl">
+          <h1 className="text-3xl font-semibold tracking-tighter text-body sm:text-5xl">
             {t.blogs}
           </h1>
           <p className="mt-4 text-base text-paragraph md:text-lg">
@@ -140,7 +140,7 @@ export default function BlogList() {
         {/* Featured: the two newest posts side by side at 50% / 50%. */}
         <div className="grid grid-cols-1 sm:grid-cols-2">
           {featured.map((post) => (
-            <div key={post.path} className="border-b border-r border-subtle">
+            <div key={post.path}>
               <PostCard
                 post={post}
                 href={`site:${post.path}`}
@@ -154,7 +154,7 @@ export default function BlogList() {
 
         <div className="grid grid-cols-2 md:grid-cols-3">
           {restPosts.map((post) => (
-            <div key={post.path} className="border-b border-r border-subtle">
+            <div key={post.path}>
               <PostCard
                 post={post}
                 href={`site:${post.path}`}

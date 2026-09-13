@@ -41,19 +41,19 @@ export const Hero = () => {
             {t.heroAvailable}
             <span className="font-mono text-primary-300 flex flex-row gap-1 items-center">
               v{getVersion()}
-              <ArrowRight className="w-3.5 h-3.5 transition-transform group-hover:translate-x-0.5" />
+              <ArrowRight className="size-4 transition-transform group-hover:translate-x-0.5" />
             </span>
           </span>
         </Link>
 
-        <h1 className="mt-8 text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-extrabold text-body tracking-[-0.03em] leading-[1.08] text-balance">
+        <h1 className="mt-8 text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold text-body tracking-[-0.03em] leading-[1.08] text-balance">
           {t.heroTitle}{' '}
           <span className="bg-linear-to-r from-primary-300 via-primary-400 to-primary-500 bg-clip-text text-transparent">
             {t.heroTitleHighlight}
           </span>
         </h1>
 
-        <p className="max-w-2xl mx-auto mt-6 text-base sm:text-lg md:text-xl text-paragraph/80 leading-relaxed text-balance">
+        <p className="max-w-4xl mx-auto mt-6 text-base sm:text-lg md:text-xl text-paragraph/80 leading-relaxed text-balance">
           {t.heroDescription}
         </p>
 
@@ -74,9 +74,9 @@ export const Hero = () => {
               aria-label={copied ? 'Command copied' : 'Copy command'}
             >
               {copied ? (
-                <Check className="size-16 text-success-500" />
+                <Check className="size-5 text-success-500" />
               ) : (
-                <Copy className="size-16 text-muted" />
+                <Copy className="size-5 text-muted" />
               )}
             </Button>
           </div>
@@ -88,7 +88,7 @@ export const Hero = () => {
             className="group px-6 py-3.5 bg-primary-500 text-white font-medium rounded-xl flex items-center justify-center gap-2 border border-primary-400/30 hover:brightness-110 transition-all duration-300 sm:hover:scale-[1.03]"
           >
             {t.heroGetStarted}
-            <ArrowRight className="size-16 transition-transform group-hover:translate-x-0.5" />
+            <ArrowRight className="size-5 transition-transform group-hover:translate-x-0.5" />
           </Link>
           <Link
             href="/docs/api"

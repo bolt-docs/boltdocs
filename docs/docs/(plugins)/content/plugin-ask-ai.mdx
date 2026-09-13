@@ -20,7 +20,7 @@ The plugin is a **three-tier pipeline** that runs entirely inside Boltdocs' dev/
 ```mermaid
 flowchart LR
   A[Visitor asks a question] --> B[Client hook: useAskAi]
-  B -->|POST /api/ask-ai| C[Server middleware]
+  B -->|POST /api/ask-ai| C[Server middleware or serverless handler]
   C --> D[Resolve current page]
   D -->|page content| E[Wrap in <<<DOCS_START>>> / <<<DOCS_END>>>]
   E --> F[OpenAI SDK chat.completions.stream]
@@ -32,7 +32,7 @@ flowchart LR
 
 - **`useAskAi()`** — React hook that owns the chat state, the streaming SSE reader, and the cooperative abort controller. Returns `messages`, `input`, `isLoading`, `submitQuestion`, `stopStreaming`, `clearChat`, `isOpen`, `setIsOpen`.
 - **`<AskAiBubble />`** — auto-injected floating button + popover dialog (bottom-right on every page).
-- **`<AskAiDialog />`** — auto-injected sidebar companion on `xl:` viewports (≥ 1280 px).
+- **`<AskAiDialog />`** — optional sidebar panel for manual composition on `xl:` viewports (≥ 1280 px).
 - **`<MarkdownRenderer />`** — thin `Streamdown` wrapper that flips `parseIncompleteMarkdown` on by default for smooth streaming display without flicker.
 
 The hook also listens for global events so other parts of your site can drive it:
@@ -47,7 +47,7 @@ window.dispatchEvent(new CustomEvent('boltdocs:ask-ai:close'))
 
 A `vite`-aware Vite middleware mounted on `dev` and `preview`. It:
 
-1. Reads the rendered page content (Vite dev) **or** accepts pre-extracted `{ page, content }` from the client (serverless adapter mode).
+1. Resolves rendered page content server-side in Vite/preview. Serverless adapters accept pre-extracted `{ page, content }` only with `allowClientContext: true` or an authorized `secretKey`.
 2. Validates the question against the configured caps and denylist.
 3. Wraps the page content in `<<<DOCS_START>>>` / `<<<DOCS_END>>>` markers — and **escapes literal occurrences of those tokens inside the page** so an MDX author cannot break the boundary.
 4. Streams `chat.completions.create({ stream: true })` events back as Server-Sent Events (`text/event-stream`).
@@ -73,14 +73,20 @@ All options are optional. Pass them to the `askAiPlugin()` initializer in `boltd
 askAiPlugin({
   model: 'gpt-4o-mini',
   endpoint: '/api/ask-ai',
+  autoInject: true,
   baseURL: undefined,
   systemPrompt: undefined,
+  persona: undefined,
   maxInputChars: 2_000,
   maxOutputTokens: 600,
   contextChars: 6_000,
   rateLimitPerMinute: 30,
   secretKey: undefined,
   customModels: [],
+  temperature: 0.3,
+  topP: 1,
+  title: 'Ask Assistant',
+  placeholder: 'Ask about this page…',
 })
 ```
 
@@ -96,6 +102,15 @@ askAiPlugin({
 | **`rateLimitPerMinute`** | `number` (≥ 0) | `30` | Per-IP requests per minute. Set `0` to disable (not recommended on open deployments). |
 | **`secretKey`** | `string` (≥ 8 chars) | `undefined` | Required shared secret. Callers must include `?secret=<key>` or header `x-boltdocs-ask-ai-key: <key>`. Any other origin gets `UNAUTHORIZED`. |
 | **`customModels`** | `string[]` (≤ 20 entries, ≤ 120 chars each) | `[]` | Power-user escape hatch. Adds model names to the runtime allowlist without bumping the schema. |
+| **`persona`** | `string` (≤ 4 000 chars) | `undefined` | Custom identity/tone for the assistant. Prepended to the default prompt inside `<<<PERSONA>>>` markers — it shapes *how* the assistant talks, but cannot weaken the scoping/refusal rules. Ignored when `systemPrompt` (or `systemPrompts[provider]`) fully overrides. |
+| **`temperature`** | `number` (0–2) | `0.3` | Sampling temperature. `0` = deterministic (best for doc Q&A). |
+| **`topP`** | `number` (0–1) | `1` | Nucleus-sampling cutoff. `1` = no restriction. |
+| **`title`** | `string` (≤ 80) | `'Ask Assistant'` | Header title of the chat widget (bubble and dialog). |
+| **`placeholder`** | `string` (≤ 120) | `'Ask about this page…'` | Composer placeholder. |
+| **`emptyTitle`** | `string` (≤ 80) | `'How can I help you today?'` | Greeting shown before the first message (bubble only). |
+| **`emptyDescription`** | `string` (≤ 240) | `'Ask anything about the current documentation page…'` | Sub-text under the greeting. |
+| **`buttonTooltip`** | `string` (≤ 80) | `'Ask AI assistant'` | Tooltip/aria-label of the floating launcher. |
+| **`composerHint`** | `string` (≤ 120) | `'Enter to send · Shift+Enter for a new line'` | Hint under the input. |
 
 ### Environment Variables
 
@@ -208,9 +223,9 @@ askAiPlugin({
 
 Caddy / nginx / Cloudflare / Vercel should set `x-forwarded-for` from a trusted source. Combined with `secretKey`, an attacker can neither bypass the limiter nor supply forged `context` payloads.
 
-### Compose manually in your layout
+### Automatic mounting and manual composition
 
-The plugin registers `<AskAiBubble />` and `<AskAiDialog />` as MDX components, but does **not** auto-mount them in the layout. You compose them directly in your `layout.tsx`:
+The plugin automatically mounts one `<AskAiBubble />` through the `floating:after` slot. To compose the UI yourself, set `autoInject: false` and import the client components in your `layout.tsx`:
 
 ```tsx title="docs/layout.tsx"
 import { AskAiBubble, AskAiDialog } from '@bdocs/plugin-ask-ai/client'
@@ -253,7 +268,7 @@ export function HelpButton() {
 
 ## Manual Component Composition
 
-The plugin does **not** auto-mount its UI. You compose `<AskAiBubble />` and/or `<AskAiDialog />` directly in your `layout.tsx`:
+Set `autoInject: false` when you want to compose `<AskAiBubble />` and/or `<AskAiDialog />` directly in your `layout.tsx`:
 
 ```tsx title="docs/layout.tsx"
 import { AskAiBubble, AskAiDialog } from '@bdocs/plugin-ask-ai/client'
@@ -276,7 +291,7 @@ Mount only what you need (e.g. only `<AskAiDialog />` as a dedicated sidebar), p
 
 ## Layout Integration
 
-The plugin components are available via `@bdocs/plugin-ask-ai/client` but require manual placement in your layout. Here are the recommended patterns:
+The plugin mounts `<AskAiBubble />` automatically through `floating:after`. Set `autoInject: false` only when you need manual placement in your layout. Here are the recommended patterns:
 
 ### Pattern 1: Using DocsLayout (recommended)
 
@@ -408,8 +423,8 @@ You exceeded `rateLimitPerMinute` (default 30). Either bump the limit, disable i
 
 ### Bubble doesn't appear
 
-- The plugin registers `<AskAiBubble />` and `<AskAiDialog />` via the `components` field in `boltdocs.config.ts`. You must import and render them manually in your `layout.tsx`.
-- Check that your custom `layout.tsx` imports from `@bdocs/plugin-ask-ai/client` and renders the component.
+- The plugin auto-mounts `<AskAiBubble />` through the `floating:after` slot by default.
+- Set `autoInject: false` only when you are rendering the client component manually in your `layout.tsx`.
 - Verify the plugin is installed: `pnpm add @bdocs/plugin-ask-ai`.
 
 ### Streaming stops mid-sentence
