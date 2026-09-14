@@ -475,6 +475,7 @@ export type {
   CodeHighlighterEngine,
   ParsedMetaLike,
 } from '../shared/types'
+export { normalizeCodeHighlightConfig } from '@bdocs/unist-utils'
 
 export * from './highlight/registry'
 export { flushCache } from './cache'

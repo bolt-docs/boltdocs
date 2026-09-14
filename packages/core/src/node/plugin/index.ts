@@ -13,6 +13,7 @@ import { injectHtmlMeta } from './html'
 import { validatePlugins, type BoltdocsPlugin } from '../plugins'
 import { PluginLifecycleManager } from '../plugins/plugin-lifecycle'
 import type { IPluginLifecycleManager } from '../../shared/types'
+import { normalizeCodeHighlightConfig } from '@bdocs/unist-utils'
 import {
   createVirtualModuleState,
   createVirtualModulesPlugin,
@@ -451,15 +452,16 @@ export function boltdocsPlugin(
         // Vite's server setup.
         if (isBuild) {
           import('../highlight/registry')
-            .then(({ prewarmHighlighter }) =>
+            .then(({ prewarmHighlighter }) => {
+              const highlighting = normalizeCodeHighlightConfig(
+                config.theme?.codeHighlighting,
+              )
               prewarmHighlighter({
-                engine: config.theme?.codeHighlighting?.engine,
-                theme:
-                  config.theme?.codeHighlighting?.theme ??
-                  config.theme?.codeTheme,
-                options: config.theme?.codeHighlighting?.options,
-              }),
-            )
+                engine: highlighting?.engine,
+                theme: highlighting?.theme ?? config.theme?.codeTheme,
+                options: highlighting?.options,
+              })
+            })
             .catch(() => {})
         }
 

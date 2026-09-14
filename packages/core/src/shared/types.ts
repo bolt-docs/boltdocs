@@ -141,8 +141,12 @@ export interface BoltdocsThemeConfig {
    * engine-agnostic: `engine` accepts a registry id (`'shiki'` by default),
    * an adapter instance, or an adapter factory — so any highlighter can be
    * plugged in without changes to the core.
+   *
+   * Shorthand: a plain string is a registry id, i.e. `'shiki'` is
+   * equivalent to `{ engine: 'shiki' }` (resolved by
+   * `normalizeCodeHighlightConfig()` at every read site).
    */
-  codeHighlighting?: CodeHighlightConfig
+  codeHighlighting?: CodeHighlightConfig | string
 }
 
 /**

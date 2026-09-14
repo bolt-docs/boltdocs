@@ -1,5 +1,9 @@
 import { error as logError } from '@bdocs/dui'
-import { parseMetaString, type ParsedMeta } from '@bdocs/unist-utils'
+import {
+  normalizeCodeHighlightConfig,
+  parseMetaString,
+  type ParsedMeta,
+} from '@bdocs/unist-utils'
 import { escapeHtml } from '../utils'
 import { ensureLanguage as ensureShikiLanguage, highlight } from './highlighter'
 import type { RegexEngineKind } from './highlighter'
@@ -28,7 +32,7 @@ export { ensureLanguage } from './highlighter'
 export interface ShikiAdapterConfig {
   theme?: {
     codeTheme?: CodeTheme
-    codeHighlighting?: CodeHighlightConfig
+    codeHighlighting?: CodeHighlightConfig | string
   }
 }
 
@@ -47,7 +51,9 @@ export class ShikiAdapter implements CodeHighlighterAdapter {
   private regexEngine: RegexEngineKind
 
   constructor(config?: ShikiAdapterConfig) {
-    const highlighting = config?.theme?.codeHighlighting
+    const highlighting = normalizeCodeHighlightConfig(
+      config?.theme?.codeHighlighting,
+    )
     this.theme = (highlighting?.theme ??
       config?.theme?.codeTheme ??
       ({
@@ -187,7 +193,9 @@ let _adapterConfigStr: string | undefined
  * Recreates only if the resolved theme or regex engine configuration changes.
  */
 export function getShikiAdapter(config?: ShikiAdapterConfig): ShikiAdapter {
-  const highlighting = config?.theme?.codeHighlighting
+  const highlighting = normalizeCodeHighlightConfig(
+    config?.theme?.codeHighlighting,
+  )
   const theme = highlighting?.theme ?? config?.theme?.codeTheme
   const currentConfigStr = JSON.stringify({
     theme,

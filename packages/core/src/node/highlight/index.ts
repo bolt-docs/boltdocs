@@ -5,6 +5,7 @@ export type {
   CodeHighlighterEngine,
   CodeTheme,
 } from '../../shared/types'
+export { normalizeCodeHighlightConfig } from '@bdocs/unist-utils'
 
 export {
   DEFAULT_HIGHLIGHTER,

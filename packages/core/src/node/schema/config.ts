@@ -133,13 +133,22 @@ export const ThemeConfigSchema = z.object({
     .union([z.string(), z.object({ light: z.string(), dark: z.string() })])
     .optional(),
   codeHighlighting: z
-    .object({
-      engine: z.union([z.string(), z.unknown(), z.function()]).optional(),
-      theme: z
-        .union([z.string(), z.object({ light: z.string(), dark: z.string() })])
-        .optional(),
-      options: z.record(z.string(), z.unknown()).optional(),
-    })
+    .union([
+      // String shorthand: a highlighter registry id (`'shiki'` by default).
+      // Equivalent to `{ engine: <string> }` — resolved by
+      // `normalizeCodeHighlightConfig()` at every read site.
+      z.string(),
+      z.object({
+        engine: z.union([z.string(), z.unknown(), z.function()]).optional(),
+        theme: z
+          .union([
+            z.string(),
+            z.object({ light: z.string(), dark: z.string() }),
+          ])
+          .optional(),
+        options: z.record(z.string(), z.unknown()).optional(),
+      }),
+    ])
     .optional(),
 })
 

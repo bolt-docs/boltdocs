@@ -4,6 +4,7 @@ import path from 'node:path'
 import crypto from 'node:crypto'
 import os from 'node:os'
 import type { BoltdocsConfig, IPluginLifecycleManager } from 'boltdocs'
+import { normalizeCodeHighlightConfig } from '@bdocs/unist-utils'
 import {
   createSatteriProcessorPlugin,
   isPrecompileStarted,
@@ -285,6 +286,9 @@ function computeGlobalKey(
   const compilerSignature = String(
     (compiler as MdxCompiler & { signature?: string }).signature ?? 'compiler',
   )
+  const highlighting = normalizeCodeHighlightConfig(
+    config.theme?.codeHighlighting,
+  )
   const parts = [
     `v${MANIFEST_VERSION}`,
     compilerSignature,
@@ -295,9 +299,9 @@ function computeGlobalKey(
     config.siteUrl || '',
     pluginSignatures,
     highlightSignature({
-      engine: config.theme?.codeHighlighting?.engine ?? 'shiki',
-      theme: config.theme?.codeHighlighting?.theme ?? config.theme?.codeTheme,
-      options: config.theme?.codeHighlighting?.options,
+      engine: highlighting?.engine ?? 'shiki',
+      theme: highlighting?.theme ?? config.theme?.codeTheme,
+      options: highlighting?.options,
     }),
   ]
   return hashInput(parts.join('|'))
@@ -465,10 +469,13 @@ export function createSatteriMdxPlugin(
   getLifecycle: () => IPluginLifecycleManager | undefined,
   pluginOptions?: { docsDir?: string },
 ): Plugin {
+  const highlighting = normalizeCodeHighlightConfig(
+    config?.theme?.codeHighlighting,
+  )
   const codeHighlighting: CodeHighlightConfig = {
-    engine: config?.theme?.codeHighlighting?.engine ?? 'shiki',
-    theme: config?.theme?.codeHighlighting?.theme ?? config?.theme?.codeTheme,
-    options: config?.theme?.codeHighlighting?.options,
+    engine: highlighting?.engine ?? 'shiki',
+    theme: highlighting?.theme ?? config?.theme?.codeTheme,
+    options: highlighting?.options,
   }
   const processor = createSatteriProcessorPlugin(codeHighlighting)
   const mdastPlugins = processor.mdastPlugins ?? []
