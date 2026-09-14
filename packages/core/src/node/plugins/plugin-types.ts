@@ -5,6 +5,7 @@ import type {
   PluginStore,
   PluginMeta,
   PluginLifecycleHooks,
+  CodeHighlighterAdapter,
 } from '../../shared/types'
 
 export type {
@@ -39,4 +40,15 @@ export interface BoltdocsPlugin {
   css?: PluginCssConfig
   middleware?: import('../../shared/types').PluginTransformMiddleware[]
   hooks?: PluginLifecycleHooks
+  /**
+   * Provide a custom syntax highlighting engine. The adapter is registered
+   * under `plugin.name` in the highlighter registry, making it selectable via
+   * `theme.codeHighlighting.engine`. The factory receives the resolved
+   * engine-agnostic config (`{ theme, options }`).
+   */
+  codeHighlighter?:
+    | CodeHighlighterAdapter
+    | ((
+        api: import('../../shared/types').CodeHighlightConfig,
+      ) => CodeHighlighterAdapter | Promise<CodeHighlighterAdapter>)
 }

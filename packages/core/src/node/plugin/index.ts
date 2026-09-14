@@ -445,12 +445,21 @@ export function boltdocsPlugin(
         // If routes were pre-computed by the pipeline, skip generation here.
         // The pipeline (ConfigResolveStep) already wrote types/link-tree.
 
-        // Pre-warm Shiki highlighter only for builds. In dev it is deferred
-        // to post-listen (dev-server plugin) because the highlighter build is
-        // ~2.5s of synchronous CPU that otherwise blocks Vite's server setup.
+        // Pre-warm the configured highlighter engine only for builds. In dev
+        // it is deferred to post-listen (dev-server plugin) because the
+        // highlighter build is ~2.5s of synchronous CPU that otherwise blocks
+        // Vite's server setup.
         if (isBuild) {
-          import('../mdx/shiki-adapter')
-            .then(({ prewarmShiki }) => prewarmShiki(config))
+          import('../highlight/registry')
+            .then(({ prewarmHighlighter }) =>
+              prewarmHighlighter({
+                engine: config.theme?.codeHighlighting?.engine,
+                theme:
+                  config.theme?.codeHighlighting?.theme ??
+                  config.theme?.codeTheme,
+                options: config.theme?.codeHighlighting?.options,
+              }),
+            )
             .catch(() => {})
         }
 

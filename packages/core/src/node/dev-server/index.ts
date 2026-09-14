@@ -89,13 +89,21 @@ export function createDevServerPlugin(
         })
       }
 
-      // Pre-warm Shiki highlighter once the HTTP server is actually
-      // listening. During createServer the highlighter build (~2.5s of
-      // synchronous CPU from TextMate grammar parsing) would block startup,
-      // so it is deferred to the background after the "ready" banner prints.
+      // Pre-warm the configured highlighter engine once the HTTP server is
+      // actually listening. During createServer the highlighter build (~2.5s
+      // of synchronous CPU from TextMate grammar parsing) would block
+      // startup, so it is deferred to the background after the "ready"
+      // banner prints.
       server.httpServer?.once('listening', () => {
-        import('../mdx/shiki-adapter')
-          .then(({ prewarmShiki }) => prewarmShiki(getConfig()))
+        import('../highlight/registry')
+          .then(({ prewarmHighlighter }) => {
+            const cfg = getConfig()
+            prewarmHighlighter({
+              engine: cfg.theme?.codeHighlighting?.engine,
+              theme: cfg.theme?.codeHighlighting?.theme ?? cfg.theme?.codeTheme,
+              options: cfg.theme?.codeHighlighting?.options,
+            })
+          })
           .catch(() => {})
       })
 

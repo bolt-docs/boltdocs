@@ -14,19 +14,19 @@ import { transformSync } from 'esbuild'
 import { satteriRemarkMetaPlugin } from './satteri-plugins/remark-meta-plugin'
 import { satteriRehypeSlugPlugin } from './satteri-plugins/rehype-slug-plugin'
 import {
-  satteriRehypeShikiPlugin,
-  type ShikiCodeTheme,
+  satteriRehypeCodeHighlightPlugin,
+  type CodeHighlightConfig,
 } from './satteri-plugins/rehype-shiki-plugin'
 
-const workerCodeTheme = (
-  workerData as { codeTheme?: ShikiCodeTheme } | undefined
-)?.codeTheme
+const workerCodeHighlighting = (
+  workerData as { codeHighlighting?: CodeHighlightConfig } | undefined
+)?.codeHighlighting
 
 // Built-in plugins (created once per worker, reused for all compilations)
 const DEFAULT_MDAST_PLUGINS = [satteriRemarkMetaPlugin()]
 const DEFAULT_HAST_PLUGINS = [
   satteriRehypeSlugPlugin(),
-  satteriRehypeShikiPlugin(workerCodeTheme),
+  satteriRehypeCodeHighlightPlugin(workerCodeHighlighting),
 ]
 
 // Eagerly pre-warm Sätteri + Shiki engine at worker instantiation.

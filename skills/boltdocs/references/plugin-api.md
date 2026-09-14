@@ -54,6 +54,7 @@ interface BoltdocsPlugin {
   metadata?: Record<string, unknown>    // Arbitrary plugin metadata
   css?: PluginCssConfig           // CSS files, PostCSS plugins, preprocessor options
   middleware?: PluginTransformMiddleware[]  // Static transform middleware
+  codeHighlighter?: CodeHighlighterAdapter | ((api: CodeHighlightConfig) => CodeHighlighterAdapter | Promise<CodeHighlighterAdapter>)  // Custom syntax engine, registered under plugin.name; selected via theme.codeHighlighting.engine
   hooks?: PluginLifecycleHooks    // Lifecycle hooks (build, dev, transform, search, etc.)
 }
 ```

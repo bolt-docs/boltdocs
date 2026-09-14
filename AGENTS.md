@@ -658,8 +658,9 @@ Full Zod schema for `BoltdocsConfig` including theme, i18n, versions, plugins, s
 | `packages/core/src/node/dev-server/index.ts` | `createDevServerPlugin()` (11) |
 | `packages/core/src/node/dev-server/hmr-handler.ts` | `setupHmr()` (25), `handleFileEvent()` (34) |
 | `packages/core/src/node/dev-server/prewarm.ts` | `setupPrewarming()` (8) |
-| `packages/core/src/node/mdx/highlighter.ts` | `highlight()` (24) |
-| `packages/core/src/node/mdx/shiki-adapter.ts` | `ShikiAdapter` (48), `getShikiAdapter()` (145) |
+| `packages/core/src/node/mdx/highlighter.ts` | `highlight()` (24), `RegexEngineKind` |
+| `packages/core/src/node/mdx/shiki-adapter.ts` | `ShikiAdapter` (implements `CodeHighlighterAdapter`), `getShikiAdapter()` (registry factory) |
+| `packages/core/src/node/highlight/registry.ts` | Code highlighter SPI: `getCodeHighlighterAdapter()`, `registerHighlighter()`, `registerPluginHighlighter()`, `prewarmHighlighter()` |
 | `packages/core/src/node/mdx/index.ts` | `boltdocsMdxPlugin()` (17) |
 | `packages/core/src/node/cache.ts` | `FileCache` (53), `AssetCache` |
 | `packages/core/src/node/pipeline/index.ts` | `Pipeline` class (14) |

@@ -28,6 +28,7 @@ export const BoltdocsPluginSchema = z.object({
   rehypePlugins: z.array(z.unknown()).optional(),
   vitePlugins: z.array(z.unknown()).optional(),
   components: z.record(z.string(), z.string()).optional(),
+  codeHighlighter: z.unknown().optional(),
   metadata: z.record(z.string(), z.unknown()).optional(),
   css: z
     .object({
@@ -130,6 +131,15 @@ export const ThemeConfigSchema = z.object({
     .optional(),
   codeTheme: z
     .union([z.string(), z.object({ light: z.string(), dark: z.string() })])
+    .optional(),
+  codeHighlighting: z
+    .object({
+      engine: z.union([z.string(), z.unknown(), z.function()]).optional(),
+      theme: z
+        .union([z.string(), z.object({ light: z.string(), dark: z.string() })])
+        .optional(),
+      options: z.record(z.string(), z.unknown()).optional(),
+    })
     .optional(),
 })
 

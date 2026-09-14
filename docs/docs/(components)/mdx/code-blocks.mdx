@@ -1,10 +1,10 @@
 ---
 title: Code Blocks
 sidebarPosition: 5
-description: Use Shiki syntax highlighting, titles, line numbers, word wrap, and copy buttons in Markdown code blocks.
+description: Use syntax highlighting (Shiki by default), titles, line numbers, word wrap, and copy buttons in Markdown code blocks.
 ---
 
-Fenced code blocks in Boltdocs use **Shiki** for syntax highlighting. Everything is computed at build time, ensuring fast load times with zero client-side performance cost.
+Fenced code blocks in Boltdocs use **Shiki** by default for syntax highlighting, but the highlighting engine is pluggable — any engine implementing the `CodeHighlighterAdapter` contract can be selected through `theme.codeHighlighting`. Everything is computed at build time, ensuring fast load times with zero client-side performance cost.
 
 ## Code Block Parameters (Meta Properties)
 
@@ -57,7 +57,7 @@ You can combine these attributes in any order:
 
 ## Configuration
 
-You can customize the Shiki themes in `boltdocs.config.ts`. You can pick different themes for light and dark modes:
+You can customize the highlighting themes in `boltdocs.config.ts`. You can pick different themes for light and dark modes. Shiki is the default engine; set `theme.codeHighlighting.engine` to switch to a plugin-provided engine:
 
 ```ts
 // boltdocs.config.ts
@@ -65,9 +65,14 @@ import { defineConfig } from 'boltdocs'
 
 export default defineConfig({
   theme: {
-    codeTheme: {
-      light: 'github-light',
-      dark: 'github-dark',
+    codeHighlighting: {
+      engine: 'shiki', // registry id, adapter instance, or factory
+      theme: {
+        light: 'github-light',
+        dark: 'github-dark',
+      },
+      // Faster dev-server startup — see Getting Started > Configuration.
+      options: { regexEngine: 'oniguruma' },
     },
   },
 })

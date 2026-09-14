@@ -20,6 +20,8 @@ export default defineConfig(
         'boltdocs/client',
         'boltdocs/node/cache',
         'boltdocs/node/mdx/shiki-adapter',
+        'boltdocs/node/highlight',
+        '@bdocs/unist-utils',
         'satteri',
         'esbuild',
       ],

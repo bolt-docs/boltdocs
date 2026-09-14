@@ -1,140 +1,114 @@
 import { defineHastPlugin } from 'satteri'
 import type { HastVisitorContext } from 'satteri'
 import type { Element, Properties } from 'hast'
+import { parseMetaString, type ParsedMeta } from '@bdocs/unist-utils'
 
-interface ParsedMeta {
-  title?: string
-  lineNumbers?: boolean
-  wordWrap?: boolean
+/** Engine-agnostic code theme (single name or light/dark pair). */
+export type CodeTheme = string | { light: string; dark: string }
+
+/**
+ * Engine-agnostic highlighting config consumed by the satteri pipeline and
+ * passed to the core's highlighter registry. `engine` accepts a registry id
+ * (`'shiki'` by default), an adapter instance, or an adapter factory.
+ */
+export interface CodeHighlightConfig {
+  engine?: string | object | ((api: CodeHighlightConfig) => unknown)
+  theme?: CodeTheme
+  options?: Record<string, unknown>
 }
 
-/** Resolved `codeTheme` from the user config (single theme or light/dark pair). */
-export type ShikiCodeTheme =
-  | string
-  | { light: string; dark: string }
-  | undefined
+/** Legacy alias kept for backward compatibility. */
+export type ShikiCodeTheme = CodeTheme
 
-function parseMetaString(metaStr: string): ParsedMeta {
-  const result: ParsedMeta = {}
-  if (!metaStr) return result
-
-  const setBooleanFlag = (
-    key: 'lineNumbers' | 'wordWrap',
-    value?: string,
-  ): void => {
-    if (value === 'false') {
-      result[key] = false
-      return
-    }
-    if (value === 'true' || value === undefined) {
-      result[key] = true
-    }
-  }
-
-  const lineMatches = Array.from(
-    metaStr.matchAll(
-      /(?:^|\s)(?:lineNumbers|showLineNumbers|show-line-numbers|show_line_numbers|line_numbers)(?:\s*=\s*(true|false))?(?=\s|$)/gi,
-    ),
-  )
-  const lastLineMatch = lineMatches[lineMatches.length - 1]
-  if (lastLineMatch) {
-    setBooleanFlag('lineNumbers', lastLineMatch[1])
-  }
-
-  const wordMatches = Array.from(
-    metaStr.matchAll(
-      /(?:^|\s)(?:wordWrap|word-wrap|word_wrap)(?:\s*=\s*(true|false))?(?=\s|$)/gi,
-    ),
-  )
-  const lastWordMatch = wordMatches[wordMatches.length - 1]
-  if (lastWordMatch) {
-    setBooleanFlag('wordWrap', lastWordMatch[1])
-  }
-
-  const titleMatch = metaStr.match(/title=(['"])(.*?)\1/)
-  if (titleMatch) result.title = titleMatch[2]
-  return result
+/** Structural runtime interface used by the plugin (engine-agnostic). */
+interface CodeHighlighterResponse {
+  name?: string
+  initialize(): Promise<{
+    codeToHast(code: string, options: Record<string, unknown>): unknown
+    codeToHtml(code: string, options: Record<string, unknown>): Promise<string>
+  }>
+  getOptions(lang: string, meta: ParsedMeta): Record<string, unknown>
+  ensureLanguage?(lang: string): Promise<boolean>
 }
 
 /**
  * Merge class arrays from two property sets.
- * Original node may use `className` (React convention) while Shiki output
- * may use `class` (HAST convention). We normalize and merge.
+ * Original node may use `className` (React convention) while the highlighter
+ * output may use `class` (HAST convention). We normalize and merge.
  */
 function mergeClassArrays(
   originalProps: Properties | undefined,
-  shikiProps: Properties | undefined,
+  engineProps: Properties | undefined,
 ): string[] {
   const origClass = originalProps?.className ?? originalProps?.class ?? []
-  const shikiClass = shikiProps?.className ?? shikiProps?.class ?? []
+  const engineClass = engineProps?.className ?? engineProps?.class ?? []
   return [
-    ...(Array.isArray(shikiClass) ? shikiClass : [shikiClass]),
+    ...(Array.isArray(engineClass) ? engineClass : [engineClass]),
     ...(Array.isArray(origClass) ? origClass : [origClass]),
   ].filter(Boolean) as string[]
 }
 
-/** Minimal shiki adapter interface used at runtime. */
-interface ShikiAdapter {
-  getHighlighter(): Promise<{
-    codeToHast: (
-      code: string,
-      options: Record<string, unknown>,
-    ) => { type: string; children: (Element | { type: string })[] } | Element
-    codeToHtml: (
-      code: string,
-      options: Record<string, unknown>,
-    ) => Promise<string>
-  }>
-  getOptions(lang: string, meta: ParsedMeta): Record<string, unknown>
+/** Copies every property except class/className — those are merged by the caller. */
+function copyNonClassProps(target: Properties, source?: Properties): void {
+  const props = source ?? {}
+  for (const [key, value] of Object.entries(props)) {
+    if (key === 'class' || key === 'className') continue
+    target[key] = value
+  }
 }
 
-type EnsureLanguageFn = (lang?: string) => Promise<boolean>
-
 /**
- * Syntax highlighting via Shiki.
- * Port of rehypeShiki to Sätteri HAST.
+ * Syntax highlighting via a pluggable highlighter engine.
+ *
+ * Resolves the active {@link CodeHighlighterAdapter} from the core registry
+ * (defaults to the built-in Shiki engine, switchable via
+ * `theme.codeHighlighting.engine` or a plugin-provided engine), then renders
+ * every code fence into an engine-neutral transport:
+ *
+ * - `data-highlighted="true"` — was rendered by an engine
+ * - `data-highlighted-html` — HTML string for the CodeBlock component
+ * - `data-code-engine` — the engine id that produced the block
+ * - `data-theme-mode` — `dual` (light/dark pair) or `single`
+ * - `data-line-numbers` / `data-word-wrap` — framework feature flags
  *
  * IMPORTANT: Sätteri's HAST lives in a Rust arena. Direct mutations on
  * `node.children` / `node.properties` are lost — the proxy only affects the
- * JS-side object and is never committed to the arena. Instead, visitors must
- * either:
- *   - Return a new HastNode to replace the current one (triggers replace command)
- *   - Use ctx.replaceNode() / ctx.setProperty() etc.
+ * JS-side object and is never committed to the arena. Visitors must return a
+ * new HastNode (triggers the replace command) or use `ctx.*` helpers.
  *
- * This plugin returns a replacement node containing the Shiki-highlighted HAST.
+ * This plugin returns a replacement node containing the highlighted HAST.
  */
-export function satteriRehypeShikiPlugin(codeTheme?: ShikiCodeTheme) {
-  let adapter: ShikiAdapter | null = null
-  let ensureLang: EnsureLanguageFn | null = null
-  let highlighterPromise: Promise<
-    ReturnType<ShikiAdapter['getHighlighter']> extends Promise<infer T>
-      ? T
-      : never
-  > | null = null
+export function satteriRehypeCodeHighlightPlugin(config?: CodeHighlightConfig) {
+  let adapter: CodeHighlighterResponse | null = null
+  let runtime: {
+    codeToHast(code: string, options: Record<string, unknown>): unknown
+    codeToHtml(code: string, options: Record<string, unknown>): Promise<string>
+  } | null = null
+  let engineName = 'shiki'
+
+  async function ensureHighlighter(): Promise<NonNullable<typeof runtime>> {
+    if (adapter && runtime) return runtime
+    const mod = await import('boltdocs/node/highlight')
+    adapter = (await mod.getCodeHighlighterAdapter(
+      config as never,
+    )) as CodeHighlighterResponse
+    engineName =
+      adapter.name ||
+      (typeof config?.engine === 'string' ? config.engine : 'shiki') ||
+      'shiki'
+    runtime = await adapter.initialize()
+    return runtime
+  }
+
+  const themeMode: 'dual' | 'single' =
+    config?.theme && typeof config.theme === 'object' ? 'dual' : 'single'
 
   return defineHastPlugin({
-    name: 'boltdocs-rehype-shiki',
+    name: 'boltdocs-rehype-code-highlight',
     element: {
       filter: ['pre'],
       async visit(node: Readonly<Element>, ctx: HastVisitorContext) {
-        // Lazy load adapter and highlighter (atomic init to prevent race conditions)
-        if (!adapter) {
-          const mod = await import('boltdocs/node/mdx/shiki-adapter')
-          // Pass the resolved codeTheme so the adapter honors the user config
-          // instead of falling back to the default light/dark pair. This is
-          // what makes `codeTheme: 'github-dark'` produce single-theme inline
-          // colors rather than dual-theme CSS variables.
-          adapter = mod.getShikiAdapter(
-            codeTheme
-              ? ({ theme: { codeTheme } } as Parameters<
-                  typeof mod.getShikiAdapter
-                >[0])
-              : undefined,
-          ) as unknown as ShikiAdapter
-          highlighterPromise = adapter.getHighlighter()
-          ensureLang = mod.ensureLanguage as unknown as EnsureLanguageFn
-        }
-        const highlighter = await highlighterPromise!
+        const highlighter = await ensureHighlighter()
 
         // Access children — HastChildStub materializes on read
         const codeNode = node.children?.[0]
@@ -163,13 +137,13 @@ export function satteriRehypeShikiPlugin(codeTheme?: ShikiCodeTheme) {
           ''
 
         const parsedMeta = parseMetaString(metaStr)
-        const options = adapter.getOptions(lang, parsedMeta)
+        const options = adapter!.getOptions(lang, parsedMeta)
 
         // Load the grammar on demand for languages outside the eager
         // common set. No-op for plaintext-like or already-loaded languages;
         // failures keep the existing plaintext/fallback paths below.
         if (lang !== 'text') {
-          await ensureLang?.(lang)
+          await adapter?.ensureLanguage?.(lang)
         }
 
         const codeText =
@@ -183,32 +157,31 @@ export function satteriRehypeShikiPlugin(codeTheme?: ShikiCodeTheme) {
               ? (hast.children[0] as Element)
               : (hast as Element)
 
-          // Merge class arrays from original and Shiki output.
+          // Merge class arrays from original and engine output.
           const mergedClassName = mergeClassArrays(
             node.properties,
             preElement.properties,
           )
 
-          // Build properties by iterating ALL original property keys and
-          // explicitly copying each one, SKIPPING class/className entirely.
+          // Copy every original property, skipping class/className entirely.
           const properties: Properties = {}
-          const originalProps = node.properties ?? {}
-          for (const key of Object.keys(originalProps)) {
-            if (key === 'class' || key === 'className') continue
-            properties[key] = originalProps[key]
-          }
+          copyNonClassProps(properties, node.properties)
 
-          // Add Shiki-specific properties (style, etc.) but skip class/className
-          const shikiProps = preElement.properties ?? {}
-          for (const [key, value] of Object.entries(shikiProps)) {
-            if (key === 'class' || key === 'className') continue
-            properties[key] = value
-          }
+          // Add engine-specific properties (style, etc.) but skip class/className.
+          copyNonClassProps(properties, preElement.properties)
 
           // Set single unified className
           properties.className = mergedClassName
           properties['data-highlighted'] = 'true'
           properties['data-lang'] = lang
+          properties['data-code-engine'] = engineName
+          properties['data-theme-mode'] = themeMode
+          if (parsedMeta.lineNumbers === true) {
+            properties['data-line-numbers'] = 'true'
+          }
+          if (parsedMeta.wordWrap === true) {
+            properties['data-word-wrap'] = 'true'
+          }
 
           if (parsedMeta.title) {
             properties['data-title'] = parsedMeta.title
@@ -233,8 +206,8 @@ export function satteriRehypeShikiPlugin(codeTheme?: ShikiCodeTheme) {
             children: preElement.children,
           } as unknown as Element
         } catch (highlightError) {
-          // Language not bundled (or transient Shiki failure). Degrade
-          // gracefully: retry as plaintext so the block keeps its Shiki
+          // Language not bundled (or transient engine failure). Degrade
+          // gracefully: retry as plaintext so the block keeps its engine
           // styling instead of silently falling back to an unformatted pre.
           if (lang !== 'plaintext') {
             try {
@@ -248,25 +221,25 @@ export function satteriRehypeShikiPlugin(codeTheme?: ShikiCodeTheme) {
                   : (plainHast as Element)
 
               const properties: Properties = {}
-              const originalProps = node.properties ?? {}
-              for (const key of Object.keys(originalProps)) {
-                if (key === 'class' || key === 'className') continue
-                properties[key] = originalProps[key]
-              }
-              const plainProps = plainPre.properties ?? {}
-              for (const [key, value] of Object.entries(plainProps)) {
-                if (key === 'class' || key === 'className') continue
-                properties[key] = value
-              }
+              copyNonClassProps(properties, node.properties)
+              copyNonClassProps(properties, plainPre.properties)
               properties.className = mergeClassArrays(
                 node.properties,
                 plainPre.properties,
               )
               properties['data-highlighted'] = 'true'
               properties['data-lang'] = lang
+              properties['data-code-engine'] = engineName
+              properties['data-theme-mode'] = themeMode
+              if (parsedMeta.lineNumbers === true) {
+                properties['data-line-numbers'] = 'true'
+              }
+              if (parsedMeta.wordWrap === true) {
+                properties['data-word-wrap'] = 'true'
+              }
 
               console.warn(
-                `[boltdocs] Shiki language "${lang}" is not bundled; falling back to plaintext highlighting for this code block.`,
+                `[boltdocs] Highlighter language "${lang}" is not bundled; falling back to plaintext highlighting for this code block.`,
                 highlightError instanceof Error
                   ? highlightError.message
                   : highlightError,
@@ -294,17 +267,14 @@ export function satteriRehypeShikiPlugin(codeTheme?: ShikiCodeTheme) {
                 children: plainPre.children,
               } as unknown as Element
             } catch {
-              // Fall through to the shiki-fallback path below.
+              // Fall through to the fallback path below.
             }
           }
 
           // Fallback: add shiki-fallback class
           const properties: Properties = {}
           const originalProps = node.properties ?? {}
-          for (const key of Object.keys(originalProps)) {
-            if (key === 'class' || key === 'className') continue
-            properties[key] = originalProps[key]
-          }
+          copyNonClassProps(properties, node.properties)
 
           properties.className = [
             ...(((originalProps?.className ?? originalProps?.class) as
@@ -314,6 +284,8 @@ export function satteriRehypeShikiPlugin(codeTheme?: ShikiCodeTheme) {
           ]
           properties['data-highlighted'] = 'false'
           properties['data-lang'] = lang
+          properties['data-code-engine'] = engineName
+          properties['data-theme-mode'] = themeMode
 
           if (parsedMeta.title) {
             properties['data-title'] = parsedMeta.title
@@ -330,3 +302,9 @@ export function satteriRehypeShikiPlugin(codeTheme?: ShikiCodeTheme) {
     },
   })
 }
+
+/**
+ * @deprecated Use {@link satteriRehypeCodeHighlightPlugin} instead — the
+ * plugin is engine-agnostic (Shiki is just the default engine).
+ */
+export const satteriRehypeShikiPlugin = satteriRehypeCodeHighlightPlugin

@@ -467,4 +467,14 @@ export type { BoltdocsPluginOptions }
 export { handleFeedback } from './feedback/handler'
 export { normalizePath, sanitizeFilename } from './utils'
 export { resolveConfig } from './config'
+export type {
+  CodeHighlighterAdapter,
+  CodeHighlighterRuntime,
+  CodeHighlightConfig,
+  CodeTheme,
+  CodeHighlighterEngine,
+  ParsedMetaLike,
+} from '../shared/types'
+
+export * from './highlight/registry'
 export { flushCache } from './cache'

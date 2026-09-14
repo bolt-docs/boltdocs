@@ -22,12 +22,12 @@ describe('createSatteriProcessorPlugin', () => {
     expect(metaPlugin).toHaveProperty('code')
   })
 
-  it('includes 2 hast plugins (slug + shiki)', () => {
+  it('includes 2 hast plugins (slug + code highlight)', () => {
     const plugin = createSatteriProcessorPlugin()
     expect(plugin.hastPlugins).toHaveLength(2)
     const names = plugin.hastPlugins.map((p) => (p as { name: string }).name)
     expect(names).toContain('boltdocs-rehype-slug')
-    expect(names).toContain('boltdocs-rehype-shiki')
+    expect(names).toContain('boltdocs-rehype-code-highlight')
   })
 
   it('returns plugins with proper structure for compilation', () => {

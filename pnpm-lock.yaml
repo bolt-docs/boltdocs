@@ -762,6 +762,9 @@ importers:
 
   packages/processor-satteri:
     dependencies:
+      '@bdocs/unist-utils':
+        specifier: workspace:*
+        version: link:../unist-utils
       esbuild:
         specifier: ^0.25.0
         version: 0.25.12
@@ -775,9 +778,6 @@ importers:
         specifier: ^7.0.0 || ^8.0.0
         version: 7.0.0(@types/node@25.3.2)(jiti@2.7.0)(lightningcss@1.32.0)(sass-embedded@1.100.0)(sass@1.100.0)(terser@5.46.1)(tsx@4.21.0)(yaml@2.8.3)
     devDependencies:
-      '@bdocs/unist-utils':
-        specifier: workspace:*
-        version: link:../unist-utils
       '@types/hast':
         specifier: ^3.0.4
         version: 3.0.4

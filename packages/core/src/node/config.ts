@@ -301,6 +301,7 @@ export async function resolveConfig(
     githubRepo: userConfig.githubRepo,
     tabs: userConfig.tabs,
     codeTheme: userConfig.codeTheme,
+    codeHighlighting: userConfig.theme?.codeHighlighting,
     communityHelp: userConfig.communityHelp,
     version: userConfig.version,
     editLink: userConfig.editLink,

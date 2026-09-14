@@ -10,6 +10,7 @@ import {
   getPrecompilePromise,
   CompilePool,
 } from './index'
+import type { CodeHighlightConfig } from './satteri-plugins/rehype-shiki-plugin'
 import { collectUserPlugins } from './user-plugins'
 import { MdxCompiler, MDX_PLUGIN_VERSION } from './compiler'
 import type { PoolMetrics } from './compile-pool'
@@ -293,7 +294,11 @@ function computeGlobalKey(
     config.base || '',
     config.siteUrl || '',
     pluginSignatures,
-    JSON.stringify(config.theme?.codeTheme || {}),
+    highlightSignature({
+      engine: config.theme?.codeHighlighting?.engine ?? 'shiki',
+      theme: config.theme?.codeHighlighting?.theme ?? config.theme?.codeTheme,
+      options: config.theme?.codeHighlighting?.options,
+    }),
   ]
   return hashInput(parts.join('|'))
 }
@@ -436,13 +441,36 @@ function filePathToExportName(filePath: string): string {
   return `_p_${hash}`
 }
 
+/** Deterministic string describing the highlighter config for cache signatures. */
+function highlightSignature(config?: CodeHighlightConfig): string {
+  const engine =
+    typeof config?.engine === 'string' ? config.engine : 'engine:custom'
+  const theme =
+    typeof config?.theme === 'string'
+      ? config.theme
+      : config?.theme
+        ? `${config.theme.light}|${config.theme.dark}`
+        : 'default'
+  let options = ''
+  try {
+    options = config?.options ? JSON.stringify(config.options) : ''
+  } catch {
+    options = String(config?.options ?? '')
+  }
+  return `${engine}:${theme}:${options}`
+}
+
 export function createSatteriMdxPlugin(
   config: BoltdocsConfig | undefined,
   getLifecycle: () => IPluginLifecycleManager | undefined,
   pluginOptions?: { docsDir?: string },
 ): Plugin {
-  const codeTheme = config?.theme?.codeTheme
-  const processor = createSatteriProcessorPlugin(codeTheme)
+  const codeHighlighting: CodeHighlightConfig = {
+    engine: config?.theme?.codeHighlighting?.engine ?? 'shiki',
+    theme: config?.theme?.codeHighlighting?.theme ?? config?.theme?.codeTheme,
+    options: config?.theme?.codeHighlighting?.options,
+  }
+  const processor = createSatteriProcessorPlugin(codeHighlighting)
   const mdastPlugins = processor.mdastPlugins ?? []
   const hastPlugins = processor.hastPlugins ?? []
 
@@ -453,11 +481,14 @@ export function createSatteriMdxPlugin(
   const hasUserPlugins =
     userPlugins.remarkPlugins.length > 0 || userPlugins.rehypePlugins.length > 0
 
+  // A non-string engine (adapter instance/factory) is not serializable into
+  // worker threads, so the compile pool must be skipped for that config.
+  const poolSafeEngine =
+    codeHighlighting.engine === undefined ||
+    typeof codeHighlighting.engine === 'string'
+
   const compilerConfigSignature = JSON.stringify({
-    codeTheme: config?.theme?.codeTheme || {},
-    shiki:
-      (config as (BoltdocsConfig & { shiki?: unknown }) | undefined)?.shiki ||
-      null,
+    highlight: highlightSignature(codeHighlighting),
     base: config?.base || '/',
     siteUrl: config?.siteUrl || '',
   })
@@ -602,12 +633,12 @@ export function createSatteriMdxPlugin(
     // Workers initialize in the background while the main thread starts
     // scanning files, so the pool may not be ready for the first few
     // compile requests — messages are queued by worker_threads automatically.
-    if (!hasUserPlugins) {
+    if (!hasUserPlugins && poolSafeEngine) {
       const optimalWorkers = Math.min(
         os.cpus().length || 4,
         Math.max(2, Math.ceil(mdxFiles.length / 25)),
       )
-      compilePool = new CompilePool(optimalWorkers, codeTheme)
+      compilePool = new CompilePool(optimalWorkers, codeHighlighting)
       compilePool.start().catch(() => {
         compilePool = null
       })

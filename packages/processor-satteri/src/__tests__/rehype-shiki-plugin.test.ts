@@ -11,38 +11,40 @@ const { mockHighlighter, mockAdapter } = vi.hoisted(() => {
   return {
     mockHighlighter: mh,
     mockAdapter: {
-      getHighlighter: vi.fn().mockResolvedValue(mh),
+      name: 'shiki',
+      initialize: vi.fn().mockResolvedValue(mh),
       getOptions: vi.fn().mockReturnValue({ lang: 'javascript' }),
+      ensureLanguage: vi.fn().mockResolvedValue(true),
     },
   }
 })
 
-vi.mock('boltdocs/node/mdx/shiki-adapter', () => ({
-  getShikiAdapter: () => mockAdapter,
-  ensureLanguage: vi.fn().mockResolvedValue(true),
+vi.mock('boltdocs/node/highlight', () => ({
+  getCodeHighlighterAdapter: () => mockAdapter,
 }))
 
-const { satteriRehypeShikiPlugin } = await import(
+const { satteriRehypeCodeHighlightPlugin } = await import(
   '../node/satteri-plugins/rehype-shiki-plugin'
 )
 
-describe('satteriRehypeShikiPlugin', () => {
+describe('satteriRehypeCodeHighlightPlugin', () => {
   beforeEach(() => {
     vi.resetAllMocks()
-    mockAdapter.getHighlighter.mockResolvedValue(mockHighlighter)
+    mockAdapter.initialize.mockResolvedValue(mockHighlighter)
     mockAdapter.getOptions.mockReturnValue({ lang: 'javascript' })
+    mockAdapter.ensureLanguage.mockResolvedValue(true)
   })
 
   it('returns a plugin with correct name', () => {
-    const plugin = satteriRehypeShikiPlugin() as {
+    const plugin = satteriRehypeCodeHighlightPlugin() as {
       name: string
       element: { filter: string[] }
     }
-    expect(plugin.name).toBe('boltdocs-rehype-shiki')
+    expect(plugin.name).toBe('boltdocs-rehype-code-highlight')
   })
 
   it('filters only pre elements', () => {
-    const plugin = satteriRehypeShikiPlugin() as {
+    const plugin = satteriRehypeCodeHighlightPlugin() as {
       name: string
       element: { filter: string[] }
     }
@@ -50,7 +52,7 @@ describe('satteriRehypeShikiPlugin', () => {
   })
 
   it('returns an async visit function', () => {
-    const plugin = satteriRehypeShikiPlugin() as {
+    const plugin = satteriRehypeCodeHighlightPlugin() as {
       name: string
       element: { filter: string[]; visit: (...args: unknown[]) => unknown }
     }
@@ -108,7 +110,7 @@ describe('satteriRehypeShikiPlugin', () => {
       ],
     })
 
-    const plugin = satteriRehypeShikiPlugin() as {
+    const plugin = satteriRehypeCodeHighlightPlugin() as {
       element: { filter: string[]; visit: (...args: unknown[]) => unknown }
     }
 
@@ -150,8 +152,79 @@ describe('satteriRehypeShikiPlugin', () => {
       ctx,
     )
 
-    expect(mockAdapter.getHighlighter).toHaveBeenCalledTimes(1)
+    expect(mockAdapter.initialize).toHaveBeenCalledTimes(1)
     expect(mockAdapter.getOptions).toHaveBeenCalledWith('javascript', {})
+    expect(mockAdapter.ensureLanguage).toHaveBeenCalledWith('javascript')
+  })
+
+  it('sets engine-agnostic data attributes on the highlighted pre', async () => {
+    mockHighlighter.codeToHast.mockReturnValue({
+      type: 'root',
+      children: [
+        {
+          type: 'element',
+          tagName: 'pre',
+          properties: { className: ['shiki'] },
+          children: [
+            {
+              type: 'element',
+              tagName: 'code',
+              properties: { className: ['language-javascript'] },
+              children: [{ type: 'text', value: 'const x = 1' }],
+            },
+          ],
+        },
+      ],
+    })
+
+    const plugin = satteriRehypeCodeHighlightPlugin() as {
+      element: { filter: string[]; visit: (...args: unknown[]) => unknown }
+    }
+
+    const result = (await plugin.element.visit(
+      {
+        type: 'element',
+        tagName: 'pre',
+        properties: {},
+        children: [
+          {
+            type: 'element',
+            tagName: 'code',
+            properties: {
+              className: ['language-javascript'],
+              metastring: 'lineNumbers',
+            },
+            children: [{ type: 'text', value: 'const x = 1' }],
+          },
+        ],
+      },
+      {
+        textContent: () => 'const x = 1',
+        source: 'test',
+        fileURL: undefined,
+        data: {},
+        removeNode: vi.fn(),
+        replaceNode: vi.fn(),
+        insertBefore: vi.fn(),
+        insertAfter: vi.fn(),
+        wrapNode: vi.fn(),
+        prependChild: vi.fn(),
+        appendChild: vi.fn(),
+        insertChildAt: vi.fn(),
+        removeChildAt: vi.fn(),
+        setProperty: vi.fn(),
+        parent: vi.fn(),
+        indexOf: vi.fn(),
+        report: vi.fn(),
+        getDiagnostics: () => [],
+      },
+    )) as { properties: Record<string, unknown> }
+
+    expect(result.properties['data-code-engine']).toBe('shiki')
+    expect(result.properties['data-theme-mode']).toBe('single')
+    expect(result.properties['data-highlighted']).toBe('true')
+    expect(result.properties['data-lang']).toBe('javascript')
+    expect(result.properties['data-line-numbers']).toBe('true')
   })
 
   it('returns shiki-fallback on highlight error', async () => {
@@ -159,7 +232,7 @@ describe('satteriRehypeShikiPlugin', () => {
       throw new Error('highlight error')
     })
 
-    const plugin = satteriRehypeShikiPlugin() as {
+    const plugin = satteriRehypeCodeHighlightPlugin() as {
       element: { filter: string[]; visit: (...args: unknown[]) => unknown }
     }
 
@@ -231,7 +304,7 @@ describe('satteriRehypeShikiPlugin', () => {
         ],
       }))
 
-    const plugin = satteriRehypeShikiPlugin() as {
+    const plugin = satteriRehypeCodeHighlightPlugin() as {
       element: { filter: string[]; visit: (...args: unknown[]) => unknown }
     }
 
@@ -288,7 +361,7 @@ describe('satteriRehypeShikiPlugin', () => {
   it('skips non-code pre elements gracefully', async () => {
     mockHighlighter.codeToHast.mockClear()
 
-    const plugin = satteriRehypeShikiPlugin() as {
+    const plugin = satteriRehypeCodeHighlightPlugin() as {
       element: { filter: string[]; visit: (...args: unknown[]) => unknown }
     }
 
@@ -329,7 +402,7 @@ describe('satteriRehypeShikiPlugin', () => {
   it('skips mermaid code blocks', async () => {
     mockHighlighter.codeToHast.mockClear()
 
-    const plugin = satteriRehypeShikiPlugin() as {
+    const plugin = satteriRehypeCodeHighlightPlugin() as {
       element: { filter: string[]; visit: (...args: unknown[]) => unknown }
     }
 
@@ -370,6 +443,18 @@ describe('satteriRehypeShikiPlugin', () => {
     )
 
     expect(result).toBeUndefined()
+  })
+
+  it('adapter config supports a custom engine id', () => {
+    mockAdapter.name = 'prism'
+    const plugin = satteriRehypeCodeHighlightPlugin({
+      engine: 'prism',
+    }) as {
+      name: string
+      element: { filter: string[] }
+    }
+    expect(plugin.name).toBe('boltdocs-rehype-code-highlight')
+    mockAdapter.name = 'shiki'
   })
 
   describe('data-highlighted-html (whitespace preservation)', () => {
@@ -438,7 +523,7 @@ describe('satteriRehypeShikiPlugin', () => {
       })
       mockHighlighter.codeToHtml.mockResolvedValue(shikiHtml)
 
-      const plugin = satteriRehypeShikiPlugin() as {
+      const plugin = satteriRehypeCodeHighlightPlugin() as {
         element: { filter: string[]; visit: (...args: unknown[]) => unknown }
       }
 
@@ -487,7 +572,7 @@ describe('satteriRehypeShikiPlugin', () => {
       })
       mockHighlighter.codeToHtml.mockResolvedValue(shikiHtml)
 
-      const plugin = satteriRehypeShikiPlugin() as {
+      const plugin = satteriRehypeCodeHighlightPlugin() as {
         element: { filter: string[]; visit: (...args: unknown[]) => unknown }
       }
 
@@ -527,7 +612,7 @@ describe('satteriRehypeShikiPlugin', () => {
         new Error('codeToHtml failed'),
       )
 
-      const plugin = satteriRehypeShikiPlugin() as {
+      const plugin = satteriRehypeCodeHighlightPlugin() as {
         element: { filter: string[]; visit: (...args: unknown[]) => unknown }
       }
 
@@ -563,7 +648,7 @@ describe('satteriRehypeShikiPlugin', () => {
       })
       mockHighlighter.codeToHtml.mockResolvedValue('')
 
-      const plugin = satteriRehypeShikiPlugin() as {
+      const plugin = satteriRehypeCodeHighlightPlugin() as {
         element: { filter: string[]; visit: (...args: unknown[]) => unknown }
       }
 

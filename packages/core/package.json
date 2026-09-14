@@ -27,6 +27,11 @@
       "import": "./dist/node/cache.mjs",
       "require": "./dist/node/cache.cjs"
     },
+    "./node/highlight": {
+      "types": "./dist/node/highlight.d.ts",
+      "import": "./dist/node/highlight.mjs",
+      "require": "./dist/node/highlight.cjs"
+    },
     "./node/mdx/shiki-adapter": {
       "types": "./dist/node/mdx/shiki-adapter.d.ts",
       "import": "./dist/node/mdx/shiki-adapter.mjs",
