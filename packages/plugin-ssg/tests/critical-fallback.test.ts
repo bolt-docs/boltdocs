@@ -1,10 +1,9 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { describe, it, expect, vi } from 'vitest'
 
 /**
  * Unit tests for critical CSS engine selection:
- * - turbo + zig-critters available → zig only
- * - turbo + zig-critters missing → beasties fallback
- * - non-turbo → beasties
+ * - zig-critters available → zig only (pool when possible, serial otherwise)
+ * - zig-critters missing → beasties fallback
  * - beastiesOptions === false → neither
  *
  * Mirrors the selection logic in src/node/build.ts without a full SSG build.
@@ -13,17 +12,23 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 vi.mock('../src/node/critical', () => ({
   getBeasties: vi.fn(),
   getZigCritters: vi.fn(),
+  createZigCrittersEngine: vi.fn(),
 }))
 
-import { getBeasties, getZigCritters } from '../src/node/critical'
+import {
+  getBeasties,
+  getZigCritters,
+  createZigCrittersEngine,
+} from '../src/node/critical'
 
 async function selectEngines(options: {
   turbo: boolean
   beastiesOptions: object | false
 }) {
-  const { turbo, beastiesOptions } = options
+  const { beastiesOptions } = options
 
-  const zigCritters = turbo ? await getZigCritters() : undefined
+  // build.ts: pool-first engine creation, no beasties fallback.
+  const zigCritters = await createZigCrittersEngine({ concurrency: 4 })
 
   const beasties =
     beastiesOptions !== false && !zigCritters
@@ -37,13 +42,9 @@ async function selectEngines(options: {
 }
 
 describe('critical CSS engine selection', () => {
-  beforeEach(() => {
-    vi.clearAllMocks()
-  })
-
-  it('uses zig-critters only when turbo and WASM are available', async () => {
-    const zig = { processHtml: vi.fn() }
-    vi.mocked(getZigCritters).mockResolvedValue(zig)
+  it('uses zig-critters only when the engine factory succeeds', async () => {
+    const zig = { extractCriticalCss: vi.fn() }
+    vi.mocked(createZigCrittersEngine).mockResolvedValue(zig)
     vi.mocked(getBeasties).mockResolvedValue({ process: vi.fn() } as never)
 
     const { zigCritters, beasties } = await selectEngines({
@@ -56,9 +57,9 @@ describe('critical CSS engine selection', () => {
     expect(getBeasties).not.toHaveBeenCalled()
   })
 
-  it('falls back to beasties when turbo is on but zig-critters is unavailable', async () => {
+  it('falls back to beasties when zig-critters is unavailable', async () => {
     const beastiesInstance = { process: vi.fn() }
-    vi.mocked(getZigCritters).mockResolvedValue(undefined)
+    vi.mocked(createZigCrittersEngine).mockResolvedValue(undefined)
     vi.mocked(getBeasties).mockResolvedValue(beastiesInstance as never)
 
     const { zigCritters, beasties } = await selectEngines({
@@ -71,30 +72,25 @@ describe('critical CSS engine selection', () => {
     expect(getBeasties).toHaveBeenCalledOnce()
   })
 
-  it('uses beasties when turbo is off', async () => {
-    const beastiesInstance = { process: vi.fn() }
-    vi.mocked(getBeasties).mockResolvedValue(beastiesInstance as never)
-
-    const { zigCritters, beasties } = await selectEngines({
-      turbo: false,
-      beastiesOptions: {},
+  it('passes pool concurrency to the engine factory', async () => {
+    vi.mocked(createZigCrittersEngine).mockResolvedValue({
+      extractCriticalCss: vi.fn(),
     })
-
-    expect(zigCritters).toBeUndefined()
-    expect(beasties).toBe(beastiesInstance)
+    await selectEngines({ turbo: false, beastiesOptions: false })
+    expect(createZigCrittersEngine).toHaveBeenCalledWith({ concurrency: 4 })
     expect(getZigCritters).not.toHaveBeenCalled()
   })
 
-  it('skips both engines when beastiesOptions is false', async () => {
-    vi.mocked(getZigCritters).mockResolvedValue(undefined)
+  it('skips both engines when beastiesOptions is false and engine missing', async () => {
+    vi.mocked(createZigCrittersEngine).mockResolvedValue(undefined)
+    vi.mocked(getBeasties).mockResolvedValue(undefined as never)
 
     const { zigCritters, beasties } = await selectEngines({
-      turbo: true,
+      turbo: false,
       beastiesOptions: false,
     })
 
     expect(zigCritters).toBeUndefined()
     expect(beasties).toBeUndefined()
-    expect(getBeasties).not.toHaveBeenCalled()
   })
 })

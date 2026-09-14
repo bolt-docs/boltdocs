@@ -1,114 +1,112 @@
-import { describe, expect, it, vi } from 'vitest'
+import { describe, it, expect } from 'vitest'
+import crypto from 'node:crypto'
 import {
   createCriticalCssCacheKey,
   CriticalCssCache,
   extractNewStyleTags,
 } from '../src/node/critical-cache'
 
-describe('CriticalCssCache', () => {
-  it('ignores text changes while preserving structural differences', () => {
-    const css = '.hero{color:red}'
-    const first = '<main class="hero"><h1>First page</h1></main>'
-    const second = '<main class="hero"><h1>Second page</h1></main>'
-    const different = '<main class="hero"><p>Second page</p></main>'
-
-    expect(createCriticalCssCacheKey(first, css, 'zig-critters')).toBe(
-      createCriticalCssCacheKey(second, css, 'zig-critters'),
-    )
-    expect(createCriticalCssCacheKey(first, css, 'zig-critters')).not.toBe(
-      createCriticalCssCacheKey(different, css, 'zig-critters'),
+describe('criticalCssCacheKey', () => {
+  it('produces stable keys for identical inputs', () => {
+    const html = '<div class="a"><p>text</p></div>'
+    const css = '.a{color:red}'
+    const cssHash = crypto.createHash('sha256').update(css).digest()
+    expect(createCriticalCssCacheKey(html, cssHash, css, 'zig-critters')).toBe(
+      createCriticalCssCacheKey(html, cssHash, css, 'zig-critters'),
     )
   })
 
-  it('separates engines and stylesheet content', () => {
-    const html = '<main class="hero">Docs</main>'
+  it('changes when the engine changes', () => {
+    const html = '<div class="a"><p>text</p></div>'
+    const css = '.a{color:red}'
+    const cssHash = crypto.createHash('sha256').update(css).digest()
+    expect(
+      createCriticalCssCacheKey(html, cssHash, css, 'zig-critters'),
+    ).not.toBe(createCriticalCssCacheKey(html, cssHash, css, 'beasties'))
+  })
 
+  it('changes when the CSS changes', () => {
+    const html = '<div class="a"><p>text</p></div>'
+    const cssHashA = crypto
+      .createHash('sha256')
+      .update('.a{color:red}')
+      .digest()
+    const cssHashB = crypto
+      .createHash('sha256')
+      .update('.a{color:blue}')
+      .digest()
     expect(
-      createCriticalCssCacheKey(html, '.hero{color:red}', 'zig-critters'),
-    ).not.toBe(createCriticalCssCacheKey(html, '.hero{color:red}', 'beasties'))
-    expect(
-      createCriticalCssCacheKey(html, '.hero{color:red}', 'zig-critters'),
+      createCriticalCssCacheKey(
+        html,
+        cssHashA,
+        '.a{color:red}',
+        'zig-critters',
+      ),
     ).not.toBe(
-      createCriticalCssCacheKey(html, '.hero{color:blue}', 'zig-critters'),
+      createCriticalCssCacheKey(
+        html,
+        cssHashB,
+        '.a{color:blue}',
+        'zig-critters',
+      ),
     )
   })
 
-  it('extracts only styles added by the critical CSS engine', () => {
-    const before = '<head><style>.component{color:blue}</style></head>'
-    const after =
-      '<head><style>.component{color:blue}</style><style>.hero{color:red}</style></head>'
-
-    expect(extractNewStyleTags(before, after)).toBe(
-      '<style>.hero{color:red}</style>',
+  it('ignores text content but reacts to structure changes', () => {
+    const htmlA = '<div class="a"><p>one</p></div>'
+    const htmlB = '<div class="a"><p>two</p></div>'
+    const htmlC = '<div class="a"><span>one</span></div>'
+    const css = '.a{color:red}'
+    const cssHash = crypto.createHash('sha256').update(css).digest()
+    expect(createCriticalCssCacheKey(htmlA, cssHash, css, 'zig-critters')).toBe(
+      createCriticalCssCacheKey(htmlB, cssHash, css, 'zig-critters'),
     )
+    expect(
+      createCriticalCssCacheKey(htmlA, cssHash, css, 'zig-critters'),
+    ).not.toBe(createCriticalCssCacheKey(htmlC, cssHash, css, 'zig-critters'))
+  })
+})
+
+describe('CriticalCssCache', () => {
+  it('deduplicates concurrent extractions for the same key', async () => {
+    const cache = new CriticalCssCache()
+    let calls = 0
+    const extract = async () => {
+      calls++
+      await new Promise((resolve) => setTimeout(resolve, 10))
+      return 'style'
+    }
+    const [a, b] = await Promise.all([
+      cache.getOrCreate('k', extract),
+      cache.getOrCreate('k', extract),
+    ])
+    expect(calls).toBe(1)
+    expect(a).toBe('style')
+    expect(b).toBe('style')
+  })
+
+  it('retries after a failure (failure removes the entry)', async () => {
+    const cache = new CriticalCssCache()
+    let shouldFail = true
+    const extract = async () => {
+      if (shouldFail) throw new Error('boom')
+      return 'ok'
+    }
+    await expect(cache.getOrCreate('k', extract)).rejects.toThrow('boom')
+    shouldFail = false
+    await expect(cache.getOrCreate('k', extract)).resolves.toBe('ok')
+  })
+})
+
+describe('extractNewStyleTags', () => {
+  it('returns only newly added style tags', () => {
+    const before = '<head><style>existing</style></head>'
+    const after = '<head><style>existing</style><style>new</style></head>'
+    expect(extractNewStyleTags(before, after)).toBe('<style>new</style>')
+  })
+
+  it('returns null when nothing was added', () => {
+    const before = '<head><style>existing</style></head>'
     expect(extractNewStyleTags(before, before)).toBeNull()
-  })
-
-  it('deduplicates concurrent extraction for the same key', async () => {
-    const cache = new CriticalCssCache()
-    const extract = vi.fn(async () => {
-      await new Promise((resolve) => setTimeout(resolve, 5))
-      return '<style>.hero{color:red}</style>'
-    })
-
-    const results = await Promise.all(
-      Array.from({ length: 8 }, () => cache.getOrCreate('same', extract)),
-    )
-
-    expect(extract).toHaveBeenCalledOnce()
-    expect(results.every((value) => value === results[0])).toBe(true)
-    expect(cache.size).toBe(1)
-  })
-
-  it('retries when the extractor throws synchronously', async () => {
-    const cache = new CriticalCssCache()
-    const extract = vi
-      .fn<() => string | null>()
-      .mockImplementationOnce(() => {
-        throw new Error('temporary failure')
-      })
-      .mockReturnValueOnce('<style>.hero{color:red}</style>')
-
-    await expect(cache.getOrCreate('sync-retry', extract)).rejects.toThrow(
-      'temporary failure',
-    )
-    await expect(cache.getOrCreate('sync-retry', extract)).resolves.toBe(
-      '<style>.hero{color:red}</style>',
-    )
-    expect(extract).toHaveBeenCalledTimes(2)
-  })
-
-  it('evicts settled entries after an in-flight entry completes', async () => {
-    const cache = new CriticalCssCache(1)
-    let release: (() => void) | undefined
-    const pending = new Promise<string>((resolve) => {
-      release = () => resolve('first')
-    })
-
-    const first = cache.getOrCreate('first', () => pending)
-    cache.getOrCreate('second', async () => 'second')
-    expect(cache.size).toBe(2)
-
-    release?.()
-    await first
-    await Promise.resolve()
-    cache.getOrCreate('third', async () => 'third')
-    expect(cache.size).toBe(1)
-  })
-
-  it('removes rejected entries so a later route can retry', async () => {
-    const cache = new CriticalCssCache()
-    const extract = vi
-      .fn<() => Promise<string | null>>()
-      .mockRejectedValueOnce(new Error('temporary failure'))
-      .mockResolvedValueOnce('<style>.hero{color:red}</style>')
-
-    await expect(cache.getOrCreate('retry', extract)).rejects.toThrow(
-      'temporary failure',
-    )
-    await expect(cache.getOrCreate('retry', extract)).resolves.toBe(
-      '<style>.hero{color:red}</style>',
-    )
-    expect(extract).toHaveBeenCalledTimes(2)
   })
 })

@@ -23,7 +23,7 @@ import {
 import { serializeState } from '../utils/state'
 import { createAssetCollector } from './assets'
 import type { AssetCollector } from './assets'
-import { getBeasties, getZigCritters } from './critical'
+import { getBeasties, createZigCrittersEngine } from './critical'
 import {
   createCriticalCssCacheKey,
   CriticalCssCache,
@@ -1007,18 +1007,28 @@ export async function build(
   // Default: 'zig-critters' (WASM) — fast, no beasties fallback.
   // To enable beasties, set `criticalCss: 'beasties'` in ssgOptions or config.
   // To disable entirely, set `criticalCss: false`.
+  // Legacy `turbo` flag: documented as equivalent to
+  // `criticalCss: 'zig-critters'` — honor it when criticalCss is unset.
   const resolvedCriticalCss: 'zig-critters' | 'beasties' | false =
     (mergedOptions.criticalCss as
       | 'zig-critters'
       | 'beasties'
       | false
-      | undefined) ?? (turbo ? false : false)
+      | undefined) ?? (turbo ? 'zig-critters' : 'zig-critters')
 
   let zigCritters: import('./critical').ZigCritters | undefined
   let beasties: any
 
   if (resolvedCriticalCss === 'zig-critters') {
-    zigCritters = await getZigCritters()
+    // Prefer a worker-threads pool (one WASM instance per worker); falls back
+    // to the process-global serial instance when pools are unavailable.
+    const crittersConcurrency = Math.max(
+      1,
+      Math.min(concurrency, os.cpus().length, 8),
+    )
+    zigCritters = await createZigCrittersEngine({
+      concurrency: crittersConcurrency,
+    })
     if (!zigCritters) {
       // WASM unavailable — skip critical CSS entirely (no beasties fallback).
       // This saves ~5-15s of beasties processing in cold builds.
@@ -1036,8 +1046,11 @@ export async function build(
   }
   // resolvedCriticalCss === false → skip critical CSS entirely (fastest)
 
-  // Cache CSS content for zig-critters (read once, not per page)
+  // Cache CSS content for zig-critters (read once, not per page). The CSS
+  // string is hashed once per build; the cache-key function reuses this hash
+  // instead of re-hashing the same stylesheet for every page.
   let cachedAllCss = ''
+  let cachedAllCssHash = ''
   if (zigCritters) {
     const cssDir = join(out, 'assets')
     if (fs.existsSync(cssDir)) {
@@ -1045,6 +1058,12 @@ export async function build(
       for (const cssFile of cssFiles) {
         cachedAllCss += fs.readFileSync(join(cssDir, cssFile), 'utf-8') + '\n'
       }
+    }
+    if (cachedAllCss) {
+      cachedAllCssHash = crypto
+        .createHash('sha256')
+        .update(cachedAllCss)
+        .digest()
     }
   }
 
@@ -1438,6 +1457,7 @@ export async function build(
       if (cachedAllCss) {
         const cacheKey = createCriticalCssCacheKey(
           resultHTML,
+          cachedAllCssHash,
           cachedAllCss,
           'zig-critters',
         )
@@ -1445,14 +1465,17 @@ export async function build(
           const criticalStyle = await criticalCssCache.getOrCreate(
             cacheKey,
             async () => {
-              const processed = await zigCritters.processHtml(
-                resultHTML,
-                cachedAllCss,
-              )
-              const matches = processed.match(
-                /<style[^>]*data-zig-critters[^>]*>[\s\S]*?<\/style>/g,
-              )
-              return matches?.join('\\n') || null
+              const { criticalCss, stats } =
+                await zigCritters.extractCriticalCss(resultHTML, cachedAllCss)
+              if (!criticalCss) {
+                if (stats.truncated) {
+                  warn(
+                    `[zig-critters] Critical CSS for "${path}" exceeded maxSize (${stats.originalSize} bytes) and was skipped.`,
+                  )
+                }
+                return null
+              }
+              return `<style data-zig-critters>${criticalCss}</style>`
             },
           )
           if (criticalStyle && !resultHTML.includes('data-zig-critters')) {
@@ -1474,6 +1497,7 @@ export async function build(
     } else if (beasties) {
       const cacheKey = createCriticalCssCacheKey(
         resultHTML,
+        cachedAllCssHash,
         cachedAllCss,
         'beasties',
       )
@@ -1974,6 +1998,17 @@ export async function build(
   )
 
   unmock()
+
+  // Release the zig-critters worker pool (if one was created) so the Node
+  // process can exit promptly; pending extractions are already settled.
+  if (zigCritters?.dispose) {
+    try {
+      await zigCritters.dispose()
+    } catch {
+      // Non-fatal: dispose failures must not fail an otherwise-good build.
+    }
+  }
+
   const pwaPlugin: { disabled: boolean; generateSW: () => Promise<unknown> } =
     resolvedConfig.plugins.find((i) => i.name === 'vite-plugin-pwa')?.api
   if (pwaPlugin && !pwaPlugin.disabled && pwaPlugin.generateSW) {

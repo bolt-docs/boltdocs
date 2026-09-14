@@ -6,9 +6,16 @@ export type CriticalCssEngine = 'zig-critters' | 'beasties'
  * Build a cache key from the selectors/classes present in the rendered page
  * and the exact stylesheet. Text content is ignored because it does not affect
  * CSS selector coverage; attributes and element structure are preserved.
+ *
+ * `cssHash` is the pre-computed sha256 digest of `css`. Builds pass the same
+ * stylesheet for every page, so hashing it once per build instead of once per
+ * page removes a repeated O(cssLength) hash from the hot path. A Buffer
+ * digest is intentional: `hash.update()` accepts it directly and copying a
+ * 32-byte digest is cheaper than re-hashing a ~200KB stylesheet.
  */
 export function createCriticalCssCacheKey(
   html: string,
+  cssHash: crypto.BinaryLike,
   css: string,
   engine: CriticalCssEngine,
 ): string {
@@ -24,7 +31,7 @@ export function createCriticalCssCacheKey(
     .update('\0')
     .update(structuralHtml)
     .update('\0')
-    .update(css)
+    .update(cssHash || css)
     .digest('hex')
 }
 

@@ -3,7 +3,7 @@ export interface ExtractCriticalCssOptions {
   compress?: boolean
   /** Maximum returned critical CSS size in characters. Defaults to 8192. */
   maxSize?: number
-  /** Per-invocation WASM arena size in bytes. Clamped to 2–32 MiB. */
+  /** Kept for backwards compatibility; unused by the new wrapper. */
   arenaSize?: number
 }
 
@@ -24,9 +24,28 @@ export function processHtml(
   options?: ExtractCriticalCssOptions,
 ): Promise<string>
 
+export interface ZigCrittersPool {
+  readonly concurrency: number
+  extractCriticalCss(
+    html: string,
+    css: string,
+    options?: ExtractCriticalCssOptions,
+  ): Promise<CriticalCssResult>
+  close(): Promise<void>
+}
+
+/**
+ * Create a worker-threads pool for parallel extraction. Resolves to null when
+ * worker threads are unavailable; callers should fall back to the serial API.
+ */
+export function createPool(options?: {
+  concurrency?: number
+}): Promise<ZigCrittersPool | null>
+
 declare const zigCritters: {
   extractCriticalCss: typeof extractCriticalCss
   processHtml: typeof processHtml
+  createPool: typeof createPool
 }
 
 export default zigCritters

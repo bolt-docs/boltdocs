@@ -18,6 +18,7 @@
     "build": "zig --version >/dev/null 2>&1 && pnpm run build:wasm || echo 'Zig not installed, skipping build'",
     "dev": "cd zig && zig build",
     "test": "cd zig && zig build test",
+    "test:js": "node --test wasm/*.test.mjs",
     "bench": "pnpm run build:wasm && node bench/bench.mjs"
   },
   "files": [
