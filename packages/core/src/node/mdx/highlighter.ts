@@ -34,7 +34,12 @@ async function getJsEngineImpl(): Promise<RegexEngine> {
   const { createJavaScriptRegexEngine } = await import(
     'shiki/engine/javascript'
   )
-  return createJavaScriptRegexEngine() as unknown as RegexEngine
+  // `forgiving` degrades unsupported grammar regexes to approximate matches
+  // instead of throwing — exotic languages highlight approximately rather
+  // than failing the block. Common languages (ts/js/css/...) are exact.
+  return createJavaScriptRegexEngine({
+    forgiving: true,
+  }) as unknown as RegexEngine
 }
 
 async function resolveEngine(kind: RegexEngineKind): Promise<RegexEngine> {
@@ -48,16 +53,17 @@ async function resolveEngine(kind: RegexEngineKind): Promise<RegexEngine> {
  * grammar up front costs ~2.5s of synchronous CPU. Languages outside the
  * common set are loaded lazily via {@link ensureLanguage}.
  *
- * The JavaScript regex engine (`regexEngine: 'javascript'`) swaps the
- * Oniguruma WASM engine for a native JS implementation, cutting startup to
- * ~200ms at the cost of regex fidelity for exotic grammars — aimed at faster
- * dev-server warm starts.
+ * The JavaScript regex engine is the default: it swaps the Oniguruma WASM
+ * engine for a native JS implementation, cutting startup from ~2.5s to
+ * ~200ms — a difference multiplied by every worker in the Sätteri compile
+ * pool. Pass `regexEngine: 'oniguruma'` for bit-exact TextMate regex
+ * fidelity on exotic grammars.
  */
 const highlight = async (options?: {
   regexEngine?: RegexEngineKind
 }): Promise<HighlighterCore> => {
   const kind: RegexEngineKind =
-    options?.regexEngine === 'javascript' ? 'javascript' : 'oniguruma'
+    options?.regexEngine === 'oniguruma' ? 'oniguruma' : 'javascript'
   const cached = highlighterPromises.get(kind)
   if (cached) return cached
 

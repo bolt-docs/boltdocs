@@ -61,9 +61,9 @@ export class ShikiAdapter implements CodeHighlighterAdapter {
         dark: DEFAULT_THEMES.DARK,
       } satisfies CodeTheme)) as CodeTheme
     this.regexEngine =
-      String(highlighting?.options?.regexEngine) === 'javascript'
-        ? 'javascript'
-        : 'oniguruma'
+      String(highlighting?.options?.regexEngine) === 'oniguruma'
+        ? 'oniguruma'
+        : 'javascript'
   }
 
   /**

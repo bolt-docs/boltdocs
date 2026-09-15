@@ -29,12 +29,33 @@ const DEFAULT_HAST_PLUGINS = [
   satteriRehypeCodeHighlightPlugin(workerCodeHighlighting),
 ]
 
-// Eagerly pre-warm Sätteri + Shiki engine at worker instantiation.
-// `mdxToJs` is synchronous in the NAPI implementation, so use try/catch
-// instead of Promise.catch() here. The compile path below intentionally uses
-// `await`, which remains compatible with both sync and async implementations.
+// Eagerly pre-warm Sätteri + the highlighter engine at worker instantiation.
+// The source includes fenced blocks in every eager (common) language so the
+// grammars load while the pool spins up instead of serially during the first
+// real page compilations. `mdxToJs` is synchronous in the NAPI
+// implementation, so use try/catch instead of Promise.catch() here. The
+// compile path below intentionally uses `await`, which remains compatible
+// with both sync and async implementations.
+const PREWARM_SNIPPET = 'const boltdocsPrewarm = 1'
+const PREWARM_SOURCE = [
+  '# Prewarm',
+  '',
+  ...[
+    'ts',
+    'js',
+    'tsx',
+    'bash',
+    'json',
+    'css',
+    'html',
+    'python',
+    'go',
+    'markdown',
+  ].map((lang) => ['```' + lang, PREWARM_SNIPPET, '```', ''].join('\n')),
+].join('\n')
+
 try {
-  mdxToJs('# Prewarm', {
+  mdxToJs(PREWARM_SOURCE, {
     jsxRuntime: 'automatic',
     jsxImportSource: 'react',
     outputFormat: 'program',

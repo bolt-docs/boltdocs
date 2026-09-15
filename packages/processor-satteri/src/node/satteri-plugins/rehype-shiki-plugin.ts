@@ -1,6 +1,7 @@
 import { defineHastPlugin } from 'satteri'
 import type { HastVisitorContext } from 'satteri'
 import type { Element, Properties } from 'hast'
+import { toHtml } from 'hast-util-to-html'
 import { parseMetaString, type ParsedMeta } from '@bdocs/unist-utils'
 
 /** Engine-agnostic code theme (single name or light/dark pair). */
@@ -55,6 +56,81 @@ function copyNonClassProps(target: Properties, source?: Properties): void {
     if (key === 'class' || key === 'className') continue
     target[key] = value
   }
+}
+
+/**
+ * Assemble the replacement `<pre>` properties from the original node, the
+ * engine output, and the framework metadata. Shared by the cache-hit and
+ * cache-miss paths so both produce identical attribute sets.
+ */
+function assembleProperties(
+  nodeProps: Properties | undefined,
+  engineProps: Properties | undefined,
+  ctx: {
+    lang: string
+    engineName: string
+    themeMode: 'dual' | 'single'
+    parsedMeta: ParsedMeta
+  },
+): Properties {
+  const properties: Properties = {}
+  copyNonClassProps(properties, nodeProps)
+  copyNonClassProps(properties, engineProps)
+  properties.className = mergeClassArrays(nodeProps, engineProps)
+  properties['data-highlighted'] = 'true'
+  properties['data-lang'] = ctx.lang
+  properties['data-code-engine'] = ctx.engineName
+  properties['data-theme-mode'] = ctx.themeMode
+  if (ctx.parsedMeta.lineNumbers === true) {
+    properties['data-line-numbers'] = 'true'
+  }
+  if (ctx.parsedMeta.wordWrap === true) {
+    properties['data-word-wrap'] = 'true'
+  }
+  if (ctx.parsedMeta.title) {
+    properties['data-title'] = ctx.parsedMeta.title
+  }
+  return properties
+}
+
+/**
+ * Per-worker highlight cache: (lang + options + code) → serialized `<pre>`
+ * HTML. Workers are long-lived (Piscina pool), so repeated snippets (install
+ * commands, shared configs) highlight once per worker instead of once per
+ * occurrence. The cache stores the engine's `<pre>` element too, so cache
+ * hits skip both the grammar run and the HTML serialization.
+ *
+ * Key includes the resolved options (theme, transformers config) so a theme
+ * change can never serve stale output; values are plain serialized strings
+ * plus reusable HAST children.
+ */
+const HIGHLIGHT_CACHE_MAX = 2000
+const highlightCache = new Map<string, { preElement: Element; html: string }>()
+
+/**
+ * Clear the per-worker highlight cache. Exposed for tests (isolation between
+ * cases sharing lang+code) and for config-change invalidation.
+ */
+export function clearHighlightCache(): void {
+  highlightCache.clear()
+}
+
+function cacheKeyFor(
+  lang: string,
+  options: Record<string, unknown>,
+  code: string,
+): string {
+  // Options contain functions (transformers) — their identity is stable per
+  // plugin instance, which is what the cache lifetime is bound to anyway.
+  return `${lang}\u0000${JSON.stringify(options, replacerForCacheKey)}\u0000${code}`
+}
+
+/** JSON replacer that renders functions as a stable tag instead of dropping them. */
+function replacerForCacheKey(_key: string, value: unknown): unknown {
+  if (typeof value === 'function') {
+    return `ƒ:${(value as { name?: string }).name ?? 'anon'}`
+  }
+  return value
 }
 
 /**
@@ -151,52 +227,50 @@ export function satteriRehypeCodeHighlightPlugin(config?: CodeHighlightConfig) {
           ''
 
         try {
-          const hast = highlighter.codeToHast(codeText, options)
-          const preElement: Element =
-            hast.type === 'root'
-              ? (hast.children[0] as Element)
-              : (hast as Element)
+          const cacheKey = cacheKeyFor(lang, options, codeText)
+          let preElement: Element
+          let html: string | undefined
 
-          // Merge class arrays from original and engine output.
-          const mergedClassName = mergeClassArrays(
+          const cached = highlightCache.get(cacheKey)
+          if (cached) {
+            // LRU refresh
+            highlightCache.delete(cacheKey)
+            highlightCache.set(cacheKey, cached)
+            preElement = cached.preElement
+            html = cached.html
+          } else {
+            const hast = highlighter.codeToHast(codeText, options)
+            preElement =
+              hast.type === 'root'
+                ? (hast.children[0] as Element)
+                : (hast as Element)
+
+            // Single grammar pass: serialize the already-computed HAST instead
+            // of re-running the TextMate grammar via codeToHtml. Cuts
+            // highlighting CPU per block roughly in half.
+            try {
+              html = toHtml(preElement)
+            } catch {
+              // Serialization failure: fall back to HAST children (JSX path).
+              // Whitespace may be trimmed but the block still renders.
+            }
+
+            if (html !== undefined) {
+              if (highlightCache.size >= HIGHLIGHT_CACHE_MAX) {
+                const oldest = highlightCache.keys().next().value
+                if (oldest !== undefined) highlightCache.delete(oldest)
+              }
+              highlightCache.set(cacheKey, { preElement, html })
+            }
+          }
+
+          const properties = assembleProperties(
             node.properties,
             preElement.properties,
+            { lang, engineName, themeMode, parsedMeta },
           )
-
-          // Copy every original property, skipping class/className entirely.
-          const properties: Properties = {}
-          copyNonClassProps(properties, node.properties)
-
-          // Add engine-specific properties (style, etc.) but skip class/className.
-          copyNonClassProps(properties, preElement.properties)
-
-          // Set single unified className
-          properties.className = mergedClassName
-          properties['data-highlighted'] = 'true'
-          properties['data-lang'] = lang
-          properties['data-code-engine'] = engineName
-          properties['data-theme-mode'] = themeMode
-          if (parsedMeta.lineNumbers === true) {
-            properties['data-line-numbers'] = 'true'
-          }
-          if (parsedMeta.wordWrap === true) {
-            properties['data-word-wrap'] = 'true'
-          }
-
-          if (parsedMeta.title) {
-            properties['data-title'] = parsedMeta.title
-          }
-
-          // Generate HTML string and pass via data-highlighted-html so the
-          // CodeBlock component renders it via dangerouslySetInnerHTML. This
-          // bypasses JSX whitespace normalization (esbuild trims leading
-          // whitespace from text nodes), preserving indentation in code blocks.
-          try {
-            const html = await highlighter.codeToHtml(codeText, options)
+          if (html !== undefined) {
             properties['data-highlighted-html'] = html
-          } catch {
-            // If codeToHtml fails, fall back to HAST children (JSX path).
-            // Whitespace may be trimmed but the block still renders.
           }
 
           return {

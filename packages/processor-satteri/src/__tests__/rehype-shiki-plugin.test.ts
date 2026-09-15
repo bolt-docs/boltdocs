@@ -23,13 +23,20 @@ vi.mock('boltdocs/node/highlight', () => ({
   getCodeHighlighterAdapter: () => mockAdapter,
 }))
 
-const { satteriRehypeCodeHighlightPlugin } = await import(
+const highlightModule = await import(
   '../node/satteri-plugins/rehype-shiki-plugin'
 )
+const satteriRehypeCodeHighlightPlugin =
+  highlightModule.satteriRehypeCodeHighlightPlugin
+
+// The highlight cache is module-level (per-worker lifetime by design); tests
+// share the module, so reset it between cases to keep them independent.
+const { clearHighlightCache } = highlightModule
 
 describe('satteriRehypeCodeHighlightPlugin', () => {
   beforeEach(() => {
     vi.resetAllMocks()
+    clearHighlightCache()
     mockAdapter.initialize.mockResolvedValue(mockHighlighter)
     mockAdapter.getOptions.mockReturnValue({ lang: 'javascript' })
     mockAdapter.ensureLanguage.mockResolvedValue(true)
@@ -457,7 +464,7 @@ describe('satteriRehypeCodeHighlightPlugin', () => {
     mockAdapter.name = 'shiki'
   })
 
-  describe('data-highlighted-html (whitespace preservation)', () => {
+  describe('data-highlighted-html (single grammar pass + worker cache)', () => {
     const makeCtx = () => ({
       textContent: () => 'const x = 1',
       source: 'test',
@@ -493,9 +500,7 @@ describe('satteriRehypeCodeHighlightPlugin', () => {
       ],
     })
 
-    it('sets data-highlighted-html via codeToHtml', async () => {
-      const shikiHtml =
-        '<pre class="shiki"><code><span class="line"><span>const</span> x = <span>1</span></span></code></pre>'
+    it('serializes data-highlighted-html from a single grammar pass', async () => {
       mockHighlighter.codeToHast.mockReturnValue({
         type: 'root',
         children: [
@@ -513,7 +518,7 @@ describe('satteriRehypeCodeHighlightPlugin', () => {
                     type: 'element',
                     tagName: 'span',
                     properties: { className: ['line'] },
-                    children: [{ type: 'text', value: 'const x = 1' }],
+                    children: [{ type: 'text', value: 'const single = 1' }],
                   },
                 ],
               },
@@ -521,23 +526,99 @@ describe('satteriRehypeCodeHighlightPlugin', () => {
           },
         ],
       })
-      mockHighlighter.codeToHtml.mockResolvedValue(shikiHtml)
 
       const plugin = satteriRehypeCodeHighlightPlugin() as {
         element: { filter: string[]; visit: (...args: unknown[]) => unknown }
       }
 
       const result = (await plugin.element.visit(
-        makePreNode('const x = 1'),
+        makePreNode('const single = 1'),
         makeCtx(),
       )) as { properties: Record<string, unknown> }
 
       expect(result.properties['data-highlighted']).toBe('true')
-      expect(result.properties['data-highlighted-html']).toBe(shikiHtml)
-      expect(mockHighlighter.codeToHtml).toHaveBeenCalledWith(
-        'const x = 1',
-        expect.any(Object),
+      expect(result.properties['data-highlighted-html']).toBe(
+        '<pre class="shiki"><code><span class="line">const single = 1</span></code></pre>',
       )
+      // The grammar runs once — no second codeToHtml pass.
+      expect(mockHighlighter.codeToHast).toHaveBeenCalledTimes(1)
+      expect(mockHighlighter.codeToHtml).not.toHaveBeenCalled()
+    })
+
+    it('serves identical (lang, options, code) from the worker cache', async () => {
+      mockHighlighter.codeToHast.mockReturnValue({
+        type: 'root',
+        children: [
+          {
+            type: 'element',
+            tagName: 'pre',
+            properties: { className: ['shiki'] },
+            children: [
+              {
+                type: 'element',
+                tagName: 'code',
+                properties: {},
+                children: [{ type: 'text', value: 'const cacheProbe = 42' }],
+              },
+            ],
+          },
+        ],
+      })
+
+      const plugin = satteriRehypeCodeHighlightPlugin() as {
+        element: { filter: string[]; visit: (...args: unknown[]) => unknown }
+      }
+
+      const first = (await plugin.element.visit(
+        makePreNode('const cacheProbe = 42'),
+        makeCtx(),
+      )) as { properties: Record<string, unknown> }
+      const second = (await plugin.element.visit(
+        makePreNode('const cacheProbe = 42'),
+        makeCtx(),
+      )) as { properties: Record<string, unknown> }
+
+      expect(mockHighlighter.codeToHast).toHaveBeenCalledTimes(1)
+      expect(second.properties['data-highlighted-html']).toBe(
+        first.properties['data-highlighted-html'],
+      )
+      expect(second.properties['data-highlighted']).toBe('true')
+    })
+
+    it('does not reuse the cache across different languages', async () => {
+      mockHighlighter.codeToHast.mockReturnValue({
+        type: 'root',
+        children: [
+          {
+            type: 'element',
+            tagName: 'pre',
+            properties: { className: ['shiki'] },
+            children: [
+              {
+                type: 'element',
+                tagName: 'code',
+                properties: {},
+                children: [{ type: 'text', value: 'const langProbe = 7' }],
+              },
+            ],
+          },
+        ],
+      })
+
+      const plugin = satteriRehypeCodeHighlightPlugin() as {
+        element: { filter: string[]; visit: (...args: unknown[]) => unknown }
+      }
+
+      const jsNode = makePreNode('const langProbe = 7')
+      const pyNode = makePreNode('const langProbe = 7')
+      ;(pyNode.children[0].properties as Record<string, unknown>).className = [
+        'language-python',
+      ]
+
+      await plugin.element.visit(jsNode, makeCtx())
+      await plugin.element.visit(pyNode, makeCtx())
+
+      expect(mockHighlighter.codeToHast).toHaveBeenCalledTimes(2)
     })
 
     it('preserves indentation whitespace in data-highlighted-html', async () => {
@@ -583,82 +664,10 @@ describe('satteriRehypeCodeHighlightPlugin', () => {
 
       const html = result.properties['data-highlighted-html'] as string
       expect(html).toBeDefined()
-      // The HTML from codeToHtml preserves indentation inside <span> elements
-      expect(html).toContain('  <span>return</span>')
-      expect(html).toContain('    greeting:')
-      expect(html).toContain('  }</span>')
-    })
-
-    it('falls back to HAST children when codeToHtml fails', async () => {
-      mockHighlighter.codeToHast.mockReturnValue({
-        type: 'root',
-        children: [
-          {
-            type: 'element',
-            tagName: 'pre',
-            properties: { className: ['shiki'] },
-            children: [
-              {
-                type: 'element',
-                tagName: 'code',
-                properties: {},
-                children: [{ type: 'text', value: 'const x = 1' }],
-              },
-            ],
-          },
-        ],
-      })
-      mockHighlighter.codeToHtml.mockRejectedValue(
-        new Error('codeToHtml failed'),
-      )
-
-      const plugin = satteriRehypeCodeHighlightPlugin() as {
-        element: { filter: string[]; visit: (...args: unknown[]) => unknown }
-      }
-
-      const result = (await plugin.element.visit(
-        makePreNode('const x = 1'),
-        makeCtx(),
-      )) as { properties: Record<string, unknown>; children: unknown[] }
-
-      expect(result.properties['data-highlighted']).toBe('true')
-      expect(result.properties['data-highlighted-html']).toBeUndefined()
-      // HAST children are still present as fallback
-      expect(result.children).toBeDefined()
-    })
-
-    it('falls back to HAST children when codeToHtml returns empty', async () => {
-      mockHighlighter.codeToHast.mockReturnValue({
-        type: 'root',
-        children: [
-          {
-            type: 'element',
-            tagName: 'pre',
-            properties: { className: ['shiki'] },
-            children: [
-              {
-                type: 'element',
-                tagName: 'code',
-                properties: {},
-                children: [{ type: 'text', value: 'const x = 1' }],
-              },
-            ],
-          },
-        ],
-      })
-      mockHighlighter.codeToHtml.mockResolvedValue('')
-
-      const plugin = satteriRehypeCodeHighlightPlugin() as {
-        element: { filter: string[]; visit: (...args: unknown[]) => unknown }
-      }
-
-      const result = (await plugin.element.visit(
-        makePreNode('const x = 1'),
-        makeCtx(),
-      )) as { properties: Record<string, unknown> }
-
-      // Empty string is falsy, so it should not be set
-      expect(result.properties['data-highlighted-html']).toBeFalsy()
+      // Serialization preserves the raw text node content, indentation included
+      expect(html).toContain('\n  return {')
+      expect(html).toContain('\n    greeting: "hi",')
+      expect(html).toContain('\n  }')
     })
   })
 })
