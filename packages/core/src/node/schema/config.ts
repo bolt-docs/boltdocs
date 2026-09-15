@@ -383,6 +383,11 @@ export const SsgConfigSchema = z.object({
    * @default 'zig-critters'
    */
   criticalCss: z.enum(['zig-critters', 'beasties', 'none']).optional(),
+  /**
+   * Per-page budget (bytes) for inlined critical CSS. Pages whose critical CSS
+   * exceeds the budget have it skipped (with a build warning). Default: 24576.
+   */
+  criticalCssMaxSize: z.number().int().min(0).optional(),
 })
 
 /**

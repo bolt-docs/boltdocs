@@ -1044,6 +1044,11 @@ export interface BoltdocsIntegrationsConfig {
 export interface BoltdocsSsgConfig {
   /** Critical CSS strategy; `none` disables critical CSS processing. */
   criticalCss?: 'zig-critters' | 'beasties' | 'none'
+  /**
+   * Per-page budget (bytes) for inlined critical CSS. Pages exceeding it get
+   * no inline critical CSS (with a build warning). Default: 24576 (24KB).
+   */
+  criticalCssMaxSize?: number
 }
 
 /**

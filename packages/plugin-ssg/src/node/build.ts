@@ -23,7 +23,11 @@ import {
 import { serializeState } from '../utils/state'
 import { createAssetCollector } from './assets'
 import type { AssetCollector } from './assets'
-import { getBeasties, createZigCrittersEngine } from './critical'
+import {
+  getBeasties,
+  createZigCrittersEngine,
+  resolveCriticalCssMaxSize,
+} from './critical'
 import {
   createCriticalCssCacheKey,
   CriticalCssCache,
@@ -650,9 +654,14 @@ export async function build(
     concurrency = 20,
     rootContainerId = 'root',
     beastiesOptions: rawBeasties = {},
-  }: ViteReactSSGOptions & { beastiesOptions?: any } = mergedOptions as any
+    criticalCssMaxSize,
+  }: ViteReactSSGOptions & {
+    beastiesOptions?: any
+    criticalCssMaxSize?: number
+  } = mergedOptions as any
 
   const beastiesOptions = rawBeasties
+  const criticalCssBudget = resolveCriticalCssMaxSize(criticalCssMaxSize)
   const turbo = (mergedOptions.turbo as boolean) ?? false
   const ssrCacheRoot = join(finalCacheDir, 'ssr')
   const ssrCacheIndexPath = join(finalCacheDir, 'ssr-cache-index.json')
@@ -1466,7 +1475,9 @@ export async function build(
             cacheKey,
             async () => {
               const { criticalCss, stats } =
-                await zigCritters.extractCriticalCss(resultHTML, cachedAllCss)
+                await zigCritters.extractCriticalCss(resultHTML, cachedAllCss, {
+                  maxSize: criticalCssBudget,
+                })
               if (!criticalCss) {
                 if (stats.truncated) {
                   warn(

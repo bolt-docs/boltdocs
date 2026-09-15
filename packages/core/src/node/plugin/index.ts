@@ -514,6 +514,7 @@ export function boltdocsPlugin(
             script: 'async',
             beastiesOptions: false,
             criticalCss: resolvedCriticalCss,
+            criticalCssMaxSize: config.ssg?.criticalCssMaxSize,
             onPageRendered: async (
               path: string,
               renderedHTML: string,
