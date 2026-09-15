@@ -570,7 +570,9 @@ export function createSatteriMdxPlugin(
   async function _executePreCompile() {
     const root = viteResolvedConfig?.root || process.cwd()
     const docsDirName = pluginOptions?.docsDir || 'docs'
-    const docsDir = path.join(root, docsDirName)
+    // docsDir may be absolute (core passes a resolved path) or relative.
+    // path.resolve handles both; path.join would corrupt absolute paths.
+    const docsDir = path.resolve(root, docsDirName)
 
     if (!fs.existsSync(docsDir)) return
 
@@ -1207,7 +1209,8 @@ export function createSatteriMdxPlugin(
       // and only verify that all files exist in the manifest.
       const root = viteResolvedConfig?.root || process.cwd()
       const docsDirName = pluginOptions?.docsDir || 'docs'
-      const docsDir = path.join(root, docsDirName)
+      // Resolve (not join): docsDir may be absolute (core passes a resolved path).
+      const docsDir = path.resolve(root, docsDirName)
       if (fs.existsSync(docsDir)) {
         const manifestPath = getManifestPath(root)
         const expectedGlobalKey = computeGlobalKey(
@@ -1431,7 +1434,8 @@ export function createSatteriMdxPlugin(
       try {
         const root = viteResolvedConfig?.root || process.cwd()
         const docsDirName = pluginOptions?.docsDir || 'docs'
-        const docsDir = path.join(root, docsDirName)
+        // Resolve (not join): docsDir may be absolute (core passes a resolved path).
+        const docsDir = path.resolve(root, docsDirName)
         if (fs.existsSync(docsDir)) {
           const mdxFiles = findMdxFiles(docsDir)
           const manifest = readManifest(root, LAST_GLOBAL_KEY)

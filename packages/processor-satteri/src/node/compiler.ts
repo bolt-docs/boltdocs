@@ -51,7 +51,16 @@ const PROCESSOR_VERSION = resolvePackageVersion(
   '@bdocs/processor-satteri',
   path.dirname(fileURLToPath(import.meta.url)),
 )
-const PROCESS_CACHE_NONCE = `${process.pid}:${Date.now()}:${Math.random()}`
+/**
+ * Identity for plugins whose compiled output must not persist across
+ * processes. The per-process nonce was replaced with a stable marker: the
+ * plugin's `__boltdocsCacheSignature` (name@version:options) already captures
+ * its identity, and baking `Date.now()`/`Math.random()` into the signature
+ * made the precompile manifest `globalKey` differ on every process — the
+ * on-disk MDX precompile cache could never hit, forcing a full recompile of
+ * every page on every build.
+ */
+const NON_PERSISTENT_PLUGIN_MARKER = 'nonpersistent'
 
 // Includes the processor package version so any published change to the
 // compiler pipeline (e.g. Shiki highlighting) invalidates cached output.
@@ -81,7 +90,7 @@ function pluginSignature(
 
   const record = plugin as Record<string, unknown>
   if (record.__boltdocsPersistentCache === false) {
-    return `nonpersistent:${PROCESS_CACHE_NONCE}:${String(record.__boltdocsCacheSignature ?? 'unknown')}`
+    return `nonpersistent:${String(record.__boltdocsCacheSignature ?? 'unknown')}`
   }
   const result = Array.isArray(plugin)
     ? `[${plugin.map((item) => pluginSignature(item, ancestors)).join(',')}]`
