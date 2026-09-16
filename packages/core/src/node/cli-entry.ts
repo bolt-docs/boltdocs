@@ -12,6 +12,20 @@ process.emitWarning = (warning: string | Error, ...args: unknown[]) => {
 import { applyFsPatch } from './security/fs-patch'
 applyFsPatch()
 
+// Persist V8 compile cache for every module the CLI loads (core, plugins,
+// Vite, React). On Node 22.1+/23+ this cuts ~1-3s of parse/compile time from
+// each build/dev invocation; on older versions it is a no-op. Kept as a
+// microtask (not top-level await) so the CJS build stays valid. Failures are
+// non-fatal — the cache is advisory.
+try {
+  void Promise.resolve()
+    .then(() => import('node:module'))
+    .then(({ enableCompileCache }) => {
+      if (typeof enableCompileCache === 'function') enableCompileCache()
+    })
+    .catch(() => {})
+} catch {}
+
 import cac from 'cac'
 import { createRequire } from 'node:module'
 

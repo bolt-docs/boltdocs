@@ -763,6 +763,31 @@ export async function build(
       .readdirSync(ssgOut)
       .filter((f) => f.endsWith('.mjs') || f.endsWith('.cjs')).length > 0
 
+  // Warm the ES module loader cache while the (parallel) bundle builds run.
+  // The SSR bundle is already on disk when serverBuildSkipped is true, and
+  // importing it is pure CPU (parse + link + execute ~7MB of JS). Kicking it
+  // off here overlaps that with the client/server bundle phase instead of
+  // adding ~2-10s after it. The import result is consumed by the normal
+  // sequential block below; only the module resolution work is shared.
+  let ssrModulePrewarm: Promise<unknown> | null = null
+  if (!canSkipSsrImport && serverBuildSkipped && format === 'esm') {
+    const prewarmPrefix = process.platform === 'win32' ? 'file://' : ''
+    try {
+      const prewarmSsgOut = ssgOut
+      const prewarmFiles = fs.existsSync(prewarmSsgOut)
+        ? fs.readdirSync(prewarmSsgOut).filter((f) => f.endsWith('.mjs'))
+        : []
+      if (prewarmFiles.length > 0) {
+        const prewarmEntry =
+          prewarmPrefix +
+          join(prewarmSsgOut, prewarmFiles[0]).replace(/\\/g, '/')
+        ssrModulePrewarm = import(/* @vite-ignore */ prewarmEntry).catch(
+          () => {},
+        )
+      }
+    } catch {}
+  }
+
   const renderStartTime = performance.now()
   const [clientBundle, serverBundle] = await Promise.all([
     executeClientBundle(
@@ -883,6 +908,10 @@ export async function build(
       createRoot: CreateRootFactory
       includedRoutes?: ViteReactSSGOptions['includedRoutes']
     }
+    // The prewarm import raced the same module; swallow its outcome — the
+    // awaited import above is authoritative. Await it so a rejection already
+    // handled can't surface as an unhandled rejection later.
+    if (ssrModulePrewarm) await ssrModulePrewarm.catch(() => {})
     ssrImportDurationMs = performance.now() - ssrImportStart
     matchRouteBranchWithParams = serverEntryModule.matchRouteBranchWithParams
     const { createRoot, includedRoutes: serverEntryIncludedRoutes } =
@@ -1154,9 +1183,11 @@ export async function build(
     concurrency: Math.min(os.cpus().length, 4),
   })
   // Finalize queue with limited concurrency to prevent event-loop
-  // saturation when many worker results arrive simultaneously.
+  // saturation when many worker results arrive simultaneously. The ceiling
+  // matches the zig-critters pool size: fewer concurrent finalizers would
+  // starve idle WASM workers during the critical-CSS phase.
   const finalizeQueue = new PQueue({
-    concurrency: Math.max(2, Math.min(os.cpus().length, 6)),
+    concurrency: Math.max(2, Math.min(os.cpus().length, 8)),
   })
 
   const staticLoaderDataManifest: StaticLoaderDataManifest = {}
