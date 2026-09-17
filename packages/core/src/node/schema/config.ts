@@ -28,6 +28,7 @@ export const BoltdocsPluginSchema = z.object({
   rehypePlugins: z.array(z.unknown()).optional(),
   vitePlugins: z.array(z.unknown()).optional(),
   components: z.record(z.string(), z.string()).optional(),
+  codeHighlighter: z.unknown().optional(),
   metadata: z.record(z.string(), z.unknown()).optional(),
   css: z
     .object({
@@ -130,6 +131,24 @@ export const ThemeConfigSchema = z.object({
     .optional(),
   codeTheme: z
     .union([z.string(), z.object({ light: z.string(), dark: z.string() })])
+    .optional(),
+  codeHighlighting: z
+    .union([
+      // String shorthand: a highlighter registry id (`'shiki'` by default).
+      // Equivalent to `{ engine: <string> }` — resolved by
+      // `normalizeCodeHighlightConfig()` at every read site.
+      z.string(),
+      z.object({
+        engine: z.union([z.string(), z.unknown(), z.function()]).optional(),
+        theme: z
+          .union([
+            z.string(),
+            z.object({ light: z.string(), dark: z.string() }),
+          ])
+          .optional(),
+        options: z.record(z.string(), z.unknown()).optional(),
+      }),
+    ])
     .optional(),
 })
 
@@ -364,6 +383,11 @@ export const SsgConfigSchema = z.object({
    * @default 'zig-critters'
    */
   criticalCss: z.enum(['zig-critters', 'beasties', 'none']).optional(),
+  /**
+   * Per-page budget (bytes) for inlined critical CSS. Pages whose critical CSS
+   * exceeds the budget have it skipped (with a build warning). Default: 24576.
+   */
+  criticalCssMaxSize: z.number().int().min(0).optional(),
 })
 
 /**

@@ -1,10 +1,10 @@
 ---
 title: Bloques de Código
 sidebarPosition: 5
-description: Usa resaltado de sintaxis Shiki, títulos, números de línea, ajuste de texto y copiado en bloques de código Markdown.
+description: Usa resaltado de sintaxis (Shiki por defecto), títulos, números de línea, ajuste de texto y copiado en bloques de código Markdown.
 ---
 
-Los bloques de código con cerca en Boltdocs usan **Shiki** para el resaltado de sintaxis. Se calculan completamente en tiempo de compilación, asegurando tiempos de carga rápidos con cero costo de rendimiento en el lado del cliente.
+Los bloques de código con cerca en Boltdocs usan **Shiki** por defecto para el resaltado de sintaxis, pero el motor es conectable — cualquier motor que implemente el contrato `CodeHighlighterAdapter` se puede seleccionar con `theme.codeHighlighting`. Todo se calcula en tiempo de compilación, asegurando tiempos de carga rápidos con cero costo de rendimiento en el lado del cliente.
 
 
 ## Parámetros del Bloque de Código (Propiedades Meta)
@@ -58,7 +58,7 @@ Puedes combinar estos atributos en cualquier orden:
 
 ## Configuración
 
-Puedes personalizar los temas de Shiki en `boltdocs.config.ts`. Puedes elegir diferentes temas para los modos claro y oscuro:
+Puedes personalizar los temas de resaltado en `boltdocs.config.ts`. Puedes elegir diferentes temas para los modos claro y oscuro. Shiki es el motor por defecto; usa `theme.codeHighlighting.engine` para cambiar a un motor provisto por un plugin:
 
 ```ts
 // boltdocs.config.ts
@@ -66,9 +66,14 @@ import { defineConfig } from 'boltdocs'
 
 export default defineConfig({
   theme: {
-    codeTheme: {
-      light: 'github-light',
-      dark: 'github-dark',
+    codeHighlighting: {
+      engine: 'shiki', // id de registry, instancia de adapter o factoría
+      theme: {
+        light: 'github-light',
+        dark: 'github-dark',
+      },
+      // Arranque de dev-server más rápido — ver Getting Started > Configuration.
+      options: { regexEngine: 'oniguruma' },
     },
   },
 })

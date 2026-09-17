@@ -1,122 +1,127 @@
 import { error as logError } from '@bdocs/dui'
+import {
+  normalizeCodeHighlightConfig,
+  parseMetaString,
+  type ParsedMeta,
+} from '@bdocs/unist-utils'
 import { escapeHtml } from '../utils'
-import { ensureLanguage, highlight } from './highlighter'
-
-export { ensureLanguage }
+import { ensureLanguage as ensureShikiLanguage, highlight } from './highlighter'
+import type { RegexEngineKind } from './highlighter'
 import { showLineNumbers } from './transformers/show-line-numbers'
 import { showWordWrap } from './transformers/show-word-wrap'
 import {
   addTitleProperty,
   addLanguageProperty,
 } from './transformers/add-to-pre-element'
-import type { BoltdocsConfig } from '../config'
-import type { ShikiTheme } from '../../shared/types'
+import type {
+  CodeHighlighterAdapter,
+  CodeHighlighterRuntime,
+  CodeHighlightConfig,
+  CodeTheme,
+} from '../../shared/types'
 import type { CodeToHastOptions } from 'shiki'
 import { DEFAULT_THEMES, DEFAULTS, SHIKI_CLASSES } from './constants'
 
-export interface ParsedMeta {
-  title?: string
-  lineNumbers?: boolean
-  wordWrap?: boolean
-  [key: string]: any
-}
+export {
+  parseMetaString,
+  type ParsedMeta,
+} from '@bdocs/unist-utils'
+export { ensureLanguage } from './highlighter'
 
-/**
- * Parses a meta string into a structured ParsedMeta object.
- */
-export function parseMetaString(metaStr: string): ParsedMeta {
-  const result: ParsedMeta = {}
-  if (!metaStr) return result
-
-  const setBooleanFlag = (
-    key: 'lineNumbers' | 'wordWrap',
-    value?: string,
-  ): void => {
-    if (value === 'false') {
-      result[key] = false
-      return
-    }
-    if (value === 'true' || value === undefined) {
-      result[key] = true
-    }
+/** Minimal config surface the Shiki adapter reads off `BoltdocsConfig`. */
+export interface ShikiAdapterConfig {
+  theme?: {
+    codeTheme?: CodeTheme
+    codeHighlighting?: CodeHighlightConfig | string
   }
-
-  const lineMatches = Array.from(
-    metaStr.matchAll(
-      /(?:^|\s)(?:lineNumbers|showLineNumbers|show-line-numbers|show_line_numbers|line_numbers)(?:\s*=\s*(true|false))?(?=\s|$)/gi,
-    ),
-  )
-  const lastLineMatch = lineMatches[lineMatches.length - 1]
-  if (lastLineMatch) {
-    setBooleanFlag('lineNumbers', lastLineMatch[1])
-  }
-
-  const wordMatches = Array.from(
-    metaStr.matchAll(
-      /(?:^|\s)(?:wordWrap|word-wrap|word_wrap)(?:\s*=\s*(true|false))?(?=\s|$)/gi,
-    ),
-  )
-  const lastWordMatch = wordMatches[wordMatches.length - 1]
-  if (lastWordMatch) {
-    setBooleanFlag('wordWrap', lastWordMatch[1])
-  }
-
-  const titleMatch = metaStr.match(/title=(['"])(.*?)\1/)
-  if (titleMatch) {
-    result.title = titleMatch[2]
-  }
-
-  return result
 }
 
 /**
  * Unified Shiki Adapter for Boltdocs.
- * Centralizes theme resolution, transformer configuration, and rendering logic.
+ *
+ * Implements the engine-agnostic {@link CodeHighlighterAdapter} SPI so the
+ * core never talks to Shiki directly. Centralizes theme resolution,
+ * transformer configuration, and rendering logic.
  */
-export class ShikiAdapter {
-  private config: BoltdocsConfig | undefined
+export class ShikiAdapter implements CodeHighlighterAdapter {
+  name = 'shiki'
+  version = '3.23.0'
 
-  constructor(config?: BoltdocsConfig) {
-    this.config = config
-  }
+  private theme: CodeTheme
+  private regexEngine: RegexEngineKind
 
-  /**
-   * Resolves the code theme from Boltdocs configuration.
-   */
-  getTheme(): ShikiTheme | { light: ShikiTheme; dark: ShikiTheme } {
-    return (
-      (this.config?.theme?.codeTheme as
-        | ShikiTheme
-        | { light: ShikiTheme; dark: ShikiTheme }
-        | undefined) || {
-        light: DEFAULT_THEMES.LIGHT as ShikiTheme,
-        dark: DEFAULT_THEMES.DARK as ShikiTheme,
-      }
+  constructor(config?: ShikiAdapterConfig) {
+    const highlighting = normalizeCodeHighlightConfig(
+      config?.theme?.codeHighlighting,
     )
+    this.theme = (highlighting?.theme ??
+      config?.theme?.codeTheme ??
+      ({
+        light: DEFAULT_THEMES.LIGHT,
+        dark: DEFAULT_THEMES.DARK,
+      } satisfies CodeTheme)) as CodeTheme
+    this.regexEngine =
+      String(highlighting?.options?.regexEngine) === 'oniguruma'
+        ? 'oniguruma'
+        : 'javascript'
   }
 
   /**
-   * Creates a Shiki highlighter instance with the configured themes.
+   * Resolves the code theme from the engine-agnostic configuration.
+   */
+  getTheme(): CodeTheme {
+    return this.theme
+  }
+
+  /**
+   * Creates a Shiki highlighter instance with the configured theme/engine.
    */
   async getHighlighter() {
-    return await highlight(this.getTheme())
+    return await highlight({ regexEngine: this.regexEngine })
+  }
+
+  /**
+   * Initializes the adapter and returns the runtime used by the render
+   * pipeline. The underlying build is module-level, so callers share the
+   * same in-flight highlighter.
+   */
+  async initialize(): Promise<CodeHighlighterRuntime> {
+    const highlighter = await this.getHighlighter()
+    return {
+      codeToHast: (code, options) =>
+        highlighter.codeToHast(
+          code,
+          options as unknown as Parameters<typeof highlighter.codeToHast>[1],
+        ),
+      codeToHtml: async (code, options) =>
+        highlighter.codeToHtml(
+          code,
+          options as unknown as Parameters<typeof highlighter.codeToHtml>[1],
+        ),
+    }
+  }
+
+  /**
+   * Ensure a language grammar is loaded into the engine backing this adapter.
+   */
+  async ensureLanguage(lang: string): Promise<boolean> {
+    return ensureShikiLanguage(lang, this.regexEngine)
   }
 
   /**
    * Assembles Shiki options including transformers for a specific code block.
    */
-  getOptions(lang: string, meta: string | ParsedMeta): CodeToHastOptions {
-    const theme = this.getTheme()
-
+  getOptions(lang: string, meta: unknown): Record<string, unknown> {
     let parsedMeta: ParsedMeta = {}
     let rawMeta = ''
 
     if (typeof meta === 'string') {
       rawMeta = meta
       parsedMeta = parseMetaString(meta)
-    } else if (meta) {
-      parsedMeta = meta
-      rawMeta = meta.__raw || ''
+    } else if (meta && typeof meta === 'object') {
+      const m = meta as ParsedMeta & { __raw?: string }
+      parsedMeta = { ...m }
+      rawMeta = String(m.__raw ?? '')
     }
 
     const metaObj: Record<string, unknown> = {
@@ -142,18 +147,14 @@ export class ShikiAdapter {
         addTitleProperty(),
         addLanguageProperty(),
       ],
+      ...(typeof this.theme === 'string'
+        ? { theme: this.theme }
+        : {
+            themes: { light: this.theme.light, dark: this.theme.dark },
+          }),
     } as CodeToHastOptions
 
-    if (typeof theme === 'object') {
-      ;(options as unknown as { themes?: unknown }).themes = {
-        light: theme.light,
-        dark: theme.dark,
-      }
-    } else {
-      ;(options as unknown as { theme?: unknown }).theme = theme
-    }
-
-    return options
+    return options as unknown as Record<string, unknown>
   }
 
   /**
@@ -163,47 +164,58 @@ export class ShikiAdapter {
   async render(
     code: string,
     lang: string,
-    meta: string | ParsedMeta,
+    meta: string | Record<string, unknown>,
   ): Promise<string> {
     try {
-      await ensureLanguage(lang || DEFAULTS.LANG)
-      const highlighter = await this.getHighlighter()
       const options = this.getOptions(lang, meta)
-      return highlighter.codeToHtml(code, options)
+      const runtime = await this.initialize()
+      return await runtime.codeToHtml(code, options)
     } catch (e) {
       logError(`[ShikiAdapter] Failed to render code:`, e)
       return `<pre class="${SHIKI_CLASSES.FALLBACK}"><code>${escapeHtml(code)}</code></pre>`
     }
   }
+
+  /**
+   * Warm the highlighter off the critical path (never awaited).
+   */
+  prewarm(_options?: Record<string, unknown>): void {
+    void highlight({ regexEngine: this.regexEngine }).catch(() => {})
+  }
 }
 
 // Module-level singleton adapter caching logic
 let _adapterInstance: ShikiAdapter | null = null
-let _adapterThemeConfigStr: string | undefined
+let _adapterConfigStr: string | undefined
 
 /**
  * Returns a cached ShikiAdapter instance.
- * Recreates only if the relevant codeTheme configuration values change deeply.
+ * Recreates only if the resolved theme or regex engine configuration changes.
  */
-export function getShikiAdapter(config?: BoltdocsConfig): ShikiAdapter {
-  const currentThemeStr = JSON.stringify(config?.theme?.codeTheme || null)
+export function getShikiAdapter(config?: ShikiAdapterConfig): ShikiAdapter {
+  const highlighting = normalizeCodeHighlightConfig(
+    config?.theme?.codeHighlighting,
+  )
+  const theme = highlighting?.theme ?? config?.theme?.codeTheme
+  const currentConfigStr = JSON.stringify({
+    theme,
+    regexEngine: highlighting?.options?.regexEngine ?? 'oniguruma',
+  })
 
-  if (_adapterInstance === null || _adapterThemeConfigStr !== currentThemeStr) {
+  if (_adapterInstance === null || _adapterConfigStr !== currentConfigStr) {
     _adapterInstance = new ShikiAdapter(config)
-    _adapterThemeConfigStr = currentThemeStr
+    _adapterConfigStr = currentConfigStr
   }
   return _adapterInstance
 }
 
 /**
  * Starts building the highlighter in the background. The highlighter build
- * is ~2.5s of synchronous CPU (TextMate grammar parsing for every theme and
- * language), so it must never run on the critical path of Vite's server
- * setup. The underlying `highlight()` promise is module-level, so callers
- * that need the highlighter later share the same in-flight build.
+ * is ~2.5s of synchronous CPU (TextMate grammar parsing), so it must never
+ * run on the critical path of Vite's server setup. The underlying
+ * `highlight()` promise is module-level, so callers that need the
+ * highlighter later share the same in-flight build.
  */
-export function prewarmShiki(config?: BoltdocsConfig): void {
-  getShikiAdapter(config)
-    .getHighlighter()
-    .catch(() => {})
+export function prewarmShiki(config?: ShikiAdapterConfig): void {
+  getShikiAdapter(config).prewarm()
 }

@@ -13,6 +13,7 @@ import { injectHtmlMeta } from './html'
 import { validatePlugins, type BoltdocsPlugin } from '../plugins'
 import { PluginLifecycleManager } from '../plugins/plugin-lifecycle'
 import type { IPluginLifecycleManager } from '../../shared/types'
+import { normalizeCodeHighlightConfig } from '@bdocs/unist-utils'
 import {
   createVirtualModuleState,
   createVirtualModulesPlugin,
@@ -445,12 +446,22 @@ export function boltdocsPlugin(
         // If routes were pre-computed by the pipeline, skip generation here.
         // The pipeline (ConfigResolveStep) already wrote types/link-tree.
 
-        // Pre-warm Shiki highlighter only for builds. In dev it is deferred
-        // to post-listen (dev-server plugin) because the highlighter build is
-        // ~2.5s of synchronous CPU that otherwise blocks Vite's server setup.
+        // Pre-warm the configured highlighter engine only for builds. In dev
+        // it is deferred to post-listen (dev-server plugin) because the
+        // highlighter build is ~2.5s of synchronous CPU that otherwise blocks
+        // Vite's server setup.
         if (isBuild) {
-          import('../mdx/shiki-adapter')
-            .then(({ prewarmShiki }) => prewarmShiki(config))
+          import('../highlight/registry')
+            .then(({ prewarmHighlighter }) => {
+              const highlighting = normalizeCodeHighlightConfig(
+                config.theme?.codeHighlighting,
+              )
+              prewarmHighlighter({
+                engine: highlighting?.engine,
+                theme: highlighting?.theme ?? config.theme?.codeTheme,
+                options: highlighting?.options,
+              })
+            })
             .catch(() => {})
         }
 
@@ -503,6 +514,7 @@ export function boltdocsPlugin(
             script: 'async',
             beastiesOptions: false,
             criticalCss: resolvedCriticalCss,
+            criticalCssMaxSize: config.ssg?.criticalCssMaxSize,
             onPageRendered: async (
               path: string,
               renderedHTML: string,

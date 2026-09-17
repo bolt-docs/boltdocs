@@ -18,6 +18,9 @@ export * from './types'
 // Meta parser.
 export * from './meta'
 
+// Code highlighting config normalization (shared by core + Sätteri).
+export * from './code-highlight'
+
 // Visitors.
 export * from './visit'
 

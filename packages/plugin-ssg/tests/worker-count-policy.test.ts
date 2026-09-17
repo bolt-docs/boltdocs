@@ -7,16 +7,16 @@ const healthyMemory = {
 }
 
 describe('resolveSsgWorkerCount', () => {
-  it('defaults an 8-core host to four workers', () => {
-    expect(resolveSsgWorkerCount({ cpuCount: 8, ...healthyMemory })).toBe(4)
+  it('defaults an 8-core host to six workers (cores - 1)', () => {
+    expect(resolveSsgWorkerCount({ cpuCount: 8, ...healthyMemory })).toBe(6)
   })
 
-  it('defaults a 4-core host to two workers', () => {
-    expect(resolveSsgWorkerCount({ cpuCount: 4, ...healthyMemory })).toBe(2)
+  it('defaults a 4-core host to three workers', () => {
+    expect(resolveSsgWorkerCount({ cpuCount: 4, ...healthyMemory })).toBe(3)
   })
 
-  it('caps the automatic default at four workers on large hosts', () => {
-    expect(resolveSsgWorkerCount({ cpuCount: 32, ...healthyMemory })).toBe(4)
+  it('caps the automatic default at six workers on large hosts', () => {
+    expect(resolveSsgWorkerCount({ cpuCount: 32, ...healthyMemory })).toBe(6)
   })
 
   it('honors an explicit option when safety limits allow it', () => {

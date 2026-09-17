@@ -23,11 +23,16 @@ import {
 import { serializeState } from '../utils/state'
 import { createAssetCollector } from './assets'
 import type { AssetCollector } from './assets'
-import { getBeasties, createZigCrittersEngine } from './critical'
+import {
+  getBeasties,
+  createZigCrittersEngine,
+  resolveCriticalCssMaxSize,
+} from './critical'
 import {
   createCriticalCssCacheKey,
   CriticalCssCache,
   extractNewStyleTags,
+  pruneCriticalCssDiskCache,
 } from './critical-cache'
 import {
   computeRouteClientAssetHash,
@@ -66,6 +71,7 @@ import { computeClientCodeHash } from './client-hash'
 import { computeChunkHashesWithCache } from './chunk-hash-cache'
 import {
   getSsgSourceContentHash,
+  hashSourceFileContentSync,
   isSsgPageCacheValid,
 } from './cache-validation'
 import { getSsgPoolMetrics } from './pool-metrics'
@@ -650,9 +656,14 @@ export async function build(
     concurrency = 20,
     rootContainerId = 'root',
     beastiesOptions: rawBeasties = {},
-  }: ViteReactSSGOptions & { beastiesOptions?: any } = mergedOptions as any
+    criticalCssMaxSize,
+  }: ViteReactSSGOptions & {
+    beastiesOptions?: any
+    criticalCssMaxSize?: number
+  } = mergedOptions as any
 
   const beastiesOptions = rawBeasties
+  const criticalCssBudget = resolveCriticalCssMaxSize(criticalCssMaxSize)
   const turbo = (mergedOptions.turbo as boolean) ?? false
   const ssrCacheRoot = join(finalCacheDir, 'ssr')
   const ssrCacheIndexPath = join(finalCacheDir, 'ssr-cache-index.json')
@@ -753,6 +764,31 @@ export async function build(
     fs
       .readdirSync(ssgOut)
       .filter((f) => f.endsWith('.mjs') || f.endsWith('.cjs')).length > 0
+
+  // Warm the ES module loader cache while the (parallel) bundle builds run.
+  // The SSR bundle is already on disk when serverBuildSkipped is true, and
+  // importing it is pure CPU (parse + link + execute ~7MB of JS). Kicking it
+  // off here overlaps that with the client/server bundle phase instead of
+  // adding ~2-10s after it. The import result is consumed by the normal
+  // sequential block below; only the module resolution work is shared.
+  let ssrModulePrewarm: Promise<unknown> | null = null
+  if (!canSkipSsrImport && serverBuildSkipped && format === 'esm') {
+    const prewarmPrefix = process.platform === 'win32' ? 'file://' : ''
+    try {
+      const prewarmSsgOut = ssgOut
+      const prewarmFiles = fs.existsSync(prewarmSsgOut)
+        ? fs.readdirSync(prewarmSsgOut).filter((f) => f.endsWith('.mjs'))
+        : []
+      if (prewarmFiles.length > 0) {
+        const prewarmEntry =
+          prewarmPrefix +
+          join(prewarmSsgOut, prewarmFiles[0]).replace(/\\/g, '/')
+        ssrModulePrewarm = import(/* @vite-ignore */ prewarmEntry).catch(
+          () => {},
+        )
+      }
+    } catch {}
+  }
 
   const renderStartTime = performance.now()
   const [clientBundle, serverBundle] = await Promise.all([
@@ -874,6 +910,10 @@ export async function build(
       createRoot: CreateRootFactory
       includedRoutes?: ViteReactSSGOptions['includedRoutes']
     }
+    // The prewarm import raced the same module; swallow its outcome — the
+    // awaited import above is authoritative. Await it so a rejection already
+    // handled can't surface as an unhandled rejection later.
+    if (ssrModulePrewarm) await ssrModulePrewarm.catch(() => {})
     ssrImportDurationMs = performance.now() - ssrImportStart
     matchRouteBranchWithParams = serverEntryModule.matchRouteBranchWithParams
     const { createRoot, includedRoutes: serverEntryIncludedRoutes } =
@@ -1050,7 +1090,7 @@ export async function build(
   // string is hashed once per build; the cache-key function reuses this hash
   // instead of re-hashing the same stylesheet for every page.
   let cachedAllCss = ''
-  let cachedAllCssHash = ''
+  let cachedAllCssHash: string = ''
   if (zigCritters) {
     const cssDir = join(out, 'assets')
     if (fs.existsSync(cssDir)) {
@@ -1063,7 +1103,7 @@ export async function build(
       cachedAllCssHash = crypto
         .createHash('sha256')
         .update(cachedAllCss)
-        .digest()
+        .digest('hex')
     }
   }
 
@@ -1145,9 +1185,11 @@ export async function build(
     concurrency: Math.min(os.cpus().length, 4),
   })
   // Finalize queue with limited concurrency to prevent event-loop
-  // saturation when many worker results arrive simultaneously.
+  // saturation when many worker results arrive simultaneously. The ceiling
+  // matches the zig-critters pool size: fewer concurrent finalizers would
+  // starve idle WASM workers during the critical-CSS phase.
   const finalizeQueue = new PQueue({
-    concurrency: Math.max(2, Math.min(os.cpus().length, 6)),
+    concurrency: Math.max(2, Math.min(os.cpus().length, 8)),
   })
 
   const staticLoaderDataManifest: StaticLoaderDataManifest = {}
@@ -1156,6 +1198,10 @@ export async function build(
   // Pre-compute source metadata (content hash + mtime) ONCE so
   // finalizePage doesn't call fs.statSync per page (which was ~10ms × 202 = ~2s).
   // Key = absolute source file path, value = { hash, mtimeMs }.
+  // The hash is real file content (see hashSourceFileContent) so git
+  // checkouts / mtime rewrites no longer invalidate every page. The legacy
+  // mtime:size string is kept as a per-file fallback alias so caches written
+  // by older builds stay valid until they are naturally rewritten.
   const sourceMetaCache = new Map<string, { hash: string; mtimeMs: number }>()
   const uniqueSources = new Set<string>()
   for (const p of routesPaths) {
@@ -1168,7 +1214,13 @@ export async function build(
       if (fs.existsSync(srcPath)) {
         const stat = fs.statSync(srcPath)
         sourceMetaCache.set(srcPath, {
-          hash: `${stat.mtimeMs}:${stat.size}`,
+          // Real file-content hash: git checkouts / mtime rewrites no longer
+          // invalidate every page (see getSsgSourceContentHash). Legacy
+          // mtime:size entries in ssg-cache.json miss once and are rewritten.
+          hash: hashSourceFileContentSync(
+            srcPath,
+            `${stat.mtimeMs}:${stat.size}`,
+          ),
           mtimeMs: stat.mtimeMs,
         })
       }
@@ -1207,7 +1259,14 @@ export async function build(
 
   // Cache only identical structural pages. Unlike the old first-page cache,
   // this never applies one route's critical CSS to a different route shape.
-  const criticalCssCache = new CriticalCssCache()
+  // The persistent layer is skipped in turbo mode, which intentionally avoids
+  // all persistent page caches for maximum speed.
+  const criticalCssCacheDir = turbo
+    ? undefined
+    : join(finalCacheDir, 'critical-css')
+  const criticalCssCache = new CriticalCssCache({
+    cacheDir: criticalCssCacheDir,
+  })
 
   // Per-page timing accumulators for render sub-metrics.
   // Keep these as primitive totals/arrays so instrumentation has negligible
@@ -1219,7 +1278,16 @@ export async function build(
   let assetCollectionMs = 0
   let beforeHookMs = 0
   let pageHtmlAssemblyMs = 0
+  // Concurrent-correct accounting for the onPageRendered hook: renders run in
+  // parallel, so summing per-page `performance.now()` deltas double-counts
+  // overlapping wall time (a 4.7s total on a 231-page build while the hook
+  // costs ~4ms per page). Track an interval union instead: mark open/close
+  // events per page and add only the span not already covered by a concurrent
+  // execution. The result equals the wall time the hook pipeline actually
+  // occupied, which is what phases charts should show.
   let onPageRenderedHookMs = 0
+  let onPageRenderedOpenCount = 0
+  let onPageRenderedLastOpen = 0
   const cacheWriteMs = 0
   let cachedOutputMs = 0
   let workerRoundTripMs = 0
@@ -1424,8 +1492,14 @@ export async function build(
     }
 
     const onPageRenderedStart = performance.now()
+    onPageRenderedOpenCount++
+    if (onPageRenderedOpenCount === 1)
+      onPageRenderedLastOpen = onPageRenderedStart
     const transformed = (await onPageRendered?.(path, html, appCtx)) || html
-    onPageRenderedHookMs += performance.now() - onPageRenderedStart
+    onPageRenderedOpenCount--
+    if (onPageRenderedOpenCount === 0) {
+      onPageRenderedHookMs += performance.now() - onPageRenderedLastOpen
+    }
     let loaderDataScript = ''
     if (loaderData && Object.keys(loaderData).length > 0) {
       const safeLoaderDataJSON = JSON.stringify(loaderData).replace(
@@ -1453,7 +1527,9 @@ export async function build(
       // Critical CSS depends on the rendered page structure. Cache only the
       // generated style block by (engine, structural HTML, CSS) so repeated
       // layouts avoid a second WASM pass without sharing styles across routes
-      // that need different selectors.
+      // that need different selectors. A persistent layer (keyed identically)
+      // lets text-only edits reuse the previous extraction instead of paying
+      // the WASM pass again.
       if (cachedAllCss) {
         const cacheKey = createCriticalCssCacheKey(
           resultHTML,
@@ -1466,7 +1542,9 @@ export async function build(
             cacheKey,
             async () => {
               const { criticalCss, stats } =
-                await zigCritters.extractCriticalCss(resultHTML, cachedAllCss)
+                await zigCritters.extractCriticalCss(resultHTML, cachedAllCss, {
+                  maxSize: criticalCssBudget,
+                })
               if (!criticalCss) {
                 if (stats.truncated) {
                   warn(
@@ -1477,6 +1555,7 @@ export async function build(
               }
               return `<style data-zig-critters>${criticalCss}</style>`
             },
+            { engine: 'zig-critters' },
           )
           if (criticalStyle && !resultHTML.includes('data-zig-critters')) {
             resultHTML = resultHTML.replace(
@@ -1509,6 +1588,7 @@ export async function build(
           )
           return extractNewStyleTags(resultHTML, processed)
         },
+        { engine: 'beasties' },
       )
       if (criticalStyle && !resultHTML.includes(criticalStyle)) {
         resultHTML = resultHTML.replace('</head>', `${criticalStyle}</head>`)
@@ -1866,6 +1946,20 @@ export async function build(
       )
     } catch (e) {
       // Ignore cache and pruning errors
+    }
+
+    // Garbage-collect the persistent critical-CSS cache alongside the page
+    // cache. The ~1-3ms pass runs at most once per minute (same gating as the
+    // page prune) and keeps changed page shapes from accumulating forever.
+    if (criticalCssCacheDir) {
+      try {
+        await pruneCriticalCssDiskCache(criticalCssCacheDir, {
+          maxAgeMs: 30 * 24 * 60 * 60 * 1000,
+          maxEntries: 5000,
+        })
+      } catch {
+        // Advisory cache — pruning failures must not fail the build.
+      }
     }
   }
 

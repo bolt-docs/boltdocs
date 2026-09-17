@@ -52,7 +52,8 @@ Controla toda la shell visual de tu sitio de documentación.
 | **`tabs`** | `TabConfig[]` | — | Franja de pestañas horizontal sobre el sidebar. Consulta [Enrutamiento por Sistema de Archivos](/docs/guides/getting-started/routing). |
 | **`sidebar`** | `SidebarConfig` | — | Estructura del sidebar definida manualmente (deshabilita el auto-descubrimiento para esos prefijos). |
 | **`sidebarGroups`** | `Record<string, SidebarGroupConfig>` | — | Sobreescribe títulos e iconos de grupos sin definir un sidebar manual completo. |
-| **`codeTheme`** | [`CodeThemeConfig`](#codethemeconfig) | — | Tema de Shiki usado para el resaltado de código. |
+| **`codeTheme`** | [`CodeThemeConfig`](#codethemeconfig) | — | Configura el tema del resaltado de código. **Obsoleto** — usa [`codeHighlighting`](#codehighlightconfig). Acepta los mismos valores que `codeHighlighting.theme`. |
+| **`codeHighlighting`** | [`CodeHighlightConfig`](#codehighlightconfig) | — | Motor y tema del resaltado de código. Agnóstico al motor: usa el motor Shiki por defecto y acepta cualquier `CodeHighlighterAdapter` personalizado. |
 | **`editLink`** | `string` | — | Plantilla de URL para el enlace "Editar esta página". Usa `:path` como placeholder para la ruta relativa del archivo actual. |
 | **`socialLinks`** | `SocialLink[]` | — | Enlaces de iconos extra (Twitter/X, Discord, etc.) mostrados en la navbar. |
 | **`communityHelp`** | `string` | — | Enlace de soporte (por ejemplo, URL de Discord, Slack o foro) mostrado en el pie de página. |
@@ -76,6 +77,96 @@ Controla toda la shell visual de tu sitio de documentación.
 | **`dark`** | `string` | `'github-dark'` | Nombre del tema de Shiki para modo oscuro. |
 
 Temas disponibles: `github-light`, `github-dark`, `tokyo-night`, `dracula`, `nord`, `one-dark-pro`, `one-light`.
+
+### `CodeHighlightConfig`
+
+La forma agnóstica al motor de configurar el resaltado de código. El core nunca
+habla directamente con una librería de resaltado — renderiza a través de un
+`CodeHighlighterAdapter` resuelto desde un registry, así que **Shiki es solo el
+motor por defecto** y cualquier resaltador se puede conectar sin tocar el core.
+
+| Propiedad | Tipo | Por Defecto | Descripción |
+| :--- | :--- | :--- | :--- |
+| **`engine`** | `string \| CodeHighlighterAdapter \| (api) => CodeHighlighterAdapter` | `'shiki'` | El motor de resaltado. Un string es un id del registry (`'shiki'` o cualquier motor registrado por un plugin). Pasa una instancia de adapter o una factoría para inyectar un motor personalizado. |
+| **`theme`** | `string \| { light; dark }` | `{ light: 'github-light', dark: 'github-dark' }` | Nombre de tema o par claro/oscuro. Con un objeto, los bloques renderizados llevan `data-theme-mode="dual"` y usan las variables CSS `--shiki-light`/`--shiki-dark`. |
+| **`options`** | `Record<string, unknown>` | `{}` | Opciones específicas del motor, pasadas al adapter. |
+
+Opciones para el motor Shiki integrado:
+
+| Opción | Tipo | Por Defecto | Descripción |
+| :--- | :--- | :--- | :--- |
+| **`regexEngine`** | `'oniguruma' \| 'javascript'` | `'oniguruma'` | `'javascript'` reemplaza el WASM de Oniguruma por el motor de regex nativo JS de Shiki, reduciendo el arranque del resaltador de ~2.5s a ~200ms a costa de algo de fidelidad en gramáticas exóticas. Útil para arranques de dev-server más rápidos. |
+
+```ts
+export default defineConfig({
+  theme: {
+    codeHighlighting: {
+      engine: 'shiki',
+      theme: {
+        light: 'github-light',
+        dark: 'github-dark',
+      },
+      options: {
+        regexEngine: 'javascript',
+      },
+    },
+  },
+})
+```
+
+#### Motores personalizados vía plugins
+
+Los plugins exponen un motor a través del campo `codeHighlighter`. El adapter
+se registra bajo el nombre del plugin, así que `engine` puede seleccionarlo por
+id:
+
+```ts
+import { defineConfig, definePlugin, type CodeHighlighterAdapter } from 'boltdocs'
+
+const prismEngine: CodeHighlighterAdapter = {
+  name: 'prism',
+  getOptions(lang, meta) {
+    return { lang, theme: 'one-light' }
+  },
+  async initialize() {
+    const prism = await import('your-prism-wrapper')
+    return {
+      codeToHast: (code, options) => prism.toHast(code, options),
+      codeToHtml: async (code, options) => prism.toHtml(code, options),
+    }
+  },
+  async ensureLanguage(lang) {
+    return true
+  },
+}
+
+const prismPlugin = definePlugin({
+  name: 'my-prism',
+  codeHighlighter: prismEngine,
+})
+
+export default defineConfig({
+  plugins: [prismPlugin()],
+  theme: {
+    codeHighlighting: { engine: 'my-prism' },
+  },
+})
+```
+
+También se puede pasar un motor inline como instancia de adapter o factoría sin
+registrar un plugin:
+
+```ts
+codeHighlighting: {
+  engine: {
+    name: 'prism',
+    getOptions: (lang, meta) => ({ lang }),
+    initialize: () => import('./adapter').then((m) => m.runtime),
+  },
+},
+```
+
+Para más sobre el sistema de plugins, consulta [Plugins](/docs/es/plugins).
 
 ---
 
@@ -324,9 +415,12 @@ export default defineConfig({
       alt: 'My Project Logo',
     },
     githubRepo: 'my-org/my-project',
-    codeTheme: {
-      light: 'github-light',
-      dark: 'github-dark',
+    codeHighlighting: {
+      engine: 'shiki',
+      theme: {
+        light: 'github-light',
+        dark: 'github-dark',
+      },
     },
     editLink: 'https://github.com/my-org/my-project/edit/main/docs/:path',
     tabs: [

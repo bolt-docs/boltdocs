@@ -196,6 +196,44 @@ describe('config', () => {
       })
     })
 
+    it('should accept theme.codeHighlighting as string', async () => {
+      const configPath = path.resolve(tempProjectDir, 'boltdocs.config.ts')
+      fs.writeFileSync(
+        configPath,
+        `export default { 
+          theme: { 
+            codeHighlighting: 'shiki'
+          } 
+        };`,
+      )
+
+      const config = await resolveConfig(tempProjectDir, tempProjectDir)
+      expect(config.theme?.codeHighlighting).toBe('shiki')
+    })
+
+    it('should accept theme.codeHighlighting as object', async () => {
+      const configPath = path.resolve(tempProjectDir, 'boltdocs.config.ts')
+      fs.writeFileSync(
+        configPath,
+        `export default { 
+          theme: { 
+            codeHighlighting: {
+              engine: 'shiki',
+              theme: { light: 'github-light', dark: 'github-dark' },
+              options: { regexEngine: 'oniguruma' }
+            }
+          } 
+        };`,
+      )
+
+      const config = await resolveConfig(tempProjectDir, tempProjectDir)
+      expect(config.theme?.codeHighlighting).toEqual({
+        engine: 'shiki',
+        theme: { light: 'github-light', dark: 'github-dark' },
+        options: { regexEngine: 'oniguruma' },
+      })
+    })
+
     it('should resolve safely when theme.tabs is omitted', async () => {
       const configPath = path.resolve(tempProjectDir, 'boltdocs.config.ts')
       fs.writeFileSync(

@@ -89,9 +89,12 @@ theme: {
   ],
   editLink: 'https://github.com/user/repo/edit/main/docs/:path',
   communityHelp: 'https://discord.gg/invite',
-  codeTheme: 'github-dark',                     // Shiki code theme
-  // Or per-mode themes:
-  codeTheme: { light: 'github-light', dark: 'github-dark' },
+  codeTheme: 'github-dark',                     // [deprecated] Shiki code theme
+  codeHighlighting: {                            // Engine-agnostic highlighting config
+    engine: 'shiki',                             // Registry id, adapter instance, or factory
+    theme: 'github-dark',                        // Or: / { light, dark } / (dual-mode renders data-theme-mode="dual")
+    options: { regexEngine: 'oniguruma' },       // 'oniguruma' (default) | 'javascript' (faster dev startup)
+  },
   version: '3.0.0',                             // Current version badge
 }
 ```

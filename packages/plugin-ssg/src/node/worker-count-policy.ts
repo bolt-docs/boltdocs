@@ -31,7 +31,11 @@ export function resolveSsgWorkerCount({
   const freeWorkers = Math.max(2, Math.floor(freeMemoryGB / 0.3))
   const ramWorkers = Math.min(budgetWorkers, freeWorkers)
   const parsedEnvWorkers = Number.parseInt(envWorkers || '', 10)
-  const defaultWorkers = Math.max(2, Math.min(Math.floor(cores / 2), 4))
+  // Default: leave one core for the orchestrator, then use the rest of the
+  // CPU headroom. RAM gates (0.256GB/worker budget, 0.3GB free floor) still
+  // cap this well before memory pressure on small machines — e.g. 8 cores /
+  // 7.6GB → 6 workers, 4 cores / 8GB → 3.
+  const defaultWorkers = Math.max(2, Math.min(cores - 1, 6))
   const selectedWorkers =
     requestedWorkers ??
     (Number.isFinite(parsedEnvWorkers) && parsedEnvWorkers > 0

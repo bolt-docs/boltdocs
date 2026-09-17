@@ -21,6 +21,28 @@ export async function getBeasties(
   }
 }
 
+/**
+ * Default per-page budget (in bytes) for inline critical CSS. The 8KB default
+ * inherited from the extraction engine silently discarded the critical CSS of
+ * real docs sites (measured 16–18KB/page on the boltdocs docs site), so the
+ * framework default is higher; sites can tune it via `ssg.criticalCssMaxSize`.
+ */
+export const DEFAULT_CRITICAL_CSS_MAX_SIZE = 24 * 1024
+
+/**
+ * Resolve the effective critical-CSS budget from user configuration. Accepts
+ * the raw `ssg.criticalCssMaxSize` value (number | undefined) so build.ts can
+ * pass config straight through without its own validation logic.
+ */
+export function resolveCriticalCssMaxSize(
+  configMaxSize: number | undefined,
+): number {
+  if (typeof configMaxSize === 'number' && configMaxSize >= 0) {
+    return configMaxSize
+  }
+  return DEFAULT_CRITICAL_CSS_MAX_SIZE
+}
+
 export interface ZigCritters {
   /**
    * Extract the critical CSS for one page. Implementations return only the

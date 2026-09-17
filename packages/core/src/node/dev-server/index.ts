@@ -1,6 +1,7 @@
 import type { Plugin } from 'vite'
 import type { BoltdocsConfig } from '../config'
 import type { IPluginLifecycleManager } from '../../shared/types'
+import { normalizeCodeHighlightConfig } from '@bdocs/unist-utils'
 import {
   disposeRouteCacheContext,
   getRouteCacheContext,
@@ -89,13 +90,24 @@ export function createDevServerPlugin(
         })
       }
 
-      // Pre-warm Shiki highlighter once the HTTP server is actually
-      // listening. During createServer the highlighter build (~2.5s of
-      // synchronous CPU from TextMate grammar parsing) would block startup,
-      // so it is deferred to the background after the "ready" banner prints.
+      // Pre-warm the configured highlighter engine once the HTTP server is
+      // actually listening. During createServer the highlighter build (~2.5s
+      // of synchronous CPU from TextMate grammar parsing) would block
+      // startup, so it is deferred to the background after the "ready"
+      // banner prints.
       server.httpServer?.once('listening', () => {
-        import('../mdx/shiki-adapter')
-          .then(({ prewarmShiki }) => prewarmShiki(getConfig()))
+        import('../highlight/registry')
+          .then(({ prewarmHighlighter }) => {
+            const cfg = getConfig()
+            const highlighting = normalizeCodeHighlightConfig(
+              cfg.theme?.codeHighlighting,
+            )
+            prewarmHighlighter({
+              engine: highlighting?.engine,
+              theme: highlighting?.theme ?? cfg.theme?.codeTheme,
+              options: highlighting?.options,
+            })
+          })
           .catch(() => {})
       })
 

@@ -174,60 +174,78 @@
 
   /* Shiki dual-theme (light/dark pair) output carries `shiki-themes` plus
      inline `--shiki-light`/`--shiki-dark` variables. Only those blocks are
-     color-driven by this rule — single-theme output is left untouched. */
+     color-driven by this rule — single-theme output is left untouched.
+     `[data-theme-mode="dual"]` is the engine-agnostic equivalent emitted by
+     any highlighter engine; `.shiki.shiki-themes` is kept as a Shiki alias. */
   :root .shiki.shiki-themes,
-  :root .shiki.shiki-themes span {
+  :root .shiki.shiki-themes span,
+  :root [data-theme-mode="dual"],
+  :root [data-theme-mode="dual"] span {
     color: var(--shiki-light, inherit);
     background-color: var(--shiki-light, transparent);
   }
 
   :root.dark .shiki.shiki-themes,
-  :root.dark .shiki.shiki-themes span {
+  :root.dark .shiki.shiki-themes span,
+  :root.dark [data-theme-mode="dual"],
+  :root.dark [data-theme-mode="dual"] span {
     color: var(--shiki-dark, inherit);
     background-color: var(--shiki-dark, transparent);
   }
 
   /* Base Shiki Pre & Span Styles */
-  pre.shiki {
+  pre.shiki,
+  pre[data-highlighted="true"],
+  pre[data-highlighted="false"] {
     @apply py-2 text-[12px] leading-[1.6];
     overflow-x: auto;
     -webkit-overflow-scrolling: touch;
   }
 
-  pre.shiki span.line {
+  pre.shiki span.line,
+  pre[data-highlighted] span.line {
     @apply relative block px-4 py-0;
     white-space: pre;
     min-height: 1.6em;
   }
 
-  /* Shiki Word Wrap */
-  pre.shiki-word-wrap {
+  /* Word Wrap (engine-agnostic `data-word-wrap` + Shiki alias) */
+  pre.shiki-word-wrap,
+  pre[data-word-wrap="true"] {
     @apply whitespace-pre-wrap break-words;
   }
 
-  pre.shiki-word-wrap span.line {
+  pre.shiki-word-wrap span.line,
+  pre[data-word-wrap="true"] span.line {
     @apply block w-full;
   }
 
-  /* Shiki Line Numbers */
-  pre.shiki-line-numbers code {
+  /* Line Numbers (engine-agnostic `data-line-numbers` + Shiki alias) */
+  pre.shiki-line-numbers code,
+  pre[data-line-numbers="true"] code {
     counter-reset: step;
     counter-increment: step 0;
   }
 
-  pre.shiki-line-numbers .line {
+  pre.shiki-line-numbers .line,
+  pre[data-line-numbers="true"] .line {
     @apply !pl-12;
   }
 
   /* Hide the last line if it is completely empty to avoid extra numbers or spacing */
   pre.shiki .line:last-child:empty,
   pre.shiki .line:last-child:has(> :empty),
+  pre[data-highlighted] .line:last-child:empty,
+  pre[data-highlighted] .line:last-child:has(> :empty),
   pre.shiki-line-numbers .line:last-child:empty,
-  pre.shiki-line-numbers .line:last-child:has(> :empty) {
+  pre.shiki-line-numbers .line:last-child:has(> :empty),
+  pre[data-line-numbers="true"] .line:last-child:empty,
+  pre[data-line-numbers="true"] .line:last-child:has(> :empty) {
     display: none;
   }
 
-  pre.shiki-line-numbers .line::before {
+  pre.shiki-line-numbers .line::before,
+  pre[data-line-numbers="true"] .line::before {
     counter-increment: step;
     content: counter(step);
     @apply absolute left-0 top-0 inline-flex w-10 justify-end pr-3;

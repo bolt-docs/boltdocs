@@ -14,7 +14,9 @@
    so only the font family/size need to be realigned to the theme. These
    are unlayered + !important to beat the reset's unlayered rules. */
 :root .shiki,
-:root .shiki span {
+:root .shiki span,
+:root [data-code-engine="shiki"],
+:root [data-code-engine="shiki"] span {
   font-family: var(--font-mono) !important;
   font-size: 0.8125rem !important; /* 13px */
   line-height: 1.7 !important;
@@ -23,7 +25,9 @@
 
 /* Code token selection: primary-tinted like the rest of the theme */
 .shiki code::selection,
-.shiki span::selection {
+.shiki span::selection,
+[data-code-engine="shiki"] code::selection,
+[data-code-engine="shiki"] span::selection {
   background: color-mix(in srgb, var(--color-primary-500) 22%, transparent);
 }
 

@@ -1,8 +1,8 @@
 import { satteriRemarkMetaPlugin } from './satteri-plugins/remark-meta-plugin'
 import { satteriRehypeSlugPlugin } from './satteri-plugins/rehype-slug-plugin'
 import {
-  satteriRehypeShikiPlugin,
-  type ShikiCodeTheme,
+  satteriRehypeCodeHighlightPlugin,
+  type CodeHighlightConfig,
 } from './satteri-plugins/rehype-shiki-plugin'
 import type { MdastPluginInput, HastPluginInput } from 'satteri'
 
@@ -23,7 +23,7 @@ export interface SatteriProcessorPlugin {
  * Used internally by core when --turbo flag is active.
  */
 export function createSatteriProcessorPlugin(
-  codeTheme?: ShikiCodeTheme,
+  config?: CodeHighlightConfig,
 ): SatteriProcessorPlugin {
   return {
     name: 'boltdocs-processor-satteri',
@@ -32,7 +32,7 @@ export function createSatteriProcessorPlugin(
     mdastPlugins: [satteriRemarkMetaPlugin()],
     hastPlugins: [
       satteriRehypeSlugPlugin(),
-      satteriRehypeShikiPlugin(codeTheme),
+      satteriRehypeCodeHighlightPlugin(config),
     ],
   }
 }

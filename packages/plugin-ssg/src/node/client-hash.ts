@@ -5,103 +5,86 @@ import { createRequire } from 'node:module'
 import { dirname, join, relative } from 'node:path'
 
 /**
- * O(1) client code hash.
+ * Content-based client code hash.
  *
- * Instead of recursively scanning ALL files in the docs directory and hashing
- * their content (O(N) with expensive reads), we use the Sätteri precompile
- * manifest as a content proxy.
+ * Every input that can change the client bundle participates through the
+ * **content** it contributes, never through stat metadata and never through
+ * a derived artifact:
  *
- * - **Fast path:** Sätteri manifest exists → hash the entire manifest file
- *   (SHA-256 of ~50 kB JSON).  The manifest already contains per-file content
- *   hashes for every MDX/MD file, plus a globalKey that captures compiler
- *   version, plugin changes, and config changes.  This is O(1).
+ * - **Framework code** (`boltdocs` + `@bdocs/ssg` dist): SHA-1 of every file
+ *   in the resolved package dist directories. In a pnpm workspace these are
+ *   symlinks into `packages/*`, so a core rebuild invalidates the docs
+ *   client/SSR cache exactly like an MDX edit does. Published installs
+ *   resolve to the immutable package tarball and hash the same bytes forever.
  *
- * - **Fallback path (first build):** No manifest yet → lightweight stat-only
- *   scan of docs/ (mtime + size + relative path, NO content hashing).
- *   The first call is only used to check the client build cache (which won't
- *   be a hit on the first build anyway), so accuracy is less important.
- *   The second call (after client build) always has the manifest.
+ * - **Everything under docs/** (MDX content, public/ assets, src/ overrides):
+ *   one sorted content walk. This is deliberately read straight from the
+ *   source files — NOT proxied through the Sätteri precompile manifest.
+ *   The manifest is only updated during the client build, so hashing it made
+ *   the client hash lag one build behind every content edit (edit in build N
+ *   → hash changes in N+1 → spurious client rebuild + full re-render). Page
+ *   MDX text does flow into the client bundle (route chunks + search index),
+ *   so it must invalidate — but synchronously, from the bytes themselves.
  *
- * - Config files + lock files are included in both paths (O(1) overhead).
+ * - **Config**: `boltdocs.config.*`, `package.json`, `tsconfig.json` content.
+ *   Lockfiles are deliberately excluded — a lockfile-only refresh (mtime
+ *   churn from `pnpm install --lockfile-only`, or a checkout that touches
+ *   them) does not change what Vite bundles.
  *
- * - Non-MDX assets in docs/ (CSS, JS, images) are checked via a lightweight
- *   targeted stat of well-known directories (docs/public/, docs/src/).
+ * All paths hash `relativePath\0sha1(content)` pairs in sorted order so the
+ * result is stable across checkouts that rewrite mtimes, and across
+ * filesystems that reorder directory iteration. Cost is a few MB of reads
+ * (docs + dists) — tens of milliseconds, twice per build.
  */
-
-/* ───────────── Sätteri manifest hash (fast path) ───────────── */
 
 /**
- * Hash the entire Sätteri manifest file.  This captures EVERY MDX content
- * change (per-file contentHash changes) and every compiler/plugin/config
- * change (globalKey changes) in a single O(1) read.
+ * Format version for the client hash derivation itself. Bump whenever the
+ * set of hashed inputs or their encoding changes: entries stored under the
+ * old format (client cache dirs keyed by the old digest) miss once and get
+ * rebuilt — never false-positive.
  */
-function hashSatteriManifest(
-  manifestPath: string,
+const CLIENT_HASH_VERSION = 'v4\0'
+
+/** Directories never hashed: build outputs and dependency trees. */
+const IGNORED_DIRS = new Set(['node_modules', 'dist', 'coverage'])
+
+/** Directory separators normalized in relative-path labels. */
+function relLabel(root: string, fullPath: string): string {
+  return relative(root, fullPath).replace(/\\/g, '/')
+}
+
+/**
+ * Hash one file's content into the stream as `relPath\0sha1(bytes)`.
+ * Content hashing (not stat) is what makes the hash stable across mtimes.
+ */
+function hashFileContent(
+  root: string,
+  fullPath: string,
   hasher: ReturnType<typeof createHash>,
-): boolean {
+): void {
   try {
-    if (!fs.existsSync(manifestPath)) return false
-    const manifestBytes = fs.readFileSync(manifestPath)
-    hasher.update(manifestBytes as Uint8Array)
-    return true
+    const content = fs.readFileSync(fullPath)
+    // Copy into a plain Uint8Array: this project's @types/node rejects
+    // `Buffer` as `crypto.BinaryLike` (SharedArrayBuffer variance).
+    const bytes = new Uint8Array(
+      content.buffer.slice(
+        content.byteOffset,
+        content.byteOffset + content.byteLength,
+      ),
+    )
+    const digest = createHash('sha1').update(bytes).digest('hex')
+    hasher.update(`${relLabel(root, fullPath)}\0${digest}\0`)
   } catch {
-    return false
+    // File removed between readdir and read — skip; the next build re-hashes.
   }
 }
 
-/* ───────────── Lightweight stat-only scan (fallback) ───────────── */
-
-/** Directories to skip when scanning docs/ during fallback. */
-const FALLBACK_IGNORE_DIRS = new Set([
-  'node_modules',
-  '.git',
-  '.boltdocs',
-  '.turbo',
-  'dist',
-  'coverage',
-  '__tests__',
-  'test',
-  'tests',
-  '.next',
-  '.cache',
-])
-
-/** Client-relevant extensions for fallback stat scan. */
-const FALLBACK_RELEVANT_EXTS = new Set([
-  '.ts',
-  '.tsx',
-  '.js',
-  '.jsx',
-  '.css',
-  '.json',
-  '.md',
-  '.mdx',
-  '.html',
-  '.svg',
-  '.yaml',
-  '.yml',
-  '.webp',
-  '.png',
-  '.jpg',
-  '.jpeg',
-  '.gif',
-  '.ico',
-])
-
-function isRelevantExt(filePath: string): boolean {
-  const dot = filePath.lastIndexOf('.')
-  if (dot === -1) return false
-  const ext = filePath.slice(dot).toLowerCase()
-  return FALLBACK_RELEVANT_EXTS.has(ext)
-}
-
 /**
- * Recursively stat files in a directory, updating the hasher with
- * `relativePath:mtime:size`.  Only stats — never reads file contents.
- * This is O(N) on the number of files but avoids expensive content hashing,
- * keeping it under ~50ms even for 10k files.
+ * Recursively hash every file's content in a directory, in sorted order.
+ * Hidden entries (dot-prefixed) and build-output/dependency directories are
+ * skipped, which keeps `.boltdocs` caches out of the hash.
  */
-function statFilesRecursive(
+function hashDirectoryContent(
   dir: string,
   root: string,
   hasher: ReturnType<typeof createHash>,
@@ -113,11 +96,12 @@ function statFilesRecursive(
     return
   }
 
-  // Sort for deterministic order regardless of filesystem iteration
+  // Sort for deterministic order regardless of filesystem iteration.
   entries.sort()
 
   for (const name of entries) {
     if (name.startsWith('.')) continue // skip hidden files/dirs
+    if (IGNORED_DIRS.has(name)) continue
     const fullPath = join(dir, name)
     let stat: fs.Stats
     try {
@@ -125,13 +109,10 @@ function statFilesRecursive(
     } catch {
       continue
     }
-
     if (stat.isDirectory()) {
-      if (FALLBACK_IGNORE_DIRS.has(name)) continue
-      statFilesRecursive(fullPath, root, hasher)
-    } else if (stat.isFile() && isRelevantExt(name)) {
-      const relPath = relative(root, fullPath).replace(/\\/g, '/')
-      hasher.update(`${relPath}:${stat.mtimeMs}:${stat.size}\n`)
+      hashDirectoryContent(fullPath, root, hasher)
+    } else if (stat.isFile()) {
+      hashFileContent(root, fullPath, hasher)
     }
   }
 }
@@ -139,12 +120,11 @@ function statFilesRecursive(
 /* ───────────── Framework code check ───────────── */
 
 /**
- * Stat-scan the framework packages that ship the client bundle, virtual
- * modules, and SSG runtime. In a pnpm workspace these are symlinks into
- * `packages/*`, so `mtime:size` changes there — a core rebuild, a patched
- * plugin — must invalidate the docs client/SSR cache exactly like MDX or
- * config changes do. Stat-only, so the cost stays in the low milliseconds.
- * Published installs resolve to the immutable package tarball and are a no-op.
+ * Content-hash the dist directories of the framework packages that ship the
+ * client bundle, virtual modules, and SSG runtime. Hashing **all** files —
+ * including `.mjs`/`.cjs` bundles — is essential: an earlier stat-only pass
+ * only matched extensions like `.js` and silently ignored the `.mjs` chunks
+ * tsdown emits, so a core rebuild could go unnoticed by the client cache.
  */
 function hashFrameworkCode(
   root: string,
@@ -163,7 +143,7 @@ function hashFrameworkCode(
       )
       const distDir = join(packageDir, 'dist')
       if (fs.existsSync(distDir)) {
-        statFilesRecursive(distDir, root, hasher)
+        hashDirectoryContent(distDir, root, hasher)
       }
     } catch {
       // Package not resolvable from this project — nothing to hash.
@@ -171,34 +151,13 @@ function hashFrameworkCode(
   }
 }
 
-/* ───────────── Non-MDX asset check ───────────── */
+/* ───────────── Config files ───────────── */
 
 /**
- * Lightweight check of non-MDX asset directories (docs/public/, docs/src/).
- * Only stats file existence + mtime — never hashes content.
+ * Config files whose **content** changes what Vite bundles. Lockfiles are
+ * intentionally excluded: their bytes do not enter the bundle, and their
+ * mtimes churn on checkout/lockfile-only installs.
  */
-function hashNonMdxAssets(
-  root: string,
-  docsDirName: string,
-  hasher: ReturnType<typeof createHash>,
-): void {
-  const assetDirs = [
-    join(root, docsDirName, 'public'),
-    join(root, docsDirName, 'src'),
-  ]
-  for (const dir of assetDirs) {
-    try {
-      if (fs.existsSync(dir)) {
-        statFilesRecursive(dir, root, hasher)
-      }
-    } catch {
-      // Non-critical
-    }
-  }
-}
-
-/* ───────────── Config files — already O(1) ───────────── */
-
 const CONFIG_FILES = [
   'boltdocs.config.ts',
   'boltdocs.config.js',
@@ -206,9 +165,6 @@ const CONFIG_FILES = [
   'boltdocs.config.cjs',
   'package.json',
   'tsconfig.json',
-  'pnpm-lock.yaml',
-  'package-lock.json',
-  'yarn.lock',
 ]
 
 function hashConfigFiles(
@@ -217,23 +173,27 @@ function hashConfigFiles(
 ): void {
   for (const file of CONFIG_FILES) {
     const fullPath = join(root, file)
-    try {
-      if (fs.existsSync(fullPath)) {
-        const stat = fs.statSync(fullPath)
-        hasher.update(`${file}:${stat.mtimeMs}:${stat.size}\n`)
-      }
-    } catch {
-      // File might have been deleted between existsSync and statSync
+    if (fs.existsSync(fullPath)) {
+      hashFileContent(root, fullPath, hasher)
     }
   }
 }
+
+/* ───────────── Public API ───────────── */
 
 export function computeShellHash(root: string, docsDirName: string): string {
   try {
     const hasher = createHash('sha256')
     // Hash non-MDX asset files and config files only
-    hashNonMdxAssets(root, docsDirName, hasher)
+    const assetDirs = [
+      join(root, docsDirName, 'public'),
+      join(root, docsDirName, 'src'),
+    ]
+    for (const dir of assetDirs) {
+      if (fs.existsSync(dir)) hashDirectoryContent(dir, root, hasher)
+    }
     hashConfigFiles(root, hasher)
+    hasher.update(CLIENT_HASH_VERSION)
     return hasher.digest('hex')
   } catch {
     return createHash('sha256').update('__shell_hash_fallback__').digest('hex')
@@ -246,8 +206,8 @@ export function computeClientCodeHash(
   _cacheDir: string,
 ): string {
   // Clean up legacy Merkle cache file from pre implementation.
-  // The Merkle cache was removed in favor of Sätteri manifest hash + stat-only
-  // fallback.  This one-time cleanup prevents stale files from accumulating.
+  // The Merkle cache was removed in favor of direct content scans.
+  // This one-time cleanup prevents stale files from accumulating.
   try {
     fs.removeSync(join(_cacheDir, 'hash-merkle.json'))
   } catch {
@@ -260,26 +220,21 @@ export function computeClientCodeHash(
     // ---- Framework code always participates in the hash ----
     hashFrameworkCode(root, hasher)
 
-    // ---- Strategy 1: Sätteri manifest exists → O(1) manifest hash ----
-    const manifestPath = join(root, '.boltdocs', 'compiled', 'manifest.json')
-    const manifestHashed = hashSatteriManifest(manifestPath, hasher)
-
-    if (!manifestHashed) {
-      // ---- Strategy 2: First build, no manifest yet → lightweight stat ----
-      const docsDir = join(root, docsDirName)
-      if (fs.existsSync(docsDir)) {
-        statFilesRecursive(docsDir, root, hasher)
-      }
-      // hashNonMdxAssets is intentionally skipped here because
-      // statFilesRecursive already covers the entire docs/ directory
-      // (including public/ and src/ subdirectories).
-    } else {
-      // ---- Warm build: manifest covers MDX content — also check non-MDX ----
-      hashNonMdxAssets(root, docsDirName, hasher)
+    // ---- All of docs/ from the source bytes (no artifact proxies) ----
+    // One walk covers MDX content, public assets, and src overrides. Reading
+    // the files directly (instead of the Sätteri manifest) is what keeps the
+    // hash free of build-order lag: the manifest only updates during the
+    // client build, so it always described the *previous* state.
+    const docsDir = join(root, docsDirName)
+    if (fs.existsSync(docsDir)) {
+      hashDirectoryContent(docsDir, root, hasher)
     }
 
-    // ---- Always includes: config files + lock files ----
+    // ---- Always includes: config + tsconfig (content) ----
     hashConfigFiles(root, hasher)
+
+    // ---- Format version: old-format cache entries miss safely ----
+    hasher.update(CLIENT_HASH_VERSION)
 
     return hasher.digest('hex')
   } catch (e) {

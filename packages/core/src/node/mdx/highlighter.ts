@@ -13,13 +13,37 @@ import {
 } from './shiki-langs'
 import type { ShikiTheme } from '../../shared/types'
 
-let highlighterPromise: Promise<HighlighterCore> | null = null
+/** Which regex engine backs the Shiki core. `oniguruma` is the default. */
+export type RegexEngineKind = 'oniguruma' | 'javascript'
+
+/**
+ * Per-engine highlighter promises. `createHighlighterCore` is heavy (~2.5s of
+ * synchronous CPU) so each engine variant builds at most once per process and
+ * every caller sharing the same `regexEngine` reuses the same in-flight build.
+ */
+const highlighterPromises = new Map<RegexEngineKind, Promise<HighlighterCore>>()
 
 async function getOnigEngineImpl(): Promise<RegexEngine> {
   const wasm = await import('shiki/wasm')
   return createOnigurumaEngine(
     wasm as unknown as Parameters<typeof createOnigurumaEngine>[0],
   ) as unknown as RegexEngine
+}
+
+async function getJsEngineImpl(): Promise<RegexEngine> {
+  const { createJavaScriptRegexEngine } = await import(
+    'shiki/engine/javascript'
+  )
+  // `forgiving` degrades unsupported grammar regexes to approximate matches
+  // instead of throwing — exotic languages highlight approximately rather
+  // than failing the block. Common languages (ts/js/css/...) are exact.
+  return createJavaScriptRegexEngine({
+    forgiving: true,
+  }) as unknown as RegexEngine
+}
+
+async function resolveEngine(kind: RegexEngineKind): Promise<RegexEngine> {
+  return kind === 'javascript' ? getJsEngineImpl() : getOnigEngineImpl()
 }
 
 /**
@@ -29,16 +53,23 @@ async function getOnigEngineImpl(): Promise<RegexEngine> {
  * grammar up front costs ~2.5s of synchronous CPU. Languages outside the
  * common set are loaded lazily via {@link ensureLanguage}.
  *
- * @param codeTheme - The theme configuration (can be a string or a light/dark object)
+ * The JavaScript regex engine is the default: it swaps the Oniguruma WASM
+ * engine for a native JS implementation, cutting startup from ~2.5s to
+ * ~200ms — a difference multiplied by every worker in the Sätteri compile
+ * pool. Pass `regexEngine: 'oniguruma'` for bit-exact TextMate regex
+ * fidelity on exotic grammars.
  */
-const highlight = async (
-  _codeTheme?: ShikiTheme | { light: ShikiTheme; dark: ShikiTheme },
-): Promise<HighlighterCore> => {
-  if (highlighterPromise) return highlighterPromise
+const highlight = async (options?: {
+  regexEngine?: RegexEngineKind
+}): Promise<HighlighterCore> => {
+  const kind: RegexEngineKind =
+    options?.regexEngine === 'oniguruma' ? 'oniguruma' : 'javascript'
+  const cached = highlighterPromises.get(kind)
+  if (cached) return cached
 
-  highlighterPromise = (async () => {
+  const promise = (async () => {
     const startTime = performance.now()
-    const engine = await getOnigEngineImpl()
+    const engine = await resolveEngine(kind)
     const instance = await createHighlighterCore({
       themes: THEMES_BUILD,
       langs: COMMON_LANGS,
@@ -47,13 +78,14 @@ const highlight = async (
     if (process.env.BOLTDOCS_DEBUG === 'true') {
       // eslint-disable-next-line no-console
       console.log(
-        `[boltdocs] shiki-ready in ${Math.round(performance.now() - startTime)}ms (${COMMON_LANGS.length} langs)`,
+        `[boltdocs] shiki-ready in ${Math.round(performance.now() - startTime)}ms (${kind}, ${COMMON_LANGS.length} langs)`,
       )
     }
     return instance
   })()
 
-  return highlighterPromise
+  highlighterPromises.set(kind, promise)
+  return promise
 }
 
 /** In-flight and completed lazy language loads, keyed by canonical name. */
@@ -72,13 +104,14 @@ const pendingLangLoads = new Map<string, Promise<boolean>>()
  */
 export async function ensureLanguage(
   rawLang: string | undefined,
+  regexEngine: RegexEngineKind = 'oniguruma',
 ): Promise<boolean> {
   const lang = normalizeLanguage(rawLang)
   if (!lang) return true
 
   let highlighter: HighlighterCore
   try {
-    highlighter = await highlight()
+    highlighter = await highlight({ regexEngine })
   } catch {
     return false
   }
@@ -169,4 +202,4 @@ export const highlighter = (): ShikiHighlighter => {
   return _highlighterInstance
 }
 
-export { highlight, type Languages }
+export { highlight, type ShikiTheme, type Languages }

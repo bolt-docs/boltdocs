@@ -130,7 +130,93 @@ export interface BoltdocsThemeConfig {
     text: string | Record<string, string>
     icon?: string
   }>
-  codeTheme?: ShikiTheme | { light: ShikiTheme; dark: ShikiTheme }
+  /**
+   * Legacy alias for `codeHighlighting.theme`. Kept for backwards
+   * compatibility — prefer `codeHighlighting`.
+   * @deprecated Use `codeHighlighting` instead.
+   */
+  codeTheme?: CodeTheme
+  /**
+   * Configures the markdown code highlighting engine. The engine is
+   * engine-agnostic: `engine` accepts a registry id (`'shiki'` by default),
+   * an adapter instance, or an adapter factory — so any highlighter can be
+   * plugged in without changes to the core.
+   *
+   * Shorthand: a plain string is a registry id, i.e. `'shiki'` is
+   * equivalent to `{ engine: 'shiki' }` (resolved by
+   * `normalizeCodeHighlightConfig()` at every read site).
+   */
+  codeHighlighting?: CodeHighlightConfig | string
+}
+
+/**
+ * An engine-agnostic theme: either a single theme name or a light/dark pair.
+ */
+export type CodeTheme = string | { light: string; dark: string }
+
+/**
+ * Runtime produced by a {@link CodeHighlighterAdapter} after initialization.
+ */
+export interface CodeHighlighterRuntime {
+  codeToHast(code: string, options: Record<string, unknown>): unknown
+  codeToHtml(code: string, options: Record<string, unknown>): Promise<string>
+}
+
+/**
+ * The SPI every highlighting engine must implement. Build the highlighter
+ * lazily via {@link CodeHighlighterAdapter.initialize} (never on module load)
+ * so unused engines cost nothing and the core stays engine-agnostic.
+ */
+export interface CodeHighlighterAdapter {
+  /** Registry id, emitted as `data-code-engine` on rendered `<pre>` blocks. */
+  name: string
+  version?: string
+  /** Assemble engine options for a code block (theme, transformers, meta...). */
+  getOptions(lang: string, meta: ParsedMetaLike): Record<string, unknown>
+  /** Create (or reuse) the highlighter runtime for this adapter. */
+  initialize(): Promise<CodeHighlighterRuntime>
+  /** Ensure a language grammar/capability is loaded before rendering. */
+  ensureLanguage?(lang: string): Promise<boolean>
+  /** Warm the highlighter off the critical path (background, never awaited). */
+  prewarm?(options?: Record<string, unknown>): void | Promise<void>
+}
+
+/**
+ * Minimal structural view of `ParsedMeta` so `shared/types.ts` (bundled to
+ * the client) does not depend on `@bdocs/unist-utils`. The framework's
+ * canonical implementation lives in `@bdocs/unist-utils`.
+ */
+export interface ParsedMetaLike {
+  title?: string
+  lineNumbers?: boolean
+  wordWrap?: boolean
+  __raw?: string
+  [key: string]: unknown
+}
+
+/**
+ * How to select a highlighting engine:
+ * - `string` → registry id (e.g. `'shiki'`, or a plugin-provided engine name)
+ * - `CodeHighlighterAdapter` → used directly
+ * - `() => CodeHighlighterAdapter | Promise<...>` → factory resolved on demand
+ */
+export type CodeHighlighterEngine =
+  | string
+  | CodeHighlighterAdapter
+  | ((
+      api: CodeHighlightConfig,
+    ) => CodeHighlighterAdapter | Promise<CodeHighlighterAdapter>)
+
+/**
+ * Engine-agnostic configuration for markdown code highlighting.
+ */
+export interface CodeHighlightConfig {
+  /** Engine selector. Defaults to the built-in `'shiki'` engine. */
+  engine?: CodeHighlighterEngine
+  /** Single theme name or a light/dark pair. */
+  theme?: CodeTheme
+  /** Engine-specific options (e.g. `{ regexEngine: 'oniguruma' | 'javascript' }` for Shiki). */
+  options?: Record<string, unknown>
 }
 
 /**
@@ -958,6 +1044,11 @@ export interface BoltdocsIntegrationsConfig {
 export interface BoltdocsSsgConfig {
   /** Critical CSS strategy; `none` disables critical CSS processing. */
   criticalCss?: 'zig-critters' | 'beasties' | 'none'
+  /**
+   * Per-page budget (bytes) for inlined critical CSS. Pages exceeding it get
+   * no inline critical CSS (with a build warning). Default: 24576 (24KB).
+   */
+  criticalCssMaxSize?: number
 }
 
 /**

@@ -52,7 +52,8 @@ Controls the entire visual shell of your documentation site.
 | **`tabs`** | `TabConfig[]` | — | Horizontal tab strip above the sidebar. See [File-System Routing](/docs/guides/getting-started/routing). |
 | **`sidebar`** | `SidebarConfig` | — | Manually defined sidebar structure (disables auto-discovery for those prefixes). |
 | **`sidebarGroups`** | `Record<string, SidebarGroupConfig>` | — | Override group titles and icons without defining a full manual sidebar. |
-| **`codeTheme`** | [`CodeThemeConfig`](#codethemeconfig) | — | Shiki theme used for code block highlighting. |
+| **`codeTheme`** | [`CodeThemeConfig`](#codethemeconfig) | — | Configure the syntax highlighting theme. **Deprecated** — use [`codeHighlighting`](#codehighlightconfig) instead. The value is the same accepted by `codeHighlighting.theme`. |
+| **`codeHighlighting`** | [`CodeHighlightConfig`](#codehighlightconfig) | — | Syntax highlighting engine and theme. Engine-agnostic: defaults to the built-in Shiki engine and accepts any custom `CodeHighlighterAdapter`. |
 | **`editLink`** | `string` | — | URL template for the "Edit this page" link. Use `:path` as a placeholder for the current file's relative path. |
 | **`socialLinks`** | `SocialLink[]` | — | Extra icon links (Twitter/X, Discord, etc.) displayed in the navbar. |
 | **`communityHelp`** | `string` | — | Support link (e.g. Discord, slack or forum URL) shown in the page footer. |
@@ -76,6 +77,96 @@ Controls the entire visual shell of your documentation site.
 | **`dark`** | `string` | `'github-dark'` | Shiki theme name for dark mode. |
 
 Available themes: `github-light`, `github-dark`, `tokyo-night`, `dracula`, `nord`, `one-dark-pro`, `one-light`.
+
+### `CodeHighlightConfig`
+
+The engine-agnostic way to configure syntax highlighting. The core never talks
+to a highlighting library directly — it renders through a
+`CodeHighlighterAdapter` resolved from a registry, so **Shiki is just the
+default engine** and any highlighter can be plugged in without touching the
+core.
+
+| Property | Type | Default | Description |
+| :--- | :--- | :--- | :--- |
+| **`engine`** | `string \| CodeHighlighterAdapter \| (api) => CodeHighlighterAdapter` | `'shiki'` | The highlighting engine. A string is a registry id (`'shiki'` or any engine registered by a plugin). Pass an adapter instance or a factory to inject a custom engine. |
+| **`theme`** | `string \| { light; dark }` | `{ light: 'github-light', dark: 'github-dark' }` | Theme name or light/dark pair. When an object is given, the rendered blocks carry `data-theme-mode="dual"` and use `--shiki-light`/`--shiki-dark` CSS variables. |
+| **`options`** | `Record<string, unknown>` | `{}` | Engine-specific options, passed through to the adapter. |
+
+Options for the built-in Shiki engine:
+
+| Option | Type | Default | Description |
+| :--- | :--- | :--- | :--- |
+| **`regexEngine`** | `'oniguruma' \| 'javascript'` | `'oniguruma'` | `'javascript'` swaps Oniguruma WASM for Shiki's native JS regex engine, cutting highlighter startup from ~2.5s to ~200ms at a small cost in regex fidelity for exotic grammars. Useful for faster dev-server starts. |
+
+```ts
+export default defineConfig({
+  theme: {
+    codeHighlighting: {
+      engine: 'shiki',
+      theme: {
+        light: 'github-light',
+        dark: 'github-dark',
+      },
+      options: {
+        regexEngine: 'javascript',
+      },
+    },
+  },
+})
+```
+
+#### Custom engines via plugins
+
+Plugins expose a highlighting engine through the `codeHighlighter` field. The
+adapter is registered under the plugin's name, so `engine` can select it by id:
+
+```ts
+import { defineConfig, definePlugin, type CodeHighlighterAdapter } from 'boltdocs'
+
+const prismEngine: CodeHighlighterAdapter = {
+  name: 'prism',
+  getOptions(lang, meta) {
+    return { lang, theme: 'one-light' }
+  },
+  async initialize() {
+    const prism = await import('your-prism-wrapper')
+    return {
+      codeToHast: (code, options) => prism.toHast(code, options),
+      codeToHtml: async (code, options) => prism.toHtml(code, options),
+    }
+  },
+  async ensureLanguage(lang) {
+    return true
+  },
+}
+
+const prismPlugin = definePlugin({
+  name: 'my-prism',
+  codeHighlighter: prismEngine,
+})
+
+export default defineConfig({
+  plugins: [prismPlugin()],
+  theme: {
+    codeHighlighting: { engine: 'my-prism' },
+  },
+})
+```
+
+An engine can also be passed inline as an adapter instance or factory without
+registering a plugin:
+
+```ts
+codeHighlighting: {
+  engine: {
+    name: 'prism',
+    getOptions: (lang, meta) => ({ lang }),
+    initialize: () => import('./adapter').then((m) => m.runtime),
+  },
+},
+```
+
+For more on the plugin system, see [Plugins](/docs/plugins).
 
 ---
 
@@ -412,9 +503,12 @@ export default defineConfig({
       alt: 'My Project Logo',
     },
     githubRepo: 'my-org/my-project',
-    codeTheme: {
-      light: 'github-light',
-      dark: 'github-dark',
+    codeHighlighting: {
+      engine: 'shiki',
+      theme: {
+        light: 'github-light',
+        dark: 'github-dark',
+      },
     },
     editLink: 'https://github.com/my-org/my-project/edit/main/docs/:path',
     tabs: [

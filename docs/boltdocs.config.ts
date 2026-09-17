@@ -82,6 +82,9 @@ export default defineConfig({
     thumbnails: {
       background: '/og-image.webp',
     },
+    verification: {
+      google: 'gBjdedLAueGrw7ACHkfTufReBAPGo0LEYqniw5E-U4w',
+    },
     metatags: {
       keywords:
         'boltdocs, ssg, framework, documentation, guides, integrations, api, plugins, components',
@@ -93,7 +96,10 @@ export default defineConfig({
       en: 'Building documentation for your project has never been easier. Create beautiful, highly customizable, and extremely fast sites out of the box.',
       es: 'Crear documentación para tu proyecto nunca ha sido tan fácil. Genera sitios hermosos, altamente personalizables y extremadamente rápidos desde el primer momento.',
     },
-    codeTheme: 'github-dark',
+    codeHighlighting: {
+      engine: 'shiki',
+      theme: 'github-dark',
+    },
     favicon: '/light.svg',
     logo: {
       dark: '/light.svg',

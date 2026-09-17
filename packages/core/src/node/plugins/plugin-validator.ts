@@ -7,6 +7,7 @@ import {
   PluginCompatibilityError,
 } from './plugin-errors'
 import type { BoltdocsPlugin } from './plugin-types'
+import { registerPluginHighlighter } from '../highlight/registry'
 
 const PluginValidationSchema = BoltdocsPluginSchema.extend({
   version: z.string().optional(),
@@ -119,6 +120,12 @@ export function validatePlugins(
           )
         }
       }
+    }
+
+    // Expose plugin-provided highlighting engines to the registry under the
+    // plugin name. Idempotent — the first plugin to claim an id wins.
+    if (plugin.codeHighlighter) {
+      registerPluginHighlighter(plugin.name, plugin.codeHighlighter as never)
     }
 
     validatedPlugins.push(plugin)

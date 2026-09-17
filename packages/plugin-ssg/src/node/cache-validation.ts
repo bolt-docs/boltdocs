@@ -8,19 +8,67 @@ export interface SsgPageCacheItem {
   assetHash?: string
 }
 
+// Bump when the hash derivation changes so a pre-existing ssg-cache.json
+// (legacy mtime:size values) can never produce a false positive hit against
+// content hashes. Legacy entries simply miss once and are rewritten.
+const CONTENT_HASH_VERSION = 'v2'
+
+/**
+ * Content-hash a single source file: sha1 of the file bytes. Deliberately
+ * independent of stat metadata — `git checkout`, branch switches and tooling
+ * that rewrite mtimes must NOT invalidate the render cache; only real content
+ * changes should.
+ */
+function hashSourceContent(sourceFile: string): string {
+  const hasher = crypto.createHash('sha1')
+  hasher.update(CONTENT_HASH_VERSION)
+  hasher.update('\0')
+  hasher.update(fs.readFileSync(sourceFile) as Uint8Array)
+  return hasher.digest('hex')
+}
+
+/**
+ * Per-route render-cache identity: the source file's content hash. Routes
+ * without a source file (synthetic base routes such as /docs) use the
+ * `fallbackHash` (client bundle identity), which is exactly the
+ * invalidation those routes need.
+ *
+ * Cost: one small-file read per route (~259 files ≈ tens of milliseconds,
+ * shared source files read once per route). Replaces the old
+ * `mtimeMs:size` identity whose mtime half re-rendered the entire site
+ * after every `git checkout` (231.8s observed).
+ */
 export function getSsgSourceContentHash(
   sourceFile: string | undefined,
   fallbackHash: string,
 ): string {
   if (sourceFile) {
     try {
-      const stat = fs.statSync(sourceFile)
-      return `${stat.mtimeMs}:${stat.size}`
+      return hashSourceContent(sourceFile)
     } catch {
-      // Fall through to the same global fallback used during rendering.
+      // Unreadable file → fall through to the caller's fallback. Degrading
+      // to the global identity over-invalidates (safe direction) instead of
+      // serving stale pages.
     }
   }
   return fallbackHash
+}
+
+/**
+ * Synchronous variant for bulk pre-computation during build setup. Returns
+ * the real sha1 content hash, or `legacyFallback` when the file cannot be
+ * read so callers keep their previous identity instead of collapsing onto
+ * the shared global fallback.
+ */
+export function hashSourceFileContentSync(
+  sourceFile: string,
+  legacyFallback: string,
+): string {
+  try {
+    return hashSourceContent(sourceFile)
+  } catch {
+    return legacyFallback
+  }
 }
 
 export function isSsgPageCacheValid({
