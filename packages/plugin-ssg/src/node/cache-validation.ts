@@ -9,9 +9,14 @@ export interface SsgPageCacheItem {
 }
 
 // Bump when the hash derivation changes so a pre-existing ssg-cache.json
-// (legacy mtime:size values) can never produce a false positive hit against
-// content hashes. Legacy entries simply miss once and are rewritten.
-const CONTENT_HASH_VERSION = 'v2'
+// can never produce a false positive hit against current entries. Legacy
+// entries simply miss once and are rewritten.
+//
+// v2 → v3: the zig-critters extractor no longer drops desktop media queries
+// (escaped-quote selector parsing + no layout-selector exclusion + growing
+// arena). Persisted HTML embeds the old poisoned inline critical CSS, so
+// every cached page must re-render once.
+const CONTENT_HASH_VERSION = 'v3'
 
 /**
  * Content-hash a single source file: sha1 of the file bytes. Deliberately

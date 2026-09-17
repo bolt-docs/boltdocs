@@ -5,8 +5,8 @@ import {
 } from '../src/node/critical'
 
 describe('resolveCriticalCssMaxSize', () => {
-  it('defaults to 24KB — above the 16–18KB real-world docs critical CSS', () => {
-    expect(DEFAULT_CRITICAL_CSS_MAX_SIZE).toBe(24 * 1024)
+  it('defaults to 32KB — honest extraction of the docs site measures ~26KB (the old 24KB default was calibrated against a buggy extractor that dropped desktop media queries)', () => {
+    expect(DEFAULT_CRITICAL_CSS_MAX_SIZE).toBe(32 * 1024)
     expect(resolveCriticalCssMaxSize(undefined)).toBe(
       DEFAULT_CRITICAL_CSS_MAX_SIZE,
     )

@@ -103,4 +103,65 @@ suite('zig-critters wrapper', () => {
     assert.equal(criticalCss, '')
     assert.equal(stats.truncated, true)
   })
+
+  // Regression tests: these bugs shipped together and produced a mobile
+  // layout on desktop — the extractor dropped every desktop `@media` block,
+  // and the inline critical `<style>` (mobile-first base rules) then won the
+  // cascade over the full stylesheet forever.
+
+  it('keeps rules after a selector containing escaped quotes (regression)', async () => {
+    // `.font-features-\[\'ss01\',\'cv01\'\]` has an escaped quote that is part
+    // of the identifier. The old parser treated any `'` as a string opener and
+    // swallowed the REST OF THE STYLESHEET to EOF, silently dropping every
+    // rule after it (measured: everything past ~byte 52K of a 115KB Tailwind
+    // bundle vanished, including all desktop media queries).
+    const { extractCriticalCss } = await import('./index.mjs')
+    const cssWithEscape = `.md\\:block{display:block}@media (min-width:40rem){.lg\\:flex{display:flex}}.font-features-\\[\\'ss01\\'\\,\\'cv01\\'\\]{font-feature-settings:"ss01","cv01"}.after-escape{color:green}.md\\:px-2\\:hover::after{content:"x"}@media (min-width:64rem){.xl\\:grid{display:grid}}`
+    const page = `<div class="md:block lg:flex after-escape xl:grid md:px-2"></div>`
+    const { criticalCss } = await extractCriticalCss(page, cssWithEscape)
+    assert.ok(
+      criticalCss.includes('after-escape'),
+      'rule AFTER the escaped-quote selector must survive',
+    )
+    assert.ok(
+      criticalCss.includes('xl\\:grid'),
+      'media block AFTER the escaped-quote selector must survive',
+    )
+  })
+
+  it('keeps layout selectors and the media queries that contain them (regression)', async () => {
+    // Layout selectors (navbar/sidebar/nav…) were hard-excluded from the
+    // critical set, so desktop media queries whose only rules targeted them
+    // lost every child and the whole `@media` block was dropped — the exact
+    // mechanism behind the mobile-layout-on-desktop bug.
+    const { extractCriticalCss } = await import('./index.mjs')
+    const navCss = `@media (min-width:64rem){.sidebar{display:block}.navbar{display:flex}}.sidebar{display:none}`
+    const page = `<div class="sidebar navbar"></div>`
+    const { criticalCss } = await extractCriticalCss(page, navCss)
+    assert.ok(
+      criticalCss.includes('@media'),
+      'media query targeting layout selectors must survive',
+    )
+    assert.ok(criticalCss.includes('.sidebar'), 'sidebar rule must survive')
+  })
+
+  it('extracts from a stylesheet far larger than the legacy fixed arena (regression)', async () => {
+    // The JS host reserved a fixed scratch window (~2MB for a 115KB CSS) and
+    // the Zig side used a FixedBufferAllocator over it: when it filled up,
+    // every `catch continue` silently dropped rules mid-file. Extraction must
+    // cover the whole stylesheet regardless of allocation pressure.
+    const { extractCriticalCss } = await import('./index.mjs')
+    // ~80KB of matching rules + a must-find block at the very end.
+    const filler = Array.from(
+      { length: 4000 },
+      (_, i) => `.m${i}{color:#${(i % 4096).toString(16).padStart(3, '0')}}`,
+    ).join('')
+    const page = `<div class="m0 m3999 end-marker"></div>`
+    const bigCss = `${filler}@media (min-width:40rem){.end-marker{display:flex}}`
+    const { criticalCss } = await extractCriticalCss(page, bigCss)
+    assert.ok(
+      criticalCss.includes('end-marker'),
+      'rule at the very end of a large stylesheet must survive',
+    )
+  })
 })

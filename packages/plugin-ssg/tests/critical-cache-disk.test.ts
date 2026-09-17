@@ -13,6 +13,22 @@ function createTempDir(prefix: string): string {
   return dir
 }
 
+/**
+ * Disk writes are fire-and-forget (never blocking render), so tests must wait
+ * until the payload has actually landed — a fixed sleep races with the async
+ * write and made the corruption test flaky under load.
+ */
+async function waitForPersistedPayload(path: string): Promise<void> {
+  for (let i = 0; i < 100; i++) {
+    try {
+      JSON.parse(fs.readFileSync(path, 'utf-8'))
+      return
+    } catch {}
+    await new Promise((resolve) => setTimeout(resolve, 10))
+  }
+  throw new Error(`payload never landed: ${path}`)
+}
+
 describe('CriticalCssCache persistent layer', () => {
   let root: string
   let cacheDir: string
@@ -103,7 +119,7 @@ describe('CriticalCssCache persistent layer', () => {
     await cache.getOrCreate('k-bad', () => '<style>.a{}</style>', {
       engine: 'zig-critters',
     })
-    await new Promise((resolve) => setTimeout(resolve, 20))
+    await waitForPersistedPayload(join(cacheDir, 'critical-css-k-bad.json'))
     fs.writeFileSync(join(cacheDir, 'critical-css-k-bad.json'), '{broken')
 
     let extracted = false
