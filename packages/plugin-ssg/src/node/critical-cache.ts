@@ -63,14 +63,14 @@ type CacheEntry = {
 /** On-disk layout of one extracted critical-CSS payload. */
 interface DiskCachePayload {
   /** Format version — bump invalidates every persisted entry. */
-  v: 1
+  v: 2
   /** Engine that produced the payload (validated on read). */
   engine: CriticalCssEngine
   /** Inline `<style>` block, or null when extraction produced nothing. */
   style: string | null
 }
 
-const DISK_CACHE_VERSION = 1
+const DISK_CACHE_VERSION = 2
 /** Upper bound for a single persisted payload — protects the cache dir. */
 const MAX_DISK_PAYLOAD_BYTES = 256 * 1024
 

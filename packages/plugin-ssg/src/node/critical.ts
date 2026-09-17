@@ -24,10 +24,14 @@ export async function getBeasties(
 /**
  * Default per-page budget (in bytes) for inline critical CSS. The 8KB default
  * inherited from the extraction engine silently discarded the critical CSS of
- * real docs sites (measured 16–18KB/page on the boltdocs docs site), so the
- * framework default is higher; sites can tune it via `ssg.criticalCssMaxSize`.
+ * real docs sites, so the framework default was raised once (24KB) — but that
+ * value was calibrated against a buggy extractor that dropped every desktop
+ * media query. Honest extraction of the same docs site measures ~26KB, so the
+ * default is 32KB; sites can tune it via `ssg.criticalCssMaxSize`. Exceeding
+ * the budget skips the inline critical CSS entirely (full stylesheet still
+ * loads), trading first-paint polish for correctness.
  */
-export const DEFAULT_CRITICAL_CSS_MAX_SIZE = 24 * 1024
+export const DEFAULT_CRITICAL_CSS_MAX_SIZE = 32 * 1024
 
 /**
  * Resolve the effective critical-CSS budget from user configuration. Accepts

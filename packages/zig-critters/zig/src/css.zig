@@ -266,7 +266,14 @@ pub const CssParser = struct {
         while (self.pos < self.input.len) {
             const c = self.input[self.pos];
             if (c == '{') break;
-            if (c == '\'' or c == '"') {
+            // Backslash escapes the next character (e.g. the escaped quotes in
+            // `.font-features-\[\'ss01\',\'cv01\'\]`): it belongs to an identifier and
+            // is never a string delimiter or structural character. Without this,
+            // the unescaped `\'` opened a bogus "string" that swallowed the rest
+            // of the stylesheet to EOF, silently dropping every rule after it.
+            if (c == '\\') {
+                self.pos = @min(self.pos + 2, self.input.len);
+            } else if (c == '\'' or c == '"') {
                 const q = c;
                 self.pos += 1;
                 while (self.pos < self.input.len and self.input[self.pos] != q) {
@@ -289,25 +296,25 @@ pub const CssParser = struct {
         return mem.trim(u8, self.input[start..self.pos], " \t\n\r");
     }
 
-fn isWhitespace(c: u8) bool {
-    return c == ' ' or c == '\t' or c == '\n' or c == '\r';
-}
-
-fn trimRight(comptime T: type, slice: []const T, chars: []const T) []const T {
-    var end = slice.len;
-    while (end > 0) {
-        var found = false;
-        for (chars) |c| {
-            if (slice[end - 1] == c) {
-                found = true;
-                break;
-            }
-        }
-        if (!found) break;
-        end -= 1;
+    fn isWhitespace(c: u8) bool {
+        return c == ' ' or c == '\t' or c == '\n' or c == '\r';
     }
-    return slice[0..end];
-}
+
+    fn trimRight(comptime T: type, slice: []const T, chars: []const T) []const T {
+        var end = slice.len;
+        while (end > 0) {
+            var found = false;
+            for (chars) |c| {
+                if (slice[end - 1] == c) {
+                    found = true;
+                    break;
+                }
+            }
+            if (!found) break;
+            end -= 1;
+        }
+        return slice[0..end];
+    }
 
     pub fn parseStylesheet(self: *CssParser) []CssRule {
         var rules = std.ArrayList(CssRule).empty;

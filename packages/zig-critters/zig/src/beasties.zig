@@ -50,33 +50,11 @@ fn isAlwaysInclude(sel: []const u8) bool {
     return false;
 }
 
-fn isLayoutSelector(sel: []const u8) bool {
-    const layout_terms = [_][]const u8{
-        "sidebar",
-        "navbar",
-        "toc",
-        "header",
-        "footer",
-        "nav",
-        "aside",
-        "menu",
-    };
-    for (layout_terms) |term| {
-        if (mem.indexOf(u8, sel, term) != null) {
-            return true;
-        }
-    }
-    return false;
-}
-
 fn isTooComplex(tokens: []const selector.SelectorToken, max_complexity: usize) bool {
     var parts_count: usize = 1;
     for (tokens) |token| {
         switch (token) {
-            .combinator_descendant,
-            .combinator_child,
-            .combinator_sibling,
-            .combinator_adjacent => {
+            .combinator_descendant, .combinator_child, .combinator_sibling, .combinator_adjacent => {
                 parts_count += 1;
             },
             else => {},
@@ -93,7 +71,12 @@ fn selectorMatchesAnyElements(
     allocator: Allocator,
 ) bool {
     if (isAlwaysInclude(sel_str)) return true;
-    if (isLayoutSelector(sel_str)) return false;
+    // Layout selectors (navbar, sidebar, nav…) were excluded from the critical
+    // set here, which inverted the purpose of critical CSS: those rules are
+    // precisely the anti-FOUC-critical ones, and desktop media queries whose
+    // only rules referenced them lost every child, so the whole `@media` block
+    // was dropped (mobile layout rendered on desktop). Let them match like any
+    // other selector.
 
     const tokens_opt = selector_tokens_cache.get(sel_str);
     var tokens: []selector.SelectorToken = undefined;
