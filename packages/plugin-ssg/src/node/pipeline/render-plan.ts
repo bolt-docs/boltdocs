@@ -30,6 +30,9 @@ export interface CreateRenderPlansInput {
   readonly fallbackHash: string
   readonly routeToSourceFileMap: Readonly<Record<string, string>>
   readonly sourceMeta: ReadonlyMap<string, RenderSourceMeta>
+  /** Legacy mtime:size identities, accepted in addition to `sourceMeta` so
+   * cache entries written by older builds remain valid during transition. */
+  readonly legacySourceMeta?: ReadonlyMap<string, RenderSourceMeta>
   readonly routeToAssetHash: Readonly<Record<string, string>>
 }
 

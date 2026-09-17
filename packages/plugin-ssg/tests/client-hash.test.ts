@@ -36,11 +36,11 @@ describe('computeClientCodeHash (PR-04: O(1) manifest hash)', () => {
     expect(hash2).toBe(hash1)
   })
 
-  it('changes when a file is modified (mtime changes)', () => {
+  it('changes when a file is modified (content changes)', () => {
     const hash1 = computeClientCodeHash(root, 'docs', cacheDir)
     fs.writeFileSync(join(root, 'docs', 'index.md'), '# Changed')
     const hash2 = computeClientCodeHash(root, 'docs', cacheDir)
-    // Writing the file updates its mtime → stat-based fallback detects it
+    // Content-based hashing detects the different bytes
     expect(hash2).not.toBe(hash1)
   })
 
@@ -61,7 +61,7 @@ describe('computeClientCodeHash (PR-04: O(1) manifest hash)', () => {
     expect(hash2).not.toBe(hash1)
   })
 
-  it('changes when mtime changes without content change (utimes)', () => {
+  it('is stable when only mtimes change without content change (checkout scenario)', () => {
     const hash1 = computeClientCodeHash(root, 'docs', cacheDir)
     const stat = fs.statSync(join(root, 'docs', 'index.md'))
     fs.utimesSync(
@@ -70,11 +70,12 @@ describe('computeClientCodeHash (PR-04: O(1) manifest hash)', () => {
       new Date(stat.mtimeMs + 1000),
     )
     const hash2 = computeClientCodeHash(root, 'docs', cacheDir)
-    // Stat-based fallback includes mtime → mtime change = hash change
-    expect(hash2).not.toBe(hash1)
+    // Content-based inputs ignore mtime churn entirely: a checkout that
+    // rewrites timestamps must not invalidate the client build cache.
+    expect(hash2).toBe(hash1)
   })
 
-  it('changes when framework dist code changes (workspace install)', () => {
+  it('is stable when only mtimes change in framework dist (checkout scenario)', () => {
     // Simulate a pnpm workspace install: `boltdocs` symlinked into
     // node_modules. Framework code changes must invalidate the docs client
     // cache — otherwise a core rebuild is never picked up by the site.
@@ -85,19 +86,33 @@ describe('computeClientCodeHash (PR-04: O(1) manifest hash)', () => {
       name: 'boltdocs',
       version: '1.0.0',
     })
-    fs.writeFileSync(join(distDir, 'index.js'), 'export const a = 1;')
+    // tsdown emits .mjs bundles — those must participate in the hash too
+    // (an earlier stat-only pass only matched .js and missed them).
+    fs.writeFileSync(join(distDir, 'index.mjs'), 'export const a = 1;')
 
     const hash1 = computeClientCodeHash(root, 'docs', cacheDir)
-    fs.writeFileSync(join(distDir, 'index.js'), 'export const b = 2;')
+    fs.writeFileSync(join(distDir, 'index.mjs'), 'export const b = 2;')
     const hash2 = computeClientCodeHash(root, 'docs', cacheDir)
     expect(hash2).not.toBe(hash1)
+
+    // Pure mtime rewrite of the dist file must NOT change the hash
+    const stat = fs.statSync(join(distDir, 'index.mjs'))
+    fs.utimesSync(
+      join(distDir, 'index.mjs'),
+      stat.atime,
+      new Date(stat.mtimeMs + 5000),
+    )
+    expect(computeClientCodeHash(root, 'docs', cacheDir)).toBe(hash2)
   })
 
-  it('uses Sätteri manifest hash when manifest exists', () => {
-    // Create a fake Sätteri manifest
+  it('ignores the Sätteri manifest entirely (no build-order lag)', () => {
+    // The precompile manifest is only rewritten during the client build, so
+    // hashing it made the client hash lag one build behind content edits.
+    // The hash reads MDX bytes directly instead: manifest-only changes —
+    // globalKey, content hashes, mtimes — must NOT move the client hash.
     const manifestDir = join(root, '.boltdocs', 'compiled')
     fs.mkdirpSync(manifestDir)
-    const manifest = {
+    fs.writeJsonSync(join(manifestDir, 'manifest.json'), {
       version: 1,
       globalKey: 'abc123',
       files: {
@@ -108,17 +123,41 @@ describe('computeClientCodeHash (PR-04: O(1) manifest hash)', () => {
           mtime: 1234567890,
         },
       },
-    }
-    fs.writeJsonSync(join(manifestDir, 'manifest.json'), manifest)
-
+    })
     const hash1 = computeClientCodeHash(root, 'docs', cacheDir)
-    const hash2 = computeClientCodeHash(root, 'docs', cacheDir)
-    expect(hash2).toBe(hash1)
 
-    // Change manifest content → hash should change
-    manifest.globalKey = 'xyz789'
-    fs.writeJsonSync(join(manifestDir, 'manifest.json'), manifest)
-    const hash3 = computeClientCodeHash(root, 'docs', cacheDir)
-    expect(hash3).not.toBe(hash1)
+    // Manifest-only rewrite (same MDX bytes on disk)
+    fs.writeJsonSync(join(manifestDir, 'manifest.json'), {
+      version: 1,
+      globalKey: 'xyz789',
+      files: {
+        'docs/index.md': {
+          contentHash: 'aaa-bbb',
+          exportName: '_p_zzz',
+          outFile: '/tmp/other.mjs',
+          mtime: 999,
+        },
+      },
+    })
+    expect(computeClientCodeHash(root, 'docs', cacheDir)).toBe(hash1)
+
+    // But the underlying MDX content does move the hash: page text flows
+    // into the client bundle via route chunks and the search index.
+    fs.writeFileSync(join(root, 'docs', 'index.md'), '# New content')
+    expect(computeClientCodeHash(root, 'docs', cacheDir)).not.toBe(hash1)
+  })
+
+  it('ignores lockfile mtime churn (lockfile-only refresh scenario)', () => {
+    fs.writeFileSync(join(root, 'pnpm-lock.yaml'), 'lockfileVersion: 9.0\n')
+    const hash1 = computeClientCodeHash(root, 'docs', cacheDir)
+    const stat = fs.statSync(join(root, 'pnpm-lock.yaml'))
+    fs.utimesSync(
+      join(root, 'pnpm-lock.yaml'),
+      stat.atime,
+      new Date(stat.mtimeMs + 1000),
+    )
+    // Lockfiles are excluded from the hash: their bytes never enter the
+    // bundle, and checkout/install rewrites them without changing output.
+    expect(computeClientCodeHash(root, 'docs', cacheDir)).toBe(hash1)
   })
 })
