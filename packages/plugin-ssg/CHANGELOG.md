@@ -1,5 +1,43 @@
 # @bdocs/ssg
 
+## 0.5.0
+
+### Minor Changes
+
+- [`f8b96e0`](https://github.com/bolt-docs/boltdocs/commit/f8b96e0c868592743b0de0604709731d98e0e73a) Thanks [@jesusalcaladev](https://github.com/jesusalcaladev)! - Make the critical-CSS inline budget configurable and raise the default so real sites actually get inline critical CSS.
+  - **`ssg.criticalCssMaxSize`** (new config option, bytes): per-page budget for the `<style data-zig-critters>` block. Pages whose extracted critical CSS exceeds the budget skip inlining (with a build warning naming the page and sizes).
+  - **Default raised from 8KB to 24KB**: the engine's inherited 8KB budget silently discarded the critical CSS of real docs sites — the boltdocs docs site measures 16–18KB per page, so every page shipped with no inline critical CSS. With the new default the docs build inlines critical CSS on all pages again (direct LCP/FCP win; render-blocking CSS no longer blocks first paint).
+  - Zig-critters 0.2.x users outside boltdocs are unaffected; the WASM `maxSize` contract is unchanged, boltdocs now passes the budget explicitly.
+
+### Patch Changes
+
+- [`a9189d6`](https://github.com/bolt-docs/boltdocs/commit/a9189d6be7e5adf56f3f43c60ecde97137b2714c) Thanks [@jesusalcaladev](https://github.com/jesusalcaladev)! - Real content hashing for SSG caches: git checkouts no longer invalidate any build, and critical CSS is persisted across builds
+  - **Render cache**: per-page identity is now a sha1 of the source file's content instead of `mtimeMs:size`. A `git checkout` / branch switch (which rewrites mtimes) no longer re-renders all 259 pages (~232s observed); only genuinely edited pages re-render. Legacy `mtime:size` cache entries miss once and are rewritten.
+  - **Critical CSS**: extracted payloads are persisted to disk keyed by (engine, page structure, stylesheet). Text-only edits keep their page structure, so rebuilds skip the ~1s WASM extraction per page; in-memory dedupe behavior is unchanged. Payloads are pruned by 30-day TTL and a 5000-entry cap.
+  - **Client build cache is now fully content-based** (framework dist, everything under docs/, config files). The previous Sätteri-manifest proxy had a one-build lag — the manifest only updates during the client build, so content edits invalidated the bundle one build late and left the shipped client (search index / route chunks) stale for a build. Direct hashing reacts to the same edit within the build that sees it. Lockfiles are excluded (their bytes never enter the bundle and their mtimes churn on checkout), and framework hashing now covers `.mjs`/`.cjs` bundles that a stat-only extension filter previously missed.
+  - Fixed `cachedAllCssHash` being typed as `string` while holding a Buffer digest.
+
+- [`4da1cae`](https://github.com/bolt-docs/boltdocs/commit/4da1cae105a0919c5280bd4f57c7a561fbfca5cd) Thanks [@jesusalcaladev](https://github.com/jesusalcaladev)! - Faster incremental builds: SSR module prewarm in parallel with bundle builds, higher finalize/render concurrency, and Node compile cache for the CLI
+  - **SSG (`@bdocs/ssg`)**: when the SSR bundle is cached on disk, its ES module is imported in parallel with the bundle builds instead of serially after them (removes up to ~10s from the critical path on incremental builds).
+  - **SSG (`@bdocs/ssg`)**: finalize queue concurrency raised to match the critters WASM pool size, and the default SSG render worker count scales with available cores (RAM-aware guard kept).
+  - **Core (`boltdocs`)**: the CLI enables Node's `module.enableCompileCache()` when available, skipping repeated JS parse work on every command.
+
+- [`1a044a2`](https://github.com/bolt-docs/boltdocs/commit/1a044a209d03cf3d94528c1bc93cc14784518905) Thanks [@jesusalcaladev](https://github.com/jesusalcaladev)! - Fix mobile layout rendering on desktop: critical CSS no longer drops every desktop `@media` block
+
+  Three extractor bugs shipped together produced an inline critical `<style>` with zero media queries. Because that style tag sits after the stylesheet `<link>`, its mobile-first base rules won the cascade over the full CSS forever — navbar, sidebar and docs layout rendered in their mobile form on desktop:
+  - **Escaped quotes killed the parser**: a selector like `.font-features-[\ 'ss01\',\'cv01\']` (escaped quotes are part of the identifier) was treated as a string start, swallowing the rest of the stylesheet to EOF. Every rule after it — including all desktop media queries, measured past ~52KB of a 115KB Tailwind bundle — was silently dropped. Escaped characters in selectors are now consumed as identifier data.
+  - **Layout selectors were excluded from the critical set**: navbar/sidebar/nav rules were hard-skipped, so desktop media queries whose only rules targeted them lost every child and the whole `@media` block was removed. They now match like any other selector.
+  - **Silent truncation from a fixed arena**: the WASM extractor allocated a fixed ~2MB scratch buffer derived from CSS size and discarded rules silently when it filled. It now grows with linear memory; extraction covers the full stylesheet.
+
+  Also:
+  - Critical-CSS budget default raised 24KB → 32KB: the old value was calibrated against the poisoned output (~17KB); honest extraction of the same docs site measures ~26KB, which the old default silently discarded.
+  - Cache format bumps (`ssg-cache.json` v3, critical-CSS disk cache v2) so persisted pages embedding the broken critical CSS re-render exactly once.
+
+  Measured on the boltdocs docs site: critical CSS 17.4KB → 26.6KB with 9 desktop `@media` blocks (previously 0); `lg:flex`, `md:px-*`, sidebar and navbar rules present in the inline critical CSS.
+
+- Updated dependencies [[`1a044a2`](https://github.com/bolt-docs/boltdocs/commit/1a044a209d03cf3d94528c1bc93cc14784518905)]:
+  - @bdocs/zig-critters@0.2.3
+
 ## 0.4.1
 
 ### Patch Changes
