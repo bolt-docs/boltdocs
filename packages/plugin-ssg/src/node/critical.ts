@@ -57,6 +57,13 @@ export interface ZigCritters {
     css: string,
     options?: { compress?: boolean; maxSize?: number },
   ): Promise<{ criticalCss: string; stats: Record<string, unknown> }>
+  /**
+   * sha1 identity of the deployed extractor binary. Caches that embed
+   * extractor output (critical-CSS payloads, rendered pages) must mix this
+   * into their keys — an engine-name string alone never changes when the
+   * binary does, so poisoned payloads could be served forever.
+   */
+  getEngineIdentity(): Promise<string>
   /** Release resources (worker pool). Optional for serial engines. */
   dispose?(): Promise<void>
 }
@@ -67,7 +74,16 @@ export async function getZigCritters(): Promise<ZigCritters | undefined> {
     const extractCriticalCss =
       mod.extractCriticalCss || mod.default?.extractCriticalCss
     if (!extractCriticalCss) return undefined
-    return { extractCriticalCss }
+    return {
+      extractCriticalCss,
+      getEngineIdentity: () => {
+        const fn = mod.getEngineIdentity || mod.default?.getEngineIdentity
+        if (!fn) return Promise.resolve('unknown')
+        return fn()
+          .then((v: unknown) => String(v))
+          .catch(() => 'unknown')
+      },
+    }
   } catch {
     return undefined
   }
@@ -85,9 +101,15 @@ export async function createZigCrittersEngine(
     const { createZigCrittersPool } = await import('./zig-pool')
     const pool = await createZigCrittersPool(options)
     if (pool) {
+      // Identity comes from the package (the binary both pool and serial
+      // engine execute); same digest regardless of which engine serves calls.
+      const identity = await getZigCritters().then((s) =>
+        s?.getEngineIdentity(),
+      )
       return {
         extractCriticalCss: (html, css, extractOptions) =>
           pool.extractCriticalCss(html, css, extractOptions),
+        getEngineIdentity: async () => identity ?? 'unknown',
         dispose: () => pool.dispose(),
       }
     }

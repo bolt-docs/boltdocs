@@ -1,6 +1,6 @@
 ---
-'boltdocs': minor
-'@bdocs/ssg': minor
+'boltdocs': patch
+'@bdocs/ssg': patch
 ---
 
 Make the critical-CSS inline budget configurable and raise the default so real sites actually get inline critical CSS.

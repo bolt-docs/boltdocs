@@ -42,10 +42,18 @@ export function createPool(options?: {
   concurrency?: number
 }): Promise<ZigCrittersPool | null>
 
+/**
+ * sha1 identity of the deployed `.wasm` binary. Mix into cache identities that
+ * embed extractor output so a new binary invalidates derived caches exactly
+ * once. Resolves to `'unknown'` when the binary cannot be read.
+ */
+export function getEngineIdentity(): Promise<string>
+
 declare const zigCritters: {
   extractCriticalCss: typeof extractCriticalCss
   processHtml: typeof processHtml
   createPool: typeof createPool
+  getEngineIdentity: typeof getEngineIdentity
 }
 
 export default zigCritters

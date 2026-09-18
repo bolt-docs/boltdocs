@@ -1,7 +1,7 @@
 ---
-'boltdocs': minor
-'@bdocs/processor-satteri': minor
-'@bdocs/unist-utils': minor
+'boltdocs': patch
+'@bdocs/processor-satteri': patch
+'@bdocs/unist-utils': patch
 ---
 
 Make code syntax highlighting engine-agnostic: the core now renders via a `CodeHighlighterAdapter` resolved from a registry instead of calling Shiki directly.
