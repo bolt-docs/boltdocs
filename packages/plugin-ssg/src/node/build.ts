@@ -341,7 +341,35 @@ export async function build(
   // base routes such as /docs). The first cold probe may use the stat-only
   // fallback hash, while the completed client build has the stable Sätteri
   // manifest hash. Keep this separate from the client-cache decision hash.
+  //
+  // The extractor's binary identity is mixed in: rendered HTML embeds the
+  // critical CSS the extractor produced, so a new extractor binary must
+  // re-render every page whose identity derives from this hash — exactly
+  // once, in the same build that ships the new binary.
   let pageContentFallbackHash = currentClientHash
+  // The extractor's binary identity is mixed into the fallback hash: rendered
+  // HTML embeds the critical CSS the extractor produced, so a new extractor
+  // binary must re-render every page whose identity derives from this hash —
+  // exactly once, in the same build that ships the new binary. The suffix is
+  // kept separately because executeClientBundle() recomputes the fallback
+  // hash from the resolved client hash and the mix must be re-applied after
+  // it returns.
+  let engineIdentitySuffix = ''
+  try {
+    const { getZigCritters } = await import('./critical')
+    const identityEngine = await getZigCritters()
+    if (identityEngine) {
+      const engineIdentity = await identityEngine.getEngineIdentity()
+      if (engineIdentity && engineIdentity !== 'unknown') {
+        engineIdentitySuffix = engineIdentity.slice(0, 16)
+      }
+    }
+  } catch {
+    // zig-critters unavailable — keep the plain client hash
+  }
+  if (engineIdentitySuffix) {
+    pageContentFallbackHash = `${currentClientHash}-${engineIdentitySuffix}`
+  }
   const hashFile = join(clientCacheDir, 'client-hash.txt')
 
   let canBypassClientBuild = false
@@ -828,6 +856,13 @@ export async function build(
   resolvedClientCacheDir = clientBundle.resolvedClientCacheDir
   resolvedClientHash = clientBundle.resolvedClientHash
   pageContentFallbackHash = clientBundle.pageContentFallbackHash
+  // executeClientBundle recomputes the fallback hash from the resolved
+  // client hash (which may differ from the early probe after a real client
+  // build); re-apply the extractor identity so synthetic-route identity stays
+  // sensitive to the extractor binary.
+  if (engineIdentitySuffix) {
+    pageContentFallbackHash = `${pageContentFallbackHash}-${engineIdentitySuffix}`
+  }
   hash = resolvedClientHash.substring(0, 12)
   clientBuildDurationMs = clientBundle.durationMs
   serverBuildDurationMs = serverBundle.durationMs
@@ -1092,6 +1127,15 @@ export async function build(
   let cachedAllCss = ''
   let cachedAllCssHash: string = ''
   if (zigCritters) {
+    // Identity of the deployed binary: critical-CSS payloads embed its output,
+    // so the cache key must move when the binary does (an engine-name string
+    // alone served poisoned payloads from an older extractor forever).
+    let engineIdentity = 'unknown'
+    try {
+      engineIdentity = await zigCritters.getEngineIdentity()
+    } catch {
+      // keep 'unknown' — key stays stable within the process
+    }
     const cssDir = join(out, 'assets')
     if (fs.existsSync(cssDir)) {
       const cssFiles = fs.readdirSync(cssDir).filter((f) => f.endsWith('.css'))
@@ -1103,6 +1147,8 @@ export async function build(
       cachedAllCssHash = crypto
         .createHash('sha256')
         .update(cachedAllCss)
+        .update('\0')
+        .update(engineIdentity)
         .digest('hex')
     }
   }

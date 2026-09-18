@@ -1,4 +1,42 @@
 import { createZigCrittersInstance } from './core.mjs'
+import { createHash } from 'node:crypto'
+import { readFileSync } from 'node:fs'
+import { join, dirname } from 'node:path'
+import { fileURLToPath } from 'node:url'
+
+/**
+ * Identity of the compiled extractor: sha1 of the deployed `.wasm` binary.
+ *
+ * Critical-CSS payloads and cached pages embed the extractor's output, so
+ * caches keyed only by (engine-name, page structure, stylesheet) can serve
+ * output produced by an older binary forever. Consumers mix this digest into
+ * their cache identities — when the binary changes, every derived cache
+ * invalidates exactly once, in the same build that ships the new binary.
+ *
+ * Memoized; returns `'unknown'` only if the binary cannot be read (cache
+ * identities must remain stable within a process even then).
+ */
+let engineIdentityPromise = null
+export function getEngineIdentity() {
+  if (!engineIdentityPromise) {
+    engineIdentityPromise = (async () => {
+      try {
+        const wasmPath = join(
+          dirname(fileURLToPath(new URL(import.meta.url))),
+          '..',
+          'zig',
+          'zig-out',
+          'bin',
+          'zig-critters.wasm',
+        )
+        return createHash('sha1').update(readFileSync(wasmPath)).digest('hex')
+      } catch {
+        return 'unknown'
+      }
+    })()
+  }
+  return engineIdentityPromise
+}
 
 /**
  * Serial fallback API.
