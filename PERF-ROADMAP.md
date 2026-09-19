@@ -102,24 +102,37 @@ per-page rewrite cost itself is still real work — see next targets.)
 
 ## Next targets, in priority order
 
-### 1. Incremental client rebuild granularity — the honest big win
+### 1. Incremental client rebuild granularity — DONE (measured)
 
-`app-*.js` (2.3MB) embeds **all pages' MDX text** (route chunks + search
-index), so any content edit changes a chunk referenced by every page and the
-per-route asset hashes change globally → full re-render is semantically
-**correct**, and the client rebuild (10–18s) is legitimate. Making incremental
-edits cheaper is therefore an architecture change, not a cache fix:
+What the investigation found (all measured on the docs site):
 
-- Split the search index out of `app-*.js` into a lazily fetched JSON asset so
-  text-only edits don't touch the shared runtime chunk.
-- Confirm whether per-page route chunks are actually code-split per route (or
-  whether everything lands in `app-*.js` via `combined-*.js`), then chase the
-  chunk that forces global invalidation.
+- The client entry raced the SSR build for a shared resolved-config global.
+  When SSR resolved last, the CLIENT entry took the SSR branch: `combined.mjs`
+  (all page bodies) inlined into `app-*.js` and **no `search.json` emitted**.
+  Fixed per-call via `this.environment.config.consumer` (rolldown's `load`
+  hook does not pass `options.ssr`, so the hook-arg route is not viable).
+- `_rawContent` (full MDX text, 243 pages) traveled inside
+  `virtual:boltdocs-routes` → embedded in `app-*.js`. Moved to a lazy
+  `page-source.json` asset (CopyMarkdown fetches at copy time, session-cached).
+  `app-*.js` went 2.3MB → ~1.2MB and no longer references `combined`.
+- Client now loads real Sätteri chunk packs (chunk-0..4, lazy per navigation).
+- Per-route identity = pack hash ⊕ SSR-bundle guard (entry/layouts/theme,
+  excluding `.vite/` manifests and the page-body chunk; the entry's embedded
+  `combined-<hash>.js` specifier is normalized) ⊕ stylesheet guard. Text edits
+  move none of these; layout/CSS edits move the guards — re-render everything,
+  correctly.
+- Cache hits that survive a client rebuild rewrite the stale `app-*.js` URL
+  embedded in cached HTML (onCacheHit), instead of re-rendering.
 
-Measured decomposition of the current 30-edit incremental (~66s): precompile
-30 misses ~22s, client build ~15s, SSR import ~13s, render 259 ~58s (overlapped
-phases, not additive). Before this work the same build both re-rendered
-everything *and* shipped a stale client bundle.
+**Measured (docs site, 259 pages):** 1-page text edit → **78 new / 181 cached**
+(was 259/0) in ~21s wall (was ~32s); no-op → fast path 0.5s; revert → same 78
+re-render from cache, no oscillation; browser check: layout + lazy
+`page-source.json`/`search.json` OK, critters intact.
+
+Remaining granularity headroom (not scheduled): the 28 synthetic routes ride
+the fallback identity and re-render on any client rebuild — they have no page
+body, so they could key on the guards alone. The 50-pages-per-pack Sätteri
+chunking bounds best-case incremental renders at ⌈pages/50⌉ + 28.
 
 ### 2. Public-asset rewrite cost on full re-renders
 
@@ -136,6 +149,17 @@ itself (rolldown flags, chunking) — out of scope.
 
 ## Known traps (do not relearn these)
 
+- **Guard surfaces must exclude page-text artifacts**: `.vite/` manifests embed
+  hashed chunk names that rename on every text edit, and the SSR entry embeds
+  the page-body chunk's `combined-<hash>.js` specifier — hash the entry with
+  that specifier normalized, or text edits re-invalidate everything.
+- **Fast path validates against the fallback identity**: the ultra-warm path
+  checks synthetic routes against `pageContentFallbackHash` computed BEFORE
+  Vite resolves. Any identity mixed only after the bundle phase desyncs the
+  fast path from what the previous build stored (12s regression, silent). If
+  the client build is bypassed, compute the guards from the cached dirs early.
+- **Every new root-level dist file must join `pageFiles`** in the ssg-output
+  state (fast path uses it for reuse) or the fast path silently disables.
 - `docsDir` reaching Sätteri is ABSOLUTE — always `path.resolve(root, docsDir)`, never `path.join`.
 - Plugin signatures must not bake per-process nonces (`pid/Date.now/Math.random`) into the precompile cache key — kills all cache hits.
 - `<!-- -->` comments are invalid in MDX; use `{/* */}`.

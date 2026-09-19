@@ -19,6 +19,17 @@ export interface RouteClientHashOptions {
   clientHash?: string
   /** Pre-computed chunk hashes to avoid reading the same file many times. */
   assetHashes?: Map<string, string>
+  /**
+   * Preloaded Sätteri compile map: `pages-chunk-map.json` (absolute MDX
+   * path → chunk pack index). When provided and the route's page module is
+   * only reachable through its chunk pack (chunk-N.mjs), the route's client
+   * identity is derived from that pack's manifest entry instead of falling
+   * back to the global client hash — the basis of per-route render
+   * invalidation.
+   */
+  chunkPackMaps?: {
+    chunkMap: Record<string, number>
+  }
 }
 
 const chunkExts = new Set(['.js', '.mjs', '.css'])
@@ -110,6 +121,7 @@ export async function computeRouteClientAssetHash(
     root,
     clientHash,
     assetHashes,
+    chunkPackMaps,
   } = options
 
   let resolvedIndexes = indexes
@@ -132,7 +144,38 @@ export async function computeRouteClientAssetHash(
   const entryChunk = bySrc.get(relativeSource)
   if (entryChunk) {
     collectAssets(byFile, entryChunk.file, assets)
-  } else {
+  } else if (chunkPackMaps) {
+    // Strategy 1.5: the route's page module is only reachable through its
+    // Sätteri chunk pack (chunk-N.mjs) — the compiled MDX lives in
+    // .boltdocs/compiled/pages and never appears as a client module under
+    // its source path. Map the source → chunk pack and use that pack's
+    // manifest entry (plus its imports) as the route identity.
+    //
+    // Sätteri writes the map keys as ABSOLUTE MDX paths with an extra
+    // leading slash (`//home/.../page.mdx`). The route map passed in may hold
+    // either absolute paths or root-relative ones (`docs/guide.mdx`), so try
+    // the raw value, its absolute-from-root form, and the double-slash form.
+    const absoluteSource = path.isAbsolute(routeSourceFile)
+      ? routeSourceFile
+      : path.resolve(root, routeSourceFile)
+    const chunkIdx =
+      chunkPackMaps.chunkMap[routeSourceFile] ??
+      chunkPackMaps.chunkMap[absoluteSource] ??
+      chunkPackMaps.chunkMap[`/${absoluteSource}`]
+    if (chunkIdx !== undefined) {
+      for (const item of byFile.values()) {
+        const src = item.src || ''
+        if (
+          src.includes(`chunk-${chunkIdx}.mjs`) ||
+          item.file.includes(`chunk-${chunkIdx}`)
+        ) {
+          collectAssets(byFile, item.file, assets)
+          break
+        }
+      }
+    }
+  }
+  if (assets.size === 0) {
     // Strategy 2: use the SSR manifest to find client chunks for this module
     const keys = [relativeSource, routeSourceFile.replace(/\\/g, '/')]
     for (const key of keys) {

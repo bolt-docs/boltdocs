@@ -77,3 +77,10 @@ declare module 'virtual:boltdocs-search' {
   }) => Promise<SearchDataItem[]>
   export default fetchSearchData
 }
+
+declare module 'virtual:boltdocs-page-source' {
+  const fetchPageSource: (options?: {
+    bustCache?: boolean
+  }) => Promise<Record<string, string>>
+  export default fetchPageSource
+}

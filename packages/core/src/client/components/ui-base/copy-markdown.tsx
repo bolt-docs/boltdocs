@@ -5,12 +5,28 @@ import { ButtonGroup } from '../primitives/button-group'
 import { Menu } from '../primitives/menu'
 import { cn } from '../../utils/cn'
 import type { ComponentRoute } from '../../types'
+import fetchPageSource from 'virtual:boltdocs-page-source'
 
 export interface CopyMarkdownProps {
   content?: string
+  /**
+   * Explicit raw markdown override. When omitted, the raw source is fetched
+   * lazily from the page-source.json asset (keyed by route path) instead of
+   * being embedded in the shared client bundle.
+   */
   mdxRaw?: string
   route?: ComponentRoute
   className?: string
+}
+
+// One fetch per session: every docs page renders a CopyMarkdown button, so
+// the asset is fetched once on the first docs page and reused afterwards.
+let pageSourcePromise: Promise<Record<string, string>> | null = null
+function getPageSource(): Promise<Record<string, string>> {
+  if (!pageSourcePromise) {
+    pageSourcePromise = fetchPageSource().catch(() => ({}))
+  }
+  return pageSourcePromise
 }
 
 const useCopyMarkdown = (content: string) => {
@@ -53,12 +69,50 @@ const useCopyMarkdown = (content: string) => {
 export function CopyMarkdown({
   content,
   mdxRaw,
+  route,
   className,
 }: CopyMarkdownProps) {
-  const displayContent = mdxRaw || content || ''
+  const routePath = route?.path
+  // State is keyed by route path: on SPA navigation the derived `current`
+  // resets immediately (no stale copy of the previous page), and the fetch
+  // result is stored under its own path so it can never leak across routes.
+  const [rawState, setRawState] = useState<{
+    path: string
+    value?: string
+    resolved: boolean
+  }>({ path: '', resolved: false })
+  const current =
+    rawState.path === routePath && routePath
+      ? rawState
+      : { path: routePath || '', resolved: false }
+
+  useEffect(() => {
+    if (mdxRaw || content || !routePath) return
+    let cancelled = false
+    getPageSource().then((record) => {
+      if (!cancelled) {
+        setRawState({
+          path: routePath,
+          value: record[routePath],
+          resolved: true,
+        })
+      }
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [routePath, mdxRaw, content])
+
+  const displayContent = mdxRaw || current.value || content || ''
   const { copied, handleCopy, handleOpenRaw } = useCopyMarkdown(displayContent)
 
-  if (!displayContent) return null
+  // Hide when there is provably nothing to copy: explicit empty content, or
+  // the page-source lookup resolved without an entry (synthetic routes).
+  // While the lookup is still pending on a docs route, render optimistically
+  // so the button doesn't flash out of the layout after hydration.
+  const nothingToCopy =
+    !displayContent && (!!content || !!mdxRaw || current.resolved || !routePath)
+  if (nothingToCopy) return null
 
   return (
     <div className={cn('relative inline-flex z-100 shrink-0 w-max', className)}>

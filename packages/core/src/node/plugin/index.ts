@@ -776,6 +776,35 @@ export function boltdocsPlugin(
               })
             return
           }
+          if (
+            url === '/page-source.json' ||
+            url?.endsWith('/page-source.json')
+          ) {
+            import('./virtual-modules')
+              .then(async () => {
+                const source: Record<string, string> = {}
+                for (const route of virtualModuleState.routesDataMap.values()) {
+                  const withRaw = route as unknown as {
+                    path?: string
+                    _rawContent?: string
+                  }
+                  if (withRaw.path && withRaw._rawContent) {
+                    source[withRaw.path] = withRaw._rawContent
+                  }
+                }
+                res.setHeader('Content-Type', 'application/json')
+                res.end(JSON.stringify(source))
+              })
+              .catch((err) => {
+                console.error(
+                  '[boltdocs] Failed to serve page-source.json:',
+                  err,
+                )
+                res.statusCode = 500
+                res.end('{}')
+              })
+            return
+          }
           next()
         })
       },
@@ -783,7 +812,17 @@ export function boltdocsPlugin(
       async generateBundle() {
         // Emit search.json as a static asset in production builds so the
         // client can fetch it lazily instead of embedding it in the bundle.
-        if (!isBuild || viteConfig?.build?.ssr) return
+        // Consumer MUST be read from this build's own environment, not the
+        // shared resolved-config reference: client and SSR builds run in
+        // parallel on one plugin instance and the shared reference races —
+        // losing the race silently skipped search.json in the client output.
+        const consumer =
+          (
+            this as unknown as {
+              environment?: { config?: { consumer?: string } }
+            }
+          ).environment?.config?.consumer ?? 'client'
+        if (!isBuild || consumer !== 'client') return
         try {
           const data = getSearchDataExport(virtualModuleState)
           this.emitFile({
@@ -794,10 +833,38 @@ export function boltdocsPlugin(
         } catch (err) {
           console.error('[boltdocs] Failed to emit search.json:', err)
         }
+        try {
+          // Per-page raw markdown for CopyMarkdown, fetched lazily at runtime
+          // (kept out of app-*.js so content edits don't invalidate every
+          // page's asset hash through the shared routes module).
+          const source: Record<string, string> = {}
+          for (const route of virtualModuleState.routesDataMap.values()) {
+            const withRaw = route as unknown as {
+              path?: string
+              _rawContent?: string
+            }
+            if (withRaw.path && withRaw._rawContent) {
+              source[withRaw.path] = withRaw._rawContent
+            }
+          }
+          this.emitFile({
+            type: 'asset',
+            fileName: 'page-source.json',
+            source: JSON.stringify(source),
+          })
+        } catch (err) {
+          console.error('[boltdocs] Failed to emit page-source.json:', err)
+        }
       },
 
       async closeBundle() {
-        if (!isBuild || viteConfig?.build?.ssr) return
+        const consumer =
+          (
+            this as unknown as {
+              environment?: { config?: { consumer?: string } }
+            }
+          ).environment?.config?.consumer ?? 'client'
+        if (!isBuild || consumer !== 'client') return
         await lifecycle?.runHook('build:after')
         await lifecycle?.runHook('build:end')
       },
