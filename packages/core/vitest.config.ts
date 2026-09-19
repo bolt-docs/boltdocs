@@ -17,6 +17,10 @@ export default defineConfig({
         __dirname,
         './tests/mocks/virtual-search.ts',
       ),
+      'virtual:boltdocs-page-source': path.resolve(
+        __dirname,
+        './tests/mocks/virtual-page-source.ts',
+      ),
       'virtual:boltdocs-mdx-components': path.resolve(
         __dirname,
         './tests/mocks/virtual-mdx-components.ts',

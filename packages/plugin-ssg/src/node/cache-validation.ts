@@ -12,11 +12,12 @@ export interface SsgPageCacheItem {
 // can never produce a false positive hit against current entries. Legacy
 // entries simply miss once and are rewritten.
 //
-// v2 → v3: the zig-critters extractor no longer drops desktop media queries
-// (escaped-quote selector parsing + no layout-selector exclusion + growing
-// arena). Persisted HTML embeds the old poisoned inline critical CSS, so
-// every cached page must re-render once.
-const CONTENT_HASH_VERSION = 'v3'
+// v3 → v4: per-route render identity gained the Sätteri chunk-pack hash
+// (strategy 1.5) mixed with a server-bundle identity guard. Cached pages
+// from pre-v4 builds were validated against the global client hash, so
+// their stored `assetHash` is not comparable with the new per-pack identity;
+// every cached page must re-render once under the new scheme.
+const CONTENT_HASH_VERSION = 'v4'
 
 /**
  * Content-hash a single source file: sha1 of the file bytes. Deliberately

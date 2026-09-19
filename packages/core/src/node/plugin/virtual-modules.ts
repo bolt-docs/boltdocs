@@ -25,7 +25,6 @@ export type ClientRouteData = Omit<
 > & {
   description: string
   headings: NonNullable<RouteMeta['headings']>
-  _rawContent: string
 }
 
 export function toClientRouteData(route: RouteMeta): ClientRouteData {
@@ -38,7 +37,6 @@ export function toClientRouteData(route: RouteMeta): ClientRouteData {
     badge: route.badge,
     icon: route.icon,
     headings: route.headings || [],
-    _rawContent: route._rawContent || '',
     frontmatter: route.frontmatter,
     locale: route.locale,
     version: route.version,
@@ -473,7 +471,7 @@ export function createVirtualModulesPlugin(
       return null
     },
 
-    async load(id) {
+    async load(id, hookOptions) {
       const config = getConfig()
 
       // Plugin-declared virtual modules take priority over the core
@@ -510,11 +508,21 @@ export function createVirtualModulesPlugin(
         id.includes('boltdocs-entry.tsx') ||
         id === '\0virtual:boltdocs-entry'
       ) {
+        // Same consumer check as the `entry` branch below — the shared
+        // resolved config races between the parallel client/SSR builds.
+        const hookCtx = this as unknown as {
+          environment?: { config?: { consumer?: string } }
+        }
+        const envConsumer = hookCtx.environment?.config?.consumer
         const resolvedViteConfig = getViteConfig()
+        const ssrLoad =
+          envConsumer !== undefined
+            ? envConsumer !== 'client'
+            : Boolean(resolvedViteConfig?.build?.ssr)
         return generateEntryCode(
           {
             ...options,
-            ssr: Boolean(resolvedViteConfig?.build?.ssr),
+            ssr: ssrLoad,
             useCompiledPages: resolvedViteConfig?.command === 'build',
           },
           config,
@@ -626,11 +634,28 @@ export function createVirtualModulesPlugin(
         return `export default ${JSON.stringify(clientConfig, null, 2)};`
       }
       if (name === 'entry') {
+        // The ssr flag MUST be derived from THIS build's own environment —
+        // never from a shared resolved-config reference. Client and SSR
+        // builds run in parallel on the same plugin instance and whichever
+        // build's configResolved ran last wins the shared reference; reading
+        // `build.ssr` from it raced and could generate the CLIENT entry with
+        // the SSR branch (combined.mjs inlined into app-*.js, no search.json
+        // asset emitted). Note rolldown's build-time `load` hook passes no
+        // second argument, so `this.environment` is the only per-build
+        // signal available in production builds.
+        const hookCtx = this as unknown as {
+          environment?: { config?: { consumer?: string } }
+        }
         const resolvedViteConfig = getViteConfig()
+        const envConsumer = hookCtx.environment?.config?.consumer
+        const ssrLoad =
+          envConsumer !== undefined
+            ? envConsumer !== 'client'
+            : Boolean(hookOptions?.ssr ?? resolvedViteConfig?.build?.ssr)
         return generateEntryCode(
           {
             ...options,
-            ssr: Boolean(resolvedViteConfig?.build?.ssr),
+            ssr: ssrLoad,
             useCompiledPages: resolvedViteConfig?.command === 'build',
           },
           config,
@@ -749,6 +774,31 @@ export default UserLayout;`
   if (options.bustCache) url.searchParams.set('t', String(Date.now()));
   const res = await fetch(url, { cache: options.bustCache ? 'no-store' : 'default' });
   if (!res.ok) throw new Error('Failed to fetch search index');
+  return res.json();
+}`
+      }
+
+      if (name === 'page-source') {
+        // Per-page raw markdown (CopyMarkdown) served as a runtime-fetched
+        // JSON asset instead of embedding every page's full MDX text in the
+        // shared routes module → app-*.js. Embedding it made any content edit
+        // change the chunk referenced by every page (global render
+        // invalidation + 2.3MB shared payload on every navigation).
+        await ensureRoutesGenerated(docsDir, config, moduleState)
+        const record: Record<string, string> = {}
+        for (const route of moduleState.routesDataMap.values()) {
+          if (route.path && route._rawContent) {
+            record[route.path] = route._rawContent
+          }
+        }
+        return `export default async function fetchPageSource(options = {}) {
+  const base = import.meta.env.BASE_URL || '/';
+  const origin = typeof window !== 'undefined' ? window.location.origin : 'http://localhost';
+  const basePath = base.endsWith('/') ? base : base + '/';
+  const url = new URL('page-source.json', new URL(basePath, origin));
+  if (options.bustCache) url.searchParams.set('t', String(Date.now()));
+  const res = await fetch(url, { cache: options.bustCache ? 'no-store' : 'default' });
+  if (!res.ok) throw new Error('Failed to fetch page source');
   return res.json();
 }`
       }

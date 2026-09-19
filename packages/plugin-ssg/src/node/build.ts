@@ -370,6 +370,28 @@ export async function build(
   if (engineIdentitySuffix) {
     pageContentFallbackHash = `${currentClientHash}-${engineIdentitySuffix}`
   }
+
+  // ── Shared-surface identity guards (SSR bundle + stylesheets) ──
+  // With per-pack asset hashes (Sätteri chunk packs), a shared-code change
+  // that only affects the SSR bundle (layout, theme, hooks, route metadata)
+  // would change NO route identity: rendered HTML comes from the server
+  // bundle, whose entry/layout code is independent of page text, so a layout
+  // edit would re-render zero pages and ship stale HTML. Likewise a CSS edit
+  // changes the stylesheet assets (and the inline critical CSS) without
+  // touching any JS pack.
+  //
+  // Both guards hash the bundle artifacts EXCLUDING page text:
+  // - server: the SSR bundle minus combined.mjs (combined embeds every
+  //   page's compiled body — that surface is owned by the per-pack
+  //   identity). The remainder (entry, layouts, routes metadata) is exactly
+  //   the shared surface a layout/theme edit rewrites.
+  // - css: the client stylesheet assets, which text-only edits leave
+  //   byte-stable.
+  // When the client build is bypassed, both directories already represent
+  // THIS build, so the suffixes are computed here — the ultra-warm fast
+  // path validates synthetic routes against the mixed fallback hash and
+  // must see the same value the previous build stored. On cold builds the
+  // suffixes are computed after the bundle phase, from the fresh artifacts.
   const hashFile = join(clientCacheDir, 'client-hash.txt')
 
   let canBypassClientBuild = false
@@ -385,6 +407,144 @@ export async function build(
     // Ignore and run full client build
   }
 
+  const identityMixSuffixes = { server: '', css: '' }
+  const computeSharedIdentitySuffixes = (): { server: string; css: string } => {
+    let server = ''
+    let css = ''
+    try {
+      const identityFiles: string[] = []
+      // Page-text surfaces excluded — they are owned by the per-pack
+      // identity, and including them would re-invalidate every route on any
+      // text edit:
+      // - .vite/ manifests embed hashed chunk names (combined-<hash>.js
+      //   renames on every text edit)
+      // - assets/combined-*.js is the emitted dynamic chunk that embeds
+      //   every page's compiled body
+      // The root combined.mjs (SSR entry) IS hashed: it carries the
+      // layout/theme/hook code a layout edit rewrites. Its bytes embed the
+      // hashed dynamic-import URL of the page-body chunk, which renames on
+      // every text edit — that specifier is NORMALIZED out below so text
+      // edits keep the identity stable while real code changes still fire.
+      const visitSsrFiles = (dir: string, prefix: string) => {
+        let entries: fs.Dirent[]
+        try {
+          entries = fs.readdirSync(dir, { withFileTypes: true })
+        } catch {
+          return
+        }
+        for (const entry of entries) {
+          const rel = prefix ? `${prefix}/${entry.name}` : entry.name
+          if (rel === '.vite') continue
+          if (rel.startsWith('.vite/')) continue
+          if (/^assets\/combined-.*\.js$/.test(rel)) continue
+          if (entry.isDirectory()) {
+            visitSsrFiles(join(dir, entry.name), rel)
+          } else if (entry.isFile()) {
+            identityFiles.push(rel)
+          }
+        }
+      }
+      visitSsrFiles(ssgOut, '')
+      if (identityFiles.length > 0) {
+        identityFiles.sort()
+        const identityHasher = crypto.createHash('sha256')
+        for (const rel of identityFiles) {
+          identityHasher.update(rel)
+          identityHasher.update('\0')
+          let content = fs.readFileSync(join(ssgOut, rel))
+          if (rel === 'combined.mjs') {
+            content = Buffer.from(
+              content
+                .toString('utf-8')
+                .replace(/combined-[A-Za-z0-9_-]+\.js/g, 'combined.js'),
+            )
+          }
+          identityHasher.update(
+            new Uint8Array(
+              content.buffer,
+              content.byteOffset,
+              content.byteLength,
+            ),
+          )
+          identityHasher.update('\0')
+        }
+        server = identityHasher.digest('hex').slice(0, 16)
+      }
+    } catch {
+      // Unreadable SSR bundle — keep the identity without the guard.
+    }
+    try {
+      // Bypassed builds restore dist from the client cache; hash that dir so
+      // the value is stable whether or not dist has been (re)populated yet.
+      const cssAssetsDir = canBypassClientBuild
+        ? join(clientCacheDir, 'dist', 'assets')
+        : join(out, 'assets')
+      if (fs.existsSync(cssAssetsDir)) {
+        const cssFiles = fs
+          .readdirSync(cssAssetsDir)
+          .filter((f) => f.endsWith('.css'))
+          .sort()
+        if (cssFiles.length > 0) {
+          const cssHasher = crypto.createHash('sha256')
+          for (const cssFile of cssFiles) {
+            cssHasher.update(cssFile)
+            cssHasher.update('\0')
+            const content = fs.readFileSync(join(cssAssetsDir, cssFile))
+            cssHasher.update(
+              new Uint8Array(
+                content.buffer,
+                content.byteOffset,
+                content.byteLength,
+              ),
+            )
+            cssHasher.update('\0')
+          }
+          css = cssHasher.digest('hex').slice(0, 16)
+        }
+      }
+    } catch {
+      // Unreadable assets — keep the identity without the CSS guard.
+    }
+    return { server, css }
+  }
+  const applySharedIdentityMix = (): void => {
+    let mixed = currentClientHash
+    if (engineIdentitySuffix) mixed = `${mixed}-${engineIdentitySuffix}`
+    if (identityMixSuffixes.server || identityMixSuffixes.css) {
+      mixed = `${mixed}-${identityMixSuffixes.server}-${identityMixSuffixes.css}`
+    }
+    pageContentFallbackHash = mixed
+  }
+  let sharedIdentityComputed = false
+  if (canBypassClientBuild) {
+    // Resolve the same SSR cache directory the bundle phase would use: the
+    // index may map this client hash to a directory other than the
+    // placeholder hash dir (early probe vs definitive Sätteri hash).
+    try {
+      const index = (await fs.readJson(
+        join(finalCacheDir, 'ssr-cache-index.json'),
+      )) as Record<string, string>
+      const mappedDirectory = index[currentClientHash]
+      if (typeof mappedDirectory === 'string') {
+        const candidate = resolveSsrCacheDirectory(
+          join(finalCacheDir, 'ssr'),
+          mappedDirectory,
+        )
+        if (candidate) ssgOut = candidate
+      }
+    } catch {
+      // A missing or invalid index only costs one guard miss.
+    }
+    if (fs.existsSync(ssgOut)) {
+      const early = computeSharedIdentitySuffixes()
+      identityMixSuffixes.server = early.server
+      identityMixSuffixes.css = early.css
+      if (early.server || early.css) {
+        applySharedIdentityMix()
+        sharedIdentityComputed = true
+      }
+    }
+  }
   // ── Skip resolveConfig when all routes cached ────────────────────
   // If client is bypassed and ALL routes have cached HTML files, skip
   // the expensive Vite resolveConfig (~2-10s) and just copy files.
@@ -490,6 +650,7 @@ export async function build(
         requestedDirStyle === 'nested' ? 'nested' : 'flat',
       ),
       `static-loader-data-manifest-${hash}.json`,
+      'page-source.json',
     ]
     const clientCacheDist = join(clientCacheDir, 'dist')
     const expectedClientFiles = listOutputFiles(clientCacheDist).filter(
@@ -863,6 +1024,16 @@ export async function build(
   if (engineIdentitySuffix) {
     pageContentFallbackHash = `${pageContentFallbackHash}-${engineIdentitySuffix}`
   }
+
+  // Shared-surface guards on cold builds: computed from the FRESH artifacts
+  // of this build (see computeSharedIdentitySuffixes for the rationale).
+  if (!sharedIdentityComputed) {
+    const late = computeSharedIdentitySuffixes()
+    identityMixSuffixes.server = late.server
+    identityMixSuffixes.css = late.css
+    if (late.server || late.css) applySharedIdentityMix()
+    sharedIdentityComputed = true
+  }
   hash = resolvedClientHash.substring(0, 12)
   clientBuildDurationMs = clientBundle.durationMs
   serverBuildDurationMs = serverBundle.durationMs
@@ -1176,6 +1347,29 @@ export async function build(
     // Pre-compute hashes for all client chunks once.
     const chunkHashes = await computeChunkHashes(out, manifest, finalCacheDir)
 
+    // Sätteri chunk-pack map: absolute MDX path → chunk pack index. The
+    // compiled page modules are only reachable through their pack, so this
+    // map is what gives each route a per-route client identity instead of
+    // the global fallback (see computeRouteClientAssetHash strategy 1.5).
+    let chunkPackMaps: { chunkMap: Record<string, number> } | undefined
+    try {
+      const chunkMapPath = join(
+        root,
+        '.boltdocs',
+        'compiled',
+        'pages-chunk-map.json',
+      )
+      if (fs.existsSync(chunkMapPath)) {
+        chunkPackMaps = {
+          chunkMap: JSON.parse(
+            fs.readFileSync(chunkMapPath, 'utf-8'),
+          ) as Record<string, number>,
+        }
+      }
+    } catch {
+      chunkPackMaps = undefined
+    }
+
     // Keep every source-map entry here. The map may contain localized,
     // basename, or alias keys that do not equal the final public route string;
     // filtering it would silently replace a precise asset hash with the global
@@ -1192,7 +1386,22 @@ export async function build(
             root,
             clientHash: currentClientHash,
             assetHashes: chunkHashes,
+            chunkPackMaps,
           })
+          // Shared-surface guards. The per-pack hash only covers the route's
+          // chunk pack; the SSR-bundle identity covers shared server-side
+          // code (layouts, theme, hooks — a layout edit must re-render), and
+          // the stylesheet identity covers CSS edits that leave every pack
+          // byte-stable. Text-only edits change none of these, which is what
+          // makes per-pack render-cache reuse valid.
+          if (identityMixSuffixes.server) {
+            routeToAssetHash[routePath] =
+              `${routeToAssetHash[routePath]}-${identityMixSuffixes.server}`
+          }
+          if (identityMixSuffixes.css) {
+            routeToAssetHash[routePath] =
+              `${routeToAssetHash[routePath]}-${identityMixSuffixes.css}`
+          }
         },
       ),
     )
@@ -1219,6 +1428,14 @@ export async function build(
   let indexHTML = await fs.readFile(join(out, htmlEntry), 'utf-8')
   fs.rmSync(join(out, htmlEntry))
   indexHTML = rewriteScripts(indexHTML, script)
+
+  // Entry script URL of THIS build's client bundle. Cache hits materialized
+  // this build may embed the previous build's entry URL (per-pack reuse
+  // skips re-rendering when the page's pack is unchanged), so onCacheHit
+  // rewrites that stale URL to this one instead of re-rendering the page.
+  const freshEntrySrc = indexHTML.match(
+    /<script type="module"[^>]*src="([^"]+)"/,
+  )?.[1]
   // Compile the common template once. If a user hook transforms index.html,
   // finalizePage automatically falls back to the original renderer.
   const compiledIndexTemplate: HtmlTemplate | null = onBeforePageRender
@@ -1724,7 +1941,12 @@ export async function build(
     canBypassClientBuild,
     getPlan: (path) => getRenderPlan(renderPlans, path),
     isCached: (plan) => {
-      if (turbo || !canBypassClientBuild) return false
+      // Per-pack granularity: a route is reusable when its content hash AND
+      // its pack identity (client pack + SSR bundle + stylesheets, mixed
+      // above) match the cache entry — even though the client build re-ran
+      // because SOME other page changed. The cached HTML's embedded entry
+      // script URL may be stale in that case; onCacheHit rewrites it.
+      if (turbo) return false
       try {
         return isSsgPageCacheValid({
           routePath: plan.path,
@@ -1754,10 +1976,38 @@ export async function build(
       const cachedOutputStart = performance.now()
       try {
         if (ownsHtmlDestination) {
-          filesToMaterialize.push({
-            source: plan.cachedHtmlFile,
-            destination: plan.finalOutFile,
-          })
+          // The cached HTML embeds the client entry URL of the build that
+          // rendered it. A per-pack cache hit can survive a client rebuild
+          // (this pack unchanged, another pack edited) — the entry script
+          // carries __vite__mapDeps, whose preload lists changed. Rewrite
+          // the stale URL to this build's entry instead of re-rendering the
+          // page. Writes the destination directly (never through the
+          // hardlink path — that would mutate the shared cache file).
+          let rewroteEntry = false
+          if (freshEntrySrc) {
+            try {
+              const cachedHtml = await fs.readFile(plan.cachedHtmlFile, 'utf-8')
+              const cachedEntrySrc = cachedHtml.match(
+                /<script type="module"[^>]*src="([^"]+)"/,
+              )?.[1]
+              if (cachedEntrySrc && cachedEntrySrc !== freshEntrySrc) {
+                await fs.ensureDir(dirname(plan.finalOutFile))
+                await fs.writeFile(
+                  plan.finalOutFile,
+                  cachedHtml.split(cachedEntrySrc).join(freshEntrySrc),
+                )
+                rewroteEntry = true
+              }
+            } catch {
+              rewroteEntry = false
+            }
+          }
+          if (!rewroteEntry) {
+            filesToMaterialize.push({
+              source: plan.cachedHtmlFile,
+              destination: plan.finalOutFile,
+            })
+          }
         }
         if (
           loaderDestination &&
@@ -2208,9 +2458,9 @@ export async function build(
     join(finalCacheDir, 'ssg-output.json'),
     resolvedClientHash,
     out,
-    getSsgOutputPageFiles(routesPaths, newSsgCache, dirStyle).concat(
-      `static-loader-data-manifest-${hash}.json`,
-    ),
+    getSsgOutputPageFiles(routesPaths, newSsgCache, dirStyle)
+      .concat(`static-loader-data-manifest-${hash}.json`)
+      .concat('page-source.json'),
     clientBundle.clientFiles,
     finalOutputFiles,
   )

@@ -23,11 +23,14 @@ describe('virtual route client projection', () => {
       title: 'Guide',
       description: '',
       headings: [],
-      _rawContent: '# Guide',
       frontmatter: { custom: 'value' },
     })
     expect(projected).not.toHaveProperty('componentPath')
     expect(projected).not.toHaveProperty('_content')
+    // Raw markdown is served via the lazy page-source.json asset, never
+    // embedded in the shared routes module (it would put every page's full
+    // MDX text into app-*.js and force global render invalidation on edits).
+    expect(projected).not.toHaveProperty('_rawContent')
     expect(projected).not.toHaveProperty('featureFlags')
   })
 })
