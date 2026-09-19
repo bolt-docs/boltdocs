@@ -1,5 +1,41 @@
 # boltdocs
 
+## 3.3.3
+
+### Patch Changes
+
+- [`f8b96e0`](https://github.com/bolt-docs/boltdocs/commit/f8b96e0c868592743b0de0604709731d98e0e73a) Thanks [@jesusalcaladev](https://github.com/jesusalcaladev)! - Make the critical-CSS inline budget configurable and raise the default so real sites actually get inline critical CSS.
+  - **`ssg.criticalCssMaxSize`** (new config option, bytes): per-page budget for the `<style data-zig-critters>` block. Pages whose extracted critical CSS exceeds the budget skip inlining (with a build warning naming the page and sizes).
+  - **Default raised from 8KB to 24KB**: the engine's inherited 8KB budget silently discarded the critical CSS of real docs sites — the boltdocs docs site measures 16–18KB per page, so every page shipped with no inline critical CSS. With the new default the docs build inlines critical CSS on all pages again (direct LCP/FCP win; render-blocking CSS no longer blocks first paint).
+  - Zig-critters 0.2.x users outside boltdocs are unaffected; the WASM `maxSize` contract is unchanged, boltdocs now passes the budget explicitly.
+
+- [`67e9a00`](https://github.com/bolt-docs/boltdocs/commit/67e9a00b410720bf21f5516c214c991d544b6e1e) Thanks [@jesusalcaladev](https://github.com/jesusalcaladev)! - Make code syntax highlighting engine-agnostic: the core now renders via a `CodeHighlighterAdapter` resolved from a registry instead of calling Shiki directly.
+  - **`theme.codeHighlighting`**: new configuration surface (`engine`, `theme`, `options`) that replaces `theme.codeTheme`. Shiki remains the built-in default engine (`engine: 'shiki'`); any adapter instance or factory can be injected inline. A **string shorthand** is accepted — `codeHighlighting: 'shiki'` is equivalent to `{ engine: 'shiki' }`. `theme.codeTheme` still works as a deprecated alias resolving to `codeHighlighting.theme`. Single-string themes render single-theme output (no dual-mode CSS variables), and objects keep the dual light/dark `data-theme-mode="dual"` rendering.
+  - **Highlighter registry** (`boltdocs/node/highlight`): `getCodeHighlighterAdapter()`, `registerHighlighter()` / `registerPluginHighlighter()`, and `prewarmHighlighter()`. Engines that are never selected cost nothing at runtime; the current engine is prewarmed during build and after the dev server starts. A broken or unresolvable engine falls back to Shiki with a warning instead of failing the build.
+  - **Plugin field `codeHighlighter`**: plugins expose their engine under `plugin.name`, so `theme.codeHighlighting.engine` can select it by id.
+  - **`options.regexEngine: 'oniguruma' | 'javascript'`** for the Shiki engine: the **JavaScript regex engine is now the default**, cutting highlighter startup from ~2.5s to ~200ms per compile-pool worker. Unsupported grammar regexes degrade approximately (`forgiving` mode) instead of failing. Pass `regexEngine: 'oniguruma'` for bit-exact TextMate fidelity on exotic grammars.
+  - **Single grammar pass per code block**: the Sätteri rehype plugin serializes the highlighted HAST (`hast-util-to-html`) instead of re-running the grammar through `codeToHtml`, roughly halving highlighting CPU per block. `data-highlighted-html` output is byte-equivalent.
+  - **Per-worker highlight cache**: identical `(lang, options, code)` blocks highlight once per long-lived compile-pool worker (LRU, 2000 entries) — repeated install commands and shared snippets across hundreds of pages are free.
+  - **Grammar prewarm at pool start**: compile workers now prewarm with fenced blocks in every eager language, so grammar loading overlaps pool spin-up instead of running serially on the first pages.
+  - The Sätteri rehype plugin is renamed to `satteriRehypeCodeHighlightPlugin` (`satteriRehypeShikiPlugin` kept as an alias) and emits engine-neutral `data-code-engine` / `data-theme-mode` attributes while keeping the `.shiki-*` classes for backwards compatibility.
+
+- [`0302a58`](https://github.com/bolt-docs/boltdocs/commit/0302a581a9fce6be012b01ab52d67028ccb479b8) Thanks [@jesusalcaladev](https://github.com/jesusalcaladev)! - Per-pack render granularity: text-only edits re-render only the edited page's chunk pack instead of the whole site
+  - **Per-route render identity**: each route's identity is now the Sätteri chunk-pack hash (strategy 1.5 in `computeRouteClientAssetHash`), mixed with an SSR-bundle identity guard (entry/layouts/theme, page-body chunk and manifests excluded) and a stylesheet-identity guard. Layout/CSS edits still re-render everything — correctly; text edits don't.
+  - **Cache-hit entry-script rewrite**: a cache hit that survives a client rebuild rewrites the stale `app-*.js` URL embedded in the cached HTML to the fresh bundle's URL, instead of re-rendering the page.
+  - **Fixed an SSR/client race** in the virtual-module plugins: the client entry no longer reads the shared global resolved config (which the SSR build could overwrite last — client builds raced into the SSR branch, inlining `combined.mjs` and skipping the `search.json` asset). Per-call `ssr` resolution now uses `this.environment.config.consumer`.
+  - **`_rawContent` out of the client bundle**: full MDX source text no longer ships inside `virtual:boltdocs-routes`/`app-*.js` (~1.1MB smaller shared chunk). It's served lazily via `page-source.json` (fetched by CopyMarkdown at copy time, one session-cached request).
+  - Measured on the docs site: 1-page text edit re-renders 78/259 pages (was 259), no-op builds 0.5s, revert oscillation eliminated, ultra-warm fast path intact.
+
+- [`4da1cae`](https://github.com/bolt-docs/boltdocs/commit/4da1cae105a0919c5280bd4f57c7a561fbfca5cd) Thanks [@jesusalcaladev](https://github.com/jesusalcaladev)! - Faster incremental builds: SSR module prewarm in parallel with bundle builds, higher finalize/render concurrency, and Node compile cache for the CLI
+  - **SSG (`@bdocs/ssg`)**: when the SSR bundle is cached on disk, its ES module is imported in parallel with the bundle builds instead of serially after them (removes up to ~10s from the critical path on incremental builds).
+  - **SSG (`@bdocs/ssg`)**: finalize queue concurrency raised to match the critters WASM pool size, and the default SSG render worker count scales with available cores (RAM-aware guard kept).
+  - **Core (`boltdocs`)**: the CLI enables Node's `module.enableCompileCache()` when available, skipping repeated JS parse work on every command.
+
+- Updated dependencies [[`f8b96e0`](https://github.com/bolt-docs/boltdocs/commit/f8b96e0c868592743b0de0604709731d98e0e73a), [`34f16ca`](https://github.com/bolt-docs/boltdocs/commit/34f16caa5e820538942471aeaa4611edf1de8ba2), [`67e9a00`](https://github.com/bolt-docs/boltdocs/commit/67e9a00b410720bf21f5516c214c991d544b6e1e), [`0302a58`](https://github.com/bolt-docs/boltdocs/commit/0302a581a9fce6be012b01ab52d67028ccb479b8), [`eed5613`](https://github.com/bolt-docs/boltdocs/commit/eed56139c20fac1b13a575acffdb1104480c6be2), [`a9189d6`](https://github.com/bolt-docs/boltdocs/commit/a9189d6be7e5adf56f3f43c60ecde97137b2714c), [`4da1cae`](https://github.com/bolt-docs/boltdocs/commit/4da1cae105a0919c5280bd4f57c7a561fbfca5cd), [`1a044a2`](https://github.com/bolt-docs/boltdocs/commit/1a044a209d03cf3d94528c1bc93cc14784518905)]:
+  - @bdocs/ssg@0.4.2
+  - @bdocs/processor-satteri@0.3.2
+  - @bdocs/unist-utils@0.2.1
+
 ## 3.3.2
 
 ### Patch Changes

@@ -1,5 +1,28 @@
 # @bdocs/processor-satteri
 
+## 0.3.2
+
+### Patch Changes
+
+- [`67e9a00`](https://github.com/bolt-docs/boltdocs/commit/67e9a00b410720bf21f5516c214c991d544b6e1e) Thanks [@jesusalcaladev](https://github.com/jesusalcaladev)! - Make code syntax highlighting engine-agnostic: the core now renders via a `CodeHighlighterAdapter` resolved from a registry instead of calling Shiki directly.
+  - **`theme.codeHighlighting`**: new configuration surface (`engine`, `theme`, `options`) that replaces `theme.codeTheme`. Shiki remains the built-in default engine (`engine: 'shiki'`); any adapter instance or factory can be injected inline. A **string shorthand** is accepted — `codeHighlighting: 'shiki'` is equivalent to `{ engine: 'shiki' }`. `theme.codeTheme` still works as a deprecated alias resolving to `codeHighlighting.theme`. Single-string themes render single-theme output (no dual-mode CSS variables), and objects keep the dual light/dark `data-theme-mode="dual"` rendering.
+  - **Highlighter registry** (`boltdocs/node/highlight`): `getCodeHighlighterAdapter()`, `registerHighlighter()` / `registerPluginHighlighter()`, and `prewarmHighlighter()`. Engines that are never selected cost nothing at runtime; the current engine is prewarmed during build and after the dev server starts. A broken or unresolvable engine falls back to Shiki with a warning instead of failing the build.
+  - **Plugin field `codeHighlighter`**: plugins expose their engine under `plugin.name`, so `theme.codeHighlighting.engine` can select it by id.
+  - **`options.regexEngine: 'oniguruma' | 'javascript'`** for the Shiki engine: the **JavaScript regex engine is now the default**, cutting highlighter startup from ~2.5s to ~200ms per compile-pool worker. Unsupported grammar regexes degrade approximately (`forgiving` mode) instead of failing. Pass `regexEngine: 'oniguruma'` for bit-exact TextMate fidelity on exotic grammars.
+  - **Single grammar pass per code block**: the Sätteri rehype plugin serializes the highlighted HAST (`hast-util-to-html`) instead of re-running the grammar through `codeToHtml`, roughly halving highlighting CPU per block. `data-highlighted-html` output is byte-equivalent.
+  - **Per-worker highlight cache**: identical `(lang, options, code)` blocks highlight once per long-lived compile-pool worker (LRU, 2000 entries) — repeated install commands and shared snippets across hundreds of pages are free.
+  - **Grammar prewarm at pool start**: compile workers now prewarm with fenced blocks in every eager language, so grammar loading overlaps pool spin-up instead of running serially on the first pages.
+  - The Sätteri rehype plugin is renamed to `satteriRehypeCodeHighlightPlugin` (`satteriRehypeShikiPlugin` kept as an alias) and emits engine-neutral `data-code-engine` / `data-theme-mode` attributes while keeping the `.shiki-*` classes for backwards compatibility.
+
+- [`eed5613`](https://github.com/bolt-docs/boltdocs/commit/eed56139c20fac1b13a575acffdb1104480c6be2) Thanks [@jesusalcaladev](https://github.com/jesusalcaladev)! - Fix two silent bugs that disabled the MDX precompile cache on every build
+  - **Absolute `docsDir` corrupted the precompile scan path** — core passes a resolved absolute `docsDir`, but the plugin joined it onto the Vite root (`path.join(root, docsDir)`), producing a nonexistent path. `fs.existsSync` failed silently and the whole precompile pass (and its worker pool) was skipped on every build. Now uses `path.resolve`, which handles both relative and absolute paths.
+  - **Per-process nonce invalidated the manifest `globalKey`** — non-persistent user plugins were signed with a `pid:Date.now():Math.random()` nonce baked into the compiler signature, so the manifest key differed on every process and the on-disk compiled-MDX cache could never produce a hit: all pages were recompiled on every build. The nonce is replaced by the stable `__boltdocsCacheSignature` (name@version:options) identity marker.
+
+  Measured on the 259-page docs site: warm builds now report `precompile: 231 hit / 0 miss / 1.5s` instead of recompiling the full site invisibly on every build.
+
+- Updated dependencies [[`67e9a00`](https://github.com/bolt-docs/boltdocs/commit/67e9a00b410720bf21f5516c214c991d544b6e1e)]:
+  - @bdocs/unist-utils@0.2.1
+
 ## 0.3.1
 
 ### Patch Changes
