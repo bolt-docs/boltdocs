@@ -89,6 +89,37 @@ eager languages at worker spawn, so grammar + WASM init happens during pool
 spin-up. Verified live: `precompile: 201 hit / 30 miss` and `231 hit / 0 miss`
 on warm runs. Nothing left to do here.
 
+### 6. Ultra-warm fast path restored; deployment mirror made add-only ✅ (measured)
+
+Two bugs were compounding:
+
+- The docs site's post-build script (`scripts/prepare-deployment-dist.mjs`)
+  mirrors root-level dist entries under `/docs/` with **rmSync + copy**. A
+  stale root-level `es/` leftover (3 pre-base-era pages) therefore deleted the
+  128 freshly built `/docs/es/**` pages after every build and copied the fossil
+  over them — 125 locale pages missing from every deployment, silently. The
+  script is now **add-only** (`if (exists(destination)) continue`), and it
+  registers everything it mirrors as `extraFiles` in the SSG output state.
+- The ultra-warm fast path demanded `auxiliaryFiles.length === 0`, but SEO
+  (`sitemap.xml`, `robots.txt`) and llms/RSS plugin output are always written
+  after the state — so the lean path (reuse dist as-is, no reset/restore)
+  could never activate on a real site. Aux output that provably derives from
+  routes + config (both already covered by the client-hash gate) is now
+  accepted when every file still exists; anything else forces the normal
+  pipeline, which regenerates it.
+
+New `extraFiles` field in `SsgOutputState`: root-relative files present in
+the output but produced by post-build tooling instead of the pipeline. The
+reuse check requires every registered extra to still exist and no unregistered
+file to appear; unknown extras cost one reset pass, then the tooling
+re-registers them — self-healing by construction. `readSsgOutputState` was
+dropping the new field on load (silent zero), which the inode test caught.
+
+**Measured (docs site):** no-op build back to **~0.5s with the dist inode
+untouched** (the reset-and-restore pass no longer runs); all 259 pages
+validate; `/docs/es` keeps its 128 pages; the mirror script converges (308
+extra files registered, stable across runs).
+
 ### 5. `onPageRenderedHookMs` metric corrected ✅ (was summing overlapping deltas)
 
 The roadmap's 4.7s "hooks re-scan rendered HTML" hypothesis was **wrong** — the
@@ -215,6 +246,18 @@ itself (rolldown flags, chunking) — out of scope.
   rebuilt "for no reason". Verify `git status docs/docs` is clean and which
   files actually changed bytes (content, not just mtime) before attributing a
   rebuild to a bug.
+- **Post-build tools that mutate dist must own their footprint in the output
+  state** (`extraFiles`) — anything unregistered silently disables the fast
+  path, and anything written blind (a mirror over freshly built pages) can
+  destroy output. Mirror/copy scripts must be add-only.
+- **State readers must round-trip every field**: `readSsgOutputState`
+  rebuilt the state via the factory and dropped `extraFiles` — the check
+  then saw extras=0 while the file said 308, and only an inode-stability test
+  exposed it. When adding a state field, add it to the reader explicitly.
+- **A package rebuild during benchmarking changes the client hash** (the
+  docs site hashes workspace dists) — the next build legitimately resets
+  dist. One transition build after any framework rebuild; only the run
+  after that proves fast-path behavior.
 
 ## How to re-run the benchmark
 

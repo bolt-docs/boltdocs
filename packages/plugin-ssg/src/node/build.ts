@@ -552,11 +552,13 @@ export async function build(
   const cachePath = join(finalCacheDir, 'ssg-cache.json')
   const outputStatePath = join(finalCacheDir, 'ssg-output.json')
   // The early path must never bypass plugins/hooks that generate auxiliary
-  // files. Legacy builds without a state file also take the normal pipeline.
+  // files BLINDLY: only when the previous state proves the site's auxiliary
+  // surface is fully deterministic (SEO files and llms/RSS plugins are pure
+  // functions of routes + config, both already covered by the client hash),
+  // and — checked per build below — every auxiliary file still exists. Legacy
+  // builds without a state file still take the normal pipeline.
   const earlyOutputState = await readSsgOutputState(outputStatePath)
-  const canUseDeterministicFastPath =
-    earlyOutputState !== undefined &&
-    earlyOutputState.auxiliaryFiles.length === 0
+  const canUseDeterministicFastPath = earlyOutputState !== undefined
 
   if (canBypassClientBuild) {
     const actualClientFiles = listOutputFiles(join(clientCacheDir, 'dist'))
@@ -657,19 +659,24 @@ export async function build(
       (file) => file !== htmlEntry,
     )
     const outputState = await readSsgOutputState(outputStatePath)
-    // Auxiliary files are produced by plugins/hooks after the client bundle
-    // and cannot be recomputed safely before resolveConfig. Force the normal
-    // pipeline whenever they exist; the state remains useful for diagnostics,
-    // while the early fast path stays limited to deterministic output.
+    // Reuse the previous output only when it is structurally identical to
+    // what this build would produce. Auxiliary files from SEO/llms/RSS hooks
+    // are accepted because they are deterministic functions of routes +
+    // config (both covered by the client-hash gate above), but they must all
+    // still be on disk — a missing aux file (deleted output, interrupted
+    // post-processing) forces the normal pipeline, which regenerates them.
+    const auxiliaryFilesExist = (outputState?.auxiliaryFiles ?? []).every(
+      (file) => fs.existsSync(join(out, file)),
+    )
     const outputReused =
-      outputState?.auxiliaryFiles.length === 0 &&
+      auxiliaryFilesExist &&
       isSsgOutputReusable(
         outputState,
         currentClientHash,
         out,
         expectedClientFiles,
         expectedPageFiles,
-        [],
+        outputState?.auxiliaryFiles ?? [],
       )
 
     const loaderDataManifest: Record<string, string> = {}
@@ -812,12 +819,17 @@ export async function build(
     }
     await onFinished?.(outDir)
     await removeOutputBuildMetadata(out)
+    // The reused output includes any previously registered post-build extras
+    // (they exist — that was part of the reuse check), so carry them forward
+    // instead of letting the state forget them and desync on the next build.
     await writeSsgOutputState(
       join(finalCacheDir, 'ssg-output.json'),
       currentClientHash,
       out,
       expectedPageFiles,
       expectedClientFiles,
+      undefined,
+      outputState?.extraFiles ?? [],
     )
     return
   }
@@ -2454,6 +2466,19 @@ export async function build(
     },
   })
 
+  // Carry forward files that post-build tooling (deployment mirror scripts)
+  // added to the previous dist, as long as the current dist still contains
+  // them. Extras the tooling no longer produces simply drop off the list —
+  // the strict check then sees a clean, fully-owned output for one build
+  // before the tooling re-registers its additions.
+  const finalOutputFileSet = new Set(finalOutputFiles)
+  const carriedExtraFiles = (earlyOutputState?.extraFiles ?? []).filter(
+    (file) =>
+      !finalOutputFileSet.has(file) &&
+      !clientBundle.clientFiles.includes(file) &&
+      fs.existsSync(join(out, file)),
+  )
+
   await writeSsgOutputState(
     join(finalCacheDir, 'ssg-output.json'),
     resolvedClientHash,
@@ -2463,6 +2488,7 @@ export async function build(
       .concat('page-source.json'),
     clientBundle.clientFiles,
     finalOutputFiles,
+    carriedExtraFiles,
   )
 }
 
