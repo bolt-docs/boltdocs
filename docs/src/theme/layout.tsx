@@ -23,7 +23,7 @@ function DocsThemeLayout({ children }: { children?: ReactNode }) {
           <Sidebar routes={filteredRoutes || []} config={config} />
         )}
         <DocsLayoutPrimitive.Content>
-          <DocsLayoutPrimitive.ContentMdx className="pt-4 pb-20 px-28 max-sm:px-10">
+          <DocsLayoutPrimitive.ContentMdx className="pt-4 pb-20 px-28 max-sm:px-5">
             {!isCollectionPage && (
               <DocsLayoutPrimitive.Header className="mt-5">
                 {currentRoute?.title && (
@@ -59,14 +59,16 @@ function DocsThemeLayout({ children }: { children?: ReactNode }) {
             )}
           </DocsLayoutPrimitive.ContentMdx>
         </DocsLayoutPrimitive.Content>
-        <div className="overflow-y-auto sticky">
-          <OnThisPage
-            headings={currentRoute?.headings}
-            filePath={currentRoute?.filePath}
-            communityHelp={config.theme?.communityHelp}
-            editLink={config.theme?.editLink}
-          />
-        </div>
+        {!isCollectionPage && (
+          <div className="overflow-y-auto sticky">
+            <OnThisPage
+              headings={currentRoute?.headings}
+              filePath={currentRoute?.filePath}
+              communityHelp={config.theme?.communityHelp}
+              editLink={config.theme?.editLink}
+            />
+          </div>
+        )}
       </DocsLayoutPrimitive.Body>
     </DocsLayoutPrimitive>
   )

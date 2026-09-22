@@ -230,6 +230,16 @@ export function computeClientCodeHash(
       hashDirectoryContent(docsDir, root, hasher)
     }
 
+    // ---- Site client-code overrides (src/) ----
+    // Layout, theme components, hooks and styles live under the site's `src/`
+    // directory and are bundled by Vite exactly like framework dist. They must
+    // participate in the hash or a theme-only edit leaves both the client
+    // build AND every cached page stale.
+    const srcDir = join(root, 'src')
+    if (fs.existsSync(srcDir)) {
+      hashDirectoryContent(srcDir, root, hasher)
+    }
+
     // ---- Always includes: config + tsconfig (content) ----
     hashConfigFiles(root, hasher)
 

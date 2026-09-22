@@ -258,6 +258,42 @@ itself (rolldown flags, chunking) — out of scope.
   docs site hashes workspace dists) — the next build legitimately resets
   dist. One transition build after any framework rebuild; only the run
   after that proves fast-path behavior.
+- **The client hash now covers the site's `src/`** (theme overrides) in
+  addition to framework dists and `docs/`. Before, a theme-only edit skipped
+  the client build AND left every cached page stale with the old layout —
+  this silently masked the OnThisPage fixes below during verification. The
+  hash change makes the next build a full transition (259 re-renders); plan
+  for it.
+
+## Round 4 — OnThisPage invisible (two root causes, both client-side)
+
+Symptom: the OnThisPage rail (and any element revealed by a utility the
+landing page never used) disappeared for the whole SPA session. Two
+independent bugs, found by reproducing in headless Chrome and enumerating the
+cascade:
+
+1. **Stale critters inline styles.** Every pre-rendered page inlines a
+   `<style data-zig-critters>` with the utilities that page uses. The block of
+   the *first* visited page survives client-side navigation and, emitted after
+   the external stylesheet, wins the cascade — its `.hidden{display:none}`
+   permanently beat `xl:flex` on every page reached via SPA. Fix: the shell
+   removes `style[data-zig-critters]` blocks on mount (the external stylesheet
+   is always in the initial HTML, so removal cannot flash).
+2. **Collection posts never resolved `currentRoute`.** Post route records are
+   registered without the docs base (`blog/post`, sometimes no leading slash)
+   while the URL carries both (`/docs/blog/post`), so `useRoutes()` missed,
+   `headings` arrived empty and the theme wrapper returned null (this is also
+   why the navbar behaved oddly on blog pages). Fix: longest segment-tail
+   fallback restricted to collection routes.
+
+Also discovered: the docs blog uses a custom post component
+(`docs/docs/[blog]/post.tsx`) that renders its own in-article TOC — the
+layout's right rail is now gated off for collection pages to avoid duplicate
+TOCs (convention: pick ONE). Verified in browser: exactly 1 visible OTP in
+direct + SPA navigation for docs pages, blog posts and es pages.
+
+Cost: none of this is on the hot build path (one effect on hydration, one
+memoized lookup, one extra directory in the pre-build hash walk).
 
 ## How to re-run the benchmark
 
