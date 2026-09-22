@@ -989,19 +989,25 @@ export function createSatteriMdxPlugin(
     writeFileIfChanged(combinedFile, combinedLines.join('\n'))
 
     // ── P2-20: Write client chunk packs for ALL sites > 25 pages ──
-    // Groups pages into chunks of 25 to reduce Vite/Rolldown module count
-    // from N (202) to K (8). Each chunk replaces ~25 individual dynamic
-    // imports with 1, saving ~4-5s in client build time.
-    // For ≤25 pages, keep individual imports (small site, negligible diff).
+    // Groups pages into chunks to reduce Vite/Rolldown module count from N
+    // (231) to K. Each chunk replaces N/K individual dynamic imports with 1,
+    // saving client build time. For ≤25 pages, keep individual imports
+    // (small site, negligible diff).
+    //
+    // Chunk size is ALSO the incremental render granularity: the SSG render
+    // cache keys each route on its pack's content hash, so a single text edit
+    // re-renders every page in the edited page's pack (plus synthetic routes).
+    // Smaller packs = fewer wasted re-renders on incremental builds; the extra
+    // modules are far cheaper than the pre-chunking N individual imports.
     const totalFiles = mdxFiles.length
     const PAGES_PER_CHUNK =
       totalFiles <= 50
         ? 25
         : totalFiles <= 200
-          ? 30
+          ? 20
           : totalFiles <= 500
-            ? 50
-            : 100
+            ? 15
+            : 25
 
     // P2-20.4: Write shared imports chunk (_shared.mjs) so every page chunk
     // doesn't repeat the same import lines.  Each chunk imports _shared.mjs

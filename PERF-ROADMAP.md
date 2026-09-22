@@ -131,16 +131,38 @@ re-render from cache, no oscillation; browser check: layout + lazy
 
 Remaining granularity headroom (not scheduled): the 28 synthetic routes ride
 the fallback identity and re-render on any client rebuild — they have no page
-body, so they could key on the guards alone. The 50-pages-per-pack Sätteri
-chunking bounds best-case incremental renders at ⌈pages/50⌉ + 28.
+body, so they could key on the guards alone. Sätteri now chunks at 15
+pages/pack for sites this size (see target 2), bounding best-case incremental
+renders at pages-in-the-edited-pack + 28.
 
-### 2. Public-asset rewrite cost on full re-renders
+### 2. Public-asset rewrite cost on full re-renders — DONE (measured)
 
-`rewriteHtmlPublicAssetUrls` costs ~2.3ms/page (measured over real dist HTML)
-— the attribute regexes scan the whole document even though the docs site
-has ~0 public-asset matches per page. Cheap win: pre-compile the regexes once
-(they're rebuilt per call today) and skip the pass entirely when the page has
-no `/`-rooted attribute URLs. Matters only on builds that re-render many pages.
+- The two passes (`src|href|poster|content` + `srcset`) fused into ONE
+  pre-compiled scan; module-level regexes replace per-call `new RegExp`.
+  Output is byte-identical with the old behavior — including the accidental
+  legacy handling of `data-srcset="…"` as a srcset list, now pinned by a test.
+- `createPublicAssetResolver` now exposes `mightRewrite(html)`: a
+  case-insensitive pre-scan gate built from the public dir's actual top-level
+  entries (percent-encoded variants included). Pages that cannot reference a
+  public asset skip the scan entirely. Hand-built resolvers without the gate
+  just always run the scan.
+- The gate is deliberately unanchored — any occurrence of a public first
+  segment as a path segment trips it. Anchoring on the attribute name would
+  miss srcset lists whose public candidate is not the first entry: a
+  correctness bug the new unit tests caught before it shipped. False
+  positives only cost the normal scan.
+
+**Measured (docs site, 142 collected rendered HTML pages, best-of-5):**
+817µs → 757µs per page (~7% faster). The roadmap's original premise
+("~0 public-asset refs per page") no longer holds — blog cover images are
+embedded root-absolute on most pages, so the gate rarely skips and the fused
+scan carries the win. Matters only on builds that re-render many pages,
+exactly when it matters.
+
+Also fixed along the way: `FeaturedResources` on the docs site called
+`window.matchMedia` at render time, which crashes SSR (and would hydrate a
+different post count than the server rendered). The mobile behavior it wanted
+(first card only below md) is expressed in CSS, SSR-safe.
 
 ### 3. Full cold build
 
