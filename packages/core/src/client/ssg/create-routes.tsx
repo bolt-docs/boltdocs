@@ -35,9 +35,15 @@ interface CreateRoutesOptions {
   config: BoltdocsConfig
   mdxModules: Record<string, any>
 
-  externalPages?: Record<string, React.ComponentType>
+  externalPages?: Record<
+    string,
+    React.ComponentType | (() => Promise<{ default: React.ComponentType }>)
+  >
   externalLayout?: React.ComponentType<{ children: React.ReactNode }>
-  externalFilePages?: Record<string, React.ComponentType>
+  externalFilePages?: Record<
+    string,
+    React.ComponentType | (() => Promise<{ default: React.ComponentType }>)
+  >
   externalFileMdx?: Record<string, unknown>
   components?: Record<string, React.ComponentType>
 }

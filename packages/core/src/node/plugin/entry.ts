@@ -119,6 +119,10 @@ export function generateEntryCode(
   const externalFileMdxRoutes = externalFileRoutes.filter(
     (route) => route.kind === 'mdx',
   )
+  // Dynamic imports keep each file-routed external page in its own client
+  // chunk: a docs reader never downloads the landing page's code. On the
+  // server the chunk graph is bundled into the SSR output, so these imports
+  // resolve immediately and pre-rendered HTML is unchanged.
   const externalFileImports = externalFileComponentRoutes
     .map(
       (route, index) =>
@@ -128,8 +132,8 @@ export function generateEntryCode(
   const externalFileComponentMap = externalFileComponentRoutes.length
     ? `const _external_file_pages = {\n${externalFileComponentRoutes
         .map(
-          (route, index) =>
-            `  ${JSON.stringify(route.path)}: _external_file_${index},`,
+          (route) =>
+            `  ${JSON.stringify(route.path)}: () => import(${JSON.stringify(normalizePath(route.filePath))}),`,
         )
         .join('\n')}\n};`
     : 'const _external_file_pages = {};'

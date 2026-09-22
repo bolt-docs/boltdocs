@@ -320,3 +320,37 @@ grep -oE '"details":"259 pages[^"]*"' /tmp/bench-touch.log   # expect "0 new / 2
 # 4. Cleanup
 git checkout -- docs/docs
 ```
+
+## Round: Lighthouse (runtime perf) — lazy external pages + WebGL sanity
+
+Goal: raise Lighthouse scores (baseline 0.38–0.42 perf). Two-part fix.
+
+### Fix A: lazy-load external pages (pages-external)
+
+The entry bundle embedded the landing/about/showcase/roadmap JSX (~216 KB raw,
+~72 KB gz) statically via `pages-external/index.tsx`. A `/docs` reader paid for
+the marketing pages it never visits.
+
+- `create-routes.external.tsx`: external route options now accept `loader`
+  (dynamic import) alongside `component`; both fileRouting and the `pages` map
+  wrap results in `React.lazy` + the existing `record.lazy` mechanism (same one
+  MDX pages use; SSR pre-renders real HTML, client hydrates when the chunk
+  arrives).
+- `entry.ts` template: fileRouting imports became dynamic loaders.
+- Docs site: `pages-external/index.tsx` switched to loaders.
+- Measured: app chunk 1,239 KB → 1,023 KB raw (338 → 266 KB gz, −21%).
+
+### Fix B: LightRays WebGL effect (landing hero)
+
+Continuous rAF loop: dpr up to 2, no pause when tab hidden. On software GL
+(headless/low-end) each frame is a long task → unbounded TBT (155 s observed).
+Mitigations: dpr 1, 30 fps cap, pause on `visibilitychange`, skip entirely under
+`prefers-reduced-motion`.
+
+### Measurement caveat (IMPORTANT)
+
+Lighthouse numbers on this machine are only comparable when load average is
+near-idle: competing agents (browsers, compilers) inflate FCP/TBT wildly. Two
+runs on identical artifacts scored 0.87 (idle) then 0.50 (load 7/8, another
+process at 136% CPU). Re-measure before/after any bundle change in comparable
+load conditions; do not chase noise with code changes.

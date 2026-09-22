@@ -1,6 +1,9 @@
 import { useEffect, useRef, useState } from 'react'
 import { Renderer, Program, Triangle, Mesh } from 'ogl'
 
+const FPS_CAP = 30 // WebGL effect: no human eye needs 60fps here, halves GPU/CPU cost
+const FRAME_INTERVAL = 1000 / FPS_CAP
+
 type RaysOrigin =
   | 'top-center'
   | 'top-left'
@@ -225,11 +228,14 @@ export const LightRays = ({
   const animationIdRef = useRef<number | null>(null)
   const meshRef = useRef<Mesh | null>(null)
   const cleanupFunctionRef = useRef<(() => void) | null>(null)
+  const lastFrameTimeRef = useRef(0)
+  const runningRef = useRef(false)
   const [isVisible, setIsVisible] = useState(false)
   const observerRef = useRef<IntersectionObserver | null>(null)
 
   useEffect(() => {
     if (!containerRef.current) return
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return
 
     observerRef.current = new IntersectionObserver(
       (entries) => {
@@ -265,7 +271,7 @@ export const LightRays = ({
       if (!containerRef.current) return
 
       const renderer = new Renderer({
-        dpr: Math.min(window.devicePixelRatio, 2),
+        dpr: 1, // software GL (low-end / throttled environments) chokes on dpr 2: 4x the pixels
         alpha: true,
       })
       rendererRef.current = renderer
@@ -311,7 +317,7 @@ export const LightRays = ({
       const updatePlacement = () => {
         if (!containerRef.current || !renderer) return
 
-        renderer.dpr = Math.min(window.devicePixelRatio, 2)
+        renderer.dpr = 1
 
         const { clientWidth: wCSS, clientHeight: hCSS } = containerRef.current
         renderer.setSize(wCSS, hCSS)
@@ -327,10 +333,20 @@ export const LightRays = ({
         uniforms.rayDir.value = dir
       }
 
+      runningRef.current = true
       const loop = (t: number) => {
         if (!rendererRef.current || !uniformsRef.current || !meshRef.current) {
+          runningRef.current = false
           return
         }
+
+        // FPS cap: skip frames that arrive too early (crucial on software GL where
+        // each frame is a long task; at 60fps the main thread never goes quiet)
+        if (t - lastFrameTimeRef.current < FRAME_INTERVAL) {
+          animationIdRef.current = requestAnimationFrame(loop)
+          return
+        }
+        lastFrameTimeRef.current = t
 
         uniforms.iTime.value = t * 0.001
 
@@ -354,6 +370,7 @@ export const LightRays = ({
           renderer.render({ scene: mesh })
           animationIdRef.current = requestAnimationFrame(loop)
         } catch {
+          runningRef.current = false
           return
         }
       }
@@ -362,11 +379,31 @@ export const LightRays = ({
       updatePlacement()
       animationIdRef.current = requestAnimationFrame(loop)
 
+      // Pause entirely while the tab is hidden: rAF already throttles in real
+      // browsers, but headless/automation and some WebViews keep firing —
+      // a hidden hero rendering 30fps of WebGL is pure waste.
+      const handleVisibility = () => {
+        if (document.hidden) {
+          if (animationIdRef.current) {
+            cancelAnimationFrame(animationIdRef.current)
+            animationIdRef.current = null
+          }
+          runningRef.current = false
+        } else if (!runningRef.current) {
+          runningRef.current = true
+          lastFrameTimeRef.current = performance.now()
+          animationIdRef.current = requestAnimationFrame(loop)
+        }
+      }
+      document.addEventListener('visibilitychange', handleVisibility)
+
       cleanupFunctionRef.current = () => {
         if (animationIdRef.current) {
           cancelAnimationFrame(animationIdRef.current)
           animationIdRef.current = null
         }
+        runningRef.current = false
+        document.removeEventListener('visibilitychange', handleVisibility)
 
         window.removeEventListener('resize', updatePlacement)
 
