@@ -5,15 +5,17 @@ const run = (code: string) =>
   transformSource(null as any, { code, filePath: 'x.mdx' })
 
 describe('preprocessMath', () => {
-  it('converts block math to BlockMath components', () => {
+  it('converts block math to BlockMath components with baked html', () => {
     const { code } = run('Before\n$$\nE = mc^2\n$$\nAfter')
-    expect(code).toContain('<BlockMath>')
+    expect(code).toContain('<BlockMath html=')
+    expect(code).toContain('katex-display')
     expect(code).not.toContain('$$')
   })
 
-  it('converts inline math to MathComponent', () => {
+  it('converts inline math to MathComponent with baked html', () => {
     const { code } = run('Use $x + 1$ here')
-    expect(code).toContain('<MathComponent>')
+    expect(code).toContain('<MathComponent html=')
+    expect(code).toContain('katex')
     expect(code).not.toContain('$x')
   })
 
@@ -24,15 +26,16 @@ describe('preprocessMath', () => {
     expect(out).toContain('```\n$$\nnot math\n$$\n```')
     // Inline code placeholder must not be converted.
     expect(out).toContain('`$literal$`')
-    // Real inline math outside code still converts.
-    expect(out).toContain('<MathComponent>{"a"}</MathComponent>')
+    // Real inline math outside code still converts (with baked html).
+    expect(out).toContain('<MathComponent html=')
+    expect(out).toContain('{"a"}')
   })
 
   it('protects frontmatter from math replacement', () => {
     const code = '---\ntitle: "$$\n---\n\nBody $x$'
     const { code: out } = run(code)
-    expect(out).not.toContain('<BlockMath>')
-    expect(out).toContain('<MathComponent>')
+    expect(out).not.toContain('<BlockMath')
+    expect(out).toContain('<MathComponent')
   })
 
   it('escapes quotes inside math expressions', () => {

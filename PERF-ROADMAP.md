@@ -354,3 +354,35 @@ near-idle: competing agents (browsers, compilers) inflate FCP/TBT wildly. Two
 runs on identical artifacts scored 0.87 (idle) then 0.50 (load 7/8, another
 process at 136% CPU). Re-measure before/after any bundle change in comparable
 load conditions; do not chase noise with code changes.
+
+## Round: vendor diet — katex + flexsearch out of the entry
+
+Diagnosis via a temporary sourcemap build + VLQ decode of the app chunk
+(source-map-explorer chokes on rolldown maps): katex 248 KB, flexsearch 49 KB,
+react-aria-* ~180 KB, dompurify 21 KB inside the 1,019 KB entry. The 267 KB
+attributed to `docs/[blog]/post.tsx` was span-attribution noise — MDX bodies
+are NOT in the entry (verified with body-text markers; collection globs are
+eager for post COMPONENTS only, which are 2 KB files).
+
+### Fix A: bake katex at build time (@bdocs/plugin-math)
+
+The transformSource hook now runs `katex.renderToString` during the build and
+emits `<BlockMath html={...}>` / `<MathComponent html={...}>` carrying the
+pre-rendered HTML. Client components render the `html` prop synchronously; a
+missing prop (direct MDX usage) falls back to `import('katex')` on demand.
+The client never bundles katex on the critical path. KaTeX CSS still loads via
+the plugin's `@import url(...)`.
+
+### Fix B: flexsearch loaded on dialog open
+
+`use-search.ts` imported `Index` from flexsearch statically although the
+engine is only needed when the search dialog opens. Now a type-only import +
+`import('flexsearch')` inside the init effect.
+
+### Result
+
+Entry chunk: 1,023 KB → 718 KB raw, 266 → 172 KB gz (−35%). Verified in
+browser: search dialog opens, flexsearch chunk fetched on demand, 20 results
+rendered; math pages bake katex into static HTML. Note: the docs site itself
+has no live math (all examples live inside code fences), so the win there is
+purely bytes-shipped.

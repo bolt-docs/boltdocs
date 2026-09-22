@@ -1,4 +1,5 @@
 import type { PluginContext } from 'boltdocs'
+import katex from 'katex'
 
 function escapeJsString(content: string): string {
   return content
@@ -7,6 +8,20 @@ function escapeJsString(content: string): string {
     .replace(/\n/g, '\\n')
 }
 
+function renderMathHtml(tex: string, displayMode: boolean): string {
+  try {
+    return katex.renderToString(tex, { displayMode })
+  } catch {
+    // Keep the raw TeX visible instead of dropping content on parse errors.
+    return tex
+  }
+}
+
+/**
+ * Bake KaTeX output at build time. The emitted `<BlockMath>`/`<MathComponent>`
+ * tags carry the pre-rendered HTML in a `html` prop, so the client components
+ * never need to bundle KaTeX (~250 KB minified) just to display equations.
+ */
 function preprocessMath(source: string): string {
   const placeholders: string[] = []
 
@@ -27,15 +42,15 @@ function preprocessMath(source: string): string {
 
   result = result.replace(/\$\$([\s\S]*?)\$\$/g, (_, content: string) => {
     const trimmed = content.trim()
-    const escaped = escapeJsString(trimmed)
-    return `<BlockMath>{"${escaped}"}</BlockMath>`
+    const html = renderMathHtml(trimmed, true)
+    return `<BlockMath html={"${escapeJsString(html)}"}>{"${escapeJsString(trimmed)}"}</BlockMath>`
   })
 
   result = result.replace(
     /(?<!\$)\$(?!\$)(.+?)\$(?!\$)/g,
     (_, content: string) => {
-      const escaped = escapeJsString(content)
-      return `<MathComponent>{"${escaped}"}</MathComponent>`
+      const html = renderMathHtml(content, false)
+      return `<MathComponent html={"${escapeJsString(html)}"}>{"${escapeJsString(content)}"}</MathComponent>`
     },
   )
 
