@@ -32,7 +32,12 @@ export function DocsTabs({
 
   return (
     <div className="mx-auto w-full px-5 md:px-6 max-sm:px-10 select-none">
-      <T.List className="border-none py-0 scrollbar-hide relative flex flex-row gap-5 items-center overflow-x-auto">
+      {/* Navigation tabs rendered as links: role="none" keeps the list from
+          being announced as an ARIA tablist widget. */}
+      <T.List
+        role="none"
+        className="border-none py-0 scrollbar-hide relative flex flex-row gap-5 items-center overflow-x-auto"
+      >
         {tabs.map((tab, index) => {
           const isActive = index === activeIndex
           const firstRoute =

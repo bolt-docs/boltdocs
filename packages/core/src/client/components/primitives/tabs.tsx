@@ -21,10 +21,21 @@ export function Tabs({ children, className = '', ...props }: ComponentBase) {
   )
 }
 
-function TabsList({ children, className = '' }: ComponentBase) {
+function TabsList({
+  children,
+  className,
+  role,
+}: ComponentBase & {
+  /**
+   * Pass `null` when the "tabs" are plain navigation links (e.g. section
+   * tabs rendered as anchors): an ARIA `tablist` requires `tab` children and
+   * breaks otherwise. Omit to get the standard widget role.
+   */
+  role?: string | null
+}) {
   return (
     <div
-      role="tablist"
+      role={role === null ? undefined : (role ?? 'tablist')}
       className={cn(
         'relative flex flex-row items-center overflow-x-auto',
         className,

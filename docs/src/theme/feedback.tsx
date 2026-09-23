@@ -47,9 +47,9 @@ export function Feedback({ className }: FeedbackProps) {
       ) : (
         <div className="flex flex-col gap-4">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-            <h4 className="text-base font-semibold text-body">
+            <h3 className="text-base font-semibold text-body">
               Was this page helpful?
-            </h4>
+            </h3>
             <div className="flex items-center gap-2">
               <Button
                 variant="outline"

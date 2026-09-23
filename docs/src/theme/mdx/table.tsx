@@ -1,7 +1,11 @@
 import { cn } from 'boltdocs/client'
 
 const Table = (props: React.HTMLAttributes<HTMLTableElement>) => (
-  <div className="my-8 w-full overflow-x-auto rounded-lg bg-surface">
+  <div
+    // biome-ignore lint/a11y/noNoninteractiveTabindex: axe requires scrollable regions to be keyboard-focusable
+    tabIndex={0}
+    className="my-8 w-full overflow-x-auto rounded-lg bg-surface"
+  >
     <table className="w-full border-collapse text-left text-sm" {...props} />
   </div>
 )

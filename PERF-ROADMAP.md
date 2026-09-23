@@ -386,3 +386,58 @@ browser: search dialog opens, flexsearch chunk fetched on demand, 20 results
 rendered; math pages bake katex into static HTML. Note: the docs site itself
 has no live math (all examples live inside code fences), so the win there is
 purely bytes-shipped.
+
+## Round: accessibility audit — axe-core to zero violations
+
+axe-core (wcag2a/2aa/21aa + best-practice) across 9 scenarios (landing, docs
+home, guides, deep API page, blog post, plugin page, es page, two mobile
+viewports): 25 violation nodes → 0.
+
+### Fixes (core)
+
+- `tabs.tsx` primitive: `TabsList` accepts `role` (pass `null` for
+  link-based nav tabs, `role="none"`) — an ARIA `tablist` with anchor children is invalid.
+- `on-this-page.tsx` primitive: indicator moved OUT of the `<ul>` (lists may
+  only contain `<li>`); it now measures against its `offsetParent` and is
+  `aria-hidden`; Root `nav` exposes an accessible `label` (default
+  'On this page').
+- `navbar.tsx` primitive: `NavbarLinks` accepts a landmark `label`; mobile
+  nav labeled; `NavbarTitle` sets an aria-label so the home link keeps an
+  accessible name when the visible title hides below `sm` (`link-name`).
+- `sidebar.tsx` primitive: `SidebarContent` nav labeled ('Docs navigation').
+- `page-nav.tsx`: nav labeled 'Pagination'.
+- `external-page-wrapper.tsx`: `<div>` → `<main>` (`landmark-one-main`).
+- `feedback.tsx` + docs theme feedback: h4 → h3 (`heading-order`).
+- `search-dialog.tsx`: trigger gets `aria-label`; hint text `text-muted`
+  → `text-paragraph` (4.38 → 4.6:1, `color-contrast`).
+
+### Fixes (docs site)
+
+- Theme navbar: labeled links nav; theme tabs: `role={null}`.
+- Theme table wrapper: `tabIndex={0}` only — keyboard-focusable scrollable
+  region without creating duplicate landmarks (`role="region"` + repeated
+  labels tripped `landmark-unique` on multi-table pages).
+- Hero CTA `bg-primary-500` → `bg-primary-600` (3.34 → 5+:1).
+- `--color-dim` token lifted to #8b949e.
+
+### Shiki `colorReplacements` support (new)
+
+github-dark comments (#6A737D) fail 4.5:1 on the code background. Added:
+
+- `codeHighlighting.options.colorReplacements` (zod config → Shiki adapter
+  → `colorReplacements` in every `getOptions` result).
+- Hex keys/values normalized case-insensitively (themes store lowercase;
+  `#6A737D` never matched `#6a737d`).
+- **Trap**: `getShikiAdapter`'s singleton identity ignored the new option and
+  kept serving a stale instance for a whole build. Every output-affecting
+  field must join that identity string.
+- **Trap**: the precompile layer caches compiled MDX keyed by content only —
+  after changing highlighter behavior, `.boltdocs/compiled` + `.boltdocs/cache`
+  must be cleared or old output persists. A config-joined globalKey exists but
+  only guards the manifest fast path, not the transform cache.
+
+### Result
+
+axe: 0 violations on all 9 scenarios (desktop + mobile). Lighthouse a11y
+should read ~1.0 on the docs site; performance numbers unaffected (no runtime
+JS added — all fixes are markup/attributes/CSS).

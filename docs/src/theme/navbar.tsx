@@ -71,7 +71,10 @@ export function Navbar() {
           <div className="lg:hidden flex items-center gap-1">
             <SearchDialog routes={routes || []} />
           </div>
-          <NavbarPrimitive.Links className="hidden lg:flex items-center gap-2">
+          <NavbarPrimitive.Links
+            label="Main"
+            className="hidden lg:flex items-center gap-2"
+          >
             {links.map((link) => (
               <NavbarLinkItem key={link.href} link={link} />
             ))}

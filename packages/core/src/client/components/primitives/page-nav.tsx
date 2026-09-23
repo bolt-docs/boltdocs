@@ -10,7 +10,12 @@ export interface PageNavProps extends ComponentBase {
 
 export function PageNav({ children, className }: ComponentBase) {
   return (
-    <nav className={cn('grid sm:grid-cols-2 gap-4', className)}>{children}</nav>
+    <nav
+      aria-label="Pagination"
+      className={cn('grid sm:grid-cols-2 gap-4', className)}
+    >
+      {children}
+    </nav>
   )
 }
 

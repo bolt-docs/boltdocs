@@ -99,6 +99,13 @@ export default defineConfig({
     codeHighlighting: {
       engine: 'shiki',
       theme: 'github-dark',
+      options: {
+        // github-dark comments (#6A737D) fail WCAG AA (4.5:1) on our code
+        // background; lift them to the theme's fg.subtle tone.
+        colorReplacements: {
+          '#6A737D': '#8b949e',
+        },
+      },
     },
     favicon: '/light.svg',
     logo: {

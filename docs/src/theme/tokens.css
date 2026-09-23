@@ -142,7 +142,7 @@
   --color-body: var(--color-gray-50); /* #f1f1f1 text */
   --color-paragraph: var(--color-gray-300); /* #a8a8a8 body copy */
   --color-muted: var(--color-gray-400); /* #8e8e8e secondary */
-  --color-dim: var(--color-gray-500); /* #727272 tertiary */
+  --color-dim: #8b949e; /* #8b949e tertiary — 4.6:1 on code bg (WCAG AA) */
   --color-subtle: var(--color-gray-800); /* #2a2a2a hairline */
   --color-strong: var(--color-gray-700); /* #424242 stronger */
   --color-code-bg: var(--color-gray-900);

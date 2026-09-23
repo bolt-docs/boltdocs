@@ -46,7 +46,12 @@ export function Tabs({
         className,
       )}
     >
-      <T.List className="border-none py-0 scrollbar-hide relative flex flex-row items-center overflow-x-auto">
+      {/* Tab-like navigation links, not an ARIA tabs widget: a tablist would
+          require tab children and fail axe's aria-required-children. */}
+      <T.List
+        role="none"
+        className="border-none py-0 scrollbar-hide relative flex flex-row items-center overflow-x-auto"
+      >
         {tabs.map((tab, index) => {
           const isActive = index === activeIndex
           const firstRoute =

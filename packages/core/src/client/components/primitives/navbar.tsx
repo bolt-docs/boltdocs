@@ -150,8 +150,21 @@ function NavbarTitle({
     /** Class name for the wrapping link element. */
     linkClassName?: string
   }) {
+  const titleText =
+    typeof children === 'string' || typeof children === 'number'
+      ? String(children)
+      : undefined
+
   return (
-    <Link href={href} className={cn(linkClassName)}>
+    <Link
+      href={href}
+      className={cn(linkClassName)}
+      aria-label={
+        // The visible title hides below `sm`; without a label the home link
+        // has no accessible name on mobile (axe `link-name`).
+        titleText ? `Go to ${titleText} home` : undefined
+      }
+    >
       <span
         className={cn(
           'text-lg font-bold tracking-tight hidden sm:inline-block',
@@ -164,9 +177,21 @@ function NavbarTitle({
   )
 }
 
-function NavbarLinks({ children, className }: ComponentBase) {
+function NavbarLinks({
+  children,
+  className,
+  label,
+}: ComponentBase & {
+  /**
+   * Accessible name for the nav landmark. Required when the page renders
+   * multiple navs (e.g. a docs navbar plus a sidebar) so landmarks stay
+   * distinguishable.
+   */
+  label?: string
+}) {
   return (
     <nav
+      aria-label={label}
       className={cn(
         'hidden md:flex items-center gap-6 text-sm font-medium',
         className,
@@ -517,6 +542,7 @@ function NavbarMobileMenu({
             </ButtonRAC>
           </div>
           <nav
+            aria-label="Mobile navigation"
             className={cn(
               'flex-1 overflow-y-auto flex flex-col gap-4',
               navClassName,

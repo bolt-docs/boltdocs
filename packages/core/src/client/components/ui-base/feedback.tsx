@@ -46,9 +46,11 @@ export function Feedback({ className }: FeedbackProps) {
       ) : (
         <div className="flex flex-col gap-4">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-            <h4 className="text-base font-semibold text-default">
+            {/* h3: the page h1/h2 live above; an h4 here skips a level (axe
+                `heading-order`). */}
+            <h3 className="text-base font-semibold text-default">
               Was this page helpful?
-            </h4>
+            </h3>
             <div className="flex items-center gap-2">
               <button
                 type="button"

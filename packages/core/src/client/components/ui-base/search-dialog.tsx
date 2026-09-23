@@ -72,12 +72,17 @@ export function SearchDialog({
   return (
     <>
       <Navbar.SearchTrigger.Desktop
+        aria-label="Search docs (press Control K)"
         onPress={() => setIsOpen(true)}
         className="rounded-xl border border-subtle bg-surface text-muted transition-all duration-200 hover:border-primary-500/50 hover:text-body hover:bg-soft/50 hover:shadow-sm active:scale-[0.98] focus-visible:ring-2 focus-visible:ring-primary-500/30"
       >
         <div className="flex items-center gap-2">
           <Search size={16} />
-          <span className="hidden sm:inline-block">Search docs...</span>
+          {/* paragraph (not muted): the hint text on the trigger background
+              must meet 4.5:1 contrast (axe `color-contrast`). */}
+          <span className="text-paragraph hidden sm:inline-block">
+            Search docs...
+          </span>
         </div>
         <Navbar.SearchTrigger.Kbd className="[&_kbd]:bg-main [&_kbd]:border [&_kbd]:border-subtle [&_kbd]:rounded [&_kbd]:px-1.5 [&_kbd]:h-5 [&_kbd]:w-5" />
       </Navbar.SearchTrigger.Desktop>
