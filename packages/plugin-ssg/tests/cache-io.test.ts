@@ -212,6 +212,7 @@ describe('SSG output state', () => {
       clientFiles: ['assets/app.js'],
       pageFiles: ['index.html'],
       auxiliaryFiles: ['sw.js'],
+      extraFiles: [],
     })
   })
 
@@ -235,6 +236,7 @@ describe('SSG output state', () => {
       clientFiles: ['assets/app.js'],
       pageFiles,
       auxiliaryFiles: [],
+      extraFiles: [],
     })
 
     expect(
@@ -265,6 +267,101 @@ describe('SSG output state', () => {
     ).resolves.toBe(true)
     await expect(readSsgOutputState(stateFile)).resolves.toMatchObject({
       auxiliaryFiles: ['sw.js'],
+    })
+  })
+
+  it('round-trips extraFiles and keeps them out of auxiliaryFiles', async () => {
+    const root = makeRoot()
+    const out = join(root, 'dist')
+    const stateFile = join(root, 'ssg-output.json')
+    await fs.outputFile(join(out, 'assets/app.js'), 'client')
+    await fs.outputFile(join(out, 'index.html'), 'home')
+    await fs.outputFile(join(out, 'sitemap.xml'), 'seo')
+    await fs.outputFile(join(out, 'docs/assets/app.js'), 'mirrored')
+
+    await expect(
+      writeSsgOutputState(
+        stateFile,
+        'hash',
+        out,
+        ['index.html'],
+        ['assets/app.js'],
+        undefined,
+        ['docs/assets/app.js'],
+      ),
+    ).resolves.toBe(true)
+
+    const state = await readSsgOutputState(stateFile)
+    expect(state?.extraFiles).toEqual(['docs/assets/app.js'])
+    // The mirrored extra must NOT be classified as auxiliary output — but
+    // real pipeline auxiliaries (sitemap.xml here) still are. Both kinds
+    // coexist in the state: deterministic SEO/llms/RSS output in
+    // auxiliaryFiles, post-build tooling mirrors in extraFiles.
+    expect(state?.auxiliaryFiles).toEqual(['sitemap.xml'])
+    expect(state?.clientFiles).toEqual(['assets/app.js'])
+  })
+
+  describe('isSsgOutputReusable with extraFiles', () => {
+    const makeTree = async (out: string) => {
+      await fs.outputFile(join(out, 'assets/app.js'), 'client')
+      await fs.outputFile(join(out, 'index.html'), 'home')
+      await fs.outputFile(join(out, 'docs/assets/app.js'), 'mirrored')
+    }
+    const baseState = (extraFiles: string[]) => ({
+      cacheHash: 'hash',
+      clientFiles: ['assets/app.js'],
+      pageFiles: ['index.html'],
+      auxiliaryFiles: [],
+      extraFiles,
+    })
+
+    it('accepts registered extras that still exist', async () => {
+      const root = makeRoot()
+      const out = join(root, 'dist')
+      await makeTree(out)
+      expect(
+        isSsgOutputReusable(
+          baseState(['docs/assets/app.js']) as any,
+          'hash',
+          out,
+          ['assets/app.js'],
+          ['index.html'],
+          [],
+        ),
+      ).toBe(true)
+    })
+
+    it('rejects when a registered extra vanished', async () => {
+      const root = makeRoot()
+      const out = join(root, 'dist')
+      await fs.outputFile(join(out, 'assets/app.js'), 'client')
+      await fs.outputFile(join(out, 'index.html'), 'home')
+      expect(
+        isSsgOutputReusable(
+          baseState(['docs/assets/app.js']) as any,
+          'hash',
+          out,
+          ['assets/app.js'],
+          ['index.html'],
+          [],
+        ),
+      ).toBe(false)
+    })
+
+    it('rejects unregistered extras on disk', async () => {
+      const root = makeRoot()
+      const out = join(root, 'dist')
+      await makeTree(out)
+      expect(
+        isSsgOutputReusable(
+          baseState([]) as any,
+          'hash',
+          out,
+          ['assets/app.js'],
+          ['index.html'],
+          [],
+        ),
+      ).toBe(false)
     })
   })
 })

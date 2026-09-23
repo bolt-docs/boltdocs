@@ -1,5 +1,6 @@
 import type { RouteRecord } from '../router'
 import type { ComponentRoute, BoltdocsConfig } from '../types'
+import { Suspense, lazy } from 'react'
 import { cn } from '../utils/cn'
 import { ExternalPageWrapper } from './external-page-wrapper'
 import {
@@ -9,9 +10,16 @@ import {
 } from './mdx-elements'
 
 interface ExternalRouteOptions {
-  externalPages?: Record<string, React.ComponentType>
+  externalPages?: Record<
+    string,
+    React.ComponentType | (() => Promise<{ default: React.ComponentType }>)
+  >
   externalLayout?: React.ComponentType<{ children: React.ReactNode }>
-  externalFilePages?: Record<string, React.ComponentType>
+  externalFilePages?: Record<
+    string,
+    | React.ComponentType
+    | (() => Promise<{ default: React.ComponentType }> | React.ComponentType)
+  >
   externalFileMdx?: Record<string, unknown>
   components?: Record<string, React.ComponentType>
   config: BoltdocsConfig
@@ -93,7 +101,9 @@ function routeTitle(pathname: string): string {
 function buildExternalRouteRecord(options: {
   path: string
   locale?: string
-  component?: React.ComponentType
+  component?:
+    | React.ComponentType
+    | (() => Promise<{ default: React.ComponentType }>)
   mdxLoader?: unknown
   externalLayout: React.ComponentType<{ children: React.ReactNode }>
   components?: Record<string, React.ComponentType>
@@ -118,13 +128,42 @@ function buildExternalRouteRecord(options: {
   const ExternalComponent = component
 
   if (ExternalComponent) {
-    record.element = (
-      <ExternalPageWrapper>
-        <ExternalLayout>
-          <ExternalComponent />
-        </ExternalLayout>
-      </ExternalPageWrapper>
-    )
+    // Static component references land in the client entry bundle; every
+    // visitor of any page pays for every external page. A dynamic loader
+    // ({ default: Component }) keeps each external page in its own lazy
+    // chunk instead, so a docs reader never downloads the landing page.
+    // SSR resolves the promise synchronously (compiled pages are bundled
+    // eagerly server-side), so the pre-rendered HTML is unchanged.
+    const LazyExternal =
+      typeof ExternalComponent === 'function' &&
+      !ExternalComponent.prototype?.render
+        ? lazy(
+            ExternalComponent as () => Promise<{
+              default: React.ComponentType
+            }>,
+          )
+        : null
+
+    if (LazyExternal) {
+      record.element = (
+        <ExternalPageWrapper>
+          <ExternalLayout>
+            <Suspense fallback={null}>
+              <LazyExternal />
+            </Suspense>
+          </ExternalLayout>
+        </ExternalPageWrapper>
+      )
+    } else {
+      const StaticExternal = ExternalComponent as React.ComponentType
+      record.element = (
+        <ExternalPageWrapper>
+          <ExternalLayout>
+            <StaticExternal />
+          </ExternalLayout>
+        </ExternalPageWrapper>
+      )
+    }
   } else if (mdxLoader) {
     record.lazy = async () => {
       const module = (await resolveModuleLoader(
@@ -206,7 +245,7 @@ function buildExternalRoutes(options: ExternalRouteOptions): {
         ...buildExternalRouteRecord({
           path: localized.path,
           locale: localized.locale,
-          component: ExtComponent,
+          component: ExtComponent as React.ComponentType,
           externalLayout: EffectiveExternalLayout,
           title: routeTitle(pathname),
         }),
@@ -283,7 +322,7 @@ function buildExternalFileRoutes(options: ExternalRouteOptions): {
       pathname,
       localeOfPath(pathname) || config.i18n?.defaultLocale,
       externalFileMdx?.[pathname],
-      externalFilePages?.[pathname],
+      externalFilePages?.[pathname] as React.ComponentType,
     )
   }
 
@@ -293,7 +332,9 @@ function buildExternalFileRoutes(options: ExternalRouteOptions): {
   for (const pathname of fileRoutes) {
     if (isLocalizedPath(pathname)) continue
     const mdxLoader = externalFileMdx?.[pathname]
-    const component = externalFilePages?.[pathname]
+    const component = externalFilePages?.[pathname] as
+      | React.ComponentType
+      | undefined
     for (const localized of getLocalizedPaths(pathname, config)) {
       pushRoute(localized.path, localized.locale, mdxLoader, component)
     }

@@ -4,6 +4,7 @@ import { useConfig } from '../app/config-context'
 import { useRoutesContext } from '../app/routes-context'
 import { useBoltdocsContext } from '../store/boltdocs-context'
 import { normalizePath } from '../utils/path'
+import type { ComponentRoute } from '../types'
 
 /**
  * Hook to access the framework's routing state.
@@ -31,7 +32,34 @@ export function useRoutes() {
 
   const currentPath = normalizePath(pathname)
 
-  const currentRoute = routeIndex.byPath.get(currentPath)
+  // Collection post routes are registered without the docs base and sometimes
+  // without a leading slash (e.g. `blog/post`, `post`), while the browser URL
+  // includes both (`/docs/blog/post`). When the direct lookup misses, fall
+  // back to the longest route whose path is a tail of the current URL's
+  // segments — that uniquely resolves collection posts without ever matching
+  // a shorter, unrelated route first.
+  const currentRoute = useMemo(() => {
+    const direct = routeIndex.byPath.get(currentPath)
+    if (direct) return direct
+    const target = currentPath.split('/').filter(Boolean)
+    if (target.length === 0) return undefined
+    let best: { route: ComponentRoute; depth: number } | undefined
+    for (const [key, route] of routeIndex.byPath) {
+      // Restrict the heuristic to collection routes so regular docs pages can
+      // never be shadowed by an unrelated same-named tail match.
+      if (!route.collection) continue
+      const segments = key.split('/').filter(Boolean)
+      if (segments.length === 0 || segments.length > target.length) continue
+      const offset = target.length - segments.length
+      const isTail = segments.every(
+        (segment, i) => segment === target[offset + i],
+      )
+      if (isTail && (!best || segments.length > best.depth)) {
+        best = { route, depth: segments.length }
+      }
+    }
+    return best?.route
+  }, [routeIndex, currentPath])
 
   const pathParts = pathname.split('/').filter(Boolean)
   const urlLocale = config.i18n

@@ -7,6 +7,17 @@ export interface SsgOutputState {
   clientFiles: string[]
   pageFiles: string[]
   auxiliaryFiles: string[]
+  /**
+   * Root-relative files present in the output directory but NOT produced by
+   * the SSG pipeline — post-build tooling (e.g. deployment mirror scripts)
+   * may add them after the state was written. The fast path can only trust
+   * these if every entry still exists; unknown extras present on disk but
+   * absent from this list still fail the check, which costs one full reset
+   * pass while the next post-build step re-registers them. Self-healing by
+   * construction: the build never deletes unknown extras and the post-build
+   * step that created them re-writes the list.
+   */
+  extraFiles?: string[]
 }
 
 export function createSsgOutputState(
@@ -14,12 +25,14 @@ export function createSsgOutputState(
   clientFiles: readonly string[],
   pageFiles: readonly string[],
   auxiliaryFiles: readonly string[] = [],
+  extraFiles: readonly string[] = [],
 ): SsgOutputState {
   return {
     cacheHash,
     clientFiles: [...new Set(clientFiles)].sort(),
     pageFiles: [...new Set(pageFiles)].sort(),
     auxiliaryFiles: [...new Set(auxiliaryFiles)].sort(),
+    extraFiles: [...new Set(extraFiles)].sort(),
   }
 }
 
@@ -45,8 +58,22 @@ export function isSsgOutputReusable(
   if (!sameFiles(state.pageFiles, pageFiles)) return false
   if (!sameFiles(state.auxiliaryFiles || [], auxiliaryFiles)) return false
 
+  // Files added by post-build tooling are acceptable ONLY while every one of
+  // them still exists. Extras recorded here but deleted since (or extras on
+  // disk that were never recorded) fall through to the strict listing below,
+  // which routes the build through the reset-and-restore path — that pass
+  // rebuilds a complete dist and the post-build step re-registers its own
+  // additions, so the state self-heals within one build.
+  const extraFiles = [...new Set(state.extraFiles ?? [])].sort()
+  const extrasValid = extraFiles.every((file) =>
+    fs.existsSync(`${outDir}/${file}`),
+  )
+  if (!extrasValid) return false
+
   const expectedFiles = [...clientFiles, ...pageFiles, ...auxiliaryFiles]
-  if (!sameFiles(listOutputFiles(outDir), [...new Set(expectedFiles)].sort())) {
+  const onDisk = listOutputFiles(outDir)
+  const expectedOnDisk = [...new Set([...expectedFiles, ...extraFiles])].sort()
+  if (!sameFiles(onDisk, expectedOnDisk)) {
     return false
   }
 
@@ -90,11 +117,15 @@ export async function readSsgOutputState(
     ) {
       return undefined
     }
+    const extraFiles = Array.isArray(state.extraFiles)
+      ? state.extraFiles.filter((file: unknown) => typeof file === 'string')
+      : []
     return createSsgOutputState(
       state.cacheHash,
       state.clientFiles,
       state.pageFiles,
       state.auxiliaryFiles,
+      extraFiles,
     )
   } catch {
     return undefined
@@ -108,18 +139,26 @@ export async function writeSsgOutputState(
   pageFiles: readonly string[],
   clientFiles: readonly string[] = [],
   outputFiles?: readonly string[],
+  extraFiles: readonly string[] = [],
 ): Promise<boolean> {
   const resolvedOutputFiles = outputFiles || listOutputFiles(outDir)
   const pageFileSet = new Set(pageFiles)
   const clientFileSet = new Set(clientFiles)
+  const extraFileSet = new Set(extraFiles)
   const resolvedClientFiles =
     clientFiles.length > 0
       ? [...clientFileSet]
       : resolvedOutputFiles.filter((file) => !pageFileSet.has(file))
+  // Extras are post-build tooling output, not auxiliary pipeline output —
+  // classifying them as auxiliary would force the next build off the fast
+  // path (that path requires an empty auxiliary list).
   const auxiliaryFiles =
     clientFiles.length > 0
       ? resolvedOutputFiles.filter(
-          (file) => !pageFileSet.has(file) && !clientFileSet.has(file),
+          (file) =>
+            !pageFileSet.has(file) &&
+            !clientFileSet.has(file) &&
+            !extraFileSet.has(file),
         )
       : []
   const state = createSsgOutputState(
@@ -127,6 +166,7 @@ export async function writeSsgOutputState(
     resolvedClientFiles,
     pageFiles,
     auxiliaryFiles,
+    extraFiles,
   )
   return writeJsonIfChanged(filePath, state)
 }

@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect, useCallback, useRef } from 'react'
-import { Index } from 'flexsearch'
+import type { Index } from 'flexsearch'
 import { useRoutes } from './use-routes'
 import { useConfig } from '../app/config-context'
 import type { ComponentRoute } from '../types'
@@ -179,26 +179,41 @@ export function useSearch(routes: ComponentRoute[]) {
   )
 
   // Initialize FlexSearch index once search data has been loaded
-  // (only if Algolia is NOT configured).
+  // (only if Algolia is NOT configured). FlexSearch itself is imported on
+  // demand: it's only needed when the dialog actually opens, so the initial
+  // page never pays for it.
   useEffect(() => {
     if (algoliaConfig) return
     if (!isOpen || searchData.length === 0 || index) return
 
-    const newIndex = new Index({
-      tokenize: 'forward',
-      cache: true,
-    })
+    let cancelled = false
+    import('flexsearch')
+      .then(({ Index: FlexIndex }) => {
+        if (cancelled) return
 
-    // FlexSearch's basic Index requires numeric document IDs. Keep the
-    // numeric position as the index key and resolve it back to searchData
-    // after searching; route IDs remain string URLs in the public result.
-    for (let i = 0; i < searchData.length; i++) {
-      const doc = searchData[i]
-      if (!doc) continue
-      newIndex.add(i, `${doc.title} ${doc.content}`)
+        const newIndex = new FlexIndex({
+          tokenize: 'forward',
+          cache: true,
+        })
+
+        // FlexSearch's basic Index requires numeric document IDs. Keep the
+        // numeric position as the index key and resolve it back to searchData
+        // after searching; route IDs remain string URLs in the public result.
+        for (let i = 0; i < searchData.length; i++) {
+          const doc = searchData[i]
+          if (!doc) continue
+          newIndex.add(i, `${doc.title} ${doc.content}`)
+        }
+
+        setIndex(newIndex)
+      })
+      .catch((err: unknown) => {
+        console.error('[boltdocs] Failed to load search engine:', err)
+      })
+
+    return () => {
+      cancelled = true
     }
-
-    setIndex(newIndex)
   }, [isOpen, index, algoliaConfig, searchData])
 
   // Asynchronous Algolia search effect with debounce

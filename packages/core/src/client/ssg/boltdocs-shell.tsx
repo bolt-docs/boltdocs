@@ -39,6 +39,28 @@ function I18nUpdater({ config }: { config: BoltdocsConfig }) {
   return <Helmet htmlAttributes={{ lang: htmlLang, dir: direction }} />
 }
 
+/**
+ * Removes the per-page critical-CSS inline blocks once the app is hydrated.
+ *
+ * The critters pass inlines one `<style data-zig-critters>` per rendered page.
+ * On a full page load the block belongs to the current page and is redundant:
+ * the external stylesheet ships in the initial HTML and is loaded before
+ * hydration. After a client-side navigation, however, the block left by the
+ * *first* page stays in `<head>` and — emitted after the external stylesheet
+ * — wins the cascade for every utility it contains, breaking pages reached
+ * via SPA that rely on utilities the first page never used (e.g. `xl:flex`
+ * hiding the OnThisPage rail for the rest of the session).
+ */
+function CrittersStyleCleanup() {
+  useEffect(() => {
+    if (typeof document === 'undefined') return
+    document.querySelectorAll('style[data-zig-critters]').forEach((el) => {
+      el.remove()
+    })
+  }, [])
+  return null
+}
+
 // synchronizes store with current URL pathname
 function StoreSync({
   config,
@@ -165,6 +187,7 @@ export function BoltdocsShell({
             <ConfigContext.Provider value={config}>
               <CollectionsProvider collectionsData={collectionsData || {}}>
                 <ScrollHandler />
+                <CrittersStyleCleanup />
                 <BoltdocsProvider
                   initialLocale={initialData.initLocale}
                   initialVersion={initialData.initVersion}

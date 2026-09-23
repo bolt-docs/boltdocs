@@ -32,7 +32,8 @@ describe('mathPlugin transformSource end-to-end', () => {
       code: '$$\n\\sum_{i=1}^{n} i = \\frac{n(n+1)}{2}\n$$',
       filePath: 'math.mdx',
     })
-    expect(code).toContain('<BlockMath>')
+    expect(code).toContain('<BlockMath html=')
+    expect(code).toContain('katex-display')
     expect(code).not.toContain('$$')
   })
 
@@ -42,7 +43,8 @@ describe('mathPlugin transformSource end-to-end', () => {
       code: 'The value $x$ is positive.',
       filePath: 'math.mdx',
     })
-    expect(code).toContain('<MathComponent>{"x"}</MathComponent>')
+    expect(code).toContain('<MathComponent html=')
+    expect(code).toContain('{"x"}</MathComponent>')
   })
 
   it('handles multiple inline math occurrences in the same source', () => {
@@ -51,7 +53,7 @@ describe('mathPlugin transformSource end-to-end', () => {
       code: 'A $a$ and B $b$ and C $c$.',
       filePath: 'math.mdx',
     })
-    const matches = code.match(/<MathComponent>/g) || []
+    const matches = code.match(/<MathComponent html=/g) || []
     expect(matches).toHaveLength(3)
   })
 
@@ -61,7 +63,7 @@ describe('mathPlugin transformSource end-to-end', () => {
       code: '$$\nA\n$$\n\ntext\n\n$$\nB\n$$',
       filePath: 'math.mdx',
     })
-    const matches = code.match(/<BlockMath>/g) || []
+    const matches = code.match(/<BlockMath html=/g) || []
     expect(matches).toHaveLength(2)
   })
 
@@ -71,8 +73,9 @@ describe('mathPlugin transformSource end-to-end', () => {
       code: 'Cost: $$50$$ is display math.',
       filePath: 'math.mdx',
     })
-    expect(code).toContain('<BlockMath>{"50"}</BlockMath>')
-    expect(code).not.toContain('<MathComponent>')
+    expect(code).toContain('<BlockMath html=')
+    expect(code).toContain('{"50"}</BlockMath>')
+    expect(code).not.toContain('<MathComponent')
   })
 
   it('leaves source without math unchanged', () => {
@@ -91,7 +94,7 @@ describe('mathPlugin transformSource end-to-end', () => {
       code: '$$\n\\begin{aligned}\nx &= 1 \\\\\ny &= 2\n\\end{aligned}\n$$',
       filePath: 'math.mdx',
     })
-    expect(code).toContain('<BlockMath>')
+    expect(code).toContain('<BlockMath html=')
     expect(code).toContain('x &= 1')
   })
 })

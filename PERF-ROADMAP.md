@@ -89,6 +89,37 @@ eager languages at worker spawn, so grammar + WASM init happens during pool
 spin-up. Verified live: `precompile: 201 hit / 30 miss` and `231 hit / 0 miss`
 on warm runs. Nothing left to do here.
 
+### 6. Ultra-warm fast path restored; deployment mirror made add-only ✅ (measured)
+
+Two bugs were compounding:
+
+- The docs site's post-build script (`scripts/prepare-deployment-dist.mjs`)
+  mirrors root-level dist entries under `/docs/` with **rmSync + copy**. A
+  stale root-level `es/` leftover (3 pre-base-era pages) therefore deleted the
+  128 freshly built `/docs/es/**` pages after every build and copied the fossil
+  over them — 125 locale pages missing from every deployment, silently. The
+  script is now **add-only** (`if (exists(destination)) continue`), and it
+  registers everything it mirrors as `extraFiles` in the SSG output state.
+- The ultra-warm fast path demanded `auxiliaryFiles.length === 0`, but SEO
+  (`sitemap.xml`, `robots.txt`) and llms/RSS plugin output are always written
+  after the state — so the lean path (reuse dist as-is, no reset/restore)
+  could never activate on a real site. Aux output that provably derives from
+  routes + config (both already covered by the client-hash gate) is now
+  accepted when every file still exists; anything else forces the normal
+  pipeline, which regenerates it.
+
+New `extraFiles` field in `SsgOutputState`: root-relative files present in
+the output but produced by post-build tooling instead of the pipeline. The
+reuse check requires every registered extra to still exist and no unregistered
+file to appear; unknown extras cost one reset pass, then the tooling
+re-registers them — self-healing by construction. `readSsgOutputState` was
+dropping the new field on load (silent zero), which the inode test caught.
+
+**Measured (docs site):** no-op build back to **~0.5s with the dist inode
+untouched** (the reset-and-restore pass no longer runs); all 259 pages
+validate; `/docs/es` keeps its 128 pages; the mirror script converges (308
+extra files registered, stable across runs).
+
 ### 5. `onPageRenderedHookMs` metric corrected ✅ (was summing overlapping deltas)
 
 The roadmap's 4.7s "hooks re-scan rendered HTML" hypothesis was **wrong** — the
@@ -215,6 +246,54 @@ itself (rolldown flags, chunking) — out of scope.
   rebuilt "for no reason". Verify `git status docs/docs` is clean and which
   files actually changed bytes (content, not just mtime) before attributing a
   rebuild to a bug.
+- **Post-build tools that mutate dist must own their footprint in the output
+  state** (`extraFiles`) — anything unregistered silently disables the fast
+  path, and anything written blind (a mirror over freshly built pages) can
+  destroy output. Mirror/copy scripts must be add-only.
+- **State readers must round-trip every field**: `readSsgOutputState`
+  rebuilt the state via the factory and dropped `extraFiles` — the check
+  then saw extras=0 while the file said 308, and only an inode-stability test
+  exposed it. When adding a state field, add it to the reader explicitly.
+- **A package rebuild during benchmarking changes the client hash** (the
+  docs site hashes workspace dists) — the next build legitimately resets
+  dist. One transition build after any framework rebuild; only the run
+  after that proves fast-path behavior.
+- **The client hash now covers the site's `src/`** (theme overrides) in
+  addition to framework dists and `docs/`. Before, a theme-only edit skipped
+  the client build AND left every cached page stale with the old layout —
+  this silently masked the OnThisPage fixes below during verification. The
+  hash change makes the next build a full transition (259 re-renders); plan
+  for it.
+
+## Round 4 — OnThisPage invisible (two root causes, both client-side)
+
+Symptom: the OnThisPage rail (and any element revealed by a utility the
+landing page never used) disappeared for the whole SPA session. Two
+independent bugs, found by reproducing in headless Chrome and enumerating the
+cascade:
+
+1. **Stale critters inline styles.** Every pre-rendered page inlines a
+   `<style data-zig-critters>` with the utilities that page uses. The block of
+   the *first* visited page survives client-side navigation and, emitted after
+   the external stylesheet, wins the cascade — its `.hidden{display:none}`
+   permanently beat `xl:flex` on every page reached via SPA. Fix: the shell
+   removes `style[data-zig-critters]` blocks on mount (the external stylesheet
+   is always in the initial HTML, so removal cannot flash).
+2. **Collection posts never resolved `currentRoute`.** Post route records are
+   registered without the docs base (`blog/post`, sometimes no leading slash)
+   while the URL carries both (`/docs/blog/post`), so `useRoutes()` missed,
+   `headings` arrived empty and the theme wrapper returned null (this is also
+   why the navbar behaved oddly on blog pages). Fix: longest segment-tail
+   fallback restricted to collection routes.
+
+Also discovered: the docs blog uses a custom post component
+(`docs/docs/[blog]/post.tsx`) that renders its own in-article TOC — the
+layout's right rail is now gated off for collection pages to avoid duplicate
+TOCs (convention: pick ONE). Verified in browser: exactly 1 visible OTP in
+direct + SPA navigation for docs pages, blog posts and es pages.
+
+Cost: none of this is on the hot build path (one effect on hydration, one
+memoized lookup, one extra directory in the pre-build hash walk).
 
 ## How to re-run the benchmark
 
@@ -241,3 +320,69 @@ grep -oE '"details":"259 pages[^"]*"' /tmp/bench-touch.log   # expect "0 new / 2
 # 4. Cleanup
 git checkout -- docs/docs
 ```
+
+## Round: Lighthouse (runtime perf) — lazy external pages + WebGL sanity
+
+Goal: raise Lighthouse scores (baseline 0.38–0.42 perf). Two-part fix.
+
+### Fix A: lazy-load external pages (pages-external)
+
+The entry bundle embedded the landing/about/showcase/roadmap JSX (~216 KB raw,
+~72 KB gz) statically via `pages-external/index.tsx`. A `/docs` reader paid for
+the marketing pages it never visits.
+
+- `create-routes.external.tsx`: external route options now accept `loader`
+  (dynamic import) alongside `component`; both fileRouting and the `pages` map
+  wrap results in `React.lazy` + the existing `record.lazy` mechanism (same one
+  MDX pages use; SSR pre-renders real HTML, client hydrates when the chunk
+  arrives).
+- `entry.ts` template: fileRouting imports became dynamic loaders.
+- Docs site: `pages-external/index.tsx` switched to loaders.
+- Measured: app chunk 1,239 KB → 1,023 KB raw (338 → 266 KB gz, −21%).
+
+### Fix B: LightRays WebGL effect (landing hero)
+
+Continuous rAF loop: dpr up to 2, no pause when tab hidden. On software GL
+(headless/low-end) each frame is a long task → unbounded TBT (155 s observed).
+Mitigations: dpr 1, 30 fps cap, pause on `visibilitychange`, skip entirely under
+`prefers-reduced-motion`.
+
+### Measurement caveat (IMPORTANT)
+
+Lighthouse numbers on this machine are only comparable when load average is
+near-idle: competing agents (browsers, compilers) inflate FCP/TBT wildly. Two
+runs on identical artifacts scored 0.87 (idle) then 0.50 (load 7/8, another
+process at 136% CPU). Re-measure before/after any bundle change in comparable
+load conditions; do not chase noise with code changes.
+
+## Round: vendor diet — katex + flexsearch out of the entry
+
+Diagnosis via a temporary sourcemap build + VLQ decode of the app chunk
+(source-map-explorer chokes on rolldown maps): katex 248 KB, flexsearch 49 KB,
+react-aria-* ~180 KB, dompurify 21 KB inside the 1,019 KB entry. The 267 KB
+attributed to `docs/[blog]/post.tsx` was span-attribution noise — MDX bodies
+are NOT in the entry (verified with body-text markers; collection globs are
+eager for post COMPONENTS only, which are 2 KB files).
+
+### Fix A: bake katex at build time (@bdocs/plugin-math)
+
+The transformSource hook now runs `katex.renderToString` during the build and
+emits `<BlockMath html={...}>` / `<MathComponent html={...}>` carrying the
+pre-rendered HTML. Client components render the `html` prop synchronously; a
+missing prop (direct MDX usage) falls back to `import('katex')` on demand.
+The client never bundles katex on the critical path. KaTeX CSS still loads via
+the plugin's `@import url(...)`.
+
+### Fix B: flexsearch loaded on dialog open
+
+`use-search.ts` imported `Index` from flexsearch statically although the
+engine is only needed when the search dialog opens. Now a type-only import +
+`import('flexsearch')` inside the init effect.
+
+### Result
+
+Entry chunk: 1,023 KB → 718 KB raw, 266 → 172 KB gz (−35%). Verified in
+browser: search dialog opens, flexsearch chunk fetched on demand, 20 results
+rendered; math pages bake katex into static HTML. Note: the docs site itself
+has no live math (all examples live inside code fences), so the win there is
+purely bytes-shipped.
