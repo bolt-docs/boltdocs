@@ -1,5 +1,25 @@
 # @bdocs/plugin-math
 
+## 4.0.3
+
+### Patch Changes
+
+- [`8cbd78e`](https://github.com/bolt-docs/boltdocs/commit/8cbd78ee2ee8dc28f4f0ca80711235ce019e5227) Thanks [@jesusalcaladev](https://github.com/jesusalcaladev)! - Entry bundle diet: KaTeX baked at build time, FlexSearch loaded on demand
+  - The math plugin's `transformSource` hook now renders TeX with KaTeX during
+    the build and emits `<BlockMath html={...}>` / `<MathComponent html={...}>`
+    carrying the pre-rendered HTML. Client math components render the baked
+    `html` synchronously; direct MDX usage without the bake falls back to an
+    on-demand `import('katex')` (raw TeX stays visible until it resolves, so
+    SSR and the first client render agree). The ~250 KB of KaTeX no longer
+    ships in the entry bundle of every page.
+  - FlexSearch is imported dynamically when the search dialog opens instead of
+    statically at startup (~49 KB out of the entry).
+  - Measured on the docs site: entry chunk 1,023 KB → 718 KB raw (266 → 172 KB
+    gzipped, −35%); KaTeX and FlexSearch now load as on-demand chunks.
+
+- Updated dependencies [[`8cbd78e`](https://github.com/bolt-docs/boltdocs/commit/8cbd78ee2ee8dc28f4f0ca80711235ce019e5227), [`f05a7d2`](https://github.com/bolt-docs/boltdocs/commit/f05a7d20bd76ccf59eb79bdb98c630f1c610cf77), [`b8e272f`](https://github.com/bolt-docs/boltdocs/commit/b8e272f532c298606539dafb4fe10945a080bc42)]:
+  - boltdocs@3.3.5
+
 ## 4.0.2
 
 ### Patch Changes
