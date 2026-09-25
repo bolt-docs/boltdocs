@@ -1,6 +1,9 @@
 import type { Plugin } from 'vite'
 import type { BoltdocsConfig } from '../config'
-import type { IPluginLifecycleManager } from '../../shared/types'
+import type {
+  CodeHighlighterEngine,
+  IPluginLifecycleManager,
+} from '../../shared/types'
 import { normalizeCodeHighlightConfig } from '@bdocs/unist-utils'
 import {
   disposeRouteCacheContext,
@@ -103,7 +106,7 @@ export function createDevServerPlugin(
               cfg.theme?.codeHighlighting,
             )
             prewarmHighlighter({
-              engine: highlighting?.engine,
+              engine: highlighting?.engine as CodeHighlighterEngine | undefined,
               theme: highlighting?.theme ?? cfg.theme?.codeTheme,
               options: highlighting?.options,
             })

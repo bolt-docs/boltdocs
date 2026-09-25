@@ -26,13 +26,25 @@ export interface BuildContext {
   allCached?: boolean
 }
 
+export interface StepMetrics extends Record<string, unknown> {
+  totalPages?: number
+  jsSize?: number
+  cssSize?: number
+}
+
 export interface StepResult {
   name: string
   duration: number
   success: boolean
   error?: Error
   details?: string
-  metrics?: Record<string, any>
+  metrics?: StepMetrics
+}
+
+export interface PipelineRuntimeContext extends Record<string, unknown> {
+  timing: Record<string, number>
+  stepDetails?: Record<string, string>
+  ssgSubSteps?: StepResult[]
 }
 
 export interface PipelineResult {

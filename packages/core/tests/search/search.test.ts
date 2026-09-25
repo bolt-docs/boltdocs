@@ -1,5 +1,5 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import { generateSearchData, type SearchDocument } from '../../src/node/search'
+import { describe, it, expect } from 'vitest'
+import { generateSearchData } from '../../src/node/search'
 
 describe('search', () => {
   describe('generateSearchData', () => {
@@ -178,14 +178,90 @@ describe('search', () => {
       expect(documents[2].url).toBe('/docs/guide#step-two')
     })
 
-    it('truncates page content to the first 500 characters', () => {
-      const longContent = 'x'.repeat(1200)
+    it('indexes controlled page content beyond the old 500-character limit', () => {
+      const needle = 'needle-beyond-the-old-limit'
+      const longContent = `${'x'.repeat(650)} ${needle} ${'y'.repeat(650)}`
       const documents = generateSearchData([
         { path: '/docs/long', title: 'Long', _content: longContent },
       ] as any)
 
-      expect(documents[0].content).toHaveLength(500)
-      expect(documents[0].content).toBe('x'.repeat(500))
+      expect(documents[0].content.length).toBeGreaterThan(500)
+      expect(documents[0].content).toContain(needle)
+      expect(documents[0].content.length).toBeLessThanOrEqual(2_000)
+    })
+
+    it('maps deep section content to its heading document with bounded snippets', () => {
+      const sectionNeedle = 'deep-section-needle'
+      const content = [
+        'Intro text',
+        'Install',
+        'z'.repeat(800),
+        sectionNeedle,
+        'z'.repeat(800),
+        'Troubleshooting',
+        'Short troubleshooting text',
+      ].join(' ')
+
+      const documents = generateSearchData([
+        {
+          path: '/docs/guide',
+          title: 'Guide',
+          _content: content,
+          headings: [
+            { level: 2, text: 'Install', id: 'install' },
+            { level: 2, text: 'Troubleshooting', id: 'troubleshooting' },
+          ],
+        },
+      ] as any)
+
+      const install = documents.find((doc) => doc.id.endsWith('#install'))
+      expect(install?.content).toContain(sectionNeedle)
+      expect(install?.content.length).toBeLessThanOrEqual(1_200)
+      expect(
+        documents.reduce((total, doc) => total + doc.content.length, 0),
+      ).toBeLessThanOrEqual(2_000 + 1_200 * 2)
+    })
+
+    it('caps total section payload for heading-heavy pages', () => {
+      const headings = Array.from({ length: 100 }, (_, index) => ({
+        level: 2,
+        text: `Section ${index}`,
+        id: `section-${index}`,
+      }))
+      const content = headings
+        .flatMap((heading) => [heading.text, 'section-body '.repeat(100)])
+        .join(' ')
+
+      const documents = generateSearchData([
+        {
+          path: '/docs/heading-heavy',
+          title: 'Heading heavy',
+          _content: content,
+          headings,
+        } as any,
+      ])
+      const sectionPayload = documents
+        .slice(1)
+        .reduce((total, document) => total + document.content.length, 0)
+
+      expect(sectionPayload).toBeLessThanOrEqual(6_000)
+    })
+
+    it('maps repeated heading text to successive sections', () => {
+      const documents = generateSearchData([
+        {
+          path: '/docs/repeated',
+          title: 'Repeated',
+          _content: 'Example first unique-marker Example second unique-marker',
+          headings: [
+            { level: 2, text: 'Example', id: 'example' },
+            { level: 2, text: 'Example', id: 'example-2' },
+          ],
+        },
+      ] as any)
+
+      expect(documents[1].content).toContain('first unique-marker')
+      expect(documents[2].content).toContain('second unique-marker')
     })
 
     it('indexes custom frontmatter values into the page content', () => {

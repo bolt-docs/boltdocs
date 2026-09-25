@@ -53,27 +53,38 @@ function PostCard({
 export function FeaturedResources() {
   const recentPosts = useRecentPosts('blog', 4)
   const t = useTranslations()
-
   return (
-    <Section maxWidth="xl">
-      <div className="mx-auto mb-12 flex max-w-7xl flex-col justify-between gap-6 md:flex-row md:items-end">
+    <Section maxWidth="xl" padding="md">
+      <div className="mx-auto mb-12 max-md:mb-5 flex max-w-7xl flex-col justify-between gap-6 md:flex-row md:items-end">
         <div className="max-w-xl">
-          <h2 className="text-3xl md:text-4xl font-black tracking-tighter text-body mb-2">
+          <h2 className="text-3xl md:text-4xl text-center font-black tracking-tighter text-body mb-2">
             {t.featuredTitle}
           </h2>
         </div>
         <Link
           href="site:/blog"
-          className="group hover:opacity-80 inline-flex h-11 shrink-0 items-center justify-center px-6 text-sm font-medium text-body transition-all duration-300"
+          className="group hover:opacity-80 inline-flex max-md:hidden h-11 shrink-0 items-center justify-center px-6 text-sm font-medium text-body transition-all duration-300"
         >
           {t.featuredAll}
           <ArrowRight className="size-5 ml-2 transition-transform group-hover:translate-x-0.5" />
         </Link>
       </div>
-      <div className="mx-auto flex max-w-7xl gap-6 overflow-x-auto scrollbar-hide">
+      {/* SSR-safe mobile behavior: only the first card shows below md.
+          window.matchMedia at render time crashes SSR and would hydrate a
+          different post count than the server rendered. */}
+      <div className="mx-auto flex max-w-7xl max-md:justify-center [&>*+*]:max-md:hidden gap-6 overflow-x-auto scrollbar-hide">
         {recentPosts.map((post) => (
           <PostCard post={post} key={post.filePath} />
         ))}
+      </div>
+      <div className="mx-auto mt-5 max-w-7xl flex justify-center md:hidden">
+        <Link
+          href="site:/blog"
+          className="group hidden hover:opacity-80 max-md:inline-flex h-11 shrink-0 items-center justify-center px-6 text-sm font-medium text-body transition-all duration-300"
+        >
+          {t.featuredAll}
+          <ArrowRight className="size-5 ml-2 transition-transform group-hover:translate-x-0.5" />
+        </Link>
       </div>
     </Section>
   )

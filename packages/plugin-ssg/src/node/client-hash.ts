@@ -200,6 +200,20 @@ export function computeShellHash(root: string, docsDirName: string): string {
   }
 }
 
+export function computeSharedClientHash(root: string): string {
+  try {
+    const hasher = createHash('sha256')
+    hashFrameworkCode(root, hasher)
+    const srcDir = join(root, 'src')
+    if (fs.existsSync(srcDir)) hashDirectoryContent(srcDir, root, hasher)
+    hashConfigFiles(root, hasher)
+    hasher.update(CLIENT_HASH_VERSION)
+    return hasher.digest('hex')
+  } catch {
+    return createHash('sha256').update('__shared_hash_error__').digest('hex')
+  }
+}
+
 export function computeClientCodeHash(
   root: string,
   docsDirName: string,

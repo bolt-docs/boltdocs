@@ -49,6 +49,8 @@ export class ShikiAdapter implements CodeHighlighterAdapter {
 
   private theme: CodeTheme
   private regexEngine: RegexEngineKind
+  /** Shiki `colorReplacements`: theme token colors overridden per site. */
+  private colorReplacements: Record<string, string> | null = null
 
   constructor(config?: ShikiAdapterConfig) {
     const highlighting = normalizeCodeHighlightConfig(
@@ -64,6 +66,25 @@ export class ShikiAdapter implements CodeHighlighterAdapter {
       String(highlighting?.options?.regexEngine) === 'oniguruma'
         ? 'oniguruma'
         : 'javascript'
+    const replacements = highlighting?.options?.colorReplacements
+    if (
+      replacements &&
+      typeof replacements === 'object' &&
+      !Array.isArray(replacements)
+    ) {
+      // Shiki stores theme token colors lowercase; a user-facing `#6A737D`
+      // key never matches `#6a737d`. Normalize hex keys/values only —
+      // symbolic keys like `editor.background` must stay untouched.
+      const norm = (v: string) => {
+        const t = v.trim()
+        return /^#[0-9a-fA-F]{3,8}$/.test(t) ? t.toLowerCase() : t
+      }
+      this.colorReplacements = Object.fromEntries(
+        Object.entries(replacements as Record<string, unknown>).map(
+          ([k, v]) => [norm(k), norm(String(v))],
+        ),
+      )
+    }
   }
 
   /**
@@ -147,6 +168,9 @@ export class ShikiAdapter implements CodeHighlighterAdapter {
         addTitleProperty(),
         addLanguageProperty(),
       ],
+      ...(this.colorReplacements
+        ? { colorReplacements: this.colorReplacements }
+        : {}),
       ...(typeof this.theme === 'string'
         ? { theme: this.theme }
         : {
@@ -190,7 +214,10 @@ let _adapterConfigStr: string | undefined
 
 /**
  * Returns a cached ShikiAdapter instance.
- * Recreates only if the resolved theme or regex engine configuration changes.
+ * Recreates only if the resolved highlighter configuration changes. Every
+ * field that can influence rendered output must join this identity — a
+ * missing field silently serves stale instances (colorReplacements was once
+ * dropped here, pinning old token colors for a whole build).
  */
 export function getShikiAdapter(config?: ShikiAdapterConfig): ShikiAdapter {
   const highlighting = normalizeCodeHighlightConfig(
@@ -200,6 +227,7 @@ export function getShikiAdapter(config?: ShikiAdapterConfig): ShikiAdapter {
   const currentConfigStr = JSON.stringify({
     theme,
     regexEngine: highlighting?.options?.regexEngine ?? 'oniguruma',
+    colorReplacements: highlighting?.options?.colorReplacements ?? null,
   })
 
   if (_adapterInstance === null || _adapterConfigStr !== currentConfigStr) {

@@ -33,6 +33,10 @@ export default defineConfig({
         __dirname,
         './tests/mocks/virtual-layout.ts',
       ),
+      'virtual:boltdocs-client-registry': path.resolve(
+        __dirname,
+        './tests/mocks/virtual-client-registry.ts',
+      ),
     },
   },
 })

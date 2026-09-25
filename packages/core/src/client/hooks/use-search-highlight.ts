@@ -18,6 +18,7 @@ export function useSearchHighlight(
 
     const container = document.querySelector(containerSelector)
     if (!container) return
+    const target: Element = container
 
     let rafId: number
 
@@ -59,17 +60,17 @@ export function useSearchHighlight(
         clearHighlights(containerSelector)
 
         // Split query into individual words (minimum 2 chars)
-        const terms = query!
+        const terms = (query ?? '')
           .split(/\s+/)
           .map((t) => t.trim())
           .filter((t) => t.length >= 2)
 
         if (terms.length > 0) {
-          highlightTerms(container!, terms)
+          highlightTerms(target, terms)
         }
 
         // Re-observe
-        observer.observe(container!, { childList: true, subtree: true })
+        observer.observe(target, { childList: true, subtree: true })
       })
     }
 
@@ -84,24 +85,58 @@ export function useSearchHighlight(
   }, [query, containerSelector])
 }
 
-function clearHighlights(selector: string) {
+export function clearHighlights(selector: string) {
   const marks = document.querySelectorAll(
     `${selector} mark[data-search-highlight]`,
   )
   marks.forEach((mark) => {
     try {
       const parent = mark.parentNode
-      if (parent && parent.contains(mark)) {
+      if (parent?.contains(mark)) {
         const text = mark.textContent || ''
         parent.replaceChild(document.createTextNode(text), mark)
       }
-    } catch (e) {
+    } catch {
       // Ignore DOM errors during cleanup
     }
   })
 }
 
-function highlightTerms(container: Element, terms: string[]) {
+export function createSearchHighlightRegex(terms: string[]): RegExp | null {
+  const accentMap: Record<string, string> = {
+    a: '[aáàäâãåāăą]',
+    c: '[cçćč]',
+    d: '[dďđ]',
+    e: '[eéèëêėęě]',
+    g: '[gğģ]',
+    i: '[iíìïîīįı]',
+    l: '[lĺļł]',
+    n: '[nñńň]',
+    o: '[oóòöôõøōő]',
+    r: '[rřŕ]',
+    s: '[sśšş]',
+    t: '[tťţ]',
+    u: '[uúùüûūůűų]',
+    y: '[yýÿ]',
+    z: '[zžźż]',
+  }
+
+  const escapeTerm = (term: string) =>
+    [...term]
+      .map((char) => {
+        const lower = char.toLocaleLowerCase()
+        return accentMap[lower] ?? char.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+      })
+      .join('')
+
+  const uniqueTerms = [
+    ...new Set(terms.map((term) => term.trim()).filter(Boolean)),
+  ].sort((left, right) => right.length - left.length)
+  if (uniqueTerms.length === 0) return null
+  return new RegExp(`(${uniqueTerms.map(escapeTerm).join('|')})`, 'gi')
+}
+
+export function highlightTerms(container: Element, terms: string[]) {
   const walker = document.createTreeWalker(container, NodeFilter.SHOW_TEXT, {
     acceptNode: (node) => {
       const parent = node.parentElement
@@ -126,49 +161,21 @@ function highlightTerms(container: Element, terms: string[]) {
     node = walker.nextNode()
   }
 
-  // Create a combined regex for all terms
-  // Accent-insensitive helper: replaces 'a' with '[aáàä...]'
-  const accentMap: Record<string, string> = {
-    a: '[aáàäâã]',
-    e: '[eéèëê]',
-    i: '[iíìïî]',
-    o: '[oóòöôõ]',
-    u: '[uúùüû]',
-    n: '[nñ]',
-    c: '[cç]',
-  }
-
-  const prepareRegex = (term: string) => {
-    let pattern = term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
-    // Make it accent insensitive
-    pattern = pattern
-      .split('')
-      .map((char) => {
-        const lower = char.toLowerCase()
-        return accentMap[lower] || char
-      })
-      .join('')
-    return pattern
-  }
-
-  const combinedPattern = terms.map(prepareRegex).join('|')
-  const regex = new RegExp(`(${combinedPattern})`, 'gi')
-
-  const matchRegexes = terms.map((term) => {
-    const p = prepareRegex(term)
-    return new RegExp(`^${p}$`, 'i')
-  })
+  // Escape every metacharacter, then expand individual letters into explicit
+  // accent classes. A global RegExp retains lastIndex between calls, so it must
+  // be reset before each test (and must never be used to classify split parts).
+  const regex = createSearchHighlightRegex(terms)
+  if (!regex) return
 
   nodes.forEach((textNode) => {
     const text = textNode.textContent
+    regex.lastIndex = 0
     if (text && regex.test(text)) {
       const fragment = document.createDocumentFragment()
       const parts = text.split(regex)
 
-      parts.forEach((part) => {
-        const isMatch = matchRegexes.some((rx) => rx.test(part))
-
-        if (isMatch) {
+      parts.forEach((part, index) => {
+        if (index % 2 === 1) {
           const mark = document.createElement('mark')
           mark.textContent = part
           mark.setAttribute('data-search-highlight', 'true')

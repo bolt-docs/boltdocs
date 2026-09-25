@@ -85,7 +85,7 @@ export const Hero = () => {
         <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-center gap-3 sm:gap-4 mt-6">
           <Link
             href="/docs/guides"
-            className="group px-6 py-3.5 bg-primary-500 text-white font-medium rounded-xl flex items-center justify-center gap-2 border border-primary-400/30 hover:brightness-110 transition-all duration-300 sm:hover:scale-[1.03]"
+            className="group px-6 py-3.5 bg-primary-600 text-white font-medium rounded-xl flex items-center justify-center gap-2 border border-primary-400/30 hover:brightness-110 transition-all duration-300 sm:hover:scale-[1.03]"
           >
             {t.heroGetStarted}
             <ArrowRight className="size-5 transition-transform group-hover:translate-x-0.5" />

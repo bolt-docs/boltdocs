@@ -1,5 +1,6 @@
 import OpenAI from 'openai'
 import { buildUserPrompt } from '../node/prompts'
+import { AI_NOT_CONFIGURED, AI_TIMEOUT, toPublicProviderError } from './errors'
 
 // ── Public types ───────────────────────────────────────────────────
 
@@ -77,17 +78,15 @@ export async function streamLLMResponse(
 
   const apiKey = env[providerEnvKey]
   if (!apiKey) {
-    onEvent({
-      type: 'error',
-      data: `${providerEnvKey} is not set in the server environment.`,
-    })
+    onEvent({ type: 'error', data: AI_NOT_CONFIGURED })
     return
   }
 
   const userPrompt = buildUserPrompt(question, context)
   const openai = new OpenAI({
     apiKey,
-    baseURL: baseURL || env.OPENAI_BASE_URL || undefined,
+    baseURL:
+      baseURL || (provider === 'openai' ? env.OPENAI_BASE_URL : undefined),
   })
 
   // Compose external + internal-timeout signals.
@@ -98,7 +97,9 @@ export async function streamLLMResponse(
   const onExternalAbort = () => {
     if (!combinedController.signal.aborted) combinedController.abort()
   }
+  let timedOut = false
   const onTimeoutAbort = () => {
+    timedOut = true
     if (!combinedController.signal.aborted) combinedController.abort()
   }
   if (externalSignal) {
@@ -153,6 +154,11 @@ export async function streamLLMResponse(
       }
     }
 
+    if (timedOut) {
+      onEvent({ type: 'error', data: AI_TIMEOUT })
+      return
+    }
+
     if (devMode && (promptTokens > 0 || completionTokens > 0)) {
       onEvent({
         type: 'usage',
@@ -170,12 +176,12 @@ export async function streamLLMResponse(
     if (!externalSignal?.aborted && !combinedController.signal.aborted) {
       onEvent({ type: 'done' })
     }
-  } catch (err) {
-    if (externalSignal?.aborted || combinedController.signal.aborted) {
-      return
-    }
-    const msg = err instanceof Error ? err.message : 'OpenAI request failed'
-    onEvent({ type: 'error', data: msg })
+  } catch {
+    if (externalSignal?.aborted) return
+    onEvent({
+      type: 'error',
+      data: timedOut ? AI_TIMEOUT : toPublicProviderError(),
+    })
   } finally {
     clearTimeout(timeoutId)
     if (externalSignal) {

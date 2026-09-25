@@ -1,391 +1,252 @@
 ---
 title: "@bdocs/plugin-ask-ai"
 sidebarPosition: 4
-description: El plugin @bdocs/plugin-ask-ai añade un asistente de IA consciente del contexto a tu documentación de Boltdocs. Impulsado por el SDK oficial de OpenAI, con alcance de página, streaming SSE y un system prompt estrictamente delimitado que solo responde usando la página que el usuario está viendo.
-badge: "0.3.0"
+description: Añade un asistente de IA seguro, limitado a la página actual y con streaming a Boltdocs usando el SDK de OpenAI y una UI personalizable.
+badge: "0.4.0"
 ---
 
-*El plugin `@bdocs/plugin-ask-ai` añade una burbuja de chat flotante y un panel lateral complementario a tu sitio Boltdocs. El asistente responde **solo** usando la página de documentación que el visitante está leyendo actualmente — nunca conocimiento general — y rechaza preguntas que no estén fundamentadas en los docs.*
+`@bdocs/plugin-ask-ai` añade un asistente de preguntas sobre documentación. Solo puede responder con el contexto seleccionado para la petición y devuelve `Not in docs.` cuando la respuesta no está fundamentada en ese contexto.
 
-<Callout variant="info" title="Respuestas con alcance de página, no Q&A general">
-  Este es un asistente de Q&A de documentación, no un chatbot. El asistente responderá con `Not in docs.` (No está en los docs.) si la pregunta no puede responderse desde la página actual. Combínalo con `secretKey` y un reverse proxy para deployments de producción — consulta [Modelo de Seguridad](#modelo-de-seguridad) más abajo.
+<Callout variant="info" title="Respuestas limitadas a la página">
+  Esto es Q&A de documentación, no un chatbot general. Las credenciales del proveedor y los prompts privados permanecen en el servidor; solo se serializan al navegador los metadatos públicos de UI.
 </Callout>
 
-
-## Conceptos y Arquitectura
-
-El plugin es un **pipeline de tres niveles** que se ejecuta completamente dentro del servidor dev/preview de Boltdocs y un middleware delgado que se sitúa frente a cualquier host desplegado:
+## Cómo funciona
 
 ```mermaid
 flowchart LR
-  A[Visitante hace una pregunta] --> B[Hook cliente: useAskAi]
-  B -->|POST /api/ask-ai| C[Middleware del servidor o handler serverless]
-  C --> D[Resolver la página actual]
-  D -->|contenido de la página| E[Envolver en <<<DOCS_START>>> / <<<DOCS_END>>>]
-  E --> F[OpenAI SDK chat.completions.stream]
-  F -->|eventos SSE| B
-  B --> G[Render markdown con <Streamdown>]
+  A[Pregunta] --> B[AskAiBubble]
+  B --> C[POST endpoint]
+  C --> D[Validar input y autorización]
+  D --> E[Resolver contexto acotado]
+  E --> F[Proveedor compatible con OpenAI]
+  F -->|texto SSE| B
 ```
 
-### 1. Cliente (`@bdocs/plugin-ask-ai/client`)
+- El middleware de Vite se monta durante `dev` y `preview`.
+- Los adaptadores Web, Vercel, Netlify y AWS están disponibles para producción serverless.
+- Las preguntas se validan con límites de input y una denylist de inyección en todos los despliegues.
+- El body, el contexto y la salida se limitan antes de llamar al proveedor.
+- Los errores upstream se convierten en códigos públicos seguros; los mensajes del proveedor y las credenciales no vuelven al navegador.
 
-- **`useAskAi()`** — Hook de React que posee el estado del chat, el lector SSE del stream y el `AbortController` cooperativo. Devuelve `messages`, `input`, `isLoading`, `submitQuestion`, `stopStreaming`, `clearChat`, `isOpen`, `setIsOpen`.
-- **`<AskAiBubble />`** — botón flotante auto-inyectado + diálogo emergente (esquina inferior derecha en cada página).
-- **`<AskAiDialog />`** — panel lateral opcional para composición manual en viewports `xl:` (≥ 1280 px).
-- **`<MarkdownRenderer />`** — wrapper delgado de `Streamdown` que activa `parseIncompleteMarkdown` por defecto para una visualización de streaming fluida y sin parpadeos.
+## Instalación
 
-El hook también escucha eventos globales para que otras partes de tu sitio puedan manejarlo:
-
-```ts
-window.dispatchEvent(new CustomEvent('boltdocs:ask-ai:toggle'))
-window.dispatchEvent(new CustomEvent('boltdocs:ask-ai:open'))
-window.dispatchEvent(new CustomEvent('boltdocs:ask-ai:close'))
+```bash
+pnpm add @bdocs/plugin-ask-ai
 ```
-
-### 2. Middleware del servidor (`POST /api/ask-ai`)
-
-Un middleware de `vite` montado sobre `dev` y `preview`. Este:
-
-1. Resuelve el contenido de la página en el servidor en Vite/preview. Los adaptadores serverless solo aceptan `{ page, content }` con `allowClientContext: true` o un `secretKey` autorizado.
-2. Valida la pregunta contra los caps configurados y la denylist.
-3. Envuelve el contenido de la página en marcadores `<<<DOCS_START>>>` / `<<<DOCS_END>>>` — y **escapa las ocurrencias literales de esos tokens dentro de la página** para que un autor de MDX no pueda romper la frontera.
-4. Hace streaming de eventos `chat.completions.create({ stream: true })` de vuelta como Server-Sent Events (`text/event-stream`).
-
-### 3. Capa LLM
-
-El SDK oficial `openai` (`^4.77.0`). Todas las demás piezas del plugin se construyen alrededor de cuatro garantías:
-
-- Cualquier proveedor que hable `/v1/chat/completions` funciona mediante `baseURL`.
-- `AbortController` está cableado hasta abajo, por lo que cerrar la pestaña mid-stream detiene inmediatamente la solicitud upstream (sin gasto huérfano de tokens).
-- Un timeout interno de 60 segundos aborta el stream incluso si el cliente nunca se desconecta.
-- El output está limitado en el SDK por `max_tokens` — los costes descontrolados están acotados incluso si todas las demás protecciones degradan.
-
----
-
-## Configuración
-
-### Opciones del Plugin
-
-Todas las opciones son opcionales. Pásalas al inicializador `askAiPlugin()` en `boltdocs.config.ts`:
-
-```ts
-askAiPlugin({
-  model: 'gpt-4o-mini',
-  endpoint: '/api/ask-ai',
-  baseURL: undefined,
-  systemPrompt: undefined,
-  persona: undefined,
-  maxInputChars: 2_000,
-  maxOutputTokens: 600,
-  contextChars: 6_000,
-  rateLimitPerMinute: 30,
-  secretKey: undefined,
-  customModels: [],
-  temperature: 0.3,
-  topP: 1,
-  title: 'Ask Assistant',
-  placeholder: 'Ask about this page…',
-})
-```
-
-| Propiedad | Tipo | Predeterminado | Descripción |
-| :--- | :--- | :--- | :--- |
-| **`model`** | `'gpt-4o-mini' \| 'gpt-4.1-mini' \| 'gpt-4.1-nano'` | `'gpt-4o-mini'` | Modelo built-in. Si necesitas otro modelo, listalo en `customModels` y añádelo a la `modelAllowlist`. |
-| **`endpoint`** | `string` | `'/api/ask-ai'` | Ruta del middleware de Vite. Solo POST. Cualquier otro método devuelve 404 por diseño. |
-| **`baseURL`** | `string` (validada como URL) | `undefined` | URL base de la API OpenAI-compatible. Cae al env var `OPENAI_BASE_URL` → OpenAI. |
-| **`systemPrompt`** | `string` | `DEFAULT_SYSTEM_PROMPT` | Override del prompt de seguridad. **Override solo si entiendes el modelo de seguridad** — consulta [Capa 4](#modelo-de-seguridad). Para resetear al predeterminado, pon `systemPrompt: undefined`. |
-| **`maxInputChars`** | `number` (1–20 000) | `2_000` | Cap duro sobre la pregunta del usuario antes de llegar a OpenAI. |
-| **`maxOutputTokens`** | `number` (1–4 000) | `600` | Cap duro sobre los tokens de completion, aplicado por el SDK. |
-| **`contextChars`** | `number` (1–40 000) | `6_000` | Máximo de caracteres del contenido de la página enviado. Las páginas largas se truncan silenciosamente. |
-| **`rateLimitPerMinute`** | `number` (≥ 0) | `30` | Peticiones por minuto por IP. Pon `0` para desactivar (no recomendado en deployments abiertos). |
-| **`secretKey`** | `string` (≥ 8 caracteres) | `undefined` | Secreto compartido requerido. Los llamantes deben incluir `?secret=<key>` o el header `x-boltdocs-ask-ai-key: <key>`. Cualquier otro origen recibe `UNAUTHORIZED`. |
-| **`customModels`** | `string[]` (≤ 20 entradas, ≤ 120 caracteres cada una) | `[]` | Comodín para usuarios avanzados. Añade nombres de modelos a la allowlist runtime sin tocar el schema. |
-| **`persona`** | `string` (≤ 4 000 caracteres) | `undefined` | Identidad/tono personalizado del asistente. Se antepone al prompt por defecto dentro de marcadores `<<<PERSONA>>>` — moldea *cómo* habla, pero no puede debilitar las reglas de alcance/rechazo. Se ignora si `systemPrompt` (o `systemPrompts[provider]`) lo sobrescribe por completo. |
-| **`temperature`** | `number` (0–2) | `0.3` | Temperatura de muestreo. `0` = determinista (recomendado para Q&A de docs). |
-| **`topP`** | `number` (0–1) | `1` | Corte de nucleus sampling. `1` = sin restricción. |
-| **`title`** | `string` (≤ 80) | `'Ask Assistant'` | Título del header del widget (burbuja y diálogo). |
-| **`placeholder`** | `string` (≤ 120) | `'Ask about this page…'` | Placeholder del compositor. |
-| **`emptyTitle`** | `string` (≤ 80) | `'How can I help you today?'` | Saludo antes del primer mensaje (solo burbuja). |
-| **`emptyDescription`** | `string` (≤ 240) | `'Ask anything about the current documentation page…'` | Texto bajo el saludo. |
-| **`buttonTooltip`** | `string` (≤ 80) | `'Ask AI assistant'` | Tooltip/aria-label del lanzador flotante. |
-| **`composerHint`** | `string` (≤ 120) | `'Enter to send · Shift+Enter for a new line'` | Pista bajo el input. |
-
-> Las páginas que excedan `contextChars` se truncan al inicio. Si necesitas usar la última sección de un documento largo, plantéate exponer un punto de anclaje o dividir el contenido en piezas más pequeñas.
-
-### Variables de Entorno
-
-| Variable | Requerida | Predeterminada | Descripción |
-| :--- | :--- | :--- | :--- |
-| **`OPENAI_API_KEY`** | sí | — | API key del proveedor upstream. El middleware rehúsa hacer streaming si no está establecida. |
-| **`OPENAI_BASE_URL`** | no | OpenAI | Override para la URL base de la API. Equivalente a `baseURL` en las opciones del plugin (las opciones tienen precedencia). |
-
-`OPENAI_API_KEY` se lee al momento de la petición, por lo que puedes rotar keys sin reiniciar el servidor de desarrollo. Para secretos en producción, móntalo mediante el gestor de env vars de tu plataforma (Vercel project env, AWS Secrets Manager, etc.) — nunca lo commitees.
-
----
-
-## Modelos Soportados
-
-### Allowlist built-in
-
-Modelos empaquetados en el schema, elegidos por su equilibrio precio/calidad en Q&A de documentación:
-
-| Modelo | Tier | Caso de uso |
-| :--- | :--- | :--- |
-| `gpt-4o-mini` (predeterminado) | barato | Mayoría de Q&A sobre docs. Estable y bien de precio. |
-| `gpt-4.1-mini` | bajo | Mejor razonamiento que `gpt-4o-mini` con latencia similar. |
-| `gpt-4.1-nano` | muy barato | Deployments de alto volumen. Acepta menor accuracy. |
-
-```ts
-askAiPlugin({ model: 'gpt-4.1-mini' })
-```
-
-### Escape hatch — `customModels`
-
-Cualquier nombre de modelo que tu cuenta o proveedor pueda hospedar puede agregarse sin tocar el schema:
-
-```ts
-askAiPlugin({
-  model: 'gpt-4o',
-  customModels: ['gpt-4o', 'gpt-4.1', 'o1-mini', 'o4-mini', 'gpt-5'],
-})
-```
-
-La allowlist runtime es `ALLOWED_MODELS ∪ customModels`. Cualquier valor fuera de esa unión cae silenciosamente a `gpt-4o-mini`.
-
----
-
-## Proveedores Soportados
-
-El plugin usa el SDK oficial `openai` de Node (v4+). Cualquier proveedor que exponga un endpoint OpenAI-compatible `/v1/chat/completions` funciona. Configúralo con `baseURL` en las opciones del plugin o `OPENAI_BASE_URL` en el entorno.
-
-| Proveedor | Ejemplo `baseURL` | Notas |
-| :--- | :--- | :--- |
-| **OpenAI** (predeterminado) | `https://api.openai.com/v1` | Se usa cuando `baseURL` no está establecido. |
-| **Groq** | `https://api.groq.com/openai/v1` | Inferencia rápida con Llama 3, Mixtral. Key emitida por Groq. |
-| **OpenRouter** | `https://openrouter.ai/api/v1` | Agregador: Claude, Gemini, Mistral, etc. Pasa cualquier nombre de modelo que OpenRouter reconozca. |
-| **Together AI** | `https://api.together.xyz/v1` | Flota open-source. |
-| **Azure OpenAI** | `https://<resource>.openai.azure.com/openai/deployments/<dep>/v1` | El endpoint varía por deployment. |
-| **Self-hosted OpenAI-compatible** (llama.cpp, vLLM, LM Studio, Ollama + OpenAI shim, vLLM `--openai-compatible`) | `http://localhost:<puerto>/v1` | El servidor debe exponer `/v1/chat/completions`. |
-
-### No soportados (explícitamente)
-
-- **Anthropic Claude API** — forma de request/response distinta. El plugin solo conoce la spec de OpenAI.
-- **Google Gemini API** — forma distinta.
-- **Servidores de modelos locales que no hablan el shim de OpenAI** (Ollama `/api/generate` raw, llama.cpp `/completion`).
-- **Function-calling / tools use / structured outputs / speech-to-text / image inputs.** Solo chat completions puro.
-
----
-
-## Ejemplos de Uso
-
-### Configuración mínima
 
 ```ts title="boltdocs.config.ts"
 import askAiPlugin from '@bdocs/plugin-ask-ai'
 
 export default {
-  plugins: [askAiPlugin()],
+  plugins: [
+    askAiPlugin({
+      title: 'Pregunta a los docs',
+      maxOutputTokens: 600,
+      rateLimitPerMinute: 30,
+    }),
+  ],
 }
 ```
 
-### Cambiar a un modelo más potente
-
-```ts
-askAiPlugin({
-  model: 'gpt-4.1-mini',
-  maxOutputTokens: 800,   // permite respuestas más largas
-})
-```
-
-### Usar un proveedor distinto de OpenAI
-
-```ts
-askAiPlugin({
-  baseURL: 'https://api.groq.com/openai/v1',
-  customModels: ['llama-3.3-70b-versatile'],
-  model: 'llama-3.3-70b-versatile',
-})
-```
+Configura la key del proveedor en el entorno, nunca en el config:
 
 ```bash title=".env"
-OPENAI_API_KEY=gsk_...    # Groq emite esto
+OPENAI_API_KEY=sk-...
 ```
 
-### Asegurar un deployment de producción
+El asistente flotante se monta mediante el slot `floating:after` de Boltdocs. Usa `autoInject: false` si quieres colocarlo manualmente.
+
+## Configuración
+
+| Opción | Predeterminado | Descripción |
+| :--- | :--- | :--- |
+| `provider` | `'openai'` | Preset del proveedor. Cada preset selecciona su modelo y nombre de variable de entorno. |
+| `model` | Default del proveedor | Cualquier modelo aceptado por el proveedor compatible con OpenAI. |
+| `baseURL` | Default del proveedor | URL compatible con OpenAI. Obligatoria para `anthropic`, `gemini`, `azure` y `custom`. |
+| `endpoint` | `'/api/ask-ai'` | Endpoint POST de dev/preview. |
+| `autoInject` | `true` | Monta `<AskAiBubble />` en el slot flotante global. |
+| `persona` | `undefined` | Identidad y tono opcionales antepuestos al prompt seguro. |
+| `systemPrompt` | `undefined` | Override total del prompt. Úsalo solo si conservas el scope y los rechazos. |
+| `systemPrompts` | `undefined` | Overrides de prompt por proveedor. |
+| `maxInputChars` | `2_000` | Límite de pregunta aplicado en servidor. |
+| `maxRequestBytes` | `65_536` | Límite de tamaño del body aplicado en servidor. |
+| `maxOutputTokens` | `600` | Límite de tokens de completion. |
+| `contextChars` | `6_000` | Máximo de caracteres de página enviados al modelo. |
+| `rateLimitPerMinute` | `30` | Límite en memoria por IP. Usa `0` para desactivarlo. |
+| `secretKey` | `undefined` | Secreto servidor-a-servidor de mínimo 16 caracteres. Solo por header; nunca se incluye en metadata. |
+| `secretKeyEnv` | `undefined` | Nombre de la variable de entorno que contiene el secreto del servidor. |
+| `temperature` | `0.3` | Temperatura de sampling. |
+| `topP` | `1` | Corte de nucleus sampling. |
+| `devMode` | Activo fuera de producción | Muestra el chip de consumo de tokens. Desactívalo en producción. |
+| `title` | `'Ask Assistant'` | Título del header. |
+| `placeholder` | `'Ask about this page…'` | Placeholder del compositor. |
+| `emptyTitle` | Saludo default | Título del estado vacío. |
+| `emptyDescription` | Descripción default | Descripción del estado vacío. |
+| `buttonTooltip` | `'Ask AI assistant'` | Label y tooltip del launcher. |
+| `composerHint` | Hint de teclado | Ayuda bajo el input. |
+| `classNames` | `{}` | Slots públicos de clases Tailwind. |
+
+### Proveedores
+
+El plugin siempre usa el formato OpenAI Chat Completions. Anthropic, Gemini, Azure y `custom` deben apuntar a un proxy compatible con OpenAI.
 
 ```ts
 askAiPlugin({
-  secretKey: process.env.BOLTDOCS_ASK_AI_SECRET,
-  rateLimitPerMinute: 10,
-  maxOutputTokens: 400,
+  provider: 'groq',
+  model: 'llama-3.1-8b-instant',
+  baseURL: 'https://api.groq.com/openai/v1',
 })
 ```
 
-Caddy / nginx / Cloudflare / Vercel deben establecer `x-forwarded-for` desde una fuente confiable. Combinado con `secretKey`, un atacante no puede saltarse el limiter ni enviar payloads `context` falsificados.
-
-### Componer manualmente (sin auto-injection)
-
-```ts title="boltdocs.config.ts"
-askAiPlugin({ autoInject: false })
+```bash
+GROQ_API_KEY=gsk_...
 ```
 
-Luego, en tu layout personalizado:
+El fallback `OPENAI_BASE_URL` específico del provider solo se usa para OpenAI. Una key de Groq, Gemini o Anthropic no puede redirigirse a una URL arbitraria de OpenAI.
 
-```tsx title="src/layout.tsx"
+## Personalizar la UI
+
+Los textos se configuran en `boltdocs.config.ts`. Los slots visuales también son públicos:
+
+```ts
+askAiPlugin({
+  title: 'Docs Copilot',
+  placeholder: 'Pregunta sobre esta configuración…',
+  classNames: {
+    root: 'bottom-8 right-8',
+    panel: 'w-[28rem] rounded-3xl border-primary-500/20',
+    trigger: 'rounded-full size-14 shadow-primary-500/30',
+    userMessage: 'bg-primary-600',
+    assistantMessage: 'bg-soft border-primary-500/20',
+  },
+})
+```
+
+Los slots disponibles son `root`, `panel`, `trigger`, `header`, `messages`, `message`, `userMessage`, `assistantMessage`, `emptyState`, `composer`, `input` y `markdown`. Las clases del usuario ganan sobre los defaults mediante Tailwind merge.
+
+Para reemplazar componentes completos, desactiva la inyección y componlos manualmente:
+
+```tsx title="docs/layout.tsx"
 import { AskAiBubble } from '@bdocs/plugin-ask-ai/client'
 
-export default function Layout() {
-  return (
-    <div className="min-h-screen">
-      {/* …tu nav y contenido a pantalla completa… */}
-      <AskAiBubble />
-      {/* O <AskAiDialog /> — tú decides */}
-    </div>
-  )
+export function Assistant() {
+  return <AskAiBubble endpoint="/custom/ask-ai" />
 }
 ```
 
-### Manejar el chat desde un botón en otro lugar
+El paquete cliente también exporta `AskAiDialog`, `ChatHeader`, `ChatInput`, `ChatMessage`, `ChatEmptyState`, `TypingIndicator`, `useAskAi` y `MarkdownRenderer`.
+
+### Abrir desde otro control
+
+Usa el evento global; una segunda instancia del hook tiene estado desconectado:
 
 ```tsx
-import { useAskAi } from '@bdocs/plugin-ask-ai/client'
-
 export function HelpButton() {
-  const { setIsOpen, submitQuestion } = useAskAi()
   return (
-    <button
-      onClick={() => {
-        setIsOpen(true)
-        submitQuestion('Guíame a través de esta página')
-      }}
-    >
+    <button onClick={() => window.dispatchEvent(new CustomEvent('boltdocs:ask-ai:open'))}>
       Ayuda
     </button>
   )
 }
 ```
 
----
+Los eventos disponibles son `boltdocs:ask-ai:open`, `boltdocs:ask-ai:close` y `boltdocs:ask-ai:toggle`.
 
-## Montaje Automático y Composición Manual
+## Deployment serverless
 
-El plugin monta automáticamente `<AskAiBubble />` mediante el slot `floating:after`. Para componer la UI manualmente, configura `autoInject: false` y añade los componentes que necesites en tu `layout.tsx`:
+El middleware dev/preview no genera automáticamente una función de producción. Exporta uno de los adaptadores desde la función de tu plataforma y configúralo solo en servidor.
 
-```tsx title="src/layout.tsx"
-import { AskAiBubble, AskAiDialog } from '@bdocs/plugin-ask-ai/client'
+```ts title="api/ask-ai.ts"
+import { buildSystemPrompt } from '@bdocs/plugin-ask-ai'
+import { handleWebAskAi } from '@bdocs/plugin-ask-ai/server'
 
-export default function Layout({ children }) {
-  return (
-    <div className="min-h-screen">
-      {children}
-      <AskAiBubble />   {/* Burbuja flotante — esquina inferior derecha */}
-      <AskAiDialog />   {/* Right rail en viewports xl */}
-    </div>
-  )
+export const config = {
+  provider: 'openai',
+  model: 'gpt-4o-mini',
+  systemPrompt: buildSystemPrompt(),
+  maxInputChars: 2_000,
+  contextChars: 6_000,
+  allowedOrigins: ['https://docs.example.com'],
+}
+
+export function POST(request: Request) {
+  return handleWebAskAi(request, config)
 }
 ```
 
-Monta solo lo que necesites (por ejemplo, solo `<AskAiDialog />` como sidebar dedicado), posiciónalos con tu propio CSS, o elimina los no usados.
+CORS es same-origin por defecto. Configura `allowedOrigins` solo cuando otro origen confiable necesite acceso.
 
----
+Los adapters serverless no tienen el filesystem local de Boltdocs. Pasa contexto acotado cuando la política del adapter lo permita:
 
-## Referencia: API de `useAskAi()`
+```tsx
+<AskAiBubble
+  getContext={() => ({
+    page: window.location.pathname,
+    content: document.querySelector('main')?.innerText.slice(0, 6_000) ?? '',
+  })}
+/>
+```
 
-El hook devuelve el estado del chat y handles imperativos. Está memoizado internamente — re-suscribirse es barato.
+Trata el contexto del cliente como input no confiable. Para un endpoint público prefiere same-origin, autenticación en edge, rate limiting y una fuente de contexto propiedad del servidor.
 
-| Campo | Tipo | Descripción |
-| :--- | :--- | :--- |
-| `messages` | `Message[]` | Historial del chat. Cada mensaje tiene `role`, `content`, opcional `status` (`reading` \| `streaming` \| `done` \| `error`) y opcional `contextChip` con los metadatos de la página capturada. |
-| `input` | `string` | Valor actual del input. |
-| `setInput` | `(v: string) => void` | Actualiza el input. |
-| `isLoading` | `boolean` | `true` mientras hay una petición en curso. |
-| `submitQuestion` | `(text: string) => Promise<void>` | Añade un mensaje del usuario e inicia el streaming. Cancela cualquier stream en curso. |
-| `stopStreaming` | `() => void` | Aborta el stream actual. El contenido parcial se preserva, status pasa a `done`. |
-| `clearChat` | `() => void` | Detiene el streaming y resetea `messages` a `[]`. |
-| `isOpen` | `boolean` | Estado de apertura de la burbuja / sidebar. También puedes alternarlo mediante eventos globales. |
-| `setIsOpen` | `(v: boolean) => void` | Sobrescribe el estado de apertura. |
+## Autenticación y secretos
 
-`UseAskAiOptions`:
+Las keys del proveedor las lee únicamente el handler del servidor. No aparecen en `metadata`, props del cliente, eventos SSE ni errores públicos.
 
-| Campo | Tipo | Predeterminado | Descripción |
-| :--- | :--- | :--- | :--- |
-| `endpoint` | `string` | `/api/ask-ai` (resuelto desde `virtual:boltdocs-config`) | Override de la URL SSE. |
-| `currentPage` | `string` | `window.location.pathname` | Override del path que el asistente usa para elegir la página. |
+`secretKey` y `secretKeyEnv` protegen llamadas directas servidor-a-servidor. Envía el valor solo mediante `x-boltdocs-ask-ai-key`; los query secrets se rechazan porque URLs se filtran en logs y diagnósticos. Nunca pongas un secreto reutilizable en código del navegador.
 
----
+Para un asistente público normal, omite `secretKey` y protege el endpoint con los controles de usuario/sesión de tu plataforma. El limiter en memoria es por proceso; usa uno compartido en edge para despliegues multi-región.
 
-## Modelo de Seguridad
+## `useAskAi`
 
-El plugin implementa **defense-in-depth en siete capas**. Ninguna capa es indispensable — la degradación de una (p. ej. un regex que queda obsoleto) queda cubierta por otra.
+| Valor | Descripción |
+| :--- | :--- |
+| `messages` | Mensajes del scope actual y estado terminal. |
+| `input`, `setInput` | Estado controlado del compositor. |
+| `isLoading` | Si existe una petición al proveedor. |
+| `submitQuestion(text)` | Inicia una petición cuando no hay otra activa. |
+| `stopStreaming()` | Aborta la petición y conserva el texto parcial visible. |
+| `clearChat()` | Aborta y limpia los mensajes. |
+| `isOpen`, `setIsOpen` | Visibilidad del asistente. |
 
-| # | Capa | Predeterminado | ¿Se degrada? |
-| :--- | :--- | :--- | :--- |
-| 1 | Caps duros de input | `maxInputChars=2 000` / `maxOutputTokens=600` | Aplicados en el servidor. El modelo no puede saltarlos. |
-| 2 | Denylist determinista (regex) | Seis patrones que cubren `ignore previous`, `DAN`, `developer mode`, `jailbreak`, verbos de extracción del system | Estática. Patrones obsoletos caen a la capa 4. |
-| 3 | Hardening de delimitadores | `<<<DOCS_START>>>` / `<<<DOCS_END>>>` + escape de marcadores literales dentro del contenido | Interpretación del lado del modelo. |
-| 4 | System prompt con scope estricto | Jerarquía priorizada de 7 reglas con rechazo explícito de overrides en 5 categorías (a)–(e) | Interpretación del lado del modelo. |
-| 5 | Rate limit por IP | 30 req/min/IP, bucket de tokens en memoria | Por proceso. Deployments multi-instancia requieren un limiter en el edge. |
-| 6 | Contrato de red de deployment | Lee `x-forwarded-for`, `secretKey` opcional | Suplantable cuando no está detrás de un proxy confiable. |
-| 7 | Cap del contexto reenviado por cliente | `contextChars=6 000` | Promoción de confianza; requiere `secretKey` en deployments abiertos. |
+Las opciones son `endpoint`, `currentPage`, `context`, `getContext` y `classNames`. El hook cancela la petición activa al desmontarse y no registra errores crudos del servidor.
 
-<Callout variant="warning" title="Detrás de un edge hostil, x-forwarded-for es trivialmente suplantable">
-  Si no puedes deployar detrás de un reverse proxy confiable, **`secretKey` es obligatorio** para producción. Consulta [`SECURITY.md`](https://github.com/boltdocs/boltdocs/blob/main/packages/plugin-ask-ai/SECURITY.md) en el repo fuente para el modelo de amenaza completo y el checklist de deployment.
-</Callout>
+## Modelo de seguridad
 
-El system prompt viene empaquetado como `DEFAULT_SYSTEM_PROMPT` en `src/node/index.ts` y es la pieza de código con mayor apalancamiento del paquete — arranca con **RULE 0 (ABSOLUTE — NEVER OVERRIDE)** y termina con una cláusula de confidencialidad que prohíbe explícitamente exponer el propio prompt. Seis tests de regresión en `tests/system-prompt.test.ts` anclan la jerarquía priorizada, las categorías de rechazo, la densidad imperativa, el rechazo literal `Not in docs.` y los tokens marcadores.
+El paquete combina:
 
----
+- límites de pregunta, body, contexto y output;
+- denylist determinista para intentos habituales de override;
+- delimitadores escapados para datos de página y persona;
+- prompt limitado a la página con rechazo fijo `Not in docs.`;
+- autorización antes de procesar el body;
+- rate limit por IP;
+- CORS same-origin por defecto;
+- errores públicos que nunca copian detalles del proveedor.
+
+La detección de prompt injection no es una garantía matemática. Conserva el prompt y scope default, autentica endpoints públicos y usa un rate limit compartido en producción.
+
+Consulta [`SECURITY.md`](https://github.com/boltdocs/boltdocs/blob/main/packages/plugin-ask-ai/SECURITY.md) para el modelo de deployment detallado.
 
 ## Troubleshooting
 
-### El asistente dice `Not in docs.` para una pregunta QUE está en los docs
+### `AI_NOT_CONFIGURED`
 
-- **Mismatch de página:** el asistente solo ve la ruta en la que está el visitante. Si el usuario aterriza en `/docs/guide/installing` y pregunta sobre `/docs/guide/troubleshooting`, la respuesta será `Not in docs.` Llevalo primero a la página relevante, o usa `currentPage` desde `useAskAi` para apuntar al scope correcto.
-- **Truncamiento:** las páginas que excedan `contextChars` (predeterminado 6 000) caracteres se truncan al inicio. Súmalos en tu UI cuando sea relevante.
+Falta la key del provider en el servidor. Revisa el nombre de variable del preset y el entorno del deployment.
 
-### `401 UNAUTHORIZED` en cada request
+### `UNAUTHORIZED`
 
-Estableciste `secretKey` pero no lo enviaste. O bien:
+Un adapter protegido no recibió un header `x-boltdocs-ask-ai-key` válido. Nunca muevas el secreto a la URL o al bundle del navegador.
 
-- Añade `?secret=<key>` a la URL, **o**
-- Envía el header `x-boltdocs-ask-ai-key: <key>`, **o**
-- Quita `secretKey` de las opciones del plugin.
+### `RATE_LIMITED`
 
-### `429 RATE_LIMITED` o header `Retry-After`
+Se alcanzó el límite por proceso. Espera `Retry-After` o añade un limiter compartido en edge.
 
-Excediste `rateLimitPerMinute` (predeterminado 30). Sube el límite, desactívalo con `rateLimitPerMinute: 0`, o pon un limiter compartido delante del endpoint (Upstash, Vercel, Cloudflare Rate Limiting Rules) para deployments multi-réplica.
+### El asistente responde `Not in docs.`
 
-### La burbuja no aparece
+El contexto no contiene suficiente información, la página excede `contextChars` o el adapter serverless no recibió contexto. Revisa el body y `allowClientContext`.
 
-- `autoInject: true` (predeterminado) monta `<AskAiBubble />` globalmente mediante el slot `floating:after`. Si escribiste componentes manualmente en tu layout, usa `autoInject: false` para evitar duplicados.
-- Comprueba que tu layout personalizado extiende el shell de Boltdocs (`<BoltdocsShell />`) o de algún modo incluye el registro global de componentes de Boltdocs.
+### El streaming se detiene
 
-### El streaming se detiene a mitad de frase
-
-- Pasó el timeout interno de 60 segundos. Subirlo no es una opción — forkea el plugin si necesitas más tiempo. Para respuestas largas, aumenta `maxOutputTokens` en su lugar.
-- El usuario cerró la pestaña o hizo clic en Detener. El `AbortController` se propaga hasta el SDK, por lo que cerrar la request detiene el gasto upstream de tokens.
-
-### No se usa el modelo personalizado
-
-¿Lo añadiste a `customModels`? `model` solo está limitado a la allowlist built-in. Ejemplos:
-
-```ts
-askAiPlugin({
-  model: 'gpt-4o',
-  customModels: ['gpt-4o'],
-})
-```
-
-Si tu proveedor habla el shim de OpenAI pero el nombre del modelo es difuso (p. ej. `openai/gpt-4o` en OpenRouter), incluye el slug completo en `customModels`.
-
-### Errores de cuota de OpenAI
-
-El SDK `openai` lanza un `APIError` tipado. El middleware envía el mensaje de error como evento SSE `error` y termina con `[DONE]`. Revisa tu dashboard por motivos de hard limit, y luego verifica `maxOutputTokens` y `maxInputChars` si estás golpeando límites de longitud.
-
----
-
-## Historial de Versiones
-
-- **0.3.0** — Eliminado el auto-montaje vía slots. Las componentes `<AskAiBubble />` y `<AskAiDialog />` ahora se montan manualmente desde `layout.tsx`.
-- **0.2.0** — Rewrite con OpenAI SDK. Streamdown en el cliente. Alcance de página mediante delimitadores `<<<DOCS_START>>>` / `<<<DOCS_END>>>` + escape de marcadores literales. System prompt con scope estricto, jerarquía priorizada de 7 reglas. Bucket de tokens por IP, `secretKey` opcional, escape hatch `customModels[]`. Elimina Ollama / modo dev.
-- **0.1.x** — Prototipo previo impulsado por Ollama. Consulta el historial de git.
+El visitante puede detenerlo, la request puede desconectarse o el provider puede alcanzar el timeout interno de 60 segundos. El texto parcial permanece visible tras cancelar.

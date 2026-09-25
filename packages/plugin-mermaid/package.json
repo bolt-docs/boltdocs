@@ -41,7 +41,7 @@
   "peerDependencies": {
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
-    "vite": "^7.0.0 || ^8.0.0"
+    "vite": "^8.1.0"
   },
   "devDependencies": {
     "@shikijs/langs": "^4.0.2",

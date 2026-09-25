@@ -4,6 +4,8 @@ import fs from 'node:fs'
 import os from 'node:os'
 import { generateRoutes, invalidateRouteCache } from '../../src/node/routes'
 import { sortRoutes } from '../../src/node/routes/sorter'
+import type { BoltdocsConfig } from '../../src/shared/types'
+import type { RouteMeta } from '../../src/node/routes/types'
 
 let tempDir: string
 let docsDir: string
@@ -28,7 +30,7 @@ function writeFile(relative: string, content: string): void {
 }
 
 async function generate(config: Record<string, unknown> = {}) {
-  return generateRoutes(docsDir, config as any, '/docs', true)
+  return generateRoutes(docsDir, config as BoltdocsConfig, '/docs', true)
 }
 
 describe('user-facing route metadata', () => {
@@ -157,6 +159,26 @@ describe('user-facing route metadata', () => {
     })
   })
 
+  it('keeps pages-external content in docs unless file routing is enabled', async () => {
+    writeFile('guide.md', '---\ntitle: Guide\n---\n# Guide')
+    writeFile('pages-external/about.mdx', '# About')
+
+    const asDocs = await generate()
+    expect(
+      asDocs.some((route) => route.filePath === 'pages-external/about.mdx'),
+    ).toBe(true)
+
+    const asExternalFiles = await generate({
+      experimental: { fileRouting: true },
+    })
+    expect(
+      asExternalFiles.some(
+        (route) => route.filePath === 'pages-external/about.mdx',
+      ),
+    ).toBe(false)
+    expect(asExternalFiles.some((route) => route.title === 'Guide')).toBe(true)
+  })
+
   it('generates i18n fallback routes for missing translations', async () => {
     writeFile('guide.md', '---\ntitle: Guide\n---\n# Guide')
     const routes = await generate({
@@ -167,6 +189,24 @@ describe('user-facing route metadata', () => {
     const es = routes.find((r) => r.path === '/docs/es/guide')
     expect(en).toMatchObject({ title: 'Guide' })
     expect(es).toMatchObject({ title: 'Guide', locale: 'es' })
+  })
+
+  it('supports array locale configuration when generating fallback routes', async () => {
+    writeFile('guide.md', '---\ntitle: Guide\n---\n# Guide')
+    const routes = await generate({
+      i18n: { defaultLocale: 'en', locales: ['en', 'es'] },
+    })
+
+    expect(routes.find((route) => route.path === '/docs/guide')).toMatchObject({
+      locale: undefined,
+    })
+    expect(
+      routes.find((route) => route.path === '/docs/es/guide'),
+    ).toMatchObject({
+      title: 'Guide',
+      locale: 'es',
+    })
+    expect(routes.some((route) => route.path.includes('/0/'))).toBe(false)
   })
 
   it('does not create fallback routes when a translation already exists', async () => {
@@ -183,12 +223,11 @@ describe('user-facing route metadata', () => {
 })
 
 describe('sortRoutes', () => {
-  const route = (overrides: Record<string, unknown>) =>
-    ({
-      path: '/docs/x',
-      title: 'X',
-      ...overrides,
-    }) as any
+  const route = (overrides: Partial<RouteMeta>): RouteMeta => ({
+    path: '/docs/x',
+    title: 'X',
+    ...overrides,
+  })
 
   it('sorts by effective position, with ungrouped items winning position ties', () => {
     const routes = sortRoutes([

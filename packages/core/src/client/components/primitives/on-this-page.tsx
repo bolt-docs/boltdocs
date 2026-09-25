@@ -165,9 +165,16 @@ export function AnchorProvider({
   return <ItemsContext.Provider value={items}>{children}</ItemsContext.Provider>
 }
 
-export function OnThisPage({ children, className }: ComponentBase) {
+export function OnThisPage({
+  children,
+  className,
+  label = 'On this page',
+}: ComponentBase & {
+  /** Accessible name for the TOC nav landmark. */
+  label?: string
+}) {
   return (
-    <nav data-otp-root className={className}>
+    <nav data-otp-root aria-label={label} className={className}>
       {children}
     </nav>
   )
@@ -313,7 +320,12 @@ function OnThisPageIndicator({ style, className }: OnThisPageIndicatorProps) {
   useEffect(() => {
     if (items.length === 0) return
 
-    const parent = containerRef.current?.parentElement
+    // Measure against the indicator's actual positioning context: as an
+    // absolutely-positioned element its coordinates resolve against its
+    // offsetParent, so both rects must share that reference frame. The
+    // indicator must NOT live inside the <ul>: only <li> children are
+    // allowed there.
+    const parent = containerRef.current?.offsetParent as HTMLElement | null
     if (!parent) return
 
     const activeLinks = parent.querySelectorAll('a[data-active="true"]')
@@ -347,6 +359,7 @@ function OnThisPageIndicator({ style, className }: OnThisPageIndicatorProps) {
     <div
       ref={containerRef}
       data-otp-indicator
+      aria-hidden="true"
       className={cn('absolute', className)}
       style={{
         transition:
@@ -381,20 +394,24 @@ export function OnThisPageItems({
   if (headings.length === 0) return null
 
   return (
-    <OnThisPageList className={className}>
+    <>
+      {/* Positioned relative to the scroll-content wrapper, outside the <ul>:
+          a list may only contain <li> children (axe `list` violation). */}
       <OnThisPageIndicator className={indicatorClassName} />
-      {headings.map((h) => (
-        <OnThisPageItem key={h.id} level={h.level} className={itemClassName}>
-          <OnThisPageLink
-            href={`#${h.id}`}
-            active={activeIds.includes(h.id)}
-            className={linkClassName}
-          >
-            {h.text}
-          </OnThisPageLink>
-        </OnThisPageItem>
-      ))}
-    </OnThisPageList>
+      <OnThisPageList className={className}>
+        {headings.map((h) => (
+          <OnThisPageItem key={h.id} level={h.level} className={itemClassName}>
+            <OnThisPageLink
+              href={`#${h.id}`}
+              active={activeIds.includes(h.id)}
+              className={linkClassName}
+            >
+              {h.text}
+            </OnThisPageLink>
+          </OnThisPageItem>
+        ))}
+      </OnThisPageList>
+    </>
   )
 }
 

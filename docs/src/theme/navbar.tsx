@@ -27,7 +27,7 @@ export function Navbar() {
   return (
     <NavbarPrimitive.Root className={cn('bg-main', hasTabs && 'border-b-0')}>
       <NavbarPrimitive.Content
-        className={cn('max-w-8xl max-sm:px-10 px-6 md:px-12', {
+        className={cn('max-w-8xl max-sm:px-5 px-6 md:px-12', {
           'max-w-full': isDocs && hasTabs,
         })}
       >
@@ -41,9 +41,9 @@ export function Navbar() {
               aria-label={isSidebarOpen ? 'Close sidebar' : 'Open sidebar'}
             >
               {isSidebarOpen ? (
-                <X className="w-5 h-5 text-body" />
+                <X className="size-5 text-body" />
               ) : (
-                <MenuIcon className="size-24 text-body" />
+                <MenuIcon className="size-5 text-body" />
               )}
             </Button>
           )}
@@ -71,7 +71,10 @@ export function Navbar() {
           <div className="lg:hidden flex items-center gap-1">
             <SearchDialog routes={routes || []} />
           </div>
-          <NavbarPrimitive.Links className="hidden lg:flex items-center gap-2">
+          <NavbarPrimitive.Links
+            label="Main"
+            className="hidden lg:flex items-center gap-2"
+          >
             {links.map((link) => (
               <NavbarLinkItem key={link.href} link={link} />
             ))}
@@ -129,7 +132,7 @@ export function Navbar() {
       </NavbarPrimitive.MobileMenu>
 
       {isDocs && hasTabs && themeConfig?.tabs && (
-        <div className="w-full px-6 md:px-5 bg-main">
+        <div className="w-full px-6 max-md:px-5 bg-main">
           <DocsTabs
             tabs={themeConfig.tabs as never}
             routes={routes || []}

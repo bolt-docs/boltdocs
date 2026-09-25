@@ -110,7 +110,18 @@ export function SidebarHeader({ children, className }: ComponentBase) {
  * The scroll container doubles as the semantic `<nav>` landmark. State and
  * scroll-position handling live here; all visuals belong to the theme.
  */
-export function SidebarContent({ children, className }: ComponentBase) {
+export function SidebarContent({
+  children,
+  className,
+  label = 'Docs navigation',
+}: ComponentBase & {
+  /**
+   * Accessible name for the nav landmark. Pages render multiple navs
+   * (navbar links, sidebar); unlabeled landmarks fail axe's
+   * `landmark-unique` rule.
+   */
+  label?: string
+}) {
   const scrollRef = useRef<HTMLElement>(null)
 
   // Restore scroll position
@@ -132,7 +143,12 @@ export function SidebarContent({ children, className }: ComponentBase) {
   }, [])
 
   return (
-    <nav ref={scrollRef} data-sidebar-content className={className}>
+    <nav
+      ref={scrollRef}
+      data-sidebar-content
+      aria-label={label}
+      className={className}
+    >
       {children}
     </nav>
   )

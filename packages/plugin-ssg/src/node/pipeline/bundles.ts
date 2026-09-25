@@ -1,5 +1,5 @@
 import { createHash } from 'node:crypto'
-import { isAbsolute, join, relative, resolve, sep } from 'node:path'
+import { dirname, isAbsolute, join, relative, resolve, sep } from 'node:path'
 import fs from 'fs-extra'
 import type { InlineConfig, LogOptions, PluginOption } from 'vite'
 import { build as viteBuild, mergeConfig, version as viteVersion } from 'vite'
@@ -121,26 +121,25 @@ export function listClientBundleFiles(
   return files.sort()
 }
 
-function filterPluginsForSsr(plugins: any[]): any[] {
-  return plugins
-    .map((plugin) => {
-      if (Array.isArray(plugin)) return filterPluginsForSsr(plugin)
-      if (plugin && typeof plugin === 'object' && 'name' in plugin) {
-        const name = plugin.name
-        if (
-          name === 'vite:react-babel' ||
-          name === 'vite:react-refresh' ||
-          name === 'vite:react-jsx' ||
-          (typeof name === 'string' && name.includes('tailwind')) ||
-          name === 'vite-plugin-image-optimizer' ||
-          name === 'vite-plugin-boltdocs-dev-server'
-        ) {
-          return null
-        }
+function filterPluginsForSsr(plugins: PluginOption[]): PluginOption[] {
+  return plugins.flatMap((plugin) => {
+    if (Array.isArray(plugin)) return filterPluginsForSsr(plugin)
+    if (!plugin) return []
+    if (typeof plugin === 'object' && 'name' in plugin) {
+      const name = plugin.name
+      if (
+        name === 'vite:react-babel' ||
+        name === 'vite:react-refresh' ||
+        name === 'vite:react-jsx' ||
+        name.includes('tailwind') ||
+        name === 'vite-plugin-image-optimizer' ||
+        name === 'vite-plugin-boltdocs-dev-server'
+      ) {
+        return []
       }
-      return plugin
-    })
-    .filter(Boolean)
+    }
+    return [plugin]
+  })
 }
 
 async function listPublicAssetFiles(publicDir: string): Promise<string[]> {
@@ -235,11 +234,16 @@ export async function syncPublicAssets(
     publicDir && fs.existsSync(publicDir)
       ? await listPublicAssetFiles(publicDir)
       : []
-  const sourceFiles: Record<string, string> = {}
-  for (const entry of sourceEntries) {
-    const sourceHash = await hashFile(join(publicDir as string, entry))
-    if (sourceHash) sourceFiles[entry] = sourceHash
-  }
+  const sourceFiles: Record<string, string> = Object.fromEntries(
+    (
+      await Promise.all(
+        sourceEntries.map(async (entry) => {
+          const sourceHash = await hashFile(join(publicDir as string, entry))
+          return sourceHash ? ([entry, sourceHash] as const) : null
+        }),
+      )
+    ).filter((entry): entry is readonly [string, string] => entry !== null),
+  )
 
   // Only remove a tracked public file when the destination still matches the
   // previously copied bytes. This prevents a later Vite/plugin output from
@@ -255,7 +259,28 @@ export async function syncPublicAssets(
 
   if (publicDir && fs.existsSync(publicDir)) {
     await fs.ensureDir(outDir)
-    await fs.copy(publicDir, outDir, { overwrite: true, errorOnExist: false })
+    await Promise.all(
+      Object.entries(sourceFiles).map(async ([entry, sourceHash]) => {
+        const destination = resolveTrackedAsset(outDir, entry)
+        if (!destination) return
+
+        // The marker is the fast path, but verify the destination before
+        // skipping a copy: Vite/plugin output can have replaced a public
+        // filename since the previous sync.
+        if (
+          previousFiles[entry] === sourceHash &&
+          (await hashFile(destination)) === sourceHash
+        ) {
+          return
+        }
+
+        await fs.ensureDir(dirname(destination))
+        await fs.copy(join(publicDir, entry), destination, {
+          overwrite: true,
+          errorOnExist: false,
+        })
+      }),
+    )
   }
   await fs.ensureDir(resolve(outDir, '..'))
   await fs.writeJson(markerPath, { version: 1, files: sourceFiles })
@@ -396,7 +421,7 @@ function createServerBuildConfig(
       external: [...SSR_EXTERNAL_PACKAGE_NAMES],
     },
     plugins: [
-      ...filterPluginsForSsr((input.viteConfig.plugins as any[]) || []),
+      ...filterPluginsForSsr(input.viteConfig.plugins ?? []),
       createSsrCssSkipPlugin(),
     ],
   })
@@ -408,8 +433,8 @@ export async function executeClientBundle(
 ): Promise<ClientBundleOutput> {
   let resolvedOutDir = input.outDir
   let resolvedClientCacheDir = input.clientCacheDir
-  let resolvedClientHash = input.initialClientHash ?? computeClientHash()
-  let pageContentFallbackHash = resolvedClientHash
+  const resolvedClientHash = input.initialClientHash ?? computeClientHash()
+  const pageContentFallbackHash = resolvedClientHash
   let clientFiles: readonly string[] = []
   const start = performance.now()
 
@@ -445,8 +470,10 @@ export async function executeClientBundle(
       details: 'Vite production build',
     })
 
-    resolvedClientHash = computeClientHash()
-    pageContentFallbackHash = resolvedClientHash
+    // The v4 hash is derived from source bytes and is already complete
+    // before Vite starts. Re-walking the framework/docs tree after the
+    // build only measures the same bytes again and delays publishing the
+    // output, so keep the early identity for the produced cache.
     resolvedClientCacheDir = join(
       input.finalCacheDir,
       'client-cache',

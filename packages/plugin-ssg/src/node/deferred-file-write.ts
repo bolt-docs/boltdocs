@@ -36,7 +36,29 @@ export function createDeferredFileWriteQueue({
   let pending: DeferredFileWrite[] = []
   let pendingBytes = 0
   let flushChain = Promise.resolve()
-  let totalWriteTimeMs = 0
+  let writeIntervals: Array<readonly [number, number]> = []
+
+  const recordWriteInterval = (start: number, end: number): void => {
+    if (end <= start) return
+    const next: Array<readonly [number, number]> = []
+    let inserted = false
+    for (const interval of writeIntervals) {
+      if (interval[1] < start) {
+        next.push(interval)
+      } else if (end < interval[0]) {
+        if (!inserted) {
+          next.push([start, end])
+          inserted = true
+        }
+        next.push(interval)
+      } else {
+        start = Math.min(start, interval[0])
+        end = Math.max(end, interval[1])
+      }
+    }
+    if (!inserted) next.push([start, end])
+    writeIntervals = next
+  }
 
   const flush = (): Promise<void> => {
     if (pending.length === 0) return flushChain
@@ -50,7 +72,7 @@ export function createDeferredFileWriteQueue({
       await Promise.all(
         batch.map(({ filePath, content }) => writeFile(filePath, content)),
       )
-      totalWriteTimeMs += performance.now() - start
+      recordWriteInterval(start, performance.now())
     })
 
     return flushChain
@@ -68,7 +90,7 @@ export function createDeferredFileWriteQueue({
         flushChain = previous.then(async () => {
           const start = performance.now()
           await writeFile(filePath, content)
-          totalWriteTimeMs += performance.now() - start
+          recordWriteInterval(start, performance.now())
         })
         return flushChain
       }
@@ -86,7 +108,10 @@ export function createDeferredFileWriteQueue({
       return pending.length
     },
     writeTimeMs() {
-      return totalWriteTimeMs
+      return writeIntervals.reduce(
+        (total, [start, end]) => total + (end - start),
+        0,
+      )
     },
   }
 }

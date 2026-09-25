@@ -1,14 +1,19 @@
 import { memo } from 'react'
+import { cn } from '../cn'
 import type { Message } from '../use-ask-ai'
 import { MarkdownRenderer } from '../render-markdown'
 import type { ChatVariant } from './chat-header'
 import { FileIcon } from './icons'
 import { TypingIndicator } from './typing-indicator'
 
-interface ChatMessageProps {
+export interface ChatMessageProps {
   message: Message
   variant?: ChatVariant
   devMode: boolean
+  className?: string
+  userClassName?: string
+  assistantClassName?: string
+  markdownClassName?: string
 }
 
 function UsageChip({
@@ -82,21 +87,39 @@ function ChatMessageImpl({
   message: msg,
   variant = 'bubble',
   devMode,
+  className,
+  userClassName,
+  assistantClassName,
+  markdownClassName,
 }: ChatMessageProps) {
   const compact = variant === 'dialog'
   const isUser = msg.role === 'user'
 
-  const containerClass = `flex flex-col ${
-    compact ? 'max-w-full' : 'max-w-[85%]'
-  } ${isUser ? (compact ? 'items-end' : 'items-end ml-auto') : 'items-start'}`
+  const containerClass = cn(
+    'flex flex-col',
+    compact ? 'max-w-full' : 'max-w-[85%]',
+    isUser ? 'ml-auto items-end' : 'items-start',
+    className,
+  )
 
-  const bubbleClass = `px-3 py-2 rounded-xl ${
+  const bubbleClass = cn(
+    'rounded-2xl px-3.5 py-2.5 text-left',
     isUser
-      ? `bg-primary-500 text-white rounded-br-none${compact ? ' max-w-[90%]' : ''}`
+      ? cn(
+          'rounded-br-md bg-primary-500 text-white shadow-sm',
+          compact && 'max-w-[90%]',
+          userClassName,
+        )
       : msg.status === 'error'
-        ? 'bg-danger-500/12 border border-danger-500/30 text-danger-500 rounded-bl-none'
-        : 'bg-surface border border-subtle text-body rounded-bl-none'
-  }`
+        ? cn(
+            'rounded-bl-md border border-danger-500/30 bg-danger-500/10 text-danger-500',
+            assistantClassName,
+          )
+        : cn(
+            'rounded-bl-md border border-subtle bg-surface text-body shadow-sm',
+            assistantClassName,
+          ),
+  )
 
   return (
     <div className={containerClass}>
@@ -113,19 +136,42 @@ function ChatMessageImpl({
           >
             {msg.content}
           </p>
-        ) : msg.status === 'error' ? (
-          <p className={compact ? 'text-xs' : 'text-sm'}>
-            <strong>Error:</strong>{' '}
-            {msg.errorMessage || 'Something went wrong.'}
-          </p>
         ) : msg.status === 'cancelled' ? (
-          <p className={compact ? 'text-xs text-muted' : 'text-sm text-muted'}>
-            Generation stopped.
-          </p>
+          msg.content ? (
+            <div>
+              <p className="whitespace-pre-wrap text-sm text-body">
+                {msg.content}
+              </p>
+              <p className="mt-2 text-[11px] text-muted">Generation stopped.</p>
+            </div>
+          ) : (
+            <p className={cn('text-muted', compact ? 'text-xs' : 'text-sm')}>
+              Generation stopped.
+            </p>
+          )
+        ) : msg.status === 'error' ? (
+          msg.content ? (
+            <div>
+              <p className="whitespace-pre-wrap text-sm text-body">
+                {msg.content}
+              </p>
+              <p className="mt-2 text-xs text-danger-500">
+                {msg.errorMessage || 'Something went wrong.'}
+              </p>
+            </div>
+          ) : (
+            <p className={compact ? 'text-xs' : 'text-sm'}>
+              <strong>Error:</strong>{' '}
+              {msg.errorMessage || 'Something went wrong.'}
+            </p>
+          )
         ) : (
           <div className="ask-ai-streamdown">
             {msg.content ? (
-              <MarkdownRenderer content={msg.content} />
+              <MarkdownRenderer
+                content={msg.content}
+                className={cn('text-sm leading-relaxed', markdownClassName)}
+              />
             ) : msg.status === 'reading' ? (
               <TypingIndicator label="Reading page…" />
             ) : (

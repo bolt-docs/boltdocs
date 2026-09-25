@@ -2,7 +2,10 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest'
 import fs from 'fs-extra'
 import { join } from 'node:path'
 import { tmpdir } from 'node:os'
-import { computeClientCodeHash } from '../src/node/client-hash'
+import {
+  computeClientCodeHash,
+  computeSharedClientHash,
+} from '../src/node/client-hash'
 
 function createFixtureDir(prefix: string): string {
   const dir = join(tmpdir(), `boltdocs-client-hash-${prefix}-${Date.now()}`)
@@ -145,6 +148,16 @@ describe('computeClientCodeHash (PR-04: O(1) manifest hash)', () => {
     // into the client bundle via route chunks and the search index.
     fs.writeFileSync(join(root, 'docs', 'index.md'), '# New content')
     expect(computeClientCodeHash(root, 'docs', cacheDir)).not.toBe(hash1)
+  })
+
+  it('keeps the shared client identity stable across page text edits', () => {
+    const sharedBefore = computeSharedClientHash(root)
+    fs.writeFileSync(join(root, 'docs', 'index.md'), '# Page text changed')
+    expect(computeSharedClientHash(root)).toBe(sharedBefore)
+
+    fs.mkdirpSync(join(root, 'src'))
+    fs.writeFileSync(join(root, 'src', 'theme.ts'), 'export const theme = true')
+    expect(computeSharedClientHash(root)).not.toBe(sharedBefore)
   })
 
   it('ignores lockfile mtime churn (lockfile-only refresh scenario)', () => {

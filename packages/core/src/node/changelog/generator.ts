@@ -40,7 +40,7 @@ export interface GenerateOptions {
   title?: string
   inferTab?: boolean
   limit?: number
-  type?: 'major' | 'minor'
+  type?: 'major' | 'minor' | 'patch'
   // When type is undefined, generates major and minor versions only
 }
 

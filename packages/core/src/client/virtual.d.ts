@@ -56,6 +56,17 @@ declare module 'virtual:boltdocs-icons' {
   export default icons
 }
 
+declare module 'virtual:boltdocs-client-registry' {
+  const slots: Record<
+    string,
+    Array<{
+      id: string
+      load: () => Promise<{ default: React.ComponentType }>
+    }>
+  >
+  export default slots
+}
+
 declare module 'virtual:boltdocs-entry' {
   const code: string
   export default code

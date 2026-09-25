@@ -57,7 +57,9 @@ export function SearchDialog({ routes }: { routes: ComponentRoute[] }) {
       >
         <div className="flex items-center gap-2">
           <Search size={16} />
-          <span className="hidden sm:inline-block">Search docs...</span>
+          <span className="text-paragraph hidden sm:inline-block">
+            Search docs...
+          </span>
         </div>
         <Navbar.SearchTrigger.Kbd className="[&_kbd]:bg-surface [&_kbd]:rounded-sm [&_kbd]:px-2 [&_kbd]:h-5 [&_kbd]:w-auto [&_kbd]:text-[0.625rem]" />
       </Navbar.SearchTrigger.Desktop>

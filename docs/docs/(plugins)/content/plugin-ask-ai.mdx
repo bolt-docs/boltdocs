@@ -1,458 +1,252 @@
 ---
-title: "@bdocs/plugin-ask-ia"
+title: "@bdocs/plugin-ask-ai"
 sidebarPosition: 4
-description: The @bdocs/plugin-ask-ai plugin adds a context-aware AI assistant to your Boltdocs documentation. Powered by the official OpenAI SDK, page-scoped, streamed SSE, with a hard-scoped system prompt that only answers using the page the user is viewing.
-badge: "0.3.0"
-draft: true
+description: Add a secure, page-scoped, streaming AI assistant to Boltdocs with the OpenAI SDK and customizable chat UI.
+badge: "0.4.0"
 ---
 
-*The `@bdocs/plugin-ask-ai` plugin adds a floating chat bubble and an inline sidebar companion to your Boltdocs site. The assistant answers **only** using the documentation page the visitor is currently reading — never general knowledge — and refuses questions that aren't grounded in the docs.*
+`@bdocs/plugin-ask-ai` adds a page-scoped documentation assistant. It can answer only from the documentation context selected for the request and returns `Not in docs.` when the answer is not grounded in that context.
 
-<Callout variant="info" title="Page-scoped answers, not general Q&A">
-  This is a documentation Q&A assistant, not a chatbot. The assistant will reply with `Not in docs.` if the question can't be answered from the current page. Pair it with `secretKey` and a reverse proxy for production deployments — see [Security Model](#security-model) below.
+<Callout variant="info" title="Page-scoped answers">
+  This is documentation Q&A, not a general-purpose chatbot. Provider credentials and private prompts stay on the server; only explicitly public UI metadata is serialized to the browser.
 </Callout>
 
-
-## Concepts & Architecture
-
-The plugin is a **three-tier pipeline** that runs entirely inside Boltdocs' dev/preview server and a thin middleware that fronts any deployed host:
+## How it works
 
 ```mermaid
 flowchart LR
-  A[Visitor asks a question] --> B[Client hook: useAskAi]
-  B -->|POST /api/ask-ai| C[Server middleware or serverless handler]
-  C --> D[Resolve current page]
-  D -->|page content| E[Wrap in <<<DOCS_START>>> / <<<DOCS_END>>>]
-  E --> F[OpenAI SDK chat.completions.stream]
-  F -->|SSE events| B
-  B --> G[<Streamdown> markdown render]
+  A[Question] --> B[AskAiBubble]
+  B --> C[POST endpoint]
+  C --> D[Validate input and authorization]
+  D --> E[Resolve bounded page context]
+  E --> F[OpenAI-compatible provider]
+  F -->|SSE text| B
 ```
 
-### 1. Client (`@bdocs/plugin-ask-ai/client`)
+- The Vite middleware is mounted during `dev` and `preview`.
+- The exported Web, Vercel, Netlify, and AWS adapters are available for serverless production deployments.
+- Questions are checked against input limits and the injection denylist in every deployment path.
+- Request bodies, context, and completion output are bounded before provider access.
+- Upstream errors are reduced to safe public error codes; provider messages and credentials are not returned to the browser.
 
-- **`useAskAi()`** — React hook that owns the chat state, the streaming SSE reader, and the cooperative abort controller. Returns `messages`, `input`, `isLoading`, `submitQuestion`, `stopStreaming`, `clearChat`, `isOpen`, `setIsOpen`.
-- **`<AskAiBubble />`** — auto-injected floating button + popover dialog (bottom-right on every page).
-- **`<AskAiDialog />`** — optional sidebar panel for manual composition on `xl:` viewports (≥ 1280 px).
-- **`<MarkdownRenderer />`** — thin `Streamdown` wrapper that flips `parseIncompleteMarkdown` on by default for smooth streaming display without flicker.
+## Install
 
-The hook also listens for global events so other parts of your site can drive it:
-
-```ts
-window.dispatchEvent(new CustomEvent('boltdocs:ask-ai:toggle'))
-window.dispatchEvent(new CustomEvent('boltdocs:ask-ai:open'))
-window.dispatchEvent(new CustomEvent('boltdocs:ask-ai:close'))
+```bash
+pnpm add @bdocs/plugin-ask-ai
 ```
-
-### 2. Server middleware (`POST /api/ask-ai`)
-
-A `vite`-aware Vite middleware mounted on `dev` and `preview`. It:
-
-1. Resolves rendered page content server-side in Vite/preview. Serverless adapters accept pre-extracted `{ page, content }` only with `allowClientContext: true` or an authorized `secretKey`.
-2. Validates the question against the configured caps and denylist.
-3. Wraps the page content in `<<<DOCS_START>>>` / `<<<DOCS_END>>>` markers — and **escapes literal occurrences of those tokens inside the page** so an MDX author cannot break the boundary.
-4. Streams `chat.completions.create({ stream: true })` events back as Server-Sent Events (`text/event-stream`).
-
-### 3. LLM layer
-
-The official `openai` SDK (`^4.77.0`). Every other piece of the plugin builds around four guarantees:
-
-- Any provider that speaks `/v1/chat/completions` works through `baseURL`.
-- `AbortController` is wired all the way down, so closing the tab mid-stream immediately halts the upstream request (no orphan token usage).
-- A 60-second internal timeout aborts the stream even if the client never disconnects.
-- Output is hard-cap-limited by `max_tokens` at the SDK level — runaway costs are bounded even if all other guards degrade.
-
----
-
-## Configuration
-
-### Plugin Options
-
-All options are optional. Pass them to the `askAiPlugin()` initializer in `boltdocs.config.ts`:
-
-```ts
-askAiPlugin({
-  model: 'gpt-4o-mini',
-  endpoint: '/api/ask-ai',
-  autoInject: true,
-  baseURL: undefined,
-  systemPrompt: undefined,
-  persona: undefined,
-  maxInputChars: 2_000,
-  maxOutputTokens: 600,
-  contextChars: 6_000,
-  rateLimitPerMinute: 30,
-  secretKey: undefined,
-  customModels: [],
-  temperature: 0.3,
-  topP: 1,
-  title: 'Ask Assistant',
-  placeholder: 'Ask about this page…',
-})
-```
-
-| Property | Type | Default | Description |
-| :--- | :--- | :--- | :--- |
-| **`model`** | `'gpt-4o-mini' \| 'gpt-4.1-mini' \| 'gpt-4.1-nano'` | `'gpt-4o-mini'` | Built-in model. If you need another model, list it in `customModels` and add it to `modelAllowlist`. |
-| **`endpoint`** | `string` | `'/api/ask-ai'` | Vite middleware path. POST-only. Anything else 404s by design. |
-| **`baseURL`** | `string` (URL-validated) | `undefined` | OpenAI-compatible API base URL. Falls back to `OPENAI_BASE_URL` env var → OpenAI. |
-| **`systemPrompt`** | `string` | `DEFAULT_SYSTEM_PROMPT` | Override the safety prompt. **Override only if you understand the security model** — see [Layer 4](#security-model). Resetting to the default is `systemPrompt: undefined`. |
-| **`maxInputChars`** | `number` (1–20 000) | `2_000` | Hard cap on the user question before it reaches OpenAI. |
-| **`maxOutputTokens`** | `number` (1–4 000) | `600` | Hard cap on completion tokens, enforced by the SDK. |
-| **`contextChars`** | `number` (1–40 000) | `6_000` | Max chars of page content forwarded. Long pages truncate silently. |
-| **`rateLimitPerMinute`** | `number` (≥ 0) | `30` | Per-IP requests per minute. Set `0` to disable (not recommended on open deployments). |
-| **`secretKey`** | `string` (≥ 8 chars) | `undefined` | Required shared secret. Callers must include `?secret=<key>` or header `x-boltdocs-ask-ai-key: <key>`. Any other origin gets `UNAUTHORIZED`. |
-| **`customModels`** | `string[]` (≤ 20 entries, ≤ 120 chars each) | `[]` | Power-user escape hatch. Adds model names to the runtime allowlist without bumping the schema. |
-| **`persona`** | `string` (≤ 4 000 chars) | `undefined` | Custom identity/tone for the assistant. Prepended to the default prompt inside `<<<PERSONA>>>` markers — it shapes *how* the assistant talks, but cannot weaken the scoping/refusal rules. Ignored when `systemPrompt` (or `systemPrompts[provider]`) fully overrides. |
-| **`temperature`** | `number` (0–2) | `0.3` | Sampling temperature. `0` = deterministic (best for doc Q&A). |
-| **`topP`** | `number` (0–1) | `1` | Nucleus-sampling cutoff. `1` = no restriction. |
-| **`title`** | `string` (≤ 80) | `'Ask Assistant'` | Header title of the chat widget (bubble and dialog). |
-| **`placeholder`** | `string` (≤ 120) | `'Ask about this page…'` | Composer placeholder. |
-| **`emptyTitle`** | `string` (≤ 80) | `'How can I help you today?'` | Greeting shown before the first message (bubble only). |
-| **`emptyDescription`** | `string` (≤ 240) | `'Ask anything about the current documentation page…'` | Sub-text under the greeting. |
-| **`buttonTooltip`** | `string` (≤ 80) | `'Ask AI assistant'` | Tooltip/aria-label of the floating launcher. |
-| **`composerHint`** | `string` (≤ 120) | `'Enter to send · Shift+Enter for a new line'` | Hint under the input. |
-
-### Environment Variables
-
-| Variable | Required | Default | Description |
-| :--- | :--- | :--- | :--- |
-| **`OPENAI_API_KEY`** | yes | — | API key for the upstream provider. The middleware refuses to stream if unset. |
-| **`OPENAI_BASE_URL`** | no | OpenAI | Override for the API base URL. Equivalent to `baseURL` in plugin options (options take precedence). |
-
-`OPENAI_API_KEY` is read at request time, so you can rotate keys without restarting the dev server. For production secrets, mount through your platform's env-var manager (Vercel project env, AWS Secrets Manager, etc.) — never commit.
-
----
-
-## Supported Models
-
-### Built-in allowlist
-
-Models bundled with the schema, picked for the price/quality sweet spot on doc Q&A:
-
-| Model | Tier | Use case |
-| :--- | :--- | :--- |
-| `gpt-4o-mini` (default) | cheap | Most doc Q&A. Stable, well-priced. |
-| `gpt-4.1-mini` | low | Better reasoning than `gpt-4o-mini` at similar latency. |
-| `gpt-4.1-nano` | very cheap | High-volume deployments. Accept lower accuracy. |
-
-```ts
-askAiPlugin({ model: 'gpt-4.1-mini' })
-```
-
-### Escape hatch — `customModels`
-
-Any model name that your account or provider hosts can be added without bumping the schema:
-
-```ts
-askAiPlugin({
-  model: 'gpt-4o',
-  customModels: ['gpt-4o', 'gpt-4.1', 'o1-mini', 'o4-mini', 'gpt-5'],
-})
-```
-
-The runtime allowlist is `ALLOWED_MODELS ∪ customModels`. Any value not in the union silently falls back to `gpt-4o-mini`.
-
----
-
-## Supported Providers
-
-The plugin uses the official `openai` Node SDK (v4+). Any provider that exposes an OpenAI-compatible `/v1/chat/completions` endpoint works. Configure with `baseURL` in plugin options or `OPENAI_BASE_URL` in env.
-
-| Provider | Example `baseURL` | Notes |
-| :--- | :--- | :--- |
-| **OpenAI** (default) | `https://api.openai.com/v1` | Used when `baseURL` is unset. |
-| **Groq** | `https://api.groq.com/openai/v1` | Fast Llama 3, Mixtral inference. Groq-issued key. |
-| **OpenRouter** | `https://openrouter.ai/api/v1` | Aggregator: Claude, Gemini, Mistral, etc. Pass any model name OpenRouter recognises. |
-| **Together AI** | `https://api.together.xyz/v1` | Open-source fleet. |
-| **Azure OpenAI** | `https://<resource>.openai.azure.com/openai/deployments/<dep>/v1` | Endpoint varies per deployment. |
-| **Self-hosted OpenAI-compatible** (llama.cpp, vLLM, LM Studio, Ollama + OpenAI shim, vLLM `--openai-compatible`) | `http://localhost:<port>/v1` | Server must expose `/v1/chat/completions`. |
-
-### Not supported (explicit)
-
-- **Anthropic Claude API** — different request/response shape. The plugin only knows the OpenAI spec.
-- **Google Gemini API** — different shape.
-- **Local model servers that don't speak the OpenAI shim** (raw Ollama `/api/generate`, llama.cpp `/completion`).
-- **Function-calling / tools use / structured outputs / speech-to-text / image inputs.** Pure chat completions only.
-
----
-
-## Usage Examples
-
-### Minimal setup
 
 ```ts title="boltdocs.config.ts"
 import askAiPlugin from '@bdocs/plugin-ask-ai'
 
 export default {
-  plugins: [askAiPlugin()],
+  plugins: [
+    askAiPlugin({
+      title: 'Ask the docs',
+      maxOutputTokens: 600,
+      rateLimitPerMinute: 30,
+    }),
+  ],
 }
 ```
 
-### Switch to a stronger model
-
-```ts
-askAiPlugin({
-  model: 'gpt-4.1-mini',
-  maxOutputTokens: 800,   // allow longer answers
-})
-```
-
-### Use a non-OpenAI provider
-
-```ts
-askAiPlugin({
-  baseURL: 'https://api.groq.com/openai/v1',
-  customModels: ['llama-3.3-70b-versatile'],
-  model: 'llama-3.3-70b-versatile',
-})
-```
+Set the provider key in the environment, never in the config file:
 
 ```bash title=".env"
-OPENAI_API_KEY=gsk_...    # Groq issues this
+OPENAI_API_KEY=sk-...
 ```
 
-### Lock down a production deployment
+The floating assistant is mounted through Boltdocs' `floating:after` plugin slot. Set `autoInject: false` when you want to place it yourself.
+
+## Configuration
+
+| Option | Default | Description |
+| :--- | :--- | :--- |
+| `provider` | `'openai'` | Provider preset. Each preset selects its own default model and environment-key name. |
+| `model` | Provider default | Any model accepted by the selected OpenAI-compatible provider. |
+| `baseURL` | Provider default | OpenAI-compatible base URL. Required for `anthropic`, `gemini`, `azure`, and `custom`. |
+| `endpoint` | `'/api/ask-ai'` | Dev/preview POST endpoint. |
+| `autoInject` | `true` | Mount `<AskAiBubble />` in the global floating slot. |
+| `persona` | `undefined` | Optional identity and tone prepended to the default safety prompt. |
+| `systemPrompt` | `undefined` | Full prompt override. Use only if you can preserve the page-scope and refusal rules. |
+| `systemPrompts` | `undefined` | Per-provider full prompt overrides. |
+| `maxInputChars` | `2_000` | Server-enforced question limit. |
+| `maxRequestBytes` | `65_536` | Server-enforced request-body limit. |
+| `maxOutputTokens` | `600` | Provider completion-token limit. |
+| `contextChars` | `6_000` | Maximum page-context characters sent to the model. |
+| `rateLimitPerMinute` | `30` | In-memory per-IP limit. Use `0` to disable. |
+| `secretKey` | `undefined` | Minimum 16-character server-to-server bearer secret. Header-only; never placed in metadata. |
+| `secretKeyEnv` | `undefined` | Environment-variable name from which to read the server secret. |
+| `temperature` | `0.3` | Sampling temperature. |
+| `topP` | `1` | Nucleus-sampling cutoff. |
+| `devMode` | Auto outside production | Enables the token-usage chip. Keep disabled in production. |
+| `title` | `'Ask Assistant'` | Header title. |
+| `placeholder` | `'Ask about this page…'` | Composer placeholder. |
+| `emptyTitle` | Default greeting | Empty-state title. |
+| `emptyDescription` | Default description | Empty-state description. |
+| `buttonTooltip` | `'Ask AI assistant'` | Launcher label and tooltip. |
+| `composerHint` | Keyboard hint | Composer help text. |
+| `classNames` | `{}` | Public Tailwind class-name slots. |
+
+### Providers
+
+The plugin always speaks the OpenAI Chat Completions wire format. Anthropic, Gemini, Azure, and custom providers must point to an OpenAI-compatible proxy.
 
 ```ts
 askAiPlugin({
-  secretKey: process.env.BOLTDOCS_ASK_AI_SECRET,
-  rateLimitPerMinute: 10,
-  maxOutputTokens: 400,
+  provider: 'groq',
+  model: 'llama-3.1-8b-instant',
+  baseURL: 'https://api.groq.com/openai/v1',
 })
 ```
 
-Caddy / nginx / Cloudflare / Vercel should set `x-forwarded-for` from a trusted source. Combined with `secretKey`, an attacker can neither bypass the limiter nor supply forged `context` payloads.
+```bash
+GROQ_API_KEY=gsk_...
+```
 
-### Automatic mounting and manual composition
+Provider-specific `OPENAI_BASE_URL` fallback is only used for the OpenAI provider. A Groq, Gemini, or Anthropic key cannot be redirected to an arbitrary OpenAI base URL.
 
-The plugin automatically mounts one `<AskAiBubble />` through the `floating:after` slot. To compose the UI yourself, set `autoInject: false` and import the client components in your `layout.tsx`:
+## Customize the UI
+
+Copy is configured in `boltdocs.config.ts`. Visual slots can be overridden in the same public config:
+
+```ts
+askAiPlugin({
+  title: 'Docs Copilot',
+  placeholder: 'Ask about this configuration…',
+  classNames: {
+    root: 'bottom-8 right-8',
+    panel: 'w-[28rem] rounded-3xl border-primary-500/20',
+    trigger: 'rounded-full size-14 shadow-primary-500/30',
+    userMessage: 'bg-primary-600',
+    assistantMessage: 'bg-soft border-primary-500/20',
+  },
+})
+```
+
+Available slots are `root`, `panel`, `trigger`, `header`, `messages`, `message`, `userMessage`, `assistantMessage`, `emptyState`, `composer`, `input`, and `markdown`. User classes win over plugin defaults through Tailwind merging.
+
+For complete component replacement, disable automatic injection and compose the client components:
 
 ```tsx title="docs/layout.tsx"
-import { AskAiBubble, AskAiDialog } from '@bdocs/plugin-ask-ai/client'
-import { DocsLayout } from 'boltdocs'
+import { AskAiBubble } from '@bdocs/plugin-ask-ai/client'
 
-export default function Layout({ children }) {
-  return (
-    <DocsLayout>
-      {children}
-      <AskAiBubble />   {/* Floating bubble — bottom-right */}
-      <AskAiDialog />   {/* Right rail on xl viewports */}
-    </DocsLayout>
-  )
+export function Assistant() {
+  return <AskAiBubble endpoint="/custom/ask-ai" />
 }
 ```
 
-Mount only what you need (e.g. only `<AskAiDialog />` as a dedicated sidebar), position them with your own CSS, and remove unused ones entirely.
+The client package also exports `AskAiDialog`, `ChatHeader`, `ChatInput`, `ChatMessage`, `ChatEmptyState`, `TypingIndicator`, `useAskAi`, and `MarkdownRenderer`.
 
-### Drive the chat from a button elsewhere
+### Open from another control
+
+Use the global event instead of creating a second disconnected hook instance:
 
 ```tsx
-import { useAskAi } from '@bdocs/plugin-ask-ai/client'
-
 export function HelpButton() {
-  const { setIsOpen, submitQuestion } = useAskAi()
   return (
-    <button
-      onClick={() => {
-        setIsOpen(true)
-        submitQuestion('Walk me through this page')
-      }}
-    >
+    <button onClick={() => window.dispatchEvent(new CustomEvent('boltdocs:ask-ai:open'))}>
       Help
     </button>
   )
 }
 ```
 
----
+Supported events are `boltdocs:ask-ai:open`, `boltdocs:ask-ai:close`, and `boltdocs:ask-ai:toggle`.
 
-## Manual Component Composition
+## Serverless deployment
 
-Set `autoInject: false` when you want to compose `<AskAiBubble />` and/or `<AskAiDialog />` directly in your `layout.tsx`:
+The dev/preview middleware cannot provide a serverless function automatically. Export one of the adapters from your platform's function entry and configure it only on the server.
 
-```tsx title="docs/layout.tsx"
-import { AskAiBubble, AskAiDialog } from '@bdocs/plugin-ask-ai/client'
-import { DocsLayout } from 'boltdocs'
+```ts title="api/ask-ai.ts"
+import { buildSystemPrompt } from '@bdocs/plugin-ask-ai'
+import { handleWebAskAi } from '@bdocs/plugin-ask-ai/server'
 
-export default function Layout({ children }) {
-  return (
-    <DocsLayout>
-      {children}
-      <AskAiBubble />   {/* Floating bubble — bottom-right */}
-      <AskAiDialog />   {/* Right rail on xl viewports */}
-    </DocsLayout>
-  )
+export const config = {
+  provider: 'openai',
+  model: 'gpt-4o-mini',
+  systemPrompt: buildSystemPrompt(),
+  maxInputChars: 2_000,
+  contextChars: 6_000,
+  allowedOrigins: ['https://docs.example.com'],
+}
+
+export function POST(request: Request) {
+  return handleWebAskAi(request, config)
 }
 ```
 
-Mount only what you need (e.g. only `<AskAiDialog />` as a dedicated sidebar), position them with your own CSS, and remove unused ones entirely.
+CORS is same-origin by default. Set `allowedOrigins` only when a separate, trusted browser origin needs access.
 
----
+Serverless deployments do not have the local Boltdocs filesystem. Pass a bounded context explicitly when the adapter permits it:
 
-## Layout Integration
-
-The plugin mounts `<AskAiBubble />` automatically through `floating:after`. Set `autoInject: false` only when you need manual placement in your layout. Here are the recommended patterns:
-
-### Pattern 1: Using DocsLayout (recommended)
-
-```tsx title="docs/layout.tsx"
-import { AskAiBubble, AskAiDialog } from '@bdocs/plugin-ask-ai/client'
-import { DocsLayout } from 'boltdocs'
-
-export default function Layout({ children }) {
-  return (
-    <DocsLayout>
-      {children}
-      <AskAiBubble />
-    </DocsLayout>
-  )
-}
+```tsx
+<AskAiBubble
+  getContext={() => ({
+    page: window.location.pathname,
+    content: document.querySelector('main')?.innerText.slice(0, 6_000) ?? '',
+  })}
+/>
 ```
 
-### Pattern 2: Full control with primitives
+Treat client context as untrusted input. For a public endpoint, prefer same-origin deployment, edge authentication, rate limiting, and a server-owned context source.
 
-```tsx title="docs/layout.tsx"
-import { AskAiBubble, AskAiDialog } from '@bdocs/plugin-ask-ai/client'
-import { DocsLayout, Navbar, Sidebar, OnThisPage } from 'boltdocs/client'
+## Authentication and secrets
 
-export default function Layout({ children }) {
-  return (
-    <DocsLayout>
-      <Navbar />
-      <DocsLayout.Body>
-        <Sidebar routes={[]} config={{}} />
-        <DocsLayout.Content>
-          <DocsLayout.ContentMdx>
-            {children}
-          </DocsLayout.ContentMdx>
-        </DocsLayout.Content>
-        <OnThisPage />
-      </DocsLayout.Body>
-      <DocsLayout.RightRail>
-        <AskAiDialog />
-      </DocsLayout.RightRail>
-      <AskAiBubble />
-    </DocsLayout>
-  )
-}
-```
+Provider keys are read only by the server handler and are not included in `metadata`, client props, SSE events, or public errors.
 
-### Pattern 3: Only the floating bubble
+`secretKey` and `secretKeyEnv` protect direct server-to-server calls. Send the value only in `x-boltdocs-ask-ai-key`; URL query secrets are intentionally rejected because URLs leak through logs and diagnostics. Do not put a reusable secret in browser code.
 
-```tsx title="docs/layout.tsx"
-import { AskAiBubble } from '@bdocs/plugin-ask-ai/client'
-import { DocsLayout } from 'boltdocs'
+For a normal public documentation assistant, omit `secretKey` and protect the endpoint with your hosting platform's user/session controls. The in-memory limiter is per process; use a shared edge limiter for multi-region deployments.
 
-export default function Layout({ children }) {
-  return (
-    <DocsLayout>
-      {children}
-      <AskAiBubble />
-    </DocsLayout>
-  )
-}
-```
+## `useAskAi`
 
----
+| Return value | Description |
+| :--- | :--- |
+| `messages` | Current page-scoped messages and terminal status. |
+| `input`, `setInput` | Controlled composer state. |
+| `isLoading` | Whether a provider request is active. |
+| `submitQuestion(text)` | Starts a request when one is not already active. |
+| `stopStreaming()` | Aborts the active request while preserving visible partial text. |
+| `clearChat()` | Aborts and clears messages. |
+| `isOpen`, `setIsOpen` | Assistant visibility. |
 
-## Reference: `useAskAi()` API
+Options are `endpoint`, `currentPage`, `context`, `getContext`, and `classNames`. The hook cancels its active request on unmount and does not log raw server errors.
 
-The hook returns the chat state and imperative handles. It is auto-memoised internally — re-subscribing is cheap.
+## Security model
 
-| Field | Type | Description |
-| :--- | :--- | :--- |
-| `messages` | `Message[]` | Chat history. Each message has `role`, `content`, optional `status` (`reading` \| `streaming` \| `done` \| `error`) and optional `contextChip` showing the captured page metadata. |
-| `input` | `string` | Current input field value. |
-| `setInput` | `(v: string) => void` | Update the input. |
-| `isLoading` | `boolean` | True while a request is in flight. |
-| `submitQuestion` | `(text: string) => Promise<void>` | Append a user message and start streaming. Cancels any in-flight stream. |
-| `stopStreaming` | `() => void` | Abort the current stream. Partial content is preserved, status flips to `done`. |
-| `clearChat` | `() => void` | Stop streaming and reset `messages` to `[]`. |
-| `isOpen` | `boolean` | Bubble/sidebar open state. Toggle via global events too. |
-| `setIsOpen` | `(v: boolean) => void` | Override open state. |
+The package uses layered controls:
 
-`UseAskAiOptions`:
+- bounded question, request-body, context, and output sizes;
+- a deterministic denylist for common override attempts;
+- escaped prompt delimiters for page and persona data;
+- a page-scoped system prompt with a fixed `Not in docs.` refusal;
+- authorization before request-body processing;
+- per-IP rate limiting;
+- same-origin CORS by default for adapters;
+- public error codes that never echo upstream provider details.
 
-| Field | Type | Default | Description |
-| :--- | :--- | :--- | :--- |
-| `endpoint` | `string` | `/api/ask-ai` (resolved from `virtual:boltdocs-config`) | Override the SSE URL. |
-| `currentPage` | `string` | `window.location.pathname` | Override the path the assistant uses to choose the page. |
+Prompt-injection detection is not a mathematical guarantee. Keep the default system prompt and scope, authenticate public endpoints, and apply a shared production rate limit.
 
----
-
-## Security Model
-
-The plugin implements **defense-in-depth at seven layers**. No single layer is load-bearing — degradation of one (e.g., a stale regex) is captured by another.
-
-| # | Layer | Default | Degrades? |
-| :--- | :--- | :--- | :--- |
-| 1 | Input hard caps | `maxInputChars=2 000` / `maxOutputTokens=600` | Server-enforced. Cannot be overridden by the model. |
-| 2 | Deterministic denylist (regex) | Six patterns covering `ignore previous`, `DAN`, `developer mode`, `jailbreak`, system-extract verbs | Static. Stale patterns fall through to layer 4. |
-| 3 | Delimiter hardening | `<<<DOCS_START>>>` / `<<<DOCS_END>>>` + literal-marker escape inside content | Model-side interpretation. |
-| 4 | Scope-locked system prompt | 7-rule priority hierarchy with explicit override refusal in 5 categories (a)–(e) | Model-side interpretation. |
-| 5 | Per-IP rate limit | 30 req/min/IP, in-memory token bucket | Per-process. Multi-instance deployments need an edge limiter. |
-| 6 | Deployment network contract | `x-forwarded-for` aware, optional `secretKey` | Spoofable when not behind a trusted proxy. |
-| 7 | Forwarded-client-context cap | `contextChars=6 000` | Trust promotion; requires `secretKey` for open deployments. |
-
-<Callout variant="warning" title="Behind a hostile edge, x-forwarded-for is trivially spoofable">
-  If you can't deploy behind a trusted reverse proxy, **`secretKey` is required** for production. See [`SECURITY.md`](https://github.com/boltdocs/boltdocs/blob/main/packages/plugin-ask-ai/SECURITY.md) in the source repo for the full threat model and deployment checklist.
-</Callout>
-
-The system prompt is bundled as `DEFAULT_SYSTEM_PROMPT` in `src/node/index.ts` and is the single highest-leverage piece of code in the package — it leads with **RULE 0 (ABSOLUTE — NEVER OVERRIDE)** and ends with a confidentiality clause that explicitly forbids exposing the prompt itself. Six regression tests in `tests/system-prompt.test.ts` anchor the priority hierarchy, refusal categories, imperative density, the literal `Not in docs.` refusal, and the marker tokens.
-
----
+See [`SECURITY.md`](https://github.com/boltdocs/boltdocs/blob/main/packages/plugin-ask-ai/SECURITY.md) for the detailed deployment model.
 
 ## Troubleshooting
 
-### Assistant says `Not in docs.` for a question that IS in the docs
+### `AI_NOT_CONFIGURED`
 
-- **Page mismatch:** the assistant only sees the path the visitor is at. If the user lands on `/docs/guide/installing` and asks about `/docs/guide/troubleshooting`, the answer will be `Not in docs.` Navigate them to the relevant page first, or use `currentPage` from `useAskAi` to point at scope.
-- **Truncation:** pages over `contextChars` (default 6 000) characters truncate at the start. Surface this in your UI when relevant.
+The selected provider key is missing on the server. Check the environment-variable name for the provider preset and the deployment's environment configuration.
 
-### `401 UNAUTHORIZED` on every request
+### `UNAUTHORIZED`
 
-You set `secretKey` but didn't pass it. Either:
+A protected adapter received no valid `x-boltdocs-ask-ai-key` header. Never move the secret into a query string or browser bundle.
 
-- Add `?secret=<key>` to the URL, **or**
-- Send header `x-boltdocs-ask-ai-key: <key>`, **or**
-- Remove `secretKey` from your plugin options.
+### `RATE_LIMITED`
 
-### `429 RATE_LIMITED` or `Retry-After` header
+The per-process limit was reached. Wait for `Retry-After` or add a shared edge limiter.
 
-You exceeded `rateLimitPerMinute` (default 30). Either bump the limit, disable it with `rateLimitPerMinute: 0`, or front the endpoint with a shared limiter (Upstash, Vercel, Cloudflare Rate Limiting Rules) for multi-replica deployments.
+### The assistant says `Not in docs.`
 
-### Bubble doesn't appear
+The current page context does not contain enough information, the page exceeded `contextChars`, or a serverless adapter did not receive context. Check the request payload and adapter `allowClientContext` policy.
 
-- The plugin auto-mounts `<AskAiBubble />` through the `floating:after` slot by default.
-- Set `autoInject: false` only when you are rendering the client component manually in your `layout.tsx`.
-- Verify the plugin is installed: `pnpm add @bdocs/plugin-ask-ai`.
+### Streaming stops
 
-### Streaming stops mid-sentence
-
-- The 60-second internal timeout is up. Bumping it isn't an option — fork the plugin if you need longer. For long answers, increase `maxOutputTokens` instead.
-- The user closed the tab or clicked Stop. The `AbortController` propagates all the way down to the SDK, so closing the request halts upstream token spend.
-
-### Custom model isn't used
-
-Did you add it to `customModels`? `model` alone is limited to the built-in allowlist. Examples:
-
-```ts
-askAiPlugin({
-  model: 'gpt-4o',
-  customModels: ['gpt-4o'],
-})
-```
-
-If your provider speaks the OpenAI shim but the model name is fuzzy (e.g. `openai/gpt-4o` for OpenRouter), include the full slug in `customModels`.
-
-### Hitting OpenAI quota errors
-
-The `openai` SDK throws a typed `APIError`. The middleware streams the error message back as an SSE `error` event and ends with `[DONE]`. Check your dashboard for hard-limit reasons, then check `maxOutputTokens` and `maxInputChars` if you're hitting length limits.
-
----
-
-## Version History
-
-- **0.3.0** — Removed automatic slot-based mounting. Plugin now ships `<AskAiBubble />` and `<AskAiDialog />` as standalone components for manual composition.
-- **0.2.0** — OpenAI SDK rewrite. Streamdown on the client. Page-scoped via `<<<DOCS_START>>>` / `<<<DOCS_END>>>` delimiters + literal-marker escape. Hard-scoped system prompt with 7-rule priority hierarchy. Per-IP token bucket, optional `secretKey`, `customModels[]` escape hatch. Removes Ollama / dev-mode.
-- **0.1.x** — Earlier Ollama-powered prototype. See git history.
+The visitor can stop generation, the request can disconnect, or the provider can hit the 60-second internal timeout. Partial assistant text remains visible after cancellation.

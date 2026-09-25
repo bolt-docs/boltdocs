@@ -23,4 +23,13 @@ Importa `virtual:uno.css` en tu layout o estilo principal:
 import 'virtual:uno.css'
 ```
 
-¡Ahora todas las utilidades y atributos de UnoCSS se generarán instantáneamente bajo demanda!
+El plugin escanea automáticamente el directorio `docs/` de Boltdocs para encontrar utilidades en fuentes `.md` y `.mdx`. Puedes personalizar el directorio o utilizar cualquier modo de Vite de UnoCSS:
+
+```ts
+unocssPlugin({
+  docsDir: 'content/docs',
+  mode: 'global',
+})
+```
+
+Usa `scanDocs: false` si las fuentes de documentación no deben escanearse automáticamente.

@@ -90,7 +90,9 @@ export function BoltdocsProvider({
     // re-render commits the new context value.
     if (typeof globalThis !== 'undefined') {
       Reflect.set(globalThis, BOLTDOCS_INSTANCE_SYMBOL, {
-        ...(globalThis[BOLTDOCS_INSTANCE_SYMBOL] as BoltdocsState | undefined),
+        ...(globalRegistry[BOLTDOCS_INSTANCE_SYMBOL] as
+          | BoltdocsState
+          | undefined),
         currentLocale: newL,
       })
     }
@@ -118,7 +120,9 @@ export function BoltdocsProvider({
     // Write through to the global registry synchronously (see updateLocale).
     if (typeof globalThis !== 'undefined') {
       Reflect.set(globalThis, BOLTDOCS_INSTANCE_SYMBOL, {
-        ...(globalThis[BOLTDOCS_INSTANCE_SYMBOL] as BoltdocsState | undefined),
+        ...(globalRegistry[BOLTDOCS_INSTANCE_SYMBOL] as
+          | BoltdocsState
+          | undefined),
         currentVersion: newV,
       })
     }

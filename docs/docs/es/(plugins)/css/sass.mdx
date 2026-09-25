@@ -21,7 +21,9 @@ pnpm add -D @bdocs/plugin-sass sass-embedded
 | :--- | :--- | :--- |
 | `additionalData` | `string` | SASS/SCSS añadido al inicio de cada bloque de código CSS (ideal para variables/mixins globales). |
 | `api` | `'modern' \| 'legacy'` | Modo de la API de SASS (por defecto: `'modern'`). |
-| `includePaths` | `string[]` | Directorios adicionales para resolución de `@use` y `@import`. |
+| `includePaths` | `string[]` | Directorios adicionales para resolución de `@use` y `@import` en modo legacy. |
+| `loadPaths` | `string[]` | Directorios adicionales para resolución de `@use` e `@import` en modo modern. |
+| Otras opciones Sass | Opciones Sass | Opciones como `quietDeps` y `silenceDeprecations` se aplican tanto a SCSS como a Sass indentado. |
 
 ---
 

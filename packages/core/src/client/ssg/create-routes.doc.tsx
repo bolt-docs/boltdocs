@@ -21,7 +21,10 @@ function buildDocRoutes(options: {
   config: BoltdocsConfig
   mdxModules: Record<string, unknown>
   components?: Record<string, React.ComponentType>
-  externalPages?: Record<string, React.ComponentType>
+  externalPages?: Record<
+    string,
+    React.ComponentType | (() => Promise<{ default: React.ComponentType }>)
+  >
 }): { routes: RouteRecord[]; metadata: ComponentRoute[] } {
   const { routesData, config, mdxModules, components, externalPages } = options
 

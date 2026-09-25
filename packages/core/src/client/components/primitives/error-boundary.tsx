@@ -14,6 +14,12 @@ export interface ErrorBoundaryProps {
   FallbackComponent?: ComponentType<FallbackProps>
   onError?: (error: Error, info: ErrorInfo) => void
   onReset?: () => void
+  /**
+   * When any of these values change, a caught error is automatically
+   * reset (e.g. pass the current route path so navigation clears stale
+   * render errors).
+   */
+  resetKeys?: unknown[]
 }
 
 interface ErrorBoundaryState {
@@ -48,6 +54,24 @@ export class ErrorBoundary extends Component<
       this.props.onReset()
     }
     this.setState({ hasError: false, error: null })
+  }
+
+  private prevResetKeys: unknown[] = []
+
+  public componentDidUpdate(prevProps: ErrorBoundaryProps) {
+    if (
+      prevProps.resetKeys !== this.props.resetKeys &&
+      this.state.hasError &&
+      this.props.resetKeys?.length &&
+      this.props.resetKeys.some(
+        (key, i) => !Object.is(key, this.prevResetKeys[i]),
+      )
+    ) {
+      this.prevResetKeys = this.props.resetKeys
+      this.resetErrorBoundary()
+      return
+    }
+    this.prevResetKeys = this.props.resetKeys ?? []
   }
 
   public render() {

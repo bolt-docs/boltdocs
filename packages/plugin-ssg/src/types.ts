@@ -4,7 +4,7 @@ import type { RouterRouteRecord } from './router-contract'
 
 /** Minimal router shape kept for the public SSG context without a DOM-router dependency. */
 export interface Router {
-  navigate?: (...args: any[]) => unknown
+  navigate?: (...args: never[]) => unknown
   state?: unknown
   [key: string]: unknown
 }
@@ -85,6 +85,7 @@ export interface ViteReactSSGOptions<Context = ViteReactSSGContext> {
    * @default 'zig-critters'
    */
   criticalCss?: 'zig-critters' | 'beasties' | false
+  criticalCssMaxSize?: number
   /**
    * Enable turbo mode: use zig-critters WASM instead of beasties JS for critical CSS.
    * Falls back to beasties if the WASM binary is unavailable.
@@ -142,7 +143,7 @@ export interface ViteReactSSGOptions<Context = ViteReactSSGContext> {
     duration: number
     success: boolean
     details?: string
-    metrics?: Record<string, any>
+    metrics?: Record<string, unknown>
   }) => void
   /**
    * The application's root container `id`.
@@ -170,15 +171,15 @@ export interface ViteReactSSGContext<HasRouter extends boolean = true> {
   router?: HasRouter extends true ? Router : undefined
   routes: HasRouter extends true ? Readonly<RouteRecord[]> : undefined
   routerOptions: HasRouter extends true ? RouterOptions : undefined
-  initialState: Record<string, any>
+  initialState: Record<string, unknown>
   isClient: boolean
-  onSSRAppRendered: (cb: Function) => void
+  onSSRAppRendered: (cb: () => unknown) => void
   triggerOnSSRAppRendered: (
     route: string,
     appHTML: string,
     appCtx: ViteReactSSGContext,
   ) => Promise<unknown[]>
-  transformState?: (state: any) => any
+  transformState?: (state: unknown) => unknown
   /**
    * Current router path on SSG, `undefined` on client side.
    */
@@ -191,7 +192,7 @@ export interface ViteReactSSGContext<HasRouter extends boolean = true> {
 }
 
 export interface ViteReactSSGClientOptions {
-  transformState?: (state: any) => any
+  transformState?: (state: unknown) => unknown
   registerComponents?: boolean
   /**
    * The application's root container query selector.
@@ -209,6 +210,11 @@ export interface ViteReactSSGClientOptions {
 }
 
 interface CommonRouteOptions {
+  filePath?: string
+  componentPath?: string
+  locale?: string
+  version?: string
+  collection?: string
   /**
    * Used to obtain static resources through manifest
    *
@@ -249,7 +255,7 @@ export interface RouterOptions {
   routes: RouteRecord[]
   basename?: string
   future?: Partial<RouterFutureConfig>
-  customCreateRouter?: (...args: any[]) => Router
+  customCreateRouter?: (...args: never[]) => Router
 }
 
 export interface StyleCollector {

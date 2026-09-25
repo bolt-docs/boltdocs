@@ -1,7 +1,7 @@
 ---
 title: FlexSearch
 sidebarPosition: 2
-description: Boltdocs ships with **FlexSearch** as its default offline search engine. During the build phase, Boltdocs scans all markdown files, parses their HTML/headings, and compiles a highly compressed index JSON file. The client-side runtime loads this index and performs high-speed local matching with no network queries
+description: Boltdocs ships with **FlexSearch** as its default offline search engine. During the build phase, Boltdocs scans all markdown files and prepares a bounded runtime search asset. The client loads the asset and FlexSearch lazily when the search dialog opens, then performs high-speed local matching with no network queries.
 ---
 
 ## The `useSearch()` Hook
@@ -9,26 +9,40 @@ description: Boltdocs ships with **FlexSearch** as its default offline search en
 To build a custom search bar, query inputs, or inline list search, use the `useSearch()` hook from `boltdocs`. It exposes live query state, search results, and dialog control callbacks.
 
 ```tsx
-import { useSearch } from 'boltdocs'
+import { useRoutes, useSearch } from 'boltdocs'
 
 export function MySearchBar() {
-  const { query, setQuery, results, isOpen, open, close } = useSearch()
+  const { routes } = useRoutes()
+  const {
+    query,
+    setQuery,
+    list,
+    isOpen,
+    setIsOpen,
+    handleSelect,
+    status,
+  } = useSearch(routes)
 
   return (
     <div className="search-container">
       <input
         value={query}
-        onChange={(e) => setQuery(e.target.value)}
+        onChange={(event) => setQuery(event.target.value)}
         placeholder="Type to search..."
-        onFocus={open}
+        onFocus={() => setIsOpen(true)}
       />
-      {isOpen && results.length > 0 && (
+      {isOpen && status === 'ready' && list.length > 0 && (
         <div className="search-dropdown">
-          {results.map((result) => (
-            <a key={result.path} href={result.path} className="search-item">
+          {list.map((result) => (
+            <button
+              key={result.id}
+              type="button"
+              className="search-item"
+              onClick={() => handleSelect(result.path)}
+            >
               <span className="search-title">{result.title}</span>
-              <p className="search-desc">{result.description}</p>
-            </a>
+              <p className="search-desc">{result.snippet ?? result.bio}</p>
+            </button>
           ))}
         </div>
       )}
@@ -42,14 +56,16 @@ export function MySearchBar() {
 
 | Property | Type | Description |
 | :--- | :--- | :--- |
+| **`id`** | `string` | Stable result identifier. |
 | **`path`** | `string` | The resolved absolute path (e.g. `'/docs/guides/getting-started'`). |
-| **`title`** | `string` | The matching page title. |
-| **`description`** | `string` | The page description (from frontmatter or excerpt). |
-| **`headings`** | `HeadingMatch[]` | Sub-headings (`h2`–`h6`) within the page that matched the search query. |
+| **`title`** | `string` | The matching page or heading title. |
+| **`bio`** | `string` | The page or heading breadcrumb. |
+| **`snippet`** | `string \| undefined` | A focused content excerpt around the match, when available. |
+| **`isHeading`** | `boolean` | Whether the result points to a heading anchor. |
 
 ---
 
 ## Local Development vs. Production
 
 * **Local Development:** The search index updates incrementally via Vite HMR as you edit files, making live search change testing seamless.
-* **Production:** The index is bundled into a separate chunk-split package that loads asynchronously only when the user interacts with the search input, keeping the initial bundle load size extremely minimal.
+* **Production:** The bounded search asset and FlexSearch engine load asynchronously only when the user interacts with the search input, keeping the initial bundle small. Results are filtered by the active locale and version before the result limit is applied.

@@ -45,7 +45,7 @@ export const Footer = () => {
 
   return (
     <Section maxWidth="xl">
-      <div className="flex flex-row gap-28 ">
+      <div className="flex flex-row gap-28 flex-wrap ">
         <FooterColumns title="Documentation" links={docs} />
         <FooterColumns title="Resources" links={resources} />
         <FooterColumns title="Community" links={community} />

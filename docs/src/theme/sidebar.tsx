@@ -3,7 +3,7 @@ import { X } from 'lucide-react'
 import type { ComponentRoute } from 'boltdocs/client'
 import type { BoltdocsConfig } from 'boltdocs/client'
 import { I18nSelector } from '@/theme/i18n-selector'
-import { useNavbar } from 'boltdocs/client'
+import { cn, useNavbar } from 'boltdocs/client'
 import { useUI } from 'boltdocs/client'
 import { Button } from '@/theme/button'
 import { resolvePublicAssetUrl } from 'boltdocs/client'
@@ -62,7 +62,7 @@ export function Sidebar({ routes, config }: SidebarProps) {
         overlayClassName="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm lg:hidden"
         className="fixed top-0 left-0 bottom-0 w-80 bg-main border-r border-subtle shadow-2xl outline-none z-9999 lg:hidden"
       >
-        <SidebarPrimitive.Header className="flex items-center justify-between p-4 border-b border-subtle">
+        <SidebarPrimitive.Header className="flex items-center justify-between p-4">
           <div className="flex items-center gap-3">
             {SidebarLogo}
             <span className="font-bold text-lg tracking-tight text-body truncate max-w-30">
@@ -81,15 +81,12 @@ export function Sidebar({ routes, config }: SidebarProps) {
             </Button>
           </div>
         </SidebarPrimitive.Header>
-        <SidebarPrimitive.Content className={contentClassName}>
+        <SidebarPrimitive.Content className={cn(contentClassName, 'pb-2')}>
           {hasUtilities && (
-            <div className="flex flex-col gap-4 mb-8">
-              <div className="flex gap-3">
-                {config.i18n && (
-                  <I18nSelector className="flex-1 justify-between h-10 bg-main border-subtle rounded-md" />
-                )}
-              </div>
-              <div className="mt-2 border-b border-subtle" />
+            <div className="flex gap-3 border-b border-subtle">
+              {config.i18n && (
+                <I18nSelector className="flex-1 justify-between h-10 bg-main rounded-md" />
+              )}
             </div>
           )}
           <SidebarPrimitive.Items

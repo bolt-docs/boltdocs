@@ -109,6 +109,20 @@ async function hashAssetContents(
   return hasher.digest('hex')
 }
 
+async function hashRouteSource(
+  routeSourceFile: string,
+): Promise<string | undefined> {
+  try {
+    const source = await readFile(routeSourceFile)
+    return crypto
+      .createHash('md5')
+      .update(source as Uint8Array)
+      .digest('hex')
+  } catch {
+    return undefined
+  }
+}
+
 export async function computeRouteClientAssetHash(
   options: RouteClientHashOptions,
 ): Promise<string> {
@@ -188,16 +202,12 @@ export async function computeRouteClientAssetHash(
   }
 
   if (assets.size === 0) {
-    // Fallback: if no route-specific chunk is found, use the global client
-    // hash. Re-hashing the whole bundle here would be expensive and usually
-    // unnecessary because `currentClientHash` already captures the entire
-    // client code state.
-    if (!clientHash) {
-      throw new Error(
-        `No client chunk found for ${routeSourceFile} and no global client hash was provided`,
-      )
-    }
-    return clientHash
+    const sourceHash = await hashRouteSource(routeSourceFile)
+    if (sourceHash) return sourceHash
+    if (clientHash) return clientHash
+    throw new Error(
+      `No client chunk found for ${routeSourceFile}; no source content and no global client hash were provided`,
+    )
   }
 
   return hashAssetContents(outDir, Array.from(assets).sort(), assetHashes)

@@ -6,6 +6,8 @@ export default defineConfig(
     format: ['esm'],
     dts: true,
     clean: true,
-    external: ['vite', 'boltdocs', 'unocss', '@unocss/vite'],
+    deps: {
+      neverBundle: ['vite', 'boltdocs', 'unocss', '@unocss/vite'],
+    },
   }),
 )

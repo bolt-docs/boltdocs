@@ -128,8 +128,14 @@ export async function buildAction(
           details: step.details,
         })),
         pages: metrics?.totalPages,
-        jsSize: metrics ? formatSize(metrics.jsSize) : undefined,
-        cssSize: metrics ? formatSize(metrics.cssSize) : undefined,
+        jsSize:
+          typeof metrics?.jsSize === 'number'
+            ? formatSize(metrics.jsSize)
+            : undefined,
+        cssSize:
+          typeof metrics?.cssSize === 'number'
+            ? formatSize(metrics.cssSize)
+            : undefined,
         outDir: 'dist/',
       }),
     )

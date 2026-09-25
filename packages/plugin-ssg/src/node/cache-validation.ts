@@ -12,12 +12,10 @@ export interface SsgPageCacheItem {
 // can never produce a false positive hit against current entries. Legacy
 // entries simply miss once and are rewritten.
 //
-// v3 → v4: per-route render identity gained the Sätteri chunk-pack hash
-// (strategy 1.5) mixed with a server-bundle identity guard. Cached pages
-// from pre-v4 builds were validated against the global client hash, so
-// their stored `assetHash` is not comparable with the new per-pack identity;
-// every cached page must re-render once under the new scheme.
-const CONTENT_HASH_VERSION = 'v4'
+// v4 → v5: route identity is source content plus shared client/CSS/engine
+// surfaces. Older entries used emitted client chunk bytes, which invalidated
+// every page when a small site emitted one combined client chunk.
+const CONTENT_HASH_VERSION = 'v5'
 
 /**
  * Content-hash a single source file: sha1 of the file bytes. Deliberately

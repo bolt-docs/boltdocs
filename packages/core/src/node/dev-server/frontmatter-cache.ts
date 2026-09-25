@@ -8,7 +8,7 @@ import {
 
 const legacyFrontmatterHashes = new Map<string, string>()
 
-function hashFrontmatterData(data: Record<string, unknown>): string {
+export function hashFrontmatterData(data: Record<string, unknown>): string {
   const { lastUpdated: _, ...rest } = data
   return crypto.createHash('md5').update(JSON.stringify(rest)).digest('hex')
 }

@@ -85,14 +85,14 @@ function packLocalBoltdocs(): string {
     console.log(`  Packing ${pkg.name} from ${pkg.dir}...`)
     try {
       const result = child_process.execSync(
-        'pnpm pack --pack-destination ' + packDir,
+        `pnpm pack --pack-destination ${packDir}`,
         {
           cwd: pkgDir,
           encoding: 'utf-8',
         },
       )
       const tgzName = result.trim().split('\n').pop()?.trim() || ''
-      if (tgzName && tgzName.endsWith('.tgz')) {
+      if (tgzName?.endsWith('.tgz')) {
         if (pkg.name === 'boltdocs') {
           boltdocsTgz = path.isAbsolute(tgzName)
             ? tgzName
@@ -187,6 +187,15 @@ function getOutputInventory(
 
 // Clean and create directories
 function setupSandbox() {
+  if (
+    IS_QUICK &&
+    fs.existsSync(path.join(BOLTDOCS_DIR, 'node_modules')) &&
+    fs.existsSync(path.join(DOCUSAURUS_DIR, 'node_modules'))
+  ) {
+    console.log(`--quick: reusing dependencies in ${TEMP_ROOT}`)
+    return
+  }
+
   console.log(`Cleaning sandbox at: ${TEMP_ROOT}`)
   if (fs.existsSync(TEMP_ROOT)) {
     fs.rmSync(TEMP_ROOT, { recursive: true, force: true })
@@ -506,7 +515,7 @@ function writeConfigs() {
     console.log(`  Packing ${wsDep.name} from ${wsDep.dir}...`)
     try {
       const result = child_process.execSync(
-        'pnpm pack --pack-destination ' + packDir,
+        `pnpm pack --pack-destination ${packDir}`,
         {
           cwd: pkgDir,
           encoding: 'utf-8',
@@ -514,7 +523,7 @@ function writeConfigs() {
       )
       const lines = result.trim().split('\n').filter(Boolean)
       const tgzName = lines[lines.length - 1]?.trim() || ''
-      if (tgzName && tgzName.endsWith('.tgz')) {
+      if (tgzName?.endsWith('.tgz')) {
         const fullPath = path.isAbsolute(tgzName)
           ? tgzName
           : path.join(packDir, tgzName)
@@ -528,7 +537,7 @@ function writeConfigs() {
         }
         console.log(`    → ${fullPath}`)
       }
-    } catch (err) {
+    } catch {
       console.error(`    Failed to pack ${wsDep.name}:`)
     }
   }
@@ -644,6 +653,43 @@ export default function Layout({ children }: { children: React.ReactNode }) {
   // custom.css
   fs.mkdirSync(path.join(DOCUSAURUS_DIR, 'src/css'), { recursive: true })
   fs.writeFileSync(path.join(DOCUSAURUS_DIR, 'src/css/custom.css'), '')
+}
+
+function readPackageVersion(root: string, packageName: string): string {
+  const packagePath = path.join(
+    root,
+    'node_modules',
+    ...packageName.split('/'),
+    'package.json',
+  )
+  const packageJson = JSON.parse(fs.readFileSync(packagePath, 'utf8')) as {
+    version?: string
+  }
+  if (!packageJson.version) {
+    throw new Error(`Missing version for benchmark package ${packageName}`)
+  }
+  return packageJson.version
+}
+
+function clearBuildState(
+  root: string,
+  framework: 'boltdocs' | 'docusaurus',
+): void {
+  const relativePaths =
+    framework === 'boltdocs'
+      ? ['.boltdocs', 'dist', 'node_modules/.vite']
+      : [
+          '.docusaurus',
+          'build',
+          'node_modules/.cache',
+          'node_modules/.cache-loader',
+        ]
+
+  for (const relativePath of relativePaths) {
+    const target = path.join(root, relativePath)
+    if (fs.existsSync(target))
+      fs.rmSync(target, { recursive: true, force: true })
+  }
 }
 
 // Runs package installations
@@ -813,6 +859,11 @@ async function runOnce() {
     BOLTDOCS_DIR,
     'node_modules/boltdocs/bin/boltdocs.js',
   )
+  const docusaurusFasterVersion = readPackageVersion(
+    DOCUSAURUS_DIR,
+    '@docusaurus/faster',
+  )
+  console.log(`Docusaurus Faster version: ${docusaurusFasterVersion}`)
 
   // 1. Dev Startup (Boltdocs)
   console.log('Measuring Boltdocs Dev Server startup...')
@@ -826,12 +877,8 @@ async function runOnce() {
 
   // 2. Cold Build (Boltdocs)
   console.log('Measuring Boltdocs Cold Build...')
-  const cacheDir = path.join(BOLTDOCS_DIR, '.boltdocs')
   const distDir = path.join(BOLTDOCS_DIR, 'dist')
-  if (fs.existsSync(cacheDir))
-    fs.rmSync(cacheDir, { recursive: true, force: true })
-  if (fs.existsSync(distDir))
-    fs.rmSync(distDir, { recursive: true, force: true })
+  clearBuildState(BOLTDOCS_DIR, 'boltdocs')
 
   const buildTimeColdBoltdocs = measureBuild(
     'node',
@@ -896,12 +943,8 @@ async function runOnce() {
 
   // 2. Cold Build (Docusaurus)
   console.log('Measuring Docusaurus Cold Build...')
-  const docCacheDir = path.join(DOCUSAURUS_DIR, '.docusaurus')
   const docBuildDir = path.join(DOCUSAURUS_DIR, 'build')
-  if (fs.existsSync(docCacheDir))
-    fs.rmSync(docCacheDir, { recursive: true, force: true })
-  if (fs.existsSync(docBuildDir))
-    fs.rmSync(docBuildDir, { recursive: true, force: true })
+  clearBuildState(DOCUSAURUS_DIR, 'docusaurus')
 
   const buildTimeColdDocusaurus = measureBuild(
     'pnpm',
@@ -979,6 +1022,10 @@ async function runOnce() {
   // Write Results
   const results = {
     pageCount: PAGE_COUNT,
+    docusaurusFaster: {
+      enabled: true,
+      version: docusaurusFasterVersion,
+    },
     timestamp: new Date().toISOString(),
     buildTimeCold: {
       boltdocs: Number(buildTimeColdBoltdocs.toFixed(2)),
@@ -1048,6 +1095,7 @@ async function run() {
     pageCount: PAGE_COUNT,
     runs: RUNS,
     complex: IS_COMPLEX,
+    docusaurusFaster: results[0]?.docusaurusFaster,
     timestamp: new Date().toISOString(),
     metrics: {
       buildTimeCold: {

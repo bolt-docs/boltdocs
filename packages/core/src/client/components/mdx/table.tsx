@@ -1,6 +1,6 @@
 import { cn } from '../../utils/cn'
 
-interface TableProps extends React.HTMLAttributes<HTMLTableElement> {
+export interface TableProps extends React.HTMLAttributes<HTMLTableElement> {
   wrapperClassName?: string
 }
 

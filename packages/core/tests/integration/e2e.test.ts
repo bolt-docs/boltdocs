@@ -222,6 +222,28 @@ describe('MDX components integration', () => {
     const code = await vmPlugin.load!('\0virtual:boltdocs-mdx-components')
     expect(code).toContain('mdx-components.tsx')
   }, 30000)
+
+  it('does not generate static default imports for plugin components', async () => {
+    const docsDir = path.join(tempDir, 'docs')
+    fs.mkdirSync(docsDir, { recursive: true })
+
+    const { boltdocsPlugin } = await import('../../src/node/plugin')
+    const plugins = boltdocsPlugin({ docsDir }, {
+      plugins: [
+        {
+          name: 'math',
+          components: { Math: '@bdocs/plugin-math/client' },
+        },
+      ],
+    } as any)
+    const vmPlugin = plugins.find(
+      (p) => p.name === 'vite-plugin-boltdocs-virtual-modules',
+    )!
+
+    const code = await vmPlugin.load!('\0virtual:boltdocs-mdx-components')
+    expect(code).toContain('Reflect.get(_pluginCompMod_0, "default")')
+    expect(code).not.toContain('["default"]')
+  }, 30000)
 })
 
 describe('layout integration', () => {

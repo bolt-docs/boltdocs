@@ -30,20 +30,21 @@ export class SEOValidateStep implements PipelineStep<BuildContext> {
     // same RouteMeta[] reference into createViteConfig, so replacing the array
     // here would leave virtual modules with stale SEO metadata.
     const routes = ctx.routes
+    const asString = (value: unknown): string | undefined =>
+      typeof value === 'string' ? value : undefined
+
     for (const route of routes) {
-      const rawSeo = route.seo || {}
+      const rawSeo: Record<string, unknown> = route.seo ?? {}
 
       // Calculate defaults
       const canonical =
-        rawSeo.canonical ||
+        asString(rawSeo.canonical) ||
         (siteUrl ? `${siteUrl.replace(/\/$/, '')}${route.path}` : undefined)
-      const ogUrl = rawSeo['og:url'] || canonical || undefined
+      const ogUrl = asString(rawSeo['og:url']) || canonical || undefined
 
-      const defaultOgImage = (ctx.config?.seo?.thumbnails?.background ??
-        undefined) as string | undefined
-      const rawOgImage =
-        rawSeo['og:image'] || route.coverImage || defaultOgImage
-      let ogImage = rawOgImage
+      const defaultOgImage = asString(ctx.config?.seo?.thumbnails?.background)
+      let ogImage =
+        asString(rawSeo['og:image']) || route.coverImage || defaultOgImage
       if (ogImage && siteUrl && !/^https?:\/\/|^\/\//.test(ogImage)) {
         const base = siteUrl.endsWith('/') ? siteUrl.slice(0, -1) : siteUrl
         const path = ogImage.startsWith('/') ? ogImage : `/${ogImage}`

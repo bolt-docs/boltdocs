@@ -1,4 +1,8 @@
-import type { PipelineResult, StepResult } from './types'
+import type {
+  PipelineResult,
+  PipelineRuntimeContext,
+  StepResult,
+} from './types'
 import { PipelineError } from './types'
 
 export type { PipelineResult, StepResult, BuildContext } from './types'
@@ -33,8 +37,8 @@ export class Pipeline<TContext> {
     const totalStart = performance.now()
     const context = {
       ...initialContext,
-      timing: {} as Record<string, number>,
-    } as TContext
+      timing: {},
+    } as TContext & PipelineRuntimeContext
 
     for (const entry of this.steps) {
       const isParallel = Array.isArray(entry)
@@ -50,23 +54,19 @@ export class Pipeline<TContext> {
 
         const duration = performance.now() - groupStart
         for (const step of stepGroup) {
-          const details = (context as any).stepDetails?.[step.name]
+          const details = context.stepDetails?.[step.name]
           stepResults.push({
             name: step.name,
             duration,
             success: true,
             details,
           })
-          ;(context as any).timing[step.name] = duration
+          context.timing[step.name] = duration
         }
 
-        // Collect sub-steps from SSGBuildStep
-        if ((context as any).ssgSubSteps) {
-          // Preserve metrics from sub-step results
-          for (const subStep of (context as any).ssgSubSteps) {
-            stepResults.push(subStep)
-          }
-          delete (context as any).ssgSubSteps
+        if (context.ssgSubSteps) {
+          stepResults.push(...context.ssgSubSteps)
+          delete context.ssgSubSteps
         }
       } catch (err) {
         const duration = performance.now() - groupStart
@@ -106,7 +106,7 @@ export class Pipeline<TContext> {
           success: false,
           failedStep: failedName,
           error: err instanceof Error ? err : new Error(String(err)),
-          timing: { total: totalDuration, steps: (context as any).timing },
+          timing: { total: totalDuration, steps: context.timing },
           stepResults,
         }
       }
@@ -115,7 +115,7 @@ export class Pipeline<TContext> {
     const totalDuration = performance.now() - totalStart
     return {
       success: true,
-      timing: { total: totalDuration, steps: (context as any).timing },
+      timing: { total: totalDuration, steps: context.timing },
       stepResults,
     }
   }

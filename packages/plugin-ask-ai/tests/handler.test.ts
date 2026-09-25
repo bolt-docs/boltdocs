@@ -1,10 +1,14 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 
 const mockCreate = vi.hoisted(() => vi.fn())
+const mockConstructor = vi.hoisted(() => vi.fn())
 
 vi.mock('openai', () => ({
   default: class MockOpenAI {
     chat = { completions: { create: mockCreate } }
+    constructor(options: { apiKey: string; baseURL?: string }) {
+      mockConstructor(options)
+    }
   },
 }))
 
@@ -15,18 +19,23 @@ type StreamEvent = Parameters<typeof streamLLMResponse>[1] extends (
   ? E
   : never
 
+interface FakeStreamChunk {
+  choices: Array<{ delta: { content: string } }>
+}
+
 function fakeStream(
   chunks: Array<{ content: string } | null>,
-): AsyncIterable<any> {
+): AsyncIterable<FakeStreamChunk> {
   return {
     async *[Symbol.asyncIterator]() {
-      for (const c of chunks) {
+      for (const chunk of chunks) {
         yield {
-          choices: c === null ? [] : [{ delta: { content: c.content } }],
+          choices:
+            chunk === null ? [] : [{ delta: { content: chunk.content } }],
         }
       }
     },
-  } as AsyncIterable<any>
+  }
 }
 
 function baseOptions(
@@ -50,16 +59,38 @@ function baseOptions(
 describe('streamLLMResponse (openai SDK)', () => {
   beforeEach(() => {
     mockCreate.mockReset()
+    mockConstructor.mockReset()
   })
 
-  it('returns error event when OPENAI_API_KEY is missing', async () => {
+  it('returns a generic configuration error without exposing the env key name', async () => {
     const events: StreamEvent[] = []
     await streamLLMResponse(baseOptions({ env: {} }), (ev) => events.push(ev))
     expect(mockCreate).not.toHaveBeenCalled()
-    expect(events.some((e) => e.type === 'error')).toBe(true)
-    expect(events.find((e) => e.type === 'error')?.data).toContain(
-      'OPENAI_API_KEY',
+    expect(events.find((e) => e.type === 'error')?.data).toBe(
+      'AI_NOT_CONFIGURED',
     )
+    expect(JSON.stringify(events)).not.toContain('OPENAI_API_KEY')
+  })
+
+  it('never redirects a non-OpenAI provider key through OPENAI_BASE_URL', async () => {
+    mockCreate.mockResolvedValue(fakeStream([{ content: 'ok' }]))
+
+    await streamLLMResponse(
+      baseOptions({
+        provider: 'groq',
+        providerEnvKey: 'GROQ_API_KEY',
+        env: {
+          GROQ_API_KEY: 'groq-secret',
+          OPENAI_BASE_URL: 'https://openai.example.test/v1',
+        },
+      }),
+      () => {},
+    )
+
+    expect(mockConstructor).toHaveBeenCalledWith({
+      apiKey: 'groq-secret',
+      baseURL: undefined,
+    })
   })
 
   it('streams text deltas from the SDK AsyncIterable', async () => {
@@ -145,11 +176,23 @@ describe('streamLLMResponse (openai SDK)', () => {
     expect(events.filter((e) => e.type === 'text')).toHaveLength(0)
   })
 
-  it('catches upstream SDK error and emits error event when not aborted', async () => {
-    mockCreate.mockRejectedValue(new Error('401 Unauthorized'))
+  it('does not expose an API key embedded in an upstream SDK error', async () => {
+    const leakedKey = 'sk-super-secret-upstream-value'
+    mockCreate.mockRejectedValue(
+      new Error(`Request failed with apiKey=${leakedKey}`),
+    )
     const events: StreamEvent[] = []
-    await streamLLMResponse(baseOptions(), (ev) => events.push(ev))
-    expect(events.find((e) => e.type === 'error')?.data).toContain('401')
+
+    await streamLLMResponse(
+      baseOptions({ env: { OPENAI_API_KEY: leakedKey } }),
+      (ev) => events.push(ev),
+    )
+
+    const serialized = JSON.stringify(events)
+    expect(serialized).not.toContain(leakedKey)
+    expect(events.find((e) => e.type === 'error')?.data).toBe(
+      'AI_PROVIDER_ERROR',
+    )
   })
 
   it('treats empty context as no-document path', async () => {
@@ -163,7 +206,7 @@ describe('streamLLMResponse (openai SDK)', () => {
   it('honors AbortSignal and skips error event on abort', async () => {
     // Mock honours the SDK option's signal so an abort settles the create() promise.
     mockCreate.mockImplementation(
-      (_params: any, opts: { signal?: AbortSignal }) =>
+      (_params: unknown, opts: { signal?: AbortSignal }) =>
         new Promise((_resolve, reject) => {
           if (!opts?.signal) {
             reject(new Error('no signal'))
@@ -198,7 +241,7 @@ describe('streamLLMResponse (openai SDK)', () => {
   it('does not emit done event when signal aborted mid-stream', async () => {
     // Mock honours opts.signal: yields one chunk then awaits abort.
     mockCreate.mockImplementation(
-      (_params: any, opts: { signal?: AbortSignal }) =>
+      (_params: unknown, opts: { signal?: AbortSignal }) =>
         Promise.resolve(
           (async function* () {
             yield { choices: [{ delta: { content: 'first' } }] }

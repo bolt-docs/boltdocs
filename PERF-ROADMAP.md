@@ -160,11 +160,11 @@ What the investigation found (all measured on the docs site):
 re-render from cache, no oscillation; browser check: layout + lazy
 `page-source.json`/`search.json` OK, critters intact.
 
-Remaining granularity headroom (not scheduled): the 28 synthetic routes ride
-the fallback identity and re-render on any client rebuild — they have no page
-body, so they could key on the guards alone. Sätteri now chunks at 15
-pages/pack for sites this size (see target 2), bounding best-case incremental
-renders at pages-in-the-edited-pack + 28.
+The remaining synthetic-route granularity headroom is now **DONE**:
+synthetic routes have no page body, so their cache identity is derived from
+the shared SSR/CSS guards (and the critical-CSS engine identity) rather than
+from the page-pack/client hash. Cached HTML is still rewritten with the current
+client entry URL, so a client-only rebuild does not re-render them.
 
 ### 2. Public-asset rewrite cost on full re-renders — DONE (measured)
 
@@ -206,11 +206,11 @@ itself (rolldown flags, chunking) — out of scope.
   hashed chunk names that rename on every text edit, and the SSR entry embeds
   the page-body chunk's `combined-<hash>.js` specifier — hash the entry with
   that specifier normalized, or text edits re-invalidate everything.
-- **Fast path validates against the fallback identity**: the ultra-warm path
-  checks synthetic routes against `pageContentFallbackHash` computed BEFORE
-  Vite resolves. Any identity mixed only after the bundle phase desyncs the
-  fast path from what the previous build stored (12s regression, silent). If
-  the client build is bypassed, compute the guards from the cached dirs early.
+- **Fast path validates against the correct stored identity**: the ultra-warm
+  path must use the same synthetic-route guard identity that the full build
+  writes. Any identity mixed only after the bundle phase desyncs the fast path
+  from what the previous build stored (12s regression, silent). If the client
+  build is bypassed, compute the guards from the cached dirs early.
 - **Every new root-level dist file must join `pageFiles`** in the ssg-output
   state (fast path uses it for reuse) or the fast path silently disables.
 - `docsDir` reaching Sätteri is ABSOLUTE — always `path.resolve(root, docsDir)`, never `path.join`.
@@ -386,3 +386,58 @@ browser: search dialog opens, flexsearch chunk fetched on demand, 20 results
 rendered; math pages bake katex into static HTML. Note: the docs site itself
 has no live math (all examples live inside code fences), so the win there is
 purely bytes-shipped.
+
+## Round: accessibility audit — axe-core to zero violations
+
+axe-core (wcag2a/2aa/21aa + best-practice) across 9 scenarios (landing, docs
+home, guides, deep API page, blog post, plugin page, es page, two mobile
+viewports): 25 violation nodes → 0.
+
+### Fixes (core)
+
+- `tabs.tsx` primitive: `TabsList` accepts `role` (pass `null` for
+  link-based nav tabs, `role="none"`) — an ARIA `tablist` with anchor children is invalid.
+- `on-this-page.tsx` primitive: indicator moved OUT of the `<ul>` (lists may
+  only contain `<li>`); it now measures against its `offsetParent` and is
+  `aria-hidden`; Root `nav` exposes an accessible `label` (default
+  'On this page').
+- `navbar.tsx` primitive: `NavbarLinks` accepts a landmark `label`; mobile
+  nav labeled; `NavbarTitle` sets an aria-label so the home link keeps an
+  accessible name when the visible title hides below `sm` (`link-name`).
+- `sidebar.tsx` primitive: `SidebarContent` nav labeled ('Docs navigation').
+- `page-nav.tsx`: nav labeled 'Pagination'.
+- `external-page-wrapper.tsx`: `<div>` → `<main>` (`landmark-one-main`).
+- `feedback.tsx` + docs theme feedback: h4 → h3 (`heading-order`).
+- `search-dialog.tsx`: trigger gets `aria-label`; hint text `text-muted`
+  → `text-paragraph` (4.38 → 4.6:1, `color-contrast`).
+
+### Fixes (docs site)
+
+- Theme navbar: labeled links nav; theme tabs: `role={null}`.
+- Theme table wrapper: `tabIndex={0}` only — keyboard-focusable scrollable
+  region without creating duplicate landmarks (`role="region"` + repeated
+  labels tripped `landmark-unique` on multi-table pages).
+- Hero CTA `bg-primary-500` → `bg-primary-600` (3.34 → 5+:1).
+- `--color-dim` token lifted to #8b949e.
+
+### Shiki `colorReplacements` support (new)
+
+github-dark comments (#6A737D) fail 4.5:1 on the code background. Added:
+
+- `codeHighlighting.options.colorReplacements` (zod config → Shiki adapter
+  → `colorReplacements` in every `getOptions` result).
+- Hex keys/values normalized case-insensitively (themes store lowercase;
+  `#6A737D` never matched `#6a737d`).
+- **Trap**: `getShikiAdapter`'s singleton identity ignored the new option and
+  kept serving a stale instance for a whole build. Every output-affecting
+  field must join that identity string.
+- **Trap**: the precompile layer caches compiled MDX keyed by content only —
+  after changing highlighter behavior, `.boltdocs/compiled` + `.boltdocs/cache`
+  must be cleared or old output persists. A config-joined globalKey exists but
+  only guards the manifest fast path, not the transform cache.
+
+### Result
+
+axe: 0 violations on all 9 scenarios (desktop + mobile). Lighthouse a11y
+should read ~1.0 on the docs site; performance numbers unaffected (no runtime
+JS added — all fixes are markup/attributes/CSS).
