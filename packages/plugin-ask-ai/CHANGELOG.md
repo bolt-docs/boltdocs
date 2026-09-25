@@ -40,8 +40,6 @@
   - Adapter `eventToSse` switches now have a default case (TS2366).
   - Middleware narrows `question` to `string` via local `safeQuestion` (TS2322 fix).
 
-## 0.3.0
-
 ### Added
 
 - **Declarative slots API.** New `slots` option maps directly to the core's
