@@ -1,40 +1,46 @@
 import { streamLLMResponse } from '../handler'
-import type { StreamEvent } from '../handler'
-import { headers } from './headers'
+import { createAdapterHeaders } from './headers'
+import { eventToSse } from './sse'
 import { pickClientContext } from '../../node/context'
+import { ADAPTER_ERROR } from '../errors'
 import type { AdapterConfig, AdapterEnv } from './types'
 import {
   checkAdapterRateLimit,
   isAuthorized,
   validateClientContext,
+  validateQuestion,
 } from './security'
+import { createStreamOptions } from './stream-options'
 
-function writeVercelEvent(res: any, event: StreamEvent): void {
-  switch (event.type) {
-    case 'context':
-      res.write(`data: ${JSON.stringify({ context: event.data })}\n\n`)
-      break
-    case 'text':
-      res.write(`data: ${JSON.stringify({ text: event.data })}\n\n`)
-      break
-    case 'error':
-      res.write(`data: ${JSON.stringify({ error: event.data })}\n\n`)
-      break
-    case 'done':
-      // [DONE] is emitted by the adapter itself.
-      break
-  }
+export interface VercelAskAiRequest {
+  method?: string
+  headers?: unknown
+  body?: unknown
+  url?: string
+}
+
+export interface VercelAskAiResponse {
+  setHeader(name: string, value: string): void
+  status(code: number): VercelAskAiResponse
+  write(chunk: string): void
+  end(chunk?: string): void
+  json(body: unknown): void
 }
 
 export async function handleVercelAskAi(
-  req: any,
-  res: any,
+  req: VercelAskAiRequest,
+  res: VercelAskAiResponse,
   config: AdapterConfig,
-  env: AdapterEnv = process.env as Record<string, string | undefined>,
+  env: AdapterEnv = process.env as AdapterEnv,
 ): Promise<void> {
-  Object.entries(headers).forEach(([key, value]) => {
+  const requestHeaders = new Headers((req.headers ?? {}) as HeadersInit)
+  const responseHeaders = createAdapterHeaders(
+    config,
+    requestHeaders.get('origin'),
+  )
+  for (const [key, value] of Object.entries(responseHeaders)) {
     res.setHeader(key, value)
-  })
+  }
 
   if (req.method === 'OPTIONS') {
     res.status(200).end()
@@ -46,20 +52,18 @@ export async function handleVercelAskAi(
   }
 
   try {
-    const requestHeaders = new Headers(req.headers)
-    const requestUrl = req.url || '/'
-    if (!isAuthorized(config, requestHeaders, requestUrl)) {
+    if (!isAuthorized(config, requestHeaders)) {
       res.status(401).json({ error: 'UNAUTHORIZED' })
       return
     }
-    const contextError = validateClientContext(
-      config,
-      req.body,
-      requestHeaders,
-      requestUrl,
-    )
+    const contextError = validateClientContext(config, req.body, requestHeaders)
     if (contextError) {
       res.status(403).json({ error: contextError })
+      return
+    }
+    const questionError = validateQuestion(config, req.body)
+    if (questionError) {
+      res.status(400).json({ error: questionError })
       return
     }
     const rate = checkAdapterRateLimit(
@@ -71,31 +75,22 @@ export async function handleVercelAskAi(
       res.status(429).json({ error: 'RATE_LIMITED' })
       return
     }
-    const { question } = req.body || {}
-    if (!question) {
-      res.status(400).json({ error: 'Missing question in request body' })
-      return
-    }
 
-    const ctx = pickClientContext(req.body, config.contextChars ?? 6_000)
-
+    const question = (req.body as { question: string }).question
+    const context = pickClientContext(req.body, config.contextChars ?? 6_000)
     await streamLLMResponse(
-      {
-        model: config.model,
-        systemPrompt: config.systemPrompt,
-        question,
-        context: ctx,
-        maxOutputTokens: config.maxOutputTokens ?? 600,
-        env,
+      createStreamOptions(config, question, context, env),
+      (event) => {
+        const sse = eventToSse(event)
+        if (sse) res.write(sse)
       },
-      (event) => writeVercelEvent(res, event),
     )
 
     res.write('data: [DONE]\n\n')
     res.end()
-  } catch (err) {
+  } catch {
     res.write(
-      `data: ${JSON.stringify({ error: err instanceof Error ? err.message : 'Server error' })}\n\n`,
+      `data: ${JSON.stringify({ error: ADAPTER_ERROR })}\n\ndata: [DONE]\n\n`,
     )
     res.end()
   }

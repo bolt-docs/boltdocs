@@ -1,0 +1,367 @@
+{
+  "pageCount": 20,
+  "runs": 3,
+  "complex": false,
+  "docusaurusFaster": {
+    "enabled": true,
+    "version": "3.10.2"
+  },
+  "timestamp": "2026-09-25T14:37:16.501Z",
+  "metrics": {
+    "buildTimeCold": {
+      "boltdocs": {
+        "samples": [23.42, 32.86, 36.3],
+        "min": 23.42,
+        "max": 36.3,
+        "mean": 30.86,
+        "median": 32.86
+      },
+      "docusaurus": {
+        "samples": [18.9, 19.09, 29.52],
+        "min": 18.9,
+        "max": 29.52,
+        "mean": 22.50333333333333,
+        "median": 19.09
+      }
+    },
+    "buildTimeWarm": {
+      "boltdocs": {
+        "samples": [4.18, 5.02, 5.14],
+        "min": 4.18,
+        "max": 5.14,
+        "mean": 4.78,
+        "median": 5.02
+      },
+      "docusaurus": {
+        "samples": [8.89, 10.99, 12.5],
+        "min": 8.89,
+        "max": 12.5,
+        "mean": 10.793333333333335,
+        "median": 10.99
+      }
+    },
+    "buildTimeEditedRebuild": {
+      "boltdocs": {
+        "samples": [18.46, 23.84, 26.47],
+        "min": 18.46,
+        "max": 26.47,
+        "mean": 22.923333333333332,
+        "median": 23.84
+      },
+      "docusaurus": {
+        "samples": [9.82, 11.02, 11.51],
+        "min": 9.82,
+        "max": 11.51,
+        "mean": 10.783333333333333,
+        "median": 11.02
+      }
+    },
+    "devServerStart": {
+      "boltdocs": {
+        "samples": [4337, 5832, 7372],
+        "min": 4337,
+        "max": 7372,
+        "mean": 5847,
+        "median": 5832
+      },
+      "docusaurus": {
+        "samples": [5537, 7495, 7607],
+        "min": 5537,
+        "max": 7607,
+        "mean": 6879.666666666667,
+        "median": 7495
+      }
+    },
+    "bundleSize": {
+      "boltdocs": {
+        "samples": [1025, 1025, 1025],
+        "min": 1025,
+        "max": 1025,
+        "mean": 1025,
+        "median": 1025
+      },
+      "docusaurus": {
+        "samples": [1073, 1073, 1073],
+        "min": 1073,
+        "max": 1073,
+        "mean": 1073,
+        "median": 1073
+      }
+    }
+  },
+  "samples": [
+    {
+      "pageCount": 20,
+      "docusaurusFaster": {
+        "enabled": true,
+        "version": "3.10.2"
+      },
+      "timestamp": "2026-09-25T14:33:05.210Z",
+      "buildTimeCold": {
+        "boltdocs": 23.42,
+        "docusaurus": 19.09,
+        "ratio": 0.8
+      },
+      "buildTimeWarm": {
+        "boltdocs": 4.18,
+        "docusaurus": 8.89,
+        "ratio": 2.1
+      },
+      "buildTimeEditedRebuild": {
+        "boltdocs": 18.46,
+        "docusaurus": 9.82,
+        "ratio": 0.5
+      },
+      "devServerStart": {
+        "boltdocs": 5832,
+        "docusaurus": 5537,
+        "ratio": 0.9
+      },
+      "bundleSize": {
+        "boltdocs": 1025,
+        "docusaurus": 1073,
+        "ratio": 1
+      },
+      "outputInventory": {
+        "boltdocs": {
+          "files": 75,
+          "bytes": 1049450,
+          "htmlFiles": 21,
+          "documentRoutes": [
+            "/",
+            "/page-1",
+            "/page-10",
+            "/page-11",
+            "/page-12",
+            "/page-13",
+            "/page-14",
+            "/page-15",
+            "/page-16",
+            "/page-17",
+            "/page-18",
+            "/page-19",
+            "/page-2",
+            "/page-20",
+            "/page-3",
+            "/page-4",
+            "/page-5",
+            "/page-6",
+            "/page-7",
+            "/page-8",
+            "/page-9"
+          ]
+        },
+        "docusaurus": {
+          "files": 55,
+          "bytes": 1098877,
+          "htmlFiles": 22,
+          "documentRoutes": [
+            "/",
+            "/page-1",
+            "/page-10",
+            "/page-11",
+            "/page-12",
+            "/page-13",
+            "/page-14",
+            "/page-15",
+            "/page-16",
+            "/page-17",
+            "/page-18",
+            "/page-19",
+            "/page-2",
+            "/page-20",
+            "/page-3",
+            "/page-4",
+            "/page-5",
+            "/page-6",
+            "/page-7",
+            "/page-8",
+            "/page-9"
+          ]
+        }
+      }
+    },
+    {
+      "pageCount": 20,
+      "docusaurusFaster": {
+        "enabled": true,
+        "version": "3.10.2"
+      },
+      "timestamp": "2026-09-25T14:35:17.769Z",
+      "buildTimeCold": {
+        "boltdocs": 32.86,
+        "docusaurus": 29.52,
+        "ratio": 0.9
+      },
+      "buildTimeWarm": {
+        "boltdocs": 5.02,
+        "docusaurus": 12.5,
+        "ratio": 2.5
+      },
+      "buildTimeEditedRebuild": {
+        "boltdocs": 26.47,
+        "docusaurus": 11.02,
+        "ratio": 0.4
+      },
+      "devServerStart": {
+        "boltdocs": 7372,
+        "docusaurus": 7607,
+        "ratio": 1
+      },
+      "bundleSize": {
+        "boltdocs": 1025,
+        "docusaurus": 1073,
+        "ratio": 1
+      },
+      "outputInventory": {
+        "boltdocs": {
+          "files": 75,
+          "bytes": 1049450,
+          "htmlFiles": 21,
+          "documentRoutes": [
+            "/",
+            "/page-1",
+            "/page-10",
+            "/page-11",
+            "/page-12",
+            "/page-13",
+            "/page-14",
+            "/page-15",
+            "/page-16",
+            "/page-17",
+            "/page-18",
+            "/page-19",
+            "/page-2",
+            "/page-20",
+            "/page-3",
+            "/page-4",
+            "/page-5",
+            "/page-6",
+            "/page-7",
+            "/page-8",
+            "/page-9"
+          ]
+        },
+        "docusaurus": {
+          "files": 55,
+          "bytes": 1098877,
+          "htmlFiles": 22,
+          "documentRoutes": [
+            "/",
+            "/page-1",
+            "/page-10",
+            "/page-11",
+            "/page-12",
+            "/page-13",
+            "/page-14",
+            "/page-15",
+            "/page-16",
+            "/page-17",
+            "/page-18",
+            "/page-19",
+            "/page-2",
+            "/page-20",
+            "/page-3",
+            "/page-4",
+            "/page-5",
+            "/page-6",
+            "/page-7",
+            "/page-8",
+            "/page-9"
+          ]
+        }
+      }
+    },
+    {
+      "pageCount": 20,
+      "docusaurusFaster": {
+        "enabled": true,
+        "version": "3.10.2"
+      },
+      "timestamp": "2026-09-25T14:37:16.500Z",
+      "buildTimeCold": {
+        "boltdocs": 36.3,
+        "docusaurus": 18.9,
+        "ratio": 0.5
+      },
+      "buildTimeWarm": {
+        "boltdocs": 5.14,
+        "docusaurus": 10.99,
+        "ratio": 2.1
+      },
+      "buildTimeEditedRebuild": {
+        "boltdocs": 23.84,
+        "docusaurus": 11.51,
+        "ratio": 0.5
+      },
+      "devServerStart": {
+        "boltdocs": 4337,
+        "docusaurus": 7495,
+        "ratio": 1.7
+      },
+      "bundleSize": {
+        "boltdocs": 1025,
+        "docusaurus": 1073,
+        "ratio": 1
+      },
+      "outputInventory": {
+        "boltdocs": {
+          "files": 75,
+          "bytes": 1049450,
+          "htmlFiles": 21,
+          "documentRoutes": [
+            "/",
+            "/page-1",
+            "/page-10",
+            "/page-11",
+            "/page-12",
+            "/page-13",
+            "/page-14",
+            "/page-15",
+            "/page-16",
+            "/page-17",
+            "/page-18",
+            "/page-19",
+            "/page-2",
+            "/page-20",
+            "/page-3",
+            "/page-4",
+            "/page-5",
+            "/page-6",
+            "/page-7",
+            "/page-8",
+            "/page-9"
+          ]
+        },
+        "docusaurus": {
+          "files": 55,
+          "bytes": 1098877,
+          "htmlFiles": 22,
+          "documentRoutes": [
+            "/",
+            "/page-1",
+            "/page-10",
+            "/page-11",
+            "/page-12",
+            "/page-13",
+            "/page-14",
+            "/page-15",
+            "/page-16",
+            "/page-17",
+            "/page-18",
+            "/page-19",
+            "/page-2",
+            "/page-20",
+            "/page-3",
+            "/page-4",
+            "/page-5",
+            "/page-6",
+            "/page-7",
+            "/page-8",
+            "/page-9"
+          ]
+        }
+      }
+    }
+  ]
+}

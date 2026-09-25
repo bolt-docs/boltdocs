@@ -31,7 +31,7 @@ export function DocsTabs({
   }, [activeIndex, tabRefs])
 
   return (
-    <div className="mx-auto w-full px-5 md:px-6 max-sm:px-10 select-none">
+    <div className="mx-auto w-full px-5 md:px-6 max-md:px-2 select-none">
       {/* Navigation tabs rendered as links: role="none" keeps the list from
           being announced as an ARIA tablist widget. */}
       <T.List

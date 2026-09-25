@@ -16,6 +16,7 @@ import { InternalErrorBoundary as ErrorBoundary } from '../components/internal/e
 import { CollectionsProvider } from '../collections/collections-context'
 import type { CollectionsData } from '../collections/collections-context'
 import { cn } from '../utils/cn'
+import { PluginFloatingSlots } from '../components/plugin-floating-slots'
 
 import virtualCustomComponents from 'virtual:boltdocs-mdx-components'
 import { normalizePath } from '../utils/path'
@@ -207,6 +208,7 @@ export function BoltdocsShell({
                       )}
                     >
                       <Outlet />
+                      <PluginFloatingSlots />
                     </div>
                   </ErrorBoundary>
                 </BoltdocsProvider>

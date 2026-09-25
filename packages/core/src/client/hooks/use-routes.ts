@@ -1,10 +1,148 @@
 import { useMemo } from 'react'
-import { useLocation } from '../router'
+import {
+  getVersionPrefixSegments,
+  normalizeUrlBase,
+  useLocation,
+} from '../router'
 import { useConfig } from '../app/config-context'
-import { useRoutesContext } from '../app/routes-context'
+import {
+  createRouteIndex,
+  useRoutesContext,
+  type RouteIndex,
+} from '../app/routes-context'
 import { useBoltdocsContext } from '../store/boltdocs-context'
 import { normalizePath } from '../utils/path'
-import type { ComponentRoute } from '../types'
+import type { BoltdocsConfig, ComponentRoute } from '../types'
+
+function stripBase(parts: string[], base?: string): string[] {
+  const baseParts = normalizeUrlBase(base).split('/').filter(Boolean)
+  if (baseParts.length === 0) return parts
+  if (
+    parts.length < baseParts.length ||
+    !baseParts.every((part, index) => parts[index] === part)
+  ) {
+    return parts
+  }
+  return parts.slice(baseParts.length)
+}
+
+function consumeVersion(
+  parts: string[],
+  config: BoltdocsConfig,
+): { version?: string; nextIndex: number } {
+  const versions = config.versions
+  if (!versions) return { nextIndex: 0 }
+
+  const prefixParts = getVersionPrefixSegments(config)
+  let index = 0
+  if (
+    prefixParts.length > 0 &&
+    prefixParts.every((part, offset) => parts[offset] === part)
+  ) {
+    index = prefixParts.length
+  } else if (prefixParts.length > 0) {
+    // Textual prefixes such as `v` may be emitted in the same URL segment as
+    // the configured version path (`v1`) or as a standalone segment (`v/1`).
+    if (prefixParts.length === 1 && parts.length > 0) {
+      const version = versions.versions.find(
+        (item) => `${prefixParts[0]}${item.path}` === parts[0],
+      )
+      if (version) return { version: version.path, nextIndex: 1 }
+    }
+    return { nextIndex: 0 }
+  }
+
+  const candidate = parts[index]
+  if (
+    candidate &&
+    versions.versions.some((version) => version.path === candidate)
+  ) {
+    return { version: candidate, nextIndex: index + 1 }
+  }
+  return { nextIndex: 0 }
+}
+
+function consumeLocale(
+  parts: string[],
+  index: number,
+  locales: readonly string[],
+): { locale?: string; nextIndex: number } {
+  const candidate = parts[index]
+  return candidate && locales.includes(candidate)
+    ? { locale: candidate, nextIndex: index + 1 }
+    : { nextIndex: index }
+}
+
+function effectiveVariantMatches(
+  route: ComponentRoute,
+  config: BoltdocsConfig,
+  currentLocale: string | undefined,
+  currentVersion: string | undefined,
+): boolean {
+  const localeMatches =
+    !config.i18n ||
+    (route.locale || config.i18n.defaultLocale) === currentLocale
+  const versionMatches =
+    !config.versions ||
+    (route.version || config.versions.defaultVersion) === currentVersion
+  return localeMatches && versionMatches
+}
+
+export function findCurrentCollectionRoute(
+  routeIndex: RouteIndex,
+  structuralPathKey: string,
+  config: BoltdocsConfig,
+  currentLocale: string | undefined,
+  currentVersion: string | undefined,
+): ComponentRoute | undefined {
+  return routeIndex.byCollectionPath
+    ?.get(structuralPathKey)
+    ?.find((route) =>
+      effectiveVariantMatches(route, config, currentLocale, currentVersion),
+    )
+}
+
+interface RouteSelectionOptions {
+  config: BoltdocsConfig
+  currentLocale?: string
+  currentVersion?: string
+  isCurrentLocalePrefixed: boolean
+  isCurrentVersionPrefixed: boolean
+  countsByFilePath: ReadonlyMap<string, number>
+}
+
+/** Filter generated variants using the URL's active locale/version contract. */
+export function selectRoutesForContext(
+  routes: readonly ComponentRoute[],
+  options: RouteSelectionOptions,
+): ComponentRoute[] {
+  const {
+    config,
+    currentLocale,
+    currentVersion,
+    isCurrentLocalePrefixed,
+    isCurrentVersionPrefixed,
+    countsByFilePath,
+  } = options
+
+  return routes.filter((route) => {
+    const localeMatches = config.i18n
+      ? (route.locale || config.i18n.defaultLocale) === currentLocale
+      : true
+    const versionMatches = config.versions
+      ? (route.version || config.versions.defaultVersion) === currentVersion
+      : true
+    if (!(localeMatches && versionMatches)) return false
+
+    if ((countsByFilePath.get(route.filePath) || 0) <= 1) return true
+
+    const localeMismatch =
+      config.i18n && isCurrentLocalePrefixed !== Boolean(route.locale)
+    const versionMismatch =
+      config.versions && isCurrentVersionPrefixed !== Boolean(route.version)
+    return !(localeMismatch || versionMismatch)
+  })
+}
 
 /**
  * Hook to access the framework's routing state.
@@ -14,13 +152,13 @@ import type { ComponentRoute } from '../types'
 export function useRoutes() {
   const routeContext = useRoutesContext()
   const allRoutes = routeContext.routes
-  const routeIndex = routeContext.index || {
-    byPath: new Map(
-      allRoutes.map((route) => [normalizePath(route.path), route]),
-    ),
-    hintsByPath: new Map(),
-    collectionNames: [],
-  }
+  const routeIndex = useMemo(
+    () =>
+      routeContext.index?.byCollectionPath
+        ? routeContext.index
+        : createRouteIndex(allRoutes),
+    [allRoutes, routeContext.index],
+  )
   const config = useConfig()
   const location = useLocation()
   const { pathname } = location
@@ -30,137 +168,118 @@ export function useRoutes() {
     currentVersion: currentVersionStore,
   } = useBoltdocsContext()
 
-  const currentPath = normalizePath(pathname)
+  const currentPath = useMemo(() => normalizePath(pathname || '/'), [pathname])
+  const pathParts = useMemo(
+    () => currentPath.split('/').filter(Boolean),
+    [currentPath],
+  )
+  const localeConfig = config.i18n?.locales
+  const configuredLocales = useMemo(
+    () =>
+      localeConfig
+        ? Array.isArray(localeConfig)
+          ? localeConfig
+          : Object.keys(localeConfig)
+        : [],
+    [localeConfig],
+  )
+  const configuredVersions = useMemo(
+    () => config.versions?.versions || [],
+    [config.versions],
+  )
 
-  // Collection post routes are registered without the docs base and sometimes
-  // without a leading slash (e.g. `blog/post`, `post`), while the browser URL
-  // includes both (`/docs/blog/post`). When the direct lookup misses, fall
-  // back to the longest route whose path is a tail of the current URL's
-  // segments — that uniquely resolves collection posts without ever matching
-  // a shorter, unrelated route first.
+  const structuralPath = useMemo(() => {
+    const contentParts = stripBase(pathParts, config.base)
+    const versionMatch = consumeVersion(contentParts, config)
+    const localeMatch = consumeLocale(
+      contentParts,
+      versionMatch.nextIndex,
+      configuredLocales,
+    )
+    return {
+      contentParts: contentParts.slice(localeMatch.nextIndex),
+      locale: localeMatch.locale,
+      version: versionMatch.version,
+    }
+  }, [config, configuredLocales, pathParts])
+
+  const currentLocale = config.i18n
+    ? structuralPath.locale ||
+      (configuredLocales.includes(currentLocaleStore || '')
+        ? currentLocaleStore
+        : config.i18n.defaultLocale)
+    : undefined
+  const currentVersion = config.versions
+    ? structuralPath.version ||
+      (configuredVersions.some(
+        (version) => version.path === currentVersionStore,
+      )
+        ? currentVersionStore
+        : config.versions.defaultVersion)
+    : undefined
+
+  const structuralPathKey = useMemo(
+    () => `/${structuralPath.contentParts.join('/')}`,
+    [structuralPath.contentParts],
+  )
   const currentRoute = useMemo(() => {
     const direct = routeIndex.byPath.get(currentPath)
     if (direct) return direct
-    const target = currentPath.split('/').filter(Boolean)
-    if (target.length === 0) return undefined
-    let best: { route: ComponentRoute; depth: number } | undefined
-    for (const [key, route] of routeIndex.byPath) {
-      // Restrict the heuristic to collection routes so regular docs pages can
-      // never be shadowed by an unrelated same-named tail match.
-      if (!route.collection) continue
-      const segments = key.split('/').filter(Boolean)
-      if (segments.length === 0 || segments.length > target.length) continue
-      const offset = target.length - segments.length
-      const isTail = segments.every(
-        (segment, i) => segment === target[offset + i],
-      )
-      if (isTail && (!best || segments.length > best.depth)) {
-        best = { route, depth: segments.length }
-      }
-    }
-    return best?.route
-  }, [routeIndex, currentPath])
 
-  const pathParts = pathname.split('/').filter(Boolean)
-  const urlLocale = config.i18n
-    ? pathParts.find((part) =>
-        Array.isArray(config.i18n?.locales)
-          ? config.i18n?.locales.includes(part)
-          : part in (config.i18n?.locales || {}),
-      )
-    : undefined
-
-  const currentLocale = config.i18n
-    ? urlLocale || currentLocaleStore || config.i18n.defaultLocale
-    : undefined
-
-  const configuredVersions = config.versions?.versions || []
-  const currentVersion = config.versions
-    ? configuredVersions.some((version) => version.path === currentVersionStore)
-      ? currentVersionStore
-      : config.versions.defaultVersion
-    : undefined
-
-  const routes = useMemo(() => {
-    if (!allRoutes) return []
-
-    const alternateCounts = new Map<string, number>()
-    const defaultLocale = config.i18n?.defaultLocale || ''
-    const defaultVersion = config.versions?.defaultVersion || ''
-
-    for (const r of allRoutes) {
-      const locale = r.locale || defaultLocale
-      const version = r.version || defaultVersion
-      const key = `${r.filePath}::${locale}::${version}`
-      alternateCounts.set(key, (alternateCounts.get(key) || 0) + 1)
-    }
-
-    return allRoutes.filter((r) => {
-      const localeMatch = config.i18n
-        ? (r.locale || config.i18n.defaultLocale) === currentLocale
-        : true
-      const versionMatch = config.versions
-        ? (r.version || config.versions.defaultVersion) === currentVersion
-        : true
-
-      if (!(localeMatch && versionMatch)) return false
-
-      const pathParts = pathname.split('/').filter(Boolean)
-      const isCurrentLocalePrefixed = !!(
-        config.i18n &&
-        pathParts.includes(currentLocaleStore || config.i18n.defaultLocale)
-      )
-      const isCurrentVersionPrefixed = !!(
-        config.versions &&
-        !!currentVersion &&
-        pathParts.includes(currentVersion)
-      )
-
-      const isRouteLocalePrefixed = !!r.locale
-      const isRouteVersionPrefixed = !!r.version
-
-      const locale = r.locale || defaultLocale
-      const version = r.version || defaultVersion
-      const key = `${r.filePath}::${locale}::${version}`
-      const hasAlternate = (alternateCounts.get(key) || 0) > 1
-
-      if (hasAlternate) {
-        const localeMismatch =
-          config.i18n && isCurrentLocalePrefixed !== isRouteLocalePrefixed
-        const versionMismatch =
-          config.versions && isCurrentVersionPrefixed !== isRouteVersionPrefixed
-
-        if (localeMismatch || versionMismatch) {
-          return false
-        }
-      }
-
-      return true
-    })
+    return findCurrentCollectionRoute(
+      routeIndex,
+      structuralPathKey,
+      config,
+      currentLocale,
+      currentVersion,
+    )
   }, [
-    allRoutes,
     config,
-    pathname,
     currentLocale,
+    currentPath,
     currentVersion,
-    currentLocaleStore,
+    routeIndex,
+    structuralPathKey,
   ])
 
-  const collections = useMemo(
-    () => new Set(routeIndex.collectionNames),
-    [routeIndex.collectionNames],
+  const isCurrentLocalePrefixed = structuralPath.locale !== undefined
+  const isCurrentVersionPrefixed = structuralPath.version !== undefined
+  const countsByFilePath = useMemo(() => {
+    if (routeIndex.countsByFilePath) return routeIndex.countsByFilePath
+    const counts = new Map<string, number>()
+    for (const route of allRoutes) {
+      counts.set(route.filePath, (counts.get(route.filePath) || 0) + 1)
+    }
+    return counts
+  }, [allRoutes, routeIndex.countsByFilePath])
+
+  const routes = useMemo(
+    () =>
+      selectRoutesForContext(allRoutes, {
+        config,
+        currentLocale,
+        currentVersion,
+        isCurrentLocalePrefixed,
+        isCurrentVersionPrefixed,
+        countsByFilePath,
+      }),
+    [
+      allRoutes,
+      config,
+      countsByFilePath,
+      currentLocale,
+      currentVersion,
+      isCurrentLocalePrefixed,
+      isCurrentVersionPrefixed,
+    ],
   )
 
-  // Collection post routes are registered without the docs base (e.g.
-  // `/blog/post`), while the browser URL includes it (`/docs/blog/post`),
-  // so `currentRoute` is undefined on post pages. Detect collection pages
-  // from any path segment instead of relying on the route index alone.
-  const isCollectionPage =
-    !!currentRoute?.collection ||
-    location.pathname
-      .split('/')
-      .filter(Boolean)
-      .some((segment) => collections.has(segment.toLowerCase()))
+  const collections = useMemo(
+    () => new Set(routeIndex.collectionNames.map((name) => name.toLowerCase())),
+    [routeIndex.collectionNames],
+  )
+  const currentCollection = structuralPath.contentParts[0]?.toLowerCase()
+  const isCollectionPage = collections.has(currentCollection || '')
 
   return {
     routes,

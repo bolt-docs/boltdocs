@@ -86,21 +86,24 @@ export function createSsgRouteManifest(
   sourceFiles: Readonly<Record<string, string>> = {},
 ): SsgRouteManifest {
   const sourceByKey = normalizeSourceFiles(root, sourceFiles)
-  const snapshots = routes.map((route) => {
+  const snapshots = routes.flatMap((route) => {
+    if (!route.path) return []
     const key = getCanonicalRouteKey(route.path)
     const exactSource = sourceFiles[route.path]
     const sourceFile = exactSource
       ? normalizeSourceFile(root, exactSource)
       : sourceByKey[key] || route.componentPath
-    return {
-      path: route.path,
-      key,
-      sourceFile,
-      componentPath: route.componentPath,
-      locale: route.locale,
-      version: route.version,
-      collection: route.collection,
-    }
+    return [
+      {
+        path: route.path,
+        key,
+        sourceFile,
+        componentPath: route.componentPath,
+        locale: route.locale,
+        version: route.version,
+        collection: route.collection,
+      },
+    ]
   })
   const byPath = new Map<string, SsgRouteSnapshot>()
   for (const route of snapshots) {

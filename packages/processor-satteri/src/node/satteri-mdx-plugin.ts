@@ -277,9 +277,10 @@ function computeGlobalKey(
   // content. We can't hash plugin functions, so we use names/versions when
   // available and fall back to counts.
   const pluginSignatures = (config.plugins || [])
-    .map((p: any) => {
-      const options = p?.options ? JSON.stringify(p.options) : ''
-      return `${p?.name ?? 'unknown'}@${p?.version ?? '0'}:${options}`
+    .map((plugin) => {
+      const source = plugin as typeof plugin & { options?: unknown }
+      const options = source.options ? JSON.stringify(source.options) : ''
+      return `${source.name ?? 'unknown'}@${source.version ?? '0'}:${options}`
     })
     .join(',')
 
@@ -642,10 +643,14 @@ export function createSatteriMdxPlugin(
     // Workers initialize in the background while the main thread starts
     // scanning files, so the pool may not be ready for the first few
     // compile requests — messages are queued by worker_threads automatically.
-    if (!hasUserPlugins && poolSafeEngine) {
+    const estimatedMisses = hasTransformSource
+      ? mdxFiles.length
+      : mdxFiles.filter((file) => !isManifestEntryFresh(file, manifest[file]))
+          .length
+    if (!hasUserPlugins && poolSafeEngine && estimatedMisses > 2) {
       const optimalWorkers = Math.min(
         os.cpus().length || 4,
-        Math.max(2, Math.ceil(mdxFiles.length / 25)),
+        Math.max(2, Math.ceil(estimatedMisses / 25)),
       )
       compilePool = new CompilePool(optimalWorkers, codeHighlighting)
       compilePool.start().catch(() => {
@@ -1235,16 +1240,19 @@ export function createSatteriMdxPlugin(
               // after the last build won't be in the manifest; checking it
               // here causes allCached=false and falls through to runPreCompile().
               // The ~20-50ms sync scan is acceptable for correctness.
+              const files = raw.files
               const mdxFiles = findMdxFiles(docsDir)
               const allCached =
                 mdxFiles.length > 0 &&
-                mdxFiles.every(
-                  (f) =>
-                    raw.files![f] &&
-                    isManifestEntryFresh(f, raw.files![f]) &&
-                    fs.existsSync(raw.files![f].outFile),
-                ) &&
-                hasCompleteCompiledPagesArtifacts(root, raw.files)
+                mdxFiles.every((file) => {
+                  const entry = files[file]
+                  return (
+                    entry !== undefined &&
+                    isManifestEntryFresh(file, entry) &&
+                    fs.existsSync(entry.outFile)
+                  )
+                }) &&
+                hasCompleteCompiledPagesArtifacts(root, files)
               if (allCached) {
                 // Keep the in-process cache contract consistent with the
                 // precompile path. Without this assignment, a later load()
@@ -1443,7 +1451,6 @@ export function createSatteriMdxPlugin(
         // Resolve (not join): docsDir may be absolute (core passes a resolved path).
         const docsDir = path.resolve(root, docsDirName)
         if (fs.existsSync(docsDir)) {
-          const mdxFiles = findMdxFiles(docsDir)
           const manifest = readManifest(root, LAST_GLOBAL_KEY)
           if (!manifest) {
             // globalKey mismatch or no manifest — clear everything

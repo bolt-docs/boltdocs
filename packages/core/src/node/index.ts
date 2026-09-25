@@ -1,4 +1,5 @@
-import type { Plugin, InlineConfig } from 'vite'
+import type { CSSOptions, InlineConfig, Plugin, UserConfig } from 'vite'
+import type { Options as ReactPluginOptions } from '@vitejs/plugin-react'
 import type { BoltdocsConfig } from './config'
 import type { BoltdocsPluginOptions } from './plugin/index'
 import type { RouteMeta } from './routes/types'
@@ -114,6 +115,18 @@ function createViteConfigCacheKey(
   return `${root}::${mode}::${hash}`
 }
 
+type ReactPluginFactory = (options?: ReactPluginOptions) => Plugin[]
+type BoltdocsPluginFactory = (
+  options?: BoltdocsPluginOptions,
+  passedConfig?: BoltdocsConfig,
+) => Plugin[]
+type ExternalPathsResolver = () => string[]
+type SecurityHeadersResolver = (
+  config: BoltdocsConfig,
+  isProduction: boolean,
+) => Record<string, string>
+type NormalizePath = (value: string) => string
+
 export interface CreateViteConfigOptions {
   /** Pre-computed routes. When provided, route generation is skipped. */
   routes?: RouteMeta[]
@@ -125,6 +138,23 @@ export interface CreateViteConfigOptions {
   skipRoutes?: boolean
   /** Static asset directory relative to the project root (default: docs/public). */
   publicDir?: string | false
+}
+
+export function shouldEnableBundledDev(
+  isProduction: boolean,
+  value = process.env.BOLTDOCS_BUNDLED_DEV,
+): boolean {
+  return !isProduction && value === 'true'
+}
+
+export function shouldUseReactPlugin(
+  isProduction: boolean,
+  base: string,
+  value = process.env.BOLTDOCS_REACT_REFRESH,
+): boolean {
+  if (isProduction) return true
+  if (value === 'true') return true
+  return base === '/' || base === ''
 }
 
 export default async function boltdocs(
@@ -183,43 +213,34 @@ export async function createViteConfig(
   const cached = _createViteConfigCache.get(cacheKey)
   if (cached) return cached.config
 
-  // Lazy imports: import modules only when first needed, then cache them.
-  // Node.js caches modules after the first import, so subsequent calls to
-  // createViteConfig that hit the in-memory cache skip this entirely.
-  //
-  // reactPlugin and tailwindPlugin are ONLY needed when building the
-  // final plugin array — they're not needed for the logic above.
-  // Import them lazily so the caller doesn't pay for heavy dependencies
-  // until the plugin array is actually constructed (~500ms saved on first
-  // cold call, since @vitejs/plugin-react pulls in Babel and
-  // @tailwindcss/vite pulls in the Tailwind CSS engine).
-  let _reactPlugin: any = null
-  let _boltdocsPlugin: any = null
-  let _getExternalAbsolutePaths: any = null
-  let _resolveSecurityHeaders: any = null
-  let _normalizePath: any = null
+  // Load Vite adapters in parallel with config and route discovery.
+  interface ViteRuntimeImports {
+    reactPlugin: ReactPluginFactory
+    boltdocsPlugin: BoltdocsPluginFactory
+    getExternalAbsolutePaths: ExternalPathsResolver
+    resolveSecurityHeaders: SecurityHeadersResolver
+    normalizePath: NormalizePath
+  }
 
-  async function ensureImports() {
-    if (_normalizePath) return
-
-    const importPromises: Promise<any>[] = [
+  let importsPromise: Promise<ViteRuntimeImports> | null = null
+  function ensureImports(): Promise<ViteRuntimeImports> {
+    if (importsPromise) return importsPromise
+    importsPromise = Promise.all([
       import('@vitejs/plugin-react'),
       import('./plugin/index'),
       import('./security/resolve'),
-      import('vite').then((m) => ({ normalizePath: m.normalizePath })),
-    ]
-
-    const results = await Promise.all(importPromises)
-    _reactPlugin = results[0].default
-    _boltdocsPlugin = results[1].boltdocsPlugin
-    _getExternalAbsolutePaths = results[1].getExternalAbsolutePaths
-    _resolveSecurityHeaders = results[2].resolveSecurityHeaders
-    _normalizePath = results[3].normalizePath
+      import('vite'),
+    ]).then(([reactModule, pluginModule, securityModule, viteModule]) => ({
+      reactPlugin: reactModule.default,
+      boltdocsPlugin: pluginModule.boltdocsPlugin,
+      getExternalAbsolutePaths: pluginModule.getExternalAbsolutePaths,
+      resolveSecurityHeaders: securityModule.resolveSecurityHeaders,
+      normalizePath: viteModule.normalizePath,
+    }))
+    return importsPromise
   }
 
-  // Start heavy plugin imports immediately so they run in parallel with
-  // config resolution and route generation below (~300-450ms saved).
-  const importsPromise = ensureImports()
+  const imports = ensureImports()
 
   const config =
     preResolvedConfig ||
@@ -243,19 +264,16 @@ export async function createViteConfig(
 
   // Prepare security headers — these don't depend on routes, so run them
   // in parallel with the types/link-tree generation below.
-  const securityHeadersPromise: Promise<Record<string, string>> = (async () => {
-    await ensureImports()
-    return _resolveSecurityHeaders(config, isProd)
-  })()
+  const securityHeadersPromise: Promise<Record<string, string>> = imports.then(
+    ({ resolveSecurityHeaders }) => resolveSecurityHeaders(config, isProd),
+  )
 
   // Only build routePaths for types/link-tree when we actually need them.
   const shouldGenerateTypes = !options.skipTypes
   const shouldGenerateLinkTree = !options.skipLinkTree
   if (shouldGenerateTypes || shouldGenerateLinkTree) {
-    const [
-      { generateRoutes, getExternalRoutePaths },
-      { generateProjectTypes, writeLinkTree },
-    ] = await Promise.all([import('./routes'), import('./types-generator')])
+    const [{ getExternalRoutePaths }, { generateProjectTypes, writeLinkTree }] =
+      await Promise.all([import('./routes'), import('./types-generator')])
     const routePaths = routes.map((r) => r.path)
     const basePath = (config.base || '/docs').replace(/\/$/, '')
     if (!routePaths.includes(basePath)) {
@@ -274,34 +292,91 @@ export async function createViteConfig(
   }
   const securityHeaders = await securityHeadersPromise
 
-  await ensureImports()
+  const {
+    reactPlugin,
+    boltdocsPlugin,
+    getExternalAbsolutePaths,
+    normalizePath: normalizeVitePath,
+  } = await imports
 
   // Collect PostCSS plugins and preprocessor options registered by CSS plugins
-  const postcssPlugins: any[] = []
-  const preprocessorOptions: Record<string, any> = {}
+  type PostcssProcessOptions = Exclude<
+    CSSOptions['postcss'],
+    string | undefined
+  >
+  type PostcssPlugin = NonNullable<PostcssProcessOptions['plugins']>[number]
+  type PreprocessorOptions = NonNullable<CSSOptions['preprocessorOptions']>
+  const postcssPlugins: PostcssPlugin[] = []
+  const preprocessorOptions: PreprocessorOptions = {}
 
   if (config.plugins) {
-    for (const p of config.plugins) {
-      if (p.css?.postcssPlugins) {
-        postcssPlugins.push(...p.css.postcssPlugins)
+    for (const plugin of config.plugins) {
+      if (plugin.css?.postcssPlugins) {
+        postcssPlugins.push(
+          ...plugin.css.postcssPlugins.filter(
+            (value): value is PostcssPlugin =>
+              typeof value === 'function' ||
+              (typeof value === 'object' && value !== null),
+          ),
+        )
       }
-      if (p.css?.preprocessorOptions) {
-        Object.assign(preprocessorOptions, p.css.preprocessorOptions)
+      if (plugin.css?.preprocessorOptions) {
+        Object.assign(
+          preprocessorOptions,
+          plugin.css.preprocessorOptions as Partial<PreprocessorOptions>,
+        )
       }
     }
   }
 
+  const userViteConfig: UserConfig = config.vite ?? {}
+  const userServer = userViteConfig.server ?? {}
+  const userPreview = userViteConfig.preview ?? {}
+  const userSsr = userViteConfig.ssr ?? {}
+  const userOptimizeDeps = userViteConfig.optimizeDeps ?? {}
+  const userEntries = userOptimizeDeps.entries ?? ['index.html']
+  const userSsrExternal = Array.isArray(userSsr.external)
+    ? userSsr.external
+    : typeof userSsr.external === 'string'
+      ? [userSsr.external]
+      : []
+  const userWatchIgnored = userServer.watch?.ignored
+  const watchIgnored = userWatchIgnored
+    ? Array.isArray(userWatchIgnored)
+      ? ['**/.boltdocs/**', ...userWatchIgnored]
+      : ['**/.boltdocs/**', userWatchIgnored]
+    : ['**/.boltdocs/**']
+  const hasCssConfig =
+    userViteConfig.css !== undefined ||
+    postcssPlugins.length > 0 ||
+    Object.keys(preprocessorOptions).length > 0
+  const css = {
+    ...userViteConfig.css,
+    ...(postcssPlugins.length > 0
+      ? { postcss: { plugins: postcssPlugins } }
+      : {}),
+    ...(Object.keys(preprocessorOptions).length > 0
+      ? {
+          preprocessorOptions: {
+            ...userViteConfig.css?.preprocessorOptions,
+            ...preprocessorOptions,
+          },
+        }
+      : {}),
+  }
+
+  const effectiveBase = config.base || userViteConfig.base || '/'
+
   const viteConfig: InlineConfig = {
+    ...userViteConfig,
     root,
     mode,
-    // Vite 8.1+ bundled dev mode: bundles modules during development,
-    // eliminating per-module HTTP overhead. Shows 3x faster cold starts
-    // in Linear's testing. Opt-in via BOLTDOCS_BUNDLED_DEV=true until
-    // @react-refresh + custom base path compatibility is resolved.
     experimental: {
-      bundledDev: !isProd && process.env.BOLTDOCS_BUNDLED_DEV === 'true',
+      ...userViteConfig.experimental,
+      bundledDev: shouldEnableBundledDev(isProd),
     },
     oxc: {
+      ...userViteConfig.oxc,
       jsx: {
         development: !isProd,
         runtime: 'automatic',
@@ -309,8 +384,10 @@ export async function createViteConfig(
       },
     },
     optimizeDeps: {
-      entries: ['index.html'],
+      ...userOptimizeDeps,
+      entries: userEntries,
       include: [
+        ...(userOptimizeDeps.include ?? []),
         'react',
         'react-dom',
         'react-dom/client',
@@ -321,100 +398,83 @@ export async function createViteConfig(
         'use-sync-external-store/shim',
       ],
     },
-    css:
-      postcssPlugins.length > 0 || Object.keys(preprocessorOptions).length > 0
-        ? {
-            postcss:
-              postcssPlugins.length > 0
-                ? { plugins: postcssPlugins }
-                : undefined,
-            preprocessorOptions:
-              Object.keys(preprocessorOptions).length > 0
-                ? preprocessorOptions
-                : undefined,
-          }
-        : undefined,
-    build: {},
+    css: hasCssConfig ? css : undefined,
+    build: userViteConfig.build ?? {},
     plugins: [
+      ...(userViteConfig.plugins ?? []),
       ssrDirnamePolyfillPlugin(),
-      _reactPlugin(),
-      ..._boltdocsPlugin(
+      ...(shouldUseReactPlugin(isProd, effectiveBase) ? reactPlugin() : []),
+      ...boltdocsPlugin(
         { docsDir, root, routes } as BoltdocsPluginOptions,
         config,
       ),
     ],
     ssr: {
+      ...userSsr,
       external: [
+        ...userSsrExternal,
         'react',
         'react-dom',
         'react-helmet-async',
         'react-router-dom',
         '@bdocs/ssg',
         'jsdom',
-        ..._getExternalAbsolutePaths(),
+        ...getExternalAbsolutePaths(),
       ],
       optimizeDeps: {
+        ...userSsr.optimizeDeps,
         include: [
+          ...(userSsr.optimizeDeps?.include ?? []),
           'react',
           'react-dom',
           'react-fast-compare',
-          ...((((config.vite as any)?.ssr?.optimizeDeps?.include as
-            | string[]
-            | undefined) ?? []) as string[]),
         ],
       },
-      // Keep empty: externalize all framework/runtime packages so they use a
-      // single shared instance from node_modules. Bundling react-router-dom
-      // while @bdocs/ssg is external created duplicate router contexts and
-      // caused "useLocation() may be used only in the context of a <Router>".
       noExternal: [],
     },
     server: {
+      ...userServer,
       watch: {
-        ignored: [
-          '**/.boltdocs/**',
-          ...(((config.vite as any)?.server?.watch?.ignored ?? []) as string[]),
-        ],
+        ...userServer.watch,
+        ignored: watchIgnored,
       },
       headers: {
         ...securityHeaders,
-        ...(config.vite as any)?.server?.headers,
+        ...userServer.headers,
       },
-      ...(config.vite as any)?.server,
-    } as any,
+    },
     preview: {
+      ...userPreview,
       headers: {
         ...securityHeaders,
-        ...(config.vite as any)?.preview?.headers,
+        ...userPreview.headers,
       },
-      ...(config.vite as any)?.preview,
-    } as any,
-    ...((config.vite as any) ?? {}),
+    },
     resolve: {
-      ...((config.vite as any)?.resolve ?? {}),
-      alias: createBoltdocsAliases({
-        root,
-        clientSourceRoot: _clientSourceRoot,
-        aliases: [
-          ...normalizeAliases(config.aliases),
-          ...normalizeAliases(config.vite?.resolve?.alias),
-        ],
-      }).map((alias) => ({
-        ...alias,
-        ...(typeof alias.replacement === 'string'
-          ? { replacement: _normalizePath(alias.replacement) }
-          : {}),
-      })),
+      ...userViteConfig.resolve,
+      alias: [
+        ...createBoltdocsAliases({
+          root,
+          clientSourceRoot: _clientSourceRoot,
+          aliases: [
+            ...normalizeAliases(config.aliases),
+            ...normalizeAliases(userViteConfig.resolve?.alias),
+          ],
+        }).map((alias) => ({
+          ...alias,
+          ...(typeof alias.replacement === 'string'
+            ? { replacement: normalizeVitePath(alias.replacement) }
+            : {}),
+        })),
+      ],
       dedupe: [
         'react',
         'react-dom',
         'react-router-dom',
-        ...(((config.vite as any)?.resolve?.dedupe ?? []) as string[]),
+        ...(userViteConfig.resolve?.dedupe ?? []),
       ],
     },
-    base: config.base || '/',
-    // Boltdocs projects keep static files next to their docs source. Vite's
-    // default is <root>/public, which leaves docs/public assets unresolved.
+    base: effectiveBase,
     publicDir: resolvePublicDir(root, config, options.publicDir),
   }
 

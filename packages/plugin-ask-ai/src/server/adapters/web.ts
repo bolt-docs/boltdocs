@@ -1,35 +1,26 @@
 import { streamLLMResponse } from '../handler'
-import type { StreamEvent } from '../handler'
-import { headers } from './headers'
 import { pickClientContext } from '../../node/context'
+import { ADAPTER_ERROR } from '../errors'
+import { createAdapterHeaders } from './headers'
+import { DONE_SSE, eventToSse } from './sse'
 import type { AdapterConfig, AdapterEnv } from './types'
 import {
   checkAdapterRateLimit,
   isAuthorized,
   validateClientContext,
+  validateQuestion,
 } from './security'
-
-function eventToSse(event: StreamEvent): string {
-  switch (event.type) {
-    case 'context':
-      return `data: ${JSON.stringify({ context: event.data })}\n\n`
-    case 'text':
-      return `data: ${JSON.stringify({ text: event.data })}\n\n`
-    case 'error':
-      return `data: ${JSON.stringify({ error: event.data })}\n\n`
-    case 'done':
-      return ''
-    default:
-      return ''
-  }
-}
+import { createStreamOptions } from './stream-options'
 
 export async function handleWebAskAi(
   request: Request,
   config: AdapterConfig,
-  env: AdapterEnv = {},
+  env: AdapterEnv = process.env as AdapterEnv,
 ): Promise<Response> {
-  const corsHeaders = { ...headers }
+  const corsHeaders = createAdapterHeaders(
+    config,
+    request.headers.get('origin'),
+  )
 
   if (request.method === 'OPTIONS') {
     return new Response(null, { status: 200, headers: corsHeaders })
@@ -42,22 +33,34 @@ export async function handleWebAskAi(
   }
 
   try {
-    const payload = await request.json()
-    if (!isAuthorized(config, request.headers, request.url)) {
+    const bodyText = await request.text()
+    if (
+      new TextEncoder().encode(bodyText).byteLength >
+      (config.maxRequestBytes ?? 65_536)
+    ) {
+      return new Response(JSON.stringify({ error: 'REQUEST_TOO_LARGE' }), {
+        status: 413,
+        headers: corsHeaders,
+      })
+    }
+    const payload = bodyText ? JSON.parse(bodyText) : {}
+    if (!isAuthorized(config, request.headers)) {
       return new Response(JSON.stringify({ error: 'UNAUTHORIZED' }), {
         status: 401,
         headers: corsHeaders,
       })
     }
-    const contextError = validateClientContext(
-      config,
-      payload,
-      request.headers,
-      request.url,
-    )
+    const contextError = validateClientContext(config, payload, request.headers)
     if (contextError) {
       return new Response(JSON.stringify({ error: contextError }), {
         status: 403,
+        headers: corsHeaders,
+      })
+    }
+    const questionError = validateQuestion(config, payload)
+    if (questionError) {
+      return new Response(JSON.stringify({ error: questionError }), {
+        status: 400,
         headers: corsHeaders,
       })
     }
@@ -72,41 +75,26 @@ export async function handleWebAskAi(
         headers: corsHeaders,
       })
     }
-    const { question } = payload
-    if (!question) {
-      return new Response(
-        JSON.stringify({ error: 'Missing question in request body' }),
-        { status: 400, headers: corsHeaders },
-      )
-    }
-    const ctx = pickClientContext(payload, config.contextChars ?? 6_000)
 
+    const question = (payload as { question: string }).question
+    const context = pickClientContext(payload, config.contextChars ?? 6_000)
     const encoder = new TextEncoder()
-    const mergedEnv = { ...process.env, ...env }
-
     const stream = new ReadableStream({
       async start(controller) {
         try {
           await streamLLMResponse(
-            {
-              model: config.model,
-              systemPrompt: config.systemPrompt,
-              question,
-              context: ctx,
-              maxOutputTokens: config.maxOutputTokens ?? 600,
-              env: mergedEnv,
-            },
-            (ev) => {
-              const sse = eventToSse(ev)
+            createStreamOptions(config, question, context, env, request.signal),
+            (event) => {
+              const sse = eventToSse(event)
               if (sse) controller.enqueue(encoder.encode(sse))
             },
           )
-          controller.enqueue(encoder.encode('data: [DONE]\n\n'))
-        } catch (err) {
-          const msg =
-            err instanceof Error ? err.message : 'Unknown stream error'
+          controller.enqueue(encoder.encode(DONE_SSE))
+        } catch {
           controller.enqueue(
-            encoder.encode(`data: ${JSON.stringify({ error: msg })}\n\n`),
+            encoder.encode(
+              `data: ${JSON.stringify({ error: ADAPTER_ERROR })}\n\n`,
+            ),
           )
         } finally {
           controller.close()
@@ -115,11 +103,9 @@ export async function handleWebAskAi(
     })
 
     return new Response(stream, { status: 200, headers: corsHeaders })
-  } catch (error) {
-    const message =
-      error instanceof Error ? error.message : 'Failed to query AI assistant'
+  } catch {
     return new Response(
-      `data: ${JSON.stringify({ error: message })}\n\ndata: [DONE]\n\n`,
+      `data: ${JSON.stringify({ error: ADAPTER_ERROR })}\n\n${DONE_SSE}`,
       { status: 500, headers: corsHeaders },
     )
   }

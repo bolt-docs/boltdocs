@@ -40,6 +40,8 @@ export interface NavbarLogoProps extends Omit<ComponentBase, 'children'> {
 
 export interface NavbarSearchTriggerProps extends ComponentBase {
   onPress: () => void
+  'aria-label'?: string
+  'aria-keyshortcuts'?: string
 }
 
 export interface NavbarThemeProps {
@@ -338,9 +340,11 @@ function NavbarSearchTriggerDesktop({
   className,
   onPress,
   children,
+  ...props
 }: NavbarSearchTriggerProps) {
   return (
     <ButtonRAC
+      {...props}
       onPress={onPress}
       className={cn(
         'hidden lg:flex items-center justify-between gap-2 px-3 py-2 text-sm outline-none cursor-pointer w-full max-w-[720px]',
@@ -356,15 +360,17 @@ function NavbarSearchTriggerMobile({
   className,
   onPress,
   children,
+  ...props
 }: NavbarSearchTriggerProps) {
   return (
     <ButtonRAC
+      {...props}
       onPress={onPress}
       className={cn(
         'lg:hidden flex h-10 w-10 items-center justify-center outline-none cursor-pointer',
         className,
       )}
-      aria-label="Search"
+      aria-label={props['aria-label'] || 'Search'}
     >
       {children}
     </ButtonRAC>

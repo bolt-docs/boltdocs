@@ -4,9 +4,9 @@ import { buildSystemPrompt } from './prompts'
 import { DEFAULT_DENY_PATTERNS } from './safety'
 import { createAskAiMiddleware, type MiddlewareConfig } from './middleware'
 import {
-  AskAiPluginOptionsSchema,
   PROVIDER_PRESETS,
   buildClientMetadata,
+  parseAskAiOptions,
   type AskAiPluginOptions,
 } from './options'
 
@@ -16,6 +16,8 @@ export {
   PROVIDER_PRESETS,
   AskAiPluginOptionsSchema,
   buildClientMetadata,
+  parseAskAiOptions,
+  type AskAiClassNames,
   type AskAiClientMetadata,
   type AskAiPluginOptions,
   type Provider,
@@ -27,7 +29,7 @@ const CLIENT_PACKAGE = '@bdocs/plugin-ask-ai/client'
 export default function askAiPlugin(
   rawOptions: AskAiPluginOptions = {},
 ): BoltdocsPlugin {
-  const options = AskAiPluginOptionsSchema.parse(rawOptions)
+  const options = parseAskAiOptions(rawOptions)
   const {
     autoInject,
     provider,
@@ -43,12 +45,20 @@ export default function askAiPlugin(
     maxOutputTokens,
     contextChars,
     rateLimitPerMinute,
-    secretKey,
+    maxRequestBytes,
+    secretKey: configuredSecretKey,
+    secretKeyEnv,
     devMode,
   } = options
 
   const providerPreset = PROVIDER_PRESETS[provider]
   const effectiveBaseURL = baseURL || providerPreset.baseURL
+  const secretKey =
+    configuredSecretKey ||
+    (secretKeyEnv ? process.env[secretKeyEnv] : undefined)
+  if (secretKey && secretKey.length < 16) {
+    throw new Error('secretKeyEnv must resolve to at least 16 characters')
+  }
   const providerEnvKey = providerPreset.envKey
   // A per-provider prompt wins, then a global override, then the default —
   // optionally composed with the custom `persona` identity/tone block.
@@ -78,6 +88,7 @@ export default function askAiPlugin(
     baseURL: effectiveBaseURL,
     providerEnvKey,
     rateLimitPerMinute,
+    maxRequestBytes,
     secretKey,
     devMode: effectiveDevMode,
     temperature,
@@ -86,7 +97,6 @@ export default function askAiPlugin(
 
   return {
     name: 'boltdocs-plugin-ask-ai',
-    version: '0.3.0',
     client: {
       slots: autoInject
         ? {
@@ -94,7 +104,10 @@ export default function askAiPlugin(
           }
         : undefined,
     },
-    metadata: buildClientMetadata(options) as Record<string, unknown>,
+    metadata: buildClientMetadata({
+      ...options,
+      devMode: effectiveDevMode,
+    }) as Record<string, unknown>,
     vitePlugins: [
       {
         name: 'vite-plugin-boltdocs-ask-ai-middleware',

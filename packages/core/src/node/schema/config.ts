@@ -28,6 +28,24 @@ export const BoltdocsPluginSchema = z.object({
   rehypePlugins: z.array(z.unknown()).optional(),
   vitePlugins: z.array(z.unknown()).optional(),
   components: z.record(z.string(), z.string()).optional(),
+  client: z
+    .object({
+      slots: z.record(z.string(), z.string()).optional(),
+      providers: z.array(z.string()).optional(),
+      mdxComponents: z.record(z.string(), z.string()).optional(),
+      head: z
+        .array(
+          z.object({
+            tag: z.enum(['script', 'link', 'meta', 'style']),
+            attrs: z
+              .record(z.string(), z.union([z.string(), z.boolean()]))
+              .optional(),
+            content: z.string().optional(),
+          }),
+        )
+        .optional(),
+    })
+    .optional(),
   codeHighlighter: z.unknown().optional(),
   metadata: z.record(z.string(), z.unknown()).optional(),
   css: z

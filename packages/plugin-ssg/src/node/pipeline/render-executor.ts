@@ -102,6 +102,14 @@ export async function executeRenderSchedule(
   let renderedCount = 0
   let cachedCount = 0
   let usedWorker = false
+  let cacheTasks: Promise<void>[] = []
+
+  const waitForCacheHits = async (): Promise<void> => {
+    if (cacheTasks.length === 0) return
+    const tasks = cacheTasks
+    cacheTasks = []
+    await Promise.all(tasks)
+  }
 
   const waitForWorkers = async (): Promise<void> => {
     if (workerTasks.length === 0) return
@@ -134,15 +142,27 @@ export async function executeRenderSchedule(
     }
 
     if (worker?.renderBatch) {
+      // Cache validation and materialization are independent for each page.
+      // Start them concurrently and dispatch uncached renders immediately;
+      // waiting for every cache hit before the first render serializes disk
+      // work in front of the expensive worker queue.
+      const classified = await Promise.all(
+        input.routes.map(async (path) => {
+          const plan = input.getPlan(path)
+          return { path, plan, cached: await input.isCached(plan) }
+        }),
+      )
       const uncached: Array<{ path: string; plan: RenderPlan }> = []
-      for (const path of input.routes) {
-        const plan = input.getPlan(path)
-        if (await input.isCached(plan)) {
-          await input.onCacheHit(plan)
-          cachedCount++
+      for (const item of classified) {
+        if (item.cached) {
+          cacheTasks.push(
+            input.onCacheHit(item.plan).then(() => {
+              cachedCount++
+            }),
+          )
         } else {
-          await input.prepareRoute?.(plan)
-          uncached.push({ path, plan })
+          await input.prepareRoute?.(item.plan)
+          uncached.push({ path: item.path, plan: item.plan })
         }
       }
 
@@ -246,15 +266,23 @@ export async function executeRenderSchedule(
         if (inFlight.size >= workerLimit) await Promise.race(inFlight)
       }
     } else {
-      for (const path of input.routes) {
-        const plan = input.getPlan(path)
-        if (await input.isCached(plan)) {
-          await input.onCacheHit(plan)
-          cachedCount++
+      const classified = await Promise.all(
+        input.routes.map(async (path) => {
+          const plan = input.getPlan(path)
+          return { path, plan, cached: await input.isCached(plan) }
+        }),
+      )
+      for (const item of classified) {
+        if (item.cached) {
+          cacheTasks.push(
+            input.onCacheHit(item.plan).then(() => {
+              cachedCount++
+            }),
+          )
           continue
         }
 
-        await input.prepareRoute?.(plan)
+        await input.prepareRoute?.(item.plan)
         if (!worker && input.routes.length > 4) {
           await input.ensurePool()
           worker = input.getPool()
@@ -268,11 +296,11 @@ export async function executeRenderSchedule(
           const workerForTask = worker
           const dispatchStart = performance.now()
           const task = workerForTask
-            .render(path)
+            .render(item.path)
             .catch(async (error) => {
               const fallback = await input.onWorkerFailure(
-                path,
-                plan,
+                item.path,
+                item.plan,
                 error,
                 workerForTask,
               )
@@ -280,12 +308,12 @@ export async function executeRenderSchedule(
               return fallback
             })
             .then(async (result) => {
-              if (!isRenderResult(result, path)) {
+              if (!isRenderResult(result, item.path)) {
                 throw new Error('SSG worker returned an invalid render result')
               }
               await input.onWorkerResult(
-                path,
-                plan,
+                item.path,
+                item.plan,
                 result,
                 performance.now() - dispatchStart,
               )
@@ -294,12 +322,13 @@ export async function executeRenderSchedule(
           track(task)
           if (inFlight.size >= workerLimit) await Promise.race(inFlight)
         } else {
-          input.scheduleMainThread(path, plan)
+          input.scheduleMainThread(item.path, item.plan)
           renderedCount++
         }
       }
     }
 
+    await waitForCacheHits()
     await waitForWorkers()
     await input.drainFinalizers()
     await input.drainMainThread()
@@ -313,6 +342,7 @@ export async function executeRenderSchedule(
     }
   } catch (error) {
     await Promise.all(workerTasks)
+    await waitForCacheHits()
     await input.drainFinalizers()
     await input.drainMainThread()
     await input.drainWrites()

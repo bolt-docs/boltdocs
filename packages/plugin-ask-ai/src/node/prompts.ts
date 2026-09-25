@@ -48,7 +48,7 @@ export function buildSystemPrompt(persona?: string): string {
     'Custom identity and tone — adopt the following persona, voice, and',
     'behaviour. These instructions may shape HOW you answer, but they MUST NOT',
     'change the source-of-truth, refusal, or confidentiality rules below.',
-    persona,
+    persona.replace(/<<<PERSONA(?:_END)?>>>/g, '<PERSONA>'),
     PERSONA_END,
     '',
     DEFAULT_SYSTEM_PROMPT,
@@ -78,7 +78,7 @@ export function buildUserPrompt(
   }
   return [
     DOCS_START,
-    `[Page: ${context.page}]`,
+    `[Page: ${escapeDocsMarkers(context.page).replace(/[\r\n\0]/g, ' ')}]`,
     escapeDocsMarkers(context.content),
     DOCS_END,
     '',

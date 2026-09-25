@@ -1,3 +1,4 @@
+import { cn } from '../cn'
 import type { ChatVariant } from './chat-header'
 import { SparkleIcon } from './icons'
 
@@ -5,19 +6,23 @@ interface ChatEmptyStateProps {
   description: string
   title?: string
   variant?: ChatVariant
+  className?: string
 }
 
 export function ChatEmptyState({
   description,
   title = 'How can I help you today?',
   variant = 'bubble',
+  className,
 }: ChatEmptyStateProps) {
   const compact = variant === 'dialog'
   return (
     <div
-      className={`flex-1 flex flex-col items-center justify-center text-center ${
-        compact ? 'p-2' : 'p-6'
-      }`}
+      className={cn(
+        'flex flex-1 flex-col items-center justify-center text-center',
+        compact ? 'p-2' : 'p-6',
+        className,
+      )}
     >
       <div
         className={`${

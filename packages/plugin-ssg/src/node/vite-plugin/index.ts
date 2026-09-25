@@ -108,7 +108,7 @@ export function ssrServerPlugin({
             styleTag,
           } = await adapter.render(stripBase(pathname, base))
 
-          metaAttributes.push(styleTag)
+          if (styleTag) metaAttributes.push(styleTag)
           const mods = await Promise.all(
             [ssrEntry, entry].map(
               async (entry) => await server.moduleGraph.getModuleByUrl(entry),

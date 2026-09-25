@@ -17,8 +17,8 @@ describe('pickClientContext', () => {
       { context: { page: 'p'.repeat(300), content: 'c'.repeat(10_000) } },
       100,
     )
-    expect(ctx!.page).toHaveLength(256)
-    expect(ctx!.content).toHaveLength(100)
+    expect(ctx?.page).toHaveLength(256)
+    expect(ctx?.content).toHaveLength(100)
   })
 
   it('returns null when context fields are missing', () => {
@@ -46,6 +46,6 @@ describe('resolvePageContext', () => {
       docsDir: '/docs',
     })
     expect(result.context).not.toBeNull()
-    expect(result.context!.page).toBe('/docs/start')
+    expect(result.context?.page).toBe('/docs/start')
   })
 })

@@ -15,7 +15,7 @@ export function createSearchDocuments(routes: RouteMeta[]): SearchDocument[] {
       id,
       path: route.path,
       title: route.title || '',
-      content: route._content || route.excerpt || '',
+      content: route._content || route.excerpt || route.description || '',
       headings: route.headings || [],
       frontmatter: route.frontmatter || {},
       locale: route.locale,
@@ -45,22 +45,14 @@ export async function executeSearchIndexHook(
     routes,
   )
 
-  const documents = createSearchDocuments(routes)
-  const results: unknown[] = []
+  if (!manager.hasHook('search:index')) return []
 
-  for (const plugin of plugins) {
-    if (plugin.hooks?.['search:index']) {
-      try {
-        const res = await manager.runChain('search:index', {
-          documents,
-          routes,
-        })
-        results.push(res)
-      } catch (err) {
-        manager.hasHook('search:index')
-      }
-    }
-  }
-
-  return results
+  // `runChain` already executes every registered search hook once, in plugin
+  // order. Calling it once per plugin multiplied the whole chain by the number
+  // of search-enabled plugins and could feed later plugins duplicate data.
+  const result = await manager.runChain('search:index', {
+    documents: createSearchDocuments(routes),
+    routes,
+  })
+  return [result]
 }

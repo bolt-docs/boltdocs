@@ -12,12 +12,16 @@ import { normalizePath } from '../utils'
 import { injectHtmlMeta } from './html'
 import { validatePlugins, type BoltdocsPlugin } from '../plugins'
 import { PluginLifecycleManager } from '../plugins/plugin-lifecycle'
-import type { IPluginLifecycleManager } from '../../shared/types'
+import type {
+  CodeHighlighterEngine,
+  IPluginLifecycleManager,
+} from '../../shared/types'
 import { normalizeCodeHighlightConfig } from '@bdocs/unist-utils'
 import {
   createVirtualModuleState,
   createVirtualModulesPlugin,
-  getSearchDataExport,
+  getSearchJsonExport,
+  getPageSourceJsonExport,
   type VirtualModuleState,
 } from './virtual-modules'
 import { createDevServerPlugin } from '../dev-server/index'
@@ -457,7 +461,9 @@ export function boltdocsPlugin(
                 config.theme?.codeHighlighting,
               )
               prewarmHighlighter({
-                engine: highlighting?.engine,
+                engine: highlighting?.engine as
+                  | CodeHighlighterEngine
+                  | undefined,
                 theme: highlighting?.theme ?? config.theme?.codeTheme,
                 options: highlighting?.options,
               })
@@ -765,9 +771,8 @@ export function boltdocsPlugin(
           if (url === '/search.json' || url?.endsWith('/search.json')) {
             import('./virtual-modules')
               .then(() => {
-                const data = getSearchDataExport(virtualModuleState)
                 res.setHeader('Content-Type', 'application/json')
-                res.end(JSON.stringify(data))
+                res.end(getSearchJsonExport(virtualModuleState))
               })
               .catch((err) => {
                 console.error('[boltdocs] Failed to serve search.json:', err)
@@ -781,19 +786,9 @@ export function boltdocsPlugin(
             url?.endsWith('/page-source.json')
           ) {
             import('./virtual-modules')
-              .then(async () => {
-                const source: Record<string, string> = {}
-                for (const route of virtualModuleState.routesDataMap.values()) {
-                  const withRaw = route as unknown as {
-                    path?: string
-                    _rawContent?: string
-                  }
-                  if (withRaw.path && withRaw._rawContent) {
-                    source[withRaw.path] = withRaw._rawContent
-                  }
-                }
+              .then(() => {
                 res.setHeader('Content-Type', 'application/json')
-                res.end(JSON.stringify(source))
+                res.end(getPageSourceJsonExport(virtualModuleState))
               })
               .catch((err) => {
                 console.error(
@@ -824,11 +819,11 @@ export function boltdocsPlugin(
           ).environment?.config?.consumer ?? 'client'
         if (!isBuild || consumer !== 'client') return
         try {
-          const data = getSearchDataExport(virtualModuleState)
+          const data = getSearchJsonExport(virtualModuleState)
           this.emitFile({
             type: 'asset',
             fileName: 'search.json',
-            source: JSON.stringify(data),
+            source: data,
           })
         } catch (err) {
           console.error('[boltdocs] Failed to emit search.json:', err)
@@ -837,20 +832,10 @@ export function boltdocsPlugin(
           // Per-page raw markdown for CopyMarkdown, fetched lazily at runtime
           // (kept out of app-*.js so content edits don't invalidate every
           // page's asset hash through the shared routes module).
-          const source: Record<string, string> = {}
-          for (const route of virtualModuleState.routesDataMap.values()) {
-            const withRaw = route as unknown as {
-              path?: string
-              _rawContent?: string
-            }
-            if (withRaw.path && withRaw._rawContent) {
-              source[withRaw.path] = withRaw._rawContent
-            }
-          }
           this.emitFile({
             type: 'asset',
             fileName: 'page-source.json',
-            source: JSON.stringify(source),
+            source: getPageSourceJsonExport(virtualModuleState),
           })
         } catch (err) {
           console.error('[boltdocs] Failed to emit page-source.json:', err)

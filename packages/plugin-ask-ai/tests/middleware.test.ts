@@ -1,25 +1,33 @@
 import { EventEmitter } from 'node:events'
+import type { ServerResponse } from 'node:http'
+import type { Connect } from 'vite'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { createAskAiMiddleware } from '../src/node/middleware'
 import { DEFAULT_DENY_PATTERNS } from '../src/node/safety'
 import type { MiddlewareConfig } from '../src/node/middleware'
+import type {
+  StreamEvent,
+  StreamLLMResponseOptions,
+} from '../src/server/handler'
 
 const streamLLMResponse = vi.hoisted(() =>
-  vi.fn(async (options: any, onEvent: (event: any) => void) => {
-    if (!options.env[options.providerEnvKey]) {
+  vi.fn(
+    async (
+      options: StreamLLMResponseOptions,
+      onEvent: (event: StreamEvent) => void,
+    ) => {
+      if (!options.env[options.providerEnvKey]) {
+        onEvent({ type: 'error', data: 'AI_NOT_CONFIGURED' })
+        return
+      }
       onEvent({
-        type: 'error',
-        data: `${options.providerEnvKey} is not set`,
+        type: 'context',
+        data: { page: '/docs/start', chars: 10, elapsedMs: 1 },
       })
-      return
-    }
-    onEvent({
-      type: 'context',
-      data: { page: '/docs/start', chars: 10, elapsedMs: 1 },
-    })
-    onEvent({ type: 'text', data: 'fake answer' })
-    onEvent({ type: 'done' })
-  }),
+      onEvent({ type: 'text', data: 'fake answer' })
+      onEvent({ type: 'done' })
+    },
+  ),
 )
 
 vi.mock('../src/server/index', () => ({ streamLLMResponse }))
@@ -38,22 +46,30 @@ class MockRequest extends EventEmitter {
   method = 'POST'
   url = '/api/ask-ai'
   headers: Record<string, string> = {}
+  complete = false
+  resume = vi.fn()
   socket = { remoteAddress: 'middleware-test' }
 }
 
 function makeResponse() {
+  const emitter = new EventEmitter()
   const chunks: string[] = []
   let resolveEnd: () => void = () => {}
   const ended = new Promise<void>((resolve) => {
     resolveEnd = resolve
   })
-  return {
+  const response = Object.assign(emitter, {
+    writableEnded: false,
     chunks,
     ended,
     setHeader: vi.fn(),
     write: vi.fn((chunk: string) => chunks.push(chunk)),
-    end: vi.fn(() => resolveEnd()),
-  }
+    end: vi.fn(() => {
+      response.writableEnded = true
+      resolveEnd()
+    }),
+  })
+  return response
 }
 
 function baseConfig(
@@ -70,6 +86,7 @@ function baseConfig(
     denyPatterns: DEFAULT_DENY_PATTERNS,
     providerEnvKey: 'OPENAI_API_KEY',
     rateLimitPerMinute: 30,
+    maxRequestBytes: 64 * 1024,
     devMode: false,
     ...overrides,
   }
@@ -85,8 +102,8 @@ async function request(
   const response = makeResponse()
   const next = vi.fn()
   createAskAiMiddleware(config, '/tmp/boltdocs-test')(
-    req as any,
-    response as any,
+    req as unknown as Connect.IncomingMessage,
+    response as unknown as ServerResponse,
     next,
   )
   req.emit('data', Buffer.from(JSON.stringify(body)))
@@ -117,7 +134,8 @@ describe('createAskAiMiddleware', () => {
 
     const call = streamLLMResponse.mock.calls.at(-1)?.[0]
     expect(call.env.MISSING_TEST_KEY).toBeUndefined()
-    expect(result.response.chunks.join('')).toContain('MISSING_TEST_KEY')
+    expect(result.response.chunks.join('')).toContain('AI_NOT_CONFIGURED')
+    expect(result.response.chunks.join('')).not.toContain('MISSING_TEST_KEY')
   })
 
   it('rejects an invalid secret before calling the provider', async () => {
@@ -130,6 +148,41 @@ describe('createAskAiMiddleware', () => {
       expect.objectContaining({ question: 'What is this?' }),
       expect.any(Function),
     )
+  })
+
+  it('does not accept a secret from the URL query string', async () => {
+    const result = await request(
+      baseConfig({ secretKey: 'server-secret' }),
+      { question: 'What is this?' },
+      (req) => {
+        req.url = '/api/ask-ai?secret=server-secret'
+      },
+    )
+
+    expect(result.response.chunks.join('')).toContain('UNAUTHORIZED')
+    expect(streamLLMResponse).not.toHaveBeenCalled()
+  })
+
+  it('accepts a valid secret from the dedicated request header', async () => {
+    const result = await request(
+      baseConfig({ secretKey: 'server-secret' }),
+      { question: 'What is this?' },
+      (req) => {
+        req.headers['x-boltdocs-ask-ai-key'] = 'server-secret'
+      },
+    )
+
+    expect(result.response.chunks.join('')).toContain('fake answer')
+    expect(streamLLMResponse).toHaveBeenCalled()
+  })
+
+  it('rejects an oversized request body before JSON parsing or provider access', async () => {
+    const result = await request(baseConfig({ maxRequestBytes: 128 }), {
+      question: 'x'.repeat(1_000),
+    })
+
+    expect(result.response.chunks.join('')).toContain('REQUEST_TOO_LARGE')
+    expect(streamLLMResponse).not.toHaveBeenCalled()
   })
 
   it('rate limits repeated requests from the same client', async () => {
@@ -145,27 +198,30 @@ describe('createAskAiMiddleware', () => {
     const providerStarted = new Promise<void>((resolve) => {
       resolveProviderStarted = resolve
     })
-    streamLLMResponse.mockImplementationOnce(async (options: any) => {
-      resolveProviderStarted()
-      await new Promise<void>((resolve) => {
-        if (options.signal.aborted) resolve()
-        else
-          options.signal.addEventListener('abort', () => resolve(), {
-            once: true,
-          })
-      })
-    })
+    streamLLMResponse.mockImplementationOnce(
+      async (options: StreamLLMResponseOptions) => {
+        resolveProviderStarted()
+        await new Promise<void>((resolve) => {
+          if (options.signal?.aborted) resolve()
+          else
+            options.signal?.addEventListener('abort', () => resolve(), {
+              once: true,
+            })
+        })
+      },
+    )
     const req = new MockRequest()
+    req.complete = true
     const response = makeResponse()
     createAskAiMiddleware(baseConfig(), '/tmp/boltdocs-test')(
-      req as any,
-      response as any,
+      req as unknown as Connect.IncomingMessage,
+      response as unknown as ServerResponse,
       vi.fn(),
     )
     req.emit('data', Buffer.from(JSON.stringify({ question: 'abort me' })))
     req.emit('end')
     await providerStarted
-    req.emit('close')
+    response.emit('close')
     await response.ended
     expect(streamLLMResponse).toHaveBeenCalled()
   })

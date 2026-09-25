@@ -1,4 +1,7 @@
 import { describe, it, expect } from 'vitest'
+import fs from 'fs-extra'
+import os from 'node:os'
+import path from 'node:path'
 import {
   createManifestIndexes,
   computeRouteClientAssetHash,
@@ -82,6 +85,40 @@ describe('computeRouteClientAssetHash', () => {
       clientHash: 'global-hash-abc',
     })
     expect(hash).toBe('global-hash-abc')
+  })
+
+  it('uses source content when the route has no emitted client chunk', async () => {
+    const root = await fs.mkdtemp(
+      path.join(os.tmpdir(), 'boltdocs-route-hash-'),
+    )
+    const sourceFile = path.join(root, 'page.mdx')
+
+    try {
+      await fs.writeFile(sourceFile, '# One')
+      const first = await computeRouteClientAssetHash({
+        outDir: root,
+        root,
+        routeSourceFile: sourceFile,
+        ssrManifest: {},
+        manifest: {},
+        clientHash: 'global-client-hash',
+      })
+
+      await fs.writeFile(sourceFile, '# Two')
+      const second = await computeRouteClientAssetHash({
+        outDir: root,
+        root,
+        routeSourceFile: sourceFile,
+        ssrManifest: {},
+        manifest: {},
+        clientHash: 'global-client-hash',
+      })
+
+      expect(first).not.toBe('global-client-hash')
+      expect(second).not.toBe(first)
+    } finally {
+      await fs.remove(root)
+    }
   })
 
   it('throws when no chunk and no client hash are available', async () => {

@@ -5,6 +5,7 @@ import type {
   PluginStore,
   PluginMeta,
   PluginLifecycleHooks,
+  PluginClientConfig,
   CodeHighlighterAdapter,
 } from '../../shared/types'
 
@@ -36,6 +37,7 @@ export interface BoltdocsPlugin {
   rehypePlugins?: unknown[]
   vitePlugins?: VitePlugin[]
   components?: Record<string, string>
+  client?: PluginClientConfig
   metadata?: Record<string, unknown>
   css?: PluginCssConfig
   middleware?: import('../../shared/types').PluginTransformMiddleware[]

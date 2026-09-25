@@ -211,6 +211,7 @@ export function getRouteGenerationFingerprint(
         versions: config?.versions,
         drafts: config?.drafts,
         featureFlags: config?.featureFlags,
+        fileRouting: config?.experimental?.fileRouting,
         sidebarGroups: config?.theme?.sidebarGroups,
       }),
     )

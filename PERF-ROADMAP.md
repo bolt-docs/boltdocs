@@ -160,11 +160,11 @@ What the investigation found (all measured on the docs site):
 re-render from cache, no oscillation; browser check: layout + lazy
 `page-source.json`/`search.json` OK, critters intact.
 
-Remaining granularity headroom (not scheduled): the 28 synthetic routes ride
-the fallback identity and re-render on any client rebuild — they have no page
-body, so they could key on the guards alone. Sätteri now chunks at 15
-pages/pack for sites this size (see target 2), bounding best-case incremental
-renders at pages-in-the-edited-pack + 28.
+The remaining synthetic-route granularity headroom is now **DONE**:
+synthetic routes have no page body, so their cache identity is derived from
+the shared SSR/CSS guards (and the critical-CSS engine identity) rather than
+from the page-pack/client hash. Cached HTML is still rewritten with the current
+client entry URL, so a client-only rebuild does not re-render them.
 
 ### 2. Public-asset rewrite cost on full re-renders — DONE (measured)
 
@@ -206,11 +206,11 @@ itself (rolldown flags, chunking) — out of scope.
   hashed chunk names that rename on every text edit, and the SSR entry embeds
   the page-body chunk's `combined-<hash>.js` specifier — hash the entry with
   that specifier normalized, or text edits re-invalidate everything.
-- **Fast path validates against the fallback identity**: the ultra-warm path
-  checks synthetic routes against `pageContentFallbackHash` computed BEFORE
-  Vite resolves. Any identity mixed only after the bundle phase desyncs the
-  fast path from what the previous build stored (12s regression, silent). If
-  the client build is bypassed, compute the guards from the cached dirs early.
+- **Fast path validates against the correct stored identity**: the ultra-warm
+  path must use the same synthetic-route guard identity that the full build
+  writes. Any identity mixed only after the bundle phase desyncs the fast path
+  from what the previous build stored (12s regression, silent). If the client
+  build is bypassed, compute the guards from the cached dirs early.
 - **Every new root-level dist file must join `pageFiles`** in the ssg-output
   state (fast path uses it for reuse) or the fast path silently disables.
 - `docsDir` reaching Sätteri is ABSOLUTE — always `path.resolve(root, docsDir)`, never `path.join`.

@@ -7,6 +7,15 @@ export interface RouteIndex {
   byPath: ReadonlyMap<string, ComponentRoute>
   hintsByPath: ReadonlyMap<string, UrlRouteHint>
   collectionNames: readonly string[]
+  /**
+   * Collection routes can be registered without the configured documentation
+   * base. This structural index removes the route's collection prefix and all
+   * preceding URL segments, allowing the hook to resolve the exact content
+   * path without scanning every route for an arbitrary tail match.
+   */
+  byCollectionPath?: ReadonlyMap<string, readonly ComponentRoute[]>
+  /** Number of generated variants sharing each source file. */
+  countsByFilePath?: ReadonlyMap<string, number>
 }
 
 interface RoutesContextType {
@@ -18,6 +27,60 @@ const emptyRouteIndex: RouteIndex = {
   byPath: new Map(),
   hintsByPath: new Map(),
   collectionNames: [],
+  byCollectionPath: new Map(),
+  countsByFilePath: new Map(),
+}
+
+function getCollectionPathKey(route: ComponentRoute): string | undefined {
+  if (!route.collection) return undefined
+  const parts = normalizePath(route.path).split('/').filter(Boolean)
+  const collectionIndex = parts.indexOf(route.collection)
+  if (collectionIndex < 0) return undefined
+  return `/${parts.slice(collectionIndex).join('/')}`
+}
+
+/** Build all client route lookup structures in one cached pass. */
+export function createRouteIndex(
+  routes: readonly ComponentRoute[],
+): RouteIndex {
+  const byPath = new Map<string, ComponentRoute>()
+  const hintsByPath = new Map<string, UrlRouteHint>()
+  const byCollectionPath = new Map<string, ComponentRoute[]>()
+  const countsByFilePath = new Map<string, number>()
+  const collectionNames = new Set<string>()
+
+  for (const route of routes) {
+    if (!route.path) continue
+    const path = normalizePath(route.path)
+    byPath.set(path, route)
+    hintsByPath.set(path, {
+      path: route.path,
+      kind: route.collection ? 'collection' : undefined,
+      collection: route.collection,
+    })
+    countsByFilePath.set(
+      route.filePath,
+      (countsByFilePath.get(route.filePath) || 0) + 1,
+    )
+
+    if (route.collection) {
+      collectionNames.add(route.collection)
+      const collectionPath = getCollectionPathKey(route)
+      if (collectionPath) {
+        const variants = byCollectionPath.get(collectionPath) || []
+        variants.push(route)
+        byCollectionPath.set(collectionPath, variants)
+      }
+    }
+  }
+
+  return {
+    byPath,
+    hintsByPath,
+    byCollectionPath,
+    countsByFilePath,
+    collectionNames: [...collectionNames],
+  }
 }
 
 const RoutesContext = createContext<RoutesContextType>({
@@ -51,29 +114,7 @@ export function RoutesProvider({
 }) {
   const [routes, setRoutes] = useState(initialRoutes)
 
-  const index = useMemo<RouteIndex>(() => {
-    const byPath = new Map<string, ComponentRoute>()
-    const hintsByPath = new Map<string, UrlRouteHint>()
-    const collectionNames = new Set<string>()
-
-    for (const route of routes) {
-      if (!route.path) continue
-      const path = normalizePath(route.path)
-      byPath.set(path, route)
-      hintsByPath.set(path, {
-        path: route.path,
-        kind: route.collection ? 'collection' : undefined,
-        collection: route.collection,
-      })
-      if (route.collection) collectionNames.add(route.collection)
-    }
-
-    return {
-      byPath,
-      hintsByPath,
-      collectionNames: [...collectionNames],
-    }
-  }, [routes])
+  const index = useMemo<RouteIndex>(() => createRouteIndex(routes), [routes])
 
   useEffect(() => {
     if (!import.meta.hot) return

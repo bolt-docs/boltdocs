@@ -20,7 +20,10 @@ applyFsPatch()
 try {
   void Promise.resolve()
     .then(() => import('node:module'))
-    .then(({ enableCompileCache }) => {
+    .then((module) => {
+      const enableCompileCache = (
+        module as unknown as { enableCompileCache?: () => void }
+      ).enableCompileCache
       if (typeof enableCompileCache === 'function') enableCompileCache()
     })
     .catch(() => {})

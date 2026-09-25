@@ -1,67 +1,86 @@
 import { streamLLMResponse } from '../handler'
-import type { StreamEvent } from '../handler'
-import { headers } from './headers'
 import { pickClientContext } from '../../node/context'
+import { ADAPTER_ERROR } from '../errors'
+import { createAdapterHeaders } from './headers'
+import { DONE_SSE, eventToSse } from './sse'
 import type { AdapterConfig, AdapterEnv } from './types'
 import {
   checkAdapterRateLimit,
   isAuthorized,
   validateClientContext,
+  validateQuestion,
 } from './security'
+import { createStreamOptions } from './stream-options'
 
-function eventToSse(event: StreamEvent): string {
-  switch (event.type) {
-    case 'context':
-      return `data: ${JSON.stringify({ context: event.data })}\n\n`
-    case 'text':
-      return `data: ${JSON.stringify({ text: event.data })}\n\n`
-    case 'error':
-      return `data: ${JSON.stringify({ error: event.data })}\n\n`
-    case 'done':
-      return ''
-    default:
-      return ''
-  }
+export interface NetlifyAskAiEvent {
+  httpMethod?: string
+  headers?: unknown
+  body?: string | null
+  path?: string
+}
+
+export interface NetlifyAskAiResponse {
+  statusCode: number
+  headers: Record<string, string>
+  body: string
 }
 
 export async function handleNetlifyAskAi(
-  event: any,
+  event: NetlifyAskAiEvent,
   config: AdapterConfig,
-  env: AdapterEnv = process.env as Record<string, string | undefined>,
-): Promise<any> {
+  env: AdapterEnv = process.env as AdapterEnv,
+): Promise<NetlifyAskAiResponse> {
+  const requestHeaders = new Headers((event.headers ?? {}) as HeadersInit)
+  const responseHeaders = createAdapterHeaders(
+    config,
+    requestHeaders.get('origin'),
+  )
+
   if (event.httpMethod === 'OPTIONS') {
-    return { statusCode: 200, headers, body: '' }
+    return { statusCode: 200, headers: responseHeaders, body: '' }
   }
   if (event.httpMethod !== 'POST') {
     return {
       statusCode: 405,
-      headers,
+      headers: responseHeaders,
       body: JSON.stringify({ error: 'Method Not Allowed' }),
     }
   }
 
   try {
-    const payload = event.body ? JSON.parse(event.body) : {}
-    const requestHeaders = new Headers(event.headers || {})
-    const requestUrl = event.path || '/'
-    if (!isAuthorized(config, requestHeaders, requestUrl)) {
+    const bodyText = event.body ?? ''
+    if (
+      new TextEncoder().encode(bodyText).byteLength >
+      (config.maxRequestBytes ?? 65_536)
+    ) {
+      return {
+        statusCode: 413,
+        headers: responseHeaders,
+        body: JSON.stringify({ error: 'REQUEST_TOO_LARGE' }),
+      }
+    }
+    const payload = bodyText ? JSON.parse(bodyText) : {}
+    if (!isAuthorized(config, requestHeaders)) {
       return {
         statusCode: 401,
-        headers,
+        headers: responseHeaders,
         body: JSON.stringify({ error: 'UNAUTHORIZED' }),
       }
     }
-    const contextError = validateClientContext(
-      config,
-      payload,
-      requestHeaders,
-      requestUrl,
-    )
+    const contextError = validateClientContext(config, payload, requestHeaders)
     if (contextError) {
       return {
         statusCode: 403,
-        headers,
+        headers: responseHeaders,
         body: JSON.stringify({ error: contextError }),
+      }
+    }
+    const questionError = validateQuestion(config, payload)
+    if (questionError) {
+      return {
+        statusCode: 400,
+        headers: responseHeaders,
+        body: JSON.stringify({ error: questionError }),
       }
     }
     const rate = checkAdapterRateLimit(
@@ -71,45 +90,29 @@ export async function handleNetlifyAskAi(
     if (!rate.ok) {
       return {
         statusCode: 429,
-        headers: { ...headers, 'Retry-After': String(rate.retryAfter) },
+        headers: { ...responseHeaders, 'Retry-After': String(rate.retryAfter) },
         body: JSON.stringify({ error: 'RATE_LIMITED' }),
       }
     }
-    const { question } = payload
-    if (!question) {
-      return {
-        statusCode: 400,
-        headers,
-        body: JSON.stringify({ error: 'Missing question in request body' }),
-      }
-    }
-    const ctx = pickClientContext(payload, config.contextChars ?? 6_000)
 
+    const question = (payload as { question: string }).question
+    const context = pickClientContext(payload, config.contextChars ?? 6_000)
     const parts: string[] = []
     await streamLLMResponse(
-      {
-        model: config.model,
-        systemPrompt: config.systemPrompt,
-        question,
-        context: ctx,
-        maxOutputTokens: config.maxOutputTokens ?? 600,
-        env,
-      },
-      (ev) => {
-        const sse = eventToSse(ev)
+      createStreamOptions(config, question, context, env),
+      (event) => {
+        const sse = eventToSse(event)
         if (sse) parts.push(sse)
       },
     )
-    parts.push('data: [DONE]\n\n')
+    parts.push(DONE_SSE)
 
-    return { statusCode: 200, headers, body: parts.join('') }
-  } catch (error) {
-    const message =
-      error instanceof Error ? error.message : 'Failed to query AI assistant'
+    return { statusCode: 200, headers: responseHeaders, body: parts.join('') }
+  } catch {
     return {
       statusCode: 500,
-      headers,
-      body: `data: ${JSON.stringify({ error: message })}\n\ndata: [DONE]\n\n`,
+      headers: responseHeaders,
+      body: `data: ${JSON.stringify({ error: ADAPTER_ERROR })}\n\n${DONE_SSE}`,
     }
   }
 }

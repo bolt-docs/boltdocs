@@ -29,6 +29,41 @@ describe('route cache isolation', () => {
     fs.rmSync(tempRoot, { recursive: true, force: true })
   })
 
+  it('uses separate route variants when external file routing changes discovery', () => {
+    const withoutFileRouting = getRouteGenerationFingerprint({
+      experimental: { fileRouting: false },
+    })
+    const withFileRouting = getRouteGenerationFingerprint({
+      experimental: { fileRouting: true },
+    })
+
+    expect(withFileRouting).not.toBe(withoutFileRouting)
+  })
+
+  it('coalesces identical concurrent route generations', async () => {
+    const docsDir = path.join(tempRoot, 'coalesced-generation', 'docs')
+    fs.mkdirSync(docsDir, { recursive: true })
+    for (let i = 0; i < 64; i++) {
+      fs.writeFileSync(
+        path.join(docsDir, `page-${i}.md`),
+        `---\ntitle: Page ${i}\n---\n# Page ${i}\n`,
+      )
+    }
+    const context = createRouteCacheContext(
+      docsDir,
+      path.join(tempRoot, 'coalesced-generation-cache'),
+    )
+
+    const [firstRoutes, secondRoutes] = await Promise.all([
+      generateRoutes(docsDir, undefined, '/docs', true, context),
+      generateRoutes(docsDir, undefined, '/docs', true, context),
+    ])
+
+    expect(firstRoutes).toBe(secondRoutes)
+    expect(firstRoutes).toHaveLength(64)
+    expect(context.activeGenerations.size).toBe(0)
+  })
+
   it('keeps concurrent projects and invalidation isolated', async () => {
     const firstDocs = createDocs('first', 'First project')
     const secondDocs = createDocs('second', 'Second project')

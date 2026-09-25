@@ -1,7 +1,7 @@
 ---
 title: FlexSearch
 sidebarPosition: 2
-description: Boltdocs incluye **FlexSearch** como su motor de búsqueda offline predeterminado. Durante la fase de compilación, Boltdocs escanea todos los archivos markdown, parsea su HTML/encabezados y compila un archivo JSON de índice altamente comprimido. El runtime del lado del cliente carga este índice y realiza coincidencias locales de alta velocidad sin consultas de red
+description: Boltdocs incluye **FlexSearch** como su motor de búsqueda offline predeterminado. Durante la fase de compilación, Boltdocs escanea todos los archivos markdown y prepara un asset de búsqueda runtime limitado. El cliente carga el asset y FlexSearch de forma lazy cuando se abre el diálogo, y realiza coincidencias locales de alta velocidad sin consultas de red.
 ---
 
 ## El Hook `useSearch()`
@@ -9,26 +9,40 @@ description: Boltdocs incluye **FlexSearch** como su motor de búsqueda offline 
 Para construir una barra de búsqueda personalizada, entradas de consulta o búsqueda en lista en línea, usa el hook `useSearch()` de `boltdocs`. Expone el estado de consulta en vivo, los resultados de búsqueda y los callbacks de control del diálogo.
 
 ```tsx
-import { useSearch } from 'boltdocs'
+import { useRoutes, useSearch } from 'boltdocs'
 
 export function MySearchBar() {
-  const { query, setQuery, results, isOpen, open, close } = useSearch()
+  const { routes } = useRoutes()
+  const {
+    query,
+    setQuery,
+    list,
+    isOpen,
+    setIsOpen,
+    handleSelect,
+    status,
+  } = useSearch(routes)
 
   return (
     <div className="search-container">
       <input
         value={query}
-        onChange={(e) => setQuery(e.target.value)}
+        onChange={(event) => setQuery(event.target.value)}
         placeholder="Type to search..."
-        onFocus={open}
+        onFocus={() => setIsOpen(true)}
       />
-      {isOpen && results.length > 0 && (
+      {isOpen && status === 'ready' && list.length > 0 && (
         <div className="search-dropdown">
-          {results.map((result) => (
-            <a key={result.path} href={result.path} className="search-item">
+          {list.map((result) => (
+            <button
+              key={result.id}
+              type="button"
+              className="search-item"
+              onClick={() => handleSelect(result.path)}
+            >
               <span className="search-title">{result.title}</span>
-              <p className="search-desc">{result.description}</p>
-            </a>
+              <p className="search-desc">{result.snippet ?? result.bio}</p>
+            </button>
           ))}
         </div>
       )}
@@ -42,14 +56,16 @@ export function MySearchBar() {
 
 | Propiedad | Tipo | Descripción |
 | :--- | :--- | :--- |
+| **`id`** | `string` | Identificador estable del resultado. |
 | **`path`** | `string` | La ruta absoluta resuelta (por ejemplo `'/docs/guides/getting-started'`). |
-| **`title`** | `string` | El título de la página que coincide. |
-| **`description`** | `string` | La descripción de la página (del frontmatter o extracto). |
-| **`headings`** | `HeadingMatch[]` | Sub-encabezados (`h2`–`h6`) dentro de la página que coincidieron con la consulta de búsqueda. |
+| **`title`** | `string` | El título de la página o encabezado que coincide. |
+| **`bio`** | `string` | El breadcrumb de la página o encabezado. |
+| **`snippet`** | `string \| undefined` | Un excerpt enfocado alrededor de la coincidencia, cuando está disponible. |
+| **`isHeading`** | `boolean` | Si el resultado apunta a un ancla de encabezado. |
 
 ---
 
 ## Desarrollo Local vs. Producción
 
 * **Desarrollo Local:** El índice de búsqueda se actualiza incrementalmente mediante Vite HMR a medida que editas archivos, haciendo que las pruebas de cambios de búsqueda en vivo sean fluidas.
-* **Producción:** El índice se empaqueta en un paquete separado con división de chunks que se carga de forma asíncrona solo cuando el usuario interactúa con la entrada de búsqueda, manteniendo el tamaño de carga inicial del paquete extremadamente mínimo.
+* **Producción:** El asset de búsqueda limitado y el motor FlexSearch se cargan de forma asíncrona solo cuando el usuario interactúa con la entrada de búsqueda, manteniendo pequeño el bundle inicial. Los resultados se filtran por la locale y la versión activas antes de aplicar el límite.

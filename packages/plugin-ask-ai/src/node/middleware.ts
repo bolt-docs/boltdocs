@@ -1,4 +1,5 @@
 import path from 'node:path'
+import { timingSafeEqual } from 'node:crypto'
 import type { ServerResponse } from 'node:http'
 import type { Connect } from 'vite'
 import { warn } from '@bdocs/dui'
@@ -26,6 +27,7 @@ export interface MiddlewareConfig {
   baseURL?: string
   providerEnvKey: string
   rateLimitPerMinute: number
+  maxRequestBytes: number
   secretKey?: string
   devMode: boolean
   /** Sampling temperature (forwarded to streamLLMResponse). */
@@ -44,10 +46,24 @@ function sendEvent(res: ServerResponse, payload: object): void {
   res.write(`data: ${JSON.stringify(payload)}\n\n`)
 }
 
-function sendErrorAndDone(res: ServerResponse, message: string): void {
-  sendEvent(res, { error: message })
-  res.write('data: [DONE]\n\n')
+function sendError(
+  res: ServerResponse,
+  message: string,
+  statusCode: number,
+): void {
+  res.statusCode = statusCode
+  res.setHeader('Content-Type', 'application/json; charset=utf-8')
+  res.write(JSON.stringify({ error: message }))
   res.end()
+}
+
+function safeSecretEqual(candidate: string, expected: string): boolean {
+  const candidateBytes = Buffer.from(candidate)
+  const expectedBytes = Buffer.from(expected)
+  return (
+    candidateBytes.byteLength === expectedBytes.byteLength &&
+    timingSafeEqual(candidateBytes, expectedBytes)
+  )
 }
 
 function isAuthorized(
@@ -55,11 +71,9 @@ function isAuthorized(
   req: Connect.IncomingMessage,
 ): boolean {
   if (!config.secretKey) return true
-  const url = new URL(req.url || '/', 'http://localhost')
-  const qsSecret = url.searchParams.get('secret')
-  const headerSecret =
-    (req.headers['x-boltdocs-ask-ai-key'] as string | undefined) || undefined
-  return qsSecret === config.secretKey || headerSecret === config.secretKey
+  const headerSecret = req.headers['x-boltdocs-ask-ai-key']
+  const value = Array.isArray(headerSecret) ? headerSecret[0] : headerSecret
+  return value ? safeSecretEqual(value, config.secretKey) : false
 }
 
 export function createAskAiMiddleware(
@@ -74,6 +88,20 @@ export function createAskAiMiddleware(
 
     setSseHeaders(res)
 
+    if (!isAuthorized(config, req)) {
+      req.resume()
+      sendError(res, 'UNAUTHORIZED', 401)
+      return
+    }
+
+    const rl = rateLimit(getClientIp(req), config.rateLimitPerMinute)
+    if (!rl.ok) {
+      req.resume()
+      res.setHeader('Retry-After', String(rl.retryAfter))
+      sendError(res, `RATE_LIMITED (retry in ${rl.retryAfter}s)`, 429)
+      return
+    }
+
     const abortController = new AbortController()
     // Abort upstream on client disconnect so we stop paying LLM tokens.
     req.on('close', () => {
@@ -81,23 +109,30 @@ export function createAskAiMiddleware(
         abortController.abort()
       }
     })
+    res.on('close', () => {
+      if (!res.writableEnded && !abortController.signal.aborted) {
+        abortController.abort()
+      }
+    })
 
     let body = ''
-    req.on('data', (chunk) => {
-      body += chunk
+    let bodyBytes = 0
+    let bodyTooLarge = false
+    req.on('data', (chunk: Buffer | string) => {
+      const buffer = Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk)
+      bodyBytes += buffer.byteLength
+      if (bodyBytes > config.maxRequestBytes) {
+        bodyTooLarge = true
+        body = ''
+        return
+      }
+      body += buffer.toString('utf8')
     })
 
     req.on('end', async () => {
       try {
-        if (!isAuthorized(config, req)) {
-          sendErrorAndDone(res, 'UNAUTHORIZED')
-          return
-        }
-
-        const rl = rateLimit(getClientIp(req), config.rateLimitPerMinute)
-        if (!rl.ok) {
-          res.setHeader('Retry-After', String(rl.retryAfter))
-          sendErrorAndDone(res, `RATE_LIMITED (retry in ${rl.retryAfter}s)`)
+        if (bodyTooLarge) {
+          sendError(res, 'REQUEST_TOO_LARGE', 413)
           return
         }
 
@@ -113,7 +148,7 @@ export function createAskAiMiddleware(
           config.denyPatterns,
         )
         if (!safety.ok) {
-          sendErrorAndDone(res, safety.reason)
+          sendError(res, safety.reason, 400)
           return
         }
         // checkInputSafety rejects empty/non-string, so this is a string.
@@ -183,7 +218,7 @@ export function createAskAiMiddleware(
 
         res.write('data: [DONE]\n\n')
         res.end()
-      } catch (err) {
+      } catch {
         if (abortController.signal.aborted) {
           try {
             res.end()
@@ -192,10 +227,9 @@ export function createAskAiMiddleware(
           }
           return
         }
-        const msg = err instanceof Error ? err.message : 'Middleware error'
-        warn(`[Ask AI] ${msg}`)
+        warn('[Ask AI] request failed')
         try {
-          sendErrorAndDone(res, msg)
+          sendError(res, 'MIDDLEWARE_ERROR', 500)
         } catch {
           // socket gone
         }

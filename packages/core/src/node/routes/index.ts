@@ -2,7 +2,7 @@ import path from 'node:path'
 import fs from 'node:fs/promises'
 import { fdir } from 'fdir'
 import type { BoltdocsConfig } from '../config'
-import { capitalize, getCacheConfig } from '../utils'
+import { capitalize, getCacheConfig, normalizePath } from '../utils'
 import { warn } from '@bdocs/dui'
 
 import type { DirectoryMeta, RouteMeta, ParsedDocFile } from './types'
@@ -20,6 +20,10 @@ import {
   type RouteDiscoverySnapshot,
 } from './cache'
 import { sortRoutes } from './sorter'
+import {
+  hashFrontmatterData,
+  setFrontmatterHash,
+} from '../dev-server/frontmatter-cache'
 
 export type { RouteMeta }
 
@@ -437,7 +441,6 @@ export async function generateRoutes(
     await routeVariant.docCache.load()
 
     let files: string[]
-    let directoryMetaFiles: string[]
     const discovery = await getDiscoverySnapshot(
       docsDir,
       routeVariant,
@@ -445,10 +448,10 @@ export async function generateRoutes(
     )
     files = discovery.files.filter((file) => {
       if (!config?.experimental?.fileRouting) return true
-      const relative = path.relative(docsDir, file).replace(/\\\\/g, '/')
+      const relative = normalizePath(path.relative(docsDir, file))
       return !relative.split('/').includes('pages-external')
     })
-    directoryMetaFiles = discovery.directoryMetaFiles
+    const directoryMetaFiles = discovery.directoryMetaFiles
     routeVariant.cachedFileList = files
     routeVariant.cachedDirectoryMetaFiles = directoryMetaFiles
 
@@ -594,6 +597,19 @@ export async function generateRoutes(
       throw ROUTE_GENERATION_INVALIDATED
     }
 
+    // Seed the in-memory frontmatter baseline from the same parsed route data
+    // used to populate the persistent doc cache. This keeps the first content
+    // edit after a process restart able to emit a frontmatter delta instead of
+    // silently falling back to content-only HMR.
+    for (const parsedFile of parsed) {
+      setFrontmatterHash(
+        parsedFile.route.componentPath,
+        hashFrontmatterData(parsedFile.route.frontmatter || {}),
+        routeContext,
+        routeVariant,
+      )
+    }
+
     // Save cache after processing
     routeVariant.docCache.save()
 
@@ -686,7 +702,9 @@ export async function generateRoutes(
     // Override with boltdocs.config.ts sidebarGroups configurations
     if (config?.theme?.sidebarGroups) {
       const allLocales = config.i18n
-        ? Object.keys(config.i18n.locales)
+        ? Array.isArray(config.i18n.locales)
+          ? config.i18n.locales
+          : Object.keys(config.i18n.locales)
         : [defaultLocale]
 
       for (const [groupName, groupConfig] of Object.entries(
@@ -847,8 +865,13 @@ function generateI18nFallbacks(
   basePath: string,
   localizedPathCache: Map<string, string>,
 ): RouteMeta[] {
-  const defaultLocale = config.i18n!.defaultLocale
-  const allLocales = Object.keys(config.i18n!.locales)
+  const i18n = config.i18n
+  if (!i18n) return []
+
+  const defaultLocale = i18n.defaultLocale
+  const allLocales = Array.isArray(i18n.locales)
+    ? i18n.locales
+    : Object.keys(i18n.locales)
   const fallbackRoutes: RouteMeta[] = []
 
   // Index existing routes by locale for O(1) lookup
@@ -857,10 +880,12 @@ function generateI18nFallbacks(
 
   for (const r of routes) {
     const locale = r.locale || defaultLocale
-    if (!routesByLocale.has(locale)) {
-      routesByLocale.set(locale, new Set())
+    let localePaths = routesByLocale.get(locale)
+    if (!localePaths) {
+      localePaths = new Set<string>()
+      routesByLocale.set(locale, localePaths)
     }
-    routesByLocale.get(locale)!.add(r.path)
+    localePaths.add(r.path)
 
     if (locale === defaultLocale) {
       defaultRoutes.push(r)

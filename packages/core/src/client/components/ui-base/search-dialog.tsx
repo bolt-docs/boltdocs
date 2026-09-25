@@ -1,5 +1,7 @@
 import { Search, X } from './icons'
+import { useId } from 'react'
 import { useSearch } from '../../hooks/use-search'
+import { createSearchHighlightRegex } from '../../hooks/use-search-highlight'
 import { SearchDialog as SearchDialogPrimitive } from '../primitives/search-dialog'
 import Navbar from '../primitives/navbar'
 import type { ComponentRoute } from '../../types'
@@ -13,9 +15,10 @@ interface SearchResult {
   bio: string
   groupTitle?: string
   isHeading?: boolean
+  snippet?: string
 }
 
-function Highlight({
+export function SearchResultHighlight({
   text,
   query,
   markClassName,
@@ -24,16 +27,16 @@ function Highlight({
   query: string
   markClassName?: string
 }) {
-  if (!query || !text) return <>{text}</>
-  const escapedQuery = query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
-  const regex = new RegExp(`(${escapedQuery})`, 'gi')
+  if (!query.trim() || !text) return <>{text}</>
+  const regex = createSearchHighlightRegex(query.split(/\s+/))
+  if (!regex) return <>{text}</>
   const parts = text.split(regex)
   return (
     <>
-      {parts.map((part, i) =>
-        regex.test(part) ? (
+      {parts.map((part, index) =>
+        index % 2 === 1 ? (
           <mark
-            key={i}
+            key={`${part}-${index}`}
             className={cn(
               'bg-primary-500/20 text-primary-600 dark:text-primary-400 font-bold px-0.5 rounded-sm',
               markClassName,
@@ -64,15 +67,30 @@ export function SearchDialog({
     query,
     setQuery,
     list,
-    searchDataLoading,
-    searchDataError,
+    status,
+    isLoading,
+    error,
     handleSelect,
   } = useSearch(routes)
+  const statusId = useId()
+  const statusMessage =
+    status === 'loading'
+      ? 'Loading search index…'
+      : status === 'indexing'
+        ? 'Preparing search…'
+        : status === 'searching'
+          ? 'Searching…'
+          : status === 'error'
+            ? 'Search is temporarily unavailable.'
+            : query.trim()
+              ? `${list.length} result${list.length === 1 ? '' : 's'} found.`
+              : `${list.length} suggested page${list.length === 1 ? '' : 's'}.`
 
   return (
     <>
       <Navbar.SearchTrigger.Desktop
-        aria-label="Search docs (press Control K)"
+        aria-label="Search docs"
+        aria-keyshortcuts="Control+K Meta+K"
         onPress={() => setIsOpen(true)}
         className="rounded-xl border border-subtle bg-surface text-muted transition-all duration-200 hover:border-primary-500/50 hover:text-body hover:bg-soft/50 hover:shadow-sm active:scale-[0.98] focus-visible:ring-2 focus-visible:ring-primary-500/30"
       >
@@ -88,6 +106,7 @@ export function SearchDialog({
       </Navbar.SearchTrigger.Desktop>
 
       <Navbar.SearchTrigger.Mobile
+        aria-label="Search docs"
         onPress={() => setIsOpen(true)}
         className="rounded-xl text-muted transition-all duration-200 hover:text-body active:scale-95 focus-visible:ring-2 focus-visible:ring-primary-500/30"
       >
@@ -98,7 +117,7 @@ export function SearchDialog({
         <SearchDialogPrimitive.Overlay
           isOpen={isOpen}
           isDismissable
-          onOpenChange={() => setIsOpen(false)}
+          onOpenChange={setIsOpen}
           className={cn(
             'fixed inset-0 z-100 flex items-center justify-center p-4 bg-black/40 backdrop-blur-xs animate-fade-in',
             className,
@@ -107,6 +126,8 @@ export function SearchDialog({
           <SearchDialogPrimitive.Content className="w-full max-w-lg bg-main border border-subtle shadow-md rounded-2xl overflow-hidden p-6">
             <SearchDialogPrimitive.Dialog
               aria-label="Search documentation"
+              aria-describedby={statusId}
+              aria-busy={isLoading}
               className="flex flex-col min-h-0 h-[450px]"
             >
               <SearchDialogPrimitive.Autocomplete className="flex flex-col min-h-0">
@@ -116,11 +137,14 @@ export function SearchDialog({
                   className="flex items-center gap-2 border border-subtle bg-surface px-4 py-2.5 rounded-xl focus-within:border-primary-500 mb-4"
                 >
                   <SearchDialogPrimitive.Input.SearchInput
+                    aria-label="Search documentation"
                     placeholder="Search documentation..."
                     className="w-full bg-transparent outline-none text-body text-sm"
                   />
                   {query && (
                     <SearchDialogPrimitive.Input.Button
+                      slot="clear"
+                      aria-label="Clear search"
                       onPress={() => setQuery('')}
                       className="text-muted hover:text-body hover:bg-surface rounded-md p-1 cursor-pointer select-none transition-colors"
                     >
@@ -129,15 +153,31 @@ export function SearchDialog({
                   )}
                 </SearchDialogPrimitive.Input>
 
-                {searchDataLoading ? (
-                  <div className="flex flex-1 items-center justify-center px-4 py-8 text-sm text-muted">
-                    Loading search index…
+                <div
+                  id={statusId}
+                  role={status === 'error' ? 'alert' : 'status'}
+                  aria-live={status === 'error' ? 'assertive' : 'polite'}
+                  className="sr-only"
+                >
+                  {statusMessage}
+                </div>
+
+                {isLoading ? (
+                  <div
+                    className="flex flex-1 items-center justify-center px-4 py-8 text-sm text-muted"
+                    aria-hidden="true"
+                  >
+                    {status === 'loading'
+                      ? 'Loading search index…'
+                      : status === 'indexing'
+                        ? 'Preparing search…'
+                        : 'Searching…'}
                   </div>
-                ) : searchDataError ? (
+                ) : error ? (
                   <div className="flex flex-1 items-center justify-center px-4 py-8 text-center text-sm text-muted">
                     Search is temporarily unavailable.
                   </div>
-                ) : query && list.length === 0 ? (
+                ) : query.trim() && list.length === 0 ? (
                   <div className="flex flex-1 items-center justify-center px-4 py-8 text-sm text-muted">
                     No results found.
                   </div>
@@ -158,15 +198,15 @@ export function SearchDialog({
                         />
                         <div className="flex flex-col justify-center min-w-0">
                           <SearchDialogPrimitive.Item.Title className="text-sm font-medium text-body truncate dark:group-hover:text-primary-100">
-                            <Highlight
+                            <SearchResultHighlight
                               text={item.title}
                               query={query}
                               markClassName={markClassName}
                             />
                           </SearchDialogPrimitive.Item.Title>
                           <SearchDialogPrimitive.Item.Bio className="text-xs text-muted truncate">
-                            <Highlight
-                              text={item.bio}
+                            <SearchResultHighlight
+                              text={item.snippet ?? item.bio}
                               query={query}
                               markClassName={markClassName}
                             />

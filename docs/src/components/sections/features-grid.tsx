@@ -60,9 +60,9 @@ export const FeaturesGrid = () => {
   const t = useTranslations()
 
   return (
-    <Section maxWidth="xl" className="relative">
+    <Section maxWidth="xl" className="relative max-md:pb-0">
       <div className="text-center mb-16">
-        <h2 className="text-3xl md:text-5xl font-black tracking-tighter text-body">
+        <h2 className="text-3xl md:text-5xl text-center font-black tracking-tighter text-body">
           {t.featuresTitle}
         </h2>
         <p className="max-w-2xl mx-auto text-lg leading-relaxed text-paragraph mt-2">

@@ -15,6 +15,7 @@ import {
   type RouteCacheVariant,
 } from '../routes/cache'
 import type { BoltdocsConfig } from '../config'
+import type { BoltdocsPlugin } from '../../shared/types'
 import type { BoltdocsPluginOptions } from './types'
 import { generateEntryCode } from './entry'
 import path from 'node:path'
@@ -63,6 +64,92 @@ export function toClientRouteData(route: RouteMeta): ClientRouteData {
   }
 }
 
+const SENSITIVE_METADATA_KEYS = new Set([
+  'apikey',
+  'authorization',
+  'credential',
+  'credentials',
+  'password',
+  'privatekey',
+  'secret',
+  'secretkey',
+  'token',
+])
+
+function isSensitiveMetadataKey(key: string): boolean {
+  return SENSITIVE_METADATA_KEYS.has(
+    key.toLowerCase().replace(/[^a-z0-9]/g, ''),
+  )
+}
+
+function sanitizeClientMetadata(value: unknown, depth = 0): unknown {
+  if (depth > 10 || value === null || typeof value !== 'object') {
+    return value
+  }
+  if (Array.isArray(value)) {
+    return value.map((item) => sanitizeClientMetadata(item, depth + 1))
+  }
+
+  return Object.fromEntries(
+    Object.entries(value as Record<string, unknown>)
+      .filter(([key]) => !isSensitiveMetadataKey(key))
+      .map(([key, item]) => [key, sanitizeClientMetadata(item, depth + 1)]),
+  )
+}
+
+export function toClientPluginData(plugin: BoltdocsPlugin): {
+  name: string
+  metadata?: Record<string, unknown>
+} {
+  return {
+    name: plugin.name,
+    ...(plugin.metadata
+      ? {
+          metadata: sanitizeClientMetadata(plugin.metadata) as Record<
+            string,
+            unknown
+          >,
+        }
+      : {}),
+  }
+}
+
+function parseClientComponentSpec(spec: string): {
+  modulePath: string
+  exportName: string
+} {
+  const hashIndex = spec.lastIndexOf('#')
+  return hashIndex === -1
+    ? { modulePath: spec, exportName: 'default' }
+    : {
+        modulePath: spec.slice(0, hashIndex),
+        exportName: spec.slice(hashIndex + 1) || 'default',
+      }
+}
+
+export function generateClientRegistryModule(
+  plugins: BoltdocsPlugin[],
+): string {
+  const slots: Record<string, string[]> = {}
+
+  for (const plugin of plugins) {
+    for (const [slot, spec] of Object.entries(plugin.client?.slots ?? {})) {
+      slots[slot] ??= []
+      slots[slot].push(spec)
+    }
+  }
+
+  const serializedSlots = Object.entries(slots).map(([slot, specs]) => {
+    const loaders = specs.map((spec, index) => {
+      const { modulePath, exportName } = parseClientComponentSpec(spec)
+      return `{ id: ${JSON.stringify(`${slot}:${index}`)}, load: () => import(${JSON.stringify(modulePath)}).then(module => ({ default: module[${JSON.stringify(exportName)}] || module.default })) }`
+    })
+    return `  ${JSON.stringify(slot)}: [${loaders.join(', ')}]`
+  })
+
+  return `const slots = {\n${serializedSlots.join(',\n')}\n};\nexport default slots;\n`
+}
+
 export interface VirtualModuleState {
   routeCacheContext?: RouteCacheContext
   routeCacheVariant?: RouteCacheVariant
@@ -71,6 +158,8 @@ export interface VirtualModuleState {
   routesDataMap: Map<string, RouteMeta>
   collectionsDataMap: Map<string, CollectionPost>
   searchDataMap: Map<string, SearchDocument>
+  serializedSearchData: string | null
+  serializedPageSourceData: string | null
 }
 
 export function createVirtualModuleState(
@@ -83,6 +172,8 @@ export function createVirtualModuleState(
     routesDataMap: new Map(),
     collectionsDataMap: new Map(),
     searchDataMap: new Map(),
+    serializedSearchData: null,
+    serializedPageSourceData: null,
   }
 }
 
@@ -147,6 +238,8 @@ export function invalidateDirectoryMetaCache(state?: VirtualModuleState): void {
   moduleState.routesDataMap.clear()
   moduleState.collectionsDataMap.clear()
   moduleState.searchDataMap.clear()
+  moduleState.serializedSearchData = null
+  moduleState.serializedPageSourceData = null
 }
 
 function clearVirtualData(state?: VirtualModuleState): void {
@@ -154,6 +247,8 @@ function clearVirtualData(state?: VirtualModuleState): void {
   moduleState.routesDataMap.clear()
   moduleState.collectionsDataMap.clear()
   moduleState.searchDataMap.clear()
+  moduleState.serializedSearchData = null
+  moduleState.serializedPageSourceData = null
 }
 
 /**
@@ -178,6 +273,8 @@ function ensureRouteCacheContext(
     moduleState.routesDataMap.clear()
     moduleState.collectionsDataMap.clear()
     moduleState.searchDataMap.clear()
+    moduleState.serializedSearchData = null
+    moduleState.serializedPageSourceData = null
   }
   return moduleState.routeCacheContext
 }
@@ -222,6 +319,8 @@ function regenerateSearchAndCollections(state?: VirtualModuleState): void {
 
   const searchData = generateSearchData(routes as any)
   moduleState.searchDataMap.clear()
+  moduleState.serializedSearchData = null
+  moduleState.serializedPageSourceData = null
   for (const doc of searchData) {
     moduleState.searchDataMap.set(doc.id, doc)
   }
@@ -241,12 +340,18 @@ function regenerateSearchAndCollections(state?: VirtualModuleState): void {
         locale: route.locale,
         version: route.version,
         frontmatter: route.frontmatter,
-        draft: route.frontmatter?.draft,
+        draft: route.frontmatter?.draft === true,
         collection: route.collection,
       }
       moduleState.collectionsDataMap.set(route.filePath, post)
     }
   }
+  moduleState.serializedSearchData = JSON.stringify(
+    getSearchDataExport(moduleState),
+  )
+  moduleState.serializedPageSourceData = JSON.stringify(
+    getPageSourceData(moduleState),
+  )
 }
 
 async function ensureRoutesGenerated(
@@ -264,6 +369,8 @@ async function ensureRoutesGenerated(
     moduleState.routesDataMap.clear()
     moduleState.collectionsDataMap.clear()
     moduleState.searchDataMap.clear()
+    moduleState.serializedSearchData = null
+    moduleState.serializedPageSourceData = null
     await regenerateRouteData(docsDir, config, moduleState)
   }
 }
@@ -326,6 +433,40 @@ export function getSearchDataExport(
   )
 }
 
+function getPageSourceData(state?: VirtualModuleState): Record<string, string> {
+  const moduleState = getVirtualModuleState(state)
+  const source: Record<string, string> = {}
+  for (const route of moduleState.routesDataMap.values()) {
+    const withRaw = route as RouteMeta & { _rawContent?: string }
+    if (withRaw.path && withRaw._rawContent) {
+      source[withRaw.path] = withRaw._rawContent
+    }
+  }
+  return Object.fromEntries(
+    Object.entries(source).sort(([left], [right]) => left.localeCompare(right)),
+  )
+}
+
+export function getSearchJsonExport(state?: VirtualModuleState): string {
+  const moduleState = getVirtualModuleState(state)
+  if (moduleState.serializedSearchData === null) {
+    moduleState.serializedSearchData = JSON.stringify(
+      getSearchDataExport(moduleState),
+    )
+  }
+  return moduleState.serializedSearchData
+}
+
+export function getPageSourceJsonExport(state?: VirtualModuleState): string {
+  const moduleState = getVirtualModuleState(state)
+  if (moduleState.serializedPageSourceData === null) {
+    moduleState.serializedPageSourceData = JSON.stringify(
+      getPageSourceData(moduleState),
+    )
+  }
+  return moduleState.serializedPageSourceData
+}
+
 function serializeCollectionsToExport(
   record: Record<string, CollectionPost[]>,
 ): string {
@@ -352,6 +493,8 @@ export async function computeFrontmatterDelta(
     moduleState.routesDataMap.clear()
     moduleState.collectionsDataMap.clear()
     moduleState.searchDataMap.clear()
+    moduleState.serializedSearchData = null
+    moduleState.serializedPageSourceData = null
   }
   const oldRoutes = new Map(moduleState.routesDataMap)
   const oldCollections = new Map(moduleState.collectionsDataMap)
@@ -423,8 +566,6 @@ export function createVirtualModulesPlugin(
     name: 'vite-plugin-boltdocs-virtual-modules',
 
     resolveId(id) {
-      const viteConfig = getViteConfig()
-      const root = viteConfig?.root || process.cwd()
       if (
         id.includes('boltdocs-entry') ||
         id === 'virtual:boltdocs-entry' ||
@@ -434,6 +575,12 @@ export function createVirtualModulesPlugin(
         id === '\0virtual:boltdocs-entry.tsx'
       ) {
         return '\0virtual:boltdocs-entry.tsx'
+      }
+      if (
+        id === 'virtual:boltdocs-client-registry' ||
+        id === '\0virtual:boltdocs-client-registry'
+      ) {
+        return '\0virtual:boltdocs-client-registry'
       }
       if (
         id.includes('boltdocs-client') ||
@@ -458,11 +605,11 @@ export function createVirtualModulesPlugin(
           return id
         }
       } else if (!id.startsWith('virtual:boltdocs-') && registry?.has(id)) {
-        return '\0' + id
+        return `\0${id}`
       }
 
       if (id.startsWith('virtual:boltdocs-')) {
-        return '\0' + id
+        return `\0${id}`
       }
       if (id.startsWith('\0virtual:boltdocs-')) {
         return id
@@ -569,6 +716,9 @@ export function createVirtualModulesPlugin(
           toClientRouteData,
         )
       }
+      if (name === 'client-registry') {
+        return generateClientRegistryModule(config?.plugins ?? [])
+      }
       if (name === 'collections') {
         await ensureRoutesGenerated(docsDir, config, moduleState)
         const record = getCollectionsRecord(moduleState)
@@ -628,10 +778,10 @@ export function createVirtualModulesPlugin(
           collections,
           seo: config?.seo,
           experimental: config?.experimental,
-          plugins: config?.plugins?.map((p) => ({ name: p.name })),
+          plugins: config?.plugins?.map(toClientPluginData),
           directoryMeta,
         }
-        return `export default ${JSON.stringify(clientConfig, null, 2)};`
+        return `export default ${JSON.stringify(clientConfig)};`
       }
       if (name === 'entry') {
         // The ssr flag MUST be derived from THIS build's own environment —
@@ -696,7 +846,7 @@ export function createVirtualModulesPlugin(
             ([compName], idx) =>
               `${JSON.stringify(compName)}: _pluginCompMod_${idx}[${JSON.stringify(
                 compName,
-              )}] || _pluginCompMod_${idx}["default"] || _pluginCompMod_${idx}`,
+              )}] || Reflect.get(_pluginCompMod_${idx}, "default") || _pluginCompMod_${idx}`,
           )
           .join(',\n  ')
 
