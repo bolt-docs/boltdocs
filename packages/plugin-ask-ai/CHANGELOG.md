@@ -1,5 +1,11 @@
 # @bdocs/plugin-ask-ai — Changelog
 
+## 0.3.1
+
+### Patch Changes
+
+- [`682d0c1`](https://github.com/bolt-docs/boltdocs/commit/682d0c1252097491faf3752e3337ea681271a3e0) Thanks [@jesusalcaladev](https://github.com/jesusalcaladev)! - Finish the Ask AI integration: restore public plugin metadata and floating client slots, harden provider routing and server errors, enforce request/input limits across every adapter, add a customizable accessible chat UI, and expand security and DOM regression coverage.
+
 ## 0.3.0
 
 ### Minor Changes

@@ -1,5 +1,11 @@
 # @bdocs/ssg
 
+## 0.4.4
+
+### Patch Changes
+
+- [`682d0c1`](https://github.com/bolt-docs/boltdocs/commit/682d0c1252097491faf3752e3337ea681271a3e0) Thanks [@jesusalcaladev](https://github.com/jesusalcaladev)! - Align internal Vite development and build tooling on Vite 8.1, make the Boltdocs versus Docusaurus Faster benchmark cold-cache aware, and preserve route-level SSG render identity when a client build cannot emit a route-specific chunk.
+
 ## 0.4.3
 
 ### Patch Changes

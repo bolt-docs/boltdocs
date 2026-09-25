@@ -1,5 +1,42 @@
 # boltdocs
 
+## 3.3.6
+
+### Patch Changes
+
+- [`4e8d80e`](https://github.com/bolt-docs/boltdocs/commit/4e8d80e5157ab637dde917f42d30878ab2a0347d) Thanks [@jesusalcaladev](https://github.com/jesusalcaladev)! - Accessibility: axe-core clean across docs surfaces
+  - Tabs: the list component accepts an overridable role so link-based
+    navigation tabs can opt out of the ARIA `tablist` widget semantics (a
+    tablist requires `tab` children and failed automated audits).
+  - OnThisPage: the active-track indicator moved out of the list element
+    (invalid list children), is hidden from assistive tech, and now measures
+    against its actual positioning context; the nav landmark gained an
+    accessible label.
+  - Navbar: nav landmarks accept distinguishable labels; the site-title home
+    link keeps an accessible name on viewports where the visible title is
+    hidden; the mobile nav is labeled.
+  - Sidebar and page navigation landmarks are labeled by default.
+  - External (non-docs) pages render their content inside a `<main>` landmark.
+  - Feedback prompt uses the correct heading level.
+  - Search trigger exposes an accessible name and raises the visible hint
+    text contrast to meet WCAG AA.
+  - ErrorBoundary primitive accepts `resetKeys` (auto-reset on route change),
+    matching what the shell already passed through.
+  - Shiki adapter: new `codeHighlighting.options.colorReplacements` support so
+    sites can raise theme token colors (e.g. github-dark comments) to AA
+    contrast. Hex keys are matched case-insensitively, and the cached adapter
+    identity now includes this option so configuration changes take effect.
+
+- [`682d0c1`](https://github.com/bolt-docs/boltdocs/commit/682d0c1252097491faf3752e3337ea681271a3e0) Thanks [@jesusalcaladev](https://github.com/jesusalcaladev)! - Finish the Ask AI integration: restore public plugin metadata and floating client slots, harden provider routing and server errors, enforce request/input limits across every adapter, add a customizable accessible chat UI, and expand security and DOM regression coverage.
+
+- [`682d0c1`](https://github.com/bolt-docs/boltdocs/commit/682d0c1252097491faf3752e3337ea681271a3e0) Thanks [@jesusalcaladev](https://github.com/jesusalcaladev)! - Avoid static default imports when generating plugin MDX components. Named plugin components such as `@bdocs/plugin-math/client` do not need a default export, and using `Reflect.get` prevents Vite/Rolldown from emitting `IMPORT_IS_UNDEFINED` warnings during client and SSR builds.
+
+- [`682d0c1`](https://github.com/bolt-docs/boltdocs/commit/682d0c1252097491faf3752e3337ea681271a3e0) Thanks [@jesusalcaladev](https://github.com/jesusalcaladev)! - Align internal Vite development and build tooling on Vite 8.1, make the Boltdocs versus Docusaurus Faster benchmark cold-cache aware, and preserve route-level SSG render identity when a client build cannot emit a route-specific chunk.
+
+- Updated dependencies [[`682d0c1`](https://github.com/bolt-docs/boltdocs/commit/682d0c1252097491faf3752e3337ea681271a3e0)]:
+  - @bdocs/ssg@0.4.4
+  - @bdocs/processor-satteri@0.3.4
+
 ## 3.3.5
 
 ### Patch Changes

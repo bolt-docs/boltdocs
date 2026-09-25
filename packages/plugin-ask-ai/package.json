@@ -1,6 +1,6 @@
 {
   "name": "@bdocs/plugin-ask-ai",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "description": "Secure, page-scoped streaming AI assistant for Boltdocs with provider presets, hardened server adapters, automatic floating UI, and customizable client components.",
   "files": [
     "dist"
