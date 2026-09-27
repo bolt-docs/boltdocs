@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import {
   CONTRACTS_API_VERSION,
+  type BoltdocsConfigContract,
   type InvalidationEvent,
   type ModuleIdentity,
   type PluginContext,
@@ -81,6 +82,29 @@ describe('@bdocs/contracts', () => {
 
     expect(definition.name).toBe('example')
     expect(definition.css?.headStyles).toHaveLength(1)
+  })
+
+  it('describes framework-neutral configuration contracts', () => {
+    const config: BoltdocsConfigContract<PluginDefinition> = {
+      siteUrl: 'https://boltdocs.dev',
+      base: '/docs',
+      mdx: { processor: 'satteri' },
+      plugins: [{ name: 'search' }],
+      seo: {
+        indexing: 'public',
+        structuredData: {
+          '@context': 'https://schema.org',
+          '@type': 'WebSite',
+        },
+      },
+      i18n: {
+        defaultLocale: 'en',
+        locales: ['en', 'es'],
+      },
+    }
+
+    expect(config.plugins?.[0]?.name).toBe('search')
+    expect(config.seo?.structuredData).toBeTypeOf('object')
   })
 
   it('supports incremental module identities and invalidation events', () => {
