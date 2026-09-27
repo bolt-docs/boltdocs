@@ -10,6 +10,7 @@ import { resolveConfig, type BoltdocsConfig } from '../config'
 import { generateProjectTypes, writeLinkTree } from '../types-generator'
 import { normalizePath } from '../utils'
 import { injectHtmlMeta } from './html'
+import { createStaticSsgOptions } from './ssg-static-options'
 import { validatePlugins, type BoltdocsPlugin } from '../plugins'
 import { PluginLifecycleManager } from '../plugins/plugin-lifecycle'
 import type {
@@ -502,25 +503,8 @@ export function boltdocsPlugin(
         // callback references the same lifecycle instance for the entire
         // process, so it's safe to reuse.
         if (!_ssgOptionsCache) {
-          // Map config `ssg.criticalCss: 'none'` → `criticalCss: false` for the SSG build
-          const configCriticalCss = config.ssg?.criticalCss
-          const resolvedCriticalCss: 'zig-critters' | 'beasties' | false =
-            configCriticalCss === 'none'
-              ? false
-              : configCriticalCss === 'beasties'
-                ? 'beasties'
-                : 'zig-critters'
-
           _ssgOptionsCache = {
-            entry: 'boltdocs/entry',
-            htmlEntry: 'index.html',
-            dirStyle: 'flat',
-            includeAllRoutes: true,
-            mock: true,
-            script: 'async',
-            beastiesOptions: false,
-            criticalCss: resolvedCriticalCss,
-            criticalCssMaxSize: config.ssg?.criticalCssMaxSize,
+            ...createStaticSsgOptions(config),
             onPageRendered: async (
               path: string,
               renderedHTML: string,
