@@ -1,22 +1,95 @@
+import type { IncomingMessage, ServerResponse } from 'node:http'
 import type { AliasOptions, Plugin as VitePlugin, UserConfig } from 'vite'
 import type { ComponentType } from 'react'
 import type {
   CodeHighlightConfig,
   CodeTheme,
-  RouteMeta,
+  IPluginLifecycleManager as ContractIPluginLifecycleManager,
+  PluginContext as ContractPluginContext,
+  PluginClientConfig,
+  PluginLifecycleHooks as ContractPluginLifecycleHooks,
+  PluginMiddlewareAPI as ContractPluginMiddlewareAPI,
+  PluginServerAPI as ContractPluginServerAPI,
+  PluginServerMiddleware as ContractPluginServerMiddleware,
+  PluginTransformMiddleware as ContractPluginTransformMiddleware,
 } from '@bdocs/contracts'
 
 export type {
   BadgeValue,
+  BoltdocsUiSlot,
+  ChainSignal,
   CodeHighlightConfig,
   CodeHighlighterAdapter,
   CodeHighlighterEngine,
   CodeHighlighterRuntime,
   CodeTheme,
+  DiagnosticRecord,
   ParsedMetaLike,
-  RouteMeta,
+  PluginCachesAPI,
+  PluginClientConfig,
+  PluginDiagnosticsAPI,
+  PluginHmrAPI,
+  PluginHmrEvent,
+  PluginHeadEntry,
+  PluginLogger,
+  PluginMemoryCacheAPI,
+  PluginMeta,
+  PluginPathsAPI,
+  PluginRoutesCacheAPI,
+  PluginStore,
+  PluginTransformCacheAPI,
+  PluginVirtualModulesAPI,
+  RegisteredVirtualModule,
   RouteHeading,
+  RouteMeta,
+  SearchDocument,
+  TransformHtmlParams,
+  TransformResult,
+  TransformSourceParams,
 } from '@bdocs/contracts'
+
+export type PluginServerMiddleware = ContractPluginServerMiddleware<
+  IncomingMessage,
+  ServerResponse
+>
+
+export interface PluginServerAPI
+  extends ContractPluginServerAPI<IncomingMessage, ServerResponse> {}
+
+export interface PluginMiddlewareAPI
+  extends ContractPluginMiddlewareAPI<
+    BoltdocsConfig,
+    IncomingMessage,
+    ServerResponse
+  > {}
+
+export interface PluginContext
+  extends ContractPluginContext<
+    BoltdocsConfig,
+    IncomingMessage,
+    ServerResponse
+  > {}
+
+export interface PluginLifecycleHooks
+  extends ContractPluginLifecycleHooks<
+    BoltdocsConfig,
+    IncomingMessage,
+    ServerResponse
+  > {}
+
+export interface PluginTransformMiddleware
+  extends ContractPluginTransformMiddleware<
+    BoltdocsConfig,
+    IncomingMessage,
+    ServerResponse
+  > {}
+
+export interface IPluginLifecycleManager
+  extends ContractIPluginLifecycleManager<
+    BoltdocsConfig,
+    IncomingMessage,
+    ServerResponse
+  > {}
 
 /**
  * Represents a single social link in the configuration.
@@ -185,515 +258,6 @@ export interface BoltdocsVersionsConfig {
   defaultVersion: string
   prefix?: string
   versions: BoltdocsVersionConfig[]
-}
-
-/**
- * Context provided to plugin lifecycle hooks.
- */
-export interface PluginContext {
-  readonly config: BoltdocsConfig
-  readonly logger: PluginLogger
-  readonly store: PluginStore
-  readonly meta: PluginMeta
-  readonly docsDir: string
-  readonly rootDir: string
-  readonly outDir: string
-  readonly routes: RouteMeta[]
-  /** Namespaced cache helpers bound to the core's cache machinery. */
-  readonly caches: PluginCachesAPI
-  /** Structured diagnostics channel; reports can be drained via `list()`. */
-  readonly diagnostics: PluginDiagnosticsAPI
-  /** Helpers for resolving paths inside the workspace safely. */
-  readonly paths: PluginPathsAPI
-  /** Declare virtual modules the core should expose to Vite. */
-  readonly virtualModules: PluginVirtualModulesAPI
-  /** Register and query transform middleware at runtime. */
-  readonly middleware: PluginMiddlewareAPI
-  /**
-   * Hook into dev-server file watching and send custom HMR events
-   * to connected clients.
-   */
-  readonly hmr: PluginHmrAPI
-  /**
-   * Register HTTP middleware and server lifecycle hooks without
-   * writing a Vite plugin.
-   */
-  readonly server: PluginServerAPI
-}
-
-/**
- * Functional cache helpers exposed through `PluginContext.caches`.
- *
- * Plugin authors do not get a reference to the raw `TransformCache` /
- * `FileCache` instances — those stay encapsulated in core. The methods
- * returned here are bound to namespaced keys so two plugins cannot
- * collide.
- */
-export interface PluginCachesAPI {
-  /** Sharded, hash-keyed cache. One namespace per plugin recommended. */
-  transform(namespace: string): PluginTransformCacheAPI
-  /** Routes cache wrapper around the parsed-doc cache. */
-  routes: PluginRoutesCacheAPI
-  /** In-memory LRU cache keyed by namespace + plugin-supplied key. */
-  memory<V = unknown>(
-    namespace: string,
-    opts?: { max?: number; ttl?: number },
-  ): PluginMemoryCacheAPI<V>
-}
-
-export interface PluginTransformCacheAPI {
-  /** Async read — first call may warm from disk if the entry was evicted. */
-  get(key: string): Promise<string | null>
-  /** Synchronous write that batches a background disk flush. */
-  set(key: string, value: string): void
-  /** Force-flush background writes. Call before measuring disk state. */
-  flush(): Promise<void>
-}
-
-export interface PluginRoutesCacheAPI {
-  /** Read a parsed `RouteMeta` (and its private `_content` blob) by abs file path. */
-  get(filePath: string): RouteMeta | null
-  /** Write a parsed route entry. Caller assumptions match `docCache.set`. */
-  set(filePath: string, route: RouteMeta): void
-  /** Invalidate one route. Use when content changes. */
-  invalidate(filePath: string): void
-  /** Clear every cached route. Use when the directory layout changes. */
-  invalidateAll(): void
-}
-
-export interface PluginMemoryCacheAPI<V> {
-  get(key: string): V | undefined
-  set(key: string, value: V): void
-  has(key: string): boolean
-}
-
-/**
- * Plugin diagnostics API.
- *
- * Plugins push structured records instead of spamming the logger; downstream
- * tools (dev-server overlay, CI reporters, IDE plugins) drain the queue via
- * `list()`.
- */
-export interface DiagnosticRecord {
-  readonly id: number
-  readonly severity: 'info' | 'warn' | 'error'
-  readonly code: string
-  readonly message: string
-  readonly pluginName: string
-  readonly filePath?: string
-  readonly routePath?: string
-  readonly time: Date
-}
-
-export interface PluginDiagnosticsAPI {
-  report(
-    severity: DiagnosticRecord['severity'],
-    code: string,
-    message: string,
-    where?: { filePath?: string; routePath?: string },
-  ): void
-  list(): readonly DiagnosticRecord[]
-  clear(): void
-}
-
-/**
- * Path-resolution helpers exposed through `PluginContext.paths`.
- *
- * Both `resolveDocs` and `resolveAsset` validate the resulting path against
- * the workspace boundary and reject any segment that resolves outside the
- * docs / project root directories.
- */
-export interface PluginPathsAPI {
-  resolveDocs(...parts: string[]): string
-  resolveAsset(...parts: string[]): string
-  /**
-   * Build a `file://` URL for an absolute path inside the workspace.
-   * Useful for `new URL(import.meta.url)` replacements and image srcsets.
-   */
-  safeFileURL(absFilePath: string): string
-}
-
-/**
- * Plugin virtual-modules registration.
- *
- * Plugins call `add(id, loader)` to expose a `virtual:<plugin>/<id>` module
- * to Vite without having to author a full Vite plugin. The loader returns
- * the module source code as a string; the core wraps it in the right
- * `resolveId`/`load` plumbing at Vite build time.
- */
-export interface RegisteredVirtualModule {
-  readonly id: string
-  readonly eager: boolean
-  readonly loader: () => string | Promise<string>
-}
-
-export interface PluginVirtualModulesAPI {
-  add(
-    id: string,
-    loader: () => string | Promise<string>,
-    opts?: { eager?: boolean },
-  ): void
-  has(id: string): boolean
-  list(): readonly RegisteredVirtualModule[]
-}
-
-/**
- * Logger interface for plugin logging.
- */
-export interface PluginLogger {
-  info(message: string): void
-  warn(message: string): void
-  error(message: string | Error): void
-  debug(message: string): void
-}
-
-/**
- * Key-value store interface for plugins.
- */
-export interface PluginStore {
-  get<T = unknown>(pluginName: string, key: string): T | undefined
-  set(pluginName: string, key: string, value: unknown): void
-  has(pluginName: string, key: string): boolean
-}
-
-/**
- * Plugin metadata provided in the context.
- */
-export interface PluginMeta {
-  name: string
-  version?: string
-  boltdocsVersion?: string
-}
-
-/**
- * Chain control signal returned by transform hooks. Use with `__signal` in
- * the return value to influence the middleware chain:
- *
- * - `'skip'`: stop processing this hook for the current file (remaining
- *   plugins in the chain still run).
- * - `'break'`: stop the entire chain immediately — no further plugin's
- *   transform hooks run for this file.
- *
- * @example
- * ```ts
- * transformMdx: async (_ctx, { code }) => ({
- *   code: code.replace(/foo/g, 'bar'),
- *   __signal: 'skip',   // skip remaining plugins
- * })
- * ```
- */
-export type ChainSignal = 'skip' | 'break'
-
-/**
- * Returned by a transform hook that wants to signal the chain. The `__signal`
- * field is optional — most hooks will just return `{ code: string }` and the
- * chain continues normally. When `__signal` is present, `runChain` reacts:
- *
- * - `'skip'` continues with the next plugin, but passes the **original params**
- *   (the output of this hook is discarded).
- * - `'break'` stops the chain immediately.
- *
- * @template T The params shape (e.g. `{ code: string; filePath: string }`).
- */
-export type TransformResult<T> = T & { __signal?: ChainSignal }
-
-/**
- * Enriched params passed to `transformSource` and `transformMdx`. The `code`
- * and `filePath` fields are always present. The optional `frontmatter` and
- * `route` fields are populated when available (they are `undefined` in the
- * early pipeline where frontmatter hasn't been parsed yet).
- */
-export interface TransformSourceParams {
-  /** The raw or compiled code (source before MDX / JS after MDX). */
-  code: string
-  /** Absolute file path of the source document. */
-  filePath: string
-  /** Parsed frontmatter, if available. `undefined` in very early pipeline. */
-  frontmatter?: Record<string, unknown>
-}
-
-/**
- * Enriched params passed to `transformHtml`. The `html` and `path` fields
- * are always present. The optional `route` carries the generated `RouteMeta`
- * for richer context (locale, version, collection, etc.).
- */
-export interface TransformHtmlParams {
-  /** The rendered HTML string for this page. */
-  html: string
-  /** The route path (e.g. `/docs/guides/start`). */
-  path: string
-  /** The route metadata for the page, if available. */
-  route?: RouteMeta
-}
-
-/**
- * Plugin transform middleware. Each middleware runs in the transform
- * pipeline alongside lifecycle hooks. The `name` field is optional —
- * when omitted, the owning plugin's name is used as context.
- * Middleware runs in `enforce` order (pre → normal → post) and supports
- * `__signal: 'skip'` / `__signal: 'break'` for chain control.
- */
-export interface PluginTransformMiddleware {
-  /** Optional name. Defaults to the owning plugin's name for diagnostics. */
-  name?: string
-  enforce?: 'pre' | 'post'
-  transformSource?: (
-    ctx: PluginContext,
-    params: TransformSourceParams,
-  ) =>
-    | TransformResult<{ code: string }>
-    | Promise<TransformResult<{ code: string }>>
-  transformMdx?: (
-    ctx: PluginContext,
-    params: TransformSourceParams,
-  ) =>
-    | TransformResult<{ code: string }>
-    | Promise<TransformResult<{ code: string }>>
-  transformHtml?: (
-    ctx: PluginContext,
-    params: TransformHtmlParams,
-  ) =>
-    | TransformResult<{ html: string }>
-    | Promise<TransformResult<{ html: string }>>
-}
-
-/**
- * Plugin middleware registry API exposed through `PluginContext.middleware`.
- * Plugins can register named middleware entries from lifecycle hooks.
- */
-export interface PluginMiddlewareAPI {
-  add(middleware: PluginTransformMiddleware): void
-  remove(name: string): void
-  has(name: string): boolean
-  list(): readonly PluginTransformMiddleware[]
-}
-
-/**
- * HMR event types plugins can listen to.
- */
-export type PluginHmrEvent = 'add' | 'change' | 'unlink'
-
-/**
- * Plugin HMR API — hook into file-watching events and send custom
- * HMR messages to connected clients.
- */
-export interface PluginHmrAPI {
-  /**
-   * Register a callback for file events scoped to the docs directory.
-   * The callback receives the normalized file path and event type.
-   */
-  onFileEvent(
-    eventType: PluginHmrEvent,
-    handler: (filePath: string) => void | Promise<void>,
-  ): void
-  /** Shorthand for `onFileEvent('add', handler)`. */
-  onFileAdd(handler: (filePath: string) => void | Promise<void>): void
-  /** Shorthand for `onFileEvent('change', handler)`. */
-  onFileChange(handler: (filePath: string) => void | Promise<void>): void
-  /** Shorthand for `onFileEvent('unlink', handler)`. */
-  onFileUnlink(handler: (filePath: string) => void | Promise<void>): void
-  /**
-   * Send a custom HMR event to all connected clients.
-   * The client can listen with `import.meta.hot.on('boltdocs:plugin:<name>', ...)`.
-   */
-  send(event: string, data?: unknown): void
-}
-
-/**
- * Plugin Server API — register HTTP middleware and lifecycle hooks
- * for the dev server and preview server, without writing a Vite plugin.
- */
-export interface PluginServerAPI {
-  /**
-   * Register a Connect-style middleware function.
-   * Runs on both dev and preview servers.
-   */
-  use(middleware: PluginServerMiddleware): void
-  /**
-   * Register a middleware scoped to a specific path prefix.
-   * Only requests starting with `path` trigger the handler.
-   */
-  useAt(path: string, handler: PluginServerMiddleware): void
-  /** Called when the dev/preview server starts (once per process). */
-  onStart(callback: () => void | Promise<void>): void
-  /** Called when the server shuts down (cleanup). */
-  onEnd(callback: () => void | Promise<void>): void
-}
-
-/**
- * Connect-style middleware signature.
- */
-export type PluginServerMiddleware = (
-  req: import('http').IncomingMessage,
-  res: import('http').ServerResponse,
-  next: (err?: unknown) => void,
-) => void | Promise<void>
-
-/**
- * Public API surface of the core plugin lifecycle manager.
- *
- * This is exposed as an interface so that plugin authors and internal
- * subsystems can receive a reference to the lifecycle manager without
- * pulling in the concrete class (which has private members and is not
- * stable across source/dist boundaries during development).
- */
-export interface IPluginLifecycleManager {
-  runHook(
-    hookName: keyof PluginLifecycleHooks,
-    ...args: unknown[]
-  ): Promise<void>
-  runChain<TParams extends Record<string, unknown>>(
-    hookName: keyof PluginLifecycleHooks,
-    initialParams: TParams,
-  ): Promise<TParams>
-  runMiddlewareChain<TParams extends Record<string, unknown>>(
-    hookName: 'transformSource' | 'transformMdx' | 'transformHtml',
-    initialParams: TParams,
-  ): Promise<TParams>
-  hasHook(
-    hookName:
-      | keyof PluginLifecycleHooks
-      | 'transformSource'
-      | 'transformMdx'
-      | 'transformHtml',
-  ): boolean
-}
-
-/**
- * Standardized Search Document contract passed to search plugins.
- */
-export interface SearchDocument {
-  id: string
-  path: string
-  title: string
-  content: string
-  headings: Array<{ level: number; text: string; id: string }>
-  frontmatter: Record<string, unknown>
-  locale?: string
-  version?: string
-}
-
-/**
- * Agnostic UI slots for component injection.
- */
-export type BoltdocsUiSlot =
-  | 'search:dialog'
-  | 'header:left'
-  | 'header:right'
-  | 'sidebar:top'
-  | 'sidebar:bottom'
-  | 'page:before'
-  | 'page:after'
-  | (string & {})
-
-export interface PluginHeadEntry {
-  tag: 'script' | 'link' | 'meta' | 'style'
-  attrs?: Record<string, string | boolean>
-  content?: string
-}
-
-/**
- * Client-side configuration and UI slot injections for plugins.
- */
-export interface PluginClientConfig {
-  /** Dynamic UI slot registrations (mapped to component file paths) */
-  slots?: Record<string, string>
-  /** Top-level React provider component file paths */
-  providers?: string[]
-  /** MDX component overrides & additions */
-  mdxComponents?: Record<string, string>
-  /** Head elements to inject into rendered HTML */
-  head?: PluginHeadEntry[]
-}
-
-/**
- * Plugin lifecycle hooks with full type safety.
- */
-export interface PluginLifecycleHooks {
-  /** Build hooks (Astro-style) */
-  'build:before'?: (ctx: PluginContext) => Promise<void> | void
-  'build:after'?: (ctx: PluginContext) => Promise<void> | void
-  'build:end'?: (ctx: PluginContext) => Promise<void> | void
-  'build:generate'?: (
-    ctx: PluginContext,
-    params: { routes: RouteMeta[]; outDir: string; siteUrl?: string },
-  ) => void | Promise<void>
-
-  /** Dev hooks (Astro-style) */
-  'dev:before'?: (ctx: PluginContext) => Promise<void> | void
-  'dev:after'?: (ctx: PluginContext) => Promise<void> | void
-
-  /** Transform hooks (Astro-style) */
-  'transform:source'?: (
-    ctx: PluginContext,
-    params: TransformSourceParams,
-  ) =>
-    | TransformResult<{ code: string }>
-    | Promise<TransformResult<{ code: string }>>
-  'transform:mdx'?: (
-    ctx: PluginContext,
-    params: TransformSourceParams,
-  ) =>
-    | TransformResult<{ code: string }>
-    | Promise<TransformResult<{ code: string }>>
-  'transform:html'?: (
-    ctx: PluginContext,
-    params: TransformHtmlParams,
-  ) =>
-    | TransformResult<{ html: string }>
-    | Promise<TransformResult<{ html: string }>>
-
-  /** Dynamic frontmatter transformation hook */
-  'frontmatter:transform'?: (
-    ctx: PluginContext,
-    params: {
-      frontmatter: Record<string, unknown>
-      filePath: string
-      rawContent: string
-    },
-  ) => Record<string, unknown> | Promise<Record<string, unknown>> | undefined
-
-  /** Fired after routes are crawled, normalized, and resolved */
-  'routes:resolved'?: (
-    ctx: PluginContext,
-    params: { routes: RouteMeta[] },
-  ) => RouteMeta[] | Promise<RouteMeta[]> | undefined
-
-  /** Agnostic search index hook: core passes SearchDocument[], plugin returns index payload */
-  'search:index'?: (
-    ctx: PluginContext,
-    params: { documents: SearchDocument[]; routes: RouteMeta[] },
-  ) => unknown | Promise<unknown>
-
-  'server:configure'?: (
-    ctx: PluginContext,
-    params: { server: unknown; middleware: PluginServerAPI },
-  ) => void | Promise<void>
-
-  /** Legacy alias hooks for backwards compatibility */
-  beforeBuild?: (ctx: PluginContext) => Promise<void> | void
-  afterBuild?: (ctx: PluginContext) => Promise<void> | void
-  buildEnd?: (ctx: PluginContext) => Promise<void> | void
-  beforeDev?: (ctx: PluginContext) => Promise<void> | void
-  afterDev?: (ctx: PluginContext) => Promise<void> | void
-  transformSource?: (
-    ctx: PluginContext,
-    params: TransformSourceParams,
-  ) =>
-    | TransformResult<{ code: string }>
-    | Promise<TransformResult<{ code: string }>>
-  transformMdx?: (
-    ctx: PluginContext,
-    params: TransformSourceParams,
-  ) =>
-    | TransformResult<{ code: string }>
-    | Promise<TransformResult<{ code: string }>>
-  transformHtml?: (
-    ctx: PluginContext,
-    params: TransformHtmlParams,
-  ) =>
-    | TransformResult<{ html: string }>
-    | Promise<TransformResult<{ html: string }>>
 }
 
 /**

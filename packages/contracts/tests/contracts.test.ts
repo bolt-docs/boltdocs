@@ -3,7 +3,12 @@ import {
   CONTRACTS_API_VERSION,
   type InvalidationEvent,
   type ModuleIdentity,
+  type PluginContext,
+  type PluginLifecycleHooks,
+  type PluginServerMiddleware,
+  type PluginTransformMiddleware,
   type RouteMeta,
+  type SearchDocument,
 } from '../src'
 
 describe('@bdocs/contracts', () => {
@@ -22,6 +27,44 @@ describe('@bdocs/contracts', () => {
 
     expect(route.path).toBe('/docs/intro')
     expect(route.headings?.[0]?.id).toBe('install')
+  })
+
+  it('describes plugin lifecycle and server contracts generically', () => {
+    type Config = { siteName: string }
+    const getSiteName = (ctx: PluginContext<Config>) => ctx.config.siteName
+    const transformMdx: PluginLifecycleHooks<Config>['transform:mdx'] = (
+      _ctx,
+      params,
+    ) => ({
+      code: params.code.toUpperCase(),
+    })
+    const middleware: PluginTransformMiddleware<Config> = {
+      name: 'content-source',
+      transformMdx,
+    }
+    const serverMiddleware: PluginServerMiddleware<
+      { url: string },
+      { statusCode: number }
+    > = (req, res) => {
+      res.statusCode = req.url === '/health' ? 200 : 404
+    }
+    const searchDocument: SearchDocument = {
+      id: 'intro',
+      path: '/docs/intro',
+      title: 'Intro',
+      content: 'Content',
+      headings: [],
+      frontmatter: {},
+    }
+
+    expect(
+      getSiteName({
+        config: { siteName: 'Boltdocs' },
+      } as PluginContext<Config>),
+    ).toBe('Boltdocs')
+    expect(middleware.name).toBe('content-source')
+    expect(serverMiddleware).toBeTypeOf('function')
+    expect(searchDocument.id).toBe('intro')
   })
 
   it('supports incremental module identities and invalidation events', () => {
