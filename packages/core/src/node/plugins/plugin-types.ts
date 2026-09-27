@@ -1,56 +1,11 @@
-import type { Plugin as VitePlugin } from 'vite'
-import type {
-  PluginContext,
-  PluginLogger,
-  PluginStore,
-  PluginMeta,
-  PluginLifecycleHooks,
-  PluginClientConfig,
-  CodeHighlighterAdapter,
-} from '../../shared/types'
-
 export type {
+  BoltdocsPlugin,
+  CodeHighlighterAdapter,
+  PluginClientConfig,
   PluginContext,
-  PluginLogger,
-  PluginStore,
-  PluginMeta,
+  PluginCssConfig,
   PluginLifecycleHooks,
-}
-
-export interface PluginCssConfig {
-  /** CSS files to inject automatically into entry bundle */
-  cssFiles?: string[]
-  /** Inline CSS strings to inject into HTML <head> */
-  headStyles?: string[]
-  /** PostCSS plugins to append to Vite CSS pipeline */
-  postcssPlugins?: unknown[]
-  /** Vite CSS preprocessor options (e.g. scss, less, stylus) */
-  preprocessorOptions?: Record<string, unknown>
-}
-
-export interface BoltdocsPlugin {
-  name: string
-  enforce?: 'pre' | 'post'
-  version?: string
-  boltdocsVersion?: string
-  remarkPlugins?: unknown[]
-  rehypePlugins?: unknown[]
-  vitePlugins?: VitePlugin[]
-  components?: Record<string, string>
-  client?: PluginClientConfig
-  metadata?: Record<string, unknown>
-  css?: PluginCssConfig
-  middleware?: import('../../shared/types').PluginTransformMiddleware[]
-  hooks?: PluginLifecycleHooks
-  /**
-   * Provide a custom syntax highlighting engine. The adapter is registered
-   * under `plugin.name` in the highlighter registry, making it selectable via
-   * `theme.codeHighlighting.engine`. The factory receives the resolved
-   * engine-agnostic config (`{ theme, options }`).
-   */
-  codeHighlighter?:
-    | CodeHighlighterAdapter
-    | ((
-        api: import('../../shared/types').CodeHighlightConfig,
-      ) => CodeHighlighterAdapter | Promise<CodeHighlighterAdapter>)
-}
+  PluginLogger,
+  PluginMeta,
+  PluginStore,
+} from '../../shared/types'

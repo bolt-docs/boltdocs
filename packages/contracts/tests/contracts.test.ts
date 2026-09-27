@@ -4,6 +4,7 @@ import {
   type InvalidationEvent,
   type ModuleIdentity,
   type PluginContext,
+  type PluginDefinition,
   type PluginLifecycleHooks,
   type PluginServerMiddleware,
   type PluginTransformMiddleware,
@@ -65,6 +66,21 @@ describe('@bdocs/contracts', () => {
     expect(middleware.name).toBe('content-source')
     expect(serverMiddleware).toBeTypeOf('function')
     expect(searchDocument.id).toBe('intro')
+  })
+
+  it('describes a framework-neutral plugin definition', () => {
+    const definition: PluginDefinition<{ siteName: string }> = {
+      name: 'example',
+      version: '1.0.0',
+      metadata: { category: 'content' },
+      css: { headStyles: ['.example { color: red; }'] },
+      hooks: {
+        'build:before': () => undefined,
+      },
+    }
+
+    expect(definition.name).toBe('example')
+    expect(definition.css?.headStyles).toHaveLength(1)
   })
 
   it('supports incremental module identities and invalidation events', () => {

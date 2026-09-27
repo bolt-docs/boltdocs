@@ -802,6 +802,9 @@ importers:
 
   packages/processor-satteri:
     dependencies:
+      '@bdocs/contracts':
+        specifier: workspace:*
+        version: link:../contracts
       '@bdocs/unist-utils':
         specifier: workspace:*
         version: link:../unist-utils

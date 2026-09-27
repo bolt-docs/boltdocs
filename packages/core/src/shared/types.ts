@@ -6,7 +6,8 @@ import type {
   CodeTheme,
   IPluginLifecycleManager as ContractIPluginLifecycleManager,
   PluginContext as ContractPluginContext,
-  PluginClientConfig,
+  PluginCssDefinition as ContractPluginCssDefinition,
+  PluginDefinition as ContractPluginDefinition,
   PluginLifecycleHooks as ContractPluginLifecycleHooks,
   PluginMiddlewareAPI as ContractPluginMiddlewareAPI,
   PluginServerAPI as ContractPluginServerAPI,
@@ -27,6 +28,8 @@ export type {
   ParsedMetaLike,
   PluginCachesAPI,
   PluginClientConfig,
+  PluginCssDefinition,
+  PluginDefinition,
   PluginDiagnosticsAPI,
   PluginHmrAPI,
   PluginHmrEvent,
@@ -274,27 +277,15 @@ export interface BoltdocsMdxConfig {
  * Use the `definePlugin()` or `createPlugin()` helper from the node API for full
  * type safety and access to lifecycle hooks.
  */
-export interface PluginCssConfig {
-  cssFiles?: string[]
-  headStyles?: string[]
-  postcssPlugins?: unknown[]
-  preprocessorOptions?: Record<string, unknown>
-}
+export interface PluginCssConfig extends ContractPluginCssDefinition {}
 
-export interface BoltdocsPlugin {
-  name: string
-  enforce?: 'pre' | 'post'
-  version?: string
-  boltdocsVersion?: string
-  remarkPlugins?: unknown[]
-  rehypePlugins?: unknown[]
+export interface BoltdocsPlugin
+  extends ContractPluginDefinition<
+    BoltdocsConfig,
+    IncomingMessage,
+    ServerResponse
+  > {
   vitePlugins?: VitePlugin[]
-  components?: Record<string, string>
-  client?: PluginClientConfig
-  metadata?: Record<string, unknown>
-  css?: PluginCssConfig
-  middleware?: PluginTransformMiddleware[]
-  hooks?: PluginLifecycleHooks
 }
 
 /**

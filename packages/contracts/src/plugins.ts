@@ -1,3 +1,7 @@
+import type {
+  CodeHighlighterAdapter,
+  CodeHighlightConfig,
+} from './highlighting'
 import type { RouteMeta } from './routes'
 
 export interface PluginLogger {
@@ -347,4 +351,35 @@ export interface IPluginLifecycleManager<
       | 'transformMdx'
       | 'transformHtml',
   ): boolean
+}
+
+export interface PluginCssDefinition {
+  cssFiles?: string[]
+  headStyles?: string[]
+  postcssPlugins?: unknown[]
+  preprocessorOptions?: Record<string, unknown>
+}
+
+export interface PluginDefinition<
+  Config = Record<string, unknown>,
+  Request = unknown,
+  Response = unknown,
+> {
+  name: string
+  enforce?: 'pre' | 'post'
+  version?: string
+  boltdocsVersion?: string
+  remarkPlugins?: unknown[]
+  rehypePlugins?: unknown[]
+  components?: Record<string, string>
+  client?: PluginClientConfig
+  metadata?: Record<string, unknown>
+  css?: PluginCssDefinition
+  middleware?: PluginTransformMiddleware<Config, Request, Response>[]
+  hooks?: PluginLifecycleHooks<Config, Request, Response>
+  codeHighlighter?:
+    | CodeHighlighterAdapter
+    | ((
+        config: CodeHighlightConfig,
+      ) => CodeHighlighterAdapter | Promise<CodeHighlighterAdapter>)
 }
