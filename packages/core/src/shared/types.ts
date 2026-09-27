@@ -1,84 +1,22 @@
 import type { AliasOptions, Plugin as VitePlugin, UserConfig } from 'vite'
 import type { ComponentType } from 'react'
+import type {
+  CodeHighlightConfig,
+  CodeTheme,
+  RouteMeta,
+} from '@bdocs/contracts'
 
-/**
- * Metadata representing a single documentation route.
- * This information is used to build the client-side router and the sidebar navigation.
- */
-export interface RouteMeta {
-  /** The final URL path for the route (e.g., '/docs/guide/start') */
-  path: string
-  /** The absolute filesystem path to the source markdown/mdx file */
-  componentPath: string
-  /** The title of the page, usually extracted from frontmatter or the filename */
-  title: string
-  /** The relative path from the docs directory, used for edit links */
-  filePath: string
-  /** Optional description of the page (for SEO/meta tags) */
-  description?: string
-  /** Optional explicit position for ordering in the sidebar */
-  sidebarPosition?: number
-  /** The group (directory) this route belongs to */
-  group?: string
-  /** The display title for the route's group */
-  groupTitle?: string
-  /** Optional explicit position for ordering the group itself */
-  groupPosition?: number
-  /** Optional icon for the route's group */
-  groupIcon?: string
-  /** The sub-route group this route belongs to (from folders starting with _) */
-  subRouteGroup?: string
-  /** Extracted markdown headings for search indexing */
-  headings?: { level: number; text: string; id: string }[]
-  /** The locale this route belongs to, if i18n is configured */
-  locale?: string
-  /** The version this route belongs to, if versioning is configured */
-  version?: string
-  /** Optional badge to display next to the sidebar item (e.g., 'New', 'Experimental') */
-  badge?: BadgeValue
-  /** Optional icon to display (Lucide icon name or raw SVG) */
-  icon?: string
-  /** The tab this route belongs to, if tabs are configured */
-  tab?: string
-  /** The collection this route belongs to (from [name] directories like [blog]) */
-  collection?: string
-  /** Tags for blog posts or other taxonomy */
-  tags?: string[]
-  /** Author identifier for blog posts */
-  author?: string
-  /** Draft flag — excluded from production builds */
-  draft?: boolean
-  /** Feature flags required for this page to be visible */
-  featureFlags?: string[]
-  /** Short excerpt/summary for list displays */
-  excerpt?: string
-  /** Cover image for blog posts */
-  coverImage?: string
-  /** The extracted plain-text content of the page for search indexing */
-  _content?: string
-  /** The raw markdown content of the page */
-  _rawContent?: string
-  /** Extracted SEO and Open Graph metadata from frontmatter */
-  seo?: Record<string, unknown>
-  /** The publication date */
-  date?: string | Date
-  /** The last updated timestamp or date */
-  lastUpdated?: string | number | Date
-  /** Optional category for the page */
-  category?: string
-  /** Optional explicit order (alternative to sidebarPosition) */
-  order?: number
-  /** Optional explicit label for the sidebar */
-  sidebarLabel?: string
-  /** Whether the page is hidden from the sidebar */
-  sidebarHidden?: boolean
-  /** Raw extensible frontmatter data for custom components and formatters */
-  frontmatter?: Record<string, unknown>
-  /** Optional recursive child routes for deep sidebar hierarchies */
-  subRoutes?: RouteMeta[]
-  /** Clean URL segments stripped of locale/version prefixes */
-  slugParts?: string[]
-}
+export type {
+  BadgeValue,
+  CodeHighlightConfig,
+  CodeHighlighterAdapter,
+  CodeHighlighterEngine,
+  CodeHighlighterRuntime,
+  CodeTheme,
+  ParsedMetaLike,
+  RouteMeta,
+  RouteHeading,
+} from '@bdocs/contracts'
 
 /**
  * Represents a single social link in the configuration.
@@ -147,76 +85,6 @@ export interface BoltdocsThemeConfig {
    * `normalizeCodeHighlightConfig()` at every read site).
    */
   codeHighlighting?: CodeHighlightConfig | string
-}
-
-/**
- * An engine-agnostic theme: either a single theme name or a light/dark pair.
- */
-export type CodeTheme = string | { light: string; dark: string }
-
-/**
- * Runtime produced by a {@link CodeHighlighterAdapter} after initialization.
- */
-export interface CodeHighlighterRuntime {
-  codeToHast(code: string, options: Record<string, unknown>): unknown
-  codeToHtml(code: string, options: Record<string, unknown>): Promise<string>
-}
-
-/**
- * The SPI every highlighting engine must implement. Build the highlighter
- * lazily via {@link CodeHighlighterAdapter.initialize} (never on module load)
- * so unused engines cost nothing and the core stays engine-agnostic.
- */
-export interface CodeHighlighterAdapter {
-  /** Registry id, emitted as `data-code-engine` on rendered `<pre>` blocks. */
-  name: string
-  version?: string
-  /** Assemble engine options for a code block (theme, transformers, meta...). */
-  getOptions(lang: string, meta: ParsedMetaLike): Record<string, unknown>
-  /** Create (or reuse) the highlighter runtime for this adapter. */
-  initialize(): Promise<CodeHighlighterRuntime>
-  /** Ensure a language grammar/capability is loaded before rendering. */
-  ensureLanguage?(lang: string): Promise<boolean>
-  /** Warm the highlighter off the critical path (background, never awaited). */
-  prewarm?(options?: Record<string, unknown>): void | Promise<void>
-}
-
-/**
- * Minimal structural view of `ParsedMeta` so `shared/types.ts` (bundled to
- * the client) does not depend on `@bdocs/unist-utils`. The framework's
- * canonical implementation lives in `@bdocs/unist-utils`.
- */
-export interface ParsedMetaLike {
-  title?: string
-  lineNumbers?: boolean
-  wordWrap?: boolean
-  __raw?: string
-  [key: string]: unknown
-}
-
-/**
- * How to select a highlighting engine:
- * - `string` → registry id (e.g. `'shiki'`, or a plugin-provided engine name)
- * - `CodeHighlighterAdapter` → used directly
- * - `() => CodeHighlighterAdapter | Promise<...>` → factory resolved on demand
- */
-export type CodeHighlighterEngine =
-  | string
-  | CodeHighlighterAdapter
-  | ((
-      api: CodeHighlightConfig,
-    ) => CodeHighlighterAdapter | Promise<CodeHighlighterAdapter>)
-
-/**
- * Engine-agnostic configuration for markdown code highlighting.
- */
-export interface CodeHighlightConfig {
-  /** Engine selector. Defaults to the built-in `'shiki'` engine. */
-  engine?: CodeHighlighterEngine
-  /** Single theme name or a light/dark pair. */
-  theme?: CodeTheme
-  /** Engine-specific options (e.g. `{ regexEngine: 'oniguruma' | 'javascript' }` for Shiki). */
-  options?: Record<string, unknown>
 }
 
 /**
@@ -318,11 +186,6 @@ export interface BoltdocsVersionsConfig {
   prefix?: string
   versions: BoltdocsVersionConfig[]
 }
-
-/**
- * Shared badge value type used in frontmatter, RouteMeta, and ComponentRoute.
- */
-export type BadgeValue = string | { text: string; expires?: string }
 
 /**
  * Context provided to plugin lifecycle hooks.

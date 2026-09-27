@@ -1,0 +1,32 @@
+{
+  "name": "@bdocs/contracts",
+  "version": "0.1.0",
+  "description": "Framework-neutral contracts for Boltdocs 4.0 packages and integrations.",
+  "type": "module",
+  "sideEffects": false,
+  "publishConfig": {
+    "access": "public"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.mts",
+      "import": "./dist/index.mjs"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsdown --config-loader unrun",
+    "dev": "tsdown --watch --config-loader unrun",
+    "test": "vitest run"
+  },
+  "packageManager": "pnpm@10.30.2",
+  "license": "MIT",
+  "devDependencies": {
+    "tsdown": "catalog:",
+    "tsdown-config": "workspace:*",
+    "typescript": "^5.9.3",
+    "vitest": "^3.2.4"
+  }
+}
