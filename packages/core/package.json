@@ -1,6 +1,6 @@
 {
   "name": "boltdocs",
-  "version": "3.3.3",
+  "version": "3.3.6",
   "description": "A lightweight documentation generator for React projects.",
   "main": "dist/node/index.mjs",
   "module": "dist/node/index.mjs",
@@ -93,6 +93,7 @@
   "author": "Jesus Alcala",
   "license": "MIT",
   "dependencies": {
+    "@bdocs/contracts": "workspace:*",
     "@bdocs/dui": "^0.6.0",
     "@bdocs/parser": "workspace:*",
     "@bdocs/plugin-image-optimizer": "workspace:*",

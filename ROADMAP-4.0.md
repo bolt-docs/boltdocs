@@ -75,11 +75,33 @@ The major performance objective is to make an edited build proportional to the c
 
 The route cache identity will distinguish page content, frontmatter, shared runtime code, CSS, configuration, and plugin-generated artifacts. A text-only edit must not invalidate unrelated pages or synthetic routes.
 
+## Current migration route
+
+The migration is executed as an ordered sequence. Each slice is developed on a feature branch, verified in isolation, and merged into the long-lived `4.0` branch before the next slice starts.
+
+| Order | Slice | Target package or area | Status |
+| --- | --- | --- | --- |
+| 1 | Shared contracts | `@bdocs/contracts` | In progress |
+| 2 | SEO extraction | `@bdocs/plugin-seo` | Next |
+| 3 | UI extraction | `@bdocs/ui` | Planned |
+| 4 | Primitives extraction | `@bdocs/primitives` | Planned |
+| 5 | Runtime boundary | `@bdocs/runtime` | Planned |
+| 6 | Incremental MDX and SSG | core, Sätteri, SSG | Planned |
+| 7 | Migration tooling and 4.0 release gate | repository-wide | Planned |
+
+### Route rules
+
+- `develop` remains the stable 3.4 line and never receives breaking architecture changes.
+- `4.0` is the integration branch for the new package graph.
+- Feature branches such as `refactor/contracts` and `refactor/plugin-seo` are created from `4.0`.
+- `main` receives reviewed integration commits for repository visibility, but release automation is skipped until a release is explicitly approved.
+- No changeset is created for 4.0 migration work while the migration is paused; changesets are added only when a release line is intentionally prepared.
+
 ## Migration slices
 
 ### Slice 1 — Public contracts
 
-Extract shared types without changing runtime behavior. Add compatibility re-exports and characterization tests before moving implementation code.
+Extract shared types without changing runtime behavior. Add compatibility re-exports and characterization tests before moving implementation code. The current work covers routes, plugin lifecycle, plugin definitions, highlighting, incremental identities, and framework-neutral configuration.
 
 ### Slice 2 — Node and browser boundaries
 

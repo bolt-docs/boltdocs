@@ -1,6 +1,6 @@
 {
   "name": "@bdocs/processor-satteri",
-  "version": "0.3.2",
+  "version": "0.3.4",
   "description": "Sätteri MDX processor for Boltdocs (Rust-based)",
   "type": "module",
   "publishConfig": {
@@ -25,6 +25,7 @@
     "test": "vitest run"
   },
   "dependencies": {
+    "@bdocs/contracts": "workspace:*",
     "@bdocs/unist-utils": "workspace:*",
     "esbuild": "^0.25.0",
     "hast-util-to-html": "^9.0.5",
