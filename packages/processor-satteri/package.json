@@ -25,6 +25,7 @@
     "test": "vitest run"
   },
   "dependencies": {
+    "@bdocs/contracts": "workspace:*",
     "@bdocs/unist-utils": "workspace:*",
     "esbuild": "^0.25.0",
     "hast-util-to-html": "^9.0.5",
