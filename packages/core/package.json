@@ -93,6 +93,7 @@
   "author": "Jesus Alcala",
   "license": "MIT",
   "dependencies": {
+    "@bdocs/contracts": "workspace:*",
     "@bdocs/dui": "^0.6.0",
     "@bdocs/parser": "workspace:*",
     "@bdocs/plugin-image-optimizer": "workspace:*",

@@ -3,7 +3,8 @@ import fs from 'node:fs'
 import path from 'node:path'
 import crypto from 'node:crypto'
 import os from 'node:os'
-import type { BoltdocsConfig, IPluginLifecycleManager } from 'boltdocs'
+import type { BoltdocsConfig } from 'boltdocs'
+import type { IPluginLifecycleManager } from '@bdocs/contracts'
 import { normalizeCodeHighlightConfig } from '@bdocs/unist-utils'
 import {
   createSatteriProcessorPlugin,
