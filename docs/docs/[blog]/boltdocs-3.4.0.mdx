@@ -1,0 +1,171 @@
+---
+title: "Boltdocs 3.4.0 — Incremental Builds, Redirects, and a Shared Contract Layer"
+description: "Boltdocs 3.4.0 introduces declarative redirects, faster incremental rebuilds, dynamic file routing, accessible View Transitions, and the new @bdocs/contracts package."
+date: 2026-09-27
+cover: /blog-covers/Boltdocs-3.3.0.webp
+author:
+  name: Jesús Alcalá
+  avatar: /avatar.jpeg
+excerpt: "Boltdocs 3.4.0 makes edited builds proportional to the change, ships declarative redirects, upgrades View Transitions and file routing, and publishes the framework-neutral @bdocs/contracts package that the 4.0 architecture will build on."
+tags: ["Release", "Performance"]
+tab: "3.4.0"
+---
+
+Boltdocs 3.4.0 is the release where the build finally stops doing the same work twice. A single page edit now recompiles one document and re-renders one route, and the framework gains the declarative redirect system, dynamic file routing, and reduced-motion-aware View Transitions it has been missing.
+
+This release also publishes `@bdocs/contracts`, the first package of the 4.0 architecture work. It is additive: every type it carries is still re-exported from `boltdocs`, so upgrading changes nothing in your project.
+
+<Callout type="info">
+  3.4.0 is backward compatible. No import, configuration key, or plugin API is removed. The breaking work happens later, on the `4.0` branch, and will ship with codemods and a migration guide.
+</Callout>
+
+## Edited builds are now incremental
+
+Rebuilding a documentation site after editing one page used to invalidate the whole site. The MDX compiler was correct, but the render cache keyed pages by emitted client chunk bytes, and Vite frequently emits a single combined chunk for small and medium sites. One text edit therefore changed one byte in a file that every page depended on.
+
+Boltdocs 3.4.0 keys each route by what actually affects that route:
+
+- the **content hash of the source file**;
+- a **shared client identity** covering framework and project code;
+- the **stylesheet identity**;
+- the **critical CSS engine identity**.
+
+The result is measurable. On the 20-page benchmark site, an edited rebuild now reports:
+
+```text
+1 page new / 20 pages cached
+```
+
+instead of re-rendering all 21 rendered routes.
+
+The same idea applies to MDX precompilation. When exactly one document is stale, Boltdocs compiles it in-process instead of starting the worker compile pool, which removes the pool startup cost from the most common edit.
+
+## Declarative redirects
+
+Redirects are now a configuration concern instead of a hand-written plugin. Declare them once and Boltdocs handles the client router, the static output, and the validation.
+
+```ts title="boltdocs.config.ts"
+import { defineConfig } from 'boltdocs'
+
+export default defineConfig({
+  redirects: [
+    { from: '/docs/old-guide', to: '/docs/guides/new-guide' },
+    { from: '/changelog', to: 'https://example.com/changelog' },
+    { from: '/docs/legacy', to: '/docs', locale: true },
+  ],
+})
+```
+
+Each redirect is handled in three places:
+
+- **Client navigation** resolves the redirect in the router, so an in-app link never flashes an intermediate page.
+- **Static output** writes a real HTML document for the source path, containing a `<meta http-equiv="refresh">`, a `<link rel="canonical">`, and a `location.replace` script. The redirect works on any static host without JavaScript, and because it uses `replace`, the visitor's back button skips the dead URL.
+- **Build validation** rejects misconfiguration before anything is written.
+
+Validation is the part that matters most in practice, because a redirect bug is invisible until it strands traffic:
+
+| Check | Behavior |
+| --- | --- |
+| Duplicate `from` | Build error naming the conflicting source |
+| Source shadows a real route | Build error instead of silently shadowing a page |
+| Redirect loop | Build error with the full cycle, for example `/a -> /b -> /a` |
+| Chain (`/a -> /b -> /c`) | Collapsed to a single hop, so the browser never bounces |
+
+`status` accepts `301`, `302`, `307`, and `308`, and defaults to `301`. Setting `locale: true` mirrors the redirect across every configured locale, which is the common case when a documentation page was translated but a URL was later consolidated.
+
+## View Transitions that respect the visitor
+
+View Transitions graduated from a bare `startViewTransition()` call to a navigation-aware integration.
+
+**Directional types.** Boltdocs tracks a history cursor and forwards a `forward` or `back` transition type, so a theme can animate forward and backward navigation differently:
+
+```css title="theme.css"
+::view-transition-old(page) {
+  animation: fade-out 150ms ease;
+}
+
+html[data-transition='back']::view-transition-old(page) {
+  animation: slide-in-right 200ms ease;
+}
+```
+
+**Reduced motion is respected.** When the operating system reports `prefers-reduced-motion: reduce`, Boltdocs skips the document animation entirely and performs the navigation immediately. A view transition animates the entire document, so ignoring this preference turns an accessibility setting into a motion-sensitivity regression. The check is live, so a visitor can change the setting without reloading.
+
+`useViewTransition()` also exposes `reducedMotion` and `supported` directly, so custom layouts and external pages can branch on the real capability instead of guessing.
+
+## File routing with dynamic segments
+
+`experimental.fileRouting` previously mapped filenames to URL segments one-to-one and ignored bracketed directories. Boltdocs 3.4.0 supports the bracket syntax you already know:
+
+```text
+docs/pages-external/blog/[slug].mdx      →  /blog/:slug
+docs/pages-external/docs/[...parts].mdx  →  /docs/*
+docs/pages-external/shop/[[...parts]].mdx →  /shop/*?
+```
+
+This means a single MDX file can now serve an entire route tree, with the captured values available to the page through the router. Static files keep working exactly as before, and the locale prefix is still applied before the dynamic segment, so `es/blog/[slug].mdx` serves `/es/blog/:slug`.
+
+## `@bdocs/contracts`
+
+The 4.0 work needed a shared vocabulary that the core, the SSG pipeline, Sätteri, and every plugin could depend on without depending on each other. That package is now published.
+
+```ts
+import type {
+  RouteMeta,
+  PluginDefinition,
+  PluginContext,
+  PluginLifecycleHooks,
+  CodeHighlightConfig,
+  BoltdocsConfigContract,
+} from '@bdocs/contracts'
+```
+
+`@bdocs/contracts` has no runtime dependencies on Node.js, Vite, React, or any integration. It contains:
+
+- route metadata and headings;
+- plugin definitions, lifecycle hooks, caches, diagnostics, HMR, and server middleware;
+- the code highlighter SPI;
+- search document contracts;
+- framework-neutral configuration;
+- module identities and invalidation events used by incremental builds.
+
+Every one of these types is still re-exported from `boltdocs`, so existing code keeps compiling:
+
+```ts
+import type { RouteMeta, PluginContext } from 'boltdocs'
+```
+
+`@bdocs/processor-satteri` now consumes the lifecycle contract directly instead of reaching into core types, which is the first concrete payoff of the boundary.
+
+## Other improvements
+
+- **Search relevance and snippets** — better scoring, highlighted matches, cancellation of stale queries, and index updates through HMR.
+- **Ask AI completion** — multi-provider support, hardened server adapters, request and input limits, rate limiting, and an accessible chat UI.
+- **Route resolution** — locale and version resolution is indexed instead of rescanned per route, which removes most of the routing cost on large sites.
+- **Accessibility** — axe-clean surfaces across the documentation, with a Playwright regression suite guarding the on-page table of contents.
+
+## Upgrading
+
+```bash
+pnpm add boltdocs@3.4.0
+```
+
+There is nothing to migrate. If you want to adopt the new features, enable them one at a time:
+
+```ts title="boltdocs.config.ts"
+import { defineConfig } from 'boltdocs'
+
+export default defineConfig({
+  redirects: [{ from: '/docs/old', to: '/docs/new' }],
+  experimental: {
+    viewTransitions: { enabled: true },
+    fileRouting: true,
+  },
+})
+```
+
+## What comes next
+
+3.4.0 is the stable line. The 4.0 architecture continues on a dedicated branch: SEO extraction into a plugin, `ui-base` and primitives moving into their own packages, a browser runtime split from the Node engine, and fully incremental client and server builds.
+
+The public roadmap lives on the [roadmap page](/roadmap), and the internal migration plan is tracked in the repository.

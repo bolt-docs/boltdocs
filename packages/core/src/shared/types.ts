@@ -71,6 +71,8 @@ export type {
   PluginStore,
   PluginTransformCacheAPI,
   PluginVirtualModulesAPI,
+  RedirectConfig,
+  RedirectStatus,
   RegisteredVirtualModule,
   RouteHeading,
   RouteMeta,

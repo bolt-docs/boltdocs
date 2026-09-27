@@ -15,6 +15,7 @@ import {
   buildExternalFileRoutes,
 } from './create-routes.external'
 import { buildCollectionRoutes } from './create-routes.collection'
+import { buildRedirectRoutes } from './create-routes.redirect'
 import { ExternalPageWrapper } from './external-page-wrapper'
 import {
   RouteRenderer,
@@ -79,12 +80,14 @@ export function createRoutes(options: CreateRoutesOptions): CreateRoutesResult {
     (route) => !route.path || acceptedExternalFilePaths.has(route.path),
   )
   const collectionRoutes = buildCollectionRoutes(options)
+  const redirectRoutes = buildRedirectRoutes({ config })
 
   const children: RouteRecord[] = [
     { path: baseDocsPath, element: <DocsLayout />, children: docRoutes },
     ...externalRoutes.children,
     ...filteredExternalFileRoutes.children,
     ...collectionRoutes.children,
+    ...redirectRoutes,
     {
       path: '*',
       element: (

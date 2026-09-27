@@ -5,6 +5,7 @@ import { RouteGenerateStep } from './steps/route-generate'
 import { SEOValidateStep } from './steps/seo-validate'
 import { TypeGenerateStep } from './steps/type-generate'
 import { SSGBuildStep } from './steps/ssg-build'
+import { RedirectsWriteStep } from './steps/redirects-write'
 import { SEOWriteStep } from './steps/seo-write'
 
 /**
@@ -19,5 +20,5 @@ export function createBuildPipeline(): Pipeline<BuildContext> {
     .addStep(new RouteGenerateStep())
     .addParallelSteps([new SEOValidateStep(), new TypeGenerateStep()])
     .addStep(new SSGBuildStep())
-    .addStep(new SEOWriteStep())
+    .addParallelSteps([new RedirectsWriteStep(), new SEOWriteStep()])
 }

@@ -5,6 +5,8 @@ import {
   Hammer,
   CheckCircle2,
   LoaderCircle,
+  Package,
+  ArrowUpRight,
 } from 'lucide-react'
 import { cn } from 'boltdocs/client'
 import { Section } from '@/theme/section'
@@ -12,27 +14,40 @@ import { Section } from '@/theme/section'
 type RoadmapItem = {
   title: string
   description: string
-  status: 'in-progress' | 'planning'
+  status: 'shipped' | 'in-progress' | 'planning'
 }
 
 const ROADMAP: RoadmapItem[] = [
+  // Shipped in 3.4.0
+  {
+    title: 'Redirects',
+    description:
+      'Declarative redirects via config with 301/302/307/308, loop detection, chain collapsing, locale mirroring, and static HTML output.',
+    status: 'shipped',
+  },
+  {
+    title: 'Instant Navigation',
+    description:
+      'View Transitions with directional types, live prefers-reduced-motion support, and full-site dev prewarming.',
+    status: 'shipped',
+  },
+  {
+    title: 'Incremental SSG',
+    description:
+      'Content-addressed page cache. A single page edit recompiles and re-renders one route instead of the whole site.',
+    status: 'shipped',
+  },
+  {
+    title: 'Shared contracts',
+    description:
+      '@bdocs/contracts publishes the framework-neutral route, plugin, lifecycle, and configuration contracts used by 4.0.',
+    status: 'shipped',
+  },
   // In Progress
   {
     title: 'Boltdocs migrate MVP — VitePress first',
     description:
       'A first-party migration tool to move existing VitePress sites to Boltdocs with minimal friction.',
-    status: 'in-progress',
-  },
-  {
-    title: 'Instant Navigation',
-    description:
-      'Prefetching, View Transitions, and no page reloads for buttery-smooth navigation.',
-    status: 'in-progress',
-  },
-  {
-    title: 'Redirects',
-    description:
-      'Declarative redirects via config with 301/308 support and loop detection.',
     status: 'in-progress',
   },
   {
@@ -140,20 +155,76 @@ const ROADMAP: RoadmapItem[] = [
   },
 ]
 
+const MIGRATION_ROUTE = [
+  {
+    step: 'Shared contracts',
+    package: '@bdocs/contracts',
+    status: 'Done',
+    description:
+      'Route, plugin, lifecycle, highlighting, and configuration contracts extracted from the core with backward-compatible re-exports.',
+  },
+  {
+    step: 'SEO extraction',
+    package: '@bdocs/plugin-seo',
+    status: 'Next',
+    description:
+      'Move sitemap, robots, metadata, Open Graph, and structured data behind the plugin API. The core keeps only the orchestration.',
+  },
+  {
+    step: 'UI extraction',
+    package: '@bdocs/ui',
+    status: 'Planned',
+    description:
+      'Move the ui-base components into their own package while keeping the existing boltdocs exports working.',
+  },
+  {
+    step: 'Primitives extraction',
+    package: '@bdocs/primitives',
+    status: 'Planned',
+    description:
+      'Move the style-neutral primitives out of the core. Primitives keep owning structure and data-* state, never colors.',
+  },
+  {
+    step: 'Runtime boundary',
+    package: '@bdocs/runtime',
+    status: 'Planned',
+    description:
+      'Separate the browser runtime from the Node build engine so neither pulls in the other dependencies.',
+  },
+  {
+    step: 'Incremental MDX and SSG',
+    package: 'core, Sätteri, SSG',
+    status: 'In progress',
+    description:
+      'Per-module identities and dependency edges so a single edit invalidates only the modules and routes it actually affects.',
+  },
+  {
+    step: 'Migration tooling',
+    package: 'repository-wide',
+    status: 'Planned',
+    description:
+      'Codemods, compatibility adapters, diagnostics, and the upgrade guide for package imports and removed private APIs.',
+  },
+]
+
 const STATUS_META = {
+  shipped: {
+    label: 'Shipped',
+    icon: CheckCircle2,
+    accent: 'text-success-500',
+    badgeBg: 'bg-success-500/10 text-success-500',
+  },
   'in-progress': {
     label: 'In Progress',
     icon: LoaderCircle,
     accent: 'text-accent-400',
     badgeBg: 'bg-accent-500/10 text-accent-400',
-    bar: 'bg-linear-to-r from-accent-500 to-primary-500',
   },
   planning: {
     label: 'Planning',
     icon: CircleDot,
     accent: 'text-muted',
     badgeBg: 'bg-subtle text-muted',
-    bar: 'bg-dim/40',
   },
 } as const
 
@@ -166,7 +237,9 @@ function RoadmapItemCard({ item }: { item: RoadmapItem }) {
       <div
         className={`mt-0.5 shrink-0 flex items-center justify-center size-10 rounded-xl ${meta.badgeBg}`}
       >
-        <Icon className="w-5 h-5" />
+        <Icon
+          className={`w-5 h-5 ${item.status === 'in-progress' ? 'animate-spin' : ''}`}
+        />
       </div>
       <div className="flex-1 min-w-0">
         <h3 className="text-base font-semibold text-body leading-snug">
@@ -177,8 +250,12 @@ function RoadmapItemCard({ item }: { item: RoadmapItem }) {
         </p>
       </div>
       <span className="hidden sm:inline-flex h-6 shrink-0 items-center rounded-full px-3 text-xs font-medium">
-        {item.status === 'in-progress' ? (
-          <span className="flex items-center gap-1.5 rounded-full bg-accent-500/10  px-2.5 py-0.5 text-accent-400">
+        {item.status === 'shipped' ? (
+          <span className="flex items-center gap-1.5 rounded-full bg-success-500/10 px-2.5 py-0.5 text-success-500">
+            <CheckCircle2 className="size-3" /> Shipped
+          </span>
+        ) : item.status === 'in-progress' ? (
+          <span className="flex items-center gap-1.5 rounded-full bg-accent-500/10 px-2.5 py-0.5 text-accent-400">
             <LoaderCircle className="size-3 animate-spin" /> Active
           </span>
         ) : (
@@ -192,15 +269,25 @@ function RoadmapItemCard({ item }: { item: RoadmapItem }) {
 }
 
 export default function RoadmapPage() {
-  const [tab, setTab] = useState<'all' | 'in-progress' | 'planning'>('all')
+  const [tab, setTab] = useState<
+    'all' | 'shipped' | 'in-progress' | 'planning'
+  >('all')
 
+  const shipped = ROADMAP.filter((i) => i.status === 'shipped')
   const inProgress = ROADMAP.filter((i) => i.status === 'in-progress')
   const planning = ROADMAP.filter((i) => i.status === 'planning')
   const visible =
-    tab === 'all' ? ROADMAP : tab === 'in-progress' ? inProgress : planning
+    tab === 'all'
+      ? ROADMAP
+      : tab === 'shipped'
+        ? shipped
+        : tab === 'in-progress'
+          ? inProgress
+          : planning
 
   const tabs = [
     { key: 'all' as const, label: `All (${ROADMAP.length})` },
+    { key: 'shipped' as const, label: `Shipped (${shipped.length})` },
     {
       key: 'in-progress' as const,
       label: `In Progress (${inProgress.length})`,
@@ -215,7 +302,16 @@ export default function RoadmapPage() {
           <h1 className="text-4xl md:text-6xl font-semibold tracking-tighter text-body mb-6">
             What&apos;s coming next
           </h1>
+          <p className="mx-auto max-w-2xl text-paragraph">
+            Boltdocs 3.4 is the stable line: redirects, incremental builds,
+            accessible View Transitions, and the shared contract layer. The 4.0
+            architecture migration continues in parallel on a dedicated branch.
+          </p>
           <div className="mt-8 flex items-center justify-center gap-6 text-sm">
+            <span className="flex items-center gap-2 text-paragraph">
+              <span className="size-2.5 rounded-full bg-success-500" />
+              {shipped.length} shipped
+            </span>
             <span className="flex items-center gap-2 text-paragraph">
               <span className="size-2.5 rounded-full bg-accent-500 animate-pulse" />
               {inProgress.length} in progress
@@ -250,6 +346,23 @@ export default function RoadmapPage() {
 
         {tab === 'all' ? (
           <div className="flex flex-col">
+            {shipped.length > 0 && (
+              <section className="mb-14">
+                <div className="flex items-center gap-3 mb-6">
+                  <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-success-500/10 text-success-500 text-sm font-semibold">
+                    <CheckCircle2 className="size-5" />
+                    Shipped in 3.4.0
+                  </div>
+                  <div className="h-px flex-1 bg-subtle" />
+                </div>
+                <div className="flex flex-col gap-4">
+                  {shipped.map((item) => (
+                    <RoadmapItemCard key={item.title} item={item} />
+                  ))}
+                </div>
+              </section>
+            )}
+
             <section className="mb-14">
               <div className="flex items-center gap-3 mb-6">
                 <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-accent-500/10 text-accent-400 text-sm font-semibold">
@@ -283,9 +396,9 @@ export default function RoadmapPage() {
         ) : (
           <div
             className={
-              tab === 'in-progress'
-                ? 'flex flex-col gap-4'
-                : 'grid sm:grid-cols-2 gap-4'
+              tab === 'planning'
+                ? 'grid sm:grid-cols-2 gap-4'
+                : 'flex flex-col gap-4'
             }
           >
             {visible.map((item) => (
@@ -293,6 +406,62 @@ export default function RoadmapPage() {
             ))}
           </div>
         )}
+
+        <section className="mt-20">
+          <div className="flex items-center gap-3 mb-2">
+            <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-surface text-body text-sm font-semibold">
+              <Package className="size-5" />
+              Boltdocs 4.0 migration
+            </div>
+            <div className="h-px flex-1 bg-subtle" />
+          </div>
+          <p className="text-sm text-paragraph mb-6 max-w-3xl">
+            4.0 is an architecture release, not a feature release. The goal is a
+            smaller core with explicit package boundaries, optional
+            integrations, and builds whose cost is proportional to the change.
+            Every slice below ships on the <code>4.0</code> branch and is merged
+            back into <code>develop</code> only when it is backward compatible.
+          </p>
+
+          <div className="flex flex-col gap-4">
+            {MIGRATION_ROUTE.map((item) => (
+              <div
+                key={item.step}
+                className="group flex items-start gap-5 p-5 rounded-2xl bg-surface"
+              >
+                <div className="mt-0.5 shrink-0 flex items-center justify-center size-10 rounded-xl bg-subtle text-muted">
+                  <Package className="w-5 h-5" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <h3 className="text-base font-semibold text-body leading-snug">
+                      {item.step}
+                    </h3>
+                    <code className="rounded bg-subtle px-2 py-0.5 text-xs text-muted">
+                      {item.package}
+                    </code>
+                  </div>
+                  <p className="mt-1.5 text-sm text-paragraph leading-relaxed">
+                    {item.description}
+                  </p>
+                </div>
+                <span className="hidden sm:inline-flex h-6 shrink-0 items-center rounded-full px-3 text-xs font-medium bg-subtle text-muted">
+                  {item.status}
+                </span>
+              </div>
+            ))}
+          </div>
+
+          <a
+            href="https://github.com/bolt-docs/boltdocs/blob/4.0/ROADMAP-4.0.md"
+            target="_blank"
+            rel="noreferrer"
+            className="mt-6 inline-flex items-center gap-2 text-sm font-medium text-accent-400 hover:text-accent-300 transition-colors"
+          >
+            Read the full 4.0 roadmap
+            <ArrowUpRight className="size-4" />
+          </a>
+        </section>
       </Section>
     </div>
   )
