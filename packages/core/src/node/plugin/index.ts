@@ -8,6 +8,7 @@ import { generateRoutes, getExternalRoutePaths } from '../routes'
 import type { RouteMeta } from '../routes/types'
 import { resolveConfig, type BoltdocsConfig } from '../config'
 import { generateProjectTypes, writeLinkTree } from '../types-generator'
+import { buildTypeRoutePaths } from '../route-paths'
 import { normalizePath } from '../utils'
 import { injectHtmlMeta } from './html'
 import { createStaticSsgOptions } from './ssg-static-options'
@@ -435,15 +436,11 @@ export function boltdocsPlugin(
             _routesCachePromise = generateRoutes(docsDir, config)
           }
           routes = await _routesCachePromise
-          const routePaths = routes.map((r) => r.path)
-          const basePath = (config.base || '/docs').replace(/\/$/, '')
-
-          if (!routePaths.includes(basePath)) routePaths.push(basePath)
-
-          const externalPaths = getExternalRoutePaths(docsDir, config)
-          for (const p of externalPaths) {
-            if (!routePaths.includes(p)) routePaths.push(p)
-          }
+          const routePaths = buildTypeRoutePaths(
+            routes,
+            config.base,
+            getExternalRoutePaths(docsDir, config),
+          )
 
           generateProjectTypes(config, docsDir, undefined, routePaths)
           writeLinkTree(routePaths)

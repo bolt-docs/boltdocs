@@ -162,6 +162,7 @@ export default async function boltdocs(
 ): Promise<Plugin[]> {
   const { resolveConfig } = await import('./config')
   const { generateRoutes, getExternalRoutePaths } = await import('./routes')
+  const { buildTypeRoutePaths } = await import('./route-paths')
   const { generateProjectTypes, writeLinkTree } = await import(
     './types-generator'
   )
@@ -170,15 +171,11 @@ export default async function boltdocs(
   const docsDir = options?.docsDir || 'docs'
   const config = await resolveConfig(docsDir)
   const routes = await generateRoutes(docsDir, config)
-  const routePaths = routes.map((r) => r.path)
-  const basePath = (config.base || '/docs').replace(/\/$/, '')
-  if (!routePaths.includes(basePath)) {
-    routePaths.push(basePath)
-  }
-  const externalPaths = getExternalRoutePaths(docsDir, config)
-  for (const p of externalPaths) {
-    if (!routePaths.includes(p)) routePaths.push(p)
-  }
+  const routePaths = buildTypeRoutePaths(
+    routes,
+    config.base,
+    getExternalRoutePaths(docsDir, config),
+  )
   generateProjectTypes(config, docsDir, undefined, routePaths)
   writeLinkTree(routePaths)
 
@@ -272,17 +269,20 @@ export async function createViteConfig(
   const shouldGenerateTypes = !options.skipTypes
   const shouldGenerateLinkTree = !options.skipLinkTree
   if (shouldGenerateTypes || shouldGenerateLinkTree) {
-    const [{ getExternalRoutePaths }, { generateProjectTypes, writeLinkTree }] =
-      await Promise.all([import('./routes'), import('./types-generator')])
-    const routePaths = routes.map((r) => r.path)
-    const basePath = (config.base || '/docs').replace(/\/$/, '')
-    if (!routePaths.includes(basePath)) {
-      routePaths.push(basePath)
-    }
-    const externalPaths = getExternalRoutePaths(docsDir, config)
-    for (const p of externalPaths) {
-      if (!routePaths.includes(p)) routePaths.push(p)
-    }
+    const [
+      { getExternalRoutePaths },
+      { generateProjectTypes, writeLinkTree },
+      { buildTypeRoutePaths },
+    ] = await Promise.all([
+      import('./routes'),
+      import('./types-generator'),
+      import('./route-paths'),
+    ])
+    const routePaths = buildTypeRoutePaths(
+      routes,
+      config.base,
+      getExternalRoutePaths(docsDir, config),
+    )
     if (shouldGenerateTypes) {
       generateProjectTypes(config, docsDir, root, routePaths)
     }
