@@ -29,11 +29,18 @@ export interface RenderExecutorInput {
     error: unknown,
     pool: RenderPoolLike,
   ) => Promise<SsgRenderResult>
+  /**
+   * `elapsedMs` is the wall time from the *batch* dispatch to this result, so
+   * every page in a batch observes the same value. `batchIndex` identifies the
+   * page's position within its batch, which lets consumers sample once per
+   * batch instead of once per page.
+   */
   readonly onWorkerResult: (
     path: string,
     plan: RenderPlan,
     result: SsgRenderResult,
     elapsedMs: number,
+    batchIndex: number,
   ) => Promise<void>
   readonly batchSize?: number
   readonly scheduleMainThread: (path: string, plan: RenderPlan) => void
@@ -202,6 +209,7 @@ export async function executeRenderSchedule(
               plan,
               fallback,
               performance.now() - dispatchStart,
+              0,
             )
             renderedCount++
           }
@@ -256,6 +264,7 @@ export async function executeRenderSchedule(
               plan,
               result,
               performance.now() - dispatchStart,
+              index,
             )
             renderedCount++
           }
@@ -316,6 +325,8 @@ export async function executeRenderSchedule(
                 item.plan,
                 result,
                 performance.now() - dispatchStart,
+                // Single-page dispatch: the page is the whole batch.
+                0,
               )
               renderedCount++
             })
