@@ -24,13 +24,18 @@ for (const path of PAGES) {
     // xl viewport so the right-rail TOC is visible
     await page.setViewportSize({ width: 1440, height: 900 })
     await page.goto(path)
+    // The TOC is rendered after hydration. Reading it while the dev server is
+    // still streaming modules either raced a client-side navigation
+    // ("execution context was destroyed") or sampled an empty rail, so settle
+    // first and let the locator auto-retry.
+    await page.waitForLoadState('networkidle')
     // The OnThisPage primitive is style-neutral and exposes `data-otp-root`
     // instead of baked-in `w-toc` classes, so the hook is the stable selector.
-    await page.waitForSelector('nav[data-otp-root]')
+    await page.waitForSelector('nav[data-otp-root] a[href^="#"]')
 
-    const toc = await page.$$eval('nav[data-otp-root] a[href^="#"]', (links) =>
-      links.map((a) => (a.textContent ?? '').trim()),
-    )
+    const toc = (
+      await page.locator('nav[data-otp-root] a[href^="#"]').allTextContents()
+    ).map((text) => text.trim())
     expect(toc.length).toBeGreaterThan(0)
 
     const duplicates = toc.filter((t, i) => toc.indexOf(t) !== i)
