@@ -23,6 +23,23 @@ vi.mock('boltdocs/node/highlight', () => ({
   getCodeHighlighterAdapter: () => mockAdapter,
 }))
 
+// Toggled by the serialization-failure case: `toHtml` decides whether the HTML
+// string exists, and therefore whether children are emitted at all.
+const { serializationFails } = vi.hoisted(() => ({
+  serializationFails: { on: false },
+}))
+
+vi.mock('hast-util-to-html', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('hast-util-to-html')>()
+  return {
+    // Delegate to the real serializer except when a case needs it to fail.
+    toHtml: (node: Parameters<typeof actual.toHtml>[0]) => {
+      if (serializationFails.on) throw new Error('serialization failed')
+      return actual.toHtml(node)
+    },
+  }
+})
+
 const highlightModule = await import(
   '../node/satteri-plugins/rehype-shiki-plugin'
 )
@@ -37,6 +54,7 @@ describe('satteriRehypeCodeHighlightPlugin', () => {
   beforeEach(() => {
     vi.resetAllMocks()
     clearHighlightCache()
+    serializationFails.on = false
     mockAdapter.initialize.mockResolvedValue(mockHighlighter)
     mockAdapter.getOptions.mockReturnValue({ lang: 'javascript' })
     mockAdapter.ensureLanguage.mockResolvedValue(true)
@@ -232,6 +250,135 @@ describe('satteriRehypeCodeHighlightPlugin', () => {
     expect(result.properties['data-highlighted']).toBe('true')
     expect(result.properties['data-lang']).toBe('javascript')
     expect(result.properties['data-line-numbers']).toBe('true')
+  })
+
+  it('emits no children when the highlighted HTML is present', async () => {
+    // The MDX compiler turns HAST children into a React tree that ships in the
+    // client bundle. `CodeBlockPre` renders `data-highlighted-html` through
+    // `dangerouslySetInnerHTML` and ignores children entirely, so emitting both
+    // made every code block travel twice: once as an HTML string and once as
+    // dead React nodes. Dropping children when the HTML exists cut the JS
+    // delivered per visit from 2440 KB to 1907 KB on a 263-page site.
+    mockHighlighter.codeToHast.mockReturnValue({
+      type: 'element',
+      tagName: 'pre',
+      properties: { className: ['shiki'] },
+      children: [
+        {
+          type: 'element',
+          tagName: 'code',
+          properties: { className: ['language-javascript'] },
+          children: [{ type: 'text', value: 'const x = 1' }],
+        },
+      ],
+    })
+
+    const plugin = satteriRehypeCodeHighlightPlugin() as {
+      element: { filter: string[]; visit: (...args: unknown[]) => unknown }
+    }
+
+    const result = (await plugin.element.visit(
+      {
+        type: 'element',
+        tagName: 'pre',
+        properties: {},
+        children: [
+          {
+            type: 'element',
+            tagName: 'code',
+            properties: { className: ['language-javascript'] },
+            children: [{ type: 'text', value: 'const x = 1' }],
+          },
+        ],
+      },
+      {
+        textContent: () => 'const x = 1',
+        source: 'test',
+        fileURL: undefined,
+        data: {},
+        removeNode: vi.fn(),
+        replaceNode: vi.fn(),
+        insertBefore: vi.fn(),
+        insertAfter: vi.fn(),
+        wrapNode: vi.fn(),
+        prependChild: vi.fn(),
+        appendChild: vi.fn(),
+        insertChildAt: vi.fn(),
+        removeChildAt: vi.fn(),
+        setProperty: vi.fn(),
+        parent: vi.fn(),
+        indexOf: vi.fn(),
+        report: vi.fn(),
+        getDiagnostics: () => [],
+      },
+    )) as { properties: Record<string, unknown>; children: unknown[] }
+
+    expect(typeof result.properties['data-highlighted-html']).toBe('string')
+    expect(result.children).toEqual([])
+  })
+
+  it('keeps the HAST children when serialization fails', async () => {
+    // The children are the only rendering path left when the HTML string
+    // cannot be produced, so they must survive that failure.
+    serializationFails.on = true
+
+    mockHighlighter.codeToHast.mockReturnValue({
+      type: 'element',
+      tagName: 'pre',
+      properties: { className: ['shiki'] },
+      children: [
+        {
+          type: 'element',
+          tagName: 'code',
+          properties: {},
+          children: [{ type: 'text', value: 'const x = 1' }],
+        },
+      ],
+    })
+
+    const plugin = satteriRehypeCodeHighlightPlugin() as {
+      element: { filter: string[]; visit: (...args: unknown[]) => unknown }
+    }
+
+    const result = (await plugin.element.visit(
+      {
+        type: 'element',
+        tagName: 'pre',
+        properties: {},
+        children: [
+          {
+            type: 'element',
+            tagName: 'code',
+            properties: { className: ['language-javascript'] },
+            children: [{ type: 'text', value: 'const x = 1' }],
+          },
+        ],
+      },
+      {
+        textContent: () => 'const x = 1',
+        source: 'test',
+        fileURL: undefined,
+        data: {},
+        removeNode: vi.fn(),
+        replaceNode: vi.fn(),
+        insertBefore: vi.fn(),
+        insertAfter: vi.fn(),
+        wrapNode: vi.fn(),
+        prependChild: vi.fn(),
+        appendChild: vi.fn(),
+        insertChildAt: vi.fn(),
+        removeChildAt: vi.fn(),
+        setProperty: vi.fn(),
+        parent: vi.fn(),
+        indexOf: vi.fn(),
+        report: vi.fn(),
+        getDiagnostics: () => [],
+      },
+    )) as { properties: Record<string, unknown>; children: unknown[] }
+
+    // No highlighted HTML means the JSX path has to carry the block.
+    expect(result.properties['data-highlighted-html']).toBeUndefined()
+    expect(result.children.length).toBeGreaterThan(0)
   })
 
   it('returns shiki-fallback on highlight error', async () => {
