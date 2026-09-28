@@ -6,7 +6,10 @@ import {
   useEffect,
   useState,
 } from 'react'
-import * as RAC from 'react-aria-components'
+// Named imports, not `import * as RAC`: a namespace import pulls the whole
+// react-aria-components barrel into the client bundle because the bundler
+// cannot prove which members are unused. These three are all the sidebar needs.
+import { Dialog, Modal, ModalOverlay } from 'react-aria-components'
 import { cn } from '../../utils/cn'
 import { useUI } from '../../app/ui-context'
 import { Link } from './link'
@@ -77,23 +80,23 @@ export function SidebarMobile({
   const { isSidebarOpen, closeSidebar } = useUI()
 
   return (
-    <RAC.ModalOverlay
+    <ModalOverlay
       isOpen={isSidebarOpen}
       onOpenChange={(open) => !open && closeSidebar()}
       isDismissable={true}
       className={cn('lg:hidden', overlayClassName)}
     >
-      <RAC.Modal className={cn('lg:hidden', className)}>
-        <RAC.Dialog
+      <Modal className={cn('lg:hidden', className)}>
+        <Dialog
           className={cn(
             'h-full flex flex-col outline-none focus:outline-none',
             dialogClassName,
           )}
         >
           {children}
-        </RAC.Dialog>
-      </RAC.Modal>
-    </RAC.ModalOverlay>
+        </Dialog>
+      </Modal>
+    </ModalOverlay>
   )
 }
 
