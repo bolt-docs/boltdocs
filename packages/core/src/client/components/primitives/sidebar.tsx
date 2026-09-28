@@ -297,6 +297,10 @@ export function SidebarLink({
     <Link
       ref={linkRef}
       href={href}
+      // The sidebar is the densest cluster of destinations on a docs page and
+      // readers scroll it rather than hover it, so warming on visibility is
+      // where it pays off most.
+      prefetch="viewport"
       data-active={active || undefined}
       data-depth={depth !== undefined ? depth : undefined}
       aria-current={active ? 'page' : undefined}

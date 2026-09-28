@@ -215,6 +215,9 @@ function NavbarLink({
     <Link
       href={href}
       target={to === 'external' ? '_blank' : undefined}
+      // A handful of always-visible top-level destinations, so warming them on
+      // visibility is nearly free and makes the first click of a visit instant.
+      prefetch={to === 'external' ? 'none' : 'viewport'}
       className={cn('transition-all outline-none', className)}
     >
       {label as any}
