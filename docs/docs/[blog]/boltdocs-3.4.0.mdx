@@ -137,8 +137,34 @@ import type { RouteMeta, PluginContext } from 'boltdocs'
 
 `@bdocs/processor-satteri` now consumes the lifecycle contract directly instead of reaching into core types, which is the first concrete payoff of the boundary.
 
+## Navigation that warms before you click
+
+Prefetching already ran on hover and keyboard focus, which misses how documentation is actually read. A reader scrolls the sidebar, reads a heading, and clicks — without the pointer ever landing on the link. Every plausible destination was sitting on screen, cold.
+
+`Link` now accepts `prefetch="viewport"`, which keeps hover behaviour and additionally warms the destination as the link approaches the viewport:
+
+```tsx title="app/my-link.tsx"
+import { Link } from 'boltdocs/client'
+
+export function DocsLink() {
+  return (
+    <Link href="/docs/guides/getting-started/installation" prefetch="viewport">
+      Installation
+    </Link>
+  )
+}
+```
+
+The sidebar links and the navbar's top-level items opt in, since those are the densest clusters of destinations on a page.
+
+A detail worth being precise about, because it is often done the other way: this does not download HTML. The router renders on the client, so the document would be fetched and thrown away. What gets warmed is the route's lazy chunk and its loader data — the only two things a transition actually waits on. That is also why it slots into the existing prefetch queue without any new machinery: two requests in flight, a shallow backlog, and work dropped when saturated, exactly as hover prefetching already behaved. A 200px margin starts the warm-up just before the link scrolls in.
+
+It is opt-in per link rather than global, so existing themes and sites do not silently start paying for extra bandwidth.
+
 ## Other improvements
 
+- **External pages in dev** — a site with a non-root `base` could not reach its own external pages. Vite shares Boltdocs' base, and its base middleware rejected every path outside it with `404 The server is configured with a public base URL of /docs`, while the build emitted those pages at the dist root where production always served them. The dev server now rewrites the internal URL of a known external path to its base-prefixed form; the browser URL is untouched.
+- **Link autocompletion stops dropping routes** — the generated link tree and the `RoutePaths` augmentation were assembled by four separate copies of the same logic, plus a fifth in the dev server that only passed documentation routes. They had drifted, so `/roadmap`, `/showcase`, `/about` and the base itself were missing, and collection routes were offered without their base (`/blog/post` instead of `/docs/blog/post`). They are now built by one shared helper. Related: regenerating types during HMR used to call the generator without route paths, which stripped the whole `RoutePaths` block — so editing `mdx-components` or adding a page silently killed autocompletion until the next full run.
 - **Search relevance and snippets** — better scoring, highlighted matches, cancellation of stale queries, and index updates through HMR.
 - **Ask AI completion** — multi-provider support, hardened server adapters, request and input limits, rate limiting, and an accessible chat UI.
 - **Route resolution** — locale and version resolution is indexed instead of rescanned per route, which removes most of the routing cost on large sites.
