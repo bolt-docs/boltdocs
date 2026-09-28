@@ -147,14 +147,25 @@ export function shouldEnableBundledDev(
   return !isProduction && value === 'true'
 }
 
+/**
+ * Whether `@vitejs/plugin-react` runs in dev.
+ *
+ * React Fast Refresh is what makes an edit to `layout.tsx`, an icon set or an
+ * external page swap in place instead of reloading the document. Without it
+ * there is no refresh runtime in the page, so every such edit falls back to a
+ * full reload and loses scroll position and loader state.
+ *
+ * It used to be skipped for any non-root base, which meant the common
+ * `base: '/docs'` documentation site had no Fast Refresh at all. The plugin
+ * handles a sub-path base correctly; only the bundled-dev opt-in remains
+ * environment-gated.
+ */
 export function shouldUseReactPlugin(
   isProduction: boolean,
-  base: string,
   value = process.env.BOLTDOCS_REACT_REFRESH,
 ): boolean {
   if (isProduction) return true
-  if (value === 'true') return true
-  return base === '/' || base === ''
+  return value !== 'false'
 }
 
 export default async function boltdocs(
@@ -403,7 +414,7 @@ export async function createViteConfig(
     plugins: [
       ...(userViteConfig.plugins ?? []),
       ssrDirnamePolyfillPlugin(),
-      ...(shouldUseReactPlugin(isProd, effectiveBase) ? reactPlugin() : []),
+      ...(shouldUseReactPlugin(isProd) ? reactPlugin() : []),
       ...boltdocsPlugin(
         { docsDir, root, routes } as BoltdocsPluginOptions,
         config,

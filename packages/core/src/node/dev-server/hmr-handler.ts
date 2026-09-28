@@ -1,4 +1,5 @@
 import type { ModuleNode, ViteDevServer, Plugin } from 'vite'
+import fs from 'node:fs'
 import { invalidateRouteCache, invalidateFile } from '../routes'
 import {
   getRouteGenerationFingerprint,
@@ -34,6 +35,32 @@ import { error } from '@bdocs/dui'
 import { invalidateMdxFileCache } from '@bdocs/processor-satteri/node'
 
 const DEBOUNCE_MS = 150
+
+/**
+ * How long to wait for a partially written file to finish settling before
+ * trusting a route deletion. Long enough to cover a truncate-then-write save,
+ * short enough to stay invisible in the editor.
+ */
+const WRITE_SETTLE_MS = 60
+
+const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms))
+
+/**
+ * True while the file exists but holds no usable document, which is what a
+ * truncated save looks like to the crawler. An actually deleted file returns
+ * false here: `add`/`unlink` handle that case separately, and a real deletion
+ * must not be mistaken for a save in progress.
+ */
+function isWriteInProgress(file: string): boolean {
+  try {
+    return fs.readFileSync(file, 'utf-8').trim().length === 0
+  } catch {
+    return false
+  }
+}
+
+/** Exposed for tests; not part of the module's public surface. */
+export const __testing = { isWriteInProgress, WRITE_SETTLE_MS }
 
 /**
  * Regenerates `types.d.ts` while preserving the `RoutePaths` augmentation.
@@ -189,15 +216,6 @@ export function setupHmr(
         return
       }
 
-      if (
-        normalized.includes('/pages-external/') ||
-        normalized.includes('\\pages-external\\')
-      ) {
-        invalidateVirtualModule(server, 'entry')
-        server.ws.send({ type: 'full-reload' })
-        return
-      }
-
       const lowerNormalized = normalized.toLowerCase()
       const isInsideDocs =
         lowerNormalized === lowerDocsDir ||
@@ -233,8 +251,12 @@ export function setupHmr(
       }
 
       if (isDocsRootFile('layout.tsx') || isDocsRootFile('layout.jsx')) {
+        // No full reload: `layout` is consumed through the `virtual:boltdocs-layout`
+        // module, so invalidating it lets Vite's normal React fast-refresh path
+        // swap the wrapper in place. Reloading the document threw away the
+        // scroll position and re-ran every loader for a pure layout edit.
+        // The module is still invalidated so the change is not dropped.
         invalidateVirtualModule(server, 'layout.tsx')
-        server.ws.send({ type: 'full-reload' })
         return
       }
 
@@ -367,7 +389,7 @@ export function setupHmr(
                 const currentConfig = getConfig()
 
                 try {
-                  const delta = await computeFrontmatterDelta(
+                  let delta = await computeFrontmatterDelta(
                     docsDir,
                     currentConfig,
                     virtualModuleState,
@@ -375,6 +397,30 @@ export function setupHmr(
                     cacheVariant,
                   )
                   if (!isCurrentGeneration(normalized, generation)) return
+
+                  // A save that truncates before writing (plain
+                  // `fs.writeFileSync`, and some editor integrations) lets the
+                  // watcher fire while the file is still empty. Route
+                  // generation then legitimately sees the route disappear, and
+                  // accepting that as a structural deletion would turn an
+                  // ordinary frontmatter edit into a full page reload. If the
+                  // file on disk is in that transient state, settle and diff
+                  // again before concluding anything was deleted.
+                  if (delta.routes.deleted.length > 0) {
+                    if (isWriteInProgress(normalized)) {
+                      await delay(WRITE_SETTLE_MS)
+                      if (!isCurrentGeneration(normalized, generation)) return
+                      delta = await computeFrontmatterDelta(
+                        docsDir,
+                        currentConfig,
+                        virtualModuleState,
+                        cacheContext,
+                        cacheVariant,
+                      )
+                      if (!isCurrentGeneration(normalized, generation)) return
+                    }
+                  }
+
                   // Structural changes (route deletions) still require a full
                   // reload because React Router's route tree is built from the
                   // static virtual module entry point.
@@ -454,14 +500,19 @@ export function createHotUpdateHandler(
     const isExternalPage =
       normalized.includes('/pages-external/') ||
       normalized.includes('\\pages-external\\')
-    if (
-      isInsideDocs &&
-      (isDocFile(file) || normalized.endsWith('meta.json') || isExternalPage)
-    ) {
-      // Suppress Vite's default module-graph HMR for docs content and
-      // pages-external files — the watcher-driven handler owns their
-      // reload/update so a single change produces a single reload instead
-      // of a full-reload plus Vite's own full-reload.
+
+    // External pages are plain React modules reached through the user entry,
+    // not generated content. Suppressing their HMR meant a one-line edit to a
+    // landing page could only ever be a full reload; letting Vite own them
+    // restores fast refresh. `mdx` pages stay with the watcher because they
+    // carry frontmatter that has to drive route and search updates.
+    if (isExternalPage) return
+
+    if (isInsideDocs && (isDocFile(file) || normalized.endsWith('meta.json'))) {
+      // Suppress Vite's default module-graph HMR for docs content — the
+      // watcher-driven handler owns their reload/update so a single change
+      // produces a single reload instead of a full-reload plus Vite's own
+      // full-reload.
       return []
     }
   }
