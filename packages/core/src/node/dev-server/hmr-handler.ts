@@ -10,6 +10,7 @@ import {
 } from '../routes/cache'
 import { type BoltdocsConfig, CONFIG_FILES } from '../config'
 import { generateProjectTypes } from '../types-generator'
+import { buildTypeRoutePaths } from '../route-paths'
 import { normalizePath, isDocFile } from '../utils'
 import {
   computeFrontmatterDelta,
@@ -27,11 +28,40 @@ import {
   removeFrontmatterHash,
 } from './frontmatter-cache'
 import { generateLinkTree } from '../cli/doctor'
+import { invalidateExternalPagePaths } from './external-page-rewrite'
 import path from 'node:path'
 import { error } from '@bdocs/dui'
 import { invalidateMdxFileCache } from '@bdocs/processor-satteri/node'
 
 const DEBOUNCE_MS = 150
+
+/**
+ * Regenerates `types.d.ts` while preserving the `RoutePaths` augmentation.
+ *
+ * Calling `generateProjectTypes` without route paths drops that augmentation
+ * entirely, so a mere HMR touch of `mdx-components` or an added page would wipe
+ * link autocompletion until the next full run. Routes are cheap to recompute
+ * here and the handler is already debounced.
+ */
+async function regenerateProjectTypes(
+  config: BoltdocsConfig,
+  docsDir: string,
+): Promise<void> {
+  const [{ generateRoutes, getExternalRoutePaths }] = await Promise.all([
+    import('../routes'),
+  ])
+  const routes = await generateRoutes(docsDir, config)
+  generateProjectTypes(
+    config,
+    docsDir,
+    undefined,
+    buildTypeRoutePaths(
+      routes,
+      config.base,
+      getExternalRoutePaths(docsDir, config),
+    ),
+  )
+}
 
 function invalidateVirtualModule(server: ViteDevServer, name: string): void {
   // The entry resolves with a `.tsx` extension while other virtual modules use
@@ -185,7 +215,7 @@ export function setupHmr(
         isDocsRootFile('mdx-components.js')
       ) {
         const currentConfig = getConfig()
-        generateProjectTypes(currentConfig, docsDir)
+        await regenerateProjectTypes(currentConfig, docsDir)
         invalidateVirtualModule(server, 'mdx-components.tsx')
         server.ws.send({ type: 'full-reload' })
         return
@@ -245,6 +275,7 @@ export function setupHmr(
         }
         invalidateRouteCache(cacheContext)
         invalidateDirectoryMetaCache(virtualModuleState)
+        invalidateExternalPagePaths()
 
         // Notify plugin HMR handlers after core processing. Preserve the
         // two-argument legacy call for isolated consumers that do not provide
@@ -257,7 +288,7 @@ export function setupHmr(
         })
 
         const currentConfig = getConfig()
-        generateProjectTypes(currentConfig, docsDir)
+        await regenerateProjectTypes(currentConfig, docsDir)
 
         invalidateVirtualModule(server, 'config')
         invalidateVirtualModule(server, 'routes')
