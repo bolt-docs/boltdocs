@@ -231,10 +231,17 @@ const STATUS_META = {
 type MigrationStep = (typeof MIGRATION_ROUTE)[number]
 
 const MIGRATION_STATUS_STYLES: Record<string, string> = {
-  Done: 'bg-success-500 text-white',
-  Next: 'bg-accent-500 text-white',
-  'In progress': 'bg-accent-500/15 text-accent-400',
-  Planned: 'bg-subtle text-muted',
+  Done: 'bg-success-500 text-white ring-success-500/30',
+  Next: 'bg-accent-500 text-white ring-accent-500/40',
+  'In progress': 'bg-accent-500/15 text-accent-400 ring-accent-500/20',
+  Planned: 'bg-subtle text-muted ring-subtle',
+}
+
+const MIGRATION_STATUS_TEXT: Record<string, string> = {
+  Done: 'text-success-500',
+  Next: 'text-accent-400',
+  'In progress': 'text-accent-400',
+  Planned: 'text-muted',
 }
 
 function StatusPill({ status }: { status: RoadmapItem['status'] }) {
@@ -335,42 +342,40 @@ function SectionHeading({
   )
 }
 
-function MigrationStepper({ steps }: { steps: MigrationStep[] }) {
+function MigrationTimeline({ steps }: { steps: MigrationStep[] }) {
   return (
-    <ol className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+    <ol className="relative">
+      {/* One continuous rail behind every node, so the steps read as a single
+          ordered migration rather than a set of unrelated cards. */}
+      <span
+        className="absolute left-[15px] top-3 bottom-3 w-px bg-subtle"
+        aria-hidden="true"
+      />
       {steps.map((step, index) => (
-        <li
-          key={step.step}
-          className="relative flex gap-3 rounded-2xl bg-surface p-4"
-        >
-          <div className="flex flex-col items-center gap-2">
-            <span
-              className={`flex size-7 shrink-0 items-center justify-center rounded-full text-xs font-bold ${MIGRATION_STATUS_STYLES[step.status] ?? MIGRATION_STATUS_STYLES.Planned}`}
-            >
-              {index + 1}
-            </span>
-            {index < steps.length - 1 && (
-              <span
-                className="hidden w-px flex-1 bg-subtle sm:block"
-                aria-hidden="true"
-              />
-            )}
-          </div>
-          <div className="min-w-0 flex-1">
-            <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+        <li key={step.step} className="relative flex gap-4 pb-6 last:pb-0">
+          <span
+            className={`relative z-10 flex size-8 shrink-0 items-center justify-center rounded-full text-xs font-bold ring-4 ring-body ${MIGRATION_STATUS_STYLES[step.status] ?? MIGRATION_STATUS_STYLES.Planned}`}
+            aria-hidden="true"
+          >
+            {index + 1}
+          </span>
+          <div className="min-w-0 flex-1 pt-1">
+            <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1">
               <h3 className="text-sm font-semibold leading-snug text-body">
                 {step.step}
               </h3>
-              <code className="rounded bg-subtle px-1.5 py-0.5 text-[11px] text-muted">
-                {step.package}
-              </code>
+              <span
+                className={`text-[11px] font-medium uppercase tracking-wide ${MIGRATION_STATUS_TEXT[step.status] ?? MIGRATION_STATUS_TEXT.Planned}`}
+              >
+                {step.status}
+              </span>
             </div>
+            <code className="mt-1 inline-block rounded bg-subtle px-1.5 py-0.5 text-[11px] text-muted">
+              {step.package}
+            </code>
             <p className="mt-1.5 text-[13px] leading-relaxed text-paragraph">
               {step.description}
             </p>
-            <span className="mt-2 inline-block text-[11px] font-medium text-muted">
-              {step.status}
-            </span>
           </div>
         </li>
       ))}
@@ -409,7 +414,7 @@ export default function RoadmapPage() {
   const compactList = tab === 'planning' || !showSections
 
   return (
-    <div className="min-h-screen overflow-hidden bg-body font-sans text-body antialiased">
+    <div className="min-h-screen overflow-hidden font-sans text-body antialiased">
       <Section padding="sm" maxWidth="xl">
         <header className="mx-auto mb-6 max-w-3xl text-center">
           <h1 className="text-3xl font-semibold tracking-tighter text-body md:text-5xl">
@@ -552,7 +557,7 @@ export default function RoadmapPage() {
             into <code>develop</code> only when it is backward compatible.
           </p>
 
-          <MigrationStepper steps={MIGRATION_ROUTE} />
+          <MigrationTimeline steps={MIGRATION_ROUTE} />
 
           <a
             href="https://github.com/bolt-docs/boltdocs/blob/4.0/ROADMAP-4.0.md"
