@@ -173,10 +173,13 @@ export async function executeRenderSchedule(
         }
       }
 
-      const batchSize = Math.max(
-        2,
-        input.batchSize ?? (input.getWorkerCount?.() ?? 1) * 2,
-      )
+      // Batches render sequentially inside a worker, so a large batch is a
+      // long serial job. Sizing it to the in-flight window meant one batch per
+      // worker holding many pages: the workers never interleaved, and the wall
+      // time became `ceil(pages / workers) * batchDuration`. A small batch keeps
+      // every worker fed with short jobs that can be scheduled around each
+      // other, which is what actually parallelises the work.
+      const batchSize = Math.max(2, input.batchSize ?? 2)
       for (let offset = 0; offset < uncached.length; offset += batchSize) {
         const batch = uncached.slice(offset, offset + batchSize)
         if (!worker) {
