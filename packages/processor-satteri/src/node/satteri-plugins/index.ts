@@ -1,5 +1,6 @@
 export { satteriRemarkMetaPlugin } from './remark-meta-plugin'
 export { satteriRehypeSlugPlugin } from './rehype-slug-plugin'
+export { satteriRehypeTableWhitespacePlugin } from './rehype-table-whitespace-plugin'
 export {
   satteriRehypeCodeHighlightPlugin,
   satteriRehypeShikiPlugin,
