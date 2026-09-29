@@ -1,4 +1,5 @@
 import { cn } from '../../utils/cn'
+import { formatDeterministicDate } from '../../utils/date'
 
 interface LastUpdatedProps {
   date?: string | number | Date
@@ -15,11 +16,9 @@ export function LastUpdated({ date, className }: LastUpdatedProps) {
   const d = new Date(date)
   if (Number.isNaN(d.getTime())) return null
 
-  const formattedDate = d.toLocaleDateString(undefined, {
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric',
-  })
+  // Locale and zone are pinned: an ambient default makes the server and the
+  // browser disagree and React discards the server-rendered HTML.
+  const formattedDate = formatDeterministicDate(d)
 
   return (
     <div

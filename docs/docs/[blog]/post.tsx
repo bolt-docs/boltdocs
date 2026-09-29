@@ -1,5 +1,5 @@
 import { OnThisPage } from '@/theme'
-import { useMergedComponents, usePost } from 'boltdocs/client'
+import { useMergedComponents, usePost, formatDate } from 'boltdocs/client'
 import type { ReactNode, ComponentType } from 'react'
 
 interface BlogPostProps {
@@ -30,11 +30,11 @@ export default function BlogPost({
               className="text-white text-center mb-6 block"
               dateTime={new Date(date).toISOString()}
             >
-              {new Date(date).toLocaleDateString(undefined, {
-                year: 'numeric',
-                month: 'long',
-                day: 'numeric',
-              })}
+              {/* Locale and time zone are pinned. Without them the server
+                  formats in the system locale and the browser in its own,
+                  which is a text mismatch and React throws away the
+                  server-rendered HTML on hydration. */}
+              {formatDate(date)}
             </time>
           )}
         </div>
