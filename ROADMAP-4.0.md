@@ -28,34 +28,42 @@ No 4.0-only package should be required for a normal 3.4.0 installation.
 
 ## 4.0 architecture
 
+### Package naming
+
+The published scope is `@bdocs/*`, matching every package on npm and in this
+repository. The `@boltdocs/*` spelling that appeared in earlier drafts of this
+document was never published and is not adopted: renaming the scope would be a
+breaking change to every existing import for no functional gain. All new
+packages in the graph below use `@bdocs/*`.
+
 The target package graph is:
 
 ```text
-@boltdocs/contracts
-  ├─ @boltdocs/core-node
-  ├─ @boltdocs/runtime
-  ├─ @boltdocs/ssg
-  ├─ @boltdocs/processor-satteri
-  └─ @boltdocs/plugin-*
+@bdocs/contracts
+  ├─ @bdocs/core-node
+  ├─ @bdocs/runtime
+  ├─ @bdocs/ssg
+  ├─ @bdocs/processor-satteri
+  └─ @bdocs/plugin-*
 ```
 
 ### Contracts
 
-`@boltdocs/contracts` will be small, framework-neutral, and dependency-light. It will define public types and interfaces for routes, manifests, plugins, build contexts, render contexts, module identities, and invalidation events.
+`@bdocs/contracts` will be small, framework-neutral, and dependency-light. It will define public types and interfaces for routes, manifests, plugins, build contexts, render contexts, module identities, and invalidation events.
 
 Contracts must not import Node.js, Vite, React, SSG, or individual integrations.
 
 ### Core Node
 
-`@boltdocs/core-node` will own configuration resolution, route generation, frontmatter validation, plugin lifecycle, build orchestration, dev-server state, and invalidation. It will not import optional integrations such as Mermaid, Math, Ask AI, Search, RSS, or image optimization.
+`@bdocs/core-node` will own configuration resolution, route generation, frontmatter validation, plugin lifecycle, build orchestration, dev-server state, and invalidation. It will not import optional integrations such as Mermaid, Math, Ask AI, Search, RSS, or image optimization.
 
 ### Runtime
 
-`@boltdocs/runtime` will own browser-facing React code, routing, hydration, navigation, theme primitives, and client contexts. It will not import filesystem, Vite, Piscina, Sharp, or server-only render code.
+`@bdocs/runtime` will own browser-facing React code, routing, hydration, navigation, theme primitives, and client contexts. It will not import filesystem, Vite, Piscina, Sharp, or server-only render code.
 
 ### SSG
 
-`@boltdocs/ssg` will consume public contracts and the documented core APIs. Client builds, server builds, SSR imports, critical CSS, render workers, output materialization, and page-cache policy remain in the SSG package.
+`@bdocs/ssg` will consume public contracts and the documented core APIs. Client builds, server builds, SSR imports, critical CSS, render workers, output materialization, and page-cache policy remain in the SSG package.
 
 ### Integrations
 
@@ -81,12 +89,12 @@ The migration is executed as an ordered sequence. Each slice is developed on a f
 
 | Order | Slice | Target package or area | Status |
 | --- | --- | --- | --- |
-| 1 | Shared contracts | `@bdocs/contracts` | In progress |
+| 1 | Shared contracts | `@bdocs/contracts` | Done |
 | 2 | SEO extraction | `@bdocs/plugin-seo` | Next |
 | 3 | UI extraction | `@bdocs/ui` | Planned |
 | 4 | Primitives extraction | `@bdocs/primitives` | Planned |
 | 5 | Runtime boundary | `@bdocs/runtime` | Planned |
-| 6 | Incremental MDX and SSG | core, Sätteri, SSG | Planned |
+| 6 | Incremental MDX and SSG | core, Sätteri, SSG | Partially delivered in 3.4.0 |
 | 7 | Migration tooling and 4.0 release gate | repository-wide | Planned |
 
 ### Route rules
@@ -102,6 +110,13 @@ The migration is executed as an ordered sequence. Each slice is developed on a f
 ### Slice 1 — Public contracts
 
 Extract shared types without changing runtime behavior. Add compatibility re-exports and characterization tests before moving implementation code. The current work covers routes, plugin lifecycle, plugin definitions, highlighting, incremental identities, and framework-neutral configuration.
+
+**Status: done.** `@bdocs/contracts` covers routes, plugin lifecycle and definitions, highlighting, search documents, framework-neutral configuration, module identities, and invalidation events, plus the build and render contracts this document names: bundle manifests, the server-side surface per route, the page cache entry, and the per-route cache identity. `@bdocs/ssg` consumes the manifest and cache contracts instead of declaring its own, which removes two copies that had already drifted.
+
+Two properties are enforced by tests rather than by review, because both fail silently:
+
+- `packages/contracts/tests/boundary.test.ts` fails if the package imports Node builtins, React, Vite, bundlers, worker pools, Sharp, sanitizers, optional integrations, or any other `@bdocs` package. A type-only import of a bundler type compiles and ships nothing while quietly welding the contract layer to the toolchain the separation exists to break. The test also asserts the package declares no runtime dependency at all.
+- `packages/contracts/tests/contracts.test.ts` characterizes each contract shape, so a later slice that changes one is a deliberate diff rather than an accident.
 
 ### Slice 2 — Node and browser boundaries
 

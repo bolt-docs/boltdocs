@@ -87,6 +87,7 @@
     }
   },
   "dependencies": {
+    "@bdocs/contracts": "workspace:*",
     "@bdocs/dui": "^0.3.0",
     "@bdocs/zig-critters": "workspace:*",
     "fs-extra": "^11.3.4",

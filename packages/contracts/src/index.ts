@@ -1,3 +1,4 @@
+export * from './build'
 export * from './config'
 export * from './highlighting'
 export * from './plugins'
