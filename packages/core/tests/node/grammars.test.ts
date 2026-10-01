@@ -69,3 +69,25 @@ describe('vendored shiki grammars', () => {
     expect(grammarFiles().length).toBeLessThan(70)
   })
 })
+
+describe('highlighter dependency granularity', () => {
+  it('does not import the full `shiki` package', () => {
+    // `shiki` resolves `shiki/core`, `shiki/wasm` and `shiki/engine/javascript`
+    // but declares `@shikijs/langs` (9.9 MB) and `@shikijs/themes` (1.8 MB) as
+    // ordinary dependencies. Naming it in any import reinstates 11.7 MB that no
+    // module here reads. `package-shape.test.ts` guards the manifest side; this
+    // guards the source side, since a package can be imported without declared.
+    const source = readFileSync(join(SRC, 'highlighter.ts'), 'utf8')
+
+    expect(source).not.toMatch(/from\s+['"]shiki(?:\/|['"])/)
+    expect(source).not.toMatch(/import\(\s*['"]shiki(?:\/|['"])/)
+  })
+
+  it('imports the engines from their own packages', () => {
+    const source = readFileSync(join(SRC, 'highlighter.ts'), 'utf8')
+
+    expect(source).toContain("from '@shikijs/core'")
+    expect(source).toContain("'@shikijs/engine-oniguruma/wasm-inlined'")
+    expect(source).toContain("'@shikijs/engine-javascript'")
+  })
+})
