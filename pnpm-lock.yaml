@@ -210,9 +210,6 @@ importers:
       '@bdocs/parser':
         specifier: workspace:*
         version: link:../parser
-      '@bdocs/plugin-image-optimizer':
-        specifier: workspace:*
-        version: link:../plugin-image-optimizer
       '@bdocs/processor-satteri':
         specifier: workspace:*
         version: link:../processor-satteri

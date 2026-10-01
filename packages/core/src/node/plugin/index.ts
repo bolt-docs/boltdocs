@@ -2,7 +2,7 @@ import path from 'node:path'
 import fs from 'node:fs'
 import { createRequire } from 'node:module'
 import { type Plugin, type ResolvedConfig, loadEnv } from 'vite'
-import { ViteImageOptimizer } from '@bdocs/plugin-image-optimizer'
+import { warn } from '@bdocs/dui'
 
 import { generateRoutes, getExternalRoutePaths } from '../routes'
 import type { RouteMeta } from '../routes/types'
@@ -218,6 +218,46 @@ let _preResolvedExternals: Map<string, string> | null = null
  */
 function adaptVitePlugins(plugins: unknown[] | undefined): Plugin[] {
   return (plugins ?? []) as unknown as Plugin[]
+}
+
+/**
+ * Loads the image optimizer only when the project asks for it.
+ *
+ * This used to be a top-level import that injected the plugin unconditionally,
+ * which made image processing mandatory: `sharp` and `svgo` are peer
+ * dependencies of the optimizer, so every installation resolved and downloaded
+ * them whether or not a single image was ever optimized. Keeping the import out
+ * of the module graph is what lets a project skip those binaries entirely.
+ *
+ * `createRequire` rather than a static import, and only reached from the enabled
+ * branch: a static import at module scope would put the optimizer — and through
+ * it `sharp` — back into every load. A static `import()` is not usable here
+ * because Vite requires a synchronous plugin array.
+ */
+function resolveImageOptimizerPlugins(
+  config: BoltdocsConfig | undefined,
+  projectRoot: string,
+): Plugin[] {
+  // `boltdocsPlugin()` is called with no config in tests and in a few internal
+  // paths, so the absence of a config means "no opt-in", not "throw".
+  const setting = config?.experimental?.imageOptimizer
+  if (setting === undefined || setting === false) return []
+
+  const options = typeof setting === 'object' ? setting : {}
+  if (options.enabled === false) return []
+
+  try {
+    const require = createRequire(path.join(projectRoot, 'package.json'))
+    const { ViteImageOptimizer } = require('@bdocs/plugin-image-optimizer')
+    return adaptVitePlugins([
+      ViteImageOptimizer({ includePublic: options.includePublic ?? true }),
+    ])
+  } catch {
+    warn(
+      '[boltdocs] experimental.imageOptimizer is enabled but @bdocs/plugin-image-optimizer could not be loaded. Install it with `pnpm add -D @bdocs/plugin-image-optimizer`. Continuing without image optimization.',
+    )
+    return []
+  }
 }
 
 export function boltdocsPlugin(
@@ -872,7 +912,7 @@ export function boltdocsPlugin(
       }),
     ]),
 
-    ...adaptVitePlugins([ViteImageOptimizer({ includePublic: true })]),
+    ...resolveImageOptimizerPlugins(config, options.root || process.cwd()),
 
     ...resolvedExtraVitePlugins,
   ]

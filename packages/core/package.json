@@ -96,7 +96,6 @@
     "@bdocs/contracts": "workspace:*",
     "@bdocs/dui": "^0.6.0",
     "@bdocs/parser": "workspace:*",
-    "@bdocs/plugin-image-optimizer": "workspace:*",
     "@bdocs/processor-satteri": "workspace:*",
     "@bdocs/ssg": "workspace:*",
     "@bdocs/unist-utils": "workspace:*",

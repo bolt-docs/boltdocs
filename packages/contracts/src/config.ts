@@ -88,9 +88,24 @@ export type ExperimentalViewTransitions =
   | boolean
   | BoltdocsViewTransitionsConfig
 
+export interface BoltdocsImageOptimizerConfig {
+  enabled?: boolean
+  /** Also optimize files in the public directory. @default true */
+  includePublic?: boolean
+}
+
 export interface BoltdocsExperimentalConfig {
   viewTransitions?: ExperimentalViewTransitions
   fileRouting?: boolean
+  /**
+   * Image optimization is opt-in.
+   *
+   * The optimizer resolves `sharp` and `svgo`, which are native binaries of a
+   * few megabytes each, so enabling it costs an installation whether or not a
+   * single image is ever processed. Off by default keeps that cost off projects
+   * that do not need it.
+   */
+  imageOptimizer?: boolean | BoltdocsImageOptimizerConfig
 }
 
 export interface ExternalFileRoute {
