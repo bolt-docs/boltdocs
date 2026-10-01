@@ -35,8 +35,20 @@ describe('packages/core/package.json shape', () => {
 
   it('keeps build-time deps in dependencies (CLI unconditionally imports them)', () => {
     // These are imported by src/node/cli-entry.ts when `npx boltdocs build` runs.
-    expect(deps.dependencies.shiki).toBe('3.23.0')
+    //
+    // The highlighter imports `@shikijs/core`, not `shiki`. The full `shiki`
+    // package pulls in `@shikijs/langs` (9.9 MB, 347 grammars) and
+    // `@shikijs/themes` (1.8 MB) as ordinary dependencies, and this project
+    // imports neither: grammars are vendored under
+    // `src/node/mdx/grammars` and themes under `src/node/mdx/shiki-themes.ts`.
+    // Depending on `shiki` would reinstall 11.7 MB of unreachable payload on
+    // every consumer. `tests/node/grammars.test.ts` guards the grammar side.
+    expect(deps.dependencies.shiki).toBeUndefined()
+    expect(deps.dependencies['@shikijs/langs']).toBeUndefined()
+    expect(deps.dependencies['@shikijs/core']).toBe('3.23.0')
+    expect(deps.dependencies['@shikijs/types']).toBe('3.23.0')
     expect(deps.dependencies['@shikijs/engine-oniguruma']).toBe('3.23.0')
+    expect(deps.dependencies['@shikijs/engine-javascript']).toBe('3.23.0')
     // @mdx-js/rollup was replaced by the Sätteri processor in 3.2.x
     expect(deps.dependencies['@bdocs/processor-satteri']).toBe('workspace:*')
   })

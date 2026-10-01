@@ -19,7 +19,7 @@ import type {
   CodeHighlightConfig,
   CodeTheme,
 } from '../../shared/types'
-import type { CodeToHastOptions } from 'shiki'
+import type { CodeToHastOptions } from '@shikijs/core'
 import { DEFAULT_THEMES, DEFAULTS, SHIKI_CLASSES } from './constants'
 
 export {
