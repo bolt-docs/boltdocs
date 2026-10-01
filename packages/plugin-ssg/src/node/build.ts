@@ -90,26 +90,24 @@ import { executeRenderSchedule } from './pipeline/render-executor'
 
 const dotVitedir = Number.parseInt(viteVersion, 10) >= 5 ? ['.vite'] : []
 
-export type SSRManifest = Record<string, string[]>
-export interface ManifestItem {
-  css?: string[]
-  file: string
-  imports?: string[]
-  dynamicImports?: string[]
-  src?: string
-  assets?: string[]
-}
+// The manifest and page-cache shapes belong to `@bdocs/contracts`. Declaring
+// them here as well meant two copies inside one package, which had already
+// drifted once. Imported and re-exported so every consumer of this module sees
+// the single definition.
+import type {
+  Manifest,
+  PageCacheEntry,
+  SSRManifest,
+  StaticLoaderDataManifest,
+} from '@bdocs/contracts'
 
-export type Manifest = Record<string, ManifestItem>
+export type { Manifest, PageCacheEntry, SSRManifest, StaticLoaderDataManifest }
 
-export interface SsgCacheItem {
-  contentHash: string
-  mtime: number
-  loaderDataFilePath?: string
-  assetHash?: string
-}
-
-export type StaticLoaderDataManifest = Record<string, string>
+/**
+ * A cache entry as this package records it. Alias to the contract so the shape
+ * cannot drift from the one the cache compares against.
+ */
+export type SsgCacheItem = PageCacheEntry
 
 export function serializeStaticLoaderDataManifest(
   manifest: StaticLoaderDataManifest,

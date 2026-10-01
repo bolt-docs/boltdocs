@@ -663,6 +663,9 @@ importers:
 
   packages/plugin-ssg:
     dependencies:
+      '@bdocs/contracts':
+        specifier: workspace:*
+        version: link:../contracts
       '@bdocs/dui':
         specifier: ^0.3.0
         version: 0.3.0
