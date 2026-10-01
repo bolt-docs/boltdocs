@@ -32,7 +32,7 @@ test.describe('Screen Reader Accessibility Tests', () => {
   }) => {
     const buttonsWithoutLabels = []
 
-    const buttons = page.locator('button').all()
+    const buttons = await page.locator('button').all()
     for (const button of buttons) {
       const hasLabel = await button.getAttribute('aria-label')
       const hasText = await button.textContent()
@@ -102,7 +102,7 @@ test.describe('Screen Reader Accessibility Tests', () => {
   })
 
   test('should have proper list structure', async ({ page }) => {
-    const lists = page.locator('ul, ol').all()
+    const lists = await page.locator('ul, ol').all()
 
     for (const list of lists) {
       const listItems = await list.locator('li').count()
@@ -120,7 +120,7 @@ test.describe('Screen Reader Accessibility Tests', () => {
   })
 
   test('should have proper table headers', async ({ page }) => {
-    const tables = page.locator('table').all()
+    const tables = await page.locator('table').all()
 
     for (const table of tables) {
       const headers = await table.locator('th').count()
@@ -139,7 +139,7 @@ test.describe('Screen Reader Accessibility Tests', () => {
   test('should have proper focus visible for custom controls', async ({
     page,
   }) => {
-    const customControls = page
+    const customControls = await page
       .locator('[role="button"], [role="checkbox"], [role="radio"]')
       .all()
 
@@ -155,7 +155,7 @@ test.describe('Screen Reader Accessibility Tests', () => {
   test('should handle aria-expanded for collapsible elements', async ({
     page,
   }) => {
-    const collapsibleElements = page.locator('[aria-expanded]').all()
+    const collapsibleElements = await page.locator('[aria-expanded]').all()
 
     for (const element of collapsibleElements) {
       const expanded = await element.getAttribute('aria-expanded')

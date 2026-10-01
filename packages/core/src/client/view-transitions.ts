@@ -25,6 +25,9 @@ type NativeViewTransitionDocument = {
 
 export type ViewTransitionUpdate = () => void | Promise<void>
 
+/** Navigation direction used to pick a directional transition type. */
+export type NavigationDirection = 'forward' | 'back' | 'none'
+
 export interface ViewTransitionRunner {
   (
     update: ViewTransitionUpdate,
@@ -44,6 +47,8 @@ export interface ViewTransitionRunner {
   enabled: boolean
   /** Whether the current browser exposes the native API. */
   supported: boolean
+  /** Whether the visitor asked the OS to reduce motion. */
+  reducedMotion: boolean
 }
 
 function resolveOptions(
@@ -65,8 +70,42 @@ function isNativeViewTransitionSupported(): boolean {
 }
 
 /**
- * Starts a native document transition when the browser supports it. On older
- * browsers, the update still runs normally and the function returns null.
+ * Honors the `prefers-reduced-motion` media query.
+ *
+ * View transitions animate the whole document, so ignoring this setting turns
+ * an accessibility preference into a motion-sensitivity regression. The check
+ * is live: a visitor can change the OS setting without reloading the page.
+ */
+export function prefersReducedMotion(): boolean {
+  if (typeof window === 'undefined' || !window.matchMedia) return false
+  try {
+    return window.matchMedia('(prefers-reduced-motion: reduce)').matches
+  } catch {
+    return false
+  }
+}
+
+/**
+ * Combines the configured transition types with a navigation direction.
+ *
+ * The direction is always appended as a type so themes can animate forward and
+ * backward navigation differently without writing router code.
+ */
+export function resolveTransitionTypes(
+  configured: string[] | undefined,
+  direction: NavigationDirection = 'none',
+): string[] | undefined {
+  const types = [...(configured ?? [])]
+  if (direction !== 'none' && !types.includes(direction)) {
+    types.push(direction)
+  }
+  return types.length > 0 ? types : undefined
+}
+
+/**
+ * Starts a native document transition when the browser supports it and the
+ * visitor has not asked for reduced motion. Otherwise the update still runs
+ * normally and the function returns null.
  */
 export function startViewTransition(
   update: ViewTransitionUpdate,
@@ -74,6 +113,11 @@ export function startViewTransition(
 ): ViewTransitionHandle | null {
   const resolved = resolveOptions(options)
   if (typeof document === 'undefined' || resolved?.enabled !== true) {
+    void update()
+    return null
+  }
+
+  if (prefersReducedMotion()) {
     void update()
     return null
   }
@@ -107,6 +151,7 @@ export function useViewTransition(): ViewTransitionRunner {
     configured === true ||
     (typeof configured === 'object' && configured.enabled === true)
   const supported = isNativeViewTransitionSupported()
+  const reducedMotion = prefersReducedMotion()
 
   const run = useCallback(
     (update: ViewTransitionUpdate, options?: ViewTransitionOptions) => {
@@ -119,7 +164,10 @@ export function useViewTransition(): ViewTransitionRunner {
         typeof configured === 'object' ? configured.types : undefined
       return startViewTransition(update, {
         ...options,
-        types: options?.types || configuredTypes,
+        types: resolveTransitionTypes(
+          options?.types ?? configuredTypes,
+          'none',
+        ),
       })
     },
     [configured, enabled],
@@ -132,7 +180,8 @@ export function useViewTransition(): ViewTransitionRunner {
         start: run,
         enabled,
         supported,
+        reducedMotion,
       }),
-    [enabled, run, supported],
+    [enabled, reducedMotion, run, supported],
   )
 }

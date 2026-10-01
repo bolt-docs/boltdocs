@@ -1,6 +1,6 @@
 {
   "name": "@bdocs/plugin-sass",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "SASS / SCSS preprocessor plugin for Boltdocs",
   "main": "./dist/index.mjs",
   "module": "./dist/index.mjs",

@@ -1,5 +1,11 @@
 import { useMemo, useState } from 'react'
-import { useConfig, useI18n, usePosts } from 'boltdocs/client'
+import {
+  formatDate,
+  resolvePublicAssetUrl,
+  useConfig,
+  useI18n,
+  usePosts,
+} from 'boltdocs/client'
 import type { CollectionPost } from 'boltdocs/client'
 import { Link } from 'boltdocs/primitives'
 import { Button } from '@/theme/button'
@@ -28,25 +34,27 @@ const translations = {
 /** Number of most recent posts shown as the featured hero cards. */
 const FEATURED_COUNT = 2
 
-function formatDate(date: string | Date | undefined, locale: string) {
-  if (!date) return null
-  const d = new Date(date)
-  return d.toLocaleDateString(locale, {
-    day: '2-digit',
-    month: 'short',
-    year: 'numeric',
-  })
+/**
+ * Formats a post date for the card.
+ *
+ * `formatDate` from the framework pins the locale and the time zone, so the
+ * server and the browser render the same string. A locale taken from context
+ * and an unpinned zone both make the two sides disagree, which is a hydration
+ * mismatch and makes React discard the server HTML.
+ */
+function formatPostDate(date: string | Date | undefined): string {
+  if (!date) return ''
+  return formatDate(date, { month: 'short', day: '2-digit' })
 }
 
 interface PostCardProps {
   post: CollectionPost
   href: string
-  locale: string
   featured?: boolean
   base: string | undefined
 }
 
-function PostCard({ post, href, locale, featured = false }: PostCardProps) {
+function PostCard({ post, href, base, featured = false }: PostCardProps) {
   return (
     <Link
       href={href}
@@ -54,8 +62,15 @@ function PostCard({ post, href, locale, featured = false }: PostCardProps) {
     >
       <div className="relative aspect-video w-full overflow-hidden bg-surface">
         {post.coverImage ? (
+          /**
+           * The configured base is applied here. The cover path in frontmatter
+           * is site-root-relative, and a site served under a sub-path needs the
+           * base prefixed. Skipping it produces a 404 in the browser while the
+           * server-rendered markup looks correct, and the differing `src` is a
+           * hydration mismatch.
+           */
           <img
-            src={post.coverImage}
+            src={resolvePublicAssetUrl(post.coverImage, base)}
             alt={post.title}
             loading="lazy"
             referrerPolicy="no-referrer"
@@ -94,7 +109,7 @@ function PostCard({ post, href, locale, featured = false }: PostCardProps) {
 
         <div className="mt-auto flex items-center justify-between gap-4 pt-1">
           <time className="text-xs font-medium tracking-wide text-muted">
-            {formatDate(post.date, locale) ?? ''}
+            {formatPostDate(post.date)}
           </time>
           <ArrowUpRight
             aria-hidden="true"
@@ -144,7 +159,6 @@ export default function BlogList() {
               <PostCard
                 post={post}
                 href={`site:${post.path}`}
-                locale={locale}
                 featured
                 base={config.base}
               />
@@ -158,7 +172,6 @@ export default function BlogList() {
               <PostCard
                 post={post}
                 href={`site:${post.path}`}
-                locale={locale}
                 base={config.base}
               />
             </div>

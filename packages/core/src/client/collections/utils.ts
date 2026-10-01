@@ -1,14 +1,17 @@
+import { formatDeterministicDate } from '../utils/date'
+
 /**
  * Formats a date to a human-readable string.
- * @param date The date to format.
- * @returns The formatted date string.
+ *
+ * Locale and time zone are pinned so the server and the browser produce
+ * identical text during hydration. See `formatDeterministicDate`.
  */
-export function formatDate(date: string | Date): string {
-  const d = new Date(date)
-  if (Number.isNaN(d.getTime())) return ''
-  return d.toLocaleDateString(undefined, {
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric',
-  })
+export function formatDate(
+  date: string | Date | undefined | null,
+  options: {
+    month?: 'numeric' | '2-digit' | 'long' | 'short'
+    day?: 'numeric' | '2-digit'
+  } = {},
+): string {
+  return formatDeterministicDate(date, options)
 }

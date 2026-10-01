@@ -4,6 +4,8 @@ import type {
   BoltdocsConfig,
   BoltdocsRoutePath,
   BoltdocsRoutePathWithFallback,
+  RedirectConfig,
+  RedirectStatus,
 } from '../shared/types'
 
 // Re-export so consumers can `import { BoltdocsConfig } from 'boltdocs/client'`.
@@ -11,6 +13,8 @@ export type {
   BoltdocsConfig,
   BoltdocsRoutePath,
   BoltdocsRoutePathWithFallback,
+  RedirectConfig,
+  RedirectStatus,
 } from '../shared/types'
 
 /**

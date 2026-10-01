@@ -1,6 +1,11 @@
 import { createContext, useCallback, useEffect, useRef, useState } from 'react'
 import type { RouteMatch } from './types'
 import { normalizeBasename, hasBasename, addBasename } from './utils'
+import {
+  prefersReducedMotion,
+  resolveTransitionTypes,
+  type NavigationDirection,
+} from '../view-transitions'
 
 // Lightweight access to the active locale from the global Boltdocs instance.
 // LocationProvider lives above BoltdocsProvider in the tree, so we read the
@@ -131,6 +136,7 @@ function scheduleLocationUpdate(
   setLocation: React.Dispatch<React.SetStateAction<LocationState>>,
   nextLocation: LocationState,
   viewTransitions?: LocationProviderProps['viewTransitions'],
+  direction: NavigationDirection = 'none',
 ): void {
   // Move the render work out of the native click/popstate task. A normal
   // update on the next task is intentional here: unlike a transition, it
@@ -150,9 +156,12 @@ function scheduleLocationUpdate(
       }
     ).startViewTransition
 
-    if (enabled && startViewTransition) {
-      const types =
+    // Reduced motion wins over the project setting: a document-wide animation
+    // is exactly what the visitor asked us not to play.
+    if (enabled && startViewTransition && !prefersReducedMotion()) {
+      const configuredTypes =
         typeof viewTransitions === 'object' ? viewTransitions.types : undefined
+      const types = resolveTransitionTypes(configuredTypes, direction)
       startViewTransition.call(document, {
         update: () => setLocation(nextLocation),
         ...(types?.length ? { types } : {}),
@@ -192,16 +201,70 @@ export const LocationProvider: React.FC<LocationProviderProps> = ({
       : defaultLocation
   })
 
+  // History cursor used to derive a navigation direction, so View Transitions
+  // can animate forward and backward navigation differently. The marker lives
+  // in `history.state` because `popstate` alone does not reveal direction.
+  const historyIndex = useRef(0)
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    const stored = window.history.state as { __boltdocsIndex?: number } | null
+    if (typeof stored?.__boltdocsIndex === 'number') {
+      historyIndex.current = stored.__boltdocsIndex
+    }
+  }, [])
+
+  const pushHistoryState = useCallback(
+    (state: unknown, url: string, replace: boolean): NavigationDirection => {
+      if (typeof window === 'undefined') return 'none'
+      const nextIndex = replace
+        ? historyIndex.current
+        : historyIndex.current + 1
+      const payload = {
+        ...(typeof state === 'object' && state !== null ? state : {}),
+        __boltdocsIndex: nextIndex,
+      }
+      if (replace) {
+        window.history.replaceState(payload, '', url)
+      } else {
+        window.history.pushState(payload, '', url)
+      }
+      historyIndex.current = nextIndex
+      return replace ? 'none' : 'forward'
+    },
+    [],
+  )
+
+  const readPopDirection = useCallback((): NavigationDirection => {
+    if (typeof window === 'undefined') return 'none'
+    const stored = window.history.state as { __boltdocsIndex?: number } | null
+    const nextIndex =
+      typeof stored?.__boltdocsIndex === 'number'
+        ? stored.__boltdocsIndex
+        : historyIndex.current
+    const previous = historyIndex.current
+    historyIndex.current = nextIndex
+    if (nextIndex > previous) return 'forward'
+    if (nextIndex < previous) return 'back'
+    return 'none'
+  }, [])
+
   useEffect(() => {
     if (typeof window === 'undefined') return
     const handlePopState = () => {
       const nextLocation = getLocationFromWindow()
-      scheduleLocationUpdate(setLocation, nextLocation, viewTransitions)
+      const direction = readPopDirection()
+      scheduleLocationUpdate(
+        setLocation,
+        nextLocation,
+        viewTransitions,
+        direction,
+      )
       dispatchNavigationStart(nextLocation)
     }
     window.addEventListener('popstate', handlePopState)
     return () => window.removeEventListener('popstate', handlePopState)
-  }, [viewTransitions])
+  }, [readPopDirection, viewTransitions])
   const prefetched = useRef(new Set<string>())
 
   const fallbackPrefetch: PrefetchFunction = useCallback(async (to) => {
@@ -256,6 +319,7 @@ export const LocationProvider: React.FC<LocationProviderProps> = ({
           setLocation,
           nextLocation,
           options?.viewTransition === false ? false : viewTransitions,
+          'none',
         )
         dispatchNavigationStart(nextLocation)
         return
@@ -316,11 +380,11 @@ export const LocationProvider: React.FC<LocationProviderProps> = ({
         return
       }
 
-      if (options?.replace) {
-        window.history.replaceState(options?.state ?? null, '', finalPath)
-      } else {
-        window.history.pushState(options?.state ?? null, '', finalPath)
-      }
+      const direction = pushHistoryState(
+        options?.state ?? null,
+        finalPath,
+        options?.replace === true,
+      )
 
       const nextLocation = {
         pathname: finalUrl.pathname,
@@ -331,10 +395,11 @@ export const LocationProvider: React.FC<LocationProviderProps> = ({
         setLocation,
         nextLocation,
         options?.viewTransition === false ? false : viewTransitions,
+        direction,
       )
       dispatchNavigationStart(nextLocation)
     },
-    [basename, defaultLocale, viewTransitions],
+    [basename, defaultLocale, pushHistoryState, viewTransitions],
   )
 
   // Intercept internal <a> clicks for SPA navigation

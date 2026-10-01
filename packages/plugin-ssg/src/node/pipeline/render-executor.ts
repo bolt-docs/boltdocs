@@ -29,11 +29,18 @@ export interface RenderExecutorInput {
     error: unknown,
     pool: RenderPoolLike,
   ) => Promise<SsgRenderResult>
+  /**
+   * `elapsedMs` is the wall time from the *batch* dispatch to this result, so
+   * every page in a batch observes the same value. `batchIndex` identifies the
+   * page's position within its batch, which lets consumers sample once per
+   * batch instead of once per page.
+   */
   readonly onWorkerResult: (
     path: string,
     plan: RenderPlan,
     result: SsgRenderResult,
     elapsedMs: number,
+    batchIndex: number,
   ) => Promise<void>
   readonly batchSize?: number
   readonly scheduleMainThread: (path: string, plan: RenderPlan) => void
@@ -166,10 +173,13 @@ export async function executeRenderSchedule(
         }
       }
 
-      const batchSize = Math.max(
-        2,
-        input.batchSize ?? (input.getWorkerCount?.() ?? 1) * 2,
-      )
+      // Batches render sequentially inside a worker, so a large batch is a
+      // long serial job. Sizing it to the in-flight window meant one batch per
+      // worker holding many pages: the workers never interleaved, and the wall
+      // time became `ceil(pages / workers) * batchDuration`. A small batch keeps
+      // every worker fed with short jobs that can be scheduled around each
+      // other, which is what actually parallelises the work.
+      const batchSize = Math.max(2, input.batchSize ?? 2)
       for (let offset = 0; offset < uncached.length; offset += batchSize) {
         const batch = uncached.slice(offset, offset + batchSize)
         if (!worker) {
@@ -202,6 +212,7 @@ export async function executeRenderSchedule(
               plan,
               fallback,
               performance.now() - dispatchStart,
+              0,
             )
             renderedCount++
           }
@@ -256,6 +267,7 @@ export async function executeRenderSchedule(
               plan,
               result,
               performance.now() - dispatchStart,
+              index,
             )
             renderedCount++
           }
@@ -316,6 +328,8 @@ export async function executeRenderSchedule(
                 item.plan,
                 result,
                 performance.now() - dispatchStart,
+                // Single-page dispatch: the page is the whole batch.
+                0,
               )
               renderedCount++
             })

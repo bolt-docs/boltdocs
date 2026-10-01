@@ -49,7 +49,9 @@ export function Navbar() {
           )}
           {logo && (
             <NavbarPrimitive.Logo
-              src={logo}
+              src={logo.light}
+              srcLight={logo.light}
+              srcDark={logo.dark}
               alt={logoProps?.alt || title}
               width={logoProps?.width ?? 24}
               height={logoProps?.height ?? 24}

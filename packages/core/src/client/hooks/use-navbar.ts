@@ -95,8 +95,6 @@ export function useNavbar() {
   }, [rawLinks, location.pathname, currentLocale, config])
 
   const logo = themeConfig.logo
-  // Use resolvedTheme so 'system' correctly maps to 'dark' or 'light'
-  // based on the OS preference, instead of always falling back to 'light'.
   type LogoObject = {
     dark: string
     light: string
@@ -105,13 +103,28 @@ export function useNavbar() {
     height?: number
   }
 
-  const logoSrc = !logo
+  /**
+   * The logo is returned as a pair rather than a single resolved source.
+   *
+   * Picking the source from `resolvedTheme` looks harmless but cannot work in a
+   * server-rendered app: `resolvedTheme` starts as `'light'` and is only
+   * corrected in a mount effect, so the server and the browser choose different
+   * files. That changes the `<img src>`, which changes the `href` of the
+   * `fetchpriority="high"` preload React hoists, which leaves the server HTML
+   * holding a preload node the client render never claims. React then discards
+   * the whole server tree with hydration error #418.
+   *
+   * Both sources are handed to the renderer and the active one is selected with
+   * CSS, keyed off the `dark` class that a blocking script sets on `<html>`
+   * before first paint. The markup is then identical on both sides, there is no
+   * wrong-logo flash, and the choice still follows an explicit light/dark
+   * setting instead of only the OS preference.
+   */
+  const logoPair = !logo
     ? null
     : typeof logo === 'string'
-      ? logo
-      : resolvedTheme === 'dark'
-        ? (logo as LogoObject).dark
-        : (logo as LogoObject).light
+      ? { light: logo, dark: null }
+      : { light: (logo as LogoObject).light, dark: (logo as LogoObject).dark }
 
   const logoProps = {
     alt:
@@ -131,7 +144,7 @@ export function useNavbar() {
   return {
     links,
     title,
-    logo: logoSrc,
+    logo: logoPair,
     logoProps,
     github,
     social: socialLinks,

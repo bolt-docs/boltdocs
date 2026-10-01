@@ -53,14 +53,43 @@ function SidebarMain({ routes, config, className }: SidebarProps) {
   const { logo, title, logoProps } = useNavbar()
   const { closeSidebar } = useUI()
 
+  /**
+   * Both logo variants are rendered and CSS selects the visible one.
+   *
+   * Resolving the source from the theme would make the server and the browser
+   * emit different `src` values, which is a hydration mismatch. The `dark`
+   * class on `<html>` is set before first paint, so there is no flash.
+   */
   const SidebarLogo = logo ? (
-    <img
-      src={resolvePublicAssetUrl(logo, config.base)}
-      alt={logoProps?.alt || title}
-      width={24}
-      height={24}
-      className="rounded-xl"
-    />
+    logo.dark && logo.dark !== logo.light ? (
+      <>
+        <img
+          src={resolvePublicAssetUrl(logo.light, config.base)}
+          alt={logoProps?.alt || title}
+          width={24}
+          height={24}
+          data-logo-theme="light"
+          className="rounded-xl dark:hidden"
+        />
+        <img
+          src={resolvePublicAssetUrl(logo.dark, config.base)}
+          alt={logoProps?.alt || title}
+          width={24}
+          height={24}
+          data-logo-theme="dark"
+          aria-hidden="true"
+          className="hidden rounded-xl dark:block"
+        />
+      </>
+    ) : (
+      <img
+        src={resolvePublicAssetUrl(logo.light, config.base)}
+        alt={logoProps?.alt || title}
+        width={24}
+        height={24}
+        className="rounded-xl"
+      />
+    )
   ) : null
 
   const hasUtilities = config.versions || config.i18n

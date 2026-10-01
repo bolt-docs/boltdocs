@@ -115,13 +115,28 @@ async function waitForStableLoads(
   }
 }
 
+/**
+ * Writes the fixture atomically: temp file in the same directory, then rename.
+ *
+ * A plain `writeFileSync` truncates before writing, so the dev server's watcher
+ * can fire while the file is still empty. Route generation then sees the route
+ * disappear and legitimately reports it as deleted, which the HMR handler turns
+ * into a full reload. Real editors save atomically, so this is the faithful
+ * simulation; the handler additionally guards the transient case.
+ */
+function writeFixture(contents: string): void {
+  const tmp = `${FIXTURE_FILE}.tmp`
+  fs.writeFileSync(tmp, contents, 'utf-8')
+  fs.renameSync(tmp, FIXTURE_FILE)
+}
+
 test.describe('MDX HMR', () => {
   // Both tests mutate the same fixture file, so they must never run in
   // parallel workers (fullyParallel is on globally in playwright.config).
   test.describe.configure({ mode: 'serial' })
 
   test.beforeAll(() => {
-    fs.writeFileSync(FIXTURE_FILE, BODY_V1, 'utf-8')
+    writeFixture(BODY_V1)
   })
 
   test.afterAll(() => {
@@ -148,7 +163,7 @@ test.describe('MDX HMR', () => {
     const loadsBeforeEdit = loads.snapshot()
 
     // Body-only edit: same frontmatter, new content.
-    fs.writeFileSync(FIXTURE_FILE, BODY_V2, 'utf-8')
+    writeFixture(BODY_V2)
 
     // The new content must appear without a page reload.
     await expect(page.getByText('E2E HMR Body v2')).toBeVisible({
@@ -166,7 +181,7 @@ test.describe('MDX HMR', () => {
     page,
   }) => {
     const loads = trackLoads(page)
-    fs.writeFileSync(FIXTURE_FILE, BODY_V2, 'utf-8')
+    writeFixture(BODY_V2)
 
     await waitForFixtureRoute(page.request, '/docs/e2e-hmr-test')
     await page.goto(FIXTURE_URL, { waitUntil: 'domcontentloaded' })
@@ -179,7 +194,7 @@ test.describe('MDX HMR', () => {
 
     // Frontmatter change: the layout's own <h1> renders currentRoute.title
     // and is not wrapped in an anchor, so its accessible name is clean.
-    fs.writeFileSync(FIXTURE_FILE, TITLE_V2, 'utf-8')
+    writeFixture(TITLE_V2)
 
     await expect(
       page.getByRole('heading', { level: 1, name: 'E2E HMR Title v2' }),

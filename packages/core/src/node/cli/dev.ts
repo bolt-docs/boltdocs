@@ -7,6 +7,7 @@ import { inspectPluginsSecurity } from '../security/inspect'
 import { generateRoutes } from '../routes'
 import path from 'node:path'
 import { createDevShutdownController } from './dev-lifecycle'
+import { createStaticSsgOptions } from '../plugin/ssg-static-options'
 import { acquireDevServerLock, type DevServerLock } from './dev-lock'
 
 let devServerStarted = false
@@ -75,7 +76,15 @@ export async function devAction(
     }
 
     const t3 = performance.now()
-    server = await createServer(viteConfig, { skipResolveConfig: true })
+    // The fast path skips `resolveConfig`, so the `ssgOptions` that the
+    // Boltdocs Vite plugin would normally inject through its `config()` hook
+    // are not present on `viteConfig` yet. They must be passed explicitly or
+    // the SSG server falls back to a `src/main.ts` entry that a Boltdocs
+    // project does not have, and every page render fails to resolve a module.
+    server = await createServer(viteConfig, {
+      skipResolveConfig: true,
+      ...createStaticSsgOptions(config),
+    })
     if (debugTimings) {
       console.log(
         `[boltdocs-dev] createServer: ${Math.round(performance.now() - t3)}ms`,

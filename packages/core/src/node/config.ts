@@ -403,6 +403,21 @@ export async function resolveConfigAndGenerateTypes(
   root: string = process.cwd(),
 ): Promise<BoltdocsConfig> {
   const config = await resolveConfig(docsDir, root)
-  generateProjectTypes(config, docsDir, root)
+  // Route paths must be supplied or `generateProjectTypes` omits the whole
+  // `RoutePaths` augmentation, silently killing link autocompletion. Imported
+  // lazily because the route generator resolves config through this module.
+  const [{ generateRoutes, getExternalRoutePaths }, { buildTypeRoutePaths }] =
+    await Promise.all([import('./routes'), import('./route-paths')])
+  const routes = await generateRoutes(docsDir, config)
+  generateProjectTypes(
+    config,
+    docsDir,
+    root,
+    buildTypeRoutePaths(
+      routes,
+      config.base,
+      getExternalRoutePaths(docsDir, config),
+    ),
+  )
   return config
 }

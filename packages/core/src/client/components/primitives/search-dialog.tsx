@@ -1,12 +1,33 @@
 'use client'
 
-import * as RAC from 'react-aria-components'
+// Named imports, not `import * as RAC`: a namespace import pulls the whole
+// react-aria-components barrel into the client bundle because the bundler
+// cannot prove which members are unused.
+import {
+  Autocomplete,
+  type AutocompleteProps,
+  Button,
+  type ButtonProps,
+  Dialog,
+  type DialogProps,
+  Input,
+  type InputProps,
+  ListBox,
+  ListBoxItem,
+  type ListBoxItemProps,
+  type ListBoxProps,
+  Modal,
+  ModalOverlay,
+  type ModalOverlayProps,
+  SearchField,
+  type SearchFieldProps,
+} from 'react-aria-components'
 import { Hash, FileText, CornerDownLeft } from '../ui-base/icons'
 import { cn } from '../../utils/cn'
 import type { ComponentBase } from './types'
 
 export interface SearchDialogItemProps
-  extends Omit<RAC.ListBoxItemProps, 'children'> {
+  extends Omit<ListBoxItemProps, 'children'> {
   className?: string
   children: React.ReactNode
   /** Class name for the focused/selected "Select" hint. */
@@ -29,61 +50,51 @@ export interface SearchDialogItemIconProps {
 }
 
 /**
- * Pure, unstyled SearchDialog Overlay (maps to RAC.ModalOverlay)
+ * Pure, unstyled SearchDialog Overlay (maps to ModalOverlay)
  */
-export function SearchDialog({ className, ...props }: RAC.ModalOverlayProps) {
+export function SearchDialog({ className, ...props }: ModalOverlayProps) {
   return (
-    <RAC.ModalOverlay
-      className={cn('fixed inset-0 z-100', className)}
-      {...props}
-    />
+    <ModalOverlay className={cn('fixed inset-0 z-100', className)} {...props} />
   )
 }
 
 /**
- * Pure, unstyled SearchDialog Content (maps to RAC.Modal)
+ * Pure, unstyled SearchDialog Content (maps to Modal)
  */
-function SearchDialogContent({ className, ...props }: RAC.ModalOverlayProps) {
-  return <RAC.Modal className={cn(className)} {...props} />
+function SearchDialogContent({ className, ...props }: ModalOverlayProps) {
+  return <Modal className={cn(className)} {...props} />
 }
 
 /**
- * Pure, unstyled SearchDialog Dialog (maps to RAC.Dialog)
+ * Pure, unstyled SearchDialog Dialog (maps to Dialog)
  */
-function SearchDialogDialog({
-  children,
-  className,
-  ...props
-}: RAC.DialogProps) {
+function SearchDialogDialog({ children, className, ...props }: DialogProps) {
   return (
-    <RAC.Dialog
+    <Dialog
       className={cn('flex flex-col focus:outline-none', className)}
       {...props}
     >
       {children}
       {/* Plugin slot: search-dialog — content injected INSIDE the dialog body */}
-    </RAC.Dialog>
+    </Dialog>
   )
 }
 
 /**
- * Pure, unstyled SearchDialog Input Field (maps to RAC.SearchField)
+ * Pure, unstyled SearchDialog Input Field (maps to SearchField)
  */
-function SearchDialogField({ className, ...props }: RAC.SearchFieldProps) {
+function SearchDialogField({ className, ...props }: SearchFieldProps) {
   return (
-    <RAC.SearchField
-      className={cn('flex items-center', className)}
-      {...props}
-    />
+    <SearchField className={cn('flex items-center', className)} {...props} />
   )
 }
 
 /**
- * Pure, unstyled SearchInput (maps to RAC.Input)
+ * Pure, unstyled SearchInput (maps to Input)
  */
-function SearchDialogSearchInput({ className, ...props }: RAC.InputProps) {
+function SearchDialogSearchInput({ className, ...props }: InputProps) {
   return (
-    <RAC.Input
+    <Input
       className={cn(
         'w-full bg-transparent outline-none border-none',
         className,
@@ -94,30 +105,32 @@ function SearchDialogSearchInput({ className, ...props }: RAC.InputProps) {
 }
 
 /**
- * Pure, unstyled Clear Button (maps to RAC.Button with slot="clear")
+ * Pure, unstyled Clear Button (maps to Button with slot="clear")
  */
-function SearchDialogClearButton({ className, ...props }: RAC.ButtonProps) {
-  return <RAC.Button slot="clear" className={cn(className)} {...props} />
+function SearchDialogClearButton({ className, ...props }: ButtonProps) {
+  return <Button slot="clear" className={cn(className)} {...props} />
 }
 
 /**
- * Pure, unstyled Autocomplete container (maps to RAC.Autocomplete)
+ * Pure, unstyled Autocomplete container (maps to Autocomplete)
  */
 function SearchDialogAutocomplete<T extends object>({
   children,
   className,
   innerClassName,
   ...props
-}: RAC.AutocompleteProps<T> & {
+}: AutocompleteProps<T> & {
   className?: string
   innerClassName?: string
 }) {
-  const Autocomplete = RAC.Autocomplete as any
   return (
     <div className={cn('flex-1 min-h-0', className)}>
       <Autocomplete
         {...props}
-        className={cn('flex flex-col min-h-0', innerClassName)}
+        // `className` is valid at runtime via SlotProps but is not declared on
+        // the component's props, so it needs the explicit intersection. This
+        // was previously masked by an `as any` on the component reference.
+        {...{ className: cn('flex flex-col min-h-0', innerClassName) }}
       >
         {children}
       </Autocomplete>
@@ -126,25 +139,25 @@ function SearchDialogAutocomplete<T extends object>({
 }
 
 /**
- * Pure, unstyled List Box (maps to RAC.ListBox)
+ * Pure, unstyled List Box (maps to ListBox)
  */
 function SearchDialogList<T extends object>({
   children,
   className,
   ...props
-}: RAC.ListBoxProps<T> & { className?: string }) {
+}: ListBoxProps<T> & { className?: string }) {
   return (
-    <RAC.ListBox
+    <ListBox
       {...props}
       className={cn('flex-1 overflow-y-auto outline-none min-h-0', className)}
     >
       {children as any}
-    </RAC.ListBox>
+    </ListBox>
   )
 }
 
 /**
- * Pure, unstyled List Box Item (maps to RAC.ListBoxItem)
+ * Pure, unstyled List Box Item (maps to ListBoxItem)
  */
 function SearchDialogItemRoot({
   children,
@@ -154,7 +167,7 @@ function SearchDialogItemRoot({
   ...props
 }: SearchDialogItemProps) {
   return (
-    <RAC.ListBoxItem
+    <ListBoxItem
       {...props}
       className={cn(
         'group flex items-center outline-none cursor-pointer',
@@ -182,7 +195,7 @@ function SearchDialogItemRoot({
           ) : null}
         </>
       )}
-    </RAC.ListBoxItem>
+    </ListBoxItem>
   )
 }
 

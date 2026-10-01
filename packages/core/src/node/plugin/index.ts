@@ -8,8 +8,10 @@ import { generateRoutes, getExternalRoutePaths } from '../routes'
 import type { RouteMeta } from '../routes/types'
 import { resolveConfig, type BoltdocsConfig } from '../config'
 import { generateProjectTypes, writeLinkTree } from '../types-generator'
+import { buildTypeRoutePaths } from '../route-paths'
 import { normalizePath } from '../utils'
 import { injectHtmlMeta } from './html'
+import { createStaticSsgOptions } from './ssg-static-options'
 import { validatePlugins, type BoltdocsPlugin } from '../plugins'
 import { PluginLifecycleManager } from '../plugins/plugin-lifecycle'
 import type {
@@ -434,15 +436,11 @@ export function boltdocsPlugin(
             _routesCachePromise = generateRoutes(docsDir, config)
           }
           routes = await _routesCachePromise
-          const routePaths = routes.map((r) => r.path)
-          const basePath = (config.base || '/docs').replace(/\/$/, '')
-
-          if (!routePaths.includes(basePath)) routePaths.push(basePath)
-
-          const externalPaths = getExternalRoutePaths(docsDir, config)
-          for (const p of externalPaths) {
-            if (!routePaths.includes(p)) routePaths.push(p)
-          }
+          const routePaths = buildTypeRoutePaths(
+            routes,
+            config.base,
+            getExternalRoutePaths(docsDir, config),
+          )
 
           generateProjectTypes(config, docsDir, undefined, routePaths)
           writeLinkTree(routePaths)
@@ -502,25 +500,8 @@ export function boltdocsPlugin(
         // callback references the same lifecycle instance for the entire
         // process, so it's safe to reuse.
         if (!_ssgOptionsCache) {
-          // Map config `ssg.criticalCss: 'none'` → `criticalCss: false` for the SSG build
-          const configCriticalCss = config.ssg?.criticalCss
-          const resolvedCriticalCss: 'zig-critters' | 'beasties' | false =
-            configCriticalCss === 'none'
-              ? false
-              : configCriticalCss === 'beasties'
-                ? 'beasties'
-                : 'zig-critters'
-
           _ssgOptionsCache = {
-            entry: 'boltdocs/entry',
-            htmlEntry: 'index.html',
-            dirStyle: 'flat',
-            includeAllRoutes: true,
-            mock: true,
-            script: 'async',
-            beastiesOptions: false,
-            criticalCss: resolvedCriticalCss,
-            criticalCssMaxSize: config.ssg?.criticalCssMaxSize,
+            ...createStaticSsgOptions(config),
             onPageRendered: async (
               path: string,
               renderedHTML: string,

@@ -99,8 +99,16 @@ test.describe('Boltdocs navigation and runtime assets', () => {
     await page.goto('/docs/es', { waitUntil: 'domcontentloaded' })
 
     const tabs = page.locator('div.scrollbar-hide a')
-    await expect(tabs).toHaveCount(5)
-    await expect(tabs.first()).toHaveText('Guías')
+    // Asserted by label rather than a bare count: when a tab is added to
+    // `theme.tabs` this reports which one instead of just "6 !== 5".
+    await expect(tabs).toHaveText([
+      'Guías',
+      'Integraciones',
+      'API',
+      'Plugins',
+      'Componentes',
+      'Lanzamientos',
+    ])
 
     const hrefs = await tabs.evaluateAll((links) =>
       links.map((link) => link.getAttribute('href')),

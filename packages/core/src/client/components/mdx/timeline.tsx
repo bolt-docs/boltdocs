@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react'
 import { cn } from '../../utils/cn'
+import { formatDeterministicDate } from '../../utils/date'
 import { Check, Info, AlertCircle, AlertTriangle } from '../ui-base/icons'
 
 /**
@@ -168,15 +169,14 @@ function formatDate(
   locale?: string,
 ): string | null {
   if (date === undefined || date === null || date === '') return null
-  const d = date instanceof Date ? date : new Date(date)
-  if (Number.isNaN(d.getTime())) return null
-  // Pin a default locale so the server and client render identical text
-  // on hydration; users who want localized dates pass an explicit `locale`.
-  return d.toLocaleDateString(locale ?? 'en-US', {
-    year: 'numeric',
+  // Pinned locale and zone so the server and client render identical text on
+  // hydration; an explicit `locale` stays deterministic because it is fixed in
+  // the markup rather than inferred from the runtime.
+  const formatted = formatDeterministicDate(date, {
+    locale,
     month: 'short',
-    day: 'numeric',
   })
+  return formatted === '' ? null : formatted
 }
 
 const VARIANT_DEFAULT_ICON: Partial<

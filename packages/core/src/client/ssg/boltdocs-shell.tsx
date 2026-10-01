@@ -1,4 +1,5 @@
 import { useEffect, useMemo } from 'react'
+import { SSRProvider } from 'react-aria-components'
 import { Outlet, useLocation } from '../router'
 import { BoltdocsProvider, useBoltdocsContext } from '../store/boltdocs-context'
 import { ThemeProvider } from '../app/theme-context'
@@ -180,43 +181,54 @@ export function BoltdocsShell({
     return { initLocale, initVersion }
   }, [currentPath, config, routeMap])
 
+  // SSRProvider is the outermost layer on purpose.
+  //
+  // React Aria derives element ids from a module-level counter that does not
+  // start at the same value on the server and in the browser, so without a
+  // provider the ids differ across the boundary. React 19 tolerates a differing
+  // `id` on its own, but not when the id feeds an `aria-*` relationship that
+  // also appears in a hoisted preload or a `for`/`aria-labelledby` pair: the
+  // tree is then rejected and re-rendered on the client. Measured: 16 pages of
+  // the docs site failed hydration with error #418 without this layer.
   return (
-    <RoutesProvider routes={routes}>
-      <ThemeProvider>
-        <UIProvider>
-          <MdxComponentsProvider components={allComponents}>
-            <ConfigContext.Provider value={config}>
-              <CollectionsProvider collectionsData={collectionsData || {}}>
-                <ScrollHandler />
-                <CrittersStyleCleanup />
-                <BoltdocsProvider
-                  initialLocale={initialData.initLocale}
-                  initialVersion={initialData.initVersion}
-                >
-                  <StoreSync config={config} routeMap={routeMap} />
-                  <I18nUpdater config={config} />
-                  <Head
-                    siteTitle={config.theme?.title}
-                    siteDescription={config.theme?.description}
-                    routes={routes}
-                  />
-                  <ErrorBoundary>
-                    <div
-                      className={cn(
-                        'boltdocs-shell-content h-screen overflow-hidden',
-                        contentClassName,
-                      )}
-                    >
-                      <Outlet />
-                      <PluginFloatingSlots />
-                    </div>
-                  </ErrorBoundary>
-                </BoltdocsProvider>
-              </CollectionsProvider>
-            </ConfigContext.Provider>
-          </MdxComponentsProvider>
-        </UIProvider>
-      </ThemeProvider>
-    </RoutesProvider>
+    <SSRProvider>
+      <RoutesProvider routes={routes}>
+        <ThemeProvider>
+          <UIProvider>
+            <MdxComponentsProvider components={allComponents}>
+              <ConfigContext.Provider value={config}>
+                <CollectionsProvider collectionsData={collectionsData || {}}>
+                  <ScrollHandler />
+                  <CrittersStyleCleanup />
+                  <BoltdocsProvider
+                    initialLocale={initialData.initLocale}
+                    initialVersion={initialData.initVersion}
+                  >
+                    <StoreSync config={config} routeMap={routeMap} />
+                    <I18nUpdater config={config} />
+                    <Head
+                      siteTitle={config.theme?.title}
+                      siteDescription={config.theme?.description}
+                      routes={routes}
+                    />
+                    <ErrorBoundary>
+                      <div
+                        className={cn(
+                          'boltdocs-shell-content h-screen overflow-hidden',
+                          contentClassName,
+                        )}
+                      >
+                        <Outlet />
+                        <PluginFloatingSlots />
+                      </div>
+                    </ErrorBoundary>
+                  </BoltdocsProvider>
+                </CollectionsProvider>
+              </ConfigContext.Provider>
+            </MdxComponentsProvider>
+          </UIProvider>
+        </ThemeProvider>
+      </RoutesProvider>
+    </SSRProvider>
   )
 }

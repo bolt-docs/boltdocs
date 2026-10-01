@@ -1,5 +1,6 @@
 import { satteriRemarkMetaPlugin } from './satteri-plugins/remark-meta-plugin'
 import { satteriRehypeSlugPlugin } from './satteri-plugins/rehype-slug-plugin'
+import { satteriRehypeTableWhitespacePlugin } from './satteri-plugins/rehype-table-whitespace-plugin'
 import {
   satteriRehypeCodeHighlightPlugin,
   type CodeHighlightConfig,
@@ -32,6 +33,7 @@ export function createSatteriProcessorPlugin(
     mdastPlugins: [satteriRemarkMetaPlugin()],
     hastPlugins: [
       satteriRehypeSlugPlugin(),
+      satteriRehypeTableWhitespacePlugin(),
       satteriRehypeCodeHighlightPlugin(config),
     ],
   }
