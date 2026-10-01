@@ -288,6 +288,22 @@ export const ExperimentalConfigSchema = z.object({
     ])
     .optional(),
   fileRouting: z.boolean().optional(),
+  /**
+   * Optimizes images referenced by content. Off by default.
+   *
+   * The optimizer pulls `sharp` and `svgo` in as peer dependencies, which
+   * every project paid for whether it wanted image processing or not. Turning it
+   * on keeps the behaviour available without making it mandatory.
+   */
+  imageOptimizer: z
+    .union([
+      z.boolean(),
+      z.object({
+        enabled: z.boolean().optional(),
+        includePublic: z.boolean().optional(),
+      }),
+    ])
+    .optional(),
 })
 
 /**
