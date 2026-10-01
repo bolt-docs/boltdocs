@@ -1,4 +1,4 @@
-import type { ShikiTransformer } from 'shiki'
+import type { ShikiTransformer } from '@shikijs/types'
 import { DATA_ATTRIBUTES, DEFAULTS } from '../constants'
 
 const addTitleProperty = (): ShikiTransformer => {

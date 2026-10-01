@@ -3,7 +3,7 @@ import {
   type HighlighterCore,
   type RegexEngine,
   createHighlighterCore,
-} from 'shiki/core'
+} from '@shikijs/core'
 import { THEMES_BUILD } from './shiki-themes'
 import {
   COMMON_LANGS,
@@ -24,7 +24,13 @@ export type RegexEngineKind = 'oniguruma' | 'javascript'
 const highlighterPromises = new Map<RegexEngineKind, Promise<HighlighterCore>>()
 
 async function getOnigEngineImpl(): Promise<RegexEngine> {
-  const wasm = await import('shiki/wasm')
+  // Imported from `@shikijs/engine-oniguruma/wasm-inlined` rather than
+  // `shiki/wasm`: the latter re-exports this same entry point, but only the
+  // full `shiki` package resolves it, and depending on `shiki` installs
+  // `@shikijs/langs` (9.9 MB) and `@shikijs/themes` (1.8 MB) that nothing here
+  // imports. `wasm-inlined` is the engine factory's own build with the binary
+  // embedded, which is what `shiki/wasm` resolves to.
+  const wasm = await import('@shikijs/engine-oniguruma/wasm-inlined')
   return createOnigurumaEngine(
     wasm as unknown as Parameters<typeof createOnigurumaEngine>[0],
   ) as unknown as RegexEngine
@@ -32,7 +38,7 @@ async function getOnigEngineImpl(): Promise<RegexEngine> {
 
 async function getJsEngineImpl(): Promise<RegexEngine> {
   const { createJavaScriptRegexEngine } = await import(
-    'shiki/engine/javascript'
+    '@shikijs/engine-javascript'
   )
   // `forgiving` degrades unsupported grammar regexes to approximate matches
   // instead of throwing — exotic languages highlight approximately rather
