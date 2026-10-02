@@ -4,12 +4,26 @@ import path from 'node:path'
 import fs from 'node:fs'
 
 const BATCH_SIZE = 8
+/**
+ * Optional cap on how many MDX files to prewarm. Defaults to no cap.
+ *
+ * There used to be a hard limit of 200. On a 247-page site that silently left
+ * 47 pages cold, and every click on one of them paid for a compile on the
+ * critical path — the visible flash when navigating. The cap was redundant
+ * anyway: the loop below already yields the event loop between batches and
+ * waits whenever `_pendingRequests` is non-zero, so a visitor's request is
+ * never starved. Warming all 247 files of the docs site took 2550ms, against
+ * 49ms for the 200 the cap allowed, so the cap was buying very little. Set
+ * `BOLTDOCS_PREWARM_LIMIT` to reintroduce one.
+ */
 const PREWARM_LIMIT = (() => {
   const configured = Number.parseInt(
     process.env.BOLTDOCS_PREWARM_LIMIT || '',
     10,
   )
-  return Number.isFinite(configured) && configured > 0 ? configured : 200
+  return Number.isFinite(configured) && configured > 0
+    ? configured
+    : Number.POSITIVE_INFINITY
 })()
 /**
  * Delay before prewarming starts. The browser fetches ~150-250 modules for
@@ -108,20 +122,17 @@ export function setupPrewarming(
               docsDir,
               getConfig(),
             )
-        // Warm high-priority routes in the background so client-side
-        // navigation usually hits an already-compiled module. The limit keeps
-        // a large site from monopolising the transform event loop; set
-        // BOLTDOCS_PREWARM_ALL=true when a complete warm-up is preferred.
+        // Warm routes in the background so client-side navigation hits an
+        // already-compiled module. Priority order puts index and
+        // getting-started first; the batch loop yields the event loop between
+        // rounds so this never monopolises the transform pipeline.
         const files = routes
           .filter((r) => r.filePath)
           .map((r) => r.filePath as string)
           .sort((a, b) => getRoutePriority(a) - getRoutePriority(b))
 
         const prewarmStart = performance.now()
-        const shouldWarmAll = process.env.BOLTDOCS_PREWARM_ALL === 'true'
-        const selectedFiles = shouldWarmAll
-          ? files
-          : files.slice(0, PREWARM_LIMIT)
+        const selectedFiles = files.slice(0, PREWARM_LIMIT)
         for (let i = 0; i < selectedFiles.length; i += BATCH_SIZE) {
           const pendingRequests = (
             server as ViteDevServer & { _pendingRequests?: number }
@@ -151,7 +162,7 @@ export function setupPrewarming(
         ) {
           // eslint-disable-next-line no-console
           console.log(
-            `[boltdocs] prewarm done (${files.length} files) in ${Math.round(performance.now() - prewarmStart)}ms`,
+            `[boltdocs] prewarm done (${selectedFiles.length}/${files.length} files) in ${Math.round(performance.now() - prewarmStart)}ms`,
           )
         }
       } catch (error) {
