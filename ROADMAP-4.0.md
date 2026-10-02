@@ -105,6 +105,20 @@ The migration is executed as an ordered sequence. Each slice is developed on a f
 - `main` receives reviewed integration commits for repository visibility, but release automation is skipped until a release is explicitly approved.
 - No changeset is created for 4.0 migration work while the migration is paused; changesets are added only when a release line is intentionally prepared.
 
+### Work outside the slice sequence
+
+Not every change to `4.0` belongs to a numbered slice. Two rounds of dependency work landed on `4.0` while the sequence was paused at slice 1, and they advance no slice's target package. They are recorded here so the branch's divergence from the table above is visible rather than silent.
+
+| Change | Slice | Effect | Evidence |
+| --- | --- | --- |
+| `sharp` and `svgo` moved behind `experimental.imageOptimizer` | none | Install; opt-in rather than package split | Build with the flag off, core 1042 tests at the time |
+| Shiki grammars and themes vendored, `shiki` dropped | none | Install, down 11.7 MB | 259 pages byte-identical; both regex engines covered by tests |
+| Five documented code themes fixed | none | Correctness | Build with `theme: 'dracula'` emits the dracula palette |
+
+The pattern is worth naming: the roadmap's slice 3 and 4 extract packages, which reduces coupling but not install size, because the heavy parts follow their importers. Dependency trimming had to be done directly to move the number, and it turned out to be where two real bugs were hiding — an unreachable 308 grammars and five themes that were documented but never registered.
+
+A known item left deliberately unaddressed: `@shikijs/langs` is still installed through `@bdocs/plugin-ask-ai` → `streamdown` → `shiki`, which is the same 11.7 MB arriving through a third-party chat-markdown renderer. That is a `streamdown` decision, not a core one, and is not covered by any slice.
+
 ## Migration slices
 
 ### Slice 1 — Public contracts
