@@ -38,6 +38,32 @@ export interface TransformHtmlParams {
   route?: RouteMeta
 }
 
+/**
+ * Parameters for the `build:routes` hook.
+ *
+ * Fires once, after routes are generated and before the SSG render, which is
+ * the only window in which a plugin can still influence what gets rendered.
+ * `routes` is the live array: mutate the route objects in place rather than
+ * replacing the array, exactly as the SEO enrichment does when it resolves
+ * `canonical` and `og:url` against `siteUrl`. Replacing the array has no effect.
+ */
+export interface BuildRoutesParams {
+  readonly routes: RouteMeta[]
+}
+
+/**
+ * Parameters for the `build:generate` hook.
+ *
+ * Fires once, after the SSG build, when output files exist in `outDir`. This is
+ * the hook for producing additional artifacts — feeds, sitemaps, generated
+ * indexes — and it is deliberately not tied to any particular plugin.
+ */
+export interface BuildGenerateParams {
+  readonly routes: RouteMeta[]
+  readonly outDir: string
+  readonly siteUrl?: string
+}
+
 export interface PluginCachesAPI {
   transform(namespace: string): PluginTransformCacheAPI
   routes: PluginRoutesCacheAPI
@@ -244,9 +270,13 @@ export interface PluginLifecycleHooks<
   'build:end'?: (
     ctx: PluginContext<Config, Request, Response>,
   ) => Promise<void> | void
+  'build:routes'?: (
+    ctx: PluginContext<Config, Request, Response>,
+    params: BuildRoutesParams,
+  ) => void | Promise<void>
   'build:generate'?: (
     ctx: PluginContext<Config, Request, Response>,
-    params: { routes: RouteMeta[]; outDir: string; siteUrl?: string },
+    params: BuildGenerateParams,
   ) => void | Promise<void>
   'dev:before'?: (
     ctx: PluginContext<Config, Request, Response>,

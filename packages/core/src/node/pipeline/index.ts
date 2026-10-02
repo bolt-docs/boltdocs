@@ -32,6 +32,20 @@ export class Pipeline<TContext> {
     return this
   }
 
+  /**
+   * Step names in execution order, with parallel groups flattened.
+   *
+   * Step order is part of the build's contract rather than an implementation
+   * detail: route enrichment must precede the SSG render, and artifact
+   * generation must follow it. Exposing the names lets that ordering be
+   * asserted directly instead of inferred from a full build.
+   */
+  get stepNames(): string[] {
+    return this.steps.flatMap((entry) =>
+      Array.isArray(entry) ? entry.map((step) => step.name) : [entry.name],
+    )
+  }
+
   async run(initialContext: TContext): Promise<PipelineResult> {
     const stepResults: StepResult[] = []
     const totalStart = performance.now()

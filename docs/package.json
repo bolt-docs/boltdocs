@@ -16,6 +16,7 @@
     "@bdocs/plugin-math": "workspace:*",
     "@bdocs/plugin-mermaid": "workspace:*",
     "@bdocs/plugin-rss": "workspace:*",
+    "@bdocs/plugin-seo": "workspace:*",
     "@bdocs/plugin-tailwindcss": "workspace:*",
     "@bdocs/unist-utils": "workspace:*",
     "chart.js": "^4.5.1",

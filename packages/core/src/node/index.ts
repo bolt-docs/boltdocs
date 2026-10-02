@@ -517,19 +517,24 @@ export type {
   BoltdocsViewTransitionsConfig,
   ExternalFileRoute,
 } from '../shared/types'
+/**
+ * Re-exported from `@bdocs/contracts`. These factories are pure JSON-LD builders
+ * with no framework dependency, so they live in contracts and both core and
+ * `@bdocs/plugin-seo` use the same copy. Part of the public API since 3.x.
+ */
 export {
   createArticleStructuredData,
   createBreadcrumbStructuredData,
   createStructuredData,
   createWebSiteStructuredData,
   defineStructuredData,
-} from '../shared/structured-data'
+} from '@bdocs/contracts'
 export type {
   ArticleStructuredDataOptions,
   BreadcrumbStructuredDataItem,
   StructuredDataFactoryOptions,
   WebSiteStructuredDataOptions,
-} from '../shared/structured-data'
+} from '@bdocs/contracts'
 export { defineConfig } from '../shared/config-utils'
 export * from './plugins'
 export type { IPluginLifecycleManager } from '../shared/types'

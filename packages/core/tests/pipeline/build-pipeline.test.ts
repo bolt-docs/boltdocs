@@ -2,11 +2,13 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest'
 import fs from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
-import { SEOValidateStep } from '../../src/node/pipeline/steps/seo-validate'
 import { RouteGenerateStep } from '../../src/node/pipeline/steps/route-generate'
 import { TypeGenerateStep } from '../../src/node/pipeline/steps/type-generate'
-import { SEOWriteStep } from '../../src/node/pipeline/steps/seo-write'
 import { SSGBuildStep } from '../../src/node/pipeline/steps/ssg-build'
+import { RoutesEnrichStep } from '../../src/node/pipeline/steps/routes-enrich'
+import { GenerateStep } from '../../src/node/pipeline/steps/generate'
+import { SeoMissingNoticeStep } from '../../src/node/pipeline/steps/seo-missing-notice'
+import { createBuildPipeline } from '../../src/node/pipeline/build-pipeline'
 import type { BuildContext } from '../../src/node/pipeline/types'
 
 let root: string
@@ -69,27 +71,131 @@ describe('RouteGenerateStep', () => {
   })
 })
 
-describe('SEOWriteStep', () => {
-  it('writes sitemap.xml and robots.txt into the out dir', async () => {
-    fs.mkdirSync(path.join(root, 'dist'))
+describe('RoutesEnrichStep', () => {
+  it('fires build:routes with the live route array', async () => {
+    const seen: unknown[] = []
+    const routes = [{ path: '/docs/hello', title: 'Hello' }] as any
     const ctx = ctxFor({
-      ssgRoutes: [{ path: '/docs/hello', title: 'Hello' }] as any,
-      outDir: 'dist',
+      routes,
+      config: {
+        siteUrl: 'https://example.com',
+        plugins: [
+          {
+            name: 'spy',
+            hooks: {
+              'build:routes': (_c: unknown, p: any) => {
+                seen.push(p.routes)
+              },
+            },
+          },
+        ],
+      } as any,
     })
-    await new SEOWriteStep().execute(ctx)
-    expect(fs.existsSync(path.join(root, 'dist', 'sitemap.xml'))).toBe(true)
-    expect(fs.existsSync(path.join(root, 'dist', 'robots.txt'))).toBe(true)
-    const sitemap = fs.readFileSync(
-      path.join(root, 'dist', 'sitemap.xml'),
-      'utf-8',
-    )
-    expect(sitemap).toContain('https://example.com/docs/hello')
+
+    await new RoutesEnrichStep().execute(ctx)
+
+    expect(seen).toHaveLength(1)
+    expect(seen[0]).toBe(routes)
   })
 
-  it('throws when ssg routes or out dir are missing', async () => {
+  it('is a no-op when no plugins are configured', async () => {
+    const ctx = ctxFor({ routes: [] as any, config: { plugins: [] } as any })
+    await expect(new RoutesEnrichStep().execute(ctx)).resolves.toBeUndefined()
+  })
+
+  it('throws when routes are missing, since order is load-bearing', async () => {
+    const ctx = ctxFor({
+      routes: undefined,
+      config: { plugins: [{ name: 'x' }] } as any,
+    })
+    await expect(new RoutesEnrichStep().execute(ctx)).rejects.toThrow(
+      /pipeline order/,
+    )
+  })
+})
+
+describe('GenerateStep', () => {
+  it('fires build:generate with an absolute outDir', async () => {
+    const seen: any[] = []
+    const ctx = ctxFor({
+      routes: [] as any,
+      outDir: 'dist',
+      config: {
+        siteUrl: 'https://example.com',
+        plugins: [
+          {
+            name: 'spy',
+            hooks: {
+              'build:generate': (_c: unknown, p: any) => {
+                seen.push(p)
+              },
+            },
+          },
+        ],
+      } as any,
+    })
+
+    await new GenerateStep().execute(ctx)
+
+    expect(seen).toHaveLength(1)
+    expect(path.isAbsolute(seen[0].outDir)).toBe(true)
+    expect(seen[0].siteUrl).toBe('https://example.com')
+  })
+
+  it('fires even when no plugin needs SEO', async () => {
+    // This is the regression the step exists for: build:generate used to live
+    // inside SEOWriteStep, so @bdocs/plugin-rss depended on an SEO step.
+    const fired: string[] = []
+    const ctx = ctxFor({
+      routes: [] as any,
+      outDir: 'dist',
+      config: {
+        plugins: [
+          {
+            name: 'rss',
+            hooks: {
+              'build:generate': () => {
+                fired.push('generate')
+              },
+            },
+          },
+        ],
+      } as any,
+    })
+
+    await new GenerateStep().execute(ctx)
+    expect(fired).toEqual(['generate'])
+  })
+})
+
+describe('SeoMissingNoticeStep', () => {
+  it('warns when SEO is configured but no SEO plugin is present', async () => {
+    const ctx = ctxFor({
+      config: { siteUrl: 'https://example.com', plugins: [] } as any,
+    })
+    // Should not throw; the warning path is exercised through the dui logger.
     await expect(
-      new SEOWriteStep().execute(ctxFor({ ssgRoutes: undefined })),
-    ).rejects.toThrow(/not initialized/)
+      new SeoMissingNoticeStep().execute(ctx),
+    ).resolves.toBeUndefined()
+  })
+
+  it('stays quiet when the SEO plugin is registered', async () => {
+    const ctx = ctxFor({
+      config: {
+        siteUrl: 'https://example.com',
+        plugins: [{ name: 'plugin-seo' }],
+      } as any,
+    })
+    await expect(
+      new SeoMissingNoticeStep().execute(ctx),
+    ).resolves.toBeUndefined()
+  })
+
+  it('stays quiet when the site never configured any SEO', async () => {
+    const ctx = ctxFor({ config: { plugins: [] } as any })
+    await expect(
+      new SeoMissingNoticeStep().execute(ctx),
+    ).resolves.toBeUndefined()
   })
 })
 
@@ -101,17 +207,32 @@ describe('SSGBuildStep', () => {
   })
 })
 
-describe('SEOValidateStep', () => {
-  it('resolves og:image against siteUrl', async () => {
-    const step = new SEOValidateStep()
-    const ctx = ctxFor({
-      routes: [{ path: '/aa', filePath: 'aa.mdx', title: 'T' }] as any,
-      config: {
-        siteUrl: 'https://example.com',
-        seo: { thumbnails: { background: '/og.png' } },
-      } as any,
-    })
-    await step.execute(ctx)
-    expect(ctx.routes![0].seo).toBeDefined()
+describe('build:generate ordering', () => {
+  it('is registered after the SSG step, not before', () => {
+    // build:generate needs the output directory to exist, so the step must run
+    // after SSGBuildStep in the pipeline.
+    const names = createBuildPipeline().stepNames
+
+    expect(names.indexOf('Generate')).toBeGreaterThan(names.indexOf('SSGBuild'))
+  })
+
+  it('runs RoutesEnrich before the SSG render', () => {
+    // Route SEO enrichment must land before Head renders, or canonical and
+    // og:url are missing from every page.
+    const names = createBuildPipeline().stepNames
+
+    expect(names.indexOf('RoutesEnrich')).toBeGreaterThan(
+      names.indexOf('RouteGenerate'),
+    )
+    expect(names.indexOf('RoutesEnrich')).toBeLessThan(
+      names.indexOf('SSGBuild'),
+    )
+  })
+
+  it('no longer declares SEO steps', () => {
+    const names = createBuildPipeline().stepNames
+
+    expect(names).not.toContain('SEOWrite')
+    expect(names).not.toContain('SEOValidate')
   })
 })

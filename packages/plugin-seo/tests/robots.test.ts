@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { generateRobotsTxt } from '../../../src/node/seo/robots'
+import { generateRobotsTxt } from '../src/node/robots'
 
 describe('generateRobotsTxt', () => {
   it('returns a string robots config directly', () => {
@@ -174,5 +174,39 @@ describe('generateRobotsTxt', () => {
 
     expect(result).toContain('Sitemap: https://example.com/sitemap.xml')
     expect(result).not.toContain('https://example.com//sitemap.xml')
+  })
+})
+
+describe('generateRobotsTxt sitemap deduplication', () => {
+  const siteUrl = 'https://example.com'
+
+  it('emits a site sitemap listed explicitly in robots.sitemaps only once', () => {
+    // Regression: the implicit entry and the explicit list both contained the
+    // site's own sitemap, so robots.txt shipped a duplicate `Sitemap:` line.
+    const result = generateRobotsTxt({
+      siteUrl,
+      robots: {
+        rules: [{ userAgent: '*', allow: '/' }],
+        sitemaps: ['https://example.com/sitemap.xml'],
+      },
+    })
+
+    const occurrences = result
+      .split('\n')
+      .filter(
+        (line) => line.trim() === 'Sitemap: https://example.com/sitemap.xml',
+      )
+
+    expect(occurrences).toHaveLength(1)
+  })
+
+  it('keeps distinct extra sitemaps alongside the site one', () => {
+    const result = generateRobotsTxt({
+      siteUrl,
+      robots: { sitemaps: ['https://example.com/feed.xml'] },
+    })
+
+    expect(result).toContain('Sitemap: https://example.com/sitemap.xml')
+    expect(result).toContain('Sitemap: https://example.com/feed.xml')
   })
 })

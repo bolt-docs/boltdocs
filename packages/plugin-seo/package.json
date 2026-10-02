@@ -1,0 +1,40 @@
+{
+  "name": "@bdocs/plugin-seo",
+  "version": "1.0.0",
+  "description": "Sitemap, robots.txt and route SEO metadata plugin for Boltdocs",
+  "publishConfig": {
+    "access": "public"
+  },
+  "files": [
+    "dist"
+  ],
+  "exports": {
+    ".": {
+      "types": "./dist/node/index.d.mts",
+      "import": "./dist/node/index.mjs"
+    }
+  },
+  "scripts": {
+    "build": "tsdown --config-loader unrun",
+    "dev": "tsdown --watch --config-loader unrun",
+    "test": "vitest run"
+  },
+  "packageManager": "pnpm@10.30.2",
+  "author": "Jesus Alcala",
+  "license": "MIT",
+  "type": "module",
+  "dependencies": {
+    "@bdocs/contracts": "workspace:*",
+    "zod": "^4.3.6"
+  },
+  "peerDependencies": {
+    "boltdocs": "workspace:^"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "boltdocs": "workspace:^",
+    "tsdown": "^0.21.7",
+    "typescript": "^5.9.3",
+    "tsdown-config": "workspace:*"
+  }
+}

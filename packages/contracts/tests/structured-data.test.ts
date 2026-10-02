@@ -5,7 +5,7 @@ import {
   createStructuredData,
   createWebSiteStructuredData,
   defineStructuredData,
-} from '../../src/shared/structured-data'
+} from '../src/structured-data'
 
 describe('structured data helpers', () => {
   it('creates reusable website JSON-LD without React dependencies', () => {

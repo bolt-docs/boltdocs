@@ -4,6 +4,7 @@ import mermaidPlugin from '@bdocs/plugin-mermaid'
 import mathPlugin from '@bdocs/plugin-math'
 import llmsTextPlugin from '@bdocs/plugin-llms-text'
 import rssPlugin from '@bdocs/plugin-rss'
+import seoPlugin from '@bdocs/plugin-seo'
 import tailwindcssPlugin from '@bdocs/plugin-tailwindcss'
 // import askAiPlugin from '@bdocs/plugin-ask-ai'
 
@@ -26,6 +27,7 @@ export default defineConfig({
     mathPlugin(),
     llmsTextPlugin(),
     rssPlugin(),
+    seoPlugin(),
     // askAiPlugin({
     //   autoInject: true,
     //   devMode: true,

@@ -3,6 +3,7 @@ export * from './config'
 export * from './highlighting'
 export * from './plugins'
 export * from './routes'
+export * from './structured-data'
 
 export const CONTRACTS_API_VERSION = 1 as const
 

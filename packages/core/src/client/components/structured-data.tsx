@@ -4,7 +4,7 @@ export type {
   BreadcrumbStructuredDataItem,
   StructuredDataFactoryOptions,
   WebSiteStructuredDataOptions,
-} from '../../shared/structured-data'
+} from '@bdocs/contracts'
 
 export {
   createArticleStructuredData,
@@ -12,7 +12,7 @@ export {
   createStructuredData,
   createWebSiteStructuredData,
   defineStructuredData,
-} from '../../shared/structured-data'
+} from '@bdocs/contracts'
 
 export interface StructuredDataProps {
   data: StructuredDataValue

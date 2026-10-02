@@ -1,4 +1,18 @@
-import type { JsonLdObject, StructuredData } from './types'
+/**
+ * JSON-LD factories.
+ *
+ * These build plain objects and nothing else — no Node, no React, no Vite — so
+ * they live in contracts rather than in core or in `@bdocs/plugin-seo`. Both the
+ * client `<StructuredData>` component and the SEO plugin need them, and a pure
+ * data factory is precisely the kind of thing contracts exists for: putting it
+ * here avoids core depending on a plugin the user may not have installed, and
+ * avoids the same file existing in two packages.
+ *
+ * These have been part of the `boltdocs` public API since 3.x, so both `boltdocs`
+ * and `boltdocs/client` keep re-exporting them from this module.
+ */
+
+import type { JsonLdObject, StructuredData } from './config'
 
 export interface WebSiteStructuredDataOptions {
   name: string

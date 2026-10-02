@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { generateSitemap } from '../../../src/node/seo/sitemap'
+import { generateSitemap } from '../src/node/sitemap'
 
 describe('generateSitemap', () => {
   const defaultConfig: any = { siteUrl: 'https://example.com' }
