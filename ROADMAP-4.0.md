@@ -90,7 +90,7 @@ The migration is executed as an ordered sequence. Each slice is developed on a f
 | Order | Slice | Target package or area | Status |
 | --- | --- | --- | --- |
 | 1 | Shared contracts | `@bdocs/contracts` | Done |
-| 2 | SEO extraction | `@bdocs/plugin-seo` | Next |
+| 2 | SEO extraction | `@bdocs/plugin-seo` | Done |
 | 3 | UI extraction | `@bdocs/ui` | Planned |
 | 4 | Primitives extraction | `@bdocs/primitives` | Planned |
 | 5 | Runtime boundary | `@bdocs/runtime` | Planned |
