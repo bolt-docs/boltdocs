@@ -228,9 +228,6 @@ importers:
       '@shikijs/engine-oniguruma':
         specifier: 3.23.0
         version: 3.23.0
-      '@shikijs/themes':
-        specifier: 3.23.0
-        version: 3.23.0
       '@shikijs/types':
         specifier: 3.23.0
         version: 3.23.0
