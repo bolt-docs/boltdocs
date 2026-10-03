@@ -1,88 +1,61 @@
 import type { ReactNode } from 'react'
-import * as RAC from 'react-aria-components'
+import { Tooltip as PrimitivesTooltip } from '@bdocs/primitives'
 import { cn } from '../../utils/cn'
 
-export interface TooltipProps extends Omit<RAC.TooltipProps, 'children'> {
-  /** The content to show inside the tooltip */
+export interface TooltipProps {
+  /** The content to show inside the tooltip. */
   content: ReactNode
-  /** The trigger element (usually a button or link) */
+  /** The trigger element (usually a button or a link). */
   children: React.ReactElement
-  /** Delay in milliseconds before showing the tooltip */
+  /** Delay in milliseconds before showing the tooltip. */
   delay?: number
-  /** Delay in milliseconds before hiding the tooltip */
-  closeDelay?: number
-}
-
-// Fixed type for TooltipContentProps to match RAC's internal expectations
-export interface TooltipContentProps extends RAC.TooltipProps {
+  /** Class name for the tooltip surface. */
+  className?: string
   /** Class name for the arrow svg. */
   arrowClassName?: string
 }
 
 /**
- * Modern, accessible Tooltip component built with React Aria Components.
- * Featuring glassmorphism, animations, and smart positioning.
+ * Tooltip, on `@bdocs/primitives`.
+ *
+ * Shown on hover and on focus, dismissed with Escape, and wired to its trigger
+ * with `aria-describedby` so the trigger keeps its own accessible name. A tooltip
+ * that only appears on hover is invisible to a keyboard user, and one using
+ * `aria-label` makes the trigger announce the tooltip instead of its own text.
+ *
+ * The arrow is decorative and carries `aria-hidden`, and the tooltip surface is
+ * a `<span role="tooltip">` rather than a floating layer with enter/exit data
+ * attributes — those animated state attributes existed to drive react-aria's
+ * positioning lifecycle, which this package does not implement.
  */
-function TooltipContent({
-  className,
-  arrowClassName,
-  children,
-  ...props
-}: TooltipContentProps) {
-  return (
-    <RAC.Tooltip
-      {...props}
-      offset={8}
-      className={(values) =>
-        cn(
-          'group z-50 overflow-visible rounded-md bg-surface px-2.5 py-1.5 text-xs font-medium text-body ring-1 ring-subtle outline-hidden select-none',
-          'data-entering:animate-in data-entering:fade-in data-entering:zoom-in-95 data-entering:duration-100',
-          'data-exiting:animate-out data-exiting:fade-out data-exiting:zoom-out-95 data-exiting:duration-75',
-          'data-[placement=top]:slide-in-from-bottom-1',
-          'data-[placement=bottom]:slide-in-from-top-1',
-          'data-[placement=left]:slide-in-from-right-1',
-          'data-[placement=right]:slide-in-from-left-1',
-          typeof className === 'function' ? className(values) : className,
-        )
-      }
-    >
-      {(values) => (
-        <>
-          <RAC.OverlayArrow>
-            <svg
-              width={8}
-              height={8}
-              viewBox="0 0 8 8"
-              className={cn(
-                'fill-bg-surface/90 stroke-border-subtle group-data-[placement=bottom]:rotate-180 group-data-[placement=left]:-rotate-90 group-data-[placement=right]:rotate-90',
-                arrowClassName,
-              )}
-            >
-              <title>Arrow</title>
-              <path d="M0 0 L4 4 L8 0" />
-            </svg>
-          </RAC.OverlayArrow>
-          {typeof children === 'function' ? children(values) : children}
-        </>
-      )}
-    </RAC.Tooltip>
-  )
-}
-
 export function Tooltip({
   content,
   children,
   delay = 500,
-  closeDelay = 0,
-  ...props
+  className,
+  arrowClassName,
 }: TooltipProps) {
   return (
-    <RAC.TooltipTrigger delay={delay} closeDelay={closeDelay}>
+    <PrimitivesTooltip
+      content={
+        <span
+          className={cn(
+            'group relative z-50 overflow-visible rounded-md bg-surface px-2.5 py-1.5 text-xs font-medium text-body ring-1 ring-subtle outline-hidden select-none',
+            className,
+          )}
+        >
+          {content}
+        </span>
+      }
+      delay={delay}
+      className={cn(
+        'absolute top-full left-1/2 mt-2 -translate-x-1/2',
+        arrowClassName,
+      )}
+    >
       {children}
-      <TooltipContent {...props}>{content}</TooltipContent>
-    </RAC.TooltipTrigger>
+    </PrimitivesTooltip>
   )
 }
 
 Tooltip.Root = Tooltip
-Tooltip.Content = TooltipContent

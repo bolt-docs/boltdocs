@@ -1,28 +1,29 @@
 import {
-  Popover as RACPopover,
-  type PopoverProps as RACPopoverProps,
-} from 'react-aria-components'
+  Popover as PrimitivesPopover,
+  type PopoverProps as PrimitivesPopoverProps,
+} from '@bdocs/primitives'
 import { cn } from '../../utils/cn'
 
-export interface PopoverProps extends Omit<RACPopoverProps, 'children'> {
-  children: React.ReactNode
-  className?: string
-}
+export interface PopoverProps extends PrimitivesPopoverProps {}
 
 /**
- * A reusable Popover primitive with premium glassmorphism styling and smooth animations.
+ * A reusable Popover primitive.
+ *
+ * Positioned with CSS relative to its parent. The full positioning engine
+ * react-aria ships — viewport collision, flipping — is not reimplemented:
+ * Boltdocs anchors popovers to navbar and sidebar items where the layout already
+ * decides the side.
  */
 export function Popover({ children, className, ...props }: PopoverProps) {
   return (
-    <RACPopover
-      offset={8}
+    <PrimitivesPopover
       className={cn(
         'z-50 overflow-auto outline-none transition-none',
         className,
       )}
       {...props}
     >
-      {children as any}
-    </RACPopover>
+      {children}
+    </PrimitivesPopover>
   )
 }

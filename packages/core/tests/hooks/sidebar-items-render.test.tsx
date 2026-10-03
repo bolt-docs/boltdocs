@@ -10,7 +10,13 @@ import { SidebarMobile } from '../../src/client/components/primitives/sidebar'
 import { useUI } from '../../src/client/app/ui-context'
 import type { ComponentRoute } from '../../src/client/types'
 
-vi.mock('react-aria-components', () => ({
+// Only the modal shell is stubbed, to assert what the sidebar puts inside it
+// without a real focus trap and `aria-modal` dialog in the way.
+// `importOriginal` keeps the rest of the package real: a blanket mock here
+// would silently keep tests passing that no longer exercise the components they
+// claim to cover.
+vi.mock('@bdocs/primitives', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@bdocs/primitives')>()),
   ModalOverlay: ({
     children,
     className,

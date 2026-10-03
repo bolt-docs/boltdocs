@@ -1,48 +1,36 @@
-import { Check, ChevronRight } from '../ui-base/icons'
-// Aliased named imports, not `import * as RAC`: a namespace import pulls the
-// whole react-aria-components barrel into the client bundle because the bundler
-// cannot prove which members are unused. The `RAC` aliases avoid colliding with
-// this module's own `Menu`/`MenuItem`/`MenuSection`/… wrappers, which are part
-// of the public API surface.
+import { Children } from 'react'
 import {
   Collection,
-  composeRenderProps,
   Header,
   Menu as RACMenu,
   MenuItem as RACMenuItem,
   type MenuItemProps as RACMenuItemProps,
   type MenuProps as RACMenuProps,
   MenuSection as RACMenuSection,
-  type MenuSectionProps as RACMenuSectionProps,
   MenuTrigger as RACMenuTrigger,
   type MenuTriggerProps as RACMenuTriggerProps,
   Separator as RACSeparator,
-  type SeparatorProps as RACSeparatorProps,
   SubmenuTrigger as RACSubmenuTrigger,
-  type SubmenuTriggerProps as RACSubmenuTriggerProps,
-} from 'react-aria-components'
-import { Children } from 'react'
-import { Popover, type PopoverProps } from './popover'
+} from '@bdocs/primitives'
+import { Check, ChevronRight } from '../ui-base/icons'
+import { Popover } from './popover'
 import { cn } from '../../utils/cn'
 
 /**
  * MenuTrigger wraps a trigger (usually a Button) and a Menu.
  */
 export interface MenuTriggerProps extends RACMenuTriggerProps {
-  placement?: PopoverProps['placement']
   className?: string
 }
 
-function MenuTrigger({ placement, className, ...props }: MenuTriggerProps) {
+function MenuTrigger({ className, ...props }: MenuTriggerProps) {
   const [trigger, menu] = (
     Children.toArray(props.children) as React.ReactElement[]
   ).slice(0, 2)
   return (
     <RACMenuTrigger {...props}>
-      {trigger as any}
-      <Popover placement={placement} className={className}>
-        {menu as any}
-      </Popover>
+      {trigger}
+      <Popover className={className}>{menu}</Popover>
     </RACMenuTrigger>
   )
 }
@@ -50,8 +38,13 @@ function MenuTrigger({ placement, className, ...props }: MenuTriggerProps) {
 /**
  * SubmenuTrigger for nested menus.
  */
-export interface SubmenuTriggerProps extends RACSubmenuTriggerProps {
+export interface SubmenuTriggerProps
+  extends Omit<SubmenuTriggerPropsBase, 'className'> {
   className?: string
+}
+
+type SubmenuTriggerPropsBase = {
+  children: React.ReactNode
 }
 
 function SubmenuTrigger({ className, ...props }: SubmenuTriggerProps) {
@@ -60,24 +53,18 @@ function SubmenuTrigger({ className, ...props }: SubmenuTriggerProps) {
   ).slice(0, 2)
   return (
     <RACSubmenuTrigger {...props}>
-      {trigger as any}
-      <Popover offset={-4} crossOffset={-4} className={className}>
-        {menu as any}
-      </Popover>
+      {trigger}
+      <Popover className={className}>{menu}</Popover>
     </RACSubmenuTrigger>
   )
 }
 
-/**
- * The Menu container.
- */
-export function Menu<T extends object>(props: RACMenuProps<T>) {
+/** The Menu container. */
+export function Menu(props: RACMenuProps) {
   return (
     <RACMenu
       {...props}
-      className={composeRenderProps(props.className, (className) =>
-        cn('outline-none overflow-auto', className),
-      )}
+      className={cn('outline-none overflow-auto', props.className)}
     />
   )
 }
@@ -93,9 +80,9 @@ function MenuItem(
     checkClassName?: string
     /** Class name for the submenu chevron. */
     chevronClassName?: string
-    /** Custom multi-select check indicator. Replaces the default check. */
+    /** Custom multi-select check indicator. */
     check?: React.ReactNode
-    /** Custom submenu chevron. Replaces the default chevron. */
+    /** Custom submenu chevron. */
     chevron?: React.ReactNode
   },
 ) {
@@ -108,71 +95,76 @@ function MenuItem(
     chevronClassName,
     check,
     chevron,
-    ...racProps
+    ...itemProps
   } = props
+
+  // A caller may pass children as a render function; resolved here so the
+  // render-prop branch below owns the whole decision.
+  const children =
+    typeof itemProps.children === 'function'
+      ? undefined
+      : (itemProps.children as React.ReactNode)
 
   return (
     <RACMenuItem
-      {...racProps}
+      {...itemProps}
       textValue={textValue}
-      className={composeRenderProps(props.className, (className) =>
-        cn(
-          'group relative flex flex-row items-center cursor-default outline-none',
-          className,
-        ),
+      className={cn(
+        'group relative flex flex-row items-center cursor-default outline-none',
+        props.className,
       )}
     >
-      {composeRenderProps(
-        props.children,
-        (children, { selectionMode, isSelected, hasSubmenu }) => (
-          <>
-            {selectionMode === 'multiple' && (
-              <span
-                className={cn(
-                  'flex items-center shrink-0 justify-center',
-                  checkClassName,
-                )}
-              >
-                {check ?? (isSelected ? <Check className="size-3.5" /> : null)}
-              </span>
-            )}
-            <div
+      {(values) => (
+        <>
+          {values.selectionMode === 'multiple' && (
+            <span
               className={cn(
-                'flex flex-row w-full items-center',
-                contentClassName,
+                'flex items-center shrink-0 justify-center',
+                checkClassName,
               )}
             >
-              {children}
-            </div>
-            {hasSubmenu && (
-              <span className="ml-auto">
-                {chevron ?? (
-                  <ChevronRight className={cn('size-4', chevronClassName)} />
-                )}
-              </span>
+              {check ??
+                (values.isSelected ? <Check className="size-3.5" /> : null)}
+            </span>
+          )}
+          <div
+            className={cn(
+              'flex flex-row w-full items-center',
+              contentClassName,
             )}
-          </>
-        ),
+          >
+            {children}
+          </div>
+          {values.hasSubmenu && (
+            <span className="ml-auto">
+              {chevron ?? (
+                <ChevronRight className={cn('size-4', chevronClassName)} />
+              )}
+            </span>
+          )}
+        </>
       )}
     </RACMenuItem>
   )
 }
 
-/**
- * MenuSection for grouping items with an optional header.
- */
-export interface MenuSectionProps<T> extends RACMenuSectionProps<T> {
+/** MenuSection for grouping items with an optional header. */
+export interface MenuSectionProps<T = unknown> {
   title?: string
   headerClassName?: string
+  className?: string
+  items?: Iterable<T>
+  /** Either plain children or a render function over `items`. */
+  children?: React.ReactNode | ((item: T, index: number) => React.ReactNode)
 }
 
-function MenuSection<T extends object>({
+function MenuSection<T>({
   title,
   headerClassName,
   ...props
 }: MenuSectionProps<T>) {
   return (
-    <RACMenuSection {...props} className={cn('flex flex-col', props.className)}>
+    <RACMenuSection className={cn('flex flex-col', props.className)}>
       {title && (
         <Header className={cn('select-none', headerClassName)}>{title}</Header>
       )}
@@ -181,11 +173,9 @@ function MenuSection<T extends object>({
   )
 }
 
-/**
- * MenuSeparator for visual division.
- */
-function MenuSeparator(props: RACSeparatorProps) {
-  return <RACSeparator {...props} className={cn('border-t', props.className)} />
+/** MenuSeparator for visual division. */
+function MenuSeparator({ className, ...props }: { className?: string }) {
+  return <RACSeparator className={cn('border-t', className)} {...props} />
 }
 
 Menu.Root = Menu

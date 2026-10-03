@@ -155,12 +155,14 @@ export interface AutocompleteRenderProps {
   hasValue: boolean
 }
 
-export interface AutocompleteProps
+export interface AutocompleteProps<T = unknown>
   extends Omit<
       SearchFieldProps,
       'children' | 'className' | 'style' | 'defaultOpen'
     >,
     RenderProps<AutocompleteRenderProps> {
+  /** Options this input filters, for the render-prop children. */
+  items?: Iterable<T>
   /** Id of the listbox this input controls, for `aria-controls`. */
   listBoxId?: string
   /** Id of the active option, for `aria-activedescendant`. */
@@ -181,7 +183,9 @@ export interface AutocompleteProps
  * is `list`, which is what tells a screen reader the list filters as you type
  * rather than being a separate thing to go and find.
  */
-export function Autocomplete(props: AutocompleteProps): React.ReactElement {
+export function Autocomplete<T = unknown>(
+  props: AutocompleteProps<T>,
+): React.ReactElement {
   const {
     listBoxId,
     activeDescendantId,

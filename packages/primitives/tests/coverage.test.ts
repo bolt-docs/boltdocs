@@ -25,7 +25,10 @@ import type {
   composeRenderProps,
 } from '../src'
 
-/** Referenced so the import above is not elided as unused. */
+/**
+ * Referenced so the import above is not elided as unused.
+ */
+// biome-ignore lint/suspicious/noExportsInTest: the export is the point; a bare type alias would be elided along with its imports
 export type TypeCoverage = [
   AutocompleteProps | undefined,
   ButtonProps | undefined,

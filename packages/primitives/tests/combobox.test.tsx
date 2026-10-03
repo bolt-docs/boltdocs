@@ -219,3 +219,46 @@ describe('ListBox selection', () => {
     )
   })
 })
+
+describe('ListBox action without selection', () => {
+  it('activates an option even with no selection mode', async () => {
+    // This is the search-results shape: nothing is selected, clicking navigates.
+    // An earlier version returned early when selectionMode was 'none', so the
+    // list rendered and was reachable but did nothing.
+    const onAction = vi.fn()
+    const user = userEvent.setup()
+
+    render(
+      <ListBox onAction={onAction}>
+        <ListBoxItem data-key="intro">Intro</ListBoxItem>
+        <ListBoxItem data-key="api">API</ListBoxItem>
+      </ListBox>,
+    )
+
+    await user.click(screen.getByRole('option', { name: 'API' }))
+    expect(onAction).toHaveBeenCalledWith('api')
+    expect(screen.getByRole('option', { name: 'API' })).not.toHaveAttribute(
+      'aria-selected',
+    )
+  })
+
+  it('reports an empty list only when it knows the options', () => {
+    const { rerender } = render(
+      <ListBox items={[] as string[]}>{() => null}</ListBox>,
+    )
+    expect(screen.getByRole('listbox')).toHaveAttribute('data-empty', 'true')
+
+    // With no `items` the length is unknown; claiming emptiness would be a guess.
+    rerender(<ListBox>{() => null}</ListBox>)
+    expect(screen.getByRole('listbox')).not.toHaveAttribute('data-empty')
+  })
+
+  it('renders the render-prop children once per item', () => {
+    render(
+      <ListBox items={['a', 'b', 'c'] as string[]}>
+        {(item) => <ListBoxItem data-key={item}>{item}</ListBoxItem>}
+      </ListBox>,
+    )
+    expect(screen.getAllByRole('option')).toHaveLength(3)
+  })
+})

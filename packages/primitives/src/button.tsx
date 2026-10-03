@@ -1,10 +1,5 @@
 import * as React from 'react'
-import {
-  cn,
-  composeRenderProps,
-  filterDOMProps,
-  type RenderProps,
-} from './utils'
+import { composeRenderProps, filterDOMProps, type RenderProps } from './utils'
 
 export interface ButtonRenderProps {
   isHovered: boolean
@@ -22,6 +17,15 @@ export interface ButtonProps
     RenderProps<ButtonRenderProps> {
   /** Renders an `<a>` instead of a `<button>` when set. */
   href?: string
+  /**
+   * The underlying control.
+   *
+   * Declared explicitly because `filterDOMProps` drops `ref` along with `key`
+   * and `children`, which React owns. Without this a wrapper that needs to focus
+   * or measure the trigger — `MenuTrigger` returning focus to it, for one —
+   * cannot reach the DOM node at all.
+   */
+  ref?: React.Ref<HTMLButtonElement>
   /** Disables interaction. Sets `disabled` and blocks press events. */
   isDisabled?: boolean
   onPress?: (e: React.SyntheticEvent) => void
@@ -58,6 +62,7 @@ export interface ButtonProps
 export function Button(props: ButtonProps): React.ReactElement {
   const {
     href,
+    ref,
     isDisabled = false,
     type = 'button',
     className,
@@ -177,6 +182,7 @@ export function Button(props: ButtonProps): React.ReactElement {
     return (
       <a
         {...(shared as Record<string, unknown>)}
+        ref={ref as React.Ref<HTMLAnchorElement>}
         href={isDisabled ? undefined : href}
         role="button"
         aria-disabled={isDisabled || undefined}
@@ -196,6 +202,7 @@ export function Button(props: ButtonProps): React.ReactElement {
   return (
     <button
       {...(shared as React.ButtonHTMLAttributes<HTMLButtonElement>)}
+      ref={ref}
       type={type}
       disabled={isDisabled}
     >
@@ -213,12 +220,17 @@ export interface ToggleButtonRenderProps extends ButtonRenderProps {
 export interface ToggleButtonProps
   extends Omit<
       ButtonProps,
-      'aria-pressed' | 'className' | 'style' | 'children'
+      // `onChange` is re-declared below as the toggled value, not the DOM event.
+      'aria-pressed' | 'className' | 'style' | 'children' | 'onChange'
     >,
     RenderProps<ToggleButtonRenderProps> {
   isSelected?: boolean
-  /** Defaults to `true`. Off yields a plain button with no toggle semantics. */
-  'aria-label'?: string
+  /**
+   * Called with the state the button should move to. Firing with `!isSelected`
+   * rather than mutating keeps the caller in charge of the state, so the button
+   * cannot drift out of sync with what it is displaying.
+   */
+  onChange?: (isSelected: boolean) => void
 }
 
 /**
@@ -229,7 +241,15 @@ export interface ToggleButtonProps
  * roles. Getting this wrong makes a screen reader announce nothing about state.
  */
 export function ToggleButton(props: ToggleButtonProps): React.ReactElement {
-  const { isSelected = false, className, style, children, ...rest } = props
+  const {
+    isSelected = false,
+    onChange,
+    onPress,
+    className,
+    style,
+    children,
+    ...rest
+  } = props
 
   const resolved = composeRenderProps<ToggleButtonRenderProps>(
     { className, style, children },
@@ -249,6 +269,12 @@ export function ToggleButton(props: ToggleButtonProps): React.ReactElement {
       aria-pressed={isSelected}
       className={resolved.className}
       style={resolved.style}
+      // Both handlers fire: `onChange` reports the new state, `onPress` reports
+      // the interaction, and a caller passing only one must not lose the other.
+      onPress={(pressProps) => {
+        onPress?.(pressProps)
+        onChange?.(!isSelected)
+      }}
     >
       {resolved.children}
     </Button>

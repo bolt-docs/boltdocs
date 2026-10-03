@@ -6,29 +6,28 @@ description: Overlay container primitive that shows contextual popup windows.
 
 The `Popover` primitive is an overlay container used to render menus, tooltips, selection forms, or custom contextual popup widgets triggered by anchor buttons.
 
-
 ## Quick Start
 
-A basic Popover implementation using React Aria trigger components:
+A basic Popover inside a `MenuTrigger`. The trigger is a `Button`:
 
 ```tsx
-import { DialogTrigger, Button } from 'react-aria-components'
-import { Popover } from 'boltdocs/primitives'
+import { Button, Menu, MenuItem, MenuTrigger, Popover } from '@bdocs/primitives'
 
 export default function ConfigPopover() {
   return (
-    <DialogTrigger>
+    <MenuTrigger className="absolute top-full left-0 mt-2 z-50">
       <Button className="px-4 py-2 bg-primary-500 text-white rounded-lg">
         Settings
       </Button>
       <Popover className="p-4 bg-surface border border-subtle rounded-xl shadow-xl max-w-sm">
-        <div>
-          <h4 className="font-bold mb-2">Workspace Settings</h4>
-          <p className="text-xs text-muted mb-4">Adjust the compiler flags and project targets below.</p>
-          <button className="px-3 py-1 bg-soft rounded text-xs font-semibold">Done</button>
-        </div>
+        <h4 className="font-bold mb-2">Workspace Settings</h4>
+        <p className="text-xs text-muted mb-4">Adjust the compiler flags and project targets below.</p>
+        <Menu aria-label="Compiler flags">
+          <MenuItem data-key="strict">Strict mode</MenuItem>
+          <MenuItem data-key="fast">Fast transpile</MenuItem>
+        </Menu>
       </Popover>
-    </DialogTrigger>
+    </MenuTrigger>
   )
 }
 ```
@@ -37,39 +36,44 @@ export default function ConfigPopover() {
 
 ## Component Props
 
-The `Popover` component wraps React Aria `Popover` props:
-
 | Property | Type | Default | Description |
 | :--- | :--- | :--- | :--- |
-| **`placement`** | `'bottom' \| 'top' \| 'left' \| 'right' \| 'start' \| 'end'` | `'bottom'` | Target side of the trigger element to position the popover. |
-| **`offset`** | `number` | `8` | Pixel spacing distance between the trigger element and the popover overlay. |
-| **`crossOffset`** | `number` | `0` | Cross-axis alignment offset in pixels. |
-| **`isDismissable`** | `boolean` | `true` | Automatically closes the popover when clicking outside or pressing Escape. |
 | **`children`** | `ReactNode` | *Required* | Child elements to render inside the popover overlay content frame. |
 | **`className`** | `string` | `undefined` | Custom utility CSS class overrides. |
 | **`style`** | `CSSProperties` | `undefined` | Inline style overrides. |
 
 ---
 
+## Positioning
+
+`Popover` is positioned with CSS relative to its trigger, and carries no
+`placement`, `offset` or `crossOffset` prop. Two consequences follow from that,
+and both are deliberate:
+
+- **You place it with `className`.** The trigger wrapper is
+  `position: relative`, so `absolute top-full left-0 mt-2` puts the popover
+  below its trigger. This is why `MenuTrigger` takes a `className` for the
+  popover rather than a `placement`.
+- **It does not flip or avoid the viewport edge.** There is no collision solver.
+  Boltdocs anchors popovers to navbar and sidebar items where the surrounding
+  layout already decides which side is free, so a popover near the edge of a
+  narrow window will overflow rather than reposition itself.
+
+---
+
 ## Customization & states
 
-`Popover` is a floating overlay with no visuals of its own — colors, borders, radius, and shadows all come from the theme through `className`, which is a plain string passthrough (this primitive does not unwrap the render-function form). React Aria mirrors the open/close animation and placement onto the element as `data-*` attributes, so enter/exit transitions are styled purely from CSS.
+`Popover` is a floating overlay with no visuals of its own — colors, borders, radius, and shadows all come from the theme through `className`, which is a plain string passthrough (this primitive does not unwrap the render-function form). Enter and exit transitions are driven entirely by CSS classes on the trigger wrapper, because there is no positioning lifecycle that needs to report one.
 
 | State / Slot | Mechanism |
 | :--- | :--- |
 | `className` | Plain string passthrough merged onto the overlay; theme controls colors, borders, radius, shadow |
-| `data-entering` | Present while the popover animates in — use `data-entering:` variants |
-| `data-exiting` | Present while the popover animates out — use `data-exiting:` variants |
-| `data-placement` | `top` / `bottom` / `left` / `right` — placement-aware offsets |
-| `data-trigger` | Name of the trigger component (e.g. `DialogTrigger`) |
-| `placement` / `offset` / `crossOffset` | Positioning behavior only, no visuals |
+| `hidden` | Present on the popup container while the trigger is closed, so a closed popover takes no space and is skipped by assistive technology |
 
 Tailwind v4:
 
 ```tsx
-<Popover className="data-entering:animate-in data-entering:fade-in data-entering:zoom-in-95
-                   data-exiting:animate-out data-exiting:fade-out
-                   rounded-xl bg-surface border border-subtle shadow-xl p-4">
+<Popover className="animate-in fade-in zoom-in-95 rounded-xl bg-surface border border-subtle shadow-xl p-4">
   <div>Popover content</div>
 </Popover>
 ```

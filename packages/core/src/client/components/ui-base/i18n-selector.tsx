@@ -30,7 +30,7 @@ export function I18nSelector({ className }: { className?: string }) {
           {(locale) => (
             <Menu.Item
               key={locale.value}
-              onPress={() => handleLocaleChange(locale.value)}
+              onAction={() => handleLocaleChange(locale.value)}
               className="flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-medium text-body dark:hover:bg-primary-300/50 hover:bg-primary-200/50 transition-colors duration-100 cursor-pointer select-none outline-none group data-selected:text-primary-500 data-selected:bg-primary-500/5"
             >
               <span>{locale.label}</span>

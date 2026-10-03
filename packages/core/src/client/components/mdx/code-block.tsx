@@ -1,4 +1,4 @@
-import { Button } from 'react-aria-components'
+import { Button } from '@bdocs/primitives'
 import { Copy, Check } from '../ui-base/icons'
 import { cn } from '../../utils/cn'
 import { useCopyButton } from './use-copy-button'

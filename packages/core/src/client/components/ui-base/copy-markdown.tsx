@@ -143,7 +143,7 @@ export function CopyMarkdown({
           {copied ? 'Copied!' : 'Copy Markdown'}
         </Button>
 
-        <Menu.Trigger placement="bottom end">
+        <Menu.Trigger className="absolute top-full right-0 mt-2 z-100">
           <Button
             className={cn(
               'flex items-center justify-center px-2.5 md:px-3.5 h-8 md:h-9 border-none border-l border-subtle/50 text-muted rounded-none bg-transparent shrink-0 outline-none select-none cursor-pointer',

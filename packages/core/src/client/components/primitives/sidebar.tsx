@@ -6,10 +6,7 @@ import {
   useEffect,
   useState,
 } from 'react'
-// Named imports, not `import * as RAC`: a namespace import pulls the whole
-// react-aria-components barrel into the client bundle because the bundler
-// cannot prove which members are unused. These three are all the sidebar needs.
-import { Dialog, Modal, ModalOverlay } from 'react-aria-components'
+import { Dialog, Modal, ModalOverlay } from '@bdocs/primitives'
 import { cn } from '../../utils/cn'
 import { useUI } from '../../app/ui-context'
 import { Link } from './link'

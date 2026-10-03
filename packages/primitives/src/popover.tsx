@@ -149,10 +149,13 @@ export function Tooltip(props: TooltipProps): React.ReactElement {
     if (timer.current) clearTimeout(timer.current)
     timer.current = setTimeout(() => setOpen(true), delay)
   }
-  const hide = () => {
+  // Stable on purpose: `hide` closes over `timer` (a ref) and `setOpen` (stable
+  // across renders), so an empty dependency list is honest. Without this, the
+  // Escape listener below would be torn down and re-added on every render.
+  const hide = React.useCallback(() => {
     if (timer.current) clearTimeout(timer.current)
     setOpen(false)
-  }
+  }, [])
 
   React.useEffect(
     () => () => {
@@ -174,7 +177,7 @@ export function Tooltip(props: TooltipProps): React.ReactElement {
     }
     document.addEventListener('keydown', onKeyDown, true)
     return () => document.removeEventListener('keydown', onKeyDown, true)
-  }, [open])
+  }, [open, hide])
 
   const child = React.Children.only(children) as React.ReactElement<{
     onPointerEnter?: (e: React.PointerEvent) => void

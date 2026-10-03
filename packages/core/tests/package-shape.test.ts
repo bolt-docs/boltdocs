@@ -17,13 +17,17 @@ describe('packages/core/package.json shape', () => {
     expect(deps.peerDependencies['react-dom']).toBe('19.0.0')
   })
 
-  it('makes react-aria-components a HARD peer (no optional flag)', () => {
-    // 3.2.0 — rac is direct-imported by 8 client primitives. It must be a
-    // required peer; making it optional would silently break every site.
-    expect(deps.peerDependencies['react-aria-components']).toBe('^1.16.0')
-    expect(
-      deps.peerDependenciesMeta?.['react-aria-components']?.optional,
-    ).toBeUndefined()
+  it('does not require react-aria-components from the host app', () => {
+    // 4.0 — the client primitives moved to `@bdocs/primitives`. react-aria was
+    // a *required* peer, so leaving it declared would force every site to keep
+    // installing a 23 MB / 113-package tree for code the framework no longer
+    // imports. This assertion exists so a future import of it is a deliberate
+    // edit here rather than a silent 23 MB install regression.
+    expect(deps.peerDependencies['react-aria-components']).toBeUndefined()
+    expect(deps.dependencies['react-aria-components']).toBeUndefined()
+    expect(deps.devDependencies['react-aria-components']).toBeUndefined()
+    expect(deps.peerDependencies['@bdocs/primitives']).toBeUndefined()
+    expect(deps.dependencies['@bdocs/primitives']).toBe('workspace:*')
   })
 
   it('does not declare ANY optional peer (peerDependenciesMeta is absent)', () => {

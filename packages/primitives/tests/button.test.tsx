@@ -149,3 +149,47 @@ describe('ToggleButton', () => {
     expect(button).toHaveAttribute('aria-pressed', 'true')
   })
 })
+
+describe('ToggleButton handlers', () => {
+  it('fires both onPress and onChange', async () => {
+    const onPress = vi.fn()
+    const onChange = vi.fn()
+    const user = userEvent.setup()
+
+    render(
+      <ToggleButton
+        isSelected={false}
+        onPress={onPress}
+        onChange={onChange}
+        aria-label="Theme"
+      >
+        T
+      </ToggleButton>,
+    )
+
+    await user.click(screen.getByRole('button', { name: 'Theme' }))
+
+    expect(onPress).toHaveBeenCalledTimes(1)
+    expect(onChange).toHaveBeenCalledWith(true)
+  })
+
+  it('reports the value to move to, so the caller owns the state', async () => {
+    const onChange = vi.fn()
+    const user = userEvent.setup()
+
+    // Uncontrolled on purpose: the point is that the button never flips itself.
+    render(
+      <ToggleButton isSelected onChange={onChange} aria-label="Theme">
+        T
+      </ToggleButton>,
+    )
+
+    await user.click(screen.getByRole('button', { name: 'Theme' }))
+
+    expect(onChange).toHaveBeenCalledWith(false)
+    expect(screen.getByRole('button', { name: 'Theme' })).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    )
+  })
+})

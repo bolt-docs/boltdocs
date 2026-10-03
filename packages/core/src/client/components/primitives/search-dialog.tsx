@@ -1,8 +1,6 @@
 'use client'
 
 // Named imports, not `import * as RAC`: a namespace import pulls the whole
-// react-aria-components barrel into the client bundle because the bundler
-// cannot prove which members are unused.
 import {
   Autocomplete,
   type AutocompleteProps,
@@ -21,7 +19,7 @@ import {
   type ModalOverlayProps,
   SearchField,
   type SearchFieldProps,
-} from 'react-aria-components'
+} from '@bdocs/primitives'
 import { Hash, FileText, CornerDownLeft } from '../ui-base/icons'
 import { cn } from '../../utils/cn'
 import type { ComponentBase } from './types'

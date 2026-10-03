@@ -145,7 +145,8 @@ describe('ModalOverlay focus management', () => {
     render(<Harness />)
     await user.click(screen.getByRole('button', { name: 'Open' }))
 
-    const overlay = document.querySelector('[data-bdocs-modal-overlay]')!
+    const overlay = document.querySelector('[data-bdocs-modal-overlay]')
+    if (!overlay) throw new Error('The modal overlay was not rendered')
     await user.click(overlay)
     expect(
       screen.queryByRole('dialog', { hidden: true }),
@@ -157,7 +158,9 @@ describe('ModalOverlay focus management', () => {
     render(<Harness dismissable={false} />)
     await user.click(screen.getByRole('button', { name: 'Open' }))
 
-    await user.click(document.querySelector('[data-bdocs-modal-overlay]')!)
+    const overlay = document.querySelector('[data-bdocs-modal-overlay]')
+    if (!overlay) throw new Error('The modal overlay was not rendered')
+    await user.click(overlay)
     expect(screen.getByRole('dialog', { hidden: true })).toBeInTheDocument()
   })
 

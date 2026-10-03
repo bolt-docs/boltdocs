@@ -1,5 +1,5 @@
 import type { ComponentProps, HTMLAttributes, ReactNode, Ref } from 'react'
-import { Button } from 'react-aria-components'
+import { Button } from '@bdocs/primitives'
 import { cn } from '../../utils/cn'
 
 interface CodeBlockRootProps extends ComponentProps<'div'> {

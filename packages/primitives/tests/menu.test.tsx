@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from 'vitest'
+import { useState } from 'react'
 import { render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import {
@@ -8,6 +9,7 @@ import {
   MenuTrigger,
   SubmenuTrigger,
 } from '../src/menu'
+import { Button } from '../src/button'
 
 function BasicMenu(props: {
   onAction?: (k: string) => void
@@ -195,14 +197,12 @@ describe('Menu selection semantics', () => {
         <MenuItem>Export</MenuItem>
       </Menu>,
     )
-    expect(screen.getByRole('menuitem', { name: 'Open' })).toHaveAttribute(
-      'aria-checked',
-      'true',
-    )
-    expect(screen.getByRole('menuitem', { name: 'Export' })).toHaveAttribute(
-      'aria-checked',
-      'false',
-    )
+    expect(
+      screen.getByRole('menuitemcheckbox', { name: 'Open' }),
+    ).toHaveAttribute('aria-checked', 'true')
+    expect(
+      screen.getByRole('menuitemcheckbox', { name: 'Export' }),
+    ).toHaveAttribute('aria-checked', 'false')
   })
 })
 
@@ -338,5 +338,138 @@ describe('SubmenuTrigger', () => {
     // Wraps back to Alpha rather than reaching into the submenu.
     await user.keyboard('{ArrowDown}')
     expect(screen.getByRole('menuitem', { name: 'Alpha' })).toHaveFocus()
+  })
+})
+
+describe('Menu selection', () => {
+  it('announces a checked state and toggles single selection', async () => {
+    const onSelectionChange = vi.fn()
+    const user = userEvent.setup()
+
+    function H() {
+      const [keys, setKeys] = useState<string[]>(['light'])
+      return (
+        <Menu
+          aria-label="Theme"
+          selectionMode="single"
+          selectedKeys={keys}
+          onSelectionChange={(next) => {
+            onSelectionChange(next)
+            setKeys(next)
+          }}
+          autoFocus={false}
+        >
+          <MenuItem data-key="light">Light</MenuItem>
+          <MenuItem data-key="dark">Dark</MenuItem>
+        </Menu>
+      )
+    }
+
+    render(<H />)
+    const light = screen.getByRole('menuitemradio', { name: 'Light' })
+    const dark = screen.getByRole('menuitemradio', { name: 'Dark' })
+
+    // The role is menuitemradio, not menuitem or a listbox option, and both
+    // items carry aria-checked: on a radio group the unchecked ones say so.
+    expect(light).toHaveAttribute('aria-checked', 'true')
+    expect(dark).toHaveAttribute('aria-checked', 'false')
+    expect(dark).not.toHaveAttribute('aria-selected')
+
+    await user.click(dark)
+    expect(onSelectionChange).toHaveBeenCalledWith(['dark'])
+    expect(screen.getByRole('menuitemradio', { name: 'Dark' })).toHaveAttribute(
+      'aria-checked',
+      'true',
+    )
+  })
+
+  it('toggles items independently in multiple selection', async () => {
+    const user = userEvent.setup()
+    function H() {
+      const [keys, setKeys] = useState<string[]>([])
+      return (
+        <Menu
+          aria-label="Filters"
+          selectionMode="multiple"
+          selectedKeys={keys}
+          onSelectionChange={setKeys}
+          autoFocus={false}
+        >
+          <MenuItem data-key="a">A</MenuItem>
+          <MenuItem data-key="b">B</MenuItem>
+        </Menu>
+      )
+    }
+    render(<H />)
+
+    await user.click(screen.getByRole('menuitemcheckbox', { name: 'A' }))
+    await user.click(screen.getByRole('menuitemcheckbox', { name: 'B' }))
+    await user.click(screen.getByRole('menuitemcheckbox', { name: 'A' }))
+
+    expect(screen.getByRole('menuitemcheckbox', { name: 'A' })).toHaveAttribute(
+      'aria-checked',
+      'false',
+    )
+    expect(screen.getByRole('menuitemcheckbox', { name: 'B' })).toHaveAttribute(
+      'aria-checked',
+      'true',
+    )
+  })
+})
+
+describe('MenuTrigger trigger element', () => {
+  it('clones a button trigger instead of nesting one inside another', () => {
+    // Found in the built docs HTML: the trigger was a <button> wrapping the
+    // caller's <Button>, so there was one visible control with two tab stops
+    // inside it and `aria-expanded` on the wrong element.
+    render(
+      <MenuTrigger>
+        <Button aria-label="Selection theme">T</Button>
+        <Menu aria-label="Theme" autoFocus={false}>
+          <MenuItem data-key="light">Light</MenuItem>
+        </Menu>
+      </MenuTrigger>,
+    )
+
+    const buttons = screen.getAllByRole('button')
+    expect(buttons).toHaveLength(1)
+    expect(buttons[0]).toHaveAttribute('aria-expanded', 'false')
+    expect(buttons[0]).toHaveAttribute('aria-haspopup', 'true')
+
+    // The trigger is the caller's button, still carrying its own accessible name.
+    expect(buttons[0]).toHaveAttribute('aria-label', 'Selection theme')
+  })
+
+  it('promotes a non-control trigger to a real button', () => {
+    render(
+      <MenuTrigger>
+        <span>Actions</span>
+        <Menu aria-label="Actions" autoFocus={false}>
+          <MenuItem data-key="one">One</MenuItem>
+        </Menu>
+      </MenuTrigger>,
+    )
+
+    const trigger = screen.getByRole('button', { name: 'Actions' })
+    expect(trigger.tagName).toBe('BUTTON')
+  })
+
+  it('points aria-controls at the element that holds the menu', () => {
+    render(
+      <MenuTrigger>
+        <span>Actions</span>
+        <Menu aria-label="Actions" autoFocus={false}>
+          <MenuItem data-key="one">One</MenuItem>
+        </Menu>
+      </MenuTrigger>,
+    )
+
+    const trigger = screen.getByRole('button', { name: 'Actions' })
+    const controlled = document.getElementById(
+      trigger.getAttribute('aria-controls') as string,
+    )
+    expect(controlled).not.toBeNull()
+    expect(controlled).not.toBe(trigger)
+    expect(controlled?.querySelector('[role="menu"]')).not.toBeNull()
   })
 })

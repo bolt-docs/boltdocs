@@ -96,6 +96,7 @@
     "@bdocs/contracts": "workspace:*",
     "@bdocs/dui": "^0.6.0",
     "@bdocs/parser": "workspace:*",
+    "@bdocs/primitives": "workspace:*",
     "@bdocs/processor-satteri": "workspace:*",
     "@bdocs/ssg": "workspace:*",
     "@bdocs/unist-utils": "workspace:*",
@@ -125,7 +126,6 @@
   },
   "peerDependencies": {
     "react": "19.0.0",
-    "react-aria-components": "^1.16.0",
     "react-dom": "19.0.0"
   },
   "packageManager": "pnpm@10.30.2",
@@ -141,7 +141,6 @@
     "@types/semver": "7.7.1",
     "@vercel/node": "^5.8.12",
     "jsdom": "^24.1.0",
-    "react-aria-components": "1.16.0",
     "tailwindcss": "^4.3.0",
     "tsdown": "0.21.7",
     "tsdown-config": "workspace:*",

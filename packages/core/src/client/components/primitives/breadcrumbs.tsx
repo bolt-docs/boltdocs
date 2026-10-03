@@ -1,7 +1,7 @@
 import {
-  Breadcrumb,
-  Breadcrumbs as BreadcrumbsRAC,
-} from 'react-aria-components'
+  Breadcrumb as PrimitivesBreadcrumb,
+  Breadcrumbs as PrimitivesBreadcrumbs,
+} from '@bdocs/primitives'
 import { Link } from './link'
 import { ChevronRight } from '../ui-base/icons'
 import { cn } from '../../utils/cn'
@@ -10,20 +10,23 @@ import type { BoltdocsRoutePathWithFallback } from '../../../shared/types'
 
 export function Breadcrumbs({ children, className, ...props }: ComponentBase) {
   return (
-    <BreadcrumbsRAC
+    <PrimitivesBreadcrumbs
       className={cn('flex flex-wrap items-center', className)}
       {...props}
     >
       {children as any}
-    </BreadcrumbsRAC>
+    </PrimitivesBreadcrumbs>
   )
 }
 
 function BreadcrumbsItem({ children, className, ...props }: ComponentBase) {
   return (
-    <Breadcrumb className={cn('flex items-center', className)} {...props}>
+    <PrimitivesBreadcrumb
+      className={cn('flex items-center', className)}
+      {...props}
+    >
       {children as any}
-    </Breadcrumb>
+    </PrimitivesBreadcrumb>
   )
 }
 

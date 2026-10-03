@@ -20,26 +20,41 @@ export interface ListBoxRenderProps {
   isFocused: boolean
 }
 
-export interface ListBoxProps
+export interface ListBoxProps<T = unknown>
   extends Omit<
       React.HTMLAttributes<HTMLDivElement>,
       'children' | 'className' | 'style'
     >,
-    RenderProps<ListBoxRenderProps> {
+    // `children` is re-declared below to take an item rather than the list's
+    // own render state, which is the form `items` needs.
+    Omit<RenderProps<ListBoxRenderProps>, 'children'> {
   selectionMode?: 'none' | 'single' | 'multiple'
   selectedKeys?: Iterable<string>
   onSelectionChange?: (keys: string[]) => void
+  /**
+   * Called with the key of an activated option. Independent of `selectionMode`:
+   * a list with no selection at all is exactly the "pick one and go" case, such
+   * as a search result list that navigates on click, and that has to work
+   * without a selection mode.
+   */
+  onAction?: (key: string) => void
   /** Index of the option that is active, for `aria-activedescendant`. */
   activeIndex?: number
-  children?: React.ReactNode | ((props: ListBoxRenderProps) => React.ReactNode)
+  /** Options in this list. Rendered per item by the render-prop children. */
+  items?: Iterable<T>
+  children?: React.ReactNode | ((item: T, index: number) => React.ReactNode)
 }
 
-export function ListBox(props: ListBoxProps): React.ReactElement {
+export function ListBox<T = unknown>(
+  props: ListBoxProps<T>,
+): React.ReactElement {
   const {
     selectionMode = 'none',
     selectedKeys,
     onSelectionChange,
+    onAction,
     activeIndex,
+    items,
     children,
     className,
     style,
@@ -48,16 +63,27 @@ export function ListBox(props: ListBoxProps): React.ReactElement {
 
   const listId = React.useId()
   const selected = React.useMemo(
-    () => new Set(selectedKeys ?? []),
+    () => new Set<string>(Array.from(selectedKeys ?? [])),
     [selectedKeys],
   )
 
   const ctx = React.useMemo(
-    () => ({ listId, selected, selectionMode, onSelectionChange, activeIndex }),
-    [listId, selected, selectionMode, onSelectionChange, activeIndex],
+    () => ({
+      listId,
+      selected,
+      selectionMode,
+      onSelectionChange,
+      onAction,
+      activeIndex,
+    }),
+    [listId, selected, selectionMode, onSelectionChange, onAction, activeIndex],
   )
 
-  const isEmpty = false
+  // Only knowable when the caller passes `items`. Reported as false otherwise
+  // rather than guessed: a consumer that has not told us its length cannot be
+  // told it is empty.
+  const itemList = items ? Array.from(items) : undefined
+  const isEmpty = itemList ? itemList.length === 0 : false
 
   const { domProps } = filterDOMProps(rest as Record<string, unknown>)
   const resolved = composeRenderProps<ListBoxRenderProps>(
@@ -72,12 +98,15 @@ export function ListBox(props: ListBoxProps): React.ReactElement {
         role="listbox"
         data-bdocs-listbox=""
         aria-multiselectable={selectionMode === 'multiple' || undefined}
+        data-empty={itemList && isEmpty ? 'true' : undefined}
         className={cn('outline-none overflow-auto', resolved.className)}
         style={resolved.style}
         {...domProps}
       >
         {typeof children === 'function'
-          ? children({ isEmpty, isFocused: activeIndex !== undefined })
+          ? itemList
+            ? itemList.map((item, index) => children(item, index))
+            : null
           : children}
       </div>
     </ListBoxContext.Provider>
@@ -91,6 +120,7 @@ interface ListBoxContextValue {
   selected: Set<string>
   selectionMode: 'none' | 'single' | 'multiple'
   onSelectionChange?: (keys: string[]) => void
+  onAction?: (key: string) => void
   activeIndex?: number
 }
 
@@ -103,12 +133,25 @@ function useListBox(component: string): ListBoxContextValue {
   return ctx
 }
 
-export interface ListBoxItemProps extends React.HTMLAttributes<HTMLDivElement> {
+export interface ListBoxItemRenderProps {
+  isSelected: boolean
+  isDisabled: boolean
+  /** Whether `aria-activedescendant` currently points at this option. */
+  isFocused: boolean
+}
+
+export interface ListBoxItemProps
+  // `children` is re-declared below to also accept the render-prop form, which
+  // is not assignable to the DOM attribute's `ReactNode`.
+  extends Omit<React.HTMLAttributes<HTMLDivElement>, 'children'> {
   id?: string
   'data-key'?: string
   textValue?: string
   isDisabled?: boolean
-  children?: React.ReactNode
+  /** Either plain children or a render function receiving the item's state. */
+  children?:
+    | React.ReactNode
+    | ((props: ListBoxItemRenderProps) => React.ReactNode)
 }
 
 /**
@@ -132,9 +175,11 @@ export function ListBoxItem(props: ListBoxItemProps): React.ReactElement {
   const itemId = id ?? generatedId
   const key = (props['data-key'] ?? textValue ?? itemId) as string
   const isSelected = ctx.selected.has(key)
+  const isFocused = ctx.activeIndex !== undefined
 
   const activate = () => {
     if (isDisabled) return
+    ctx.onAction?.(key)
     if (ctx.selectionMode === 'none') return
     const next = new Set(ctx.selected)
     if (ctx.selectionMode === 'single') {
@@ -147,6 +192,7 @@ export function ListBoxItem(props: ListBoxItemProps): React.ReactElement {
   }
 
   return (
+    // biome-ignore lint/a11y/useFocusableInteractive: reached with aria-activedescendant from the owning input, which is the combobox pattern; moving DOM focus into the list would drop the typed text
     <div
       id={itemId}
       role="option"
@@ -161,7 +207,9 @@ export function ListBoxItem(props: ListBoxItemProps): React.ReactElement {
       onClick={activate}
       {...rest}
     >
-      {children}
+      {typeof children === 'function'
+        ? children({ isSelected, isDisabled, isFocused })
+        : children}
     </div>
   )
 }

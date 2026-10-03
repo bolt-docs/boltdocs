@@ -28,7 +28,7 @@ export function VersionSelector({ className }: { className?: string }) {
           {(version) => (
             <Menu.Item
               key={version.value}
-              onPress={() => handleVersionChange(version.value)}
+              onAction={() => handleVersionChange(version.value)}
               className="flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-medium text-body hover:bg-primary-50/50 cursor-pointer select-none outline-none group data-selected:text-primary-500 data-selected:bg-primary-500/5"
             >
               {version.label}

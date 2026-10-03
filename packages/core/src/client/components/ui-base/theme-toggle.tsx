@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Sun, Moon, Monitor } from './icons'
 import { useTheme } from '../../app/theme-context'
-import { Button } from 'react-aria-components'
+import { Button } from '@bdocs/primitives'
 import { Menu } from '../primitives/menu'
 import { cn } from '../../utils/cn'
 
@@ -20,7 +20,7 @@ export function ThemeToggle({ className }: { className?: string }) {
   const Icon = theme === 'system' ? Monitor : theme === 'dark' ? Moon : Sun
 
   return (
-    <Menu.Trigger placement="bottom right">
+    <Menu.Trigger className="absolute bottom-full left-0 mb-2 z-100">
       <Button
         className={cn(
           'flex h-9 w-9 items-center justify-center rounded-xl text-muted transition-colors hover:bg-surface hover:text-body outline-none border-none bg-transparent cursor-pointer',
@@ -33,9 +33,9 @@ export function ThemeToggle({ className }: { className?: string }) {
       <Menu.Root
         selectionMode="single"
         selectedKeys={[theme]}
-        onSelectionChange={(keys) => {
-          const newTheme = Array.from(keys)[0] as 'light' | 'dark' | 'system'
-          setTheme(newTheme)
+        onSelectionChange={(keys: string[]) => {
+          const newTheme = keys[0] as 'light' | 'dark' | 'system'
+          if (newTheme) setTheme(newTheme)
         }}
         className="w-36 bg-main border border-subtle rounded-xl p-1.5 shadow-md outline-none flex flex-col gap-0.5 animate-fade-in z-100"
       >

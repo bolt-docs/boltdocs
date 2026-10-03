@@ -6,29 +6,28 @@ description: Primitiva contenedor superponible que muestra ventanas emergentes c
 
 La primitiva `Popover` es un contenedor superponible utilizado para renderizar menús, tooltips, formularios de selección o widgets de ventana emergente contextuales personalizados activados por botones de anclaje.
 
-
 ## Inicio Rápido
 
-Una implementación básica de Popover usando componentes disparadores de React Aria:
+Una implementación básica de Popover dentro de un `MenuTrigger`. El disparador es un `Button`:
 
 ```tsx
-import { DialogTrigger, Button } from 'react-aria-components'
-import { Popover } from 'boltdocs/primitives'
+import { Button, Menu, MenuItem, MenuTrigger, Popover } from '@bdocs/primitives'
 
 export default function ConfigPopover() {
   return (
-    <DialogTrigger>
+    <MenuTrigger className="absolute top-full left-0 mt-2 z-50">
       <Button className="px-4 py-2 bg-primary-500 text-white rounded-lg">
         Configuración
       </Button>
       <Popover className="p-4 bg-surface border border-subtle rounded-xl shadow-xl max-w-sm">
-        <div>
-          <h4 className="font-bold mb-2">Configuración del Espacio de Trabajo</h4>
-          <p className="text-xs text-muted mb-4">Ajusta las banderas del compilador y objetivos del proyecto a continuación.</p>
-          <button className="px-3 py-1 bg-soft rounded text-xs font-semibold">Listo</button>
-        </div>
+        <h4 className="font-bold mb-2">Configuración del Espacio de Trabajo</h4>
+        <p className="text-xs text-muted mb-4">Ajusta las banderas del compilador y objetivos del proyecto a continuación.</p>
+        <Menu aria-label="Banderas del compilador">
+          <MenuItem data-key="strict">Modo estricto</MenuItem>
+          <MenuItem data-key="fast">Transpile rápido</MenuItem>
+        </Menu>
       </Popover>
-    </DialogTrigger>
+    </MenuTrigger>
   )
 }
 ```
@@ -37,39 +36,45 @@ export default function ConfigPopover() {
 
 ## Props del Componente
 
-El componente `Popover` envuelve las propiedades de `Popover` de React Aria:
-
 | Propiedad | Tipo | Predeterminado | Descripción |
 | :--- | :--- | :--- | :--- |
-| **`placement`** | `'bottom' \| 'top' \| 'left' \| 'right' \| 'start' \| 'end'` | `'bottom'` | Lado objetivo del elemento disparador para posicionar el popover. |
-| **`offset`** | `number` | `8` | Distancia de espaciado en píxeles entre el elemento disparador y la superposición del popover. |
-| **`crossOffset`** | `number` | `0` | Desplazamiento de alineación del eje cruzado en píxeles. |
-| **`isDismissable`** | `boolean` | `true` | Cierra el popover automáticamente al hacer clic fuera o presionar Escape. |
 | **`children`** | `ReactNode` | *Requerido* | Elementos hijos a renderizar dentro del marco de contenido de la superposición del popover. |
 | **`className`** | `string` | `undefined` | Sobrescrituras de clases CSS utilitarias personalizadas. |
 | **`style`** | `CSSProperties` | `undefined` | Sobrescrituras de estilo en línea. |
 
 ---
 
+## Posicionamiento
+
+`Popover` se posiciona con CSS respecto a su disparador y no lleva ninguna prop
+`placement`, `offset` ni `crossOffset`. De ahí se siguen dos consecuencias, ambas
+deliberadas:
+
+- **Lo colocas con `className`.** El contenedor del disparador es
+  `position: relative`, así que `absolute top-full left-0 mt-2` deja el popover
+  debajo de su disparador. Por eso `MenuTrigger` recibe un `className` para el
+  popover en lugar de un `placement`.
+- **No voltea ni esquiva el borde de la ventana.** No hay solucionador de
+  colisiones. Boltdocs ancla los popovers a elementos de la navbar y de la barra
+  lateral, donde el diseño circundante ya decide qué lado está libre, así que un
+  popover cerca del borde de una ventana estrecha se desbordará en lugar de
+  reposicionarse.
+
+---
+
 ## Personalización y estados
 
-`Popover` es un overlay flotante sin visuales propias — colores, bordes, radios y sombras vienen del tema mediante `className`, que es un passthrough de cadena simple (esta primitiva no desempaqueta la forma de función de renderizado). React Aria refleja la animación de apertura/cierre y la colocación en el elemento como atributos `data-*`, por lo que las transiciones de entrada/salida se estilizan puramente desde CSS.
+`Popover` es un overlay flotante sin visuales propios — colores, bordes, radios y sombras vienen del tema mediante `className`, que es un passthrough de cadena simple (esta primitiva no desempaqueta la forma de función de renderizado). Las transiciones de entrada y salida se controlan enteramente por clases CSS en el contenedor del disparador, porque no hay ningún ciclo de vida de posicionamiento que necesite notificarlo.
 
 | Estado / Slot | Mecanismo |
 | :--- | :--- |
 | `className` | Passthrough de cadena simple fusionado en el overlay; el tema controla colores, bordes, radios, sombras |
-| `data-entering` | Presente mientras el popover anima su entrada — usa variantes `data-entering:` |
-| `data-exiting` | Presente mientras el popover anima su salida — usa variantes `data-exiting:` |
-| `data-placement` | `top` / `bottom` / `left` / `right` — offsets sensibles a la colocación |
-| `data-trigger` | Nombre del componente disparador (p. ej. `DialogTrigger`) |
-| `placement` / `offset` / `crossOffset` | Solo comportamiento de posicionamiento, sin visuales |
+| `hidden` | Presente en el contenedor del popover mientras el disparador está cerrado, de modo que un popover cerrado no ocupa espacio y es omitido por la tecnología asistiva |
 
 Tailwind v4:
 
 ```tsx
-<Popover className="data-entering:animate-in data-entering:fade-in data-entering:zoom-in-95
-                   data-exiting:animate-out data-exiting:fade-out
-                   rounded-xl bg-surface border border-subtle shadow-xl p-4">
+<Popover className="animate-in fade-in zoom-in-95 rounded-xl bg-surface border border-subtle shadow-xl p-4">
   <div>Contenido del popover</div>
 </Popover>
 ```

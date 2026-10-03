@@ -6,7 +6,7 @@ import {
   Dialog,
   Separator,
   ToggleButton,
-} from 'react-aria-components'
+} from '@bdocs/primitives'
 import { Link } from './link'
 import { cn } from '../../utils/cn'
 import { resolvePublicAssetUrl } from '../../utils/path'

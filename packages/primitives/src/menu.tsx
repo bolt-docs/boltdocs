@@ -34,6 +34,8 @@ interface MenuContextValue {
   register: (el: HTMLElement, info: Omit<MenuItemEntry, 'el'>) => () => void
   entries: () => MenuItemEntry[]
   selectionMode: 'none' | 'single' | 'multiple'
+  selected: Set<string>
+  onSelectionChange?: (keys: string[]) => void
   onAction: (el: HTMLElement, intent: 'press' | 'close') => void
   onClose: () => void
 }
@@ -85,6 +87,9 @@ export interface MenuProps
     RenderProps<MenuRenderProps> {
   children?: React.ReactNode | ((props: MenuRenderProps) => React.ReactNode)
   selectionMode?: 'none' | 'single' | 'multiple'
+  /** Keys of the selected items, for a menu that selects. */
+  selectedKeys?: Iterable<string>
+  onSelectionChange?: (keys: string[]) => void
   onAction?: (key: string) => void
   onClose?: () => void
   'aria-label'?: string
@@ -101,6 +106,8 @@ export function Menu(props: MenuProps): React.ReactElement {
   const {
     children,
     selectionMode = 'none',
+    selectedKeys,
+    onSelectionChange,
     onAction,
     onClose,
     className,
@@ -243,11 +250,18 @@ export function Menu(props: MenuProps): React.ReactElement {
     }
   }
 
+  const selected = React.useMemo(
+    () => new Set<string>(Array.from(selectedKeys ?? [])),
+    [selectedKeys],
+  )
+
   const ctx = React.useMemo<MenuContextValue>(
     () => ({
       register,
       entries,
       selectionMode,
+      selected,
+      onSelectionChange,
       onAction: (el, intent) => {
         const key = el.dataset.bdocsMenuKey
         if (key) onAction?.(key)
@@ -255,13 +269,20 @@ export function Menu(props: MenuProps): React.ReactElement {
       },
       onClose: () => onClose?.(),
     }),
-    [register, entries, selectionMode, onAction, onClose],
+    [
+      register,
+      entries,
+      selectionMode,
+      selected,
+      onSelectionChange,
+      onAction,
+      onClose,
+    ],
   )
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: mount only; re-running would yank focus away from a user who had already arrowed elsewhere
   React.useEffect(() => {
     if (autoFocus !== false) move(null, 1)
-    // Mount only: later focus moves belong to the user.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   const { domProps } = filterDOMProps(rest as Record<string, unknown>)
@@ -322,8 +343,10 @@ export interface MenuItemProps
 /**
  * A menu item.
  *
- * `aria-checked` only when the menu has a selection mode: announcing a checked
- * state on a menu that cannot select anything is noise for a screen reader.
+ * The role follows the selection mode — `menuitem`, `menuitemradio` or
+ * `menuitemcheckbox` — and `aria-checked` is emitted only when the menu can
+ * select. A plain `menuitem` carrying `aria-checked` is not a combination the
+ * authoring practices define, and a screen reader has no announcement for it.
  */
 export function MenuItem(props: MenuItemProps): React.ReactElement {
   const {
@@ -351,6 +374,19 @@ export function MenuItem(props: MenuItemProps): React.ReactElement {
   const generatedId = useMenuId('menuitem')
   const itemId = id ?? generatedId
   const selectionMode = itemSelectionMode ?? ctx.selectionMode
+  const key = dataKey ?? textValue ?? itemId
+  const isSelectedInMenu =
+    selectionMode === 'none' ? false : ctx.selected.has(key)
+  // The authoring practices use a different role per selection mode:
+  // `menuitemradio` for one-of-many and `menuitemcheckbox` for many-of-many.
+  // A plain `menuitem` carrying `aria-checked` is not a role that pattern defines,
+  // and a screen reader has no announcement for it.
+  const role =
+    selectionMode === 'single'
+      ? 'menuitemradio'
+      : selectionMode === 'multiple'
+        ? 'menuitemcheckbox'
+        : 'menuitem'
 
   React.useEffect(() => {
     const el = ref.current
@@ -372,11 +408,29 @@ export function MenuItem(props: MenuItemProps): React.ReactElement {
   const { domProps } = filterDOMProps(rest as Record<string, unknown>)
   const resolved = composeRenderProps<MenuItemRenderProps>(
     { className, style },
-    { isSelected, isFocused, hasSubmenu, selectionMode },
+    {
+      isSelected: isSelected || isSelectedInMenu,
+      isFocused,
+      hasSubmenu,
+      selectionMode,
+    },
   )
 
   const activate = () => {
     if (isDisabled) return
+
+    if (ctx.selectionMode !== 'none' && key) {
+      if (ctx.selectionMode === 'single') {
+        const next = ctx.selected.has(key) ? [] : [key]
+        ctx.onSelectionChange?.(next)
+      } else {
+        const next = new Set(ctx.selected)
+        if (next.has(key)) next.delete(key)
+        else next.add(key)
+        ctx.onSelectionChange?.([...next])
+      }
+    }
+
     onAction?.()
     ctx.onAction(ref.current as HTMLElement, 'press')
   }
@@ -385,11 +439,20 @@ export function MenuItem(props: MenuItemProps): React.ReactElement {
     <div
       ref={ref}
       id={itemId}
-      role="menuitem"
+      role={role}
       data-bdocs-menu-item=""
       {...(dataKey ? { 'data-bdocs-menu-key': dataKey } : {})}
       aria-disabled={isDisabled || undefined}
-      {...(selectionMode === 'none' ? {} : { 'aria-checked': !!isSelected })}
+      // Either route marks the item: the prop for a caller that owns the state,
+      // or the menu's own selection for one that lets the menu own it.
+      {...(selectionMode === 'none'
+        ? {}
+        : {
+            'aria-checked': isSelected || isSelectedInMenu,
+            // Boltdocs styles selected items with `data-selected:`, so the
+            // attribute has to exist even where the role does not carry it.
+            'data-selected': isSelected || isSelectedInMenu ? true : undefined,
+          })}
       {...domProps}
       className={cn(
         'group relative flex flex-row items-center cursor-default outline-none',
@@ -418,7 +481,12 @@ export function MenuItem(props: MenuItemProps): React.ReactElement {
       }}
     >
       {typeof children === 'function'
-        ? children({ isSelected, isFocused, hasSubmenu, selectionMode })
+        ? children({
+            isSelected: isSelected || isSelectedInMenu,
+            isFocused,
+            hasSubmenu,
+            selectionMode,
+          })
         : children}
     </div>
   )
@@ -494,6 +562,12 @@ const MenuTriggerContext = React.createContext<{ onClose: () => void }>({
   onClose: () => {},
 })
 
+/**
+ * Tags that are already activatable on their own. Anything else handed to
+ * `MenuTrigger` as a trigger gets wrapped in a `button`.
+ */
+const INTERACTIVE_TAGS = new Set(['a', 'button', 'input', 'select', 'textarea'])
+
 export interface MenuTriggerProps {
   children: React.ReactNode
   isOpen?: boolean
@@ -530,7 +604,7 @@ export function MenuTrigger(props: MenuTriggerProps): React.ReactElement {
     onOpenChange?.(next)
   }
 
-  const [label, menu] = React.useMemo(
+  const [child, menu] = React.useMemo(
     () => [
       React.Children.toArray(children)[0],
       React.Children.toArray(children)[1],
@@ -567,22 +641,55 @@ export function MenuTrigger(props: MenuTriggerProps): React.ReactElement {
     ;(target ?? menuEl).focus()
   }, [isOpen, menuId])
 
+  // The trigger is *cloned*, not wrapped. An earlier version rendered its own
+  // `<button>` around the child, which produced `<button><button>…</button></button>`
+  // for the common case of a caller passing a `Button` as the trigger: invalid
+  // HTML, two tab stops' worth of control in one place, and a screen reader
+  // announcing only the inner one while `aria-expanded` sat on the outer.
+  const triggerProps = {
+    ref: triggerRef,
+    // `true` is the ARIA default for `menu`, and is what react-aria emitted;
+    // the explicit token would change nothing for assistive tech.
+    'aria-haspopup': 'true' as const,
+    'aria-expanded': isOpen,
+    // Points at the popup wrapper below, not at the trigger: the id is named
+    // `menu-trigger-*` because the generator is shared, but it lands on the
+    // element that actually holds the menu.
+    'aria-controls': menuId,
+    disabled,
+    onClick: () => setOpen(!isOpen),
+    onKeyDown: onTriggerKeyDown,
+  }
+
+  // Cloning is only right when the child is already a control. A `<span>` or a
+  // `<div>` would receive `aria-expanded` and the handlers and still be nothing
+  // a keyboard can reach and nothing a screen reader announces as activatable,
+  // so those get wrapped in a real `<button>` instead. Components are cloned
+  // rather than wrapped: they are the caller's own control and wrapping one that
+  // renders a button is what produced the nested-button markup.
+  const isControl =
+    React.isValidElement(child) &&
+    (typeof child.type !== 'string' ||
+      INTERACTIVE_TAGS.has(child.type as string))
+
+  const trigger = isControl
+    ? React.cloneElement(child as React.ReactElement<Record<string, unknown>>, {
+        ...triggerProps,
+        className: cn(
+          triggerClassName,
+          (child.props as { className?: string }).className,
+        ),
+      })
+    : React.createElement(
+        'button',
+        { ...triggerProps, type: 'button', className: triggerClassName },
+        child,
+      )
+
   return (
     <div className={cn('relative inline-block', className)}>
       <MenuTriggerContext.Provider value={{ onClose: close }}>
-        <button
-          ref={triggerRef}
-          type="button"
-          aria-haspopup="true"
-          aria-expanded={isOpen}
-          aria-controls={menuId}
-          disabled={disabled}
-          className={triggerClassName}
-          onClick={() => setOpen(!isOpen)}
-          onKeyDown={onTriggerKeyDown}
-        >
-          {label}
-        </button>
+        {trigger}
         <div id={menuId} hidden={!isOpen}>
           {menu}
         </div>
