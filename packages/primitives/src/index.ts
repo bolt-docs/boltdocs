@@ -26,3 +26,6 @@ export type { DialogProps, DialogRenderProps } from './dialog'
 
 export { Modal, ModalOverlay } from './modal'
 export type { ModalProps, ModalOverlayProps } from './modal'
+
+export { Popover, Tooltip } from './popover'
+export type { PopoverProps, TooltipProps } from './popover'
