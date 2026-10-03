@@ -1,5 +1,10 @@
 import * as React from 'react'
-import { cn, composeRenderProps, filterDOMProps } from './utils'
+import {
+  cn,
+  composeRenderProps,
+  filterDOMProps,
+  type RenderProps,
+} from './utils'
 
 export interface ButtonRenderProps {
   isHovered: boolean
@@ -10,15 +15,18 @@ export interface ButtonRenderProps {
 }
 
 export interface ButtonProps
-  extends Omit<React.ButtonHTMLAttributes<HTMLButtonElement>, 'children'>,
-    composeRenderProps<ButtonRenderProps> {
+  extends Omit<
+      React.ButtonHTMLAttributes<HTMLButtonElement>,
+      'children' | 'className' | 'style'
+    >,
+    RenderProps<ButtonRenderProps> {
   /** Renders an `<a>` instead of a `<button>` when set. */
   href?: string
   /** Disables interaction. Sets `disabled` and blocks press events. */
   isDisabled?: boolean
-  onPress?: (e: React.MouseEvent | React.KeyboardEvent) => void
-  onPressStart?: (e: React.PointerEvent | React.KeyboardEvent) => void
-  onPressEnd?: (e: React.PointerEvent | React.KeyboardEvent) => void
+  onPress?: (e: React.SyntheticEvent) => void
+  onPressStart?: (e: React.SyntheticEvent) => void
+  onPressEnd?: (e: React.SyntheticEvent) => void
   onPressChange?: (isPressed: boolean) => void
   onHoverStart?: () => void
   onHoverEnd?: () => void
@@ -63,13 +71,13 @@ export function Button(props: ButtonProps): React.ReactElement {
     onHoverEnd,
     onHoverChange,
     onFocusChange,
-    onClick,
-    onPointerDown,
-    onPointerUp,
-    onPointerLeave,
-    onPointerEnter,
-    onFocus,
-    onBlur,
+    onClick: onClickProp,
+    onPointerDown: onPointerDownProp,
+    onPointerUp: onPointerUpProp,
+    onPointerLeave: onPointerLeaveProp,
+    onPointerEnter: onPointerEnterProp,
+    onFocus: onFocusProp,
+    onBlur: onBlurProp,
     autoFocus,
     excludeFromTabOrder,
     ...rest
@@ -101,12 +109,14 @@ export function Button(props: ButtonProps): React.ReactElement {
         e.stopPropagation()
         return
       }
-      onClick?.(e)
+      onClickProp?.(e as unknown as React.MouseEvent<HTMLButtonElement>)
       activate(e)
     },
     onPointerDown: (e: React.PointerEvent) => {
       if (!isDisabled) {
-        onPointerDown?.(e)
+        onPointerDownProp?.(
+          e as unknown as React.PointerEvent<HTMLButtonElement>,
+        )
         setPressed(true)
         onPressChange?.(true)
         onPressStart?.(e)
@@ -114,32 +124,36 @@ export function Button(props: ButtonProps): React.ReactElement {
     },
     onPointerUp: (e: React.PointerEvent) => {
       if (!isDisabled) {
-        onPointerUp?.(e)
+        onPointerUpProp?.(e as unknown as React.PointerEvent<HTMLButtonElement>)
         onPressEnd?.(e)
       }
     },
     onPointerLeave: (e: React.PointerEvent) => {
-      onPointerLeave?.(e)
+      onPointerLeaveProp?.(
+        e as unknown as React.PointerEvent<HTMLButtonElement>,
+      )
       setHovered(false)
       setPressed(false)
       onHoverEnd?.()
       onHoverChange?.(false)
     },
     onPointerEnter: (e: React.PointerEvent) => {
-      onPointerEnter?.(e)
+      onPointerEnterProp?.(
+        e as unknown as React.PointerEvent<HTMLButtonElement>,
+      )
       if (isDisabled) return
       setHovered(true)
       onHoverStart?.()
       onHoverChange?.(true)
     },
     onFocus: (e: React.FocusEvent) => {
-      onFocus?.(e)
+      onFocusProp?.(e as unknown as React.FocusEvent<HTMLButtonElement>)
       setFocused(true)
       setFocusVisible(true)
       onFocusChange?.(true)
     },
     onBlur: (e: React.FocusEvent) => {
-      onBlur?.(e)
+      onBlurProp?.(e as unknown as React.FocusEvent<HTMLButtonElement>)
       setFocused(false)
       setFocusVisible(false)
       setPressed(false)
@@ -162,7 +176,7 @@ export function Button(props: ButtonProps): React.ReactElement {
   if (href !== undefined) {
     return (
       <a
-        {...shared}
+        {...(shared as Record<string, unknown>)}
         href={isDisabled ? undefined : href}
         role="button"
         aria-disabled={isDisabled || undefined}
@@ -180,7 +194,11 @@ export function Button(props: ButtonProps): React.ReactElement {
   }
 
   return (
-    <button {...shared} type={type} disabled={isDisabled}>
+    <button
+      {...(shared as React.ButtonHTMLAttributes<HTMLButtonElement>)}
+      type={type}
+      disabled={isDisabled}
+    >
       {resolved.children}
     </button>
   )
@@ -193,8 +211,11 @@ export interface ToggleButtonRenderProps extends ButtonRenderProps {
 }
 
 export interface ToggleButtonProps
-  extends Omit<ButtonProps, 'aria-pressed'>,
-    composeRenderProps<ToggleButtonRenderProps> {
+  extends Omit<
+      ButtonProps,
+      'aria-pressed' | 'className' | 'style' | 'children'
+    >,
+    RenderProps<ToggleButtonRenderProps> {
   isSelected?: boolean
   /** Defaults to `true`. Off yields a plain button with no toggle semantics. */
   'aria-label'?: string

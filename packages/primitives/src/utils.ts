@@ -61,6 +61,10 @@ export type PrimitiveTag = Primitive
  * `isDisabled` is the clearest example of why this has to be explicit: it is
  * the name react-aria used, and forwarding it puts an unknown attribute on
  * every `<button>`.
+ *
+ * `onKeyDown` and `onKeyUp` are deliberately absent. Every primitive here
+ * handles keys and then calls the caller's handler, and a component composed of
+ * others — SearchField wrapping Input — has to be able to pass one down.
  */
 const CONSUMED = new Set([
   'isDisabled',
@@ -85,8 +89,6 @@ const CONSUMED = new Set([
   'onHoverChange',
   'onFocusChange',
   'onBlurChange',
-  'onKeyDown',
-  'onKeyUp',
   'onOpenChange',
   'onClose',
   'onAction',

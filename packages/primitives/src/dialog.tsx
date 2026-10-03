@@ -1,5 +1,10 @@
 import * as React from 'react'
-import { cn, composeRenderProps, filterDOMProps } from './utils'
+import {
+  cn,
+  composeRenderProps,
+  filterDOMProps,
+  type RenderProps,
+} from './utils'
 
 export interface DialogRenderProps {
   isOpen: boolean
@@ -7,8 +12,12 @@ export interface DialogRenderProps {
 }
 
 export interface DialogProps
-  extends Omit<React.HTMLAttributes<HTMLElement>, 'children'>,
-    composeRenderProps<DialogRenderProps> {
+  extends Omit<
+      React.HTMLAttributes<HTMLElement>,
+      'children' | 'className' | 'style'
+    >,
+    RenderProps<DialogRenderProps> {
+  children?: React.ReactNode | ((props: DialogRenderProps) => React.ReactNode)
   isOpen?: boolean
   isExiting?: boolean
   /** Focuses this element instead of the first focusable descendant. */

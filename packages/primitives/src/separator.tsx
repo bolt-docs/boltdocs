@@ -1,5 +1,10 @@
 import type * as React from 'react'
-import { cn, composeRenderProps, filterDOMProps } from './utils'
+import {
+  cn,
+  composeRenderProps,
+  filterDOMProps,
+  type RenderProps,
+} from './utils'
 
 /** Render state a Separator exposes, so `className` can branch on it. */
 export interface SeparatorRenderProps {
@@ -7,8 +12,12 @@ export interface SeparatorRenderProps {
 }
 
 export interface SeparatorProps
-  extends Omit<React.HTMLAttributes<HTMLElement>, 'children'>,
-    composeRenderProps<SeparatorRenderProps> {
+  extends Omit<
+      React.HTMLAttributes<HTMLElement>,
+      'children' | 'className' | 'style'
+    >,
+    RenderProps<SeparatorRenderProps> {
+  children?: React.ReactNode
   orientation?: SeparatorRenderProps['orientation']
 }
 

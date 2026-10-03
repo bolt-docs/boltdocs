@@ -1,6 +1,15 @@
 import * as React from 'react'
-import { cn, composeRenderProps, filterDOMProps } from './utils'
-import { Separator, type SeparatorProps } from './separator'
+import {
+  cn,
+  composeRenderProps,
+  filterDOMProps,
+  type RenderProps,
+} from './utils'
+import {
+  Separator,
+  type SeparatorProps,
+  type SeparatorRenderProps,
+} from './separator'
 
 /**
  * The menu button pattern from the WAI-ARIA authoring practices.
@@ -65,8 +74,11 @@ export interface MenuRenderProps {
 }
 
 export interface MenuProps
-  extends Omit<React.HTMLAttributes<HTMLElement>, 'children' | 'onChange'>,
-    composeRenderProps<MenuRenderProps> {
+  extends Omit<
+      React.HTMLAttributes<HTMLElement>,
+      'children' | 'className' | 'style' | 'onChange'
+    >,
+    RenderProps<MenuRenderProps> {
   children?: React.ReactNode | ((props: MenuRenderProps) => React.ReactNode)
   selectionMode?: 'none' | 'single' | 'multiple'
   onAction?: (key: string) => void
@@ -285,8 +297,11 @@ export interface MenuItemRenderProps {
 }
 
 export interface MenuItemProps
-  extends Omit<React.HTMLAttributes<HTMLDivElement>, 'children'>,
-    composeRenderProps<MenuItemRenderProps> {
+  extends Omit<
+      React.HTMLAttributes<HTMLDivElement>,
+      'children' | 'className' | 'style'
+    >,
+    RenderProps<MenuItemRenderProps> {
   id?: string
   /** Value reported to `Menu.onAction`. */
   'data-key'?: string
@@ -459,7 +474,14 @@ MenuSection.displayName = 'MenuSection'
 
 /** A divider between groups of items. */
 export function MenuSeparator(props: SeparatorProps): React.ReactElement {
-  return <Separator className={cn('border-t', props.className)} {...props} />
+  // `className` here may be a render function, which `cn` cannot take. The
+  // separator resolves it, so the border class is merged on the way in.
+  const { className, ...rest } = props
+  const resolved =
+    typeof className === 'function'
+      ? (values: SeparatorRenderProps) => cn('border-t', className(values))
+      : cn('border-t', className)
+  return <Separator {...rest} className={resolved} />
 }
 
 MenuSeparator.displayName = 'MenuSeparator'
