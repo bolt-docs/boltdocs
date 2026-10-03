@@ -1,5 +1,5 @@
 import fs from 'node:fs'
-import DOMPurify from 'isomorphic-dompurify'
+import { stripTags } from './utils/plain-text'
 import { MAX_PATH_LENGTH, ALLOWED_PATH_CHARS } from './security/constants'
 import { FrontmatterSchema, type FrontmatterData } from './schema/frontmatter'
 import { parseFrontmatterFast, MAX_FRONTMATTER_SIZE } from './utils/frontmatter'
@@ -262,97 +262,14 @@ export function fileToRoutePath(relativePath: string): string {
 }
 
 /**
- * Sanitizes an HTML string using DOMPurify to prevent XSS.
- * By default, it allows a safe subset of HTML tags.
+ * Strips HTML from a string, returning only the text content.
  *
- * @param html - The raw HTML string
- * @returns The sanitized HTML
- */
-export function sanitizeHtml(html: string): string {
-  return DOMPurify.sanitize(html, {
-    ALLOWED_TAGS: [
-      'b',
-      'i',
-      'em',
-      'strong',
-      'a',
-      'p',
-      'br',
-      'code',
-      'pre',
-      'span',
-      'div',
-      'h1',
-      'h2',
-      'h3',
-      'h4',
-      'h5',
-      'h6',
-      'ul',
-      'ol',
-      'li',
-      'table',
-      'thead',
-      'tbody',
-      'tr',
-      'th',
-      'td',
-      'blockquote',
-      'hr',
-    ],
-    ALLOWED_ATTR: [
-      'href',
-      'title',
-      'target',
-      'class',
-      'id',
-      'src',
-      'alt',
-      'width',
-      'height',
-    ],
-    FORCE_BODY: true,
-  })
-}
-
-// Security Hook: Validate URL protocols in href/src
-DOMPurify.addHook('afterSanitizeAttributes', (node) => {
-  // Check for href
-  if (node.hasAttribute('href')) {
-    const href = node.getAttribute('href')?.toLowerCase() || ''
-    if (
-      href.startsWith('javascript:') ||
-      href.startsWith('data:') ||
-      href.startsWith('vbscript:')
-    ) {
-      node.removeAttribute('href')
-    }
-  }
-  // Check for src
-  if (node.hasAttribute('src')) {
-    const src = node.getAttribute('src')?.toLowerCase() || ''
-    if (
-      src.startsWith('javascript:') ||
-      src.startsWith('data:') ||
-      src.startsWith('vbscript:')
-    ) {
-      node.removeAttribute('src')
-    }
-  }
-})
-
-/**
- * Strips all HTML tags from a string, returning only the text content.
- * Uses DOMPurify for secure and complete tag removal.
- *
- * @param html - The string containing HTML tags
- * @returns The plain text content
+ * Kept as a distinct name from {@link stripTags} because callers reach for this
+ * one when they want plain text for an index or an excerpt, where collapsing
+ * whitespace is part of the job.
  */
 export function stripHtmlTags(html: string): string {
-  if (!html) return ''
-  return DOMPurify.sanitize(html, { ALLOWED_TAGS: [] })
-    .replace(/\s+/g, ' ')
-    .trim()
+  return stripTags(html)
 }
 
 /**

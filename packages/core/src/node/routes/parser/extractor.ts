@@ -1,5 +1,6 @@
 import GithubSlugger from 'github-slugger'
-import { sanitizeHtml, stripHtmlTags } from '../../utils'
+import { stripHtmlTags } from '../../utils'
+import { stripTags } from '../../utils/plain-text'
 
 const HEADINGS_REGEX = /^(#{2,4})\s+(.+)$/gm
 const MD_LINK_REGEX = /\[([^\]]+)\]\([^)]+\)/g
@@ -32,7 +33,7 @@ export function extractContentData(
       .replace(MD_FORMAT_REGEX, '')
       .trim()
 
-    const sanitizedText = sanitizeHtml(rawText).trim()
+    const sanitizedText = stripTags(rawText)
     const id = slugger.slug(sanitizedText)
     headings.push({ level, text: sanitizedText, id })
   }
@@ -44,9 +45,7 @@ export function extractContentData(
       .replace(WHITESPACE_REGEX, ' '),
   ).trim()
 
-  let description = explicitDescription
-    ? sanitizeHtml(explicitDescription).trim()
-    : ''
+  let description = explicitDescription ? stripTags(explicitDescription) : ''
 
   if (!description && content) {
     // Take a slightly larger slice then trim to avoid cutting words in half if possible

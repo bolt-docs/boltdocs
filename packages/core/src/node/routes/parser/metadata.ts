@@ -1,4 +1,4 @@
-import { sanitizeHtml } from '../../utils'
+import { toSingleLine } from '../../utils/plain-text'
 
 const SEO_PREFIXES = [
   'og:',
@@ -46,10 +46,10 @@ export function sanitizeFrontmatterStrings(
   data: Record<string, any>,
 ): Record<string, any> {
   return {
-    title: data.title ? sanitizeHtml(String(data.title)) : undefined,
-    badge: data.badge ? sanitizeHtml(String(data.badge)) : undefined,
+    title: data.title ? toSingleLine(String(data.title)) : undefined,
+    badge: data.badge ? toSingleLine(String(data.badge)) : undefined,
     description: data.description
-      ? sanitizeHtml(String(data.description))
+      ? toSingleLine(String(data.description))
       : undefined,
   }
 }

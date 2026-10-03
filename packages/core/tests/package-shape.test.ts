@@ -63,9 +63,21 @@ describe('packages/core/package.json shape', () => {
     expect(deps.optionalDependencies).toBeUndefined()
   })
 
-  it('keeps isomorphic-dompurify as a runtime dependency', () => {
-    // Used by the MDX HTML sanitizer at runtime in client.
-    expect(deps.dependencies['isomorphic-dompurify']).toBe('3.7.1')
+  it('uses the browser dompurify build, never isomorphic-dompurify', () => {
+    // `isomorphic-dompurify` exists to shim a DOM for Node, which means it
+    // depends on jsdom: 9.2 MB and 63 packages. Boltdocs used it in two places
+    // and needed neither.
+    //
+    // In the client, sanitizing icon markup is a real sink and the browser
+    // already has a DOM, so `dompurify` alone is correct and correct-sized.
+    //
+    // At build time, the values being sanitized were frontmatter title,
+    // description, badge and excerpt — plain text that React escapes. Running
+    // them through an HTML sanitizer double-escaped them: a title of `A < B`
+    // rendered as the literal `A &lt; B`. They are now reduced to plain text
+    // by `stripTags`, which needs no DOM at all.
+    expect(deps.dependencies['isomorphic-dompurify']).toBeUndefined()
+    expect(deps.dependencies.dompurify).toBeDefined()
   })
 
   it('keeps zod and the workspace packages as runtime deps', () => {

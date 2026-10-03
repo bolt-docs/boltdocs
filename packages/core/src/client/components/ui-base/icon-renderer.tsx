@@ -1,7 +1,7 @@
 import type { ComponentType, ReactNode, SVGProps } from 'react'
-import DOMPurify from 'isomorphic-dompurify'
 import { useOptionalConfig } from '../../app/config-context'
 import { resolvePublicAssetUrl } from '../../utils/path'
+import { sanitizeSvgMarkup } from '../../utils/sanitize-svg'
 import * as DefaultIcons from './icons'
 import virtualIcons from 'virtual:boltdocs-icons'
 
@@ -93,9 +93,7 @@ export function IconRenderer({
   }
 
   if (resolved.trim().startsWith('<svg')) {
-    const clean = DOMPurify.sanitize(resolved, {
-      USE_PROFILES: { svg: true },
-    })
+    const clean = sanitizeSvgMarkup(resolved)
     if (label) {
       return (
         <span

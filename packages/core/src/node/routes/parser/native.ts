@@ -1,10 +1,6 @@
 import path from 'node:path'
-import {
-  capitalize,
-  sanitizeHtml,
-  stripNumberPrefix,
-  extractNumberPrefix,
-} from '../../utils'
+import { capitalize, stripNumberPrefix, extractNumberPrefix } from '../../utils'
+import { toSingleLine } from '../../utils/plain-text'
 import type { BoltdocsConfig } from '../../config'
 import type { ParsedDocFile } from '../types'
 import { resolveRoutePath } from './resolver'
@@ -65,7 +61,7 @@ export async function parseDocFileWithNative(
     data.sidebarPosition ?? extractNumberPrefix(rawFileName)
   const relativeDirString = slugParts.join('/')
   const description = data.description
-    ? sanitizeHtml(String(data.description)).trim()
+    ? toSingleLine(String(data.description))
     : nativeDoc.description
 
   const parsed: ParsedDocFile = {

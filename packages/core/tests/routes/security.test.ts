@@ -2,6 +2,7 @@ import fs from 'node:fs'
 import { describe, it, expect, vi } from 'vitest'
 import { parseDocFile } from '../../src/node/routes/parser'
 import * as utils from '../../src/node/utils'
+import { stripTags } from '../../src/node/utils/plain-text'
 import {
   SecurityViolationError,
   PathTraversalError,
@@ -294,37 +295,80 @@ describe('Security: Route Parser', () => {
   })
 
   describe('Advanced XSS and Protocol Filtering', () => {
-    it('should block dangerous URL protocols in links', async () => {
+    /**
+     * These used to assert that an HTML sanitizer stripped dangerous markup.
+     * They now assert the stronger property that actually protects a Boltdocs
+     * site: frontmatter text is reduced to plain text before it can reach a
+     * renderer, so there is no markup left to filter.
+     *
+     * Sanitizing with an HTML allowlist was both weaker and buggier here. Weaker,
+     * because allowed markup survived as inert HTML in a field that React then
+     * escaped again. Buggier, because a title of `A < B` came back as
+     * `A &lt; B` and rendered literally, and because it needed jsdom.
+     */
+
+    it('leaves no markup in a title, so no protocol survives', async () => {
       vi.mocked(utils.parseFrontmatterAsync).mockResolvedValue({
         data: { title: 'Test' },
         content:
           '<a href="javascript:alert(1)">Click me</a><a href="data:text/html,<html>">Data</a>',
       })
       const result = await parseDocFile('C:\\docs\\test.md', docsDir, basePath)
-      expect(result.route._rawContent).toContain('href="javascript:') // In raw it exists
+      // Raw content is untouched by design: the page body is rendered by MDX,
+      // which has its own escaping and rehype pipeline.
+      expect(result.route._rawContent).toContain('href="javascript:')
 
-      // But when we sanitize metadata (if title used it) or use sanitizeHtml elsewhere
-      const sanitized = utils.sanitizeHtml(
-        '<a href="javascript:alert(1)">Click me</a>',
-      )
-      expect(sanitized).not.toContain('href="javascript:')
+      // What the title actually becomes, with no markup to interpret.
+      const plain = stripTags('<a href="javascript:alert(1)">Click me</a>')
+      expect(plain).not.toContain('<')
+      expect(plain).not.toContain('javascript:')
+      expect(plain).toBe('Click me')
     })
 
-    it('should block prohibited tags', () => {
+    it('removes prohibited tags and their content', () => {
       const complexHtml =
         '<div>Safe</div><iframe></iframe><script></script><object></object>'
-      const sanitized = utils.sanitizeHtml(complexHtml)
-      expect(sanitized).toContain('<div>Safe</div>')
-      expect(sanitized).not.toContain('<iframe')
-      expect(sanitized).not.toContain('<script')
-      expect(sanitized).not.toContain('<object')
+      const plain = stripTags(complexHtml)
+
+      expect(plain).toBe('Safe')
+      expect(plain).not.toContain('<iframe')
+      expect(plain).not.toContain('<script')
+      expect(plain).not.toContain('<object')
     })
 
-    it('should strip event handlers', () => {
+    it('removes event handlers along with their tags', () => {
       const html = '<div onclick="alert(1)" onmouseover="run()">Content</div>'
-      const sanitized = utils.sanitizeHtml(html)
-      expect(sanitized).not.toContain('onclick')
-      expect(sanitized).not.toContain('onmouseover')
+      const plain = stripTags(html)
+
+      expect(plain).not.toContain('onclick')
+      expect(plain).not.toContain('onmouseover')
+      expect(plain).toBe('Content')
+    })
+
+    it('drops script and style bodies instead of exposing them as text', () => {
+      expect(stripTags('<script>alert(1)</script>')).toBe('')
+      expect(stripTags('<style>.a{color:red}</style>')).toBe('')
+      // A bare tag with no closing pair must go too.
+      expect(stripTags('text <script src="x.js">')).toBe('text')
+    })
+
+    it('does not double-escape characters that are legal in plain text', () => {
+      // The regression that motivated removing the sanitizer.
+      expect(stripTags('A < B')).toBe('A < B')
+      expect(stripTags('Tips & Tricks')).toBe('Tips & Tricks')
+      expect(stripTags('Using "quotes"')).toBe('Using "quotes"')
+    })
+
+    it('keeps a title free of markup end to end', async () => {
+      vi.mocked(utils.parseFrontmatterAsync).mockResolvedValue({
+        data: { title: 'A < B & C' },
+        content: '# Body',
+      })
+      const result = await parseDocFile('C:\\docs\\t.md', docsDir, basePath)
+
+      expect(result.route.title).toBe('A < B & C')
+      expect(result.route.title).not.toContain('&lt;')
+      expect(result.route.title).not.toContain('&amp;')
     })
   })
 })
