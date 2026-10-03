@@ -55,14 +55,18 @@ function inDocumentOrder(a: HTMLElement, b: HTMLElement): number {
   return 0
 }
 
-let idCounter = 0
+/**
+ * Ids for menu wiring, from React's `useId`.
+ *
+ * Deliberately not a module-level counter. A counter restarts at a different
+ * value on the server than in the browser, so ids diverge across the hydration
+ * boundary — and when an id feeds an `aria-controls` or `aria-labelledby` pair
+ * the tree is rejected and re-rendered on the client. React Aria needed an
+ * `SSRProvider` to patch over exactly that; `useId` is the same value on both
+ * sides by construction, so there is nothing to patch.
+ */
 function useMenuId(prefix: string): string {
-  const ref = React.useRef<string | null>(null)
-  if (ref.current === null) {
-    idCounter += 1
-    ref.current = `${prefix}-${idCounter}`
-  }
-  return ref.current
+  return `${prefix}-${React.useId()}`
 }
 
 /** How long typed characters accumulate into one typeahead search. */
