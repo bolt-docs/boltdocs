@@ -1,0 +1,22 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "esModuleInterop": true,
+    "strict": true,
+    "skipLibCheck": true,
+    "jsx": "react-jsx",
+    "declaration": true,
+    "outDir": "dist",
+    "ignoreDeprecations": "5.0",
+    "baseUrl": "./",
+    "paths": {
+      "@/*": ["src/*"],
+      "@client/*": ["src/client/*"],
+      "@node/*": ["src/node/*"]
+    }
+  },
+  "include": ["src"],
+  "exclude": ["node_modules", "dist", "src/node/cli"]
+}
