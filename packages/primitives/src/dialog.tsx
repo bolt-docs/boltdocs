@@ -1,4 +1,5 @@
 import * as React from 'react'
+import { focusFirstIn } from './focus'
 import {
   cn,
   composeRenderProps,
@@ -47,14 +48,17 @@ export function Dialog(props: DialogProps): React.ReactElement | null {
 
   const ref = React.useRef<HTMLDivElement>(null)
 
+  // Delegates to the shared helper rather than repeating a selector here. The
+  // copy that was in this file had drifted: it did not exclude
+  // `input[type="hidden"]`, did not match `[contenteditable]`, and applied none
+  // of the `hidden` / `aria-hidden` / `display` / `visibility` filtering. So
+  // this component could move focus onto something the modal overlay right above
+  // it had already decided was not focusable — two components in one package
+  // disagreeing about what focusable means.
   React.useEffect(() => {
     if (!isOpen || preventFocus || autoFocus) return
-    const node = ref.current
-    if (!node) return
-    const focusable = node.querySelector<HTMLElement>(
-      'a[href],button:not([disabled]),input:not([disabled]),select:not([disabled]),textarea:not([disabled]),[tabindex]:not([tabindex="-1"])',
-    )
-    ;(focusable ?? node).focus()
+    if (!ref.current) return
+    focusFirstIn(ref.current)
   }, [isOpen, preventFocus, autoFocus])
 
   const { domProps } = filterDOMProps(rest as Record<string, unknown>)

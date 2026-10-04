@@ -207,3 +207,45 @@ describe('ModalOverlay focus management', () => {
     expect(dialog).toHaveAttribute('tabindex', '-1')
   })
 })
+
+describe('Dialog initial focus', () => {
+  it('skips a hidden input that its selector used to match', () => {
+    // The selector this component carried inline did not exclude
+    // `input[type="hidden"]`, so focus landed on a control no user can reach.
+    render(
+      <Dialog aria-label="Settings">
+        <input type="hidden" data-testid="trap" />
+        <button>Real first control</button>
+      </Dialog>,
+    )
+
+    expect(document.activeElement).toBe(
+      screen.getByRole('button', { name: 'Real first control' }),
+    )
+  })
+
+  it('focuses a contenteditable first control', () => {
+    // The inline selector also did not match `[contenteditable]`, so this was
+    // skipped and the dialog fell through to focusing itself.
+    render(
+      <Dialog aria-label="Editor">
+        <div contentEditable suppressContentEditableWarning>
+          Edit me
+        </div>
+        <button>Later</button>
+      </Dialog>,
+    )
+
+    expect(document.activeElement).toBe(screen.getByText('Edit me'))
+  })
+
+  it('falls back to the dialog itself when there is nothing to focus', () => {
+    render(
+      <Dialog aria-label="Empty">
+        <p>Nothing focusable here.</p>
+      </Dialog>,
+    )
+
+    expect(document.activeElement).toBe(screen.getByRole('dialog'))
+  })
+})
