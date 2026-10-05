@@ -1,0 +1,20 @@
+/*
+ * @bdocs/theme-neutral — the stylesheet.
+ *
+ * Plain CSS, loaded with a native `@import` chain. No Tailwind, no PostCSS, no
+ * build step to read it: `@bdocs/theme-neutral/css` is a real file that works in
+ * a `<link>`, in Vite, in webpack, in a plain server.
+ *
+ * Order is the cascade, so it is written here rather than left to a bundler to
+ * guess:
+ *
+ *   1. tokens     the custom properties everything else resolves against
+ *   2. base       element defaults, namespaced under `.bdocs-root`
+ *   3. components one file per component, each nested under its own root class
+ *
+ * A site overrides tokens by loading its own `:root` block *after* this file.
+ * Nothing else needs to change, and no rule in here has to be overridden.
+ */
+@import "./tokens.css";
+@import "./base.css";
+@import "./components/page-nav.css";

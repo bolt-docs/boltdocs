@@ -38,11 +38,15 @@ export default defineConfig(
       // theme is a second package with its own CSS, and a consumer importing
       // `@bdocs/theme-neutral/css` should not have to know which half of the
       // framework holds it.
-      const src = path.resolve(__dirname, 'src/neutral.css')
-      const dest = path.resolve(__dirname, 'dist/neutral.css')
-      fs.mkdirSync(path.dirname(dest), { recursive: true })
-      fs.copyFileSync(src, dest)
-      console.log('✓ neutral.css copied to dist')
+      // The stylesheet ships as a real file, not as a bundled asset. A theme
+      // consumed through a plain `<link>` — or through any bundler that does not
+      // run Vite — gets the same file a Vite user does. `@import` inside it
+      // resolves relative to `dist/`, so the components directory is copied
+      // alongside rather than inlined.
+      const src = path.resolve(__dirname, 'src/styles')
+      const dest = path.resolve(__dirname, 'dist/styles')
+      fs.cpSync(src, dest, { recursive: true })
+      console.log('✓ styles copied to dist/styles')
     },
   }),
 )

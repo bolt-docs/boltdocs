@@ -1,0 +1,172 @@
+/*
+ * @bdocs/theme-neutral — design tokens.
+ *
+ * This is the whole customisation surface. Every colour, radius, shadow and
+ * dimension in the theme resolves through one of these custom properties, so
+ * retheming is a block of overrides and nothing else:
+ *
+ *   :root {
+ *     --bdocs-primary: #7c3aed;
+ *     --bdocs-radius: 0.5rem;
+ *   }
+ *
+ * Plain CSS custom properties, deliberately not a Tailwind `@theme` block. A
+ * `@theme` block only exists inside Tailwind's own build: read the file without
+ * Tailwind and the tokens mean nothing, which is exactly what happened with the
+ * previous `neutral.css` — it was never loaded by anything. These properties work
+ * in any stylesheet, in any bundler, in a plain `<link>`, which is what makes the
+ * theme installable outside this repository's pipeline.
+ *
+ * Two layers, and the split matters:
+ *
+ *   --bdocs-*        Public. Override these. Never renamed without a major.
+ *   --_bdocs-*       Private. Everything the theme's own rules are written in
+ *                    terms of. Free to change in any release, because nothing
+ *                    outside this package is supposed to depend on it.
+ *
+ * The private layer exists so that a public token can be re-derived. `--bdocs-bg`
+ * is what a site sets; `--_bdocs-surface` is what the rules consume. Retuning the
+ * theme's internal shades then does not require asking every site to update.
+ */
+
+/* ------------------------------------------------------------------ *
+ * Public: colour
+ * ------------------------------------------------------------------ */
+
+:root {
+  --bdocs-bg: #ffffff;
+  --bdocs-bg-secondary: #f8fafc;
+  --bdocs-bg-elevated: #f1f5f9;
+  --bdocs-text: #0f1419;
+  --bdocs-text-muted: #5b6673;
+  --bdocs-border: #e2e8f0;
+  --bdocs-border-strong: #cbd5e1;
+
+  --bdocs-primary: #2563eb;
+  --bdocs-primary-hover: #1d4ed8;
+  --bdocs-primary-bg: #eff6ff;
+  --bdocs-primary-contrast: #ffffff;
+  --bdocs-accent: #0284c7;
+
+  --bdocs-success: #059669;
+  --bdocs-warning: #d97706;
+  --bdocs-danger: #dc2626;
+  --bdocs-info: #0284c7;
+}
+
+[data-theme="dark"],
+.dark {
+  --bdocs-bg: #0b0f19;
+  --bdocs-bg-secondary: #111827;
+  --bdocs-bg-elevated: #1f2937;
+  --bdocs-text: #f8fafc;
+  --bdocs-text-muted: #9aa6b2;
+  --bdocs-border: #1e293b;
+  --bdocs-border-strong: #334155;
+
+  --bdocs-primary: #60a5fa;
+  --bdocs-primary-hover: #93c5fd;
+  --bdocs-primary-bg: rgb(59 130 246 / 12%);
+  --bdocs-primary-contrast: #0b0f19;
+  --bdocs-accent: #38bdf8;
+
+  --bdocs-success: #34d399;
+  --bdocs-warning: #fbbf24;
+  --bdocs-danger: #f87171;
+  --bdocs-info: #38bdf8;
+}
+
+/* ------------------------------------------------------------------ *
+ * Public: typography
+ * ------------------------------------------------------------------ */
+
+:root {
+  --bdocs-font-family:
+    -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu,
+    Cantarell, "Open Sans", "Helvetica Neue", sans-serif;
+  --bdocs-font-mono:
+    ui-monospace, "SFMono-Regular", Menlo, Monaco, Consolas, "Liberation Mono",
+    "Courier New", monospace;
+
+  --bdocs-font-size: 1rem;
+  --bdocs-line-height: 1.65;
+  --bdocs-heading-line-height: 1.25;
+}
+
+/* ------------------------------------------------------------------ *
+ * Public: geometry
+ * ------------------------------------------------------------------ */
+
+:root {
+  --bdocs-radius: 0.625rem;
+  --bdocs-radius-sm: 0.375rem;
+  --bdocs-radius-lg: 0.875rem;
+  --bdocs-radius-full: 9999px;
+
+  --bdocs-navbar-height: 3.5rem;
+  --bdocs-sidebar-width: 16.5rem;
+  --bdocs-sidebar-width-collapsed: 3rem;
+  --bdocs-toc-width: 14rem;
+
+  --bdocs-border-width: 1px;
+}
+
+/* ------------------------------------------------------------------ *
+ * Public: depth
+ * ------------------------------------------------------------------ */
+
+:root {
+  --bdocs-shadow-sm: 0 1px 2px rgb(15 20 25 / 6%);
+  --bdocs-shadow: 0 4px 12px -2px rgb(15 20 25 / 10%);
+  --bdocs-shadow-lg: 0 12px 32px -8px rgb(15 20 25 / 18%);
+
+  --bdocs-glass-bg: rgb(255 255 255 / 80%);
+  --bdocs-glass-border: rgb(226 232 240 / 60%);
+  --bdocs-blur: 12px;
+}
+
+[data-theme="dark"],
+.dark {
+  --bdocs-shadow-sm: 0 1px 2px rgb(0 0 0 / 40%);
+  --bdocs-shadow: 0 4px 12px -2px rgb(0 0 0 / 50%);
+  --bdocs-shadow-lg: 0 12px 32px -8px rgb(0 0 0 / 60%);
+
+  --bdocs-glass-bg: rgb(11 15 25 / 80%);
+  --bdocs-glass-border: rgb(30 41 59 / 60%);
+}
+
+/* ------------------------------------------------------------------ *
+ * Public: motion
+ *
+ * Exposed as a duration rather than baked into each transition, so a site with
+ * `prefers-reduced-motion` can set one value instead of overriding every rule.
+ * ------------------------------------------------------------------ */
+
+:root {
+  --bdocs-duration: 150ms;
+  --bdocs-duration-slow: 250ms;
+  --bdocs-easing: cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --bdocs-duration: 0ms;
+    --bdocs-duration-slow: 0ms;
+  }
+}
+
+/* ------------------------------------------------------------------ *
+ * Private: what the theme's own rules are written against
+ * ------------------------------------------------------------------ */
+
+:root {
+  --_bdocs-surface: var(--bdocs-bg);
+  --_bdocs-surface-raised: var(--bdocs-bg-elevated);
+  --_bdocs-surface-sunken: var(--bdocs-bg-secondary);
+  --_bdocs-ink: var(--bdocs-text);
+  --_bdocs-ink-muted: var(--bdocs-text-muted);
+  --_bdocs-line: var(--bdocs-border);
+  --_bdocs-brand: var(--bdocs-primary);
+  --_bdocs-brand-soft: var(--bdocs-primary-bg);
+  --_bdocs-focus-ring: var(--bdocs-primary);
+}

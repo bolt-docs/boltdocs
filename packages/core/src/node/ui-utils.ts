@@ -13,7 +13,7 @@ import {
 } from '@bdocs/dui'
 
 /**
- * Brand azure-blue ramp (primary palette in `neutral.css`):
+ * Brand azure-blue ramp (the primary palette the themes default to):
  * primary-300 #95c0ff → primary-500 #3d8bfa → primary-600 #2769db.
  */
 const BRAND_RAMP = [

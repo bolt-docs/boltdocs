@@ -24,16 +24,18 @@
       "types": "./dist/components-primitives.d.mts",
       "import": "./dist/components-primitives.mjs"
     },
-    "./css": "./dist/neutral.css",
+    "./css": "./dist/styles/index.css",
     "./package.json": "./package.json"
   },
   "files": [
-    "dist"
+    "dist",
+    "test"
   ],
   "scripts": {
     "build": "tsdown --config-loader unrun",
     "dev": "tsdown --watch --config-loader unrun",
-    "test": "vitest run"
+    "test": "vitest run",
+    "verify:styles": "node test/browser/verify-styles.cjs"
   },
   "dependencies": {
     "@bdocs/contracts": "workspace:*",

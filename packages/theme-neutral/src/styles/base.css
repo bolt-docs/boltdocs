@@ -1,0 +1,55 @@
+/*
+ * @bdocs/theme-neutral — element defaults.
+ *
+ * Scoped to `.bdocs-root` rather than applied to `body` and `:root` directly.
+ * Boltdocs renders inside a host page as often as it is the whole page, and a
+ * theme that rewrites the host's body background because it was imported is a
+ * theme nobody can install twice or embed.
+ */
+
+.bdocs-root {
+  font-family: var(--bdocs-font-family);
+  font-size: var(--bdocs-font-size);
+  line-height: var(--bdocs-line-height);
+  color: var(--_bdocs-ink);
+  background-color: var(--_bdocs-surface);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+.bdocs-root :where(h1, h2, h3, h4, h5, h6) {
+  line-height: var(--bdocs-heading-line-height);
+  font-weight: 700;
+  color: var(--_bdocs-ink);
+}
+
+.bdocs-root :where(code, pre, kbd, samp) {
+  font-family: var(--bdocs-font-mono);
+}
+
+.bdocs-root :where(a) {
+  color: var(--_bdocs-brand);
+  text-decoration-thickness: 1px;
+  text-underline-offset: 0.15em;
+}
+
+.bdocs-root :where(a):focus-visible,
+.bdocs-root :where(button, [role="button"], summary):focus-visible {
+  outline: 2px solid var(--_bdocs-focus-ring);
+  outline-offset: 2px;
+  border-radius: var(--bdocs-radius-sm);
+}
+
+.bdocs-root ::selection {
+  background-color: var(--_bdocs-brand-soft);
+  color: var(--_bdocs-brand);
+}
+
+/*
+ * `hidden` is how the theme removes a menu, a popover or a closed panel from the
+ * layout. `[hidden]` alone loses to any `display` rule a component sets, so the
+ * attribute is reinforced here rather than in every component.
+ */
+.bdocs-root [hidden] {
+  display: none !important;
+}

@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <title>theme-neutral native CSS fixture</title>
+    <!--
+      The theme's stylesheet, and nothing else. No Tailwind, no bundler, no
+      PostCSS. If these rules resolve, "native CSS" is true rather than a claim.
+    -->
+    <link rel="stylesheet" href="./styles/index.css" />
+  </head>
+  <body>
+    <main class="bdocs-root">
+      <nav class="bdocs-page-nav">
+        <a class="bdocs-page-nav__card bdocs-page-nav__card--prev" href="#">
+          <span class="bdocs-page-nav__icon" aria-hidden="true">
+            <!-- biome-ignore lint/a11y/noSvgWithoutTitle: decorativo, el texto del enlace ya anuncia el sentido -->
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M15 18l-6-6 6-6" />
+            </svg>
+          </span>
+          <div class="bdocs-page-nav__body">
+            <div class="bdocs-page-nav__title">Previous</div>
+            <div class="bdocs-page-nav__label">Getting started</div>
+          </div>
+        </a>
+        <a class="bdocs-page-nav__card bdocs-page-nav__card--next" href="#">
+          <div class="bdocs-page-nav__body">
+            <div class="bdocs-page-nav__title">Next</div>
+            <div class="bdocs-page-nav__label">Configuration</div>
+          </div>
+          <span class="bdocs-page-nav__icon" aria-hidden="true">
+            <!-- biome-ignore lint/a11y/noSvgWithoutTitle: decorativo, el texto del enlace ya anuncia el sentido -->
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M9 18l6-6-6-6" />
+            </svg>
+          </span>
+        </a>
+      </nav>
+    </main>
+  </body>
+</html>

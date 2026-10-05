@@ -10,15 +10,17 @@ Boltdocs is **100% CSS-Framework Agnostic** by design. The core natively support
 
 - **Zero-Config Vanilla CSS**: Import any `.css` file in your components or layout.
 - **CSS Modules**: Full support for scoped `[name].module.css` styles.
-- **Native Theme Tokens**: `:root` variables and `[data-theme='dark']` / `.dark` dark theme tokens included in `base-theme.css`.
+- **Native Theme Tokens**: `:root` variables and `[data-theme='dark']` / `.dark` dark theme tokens ship in `@bdocs/theme-neutral/css`.
 - **Extremely Fast**: Powered by Vite and PostCSS native CSS bundling.
 
 
 ## Base CSS Variables
 
-Boltdocs ships standard CSS variables in `base-theme.css`:
+The tokens come from `@bdocs/theme-neutral/css`. Load it once, then override what you need:
 
 ```css
+@import '@bdocs/theme-neutral/css';
+
 :root {
   --bdocs-font-family: system-ui, sans-serif;
   --bdocs-font-mono: ui-monospace, monospace;

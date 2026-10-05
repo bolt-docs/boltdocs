@@ -62,7 +62,6 @@
       "import": "./dist/client/mdx.js",
       "require": "./dist/client/mdx.cjs"
     },
-    "./theme/neutral.css": "./dist/client/theme/neutral.css",
     "./theme/reset.css": "./dist/client/theme/reset.css"
   },
   "files": [

@@ -67,3 +67,6 @@ env/
 .qwen/
 test-results/
 packages/plugin-tailwindcss/.tmp-tailwind-*
+
+# staged copy of the built stylesheet for the browser check
+packages/theme-neutral/test/browser/styles/
