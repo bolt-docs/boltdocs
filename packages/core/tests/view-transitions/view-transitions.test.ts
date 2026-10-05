@@ -1,8 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import {
-  prefersReducedMotion,
-  resolveTransitionTypes,
-} from '../../src/client/view-transitions'
+import { prefersReducedMotion, resolveTransitionTypes } from '@bdocs/runtime'
 
 function mockMatchMedia(matches: boolean) {
   Object.defineProperty(window, 'matchMedia', {

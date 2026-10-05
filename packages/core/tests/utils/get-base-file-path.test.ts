@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { getBaseFilePath } from '../../src/client/utils/get-base-file-path'
+import { getBaseFilePath } from '@bdocs/theme-neutral'
 
 describe('getBaseFilePath', () => {
   it('should return original path when no version or locale', () => {

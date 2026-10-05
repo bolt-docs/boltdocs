@@ -1,0 +1,91 @@
+import { useEffect } from 'react'
+import { useTabs as useTabsHook } from '../../hooks/use-tabs'
+import { Tabs as T } from '../primitives/tabs'
+import { Link } from '../primitives/link'
+import type { BoltdocsTab, ComponentRoute } from '@bdocs/runtime'
+import { IconRenderer, resolveIcon } from './icon-renderer'
+import { getTranslated } from '../../utils/i18n'
+import { useRoutes } from '../../hooks/use-routes'
+import { cn } from '../../utils/cn'
+
+export function Tabs({
+  tabs,
+  routes,
+  allRoutes,
+  className,
+}: {
+  tabs: BoltdocsTab[]
+  routes: ComponentRoute[]
+  allRoutes?: ComponentRoute[]
+  className?: string
+}) {
+  const { currentLocale } = useRoutes()
+  const { indicatorStyle, tabRefs, activeIndex } = useTabsHook(tabs, routes)
+  const routeCandidates = routes
+  const fallbackRouteCandidates = allRoutes || []
+
+  useEffect(() => {
+    const activeTab = tabRefs.current[activeIndex]
+    if (activeTab) {
+      activeTab.scrollIntoView({
+        behavior: 'smooth',
+        block: 'nearest',
+        inline: 'center',
+      })
+    }
+  }, [activeIndex, tabRefs])
+
+  const renderTabIcon = (iconName?: string) => (
+    <IconRenderer icon={resolveIcon(iconName)} size={16} />
+  )
+
+  return (
+    <div
+      className={cn(
+        'mx-auto max-w-(--breakpoint-3xl) px-4 md:px-6 select-none',
+        className,
+      )}
+    >
+      {/* Tab-like navigation links, not an ARIA tabs widget: a tablist would
+          require tab children and fail axe's aria-required-children. */}
+      <T.List
+        role="none"
+        className="border-none py-0 scrollbar-hide relative flex flex-row items-center overflow-x-auto"
+      >
+        {tabs.map((tab, index) => {
+          const isActive = index === activeIndex
+          const firstRoute =
+            routeCandidates.find(
+              (r) => r.tab && r.tab.toLowerCase() === tab.id.toLowerCase(),
+            ) ||
+            fallbackRouteCandidates.find(
+              (r) => r.tab && r.tab.toLowerCase() === tab.id.toLowerCase(),
+            )
+          const linkTo = firstRoute ? firstRoute.path : '#'
+
+          return (
+            <Link
+              key={tab.id}
+              href={linkTo}
+              {...({
+                ref: (el: HTMLAnchorElement | null) => {
+                  tabRefs.current[index] = el
+                },
+              } as React.AnchorHTMLAttributes<HTMLAnchorElement>)}
+              className={`relative flex items-center gap-2 px-4 py-3.5 text-sm font-semibold transition-colors duration-300 outline-none whitespace-nowrap ${
+                isActive ? 'text-primary-500' : 'text-muted hover:text-body'
+              }`}
+            >
+              {renderTabIcon(tab.icon)}
+              <span>{getTranslated(tab.text, currentLocale)}</span>
+            </Link>
+          )
+        })}
+        <T.Indicator
+          style={indicatorStyle}
+          className="h-0.5 bg-primary-500 rounded-full transition-all duration-300"
+        />
+      </T.List>
+    </div>
+  )
+}

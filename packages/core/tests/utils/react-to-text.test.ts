@@ -1,7 +1,6 @@
 import { describe, it, expect } from 'vitest'
-import { reactToText } from '../../src/client/utils/react-to-text'
+import { reactToText } from '@bdocs/theme-neutral'
 import * as React from 'react'
-import * as ReactDOM from 'react-dom'
 
 describe('reactToText', () => {
   it('should return empty string for null', () => {

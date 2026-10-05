@@ -1,11 +1,7 @@
-import { describe, it, expect, vi } from 'vitest'
+import { describe, it, expect } from 'vitest'
 import { render, screen } from '@testing-library/react'
-import {
-  useRoutesContext,
-  RoutesProvider,
-} from '../../src/client/app/routes-context'
-import type { ComponentRoute } from '../../src/client/types'
-import * as React from 'react'
+import { useRoutesContext, RoutesProvider } from '@bdocs/runtime'
+import type { ComponentRoute } from '@bdocs/runtime'
 
 const mockRoutes: ComponentRoute[] = [
   {

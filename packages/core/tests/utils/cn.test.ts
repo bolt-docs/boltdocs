@@ -1,5 +1,5 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import { cn } from '../../src/client/utils/cn'
+import { describe, it, expect } from 'vitest'
+import { cn } from '@bdocs/theme-neutral'
 
 describe('cn - classnames utility', () => {
   it('should merge simple class names', () => {

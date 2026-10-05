@@ -4,8 +4,8 @@ import {
   createRouteIndex,
   RoutesProvider,
   useRoutesContext,
-} from '../../src/client/app/routes-context'
-import type { ComponentRoute } from '../../src/client/types'
+} from '@bdocs/runtime'
+import type { ComponentRoute } from '@bdocs/runtime'
 import type { ReactNode } from 'react'
 
 type WrapperProps = { children: ReactNode }

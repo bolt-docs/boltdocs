@@ -20,13 +20,17 @@ export interface RouteMatch {
 }
 
 /**
- * `ComponentType` with no type argument, which resolves to `ComponentType<any>`
- * — React's own default. Written this way because spelling out the `any` says
- * something untrue about the code: these props are not unchecked, they are as
- * loosely typed as React's own component type, which is the ceiling here.
+ * A component that accepts anything, for the react-router compatibility fields.
+ *
+ * `ComponentType`'s default type argument is `{}` in these `@types/react`, so
+ * leaving it off would mean "takes no props" and reject every real route object
+ * a site writes.
  */
+// biome-ignore lint/suspicious/noExplicitAny: see above
+export type AnyPropsComponent = ComponentType<any>
+
 export interface LazyRouteResult {
-  Component?: ComponentType
+  Component?: AnyPropsComponent
   element?: ReactNode
   loader?: LoaderFunction
   ErrorBoundary?: ComponentType
@@ -38,7 +42,7 @@ export interface RouteRecord {
   index?: boolean
   id?: string
   element?: ReactNode
-  Component?: ComponentType
+  Component?: AnyPropsComponent
   loader?: LoaderFunction
   /**
    * Declared for structural compatibility with react-router's `RouteObject` and
@@ -47,9 +51,9 @@ export interface RouteRecord {
    * permissive as it was without inviting a call site to pass anything.
    */
   action?: (...args: never[]) => unknown
-  ErrorBoundary?: ComponentType
+  ErrorBoundary?: AnyPropsComponent
   hasErrorBoundary?: boolean
-  HydrateFallback?: ComponentType
+  HydrateFallback?: AnyPropsComponent
   children?: RouteRecord[]
   lazy?: () => Promise<LazyRouteResult>
   caseSensitive?: boolean

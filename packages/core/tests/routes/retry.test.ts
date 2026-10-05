@@ -53,7 +53,7 @@ describe('generateRoutes concurrent invalidation retry', () => {
         }
         return {
           route: {
-            path: '/docs/' + path.basename(file, path.extname(file)),
+            path: `/docs/${path.basename(file, path.extname(file))}`,
             title: 'T',
           },
           relativeDir: undefined,

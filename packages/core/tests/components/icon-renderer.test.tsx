@@ -5,7 +5,7 @@ import {
   IconRenderer,
   normalizeIconExports,
   resolveIcon,
-} from '../../src/client/components/ui-base/icon-renderer'
+} from '@bdocs/theme-neutral'
 
 function BrandIcon({ size, ...props }: { size?: number | string }) {
   return <svg data-testid="brand-icon" width={size} {...props} />

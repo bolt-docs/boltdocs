@@ -6,7 +6,6 @@ import { stripTags } from '../../src/node/utils/plain-text'
 import {
   SecurityViolationError,
   PathTraversalError,
-  EncodingSecurityError,
   ValidationError,
 } from '../../src/node/errors'
 import { ParserCache } from '../../src/node/routes/parser/cache'
@@ -147,16 +146,16 @@ describe('Security: Route Parser', () => {
       })
 
       const result = await parseDocFile('C:\\docs\\test.md', docsDir, basePath)
-      expect(result.route.headings![1].text).not.toContain('<img')
-      expect(result.route.headings![1].text).not.toContain('onerror')
-      expect(result.route.headings![1].text).toBe('Malicious')
+      expect(result.route.headings?.[1].text).not.toContain('<img')
+      expect(result.route.headings?.[1].text).not.toContain('onerror')
+      expect(result.route.headings?.[1].text).toBe('Malicious')
     })
   })
 
   describe('ReDoS (Regular Expression Denial of Service)', () => {
     it('should not hang on maliciously crafted headings', async () => {
       const start = Date.now()
-      const maliciousContent = '## ' + ' '.repeat(10000) + 'A'
+      const maliciousContent = `## ${' '.repeat(10000)}A`
 
       vi.mocked(utils.parseFrontmatterAsync).mockResolvedValue({
         data: {},
@@ -171,7 +170,7 @@ describe('Security: Route Parser', () => {
 
   describe('Whitelisting and Length', () => {
     it('should block paths exceeding MAX_PATH_LENGTH', async () => {
-      const longPath = 'C:\\docs\\' + 'a'.repeat(300) + '.md'
+      const longPath = `C:\\docs\\${'a'.repeat(300)}.md`
       vi.mocked(utils.parseFrontmatterAsync).mockResolvedValue({
         data: {},
         content: '',
@@ -197,7 +196,7 @@ describe('Security: Route Parser', () => {
     const tempMd = './temp_security_test.md'
 
     it('should respect MAX_FRONTMATTER_SIZE', async () => {
-      const largeYaml = 'title: ' + 'A'.repeat(utils.MAX_FRONTMATTER_SIZE + 1)
+      const largeYaml = `title: ${'A'.repeat(utils.MAX_FRONTMATTER_SIZE + 1)}`
       const content = `---\n${largeYaml}\n---\nContent`
 
       const realUtils = (await vi.importActual('../../src/node/utils')) as any
@@ -248,14 +247,14 @@ describe('Security: Route Parser', () => {
 
   describe('Unicode and Encoding Bypass', () => {
     it('should block Unicode dot variants (e.g. One Dot Leader)', async () => {
-      const malicious = docsDir + '\\\u2024\u2024\\windows'
+      const malicious = `${docsDir}\\\u2024\u2024\\windows`
       await expect(parseDocFile(malicious, docsDir, basePath)).rejects.toThrow(
         SecurityViolationError,
       )
     })
 
     it('should block double URL encoding', async () => {
-      const malicious = docsDir + '\\..%252f..%252fwindows'
+      const malicious = `${docsDir}\\..%252f..%252fwindows`
       await expect(parseDocFile(malicious, docsDir, basePath)).rejects.toThrow(
         SecurityViolationError,
       )
@@ -264,21 +263,21 @@ describe('Security: Route Parser', () => {
 
   describe('Fuzzing and Control Characters', () => {
     it('should block newline characters in paths', async () => {
-      const malicious = docsDir + '\\test\nfile.md'
+      const malicious = `${docsDir}\\test\nfile.md`
       await expect(parseDocFile(malicious, docsDir, basePath)).rejects.toThrow(
         SecurityViolationError,
       )
     })
 
     it('should block carriage return in paths', async () => {
-      const malicious = docsDir + '\\test\rfile.md'
+      const malicious = `${docsDir}\\test\rfile.md`
       await expect(parseDocFile(malicious, docsDir, basePath)).rejects.toThrow(
         SecurityViolationError,
       )
     })
 
     it('should block tab characters in paths', async () => {
-      const malicious = docsDir + '\\test\tfile.md'
+      const malicious = `${docsDir}\\test\tfile.md`
       await expect(parseDocFile(malicious, docsDir, basePath)).rejects.toThrow(
         SecurityViolationError,
       )

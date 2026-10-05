@@ -355,7 +355,7 @@ describe('dev server HMR integration', () => {
     )
     expect(entryModule).toBeDefined()
     const invalidateModuleSpy = ctx.invalidateModule
-    const callsBefore = invalidateModuleSpy.mock.calls.length
+    const _callsBefore = invalidateModuleSpy.mock.calls.length
 
     fs.writeFileSync(
       path.join(ctx.docsDir, 'pages-external', 'roadmap.mdx'),
@@ -384,7 +384,7 @@ describe('dev server HMR integration', () => {
     serverList.push(ctx)
     const vmPlugin = ctx.vmPlugin
 
-    const entryBefore = await vmPlugin.load!('\0virtual:boltdocs-entry.tsx')
+    const entryBefore = await vmPlugin.load?.('\0virtual:boltdocs-entry.tsx')
     expect(entryBefore).not.toContain('roadmap')
 
     // Add a new external page. The directory does not exist yet — creating
@@ -397,7 +397,7 @@ describe('dev server HMR integration', () => {
     )
     await waitForWsEvent(ctx.wsSend, (p) => p?.type === 'full-reload')
 
-    const entryAfterAdd = await vmPlugin.load!('\0virtual:boltdocs-entry.tsx')
+    const entryAfterAdd = await vmPlugin.load?.('\0virtual:boltdocs-entry.tsx')
     expect(entryAfterAdd).toContain('roadmap.mdx')
     expect(entryAfterAdd).toContain('pages-external/roadmap.mdx')
 
@@ -406,7 +406,7 @@ describe('dev server HMR integration', () => {
     fs.rmSync(path.join(ctx.docsDir, 'pages-external', 'roadmap.mdx'))
     await waitForWsEvent(ctx.wsSend, (p) => p?.type === 'full-reload')
 
-    const entryAfterRemove = await vmPlugin.load!(
+    const entryAfterRemove = await vmPlugin.load?.(
       '\0virtual:boltdocs-entry.tsx',
     )
     expect(entryAfterRemove).not.toContain('roadmap.mdx')

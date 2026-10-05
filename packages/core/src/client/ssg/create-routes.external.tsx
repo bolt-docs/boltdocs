@@ -1,7 +1,7 @@
 import type { RouteRecord } from '../router'
 import type { ComponentRoute, BoltdocsConfig } from '../types'
 import { Suspense, lazy } from 'react'
-import { cn } from '../utils/cn'
+import { cn } from '@bdocs/theme-neutral'
 import { ExternalPageWrapper } from './external-page-wrapper'
 import {
   EagerMdxElement,

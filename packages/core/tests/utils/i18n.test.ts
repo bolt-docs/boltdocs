@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { getTranslated } from '../../src/client/utils/i18n'
+import { getTranslated } from '@bdocs/theme-neutral'
 
 describe('getTranslated - i18n utility', () => {
   it('should return empty string for undefined', () => {

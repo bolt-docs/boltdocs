@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from 'vitest'
-import { createRoutes } from '../../src/client/ssg/create-routes'
-import type { ComponentRoute } from '../../src/client/types'
+import { createRoutes } from '../../src/client/ssg/create-routes.tsx'
+import type { ComponentRoute } from '@bdocs/runtime'
 import type * as React from 'react'
 
 vi.mock('virtual:boltdocs-search', () => ({
@@ -238,7 +238,7 @@ describe('createRoutes', () => {
     )
     expect(esFallback?.lazy).toBeDefined()
 
-    const lazyResult = await esFallback!.lazy!()
+    const lazyResult = await esFallback?.lazy?.()
     const Component = lazyResult.Component!
     const element = Component({}) as React.ReactElement
     const eagerElement = element.props.children as React.ReactElement
@@ -248,7 +248,7 @@ describe('createRoutes', () => {
     expect(eagerElement.props.route.filePath).toBe('es/intro.md')
     expect(eagerElement.props.route.locale).toBe('es')
 
-    const loaderData = await esFallback!.loader!({
+    const loaderData = await esFallback?.loader?.({
       request: new Request('http://localhost/docs/es'),
       params: {},
     })
@@ -305,8 +305,8 @@ describe('createRoutes', () => {
     )
     expect(versionedFallback?.lazy).toBeDefined()
 
-    const lazyResult = await versionedFallback!.lazy!()
-    const element = lazyResult.Component!({}) as React.ReactElement
+    const lazyResult = await versionedFallback?.lazy?.()
+    const element = lazyResult.Component?.({}) as React.ReactElement
     const eagerElement = element.props.children as React.ReactElement
     const localizedContent = eagerElement.props.moduleLoader.default({})
 

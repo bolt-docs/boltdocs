@@ -1,10 +1,7 @@
 import type { IncomingMessage, ServerResponse } from 'node:http'
 import type { AliasOptions, Plugin as VitePlugin, UserConfig } from 'vite'
-import type { ComponentType } from 'react'
 import type {
   BoltdocsConfigContract,
-  CodeHighlightConfig,
-  CodeTheme,
   IPluginLifecycleManager as ContractIPluginLifecycleManager,
   PluginContext as ContractPluginContext,
   PluginCssDefinition as ContractPluginCssDefinition,

@@ -2,11 +2,11 @@
 import { useEffect, useState } from 'react'
 import type { ComponentRoute } from '../types'
 import { MdxPage } from './mdx-page'
-import { NotFound } from '../components/ui-base'
+import { NotFound } from '@bdocs/theme-neutral'
 import { useMdxComponents } from '../app/mdx-components-context'
 import { matchesMdxUpdatePath } from '../../shared/mdx-path'
 
-const Loading = () => <div className="text-muted text-sm py-4">Loading...</div>
+const _Loading = () => <div className="text-muted text-sm py-4">Loading...</div>
 
 export interface MdxModule {
   default: React.ComponentType<any>
@@ -25,6 +25,7 @@ async function resolveModuleLoader(
     return Promise.resolve(loader as MdxModule)
   }
   try {
+    // biome-ignore lint/complexity/noBannedTypes: the loader returns whatever the route module's default export is, and this file only forwards it
     const res = (loader as Function)()
     if (res && typeof res.then === 'function') {
       return await res

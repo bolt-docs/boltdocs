@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { injectHtmlMeta } from '../../src/node/plugin/html'
-import { useAnalytics } from '../../src/client/hooks/use-analytics'
+import { useAnalytics } from '@bdocs/theme-neutral'
 import * as React from 'react'
 
 // Mock react
@@ -154,7 +154,9 @@ describe('Analytics Integration', () => {
         },
       }
 
-      clickHandlers.forEach((handler: any) => handler(mockEvent))
+      clickHandlers.forEach((handler: any) => {
+        handler(mockEvent)
+      })
       expect(gtagSpy).toHaveBeenCalledWith(
         'event',
         'external_link',
@@ -182,7 +184,9 @@ describe('Analytics Integration', () => {
         },
       }
 
-      clickHandlers.forEach((handler: any) => handler(mockEvent))
+      clickHandlers.forEach((handler: any) => {
+        handler(mockEvent)
+      })
       expect(gtagSpy).toHaveBeenCalledWith(
         'event',
         'file_download',
@@ -214,7 +218,9 @@ describe('Analytics Integration', () => {
         },
       }
 
-      clickHandlers.forEach((handler: any) => handler(mockEvent))
+      clickHandlers.forEach((handler: any) => {
+        handler(mockEvent)
+      })
 
       expect(gtagSpy).not.toHaveBeenCalledWith(
         'event',

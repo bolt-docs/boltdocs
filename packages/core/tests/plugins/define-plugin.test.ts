@@ -178,7 +178,7 @@ describe('Next-Gen Boltdocs Plugin API', () => {
     )
     const beforeBuildFn = vi.fn()
     const transformMdxFn = vi.fn().mockImplementation((_ctx, params) => ({
-      code: params.code + ' // transformed',
+      code: `${params.code} // transformed`,
     }))
 
     const plugin = definePlugin({

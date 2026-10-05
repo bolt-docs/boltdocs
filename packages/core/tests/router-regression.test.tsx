@@ -12,8 +12,8 @@ import {
   resolveRouteBranch,
   useNavigate,
   usePrefetch,
-} from '../src/client/router'
-import type { RouteRecord } from '../src/client/router'
+} from '@bdocs/runtime'
+import type { RouteRecord } from '@bdocs/runtime'
 
 function PrefetchButton({ to }: { to: string }) {
   const prefetch = usePrefetch()

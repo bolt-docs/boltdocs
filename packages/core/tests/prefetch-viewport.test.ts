@@ -3,7 +3,7 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import {
   observeForPrefetch,
   resetViewportPrefetchObserver,
-} from '../src/client/router/prefetch-viewport'
+} from '@bdocs/runtime'
 
 type ObserverCallback = (
   entries: Partial<IntersectionObserverEntry>[],

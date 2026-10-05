@@ -2,14 +2,14 @@ import type { RouteRecord } from '../router'
 import type { ComponentRoute, BoltdocsConfig } from '../types'
 import type React from 'react'
 import { buildUrl, useLocation, useLoaderData } from '../router'
-import { formatDeterministicDate } from '../utils/date'
-import { Link } from '../components/primitives/link'
-import type { CollectionsData } from '../collections/collections-context'
-import { usePosts } from '../collections/hooks'
+import { formatDeterministicDate } from '@bdocs/theme-neutral'
+import { Link } from '@bdocs/theme-neutral'
+import type { CollectionsData } from '@bdocs/theme-neutral'
+import { usePosts } from '@bdocs/theme-neutral'
 import { useConfig } from '../app/config-context'
 import { buildModuleMap, resolveModuleKey } from './create-routes.utils'
 import { EagerMdxElement, resolveModuleLoader } from './mdx-elements'
-import { DocsLayout } from '../app/docs-layout'
+import { DocsLayout } from '@bdocs/theme-neutral'
 
 function CollectionIndex({
   indexContent,
@@ -101,24 +101,20 @@ function DefaultCollectionList() {
     .replace(/\/page\/\d+\/?$/, '')
     .replace(/\/$/, '')
   const segments = basePath.split('/').filter(Boolean)
-  const collection =
-    (loaderData && loaderData.collection) || segments[segments.length - 1]
+  const collection = loaderData?.collection || segments[segments.length - 1]
 
   const allPosts = usePosts(collection)
   const totalPages =
-    (loaderData && loaderData.totalPages) ||
-    Math.ceil(allPosts.length / postsPerPage)
+    loaderData?.totalPages || Math.ceil(allPosts.length / postsPerPage)
   const currentPage =
-    (loaderData && loaderData.currentPage) ||
+    loaderData?.currentPage ||
     (() => {
       const match = location.pathname.match(/\/page\/(\d+)\/?$/)
       return match ? Number(match[1]) : 1
     })()
 
   const start = (currentPage - 1) * postsPerPage
-  const posts =
-    (loaderData && loaderData.posts) ||
-    allPosts.slice(start, start + postsPerPage)
+  const posts = loaderData?.posts || allPosts.slice(start, start + postsPerPage)
 
   if (!posts.length) return null
 
@@ -218,7 +214,7 @@ function buildCollectionRoutes(options: {
       if (!collectionsMap.has(r.collection)) {
         collectionsMap.set(r.collection, [])
       }
-      collectionsMap.get(r.collection)!.push(r)
+      collectionsMap.get(r.collection)?.push(r)
     }
   }
 
@@ -239,7 +235,7 @@ function buildCollectionRoutes(options: {
       if (isCollectionIndexRoute(r, colName)) {
         indexByVariant.set(key, r)
       } else {
-        postsByVariant.get(key)!.push(r)
+        postsByVariant.get(key)?.push(r)
       }
     }
 

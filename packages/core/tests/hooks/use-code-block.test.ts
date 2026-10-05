@@ -1,12 +1,17 @@
 import { describe, it, expect, vi, afterEach } from 'vitest'
 import { renderHook, act } from '@testing-library/react'
-import { useCopyButton } from '../../src/client/components/mdx/use-copy-button'
-import { useExpandable } from '../../src/client/components/mdx/use-expandable'
-import { useCodeBlockFeedback } from '../../src/client/components/mdx/use-code-block-feedback'
-import { useCodeBlock } from '../../src/client/components/mdx/use-code-block'
-import { useConfig } from '../../src/client/app/config-context'
+import { useCopyButton } from '@bdocs/theme-neutral'
+import { useExpandable } from '@bdocs/theme-neutral'
+import { useCodeBlockFeedback } from '@bdocs/theme-neutral'
+import { useCodeBlock } from '@bdocs/theme-neutral'
+import { useConfig } from '@bdocs/runtime'
 
-vi.mock('../../src/client/app/config-context', () => ({
+// Extended with the real module rather than replacing it: `PluginFloatingSlots`
+// reads `getClientSlots()` from the runtime, and a factory that returned only the
+// two functions this test cares about left that export undefined. Spreading the
+// original keeps the mock narrow where it matters and real everywhere else.
+vi.mock('@bdocs/runtime', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@bdocs/runtime')>()),
   useConfig: vi.fn(),
 }))
 

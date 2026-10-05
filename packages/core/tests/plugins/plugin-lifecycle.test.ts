@@ -213,7 +213,7 @@ describe('PluginLifecycleManager', () => {
         name: 'plugin-a',
         hooks: {
           transformMdx: async (_ctx, params) => ({
-            code: params.code + '/* A */',
+            code: `${params.code}/* A */`,
           }),
         },
       },
@@ -221,7 +221,7 @@ describe('PluginLifecycleManager', () => {
         name: 'plugin-b',
         hooks: {
           transformMdx: async (_ctx, params) => ({
-            code: params.code + '/* B */',
+            code: `${params.code}/* B */`,
           }),
         },
       },
@@ -250,7 +250,7 @@ describe('PluginLifecycleManager', () => {
         name: 'working',
         hooks: {
           transformMdx: async (_ctx, params) => ({
-            code: params.code + '/* OK */',
+            code: `${params.code}/* OK */`,
           }),
         },
       },
@@ -275,7 +275,7 @@ describe('PluginLifecycleManager', () => {
           transformMdx: async (_ctx, params) => {
             executionOrder.push('first')
             return {
-              code: params.code + '/* first */',
+              code: `${params.code}/* first */`,
               __signal: 'skip' as const,
             }
           },
@@ -286,7 +286,7 @@ describe('PluginLifecycleManager', () => {
         hooks: {
           transformMdx: async (_ctx, params) => {
             executionOrder.push('second')
-            return { code: params.code + '/* second */' }
+            return { code: `${params.code}/* second */` }
           },
         },
       },
@@ -312,7 +312,7 @@ describe('PluginLifecycleManager', () => {
         hooks: {
           transformMdx: async (_ctx, params) => {
             executionOrder.push('first')
-            return { code: params.code + '/* first */' }
+            return { code: `${params.code}/* first */` }
           },
         },
       },
@@ -324,7 +324,7 @@ describe('PluginLifecycleManager', () => {
             // Return __signal: 'break' — this plugin's result is discarded,
             // and the chain stops. Earlier plugins' results are preserved.
             return {
-              code: params.code + '/* breaker */',
+              code: `${params.code}/* breaker */`,
               __signal: 'break' as const,
             }
           },
@@ -335,7 +335,7 @@ describe('PluginLifecycleManager', () => {
         hooks: {
           transformMdx: async (_ctx, params) => {
             executionOrder.push('third')
-            return { code: params.code + '/* third */' }
+            return { code: `${params.code}/* third */` }
           },
         },
       },

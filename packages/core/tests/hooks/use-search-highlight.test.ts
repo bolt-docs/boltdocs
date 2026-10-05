@@ -1,8 +1,5 @@
 import { afterEach, describe, expect, it } from 'vitest'
-import {
-  clearHighlights,
-  highlightTerms,
-} from '../../src/client/hooks/use-search-highlight'
+import { clearHighlights, highlightTerms } from '@bdocs/theme-neutral'
 
 const containers: HTMLElement[] = []
 

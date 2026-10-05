@@ -1,7 +1,7 @@
 import { act, cleanup, render } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { LocationProvider } from '../../src/client/router'
-import { ScrollHandler } from '../../src/client/app/scroll-handler'
+import { LocationProvider } from '@bdocs/runtime'
+import { ScrollHandler } from '@bdocs/theme-neutral'
 
 describe('ScrollHandler', () => {
   afterEach(() => {

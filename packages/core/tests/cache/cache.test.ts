@@ -44,7 +44,7 @@ describe('cache system', () => {
             await new Promise((resolve) => setTimeout(resolve, 200))
           }
         }
-      } catch (e) {
+      } catch (_e) {
         // Ignore cleanup errors
       }
     }
@@ -88,7 +88,7 @@ describe('cache system', () => {
       cache.save()
 
       // Before flush, file might not exist yet
-      const cacheFile = path.join(
+      const _cacheFile = path.join(
         tempDir,
         '.boltdocs',
         'cache',

@@ -1,7 +1,7 @@
 import { describe, it, expect, vi } from 'vitest'
-import { createRoutes } from '../../src/client/ssg/create-routes'
-import { matchRouteBranch } from '../../src/client/router'
-import type { ComponentRoute } from '../../src/client/types'
+import { createRoutes } from '../../src/client/ssg/create-routes.tsx'
+import { matchRouteBranch } from '@bdocs/runtime'
+import type { ComponentRoute } from '@bdocs/runtime'
 
 vi.mock('virtual:boltdocs-search', () => ({ default: async () => [] }))
 vi.mock('virtual:boltdocs-icons', () => ({ default: {} }))

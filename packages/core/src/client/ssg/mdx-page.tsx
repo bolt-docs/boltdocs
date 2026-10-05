@@ -1,6 +1,6 @@
 import { useLoaderData } from '../router'
-import { DocPage } from '../app/doc-page'
-import { CurrentPostProvider } from '../collections/collections-context'
+import { DocPage } from '@bdocs/theme-neutral'
+import { CurrentPostProvider } from '@bdocs/theme-neutral'
 import { useMdxComponents } from '../app/mdx-components-context'
 import type { CollectionPostLoaderData, ComponentRoute } from '../types'
 

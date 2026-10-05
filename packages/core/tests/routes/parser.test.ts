@@ -1,7 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { parseDocFile } from '../../src/node/routes/parser'
 import * as utils from '../../src/node/utils'
-import path from 'node:path'
 
 // Mock utils since we don't want to depend on their implementation here
 vi.mock('../../src/node/utils', async () => {
@@ -36,12 +35,12 @@ describe('parseDocFile', () => {
       expect(result.route.title).toBe('Custom Title')
       expect(result.route.sidebarPosition).toBe(5)
       expect(result.route.headings).toHaveLength(2)
-      expect(result.route.headings![0]).toEqual({
+      expect(result.route.headings?.[0]).toEqual({
         level: 2,
         text: 'Heading 1',
         id: 'heading-1',
       })
-      expect(result.route.headings![1]).toEqual({
+      expect(result.route.headings?.[1]).toEqual({
         level: 3,
         text: 'Heading 2',
         id: 'heading-2',
@@ -155,7 +154,7 @@ describe('parseDocFile', () => {
     })
 
     it('should limit description to 160 characters', async () => {
-      const longContent = '# Title\n\n' + 'a'.repeat(200)
+      const longContent = `# Title\n\n${'a'.repeat(200)}`
 
       ;(utils.parseFrontmatterAsync as any).mockResolvedValue({
         data: { title: 'Test' },
@@ -164,7 +163,7 @@ describe('parseDocFile', () => {
 
       const result = await parseDocFile('C:\\docs\\test.md', docsDir, basePath)
 
-      expect(result.route.description!.length).toBeLessThanOrEqual(160)
+      expect(result.route.description?.length).toBeLessThanOrEqual(160)
     })
 
     it('should strip HTML tags from description', async () => {
@@ -197,8 +196,8 @@ describe('parseDocFile', () => {
         content: '## Heading with [Link](url)\n### Another `code` heading',
       })
       const result = await parseDocFile('C:\\docs\\test.md', docsDir, basePath)
-      expect(result.route.headings![0].text).toBe('Heading with Link')
-      expect(result.route.headings![1].text).toBe('Another code heading')
+      expect(result.route.headings?.[0].text).toBe('Heading with Link')
+      expect(result.route.headings?.[1].text).toBe('Another code heading')
     })
 
     it('should extract h2, h3, and h4 headings', async () => {
@@ -210,9 +209,9 @@ describe('parseDocFile', () => {
       const result = await parseDocFile('C:\\docs\\test.md', docsDir, basePath)
 
       expect(result.route.headings).toHaveLength(3)
-      expect(result.route.headings![0].level).toBe(2)
-      expect(result.route.headings![1].level).toBe(3)
-      expect(result.route.headings![2].level).toBe(4)
+      expect(result.route.headings?.[0].level).toBe(2)
+      expect(result.route.headings?.[1].level).toBe(3)
+      expect(result.route.headings?.[2].level).toBe(4)
     })
 
     it('should generate unique slugs for duplicate headings', async () => {
@@ -223,9 +222,9 @@ describe('parseDocFile', () => {
 
       const result = await parseDocFile('C:\\docs\\test.md', docsDir, basePath)
 
-      expect(result.route.headings![0].id).toBe('title')
-      expect(result.route.headings![1].id).toBe('title-1')
-      expect(result.route.headings![2].id).toBe('title-2')
+      expect(result.route.headings?.[0].id).toBe('title')
+      expect(result.route.headings?.[1].id).toBe('title-1')
+      expect(result.route.headings?.[2].id).toBe('title-2')
     })
 
     it('should sanitize HTML in headings', async () => {
@@ -236,7 +235,7 @@ describe('parseDocFile', () => {
 
       const result = await parseDocFile('C:\\docs\\test.md', docsDir, basePath)
 
-      expect(result.route.headings![0].text).not.toContain('<script>')
+      expect(result.route.headings?.[0].text).not.toContain('<script>')
     })
   })
 

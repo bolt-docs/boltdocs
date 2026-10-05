@@ -13,14 +13,16 @@ import { describe, expect, it } from 'vitest'
  * These assertions are the reason that stays true. A seam that picks up a new
  * name from the runtime fails here instead of reaching a published API.
  */
+/**
+ * Only the seams that still exist in core are pinned here. `utils/path` and
+ * `utils/i18n` moved into `@bdocs/theme-neutral` along with everything else, so
+ * there is no seam left for them to guard — the theme's own entry point is their
+ * surface now.
+ */
 import * as configContext from '../src/client/app/config-context'
-import * as docRouteContext from '../src/client/app/doc-route-context'
-import * as mdxComponentsContext from '../src/client/app/mdx-components-context'
 import * as routesContext from '../src/client/app/routes-context'
 import * as themeContext from '../src/client/app/theme-context'
 import * as uiContext from '../src/client/app/ui-context'
-import * as i18n from '../src/client/utils/i18n'
-import * as path from '../src/client/utils/path'
 import * as router from '../src/client/router'
 import * as viewTransitions from '../src/client/view-transitions'
 
@@ -53,32 +55,6 @@ describe('runtime seams keep their original surface', () => {
       'createRouteIndex',
       'useRoutesContext',
     ])
-  })
-
-  it('doc-route-context exports exactly its three names', () => {
-    expect(runtimeExports(docRouteContext)).toEqual([
-      'DocRouteContext',
-      'DocRouteProvider',
-      'useDocRoute',
-    ])
-  })
-
-  it('mdx-components-context exports exactly its runtime names', () => {
-    expect(runtimeExports(mdxComponentsContext)).toEqual([
-      'MdxComponentsProvider',
-      'useMdxComponents',
-    ])
-  })
-
-  it('utils/path exports exactly its two functions', () => {
-    expect(runtimeExports(path)).toEqual([
-      'normalizePath',
-      'resolvePublicAssetUrl',
-    ])
-  })
-
-  it('utils/i18n exports exactly getTranslated', () => {
-    expect(runtimeExports(i18n)).toEqual(['getTranslated'])
   })
 
   it('view-transitions exports exactly its four functions', () => {

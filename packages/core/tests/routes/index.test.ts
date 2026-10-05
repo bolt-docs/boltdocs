@@ -92,7 +92,7 @@ describe('generateRoutes', () => {
 
     ;(parser.parseDocFile as any).mockImplementation((file: string) => ({
       route: {
-        path: '/docs/' + path.basename(file, '.md'),
+        path: `/docs/${path.basename(file, '.md')}`,
         title: 'Title',
         sidebarPosition: undefined,
       },
@@ -284,7 +284,7 @@ describe('generateRoutes', () => {
 
     fs.writeFileSync(path.join(v1EnDir, 'page.md'), '# English v1')
 
-    ;(parser.parseDocFile as any).mockImplementation((file: string) => {
+    ;(parser.parseDocFile as any).mockImplementation((_file: string) => {
       return {
         route: {
           path: '/docs/v1/page',

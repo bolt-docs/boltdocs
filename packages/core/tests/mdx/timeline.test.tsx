@@ -1,10 +1,7 @@
 // @vitest-environment jsdom
 import { describe, it, expect } from 'vitest'
 import { render, screen } from '@testing-library/react'
-import {
-  Timeline,
-  TimelineItem,
-} from '../../src/client/components/mdx/timeline'
+import { Timeline } from '@bdocs/theme-neutral'
 
 describe('Timeline (MDX component)', () => {
   it('renders an ordered list with role="list"', () => {

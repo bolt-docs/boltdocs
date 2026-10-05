@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
+import { describe, it, expect, beforeEach, afterEach } from 'vitest'
 import { getHtmlTemplate, injectHtmlMeta } from '../../src/node/plugin/html'
 import path from 'node:path'
 import fs from 'node:fs'

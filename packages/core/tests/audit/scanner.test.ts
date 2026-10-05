@@ -283,7 +283,7 @@ describe('audit scanner precision', () => {
 
     it('scans the head of the file that crosses the cap', () => {
       // Suspicious code at the very top, padding below the cap boundary.
-      const padded = "fetch('/api/x')\n" + 'export const x = 1\n'.repeat(20_000)
+      const padded = `fetch('/api/x')\n${'export const x = 1\n'.repeat(20_000)}`
       const result = scan({ 'index.js': padded }, 512)
       expect(ruleIds(result)).toContain('fetch-call')
       expect(ruleIds(result)).toContain('scan-truncated')

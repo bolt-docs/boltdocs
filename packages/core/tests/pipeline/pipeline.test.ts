@@ -1,4 +1,4 @@
-import { describe, it, expect, vi } from 'vitest'
+import { describe, it, expect } from 'vitest'
 import { Pipeline, type PipelineStep } from '../../src/node/pipeline/index'
 
 describe('Pipeline', () => {
@@ -64,7 +64,7 @@ describe('Pipeline', () => {
     const pipeline = new Pipeline<Ctx>().addStep(stepA)
     const result = await pipeline.run({ calls: [] })
     expect(result.timing.steps).toHaveProperty('A')
-    expect(result.timing.steps['A']).toBeGreaterThanOrEqual(0)
+    expect(result.timing.steps.A).toBeGreaterThanOrEqual(0)
   })
 
   it('runs without typo chaining when rollback is undefined', async () => {

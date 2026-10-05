@@ -219,7 +219,7 @@ describe('MDX components integration', () => {
       (p) => p.name === 'vite-plugin-boltdocs-virtual-modules',
     )!
 
-    const code = await vmPlugin.load!('\0virtual:boltdocs-mdx-components')
+    const code = await vmPlugin.load?.('\0virtual:boltdocs-mdx-components')
     expect(code).toContain('mdx-components.tsx')
   }, 30000)
 
@@ -240,7 +240,7 @@ describe('MDX components integration', () => {
       (p) => p.name === 'vite-plugin-boltdocs-virtual-modules',
     )!
 
-    const code = await vmPlugin.load!('\0virtual:boltdocs-mdx-components')
+    const code = await vmPlugin.load?.('\0virtual:boltdocs-mdx-components')
     expect(code).toContain('Reflect.get(_pluginCompMod_0, "default")')
     expect(code).not.toContain('["default"]')
   }, 30000)
@@ -262,7 +262,7 @@ describe('layout integration', () => {
       (p) => p.name === 'vite-plugin-boltdocs-virtual-modules',
     )!
 
-    const code = await vmPlugin.load!('\0virtual:boltdocs-layout')
+    const code = await vmPlugin.load?.('\0virtual:boltdocs-layout')
     expect(code).toContain('UserLayout')
   })
 })
@@ -283,7 +283,7 @@ describe('virtual:boltdocs-icons integration', () => {
       (p) => p.name === 'vite-plugin-boltdocs-virtual-modules',
     )!
 
-    const code = await vmPlugin.load!('\0virtual:boltdocs-icons')
+    const code = await vmPlugin.load?.('\0virtual:boltdocs-icons')
     expect(code).toContain('icons.tsx')
     expect(code).toContain('export default icons;')
   })
@@ -298,7 +298,7 @@ describe('virtual:boltdocs-icons integration', () => {
       (p) => p.name === 'vite-plugin-boltdocs-virtual-modules',
     )!
 
-    const code = await vmPlugin.load!('\0virtual:boltdocs-icons')
+    const code = await vmPlugin.load?.('\0virtual:boltdocs-icons')
     expect(code).toBe('export default {};')
   })
 })

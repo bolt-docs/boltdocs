@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
-import { buildRedirectRoutes } from '../../src/client/ssg/create-routes.redirect'
+import { buildRedirectRoutes } from '../../src/client/ssg/create-routes.redirect.tsx'
 import type { BoltdocsConfig } from '../../src/shared/types'
 
 function renderAt(path: string, config: BoltdocsConfig): string {

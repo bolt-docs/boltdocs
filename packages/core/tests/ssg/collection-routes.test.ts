@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest'
-import type { ComponentRoute } from '../../src/client/types'
+import type { ComponentRoute } from '@bdocs/runtime'
 
 // DocsLayout imports `virtual:boltdocs-layout`, which only resolves inside a
 // Vite build. buildCollectionRoutes only renders it inside route elements, so
@@ -8,7 +8,7 @@ vi.mock('../../src/client/app/docs-layout', () => ({
   DocsLayout: ({ children }: { children: React.ReactNode }) => children,
 }))
 
-import { buildCollectionRoutes } from '../../src/client/ssg/create-routes.collection'
+import { buildCollectionRoutes } from '../../src/client/ssg/create-routes.collection.tsx'
 
 function makePost(
   path: string,
@@ -52,11 +52,11 @@ describe('buildCollectionRoutes post sub-paths', () => {
     // Posts must be relative child paths so the router matches
     // /docs/blog/boltdocs-3.3.0 and the SSG emits dist/docs/blog/... — never
     // a root-level /blog/... that matches nothing.
-    const enPostPaths = (enLayout!.children || []).map((route) => route.path)
+    const enPostPaths = (enLayout?.children || []).map((route) => route.path)
     expect(enPostPaths).toContain('boltdocs-3.3.0')
     expect(enPostPaths.every((path) => !path.startsWith('/'))).toBe(true)
 
-    const esPostPaths = (esLayout!.children || []).map((route) => route.path)
+    const esPostPaths = (esLayout?.children || []).map((route) => route.path)
     expect(esPostPaths).toContain('boltdocs-3.2.0')
     expect(esPostPaths.every((path) => !path.startsWith('/'))).toBe(true)
   })
@@ -70,13 +70,13 @@ describe('buildCollectionRoutes post sub-paths', () => {
 
     const enLayout = children.find((route) => route.path === '/docs/blog')
     // Skip the index record (path '' → getStaticPaths ['']) and pick the post.
-    const postRoute = (enLayout!.children || []).find(
+    const postRoute = (enLayout?.children || []).find(
       (route) => route.getStaticPaths && route.path,
     )
     expect(postRoute).toBeDefined()
     // routesToPaths() joins a relative child path with the layout prefix
     // (/docs/blog) to produce the final /docs/blog/boltdocs-3.3.0.
-    const staticPaths = postRoute!.getStaticPaths!()
+    const staticPaths = postRoute?.getStaticPaths?.()
     expect(staticPaths).toEqual(['boltdocs-3.3.0'])
   })
 
@@ -88,7 +88,7 @@ describe('buildCollectionRoutes post sub-paths', () => {
     })
 
     const enLayout = children.find((route) => route.path === '/docs/blog')
-    const postPaths = (enLayout!.children || []).map((route) => route.path)
+    const postPaths = (enLayout?.children || []).map((route) => route.path)
     expect(postPaths).toContain('boltdocs-3.3.0')
   })
 

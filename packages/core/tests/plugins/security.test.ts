@@ -46,7 +46,7 @@ describe('Security Features', () => {
     disableFsPatch()
     try {
       fs.rmSync(root, { recursive: true, force: true })
-    } catch (e) {
+    } catch (_e) {
       // Ignore cleanup error
     }
   })

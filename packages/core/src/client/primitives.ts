@@ -1,20 +1,9 @@
-export * from './components/primitives/docs-layout'
-export * from './components/primitives/button-group'
-export * from './components/primitives/tabs'
-export * from './components/primitives/sidebar'
-export * from './components/primitives/on-this-page'
-export * from './components/primitives/code-block'
-export * from './components/primitives/button'
-export * from './components/primitives/popover'
-export * from './components/primitives/tooltip'
-export * from './components/primitives/link'
-export * from './components/primitives/error-boundary'
-export * from './components/primitives/heading'
-export * from './components/primitives/image'
-export * from './components/primitives/menu'
-export * from './components/primitives/page-nav'
-export * from './components/primitives/search-dialog'
-export * from './components/primitives/skeleton'
-export * from './components/primitives/breadcrumbs'
-export * from './components/primitives/navbar'
-export * from './components/primitives/callout'
+/**
+ * `boltdocs/client/primitives` — the layout-level primitives.
+ *
+ * A separate entry from the theme's main one, and not a re-export of it: the
+ * primitives barrel reaches the search dialog, which is behind a dynamic import
+ * on purpose. Routing it through `index` turned that lazy chunk into part of the
+ * first visit.
+ */
+export * from '@bdocs/theme-neutral/components/primitives'

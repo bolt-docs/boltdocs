@@ -1,9 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import DOMPurifyMock from 'dompurify'
-import {
-  clearSvgSanitizeCache,
-  sanitizeSvgMarkup,
-} from '../../src/client/utils/sanitize-svg'
+import { clearSvgSanitizeCache, sanitizeSvgMarkup } from '@bdocs/theme-neutral'
 
 vi.mock('dompurify', () => ({
   default: { sanitize: vi.fn((input: string) => `[clean:${input}]`) },

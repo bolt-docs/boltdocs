@@ -1,11 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen } from '@testing-library/react'
-import {
-  useConfig,
-  ConfigProvider,
-  ConfigContext,
-} from '../../src/client/app/config-context'
-import * as React from 'react'
+import { useConfig, ConfigProvider } from '@bdocs/runtime'
 
 const TestComponent = () => {
   const config = useConfig()

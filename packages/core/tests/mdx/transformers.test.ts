@@ -26,7 +26,7 @@ function runTransformer(
   const node = { properties: {} }
   const self = {
     options: opts,
-    addClassToHast: (n: any, cls: string) => {
+    addClassToHast: (_n: any, cls: string) => {
       added.push(cls)
     },
   }

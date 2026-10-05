@@ -6,9 +6,9 @@ import type {
 import type { ComponentRoute, BoltdocsConfig } from '../types'
 import { BoltdocsShell } from './boltdocs-shell'
 import type React from 'react'
-import type { CollectionsData } from '../collections/collections-context'
+import type { CollectionsData } from '@bdocs/theme-neutral'
 import { NotFoundWrapper } from './mdx-elements'
-import { DocsLayout } from '../app/docs-layout'
+import { DocsLayout } from '@bdocs/theme-neutral'
 import { buildDocRoutes } from './create-routes.doc'
 import {
   buildExternalRoutes,

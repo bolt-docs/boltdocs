@@ -90,7 +90,7 @@ function buildDocRoutes(options: {
     const path =
       fullPath === baseDocsPath
         ? '.'
-        : fullPath.startsWith(baseDocsPath + '/')
+        : fullPath.startsWith(`${baseDocsPath}/`)
           ? fullPath.slice(baseDocsPath.length + 1)
           : fullPath
 
@@ -294,7 +294,7 @@ function buildDocRoutes(options: {
           const redirectPath =
             bPath === baseDocsPath
               ? '.'
-              : bPath.startsWith(baseDocsPath + '/')
+              : bPath.startsWith(`${baseDocsPath}/`)
                 ? bPath.slice(baseDocsPath.length + 1)
                 : bPath
 

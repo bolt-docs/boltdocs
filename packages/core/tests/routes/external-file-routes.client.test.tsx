@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { BoltdocsConfig } from '../../src/shared/types'
-import { buildExternalFileRoutes } from '../../src/client/ssg/create-routes.external'
+import { buildExternalFileRoutes } from '../../src/client/ssg/create-routes.external.tsx'
 
 const config: BoltdocsConfig = {
   i18n: { defaultLocale: 'en', locales: { en: 'English', es: 'Español' } },

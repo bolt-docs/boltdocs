@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
-import { formatDeterministicDate } from '../src/client/utils/date'
-import { formatDate } from '../src/client/collections/utils'
+import { formatDeterministicDate } from '@bdocs/theme-neutral'
+import { formatDate } from '@bdocs/theme-neutral'
 
 /**
  * The point of these is that the output cannot depend on the runtime. A

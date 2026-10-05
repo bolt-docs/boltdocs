@@ -286,7 +286,7 @@ describe('config', () => {
 
       const config = await resolveConfig(tempProjectDir, tempProjectDir)
       expect(config.i18n?.defaultLocale).toBe('en')
-      expect(Object.keys(config.i18n!.locales)).toEqual(['en', 'es'])
+      expect(Object.keys(config.i18n?.locales)).toEqual(['en', 'es'])
     })
 
     it('should accept localeConfigs with direction', async () => {

@@ -1,11 +1,22 @@
 import { createContext, use, useMemo, type ComponentType } from 'react'
 import type { BoltdocsMdxComponents } from './contract-types'
 
+/**
+ * A component that accepts anything.
+ *
+ * Written out rather than relying on `ComponentType`'s default, because that
+ * default is `{}` in these `@types/react`, not `any`: an unparameterised
+ * `ComponentType` means *a component that takes no props*, which is how
+ * `<LastUpdated />` stopped accepting its `date` and why that showed up as an
+ * `IntrinsicAttributes` error in `doc-page`.
+ */
+// biome-ignore lint/suspicious/noExplicitAny: see above; there is no other way to say "takes any props"
+export type AnyPropsComponent = ComponentType<any>
+
 export type MdxComponentsType = {
-  // `ComponentType` unparameterised resolves to `ComponentType<any>`, React's
-  // default. An MDX component map is keyed by tag name and its members accept
-  // whatever the author wrote, so the looseness is inherent rather than lazy.
-  [key: string]: ComponentType
+  // Keyed by tag name, and each member accepts whatever the author wrote, so the
+  // looseness here is inherent to the map rather than a shortcut.
+  [key: string]: AnyPropsComponent
 } & {
   Frontmatter?: Record<string, ComponentType<{ value: unknown }>>
 }
@@ -32,11 +43,11 @@ export function MdxComponentsProvider({
   components,
   children,
 }: {
-  components: Record<string, ComponentType>
+  components: Record<string, AnyPropsComponent>
   children: React.ReactNode
 }) {
   const processedComponents = useMemo(() => {
-    const processed: Record<string, ComponentType> = {}
+    const processed: Record<string, AnyPropsComponent> = {}
     const frontmatter: Record<
       string,
       React.ComponentType<{ value: unknown }>

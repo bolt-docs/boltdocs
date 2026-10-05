@@ -1,11 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { render, screen, act } from '@testing-library/react'
-import {
-  useTheme,
-  ThemeProvider,
-  Theme,
-} from '../../src/client/app/theme-context'
-import * as React from 'react'
+import { useTheme, ThemeProvider } from '@bdocs/runtime'
 
 const TestThemeComponent = () => {
   const { theme, resolvedTheme, setTheme } = useTheme()
@@ -42,7 +37,7 @@ describe('ThemeContext', () => {
           for (const k in store) delete store[k]
         },
         length: 0,
-        key: (index: number) => '',
+        key: (_index: number) => '',
       }
     }
     localStorage.clear()
