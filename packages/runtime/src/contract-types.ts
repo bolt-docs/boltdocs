@@ -14,10 +14,7 @@
  * a consumer imports the augmented types through is the natural place for it.
  */
 import type { ComponentType } from 'react'
-import type {
-  BoltdocsConfigContract,
-  BoltdocsViewTransitionsConfig,
-} from '@bdocs/contracts'
+import type { BoltdocsConfigContract } from '@bdocs/contracts'
 
 export type {
   BadgeValue,

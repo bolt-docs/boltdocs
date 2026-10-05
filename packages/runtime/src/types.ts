@@ -1,11 +1,12 @@
 import type * as React from 'react'
+// Only the names this file's own declarations reference are imported. The other
+// three are re-exported below straight from the source, which is what makes them
+// available here in the first place, so importing them too would be a duplicate
+// binding of the same symbol.
 import type {
   BadgeValue,
   BoltdocsConfig,
-  BoltdocsRoutePath,
   BoltdocsRoutePathWithFallback,
-  RedirectConfig,
-  RedirectStatus,
 } from './contract-types'
 
 // Re-export so consumers can `import { BoltdocsConfig } from 'boltdocs/client'`.

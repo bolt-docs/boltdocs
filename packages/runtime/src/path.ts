@@ -15,8 +15,7 @@ export function normalizePath(p: string): string {
  */
 export function resolvePublicAssetUrl(value: string, base?: string): string {
   if (
-    !value ||
-    !value.startsWith('/') ||
+    !value?.startsWith('/') ||
     value.startsWith('//') ||
     /^\/(?:https?:|data:)/i.test(value)
   ) {

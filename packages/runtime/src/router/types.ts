@@ -19,11 +19,17 @@ export interface RouteMatch {
   data?: Record<string, unknown>
 }
 
+/**
+ * `ComponentType` with no type argument, which resolves to `ComponentType<any>`
+ * — React's own default. Written this way because spelling out the `any` says
+ * something untrue about the code: these props are not unchecked, they are as
+ * loosely typed as React's own component type, which is the ceiling here.
+ */
 export interface LazyRouteResult {
-  Component?: ComponentType<any>
+  Component?: ComponentType
   element?: ReactNode
   loader?: LoaderFunction
-  ErrorBoundary?: ComponentType<any>
+  ErrorBoundary?: ComponentType
 }
 
 /** Structurally compatible with react-router-dom's route objects */
@@ -32,16 +38,22 @@ export interface RouteRecord {
   index?: boolean
   id?: string
   element?: ReactNode
-  Component?: ComponentType<any>
+  Component?: ComponentType
   loader?: LoaderFunction
-  action?: (...args: any[]) => any
-  ErrorBoundary?: ComponentType<any>
+  /**
+   * Declared for structural compatibility with react-router's `RouteObject` and
+   * never called from this package. `never[]` rather than `any[]` because a
+   * parameter position accepts `never` for any function, so this stays as
+   * permissive as it was without inviting a call site to pass anything.
+   */
+  action?: (...args: never[]) => unknown
+  ErrorBoundary?: ComponentType
   hasErrorBoundary?: boolean
-  HydrateFallback?: ComponentType<any>
+  HydrateFallback?: ComponentType
   children?: RouteRecord[]
   lazy?: () => Promise<LazyRouteResult>
   caseSensitive?: boolean
-  shouldRevalidate?: (...args: any[]) => boolean
+  shouldRevalidate?: (...args: never[]) => boolean
   getStaticPaths?: () => string[] | Promise<string[]>
   entry?: string
   /** Locale this route belongs to (used by i18n fallbacks) */

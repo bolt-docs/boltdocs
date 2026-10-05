@@ -1,11 +1,6 @@
 import * as React from 'react'
 import { focusFirstIn } from './focus'
-import {
-  cn,
-  composeRenderProps,
-  filterDOMProps,
-  type RenderProps,
-} from './utils'
+import { composeRenderProps, filterDOMProps, type RenderProps } from './utils'
 
 export interface DialogRenderProps {
   isOpen: boolean
