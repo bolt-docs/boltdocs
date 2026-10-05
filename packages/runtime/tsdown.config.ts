@@ -9,10 +9,12 @@ export default defineConfig(
     format: ['esm'],
     dts: true,
     clean: true,
-    // Same reasoning as `@bdocs/primitives`: the JSDoc belongs in the source and
-    // in `dist/index.d.mts`, not shipped a third time inside the module.
-    // `legal` stays on because this is a published MIT package.
+    // Same three reasons as `@bdocs/primitives`: the JSDoc belongs in the source
+    // and the `.d.mts`; `legal` stays on because this is a published MIT package;
+    // and minifying is a disk win rather than a page-speed one, since consumers
+    // re-bundle this file anyway.
     outputOptions: { comments: { jsdoc: false } },
+    minify: true,
     banner: { js: licenseBanner },
     tsconfig: './tsconfig.json',
     deps: {
