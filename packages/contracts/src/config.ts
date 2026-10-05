@@ -1,3 +1,4 @@
+import type { CodeHighlightConfig, CodeTheme } from './highlighting'
 import type { PluginDefinition } from './plugins'
 
 export type BoltdocsRobotsConfig =
@@ -219,6 +220,7 @@ export interface RedirectConfig {
 }
 
 export interface BoltdocsConfigContract<Plugin = PluginDefinition> {
+  theme?: BoltdocsThemeConfig
   siteUrl?: string
   docsDir?: string
   base?: string
@@ -237,4 +239,82 @@ export interface BoltdocsConfigContract<Plugin = PluginDefinition> {
   featureFlags?: Record<string, boolean | string>
   experimental?: BoltdocsExperimentalConfig
   directoryMeta?: Record<string, unknown>
+}
+
+/**
+ * A social link rendered in the navbar or the footer.
+ *
+ * Lives here rather than in the core because the browser reads it: the navbar
+ * destructures `icon` and `link` to render the entry. Anything the build alone
+ * needs stays out.
+ */
+export interface BoltdocsSocialLink {
+  /** Platform id, e.g. `github`, `discord`, `x`, `bluesky`. */
+  icon: 'discord' | 'x' | 'github' | 'bluesky' | string
+  link: string
+}
+
+/**
+ * Theme configuration.
+ *
+ * Also read at runtime — the title, description and logo are rendered into the
+ * document, and the navbar entries become links — so the shape is a contract
+ * rather than a core detail. `BoltdocsRoutePathWithFallback` is inlined as
+ * `string` here on purpose: it already collapses to `string`, and contracts
+ * cannot depend on the generated `Boltdocs.RoutePaths` global that sharpens it
+ * on a site that has run the type generator.
+ */
+export interface BoltdocsThemeConfig {
+  title?: string | Record<string, string>
+  description?: string | Record<string, string>
+  logo?:
+    | string
+    | {
+        dark: string
+        light: string
+        alt?: string
+        width?: number
+        height?: number
+      }
+  navbar?: Array<{
+    label: string | Record<string, string>
+    href: string
+    items?: Array<{
+      label: string | Record<string, string>
+      href: string
+    }>
+  }>
+  sidebar?: Record<string, Array<{ text: string; link: string }>>
+  sidebarGroups?: Record<
+    string,
+    { title?: string | Record<string, string>; icon?: string }
+  >
+  socialLinks?: BoltdocsSocialLink[]
+  editLink?: string
+  communityHelp?: string
+  version?: string
+  githubRepo?: string
+  favicon?: string
+  tabs?: Array<{
+    id: string
+    text: string | Record<string, string>
+    icon?: string
+  }>
+  /**
+   * Legacy alias for `codeHighlighting.theme`. Kept for backwards
+   * compatibility — prefer `codeHighlighting`.
+   * @deprecated Use `codeHighlighting` instead.
+   */
+  codeTheme?: CodeTheme
+  /**
+   * Configures the markdown code highlighting engine. The engine is
+   * engine-agnostic: `engine` accepts a registry id (`'shiki'` by default),
+   * an adapter instance, or an adapter factory — so any highlighter can be
+   * plugged in without changes to the core.
+   *
+   * Shorthand: a plain string is a registry id, i.e. `'shiki'` is
+   * equivalent to `{ engine: 'shiki' }` (resolved by
+   * `normalizeCodeHighlightConfig()` at every read site).
+   */
+  codeHighlighting?: CodeHighlightConfig | string
 }

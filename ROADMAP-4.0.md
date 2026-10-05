@@ -93,7 +93,7 @@ The migration is executed as an ordered sequence. Each slice is developed on a f
 | 2 | SEO extraction | `@bdocs/plugin-seo` | Done |
 | 3 | UI extraction | `@bdocs/ui` | Planned |
 | 4 | Primitives extraction | `@bdocs/primitives` | Done |
-| 5 | Runtime boundary | `@bdocs/runtime` | Planned |
+| 5 | Runtime boundary | `@bdocs/runtime` | Done |
 | 6 | Incremental MDX and SSG | core, Sätteri, SSG | Partially delivered in 3.4.0 |
 | 7 | Migration tooling and 4.0 release gate | repository-wide | Planned |
 

@@ -2,7 +2,7 @@ import type {
   BoltdocsCollectionsConfig,
   BoltdocsI18nConfig,
   BoltdocsVersionsConfig,
-} from '../../shared/types'
+} from '../contract-types'
 
 export type UrlRouteKind = 'doc' | 'external' | 'collection'
 

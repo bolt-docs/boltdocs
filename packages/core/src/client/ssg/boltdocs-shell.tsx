@@ -7,7 +7,7 @@ import { ConfigContext } from '../app/config-context'
 import { ScrollHandler } from '../app/scroll-handler'
 import { mdxComponentsDefault } from '../app/mdx-component'
 import { RoutesProvider } from '../app/routes-context'
-import type { BoltdocsConfig } from '../../shared/types'
+
 import type { ComponentRoute } from '../types'
 import { UIProvider } from '../app/ui-context'
 import { Head } from '../app/head'
@@ -21,6 +21,7 @@ import { PluginFloatingSlots } from '../components/plugin-floating-slots'
 import virtualCustomComponents from 'virtual:boltdocs-mdx-components'
 import { normalizePath } from '../utils/path'
 
+import type { BoltdocsConfig } from '@bdocs/runtime'
 /**
  * Updates the HTML lang and dir attributes based on the current locale configuration.
  */

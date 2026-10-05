@@ -16,6 +16,13 @@ import type {
   PluginTransformMiddleware as ContractPluginTransformMiddleware,
 } from '@bdocs/contracts'
 
+/**
+ * Theme and social-link shapes moved to `@bdocs/contracts`, because the browser
+ * reads them: the navbar renders the title, the logo and the social entries.
+ * Re-exported here so every existing `from 'shared/types'` import keeps working.
+ */
+export type { BoltdocsSocialLink, BoltdocsThemeConfig } from '@bdocs/contracts'
+
 export type {
   BadgeValue,
   BoltdocsAlgoliaConfig,
@@ -127,75 +134,6 @@ export interface IPluginLifecycleManager
   > {}
 
 /**
- * Represents a single social link in the configuration.
- */
-export interface BoltdocsSocialLink {
-  icon: 'discord' | 'x' | 'github' | 'bluesky' | string
-  link: string
-}
-
-/**
- * Theme-specific configuration options.
- */
-export interface BoltdocsThemeConfig {
-  title?: string | Record<string, string>
-  description?: string | Record<string, string>
-  logo?:
-    | string
-    | {
-        dark: string
-        light: string
-        alt?: string
-        width?: number
-        height?: number
-      }
-  navbar?: Array<{
-    label: string | Record<string, string>
-    href: BoltdocsRoutePathWithFallback
-    items?: Array<{
-      label: string | Record<string, string>
-      href: BoltdocsRoutePathWithFallback
-    }>
-  }>
-  sidebar?: Record<
-    string,
-    Array<{ text: string; link: BoltdocsRoutePathWithFallback }>
-  >
-  sidebarGroups?: Record<
-    string,
-    { title?: string | Record<string, string>; icon?: string }
-  >
-  socialLinks?: BoltdocsSocialLink[]
-  editLink?: string
-  communityHelp?: string
-  version?: string
-  githubRepo?: string
-  favicon?: string
-  tabs?: Array<{
-    id: string
-    text: string | Record<string, string>
-    icon?: string
-  }>
-  /**
-   * Legacy alias for `codeHighlighting.theme`. Kept for backwards
-   * compatibility — prefer `codeHighlighting`.
-   * @deprecated Use `codeHighlighting` instead.
-   */
-  codeTheme?: CodeTheme
-  /**
-   * Configures the markdown code highlighting engine. The engine is
-   * engine-agnostic: `engine` accepts a registry id (`'shiki'` by default),
-   * an adapter instance, or an adapter factory — so any highlighter can be
-   * plugged in without changes to the core.
-   *
-   * Shorthand: a plain string is a registry id, i.e. `'shiki'` is
-   * equivalent to `{ engine: 'shiki' }` (resolved by
-   * `normalizeCodeHighlightConfig()` at every read site).
-   */
-  codeHighlighting?: CodeHighlightConfig | string
-}
-
-/**
  * List of supported syntax highlighting themes.
  */
 export type ShikiTheme =
@@ -228,68 +166,26 @@ export interface BoltdocsPlugin
  * The root configuration object for Boltdocs.
  */
 export interface BoltdocsConfig extends BoltdocsConfigContract<BoltdocsPlugin> {
-  theme?: BoltdocsThemeConfig
   aliases?: AliasOptions
   vite?: UserConfig
 }
 
 /**
- * Global namespace for Boltdocs types that can be augmented by generated code.
- * This allows for strictly typed locales and versions based on the project configuration.
+ * The `Boltdocs` global namespace and the aliases derived from it.
+ *
+ * The declaration itself moved to `@bdocs/runtime`, and it had to: TypeScript
+ * rejects two `declare global` blocks for the same namespace, and this file plus
+ * the runtime both need `Boltdocs.Types` and `Boltdocs.RoutePaths`. One home, and
+ * it is the package a consumer imports the augmented types through.
  */
-declare global {
-  namespace Boltdocs {
-    interface Types {}
-
-    /**
-     * Marker interface augmented by generated code to provide strict route path typing.
-     * When no types have been generated (e.g., before first dev server start),
-     * keyof is never, and BoltdocsRoutePath falls back to string.
-     */
-    interface RoutePaths {}
-  }
-}
-
-export type BoltdocsTypes = Boltdocs.Types
-
-export type BoltdocsRoutePath = keyof Boltdocs.RoutePaths
-
-export type ExternalRouteReference =
-  | `/${string}`
-  | `#${string}`
-  | `?${string}`
-  | `site:/${string}`
-  | `site:${string}`
-  | `http://${string}`
-  | `https://${string}`
-  | `//${string}`
-
-export type BoltdocsRoutePathWithFallback =
-  | BoltdocsRoutePath
-  | ExternalRouteReference
-  | string
-
-export type BoltdocsLocale = Boltdocs.Types extends { Locale: infer L }
-  ? L
-  : string
-export type BoltdocsVersion = Boltdocs.Types extends { Version: infer V }
-  ? V
-  : string
-
-export type UnpackMdxComponents<T> = T extends { default: infer D } ? D : T
-
-export type TransformMdxComponents<T> = {
-  [K in keyof T as K extends `Frontmatter_${string}` ? never : K]: T[K]
-} & {
-  Frontmatter: {
-    [K in keyof T as K extends `Frontmatter_${infer Name}` ? Name : never]: T[K]
-  }
-}
-
-export type BoltdocsMdxComponents = Boltdocs.Types extends {
-  MdxComponents: infer M
-}
-  ? TransformMdxComponents<UnpackMdxComponents<M>>
-  : Omit<Record<string, ComponentType<unknown>>, 'Frontmatter'> & {
-      Frontmatter: Record<string, ComponentType<unknown>>
-    }
+export type {
+  BoltdocsLocale,
+  BoltdocsMdxComponents,
+  BoltdocsRoutePath,
+  BoltdocsRoutePathWithFallback,
+  BoltdocsTypes,
+  BoltdocsVersion,
+  ExternalRouteReference,
+  TransformMdxComponents,
+  UnpackMdxComponents,
+} from '@bdocs/runtime'

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { resolvePublicAssetUrl } from '../../src/client/utils/path'
-import { resolveUrlReference } from '../../src/client/router/url-contract'
+import { resolveUrlReference } from '../../src/client/router'
 
 describe('client public asset paths', () => {
   it('prefixes root-relative assets with the configured base', () => {

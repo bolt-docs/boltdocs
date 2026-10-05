@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from 'vitest'
 import { createRoutes } from '../../src/client/ssg/create-routes'
-import { matchRouteBranch } from '../../src/client/router/renderer'
+import { matchRouteBranch } from '../../src/client/router'
 import type { ComponentRoute } from '../../src/client/types'
 
 vi.mock('virtual:boltdocs-search', () => ({ default: async () => [] }))

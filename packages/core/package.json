@@ -98,6 +98,7 @@
     "@bdocs/parser": "workspace:*",
     "@bdocs/primitives": "workspace:*",
     "@bdocs/processor-satteri": "workspace:*",
+    "@bdocs/runtime": "workspace:*",
     "@bdocs/ssg": "workspace:*",
     "@bdocs/unist-utils": "workspace:*",
     "@shikijs/core": "3.23.0",
