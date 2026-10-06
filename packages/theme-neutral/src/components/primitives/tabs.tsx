@@ -15,7 +15,7 @@ export interface TabsIndicatorProps extends ComponentBase {
 
 export function Tabs({ children, className = '', ...props }: ComponentBase) {
   return (
-    <div className={cn('w-full', className)} {...props}>
+    <div className={cn('bdocs-tabs', className)} {...props}>
       {children}
     </div>
   )
@@ -36,10 +36,7 @@ function TabsList({
   return (
     <div
       role={role === null ? undefined : (role ?? 'tablist')}
-      className={cn(
-        'relative flex flex-row items-center overflow-x-auto',
-        className,
-      )}
+      className={cn('bdocs-tabs__list', className)}
     >
       {children}
     </div>
@@ -58,10 +55,7 @@ function TabsItem({
       role="tab"
       aria-selected={selected}
       data-selected={selected}
-      className={cn(
-        'outline-none cursor-pointer bg-transparent border-none',
-        className,
-      )}
+      className={cn('bdocs-tabs__tab', className)}
       {...props}
     >
       {children}
@@ -70,11 +64,13 @@ function TabsItem({
 }
 
 function TabsContent({ children, className = '' }: ComponentBase) {
-  return <div className={cn('outline-none', className)}>{children}</div>
+  return <div className={cn('bdocs-tabs__panel', className)}>{children}</div>
 }
 
 function TabsIndicator({ className = '', style }: TabsIndicatorProps) {
-  return <div className={cn('absolute bottom-0', className)} style={style} />
+  return (
+    <div className={cn('bdocs-tabs__indicator', className)} style={style} />
+  )
 }
 
 Tabs.Root = Tabs

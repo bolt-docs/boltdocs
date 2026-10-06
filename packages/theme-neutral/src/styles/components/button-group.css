@@ -1,0 +1,66 @@
+/*
+ * A group of buttons that reads as one control.
+ *
+ * The whole point is the seams: without this, five buttons render five borders
+ * and the middle ones show doubled lines where they meet. The group removes the
+ * shared border and the inner corners, so what is left is one outline.
+ *
+ * `data-orientation` and `data-radius` state the arrangement and the corner
+ * radius; the primitive used to infer the radius by scanning the caller's class
+ * name for `rounded-full`, which meant a theme spelling its radius any other way
+ * silently produced square corners.
+ */
+
+:where(.bdocs-button-group) {
+  display: inline-flex;
+  flex-direction: row;
+}
+
+:where(.bdocs-button-group[data-orientation="vertical"]) {
+  flex-direction: column;
+}
+
+:where(.bdocs-button-group[data-orientation="horizontal"])
+  > *:not(:first-child) {
+  margin-inline-start: -1px;
+}
+
+:where(.bdocs-button-group[data-orientation="vertical"]) > *:not(:first-child) {
+  margin-block-start: -1px;
+}
+
+/* Inner corners are always square, whichever radius the group uses. */
+:where(.bdocs-button-group) > *:first-child {
+  border-start-end-radius: 0;
+  border-end-end-radius: 0;
+}
+
+:where(.bdocs-button-group) > *:last-child {
+  border-start-start-radius: 0;
+  border-end-start-radius: 0;
+}
+
+:where(.bdocs-button-group) > *:not(:first-child):not(:last-child) {
+  border-radius: 0;
+}
+
+/* Outer corners, per group radius. */
+:where(.bdocs-button-group[data-radius="md"]) {
+  border-radius: var(--bdocs-radius);
+}
+
+:where(.bdocs-button-group[data-radius="lg"]) {
+  border-radius: var(--bdocs-radius-lg);
+}
+
+:where(.bdocs-button-group[data-radius="xl"]) {
+  border-radius: var(--bdocs-radius-xl);
+}
+
+:where(.bdocs-button-group[data-radius="full"]) {
+  border-radius: var(--bdocs-radius-full);
+}
+
+:where(.bdocs-button-group[data-radius="none"]) {
+  border-radius: 0;
+}

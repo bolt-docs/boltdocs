@@ -1,0 +1,46 @@
+/*
+ * Tabs.
+ *
+ * The list scrolls horizontally on narrow viewports instead of wrapping, because
+ * wrapping a tab row changes its height and moves everything below it as the
+ * number of tabs changes — the kind of shift that makes a page feel unstable.
+ */
+
+:where(.bdocs-tabs) {
+  width: 100%;
+}
+
+:where(.bdocs-tabs__list) {
+  position: relative;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  overflow-x: auto;
+}
+
+:where(.bdocs-tabs__tab) {
+  cursor: pointer;
+  outline: none;
+  background: transparent;
+  border: none;
+  white-space: nowrap;
+}
+
+/* A single rule rather than a class toggled per tab. */
+:where(.bdocs-tabs__tab)[aria-selected="true"] {
+  color: var(--_bdocs-ink);
+}
+
+:where(.bdocs-tabs__panel) {
+  outline: none;
+}
+
+:where(.bdocs-tabs__panel):focus-visible {
+  outline: 2px solid var(--_bdocs-focus-ring);
+  outline-offset: 2px;
+}
+
+:where(.bdocs-tabs__indicator) {
+  position: absolute;
+  inset-block-end: 0;
+}

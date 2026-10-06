@@ -49,10 +49,9 @@ export const Heading = React.forwardRef<HTMLHeadingElement, HeadingProps>(
     const defaultIcon = (
       <LucideLink
         className={cn(
-          'transition-all duration-200',
           anchorPosition === 'wrap'
-            ? 'opacity-0 ml-2 text-muted/50 group-hover:text-primary-500 group-hover:opacity-100'
-            : 'text-muted/50 hover:text-primary-500',
+            ? 'bdocs-heading__anchor-glyph bdocs-heading__anchor-glyph--hidden'
+            : 'bdocs-heading__anchor-glyph',
           anchorIconClassName,
         )}
         size={16}
@@ -70,10 +69,7 @@ export const Heading = React.forwardRef<HTMLHeadingElement, HeadingProps>(
         return (
           <Link
             href={`#${id}`}
-            className={cn(
-              'header-anchor flex flex-row items-center no-underline text-inherit',
-              anchorClassName,
-            )}
+            className={cn('bdocs-heading__anchor', anchorClassName)}
             aria-label="Anchor"
           >
             {children}
@@ -88,7 +84,7 @@ export const Heading = React.forwardRef<HTMLHeadingElement, HeadingProps>(
             <Link
               href={`#${id}`}
               className={cn(
-                'header-anchor mr-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200',
+                'bdocs-heading__anchor bdocs-heading__anchor--before',
                 anchorClassName,
               )}
               aria-label="Anchor"
@@ -101,7 +97,7 @@ export const Heading = React.forwardRef<HTMLHeadingElement, HeadingProps>(
             <Link
               href={`#${id}`}
               className={cn(
-                'header-anchor ml-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200',
+                'bdocs-heading__anchor bdocs-heading__anchor--after',
                 anchorClassName,
               )}
               aria-label="Anchor"
@@ -117,10 +113,7 @@ export const Heading = React.forwardRef<HTMLHeadingElement, HeadingProps>(
       <Tag
         ref={ref}
         id={id}
-        className={cn(
-          'boltdocs-heading relative group flex items-center gap-4 scroll-mt-24',
-          className,
-        )}
+        className={cn('bdocs-heading boltdocs-heading', className)}
         {...props}
       >
         {renderContent()}

@@ -123,6 +123,13 @@
    * the value the harness measured, `oklab(… / 0.6)` over the page background.
    */
   --bdocs-ink-faint: rgb(142 142 142 / 60%);
+  /* Muted at four-fifths: one step between "secondary" and "tertiary", for
+     navigation that is inactive but not as quiet as a separator. */
+  --bdocs-ink-muted-80: color-mix(
+    in srgb,
+    var(--bdocs-ink-muted) 80%,
+    transparent
+  );
   /* Even fainter: separators and chevrons, which are punctuation rather than
      information. Named rather than written as `opacity` because an element-level
      fade would also dim the icon inside it. */
@@ -154,6 +161,76 @@
   --bdocs-primary-hover: var(--_bdocs-primary-600);
   /* Tinted fills: selected rows, active nav, brand glow. */
   --bdocs-primary-soft: rgb(61 139 250 / 12%);
+
+  /*
+   * Translucent chrome.
+   *
+   * The navbar and the mobile panel both sit over scrolling content, so their
+   * background is the canvas at partial opacity plus a blur. Derived from
+   * `--bdocs-canvas` rather than written as a hex: a theme that lightens its
+   * canvas gets translucent chrome that lightens with it, instead of a dark bar
+   * on a light page.
+   */
+  --bdocs-chrome-bar: color-mix(in srgb, var(--bdocs-canvas) 80%, transparent);
+  --bdocs-chrome-panel: color-mix(
+    in srgb,
+    var(--bdocs-canvas) 98%,
+    transparent
+  );
+  --bdocs-chrome-blur: 12px;
+  --bdocs-chrome-blur-strong: 24px;
+
+  /*
+   * Status at two strengths, derived from the status colour itself.
+   *
+   * A callout is a fill plus a stronger border of the *same* hue, and writing
+   * both as literals meant overriding `--bdocs-danger` left the callout red.
+   * Derived, one override restyles every status surface in the theme — and the
+   * component stylesheets stay free of raw colour, which is what
+   * `tests/native-styles.test.ts` checks for.
+   */
+  --bdocs-primary-soft-10: color-mix(
+    in srgb,
+    var(--bdocs-primary) 10%,
+    transparent
+  );
+  --bdocs-primary-line-50: color-mix(
+    in srgb,
+    var(--bdocs-primary) 50%,
+    transparent
+  );
+  --bdocs-info-soft-10: color-mix(in srgb, var(--bdocs-info) 10%, transparent);
+  --bdocs-info-line-50: color-mix(in srgb, var(--bdocs-info) 50%, transparent);
+  --bdocs-success-soft-10: color-mix(
+    in srgb,
+    var(--bdocs-success) 10%,
+    transparent
+  );
+  --bdocs-success-line-50: color-mix(
+    in srgb,
+    var(--bdocs-success) 50%,
+    transparent
+  );
+  --bdocs-warning-soft-10: color-mix(
+    in srgb,
+    var(--bdocs-warning) 10%,
+    transparent
+  );
+  --bdocs-warning-line-50: color-mix(
+    in srgb,
+    var(--bdocs-warning) 50%,
+    transparent
+  );
+  --bdocs-danger-soft-10: color-mix(
+    in srgb,
+    var(--bdocs-danger) 10%,
+    transparent
+  );
+  --bdocs-danger-line-50: color-mix(
+    in srgb,
+    var(--bdocs-danger) 50%,
+    transparent
+  );
 
   --bdocs-danger: #ed2c2c;
   --bdocs-success: #3cdd77;
@@ -309,10 +386,18 @@
   --_bdocs-ink-body: var(--bdocs-ink-body);
   --_bdocs-ink-muted: var(--bdocs-ink-muted);
   --_bdocs-ink-faint: var(--bdocs-ink-faint);
+  --_bdocs-ink-muted-80: var(--bdocs-ink-muted-80);
   --_bdocs-ink-faintest: var(--bdocs-ink-faintest);
   --_bdocs-line: var(--bdocs-line);
   --_bdocs-line-strong: var(--bdocs-line-strong);
   --_bdocs-brand: var(--bdocs-primary);
   --_bdocs-brand-soft: var(--bdocs-primary-soft);
+  --_bdocs-chrome-bar: var(--bdocs-chrome-bar);
+  --_bdocs-chrome-panel: var(--bdocs-chrome-panel);
+  --_bdocs-accent-note: var(--bdocs-primary);
+  --_bdocs-accent-info: var(--bdocs-info);
+  --_bdocs-accent-tip: var(--bdocs-success);
+  --_bdocs-accent-warning: var(--bdocs-warning);
+  --_bdocs-accent-danger: var(--bdocs-danger);
   --_bdocs-focus-ring: var(--bdocs-primary);
 }

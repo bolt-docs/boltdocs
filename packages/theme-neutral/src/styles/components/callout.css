@@ -1,0 +1,86 @@
+/*
+ * Callout: a tinted panel with an icon, a title and a body.
+ *
+ * The variant arrives as `data-variant` from the primitive, so this file holds
+ * one rule per variant instead of five sets of utilities in the component. That
+ * is what makes a sixth variant a CSS change rather than a component change.
+ *
+ * The fill and the border are the status colour at two different strengths. A
+ * single colour at one alpha reads as a highlight; a fill plus a stronger border
+ * reads as a panel, which is what a callout is.
+ */
+
+:where(.bdocs-callout) {
+  display: flex;
+  gap: var(--bdocs-space-4);
+  margin-block: var(--bdocs-space-6);
+  max-width: none;
+  border-width: 2px;
+  border-style: solid;
+  border-radius: var(--bdocs-radius-xl);
+  color: var(--_bdocs-ink);
+}
+
+:where(.bdocs-callout[data-variant="note"]) {
+  background-color: var(--bdocs-primary-soft-10);
+  border-color: var(--bdocs-primary-line-50);
+}
+
+:where(.bdocs-callout[data-variant="info"]) {
+  background-color: var(--bdocs-info-soft-10);
+  border-color: var(--bdocs-info-line-50);
+}
+
+:where(.bdocs-callout[data-variant="tip"]) {
+  background-color: var(--bdocs-success-soft-10);
+  border-color: var(--bdocs-success-line-50);
+}
+
+:where(.bdocs-callout[data-variant="warning"]) {
+  background-color: var(--bdocs-warning-soft-10);
+  border-color: var(--bdocs-warning-line-50);
+}
+
+:where(.bdocs-callout[data-variant="danger"]) {
+  background-color: var(--bdocs-danger-soft-10);
+  border-color: var(--bdocs-danger-line-50);
+}
+
+:where(.bdocs-callout__icon) {
+  flex: none;
+  /* Nudged down a hair so the glyph's optical centre lines up with the first
+     line of the title rather than its cap height. */
+  padding-block-start: 0.125rem;
+  width: 1.25rem;
+  height: 1.25rem;
+}
+
+:where(.bdocs-callout__title),
+:where(.bdocs-callout > .bdocs-callout__title) {
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: inherit;
+}
+
+:where(.bdocs-callout__body) {
+  flex: 1 1 0%;
+  min-width: 0;
+  font-size: 0.875rem;
+  line-height: 1.6;
+}
+
+:where(.bdocs-callout[data-variant="note"]) .bdocs-callout__accent {
+  color: var(--_bdocs-accent-note);
+}
+:where(.bdocs-callout[data-variant="info"]) .bdocs-callout__accent {
+  color: var(--_bdocs-accent-info);
+}
+:where(.bdocs-callout[data-variant="tip"]) .bdocs-callout__accent {
+  color: var(--_bdocs-accent-tip);
+}
+:where(.bdocs-callout[data-variant="warning"]) .bdocs-callout__accent {
+  color: var(--_bdocs-accent-warning);
+}
+:where(.bdocs-callout[data-variant="danger"]) .bdocs-callout__accent {
+  color: var(--_bdocs-accent-danger);
+}

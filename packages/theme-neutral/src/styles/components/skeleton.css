@@ -1,0 +1,46 @@
+/*
+ * Loading placeholder.
+ *
+ * `data-variant` picks the shape rather than a modifier class, so a site can add
+ * a shape without the markup changing.
+ */
+
+:where(.bdocs-skeleton) {
+  display: block;
+  width: 100%;
+  height: 1rem;
+  border-radius: var(--bdocs-radius);
+  background-color: var(--_bdocs-surface-hover);
+  animation: bdocs-skeleton-pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+:where(.bdocs-skeleton[data-variant="circle"]) {
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: var(--bdocs-radius-full);
+}
+
+:where(.bdocs-skeleton[data-variant="rect"]) {
+  border-radius: var(--bdocs-radius);
+}
+
+@keyframes bdocs-skeleton-pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+/*
+ * `animation` rather than `transition`, so the reduced-motion override has to
+ * reach the animation's own name. Cancelling it outright is better than setting
+ * a 0s duration: a pulse at 0s either never starts or flickers.
+ */
+@media (prefers-reduced-motion: reduce) {
+  :where(.bdocs-skeleton) {
+    animation: none;
+  }
+}

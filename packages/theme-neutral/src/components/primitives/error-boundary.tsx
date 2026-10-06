@@ -120,29 +120,16 @@ export function ErrorBoundaryFallback({
   buttonClassName,
 }: ErrorBoundaryFallbackProps) {
   return (
-    <div
-      className={cn(
-        'flex flex-col items-center justify-center min-h-[40vh] text-center gap-4 px-6 py-8 border border-subtle bg-surface rounded-2xl max-w-lg mx-auto shadow-xs',
-        className,
-      )}
-    >
-      <div className={cn('text-lg font-bold text-danger-500', titleClassName)}>
+    <div className={cn('bdocs-error', className)}>
+      <div className={cn('bdocs-error__title', titleClassName)}>
         Something went wrong
       </div>
-      <p
-        className={cn(
-          'text-sm text-muted max-w-sm leading-relaxed',
-          messageClassName,
-        )}
-      >
+      <p className={cn('bdocs-error__message', messageClassName)}>
         {error?.message ||
           'An unexpected error occurred while rendering this page.'}
       </p>
       <Button
-        className={cn(
-          'rounded-xl border border-subtle bg-main px-6 py-2.5 text-xs font-semibold text-body hover:bg-primary-50/50 hover:border-primary-500/50 transition-all duration-300 cursor-pointer outline-none select-none',
-          buttonClassName,
-        )}
+        className={cn('bdocs-error__button', buttonClassName)}
         onPress={resetErrorBoundary}
       >
         Try again

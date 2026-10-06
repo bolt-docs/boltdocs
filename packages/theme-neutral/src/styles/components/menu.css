@@ -1,0 +1,64 @@
+/*
+ * Dropdown menu.
+ *
+ * A menu item is a button that owns a label, a check slot and a submenu chevron.
+ * The three slots are separate so a theme can align them without depending on
+ * the order the children happen to arrive in.
+ */
+
+:where(.bdocs-menu) {
+  outline: none;
+  overflow: auto;
+}
+
+:where(.bdocs-menu__list) {
+  display: flex;
+  flex-direction: column;
+}
+
+:where(.bdocs-menu__item) {
+  position: relative;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  cursor: default;
+  outline: none;
+}
+
+:where(.bdocs-menu__check) {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+}
+
+:where(.bdocs-menu__check-icon) {
+  display: block;
+  width: 0.875rem;
+  height: 0.875rem;
+}
+
+:where(.bdocs-menu__content) {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  width: 100%;
+}
+
+:where(.bdocs-menu__ml-auto) {
+  margin-inline-start: auto;
+}
+
+:where(.bdocs-menu__chevron) {
+  display: block;
+  width: 1rem;
+  height: 1rem;
+}
+
+:where(.bdocs-menu__header) {
+  user-select: none;
+}
+
+:where(.bdocs-menu__separator) {
+  border-block-start: var(--bdocs-border-width) solid var(--_bdocs-line);
+}

@@ -61,12 +61,7 @@ function SubmenuTrigger({ className, ...props }: SubmenuTriggerProps) {
 
 /** The Menu container. */
 export function Menu(props: RACMenuProps) {
-  return (
-    <RACMenu
-      {...props}
-      className={cn('outline-none overflow-auto', props.className)}
-    />
-  )
+  return <RACMenu {...props} className={cn('bdocs-menu', props.className)} />
 }
 
 /**
@@ -109,36 +104,27 @@ function MenuItem(
     <RACMenuItem
       {...itemProps}
       textValue={textValue}
-      className={cn(
-        'group relative flex flex-row items-center cursor-default outline-none',
-        props.className,
-      )}
+      className={cn('bdocs-menu__item', props.className)}
     >
       {(values) => (
         <>
           {values.selectionMode === 'multiple' && (
-            <span
-              className={cn(
-                'flex items-center shrink-0 justify-center',
-                checkClassName,
-              )}
-            >
+            <span className={cn('bdocs-menu__check', checkClassName)}>
               {check ??
-                (values.isSelected ? <Check className="size-3.5" /> : null)}
+                (values.isSelected ? (
+                  <Check className="bdocs-menu__check-icon" />
+                ) : null)}
             </span>
           )}
-          <div
-            className={cn(
-              'flex flex-row w-full items-center',
-              contentClassName,
-            )}
-          >
+          <div className={cn('bdocs-menu__content', contentClassName)}>
             {children}
           </div>
           {values.hasSubmenu && (
-            <span className="ml-auto">
+            <span className="bdocs-menu__ml-auto">
               {chevron ?? (
-                <ChevronRight className={cn('size-4', chevronClassName)} />
+                <ChevronRight
+                  className={cn('bdocs-menu__chevron', chevronClassName)}
+                />
               )}
             </span>
           )}
@@ -164,9 +150,11 @@ function MenuSection<T>({
   ...props
 }: MenuSectionProps<T>) {
   return (
-    <RACMenuSection className={cn('flex flex-col', props.className)}>
+    <RACMenuSection className={cn('bdocs-menu__list', props.className)}>
       {title && (
-        <Header className={cn('select-none', headerClassName)}>{title}</Header>
+        <Header className={cn('bdocs-menu__header', headerClassName)}>
+          {title}
+        </Header>
       )}
       <Collection items={props.items}>{props.children}</Collection>
     </RACMenuSection>
@@ -175,7 +163,12 @@ function MenuSection<T>({
 
 /** MenuSeparator for visual division. */
 function MenuSeparator({ className, ...props }: { className?: string }) {
-  return <RACSeparator className={cn('border-t', className)} {...props} />
+  return (
+    <RACSeparator
+      className={cn('bdocs-menu__separator', className)}
+      {...props}
+    />
+  )
 }
 
 Menu.Root = Menu

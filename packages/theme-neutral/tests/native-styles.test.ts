@@ -31,6 +31,17 @@ const CONVERTED: Record<string, string> = {
   'components/ui-base/page-nav.tsx': 'page-nav.css',
   'components/ui-base/breadcrumbs.tsx': 'breadcrumbs.css',
   'components/docs-layout-default.tsx': 'docs-layout.css',
+  'components/primitives/button-group.tsx': 'button-group.css',
+  'components/primitives/callout.tsx': 'callout.css',
+  'components/primitives/error-boundary.tsx': 'error-boundary.css',
+  'components/primitives/heading.tsx': 'heading.css',
+  'components/primitives/image.tsx': 'image.css',
+  'components/primitives/menu.tsx': 'menu.css',
+  'components/primitives/popover.tsx': 'popover.css',
+  'components/primitives/skeleton.tsx': 'skeleton.css',
+  'components/primitives/tabs.tsx': 'tabs.css',
+  'components/primitives/tooltip.tsx': 'tooltip.css',
+  'components/mdx/callout.tsx': 'callout.css',
 }
 
 /**
@@ -52,6 +63,34 @@ const ALLOWED = new Map<string, string>([
     'max-w-none',
     'Overrides the measure Typography imposes, because\n     * `--bdocs-content-max` owns the reading column width.',
   ],
+])
+
+/**
+ * Tailwind utilities that are a single bare word.
+ *
+ * Every other utility carries punctuation, which is what the shape test keys on.
+ */
+const BARE = new Set([
+  'flex',
+  'grid',
+  'block',
+  'inline',
+  'contents',
+  'hidden',
+  'table',
+  'isolate',
+  'truncate',
+  'antialiased',
+  'italic',
+  'underline',
+  'uppercase',
+  'lowercase',
+  'capitalize',
+  'fixed',
+  'absolute',
+  'relative',
+  'sticky',
+  'static',
 ])
 
 function walk(dir: string): string[] {
@@ -107,6 +146,14 @@ function utilitiesIn(source: string): string[] {
         // share the syntax.
         if (/^(bdocs-|boltdocs-)/.test(t)) continue
         if (ALLOWED.has(t)) continue
+        // Only tokens shaped like a utility.
+        //
+        // A `cn(...)` call is JavaScript as much as it is a class list, and its
+        // arguments include enum comparisons - `anchorPosition === 'wrap'` - whose
+        // literals sit in the same place as classes. Flagging those trains the
+        // guard to be ignored, which is worse than missing a token. A utility has
+        // punctuation in it, or is one of the few Tailwind words spelled bare.
+        if (!/[-:/[\]]/.test(t) && !BARE.has(t)) continue
         found.add(t)
       }
     }
@@ -248,11 +295,27 @@ describe('theme-neutral styles', () => {
     // the reader diff two stylesheets to find a hex.
     const offenders: Record<string, number[]> = {}
     for (const file of componentStyles()) {
-      const hits = readFileSync(join(SRC, 'styles/components', file), 'utf-8')
-        .split('\n')
-        .map((line, i) => [i + 1, line] as const)
-        .filter(([, line]) => raw.test(line))
-        .map(([n]) => n)
+      // Comments are documentation, not declarations. A stylesheet explaining
+      // the measured value it replaced — `rgba(0, 0, 0, 0)` — is exactly where a
+      // colour most deserves to be written down.
+      const source = readFileSync(join(SRC, 'styles/components', file), 'utf-8')
+      const hits: number[] = []
+      let inComment = false
+      source.split('\n').forEach((line, i) => {
+        let text = line
+        if (inComment) {
+          const end = text.indexOf('*/')
+          if (end === -1) return
+          text = text.slice(end + 2)
+          inComment = false
+        }
+        const open = text.lastIndexOf('/*')
+        if (open !== -1 && text.indexOf('*/', open) === -1) {
+          text = text.slice(0, open)
+          inComment = true
+        }
+        if (raw.test(text)) hits.push(i + 1)
+      })
       if (hits.length > 0) offenders[file] = hits
     }
     expect(offenders).toEqual({})

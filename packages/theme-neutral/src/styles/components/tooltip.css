@@ -1,0 +1,31 @@
+/*
+ * Tooltip: a small panel anchored below its trigger.
+ *
+ * No positioning engine. Centring is `translate(-50%)`, which is why the arrow
+ * has to be centred too or the two drift apart at wide tooltip widths.
+ */
+
+:where(.bdocs-tooltip) {
+  position: relative;
+  z-index: 50;
+  overflow: visible;
+  padding: var(--bdocs-space-2) 0.625rem;
+  font-size: var(--bdocs-text-caption-s);
+  font-weight: 500;
+  line-height: var(--bdocs-text-caption-s-line);
+  color: var(--_bdocs-ink);
+  background-color: var(--_bdocs-surface);
+  border-radius: var(--bdocs-radius);
+}
+
+:where(.bdocs-tooltip__ring) {
+  box-shadow: 0 0 0 1px var(--_bdocs-line);
+}
+
+:where(.bdocs-tooltip__arrow) {
+  position: absolute;
+  inset-block-start: 100%;
+  inset-inline-start: 50%;
+  margin-block-start: var(--bdocs-space-2);
+  translate: -50% 0;
+}

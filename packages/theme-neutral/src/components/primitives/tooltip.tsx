@@ -27,6 +27,11 @@ export interface TooltipProps {
  * a `<span role="tooltip">` rather than a floating layer with enter/exit data
  * attributes — those animated state attributes existed to drive react-aria's
  * positioning lifecycle, which this package does not implement.
+ *
+ * Two elements, two class names. The surface wraps the content and the `ring`
+ * box-shadow; `bdocs-tooltip` is the positioning surface itself. Collapsing them
+ * into one class is what made an earlier attempt put the arrow's class on the
+ * content and the content's on the arrow.
  */
 export function Tooltip({
   content,
@@ -38,24 +43,14 @@ export function Tooltip({
   return (
     <PrimitivesTooltip
       content={
-        <span
-          className={cn(
-            'group relative z-50 overflow-visible rounded-md bg-surface px-2.5 py-1.5 text-xs font-medium text-body ring-1 ring-subtle outline-hidden select-none',
-            className,
-          )}
-        >
+        <span className={cn('bdocs-tooltip__ring', className)} role="tooltip">
           {content}
         </span>
       }
       delay={delay}
-      className={cn(
-        'absolute top-full left-1/2 mt-2 -translate-x-1/2',
-        arrowClassName,
-      )}
+      className={cn('bdocs-tooltip', arrowClassName)}
     >
       {children}
     </PrimitivesTooltip>
   )
 }
-
-Tooltip.Root = Tooltip

@@ -1,0 +1,14 @@
+/*
+ * Content images.
+ *
+ * `margin-block` rather than `margin`, so an image next to prose keeps its
+ * vertical rhythm without pulling the surrounding text sideways.
+ */
+
+:where(.bdocs-image) {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  margin-block: var(--bdocs-space-8);
+  border-radius: var(--bdocs-radius-lg);
+}

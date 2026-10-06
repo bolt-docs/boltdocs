@@ -14,54 +14,29 @@ export interface CalloutProps extends React.HTMLAttributes<HTMLDivElement> {
 }
 
 /**
- * Default styled callout. Built on the style-neutral Callout primitive and
- * themed through semantic variant tokens (`--color-{danger|success|warning|info|primary}-500`),
- * so a custom theme can restyle it entirely from CSS.
+ * Default styled callout.
+ *
+ * The primitive carries `data-variant` and the stylesheet resolves the five
+ * variants from it, so this component's only job is content: which icon, which
+ * default title, and the caller's overrides. Adding a variant is a CSS change.
  */
 const variantMeta: Record<
   CalloutVariant,
   {
-    container: string
-    accent: string
     icon: React.ComponentType<{ className?: string }>
     defaultTitle: string
   }
 > = {
-  note: {
-    container: 'bg-primary-500/10 border-primary-500/50',
-    accent: 'text-primary-500',
-    icon: Info,
-    defaultTitle: 'Note',
-  },
-  info: {
-    container: 'bg-info-500/10 border-info-500/50',
-    accent: 'text-info-500',
-    icon: Info,
-    defaultTitle: 'Info',
-  },
-  tip: {
-    container: 'bg-success-500/10 border-success-500/50',
-    accent: 'text-success-500',
-    icon: Lightbulb,
-    defaultTitle: 'Tip',
-  },
-  warning: {
-    container: 'bg-warning-500/10 border-warning-500/50',
-    accent: 'text-warning-500',
-    icon: AlertTriangle,
-    defaultTitle: 'Warning',
-  },
-  danger: {
-    container: 'bg-danger-500/10 border-danger-500/50',
-    accent: 'text-danger-500',
-    icon: AlertCircle,
-    defaultTitle: 'Danger',
-  },
+  note: { icon: Info, defaultTitle: 'Note' },
+  info: { icon: Info, defaultTitle: 'Info' },
+  tip: { icon: Lightbulb, defaultTitle: 'Tip' },
+  warning: { icon: AlertTriangle, defaultTitle: 'Warning' },
+  danger: { icon: AlertCircle, defaultTitle: 'Danger' },
 }
 
 export function Callout({
   children,
-  className = '',
+  className,
   variant = 'note',
   title,
   iconClassName,
@@ -76,27 +51,24 @@ export function Callout({
     <CalloutPrimitive
       variant={variant}
       icon={
-        <div className={cn('pt-0.5', meta.accent, iconClassName)}>
-          <Icon className="w-5 h-5 stroke-2" />
+        <div className={cn('bdocs-callout__accent', iconClassName)}>
+          <Icon />
         </div>
       }
       title={
-        <div
-          className={cn(
-            'font-bold text-sm text-body',
-            meta.accent,
-            titleClassName,
-          )}
-        >
+        <div className={cn('bdocs-callout__title', titleClassName)}>
           {title || meta.defaultTitle}
         </div>
       }
+      // `prose` stays: the Tailwind Typography plugin styles the callout's inner
+      // content by parsing the rendered HTML, which no rule of ours can express.
+      // `max-w-none` stops it imposing a measure inside a panel that already has
+      // one. Dropping it removed every paragraph margin in the body.
       className={cn(
-        'my-6 rounded-xl border-2 text-body prose prose-neutral dark:prose-invert max-w-none',
-        meta.container,
+        'prose prose-neutral dark:prose-invert max-w-none',
         className,
       )}
-      bodyClassName={cn('text-[0.875rem] leading-[1.6]', bodyClassName)}
+      bodyClassName={bodyClassName}
       {...props}
     >
       {children}

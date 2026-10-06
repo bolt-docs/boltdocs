@@ -1,0 +1,60 @@
+/*
+ * Section headings with an anchor.
+ *
+ * The anchor appears on hover, which is why three separate pieces exist: the
+ * glyph, and the two placements (`before` when the anchor precedes the text,
+ * `after` when it follows). Position is a prop, not a class the caller composes,
+ * so a theme can restyle a heading without knowing which variant is in use.
+ */
+
+:where(.bdocs-heading) {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: var(--bdocs-space-4);
+  /* Clears the sticky navbar when a heading is jumped to. */
+  scroll-margin-block-start: var(--bdocs-space-6);
+}
+
+:where(.bdocs-heading__anchor) {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  color: inherit;
+  text-decoration: none;
+}
+
+:where(.bdocs-heading__anchor--before) {
+  margin-inline-end: var(--bdocs-space-2);
+}
+
+:where(.bdocs-heading__anchor--after) {
+  margin-inline-start: var(--bdocs-space-2);
+}
+
+:where(.bdocs-heading__anchor-glyph) {
+  opacity: 0;
+  color: var(--_bdocs-ink-faintest);
+  transition:
+    opacity var(--bdocs-duration-slow) var(--bdocs-easing),
+    color var(--bdocs-duration) var(--bdocs-easing);
+}
+
+/*
+ * The `wrap` variant hides the glyph until the row is hovered, and shows it
+ * without a hover ring. The non-wrap variant shows it on the anchor's own hover.
+ * Two behaviours, one token of state.
+ */
+:where(.bdocs-heading__anchor-glyph--hidden) {
+  margin-inline-start: var(--bdocs-space-2);
+}
+
+:where(.bdocs-heading):hover :where(.bdocs-heading__anchor-glyph) {
+  opacity: 1;
+  color: var(--_bdocs-brand);
+}
+
+:where(.bdocs-heading__anchor):hover :where(.bdocs-heading__anchor-glyph) {
+  opacity: 1;
+  color: var(--_bdocs-brand);
+}

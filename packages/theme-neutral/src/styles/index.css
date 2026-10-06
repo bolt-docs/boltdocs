@@ -17,6 +17,16 @@
  */
 @import "./tokens.css";
 @import "./base.css";
+@import "./components/callout.css";
+@import "./components/image.css";
+@import "./components/popover.css";
+@import "./components/skeleton.css";
+@import "./components/button-group.css";
+@import "./components/error-boundary.css";
+@import "./components/heading.css";
+@import "./components/menu.css";
+@import "./components/tabs.css";
+@import "./components/tooltip.css";
 @import "./components/breadcrumbs.css";
 @import "./components/docs-layout.css";
 @import "./components/page-header.css";

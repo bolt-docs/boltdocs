@@ -5,8 +5,11 @@ interface SkeletonProps extends React.HTMLAttributes<HTMLDivElement> {
 }
 
 /**
- * A flexible skeleton component that mimics the shape of content
- * while it is loading. Features a smooth pulse animation.
+ * Placeholder for content that is loading.
+ *
+ * Shape travels as `data-variant` rather than as a modifier class, so the theme
+ * owns what "circle" looks like. The pulse is the one animation the component
+ * implies, and it is disabled by `prefers-reduced-motion` in the stylesheet.
  */
 export function Skeleton({
   className,
@@ -15,11 +18,8 @@ export function Skeleton({
 }: SkeletonProps) {
   return (
     <div
-      className={cn(
-        'animate-pulse bg-soft',
-        variant === 'circle' ? 'rounded-full' : 'rounded-md',
-        className,
-      )}
+      className={cn('bdocs-skeleton', className)}
+      data-variant={variant}
       {...props}
     />
   )

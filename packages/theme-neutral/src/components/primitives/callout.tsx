@@ -47,7 +47,7 @@ function Callout({
       {icon != null && (
         <CalloutIcon className={iconClassName}>{icon}</CalloutIcon>
       )}
-      <div className={cn('flex-1', bodyClassName)}>
+      <div className={cn('bdocs-callout__body', bodyClassName)}>
         {title != null && (
           <CalloutTitle className={titleClassName}>{title}</CalloutTitle>
         )}
@@ -67,7 +67,7 @@ function CalloutRoot({
     <div
       data-callout-root
       data-variant={variant}
-      className={cn('flex gap-4', className)}
+      className={cn('bdocs-callout', className)}
       {...props}
     >
       {children}
@@ -81,7 +81,7 @@ function CalloutIcon({
   ...props
 }: Pick<HTMLAttributes<HTMLDivElement>, 'children' | 'className'>) {
   return (
-    <div className={cn('shrink-0', className)} {...props}>
+    <div className={cn('bdocs-callout__icon', className)} {...props}>
       {children}
     </div>
   )
@@ -94,7 +94,7 @@ function CalloutTitle({
   ...props
 }: CalloutTitleProps) {
   return (
-    <Tag className={className} {...props}>
+    <Tag className={cn('bdocs-callout__title', className)} {...props}>
       {children}
     </Tag>
   )

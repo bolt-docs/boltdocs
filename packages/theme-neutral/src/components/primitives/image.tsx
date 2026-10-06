@@ -9,8 +9,12 @@ export interface ImageProps extends ImgHTMLAttributes<HTMLImageElement> {
 }
 
 /**
- * A responsive image component that automatically supports dark and light theme variations
- * via the `theme` prop.
+ * A responsive image component that automatically supports dark and light theme
+ * variations via the `theme` prop.
+ *
+ * A themed image renders only in its own theme, so it returns `null` rather than
+ * an element the stylesheet has to hide — an element with a broken `src` in the
+ * document is worse than no element.
  */
 export function Image({ theme, className, src, alt, ...props }: ImageProps) {
   const { resolvedTheme } = useTheme()
@@ -22,7 +26,7 @@ export function Image({ theme, className, src, alt, ...props }: ImageProps) {
 
   return (
     <img
-      className={cn('max-w-full h-auto rounded-lg my-8', className)}
+      className={cn('bdocs-image', className)}
       alt={alt ?? ''}
       {...props}
       src={
