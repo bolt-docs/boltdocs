@@ -1,0 +1,356 @@
+/*
+ * The language and version selectors, and the theme menu.
+ *
+ * Three controls, one stylesheet, because they are one control: a bordered pill
+ * with a label and a chevron that opens a menu of options. They were three
+ * separate class lists that had already drifted — the version selector's option
+ * had lost the `transition-colors` the other two still had, and the locale
+ * selector's chevron was a different colour from the theme menu's.
+ *
+ * `data-selected` marks the current option rather than a class per option, which
+ * is what lets a theme restyle "the one you are on" without knowing how many
+ * options there are.
+ */
+
+:where(.bdocs-selector) {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--bdocs-space-2);
+  height: 2.25rem;
+  padding: 0.375rem var(--bdocs-space-4);
+  font-size: var(--bdocs-text-caption-xs);
+  font-weight: 600;
+  color: var(--_bdocs-ink);
+  background-color: var(--_bdocs-surface);
+  border: var(--bdocs-border-width) solid var(--_bdocs-line);
+  border-radius: var(--bdocs-radius-xl);
+  cursor: pointer;
+  user-select: none;
+  outline: none;
+  transition:
+    background-color var(--bdocs-duration-slow) var(--bdocs-easing),
+    border-color var(--bdocs-duration-slow) var(--bdocs-easing);
+}
+
+:where(.bdocs-selector):hover {
+  background-color: var(--bdocs-primary-soft-5);
+  border-color: var(--bdocs-primary-line-50);
+}
+
+:where(.bdocs-selector:focus-visible) {
+  outline: 2px solid var(--_bdocs-focus-ring);
+  outline-offset: 2px;
+}
+
+/* ── The label inside the pill ───────────────────────────────────────────── */
+
+:where(.bdocs-selector__label) {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+}
+
+:where(.bdocs-selector__icon) {
+  display: block;
+  flex: none;
+  width: 0.875rem;
+  height: 0.875rem;
+}
+
+:where(.bdocs-selector__icon--brand) {
+  color: var(--bdocs-primary);
+}
+
+/*
+ * Muted at 60%, not muted. A chevron is punctuation next to the label it belongs
+ * to, and full-strength muted grey competes with it at this size.
+ */
+:where(.bdocs-selector__icon--chevron) {
+  color: var(--_bdocs-ink-faint);
+}
+
+/* ── Menus ───────────────────────────────────────────────────────────────── */
+
+:where(.bdocs-selector__menu) {
+  display: flex;
+  flex-direction: column;
+  gap: 0.125rem;
+  width: 10rem;
+  padding: 0.375rem;
+  background-color: var(--_bdocs-page);
+  border: var(--bdocs-border-width) solid var(--_bdocs-line);
+  border-radius: var(--bdocs-radius-xl);
+  box-shadow: var(--bdocs-shadow);
+  outline: none;
+  z-index: 100;
+  animation: bdocs-menu-in var(--bdocs-duration) var(--bdocs-easing);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :where(.bdocs-selector__menu),
+  :where(.bdocs-theme-toggle__menu) {
+    animation: none;
+  }
+}
+
+:where(.bdocs-selector__option) {
+  display: flex;
+  align-items: center;
+  gap: var(--bdocs-space-2);
+  padding: var(--bdocs-space-2) var(--bdocs-space-3);
+  font-size: var(--bdocs-text-caption-xs);
+  font-weight: 500;
+  color: var(--_bdocs-ink);
+  border-radius: var(--bdocs-radius-lg);
+  cursor: pointer;
+  user-select: none;
+  outline: none;
+  transition:
+    background-color var(--bdocs-duration) var(--bdocs-easing),
+    color var(--bdocs-duration) var(--bdocs-easing);
+}
+
+:where(.bdocs-selector__option):hover {
+  background-color: var(--_bdocs-brand-soft);
+}
+
+:where(.bdocs-selector__option[data-selected]) {
+  color: var(--_bdocs-brand);
+  background-color: var(--_bdocs-brand-soft-weak);
+}
+
+/* ── Version label ───────────────────────────────────────────────────────── */
+
+/*
+ * The version selector's label is a version number, not a language code, and it
+ * was 13px where the locale selector's was 12px. Both are `--bdocs-text-caption-s`
+ * now, which is the same size at the same weight — one line of CSS instead of two
+ * class lists that had already drifted.
+ */
+:where(.bdocs-selector__version),
+:where(.bdocs-selector__code) {
+  font-weight: 700;
+  font-size: var(--bdocs-text-caption-s);
+  line-height: var(--bdocs-text-caption-s-line);
+}
+
+:where(.bdocs-selector__code) {
+  text-transform: uppercase;
+  opacity: 0.9;
+}
+
+/* ── Theme toggle ────────────────────────────────────────────────────────── */
+
+/*
+ * A square icon button rather than a pill: it opens a menu of two, it has no
+ * label to carry, and giving it the pill's width left an empty box beside the
+ * icon.
+ */
+:where(.bdocs-theme-toggle) {
+  width: 2.25rem;
+  height: 2.25rem;
+}
+
+/* The menu opens upward: the toggle sits at the top of the navbar and there is
+   nothing above it to open into. */
+:where(.bdocs-theme-toggle__menu-trigger) {
+  position: absolute;
+  inset-block-end: 100%;
+  inset-inline-start: 0;
+  margin-block-end: var(--bdocs-space-2);
+  z-index: 100;
+}
+
+:where(.bdocs-theme-toggle__menu) {
+  display: flex;
+  flex-direction: column;
+  gap: 0.125rem;
+  width: 9rem;
+  padding: 0.375rem;
+  background-color: var(--_bdocs-page);
+  border: var(--bdocs-border-width) solid var(--_bdocs-line);
+  border-radius: var(--bdocs-radius-xl);
+  box-shadow: var(--bdocs-shadow);
+  outline: none;
+  z-index: 100;
+  animation: bdocs-menu-in var(--bdocs-duration) var(--bdocs-easing);
+}
+
+:where(.bdocs-theme-toggle__icon) {
+  display: block;
+  width: 1.25rem;
+  height: 1.25rem;
+  animation: bdocs-icon-in var(--bdocs-duration-slow) var(--bdocs-easing);
+}
+
+@keyframes bdocs-icon-in {
+  from {
+    opacity: 0;
+    scale: 0.9;
+  }
+  to {
+    opacity: 1;
+    scale: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :where(.bdocs-theme-toggle__icon) {
+    animation: none;
+  }
+}
+
+:where(.bdocs-theme-toggle__option) {
+  display: flex;
+  align-items: center;
+  gap: var(--bdocs-space-2);
+  padding: var(--bdocs-space-2) var(--bdocs-space-3);
+  font-size: var(--bdocs-text-caption-xs);
+  font-weight: 500;
+  color: var(--_bdocs-ink);
+  border-radius: var(--bdocs-radius-lg);
+  cursor: pointer;
+  user-select: none;
+  outline: none;
+  transition:
+    background-color var(--bdocs-duration) var(--bdocs-easing),
+    color var(--bdocs-duration) var(--bdocs-easing);
+}
+
+:where(.bdocs-theme-toggle__option):hover {
+  background-color: var(--_bdocs-brand-soft);
+}
+
+:where(.bdocs-theme-toggle__option)[data-selected] {
+  color: var(--_bdocs-brand);
+  background-color: var(--_bdocs-brand-soft-weak);
+}
+
+:where(.bdocs-theme-toggle__option-icon) {
+  display: block;
+  width: 1rem;
+  height: 1rem;
+  color: inherit;
+  transition: color var(--bdocs-duration) var(--bdocs-easing);
+}
+
+:where(.bdocs-theme-toggle__option-label) {
+  margin-inline-start: var(--bdocs-space-2);
+}
+
+/* ── The light/dark segmented switch ────────────────────────────────────── */
+
+/*
+ * Two options and a sliding indicator. The indicator is a single element moved
+ * with `translate-x`, not two absolutely-positioned states: one element, one
+ * transition, and the browser has a single thing to composite rather than
+ * cross-fading two.
+ *
+ * `data-value` on the track is what moves it. Written per-option as
+ * `isDark && 'translate-x-full'` it put the same positioning decision in two
+ * places that had to agree.
+ */
+:where(.bdocs-theme-switch) {
+  position: relative;
+  display: flex;
+  width: 100%;
+  height: 2.75rem;
+  padding: var(--bdocs-space-1);
+  background-color: var(--_bdocs-surface);
+  border: var(--bdocs-border-width) solid var(--_bdocs-line);
+  border-radius: var(--bdocs-radius-xl);
+}
+
+:where(.bdocs-theme-switch__indicator) {
+  position: absolute;
+  inset-block: var(--bdocs-space-1);
+  /* Two options, so the track's inner width minus a fixed inset. Half of it is
+     what makes the indicator land exactly under each half. */
+  width: calc(50% - var(--bdocs-space-2));
+  background-color: var(--_bdocs-page);
+  border: var(--bdocs-border-width) solid var(--_bdocs-line);
+  border-radius: var(--bdocs-radius-lg);
+  box-shadow: var(--bdocs-shadow-xs);
+  transition: translate var(--bdocs-duration-slow) var(--bdocs-easing);
+}
+
+:where(.bdocs-theme-switch[data-value="dark"])
+  :where(.bdocs-theme-switch__indicator) {
+  translate: 100% 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :where(.bdocs-theme-switch__indicator) {
+    transition: none;
+  }
+}
+
+:where(.bdocs-theme-switch__option) {
+  position: relative;
+  z-index: 10;
+  flex: 1 1 0%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  border-radius: var(--bdocs-radius-lg);
+  background: transparent;
+  color: var(--_bdocs-ink);
+  font-weight: 600;
+  cursor: pointer;
+  outline: none;
+  transition: color var(--bdocs-duration) var(--bdocs-easing);
+}
+
+:where(.bdocs-theme-switch__option--inactive) {
+  color: var(--_bdocs-ink-muted);
+  font-weight: 400;
+}
+
+:where(.bdocs-theme-switch__option--inactive):hover {
+  color: var(--_bdocs-ink);
+}
+
+/* ── The icon trigger's button, and its loading state ────────────────────── */
+
+:where(.bdocs-theme-toggle__trigger) {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  border: none;
+  border-radius: var(--bdocs-radius-xl);
+  background: transparent;
+  color: var(--_bdocs-ink-muted);
+  cursor: pointer;
+  outline: none;
+  transition:
+    background-color var(--bdocs-duration) var(--bdocs-easing),
+    color var(--bdocs-duration) var(--bdocs-easing);
+}
+
+:where(.bdocs-theme-toggle__trigger):hover {
+  background-color: var(--_bdocs-surface-hover);
+  color: var(--_bdocs-ink);
+}
+
+/*
+ * Reserves the icon button's box while the theme is read from storage, so the
+ * navbar does not reflow when it resolves. With reduced motion the pulse is
+ * cancelled rather than shortened: a pulse at 0s either never starts or flickers.
+ */
+:where(.bdocs-theme-toggle__skeleton) {
+  width: 100%;
+  height: 2.5rem;
+  border-radius: var(--bdocs-radius-xl);
+  background-color: var(--_bdocs-surface);
+  animation: bdocs-skeleton-pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :where(.bdocs-theme-toggle__skeleton) {
+    animation: none;
+  }
+}

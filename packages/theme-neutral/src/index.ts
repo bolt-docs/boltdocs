@@ -118,7 +118,6 @@ export * from './mdx'
 export { cn } from './utils/cn'
 export { formatDate } from './collections/utils'
 export { formatDeterministicDate } from './utils/date'
-export { getStarsRepo } from './utils/github'
 export { reactToText } from './utils/react-to-text'
 export { copyToClipboard } from './utils/copy-clipboard'
 export {

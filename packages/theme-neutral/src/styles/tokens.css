@@ -198,6 +198,11 @@
     var(--bdocs-primary) 10%,
     transparent
   );
+  --bdocs-primary-soft-5: color-mix(
+    in srgb,
+    var(--bdocs-primary) 5%,
+    transparent
+  );
   --bdocs-primary-line-50: color-mix(
     in srgb,
     var(--bdocs-primary) 50%,
@@ -396,6 +401,9 @@
   --_bdocs-line-strong: var(--bdocs-line-strong);
   --_bdocs-brand: var(--bdocs-primary);
   --_bdocs-brand-soft: var(--bdocs-primary-soft);
+  /* The option you are already on: brand ink on a much fainter brand fill than the
+     hover state, so "current" and "hovered" are distinguishable at a glance. */
+  --_bdocs-brand-soft-weak: var(--bdocs-primary-soft-5);
   --_bdocs-brand-banner: var(--bdocs-primary-banner);
   --_bdocs-brand-ink: var(--bdocs-primary-ink);
   --_bdocs-brand-line: var(--bdocs-primary-line-soft);

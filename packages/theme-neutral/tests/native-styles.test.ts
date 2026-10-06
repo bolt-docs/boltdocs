@@ -49,6 +49,9 @@ const CONVERTED: Record<string, string> = {
   'components/internal/error-boundary.tsx': 'error-debug.css',
   'components/primitives/on-this-page.tsx': 'on-this-page.css',
   'components/primitives/code-block.tsx': 'code-block.css',
+  'components/ui-base/theme-toggle.tsx': 'selectors.css',
+  'components/ui-base/i18n-selector.tsx': 'selectors.css',
+  'components/ui-base/version-selector.tsx': 'selectors.css',
   'components/mdx/code-block.tsx': 'code-block.css',
 }
 

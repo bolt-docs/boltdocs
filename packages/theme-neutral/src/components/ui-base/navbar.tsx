@@ -4,7 +4,6 @@ import { useNavbar } from '../../hooks/use-navbar'
 import { useRoutes } from '../../hooks/use-routes'
 import NavbarPrimitive from '../primitives/navbar'
 import { ThemeToggle } from './theme-toggle'
-import { GithubStars } from './github-stars'
 import { Tabs } from './tabs'
 import { useLocation } from '@bdocs/runtime'
 import type { BoltdocsSocialLink } from '@bdocs/runtime'
@@ -23,7 +22,7 @@ const SearchDialog = lazy(() =>
 )
 
 export function Navbar({ className }: { className?: string }) {
-  const { links, title, logo, logoProps, github, social, config } = useNavbar()
+  const { links, title, logo, logoProps, social, config } = useNavbar()
   const {
     routes,
     allRoutes,
@@ -116,11 +115,6 @@ export function Navbar({ className }: { className?: string }) {
             <ThemeToggle />
           </div>
 
-          {github && (
-            <div className="hidden md:block">
-              <GithubStars repo={themeConfig?.githubRepo ?? ''} />
-            </div>
-          )}
           {social.length > 0 && (
             <div className="hidden md:block">
               <NavbarPrimitive.Split className="bg-subtle" />

@@ -14,21 +14,18 @@ export function ThemeToggle({ className }: { className?: string }) {
   }, [])
 
   if (!mounted) {
-    return <div className={cn('h-9 w-9', className)} />
+    return <div className={cn('bdocs-theme-toggle', className)} />
   }
 
   const Icon = theme === 'system' ? Monitor : theme === 'dark' ? Moon : Sun
 
   return (
-    <Menu.Trigger className="absolute bottom-full left-0 mb-2 z-100">
+    <Menu.Trigger className="bdocs-theme-toggle__menu-trigger">
       <Button
-        className={cn(
-          'flex h-9 w-9 items-center justify-center rounded-xl text-muted transition-colors hover:bg-surface hover:text-body outline-none border-none bg-transparent cursor-pointer',
-          className,
-        )}
+        className={cn('bdocs-theme-toggle__trigger', className)}
         aria-label="Selection theme"
       >
-        <Icon size={20} className="animate-in fade-in zoom-in duration-300" />
+        <Icon size={20} className="bdocs-theme-toggle__icon" />
       </Button>
       <Menu.Root
         selectionMode="single"
@@ -37,37 +34,19 @@ export function ThemeToggle({ className }: { className?: string }) {
           const newTheme = keys[0] as 'light' | 'dark' | 'system'
           if (newTheme) setTheme(newTheme)
         }}
-        className="w-36 bg-main border border-subtle rounded-xl p-1.5 shadow-md outline-none flex flex-col gap-0.5 animate-fade-in z-100"
+        className="bdocs-theme-toggle__menu"
       >
-        <Menu.Item
-          id="light"
-          className="group flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-medium text-body dark:hover:bg-primary-300/50 hover:bg-primary-200/50 transition-colors duration-100 cursor-pointer select-none outline-none group data-selected:text-primary-500 data-selected:bg-primary-500/5"
-        >
-          <Sun
-            className="group-hover:text-primary-500 dark:group-hover:text-primary-200"
-            size={16}
-          />
-          <span className="ml-2">Light</span>
+        <Menu.Item id="light" className="bdocs-theme-toggle__option">
+          <Sun className="bdocs-theme-toggle__option-icon" size={16} />
+          <span className="bdocs-theme-toggle__option-label">Light</span>
         </Menu.Item>
-        <Menu.Item
-          id="dark"
-          className="flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-medium text-body dark:hover:bg-primary-300/50 hover:bg-primary-200/50 transition-colors duration-100 cursor-pointer select-none outline-none group data-selected:text-primary-500 data-selected:bg-primary-500/5"
-        >
-          <Moon
-            className="group-hover:text-primary-500 dark:group-hover:text-primary-200"
-            size={16}
-          />
-          <span className="ml-2">Dark</span>
+        <Menu.Item id="dark" className="bdocs-theme-toggle__option">
+          <Moon className="bdocs-theme-toggle__option-icon" size={16} />
+          <span className="bdocs-theme-toggle__option-label">Dark</span>
         </Menu.Item>
-        <Menu.Item
-          id="system"
-          className="flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-medium text-body dark:hover:bg-primary-300/50 hover:bg-primary-200/50 transition-colors duration-100 cursor-pointer select-none outline-none group data-selected:text-primary-500 data-selected:bg-primary-500/5"
-        >
-          <Monitor
-            className="group-hover:text-primary-500 dark:group-hover:text-primary-200"
-            size={16}
-          />
-          <span className="ml-2">System</span>
+        <Menu.Item id="system" className="bdocs-theme-toggle__option">
+          <Monitor className="bdocs-theme-toggle__option-icon" size={16} />
+          <span className="bdocs-theme-toggle__option-label">System</span>
         </Menu.Item>
       </Menu.Root>
     </Menu.Trigger>
@@ -83,36 +62,19 @@ export function ThemeSwitcher({ className }: { className?: string }) {
   }, [])
 
   if (!mounted) {
-    return (
-      <div
-        className={cn(
-          'h-10 w-full bg-surface rounded-xl animate-pulse',
-          className,
-        )}
-      />
-    )
+    return <div className={cn('bdocs-theme-toggle__skeleton', className)} />
   }
 
   const isDark = theme === 'dark'
 
   return (
-    <div
-      className={cn(
-        'flex p-1 bg-surface border border-subtle rounded-xl relative w-full h-11',
-        className,
-      )}
-    >
-      <div
-        className={cn(
-          'absolute inset-y-1 w-[calc(50%-4px)] bg-main border border-subtle rounded-lg transition-all duration-300 ease-out shadow-xs',
-          isDark ? 'translate-x-full' : 'translate-x-0',
-        )}
-      />
+    <div className={cn('bdocs-theme-switch', className)} data-value={theme}>
+      <div className="bdocs-theme-switch__indicator" />
       <button
         onClick={() => setTheme('light')}
         className={cn(
-          'flex-1 flex items-center justify-center rounded-lg z-10 transition-colors outline-none cursor-pointer border-none bg-transparent',
-          !isDark ? 'text-body font-semibold' : 'text-muted hover:text-body',
+          'bdocs-theme-switch__option',
+          isDark && 'bdocs-theme-switch__option--inactive',
         )}
         aria-label="Light mode"
       >
@@ -121,8 +83,8 @@ export function ThemeSwitcher({ className }: { className?: string }) {
       <button
         onClick={() => setTheme('dark')}
         className={cn(
-          'flex-1 flex items-center justify-center rounded-lg z-10 transition-colors outline-none cursor-pointer border-none bg-transparent',
-          isDark ? 'text-body font-semibold' : 'text-muted hover:text-body',
+          'bdocs-theme-switch__option',
+          !isDark && 'bdocs-theme-switch__option--inactive',
         )}
         aria-label="Dark mode"
       >

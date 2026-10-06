@@ -16,7 +16,6 @@ export function useNavbar() {
   const title = getTranslated(themeConfig.title, currentLocale) || 'Boltdocs'
   const rawLinks = themeConfig.navbar || []
   const socialLinks = themeConfig.socialLinks || []
-  const githubRepo = themeConfig.githubRepo
 
   // Transform links to the new NavbarLink structure
   const links: NavbarLink[] = useMemo(() => {
@@ -139,14 +138,11 @@ export function useNavbar() {
         : undefined,
   }
 
-  const github = githubRepo ? `https://github.com/${githubRepo}` : null
-
   return {
     links,
     title,
     logo: logoPair,
     logoProps,
-    github,
     social: socialLinks,
     config,
     theme,
