@@ -555,59 +555,13 @@ for the full reference.
 
 ---
 
-## New `<Timeline>` MDX component
+## The `<Timeline>` MDX component
 
-3.2.0 ships a vertical-timeline MDX component built for changelogs, release notes, status updates, and audit logs. Each entry has a colored dot strung onto the connector line, an optional date and badge, a title, and a Markdown body.
-
-```mdx
-<Timeline>
-  <Timeline.Item
-    date="2026-07-20"
-    title="Boltdocs 3.2.0"
-    badge="Major"
-    icon={<Sparkles />}
-  >
-    Released **Plugin v3.2 API** — caches, diagnostics, paths, virtual modules,
-    middleware, server, and HMR hooks. See the [migration guide](/docs/blog/boltdocs-3.2.0).
-  </Timeline.Item>
-
-  <Timeline.Item
-    date="2026-06-01"
-    title="Added i18n support"
-    badge={{ text: 'Minor', variant: 'success' }}
-  >
-    New locale filesystem convention, version-aware routes, and SSR-safe URL prefixes.
-  </Timeline.Item>
-</Timeline>
-```
-
-Renders as:
-
-```text
-●  Jul 20, 2026  [MAJOR]
-│  Boltdocs 3.2.0
-│  Released Plugin v3.2 API — caches, diagnostics, paths, virtual modules,
-│  middleware, server, and HMR hooks. See the migration guide.
-│
-●  Jun 1, 2026   [MINOR]
-│  Added i18n support
-│  Locale filesystem convention, version-aware routes, and SSR-safe URL prefixes.
-```
-
-### What's in the box
-
-- **Auto-registered** — write `<Timeline>` in any `.mdx` file. No import needed.
-- **Two variant families** — semantic (`primary`, `success`, `info`, `warning`, `danger`) plus lifecycle aliases (`major`, `minor`, `patch`, `new`, `deprecated`, `breaking`) so changelogs can colour by release type without retyping hex codes.
-- **Hydration-safe localized dates** — the `date` prop renders via `toLocaleDateString` pinned to a stable locale (`'en-US'` by default) so server output and client output always agree.
-- **Body accepts full Markdown** — paragraphs, code, links, inline `<Callout>`, lists. Whatever fits in an MDX paragraph fits inside an item.
-- **Compact mode** — `<Timeline compact>` for dense lists of small tweaks.
-- **Data-driven** generation — every `Timeline.Item` is a normal React element, so you can `.map()` over a JSON array of releases to render an entire changelog without retyping each release block by hand.
-
-<Callout type="info">
-  See the [full Timeline docs](/docs/components/mdx/timeline) for the complete component API, accessibility notes, and the data-driven changelog pattern.
-</Callout>
-
----
+Shipped in 3.2.0 and **removed in 4.0**. It was built for release notes and
+changelogs, which is a job a docs site rarely has, and it carried its own badge
+and variant vocabulary that had to be maintained alongside everything else. Release
+notes are better served by a table, and the plain markup reads better in a post
+that is mostly prose.
 
 ## Upgrading
 

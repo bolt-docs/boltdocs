@@ -43,7 +43,6 @@ Componentes de interfaz de usuario accesibles y genéricos exportados desde `'bo
 | **`Link`** | Etiqueta de anclaje con enrutamiento SPA localizado. |
 | **`Heading`** | Renderiza encabezados HTML con enlaces de anclaje automáticos. |
 | **`Menu`** | Menús de acciones desplegables y de selección anidados. |
-| **`Skeleton`** | Marcador de posición de estado de carga con pulso. |
 
 ---
 
@@ -81,29 +80,6 @@ export function MyLayout({ children, headings }) {
   )
 }
 ```
-
----
-
-## Una muestra de `<Timeline>`
-
-Changelogs, actualizaciones de estado, notas de publicación — cualquier lista cronológica dentro de MDX:
-
-```mdx
-<Timeline>
-  <Timeline.Item date="2026-07-28" title="Boltdocs 3.3.0" badge="Major" icon={<Sparkles />}>
-    Nueva API de Plugins (`definePlugin`), Core Agnóstico a CSS, slots de UI para
-    plugins y plugins oficiales de Tailwind v4 / SASS / UnoCSS.
-  </Timeline.Item>
-  <Timeline.Item date="2026-06-01" title="Soporte de i18n" badge={{ text: 'Minor', variant: 'success' }}>
-    Convención de internacionalización por filesystem y rutas conscientes de versión.
-  </Timeline.Item>
-  <Timeline.Item date="2026-05-15" title="Eliminado sistema legacy de slots" badge={{ text: 'Breaking', variant: 'danger' }}>
-    Se eliminó el sistema de slots del lado del plugin — consulta la guía de migración.
-  </Timeline.Item>
-</Timeline>
-```
-
-La referencia completa (props, paleta de variantes, accesibilidad, patrones comunes) está en [`Timeline`](/docs/es/components/mdx/timeline).
 
 ---
 

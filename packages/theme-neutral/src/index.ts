@@ -115,14 +115,6 @@ export { Banner } from './components/ui-base/banner'
 // `mdx-components.tsx` resolves against, so the two cannot drift.
 export * from './mdx'
 
-export { Timeline } from './components/mdx/timeline'
-export type {
-  TimelineProps,
-  TimelineItemProps,
-  TimelineBadgeConfig,
-  TimelineVariant,
-} from './components/mdx/timeline'
-
 export { cn } from './utils/cn'
 export { formatDate } from './collections/utils'
 export { formatDeterministicDate } from './utils/date'

@@ -38,7 +38,6 @@ const CONVERTED: Record<string, string> = {
   'components/primitives/image.tsx': 'image.css',
   'components/primitives/menu.tsx': 'menu.css',
   'components/primitives/popover.tsx': 'popover.css',
-  'components/primitives/skeleton.tsx': 'skeleton.css',
   'components/primitives/tabs.tsx': 'tabs.css',
   'components/primitives/tooltip.tsx': 'tooltip.css',
   'components/mdx/callout.tsx': 'callout.css',

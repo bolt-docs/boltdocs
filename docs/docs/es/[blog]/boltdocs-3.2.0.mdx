@@ -504,59 +504,12 @@ Consultá la [Middleware API docs](/docs/es/api/plugin-api#ctxmiddleware--plugin
 
 ---
 
-## Nuevo componente MDX `<Timeline>`
+## El componente MDX `<Timeline>`
 
-3.2.0 trae un nuevo componente MDX de timeline vertical pensado para changelogs, notas de release, actualizaciones de estado y bitácoras de auditoría. Cada entrada tiene un punto de color enganchado a la línea conectora, una fecha y etiqueta opcionales, un título y un cuerpo en Markdown.
-
-```mdx
-<Timeline>
-  <Timeline.Item
-    date="2026-07-20"
-    title="Boltdocs 3.2.0"
-    badge="Major"
-    icon={<Sparkles />}
-  >
-    Lanzamiento de la **Plugin v3.2 API** — caches, diagnostics, paths, virtual
-    modules, middleware, server y hooks HMR. Consultá la [guía de migración](/docs/es/blog/boltdocs-3.2.0).
-  </Timeline.Item>
-
-  <Timeline.Item
-    date="2026-06-01"
-    title="Soporte de i18n"
-    badge={{ text: 'Minor', variant: 'success' }}
-  >
-    Convención de internacionalización por filesystem, rutas conscientes de versión y prefijos SSR-safe.
-  </Timeline.Item>
-</Timeline>
-```
-
-Se renderiza como:
-
-```text
-●  20 jul 2026  [MAJOR]
-│  Boltdocs 3.2.0
-│  Lanzamiento de la Plugin v3.2 API — caches, diagnostics, paths, virtual
-│  modules, middleware, server y hooks HMR. Consultá la guía de migración.
-│
-●  1 jun 2026   [MINOR]
-│  Soporte de i18n
-│  Convención de internacionalización por filesystem, rutas conscientes de versión y prefijos SSR-safe.
-```
-
-### Qué trae
-
-- **Auto-registrado** — escribí `<Timeline>` en cualquier archivo `.mdx`. Sin import.
-- **Dos familias de variantes** — semánticas (`primary`, `success`, `info`, `warning`, `danger`) más aliases de ciclo de vida (`major`, `minor`, `patch`, `new`, `deprecated`, `breaking`).
-- **Fechas localizadas con hidratación segura** — la prop `date` se renderiza via `toLocaleDateString` con una locale fija (`'en-US'` por defecto).
-- **El cuerpo acepta Markdown completo** — párrafos, código, enlaces, `<Callout>` inline, listas.
-- **Modo compact** — `<Timeline compact>` para listas densas de cambios chicos.
-- **Generación desde datos** — cada `Timeline.Item` es un elemento React normal, así podés hacer `.map()` sobre un array JSON de releases.
-
-<Callout type="info">
-  Consultá la [doc completa de Timeline](/docs/es/components/mdx/timeline) para ver la API completa, notas de accesibilidad y el patrón de changelog guiado por datos.
-</Callout>
-
----
+Publicado en 3.2.0 y **retirado en 4.0**. Estaba pensado para notas de versión y
+changelogs, una tarea que un sitio de documentación rara vez tiene, y cargaba con
+su propio vocabulario de variantes y distintivos que había que mantener junto a todo
+lo demás. Las notas de versión se leen mejor en una tabla.
 
 ## Actualización
 

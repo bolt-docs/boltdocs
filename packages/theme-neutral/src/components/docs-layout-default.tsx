@@ -10,7 +10,7 @@ import { OnThisPage } from './ui-base/on-this-page'
 import { useRoutes } from '../hooks/use-routes'
 import { useConfig } from '@bdocs/runtime'
 import { Outlet } from '@bdocs/runtime'
-import { Feedback, Giscus } from './ui-base/index'
+import { Giscus } from './ui-base/index'
 import type { ComponentRoute } from '@bdocs/runtime'
 
 interface DocsLayoutThemeProps {
@@ -68,7 +68,6 @@ function DocsLayoutComponent({ children }: DocsLayoutThemeProps) {
               </div>
             </ErrorBoundary>
 
-            {!isCollectionPage && <Feedback />}
             {!isCollectionPage && <Giscus />}
 
             {!isCollectionPage && (
