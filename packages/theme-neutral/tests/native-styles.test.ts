@@ -335,20 +335,34 @@ describe('theme-neutral styles', () => {
 })
 
 describe('conversion progress', () => {
-  it('reports how much of the theme is still on utilities', () => {
+  it('reports the files that still carry utility classes', () => {
+    // The denominator is the files that actually carry utilities, not every
+    // `.tsx` in the package. Counting the latter mixed in hooks, contexts and
+    // utilities — files that never had a class — and reported 63 where the real
+    // number was 23, for several commits.
+    const INFRA = /^(hooks|collections|utils|app|contexts)\//
+    const ENTRY = /^(index|mdx-component|doc-page|head|error-boundary)\.tsx$/
+
     const files = walk(SRC).filter((f) => f.endsWith('.tsx'))
+    const components = files.filter((f) => {
+      const rel = relative(SRC, f).replaceAll('\\', '/')
+      return !INFRA.test(rel) && !ENTRY.test(rel)
+    })
     const converted = new Set(Object.keys(CONVERTED))
-    const withUtilities = files
-      .filter((f) => !converted.has(relative(SRC, f).replaceAll('\\', '/')))
-      .filter((f) => utilitiesIn(readFileSync(f, 'utf-8')).length > 0)
-    // Not an assertion about a number — it would need editing on every
-    // conversion and would only ever be satisfied by deleting the file. It
-    // prints, so the remaining work is visible instead of assumed finished.
-    console.log(
-      `  theme-neutral: ${CONVERTED_OBJECT_SIZE} convertidos, ${withUtilities.length} de ${files.length} ficheros siguen con utilidades`,
+    const remaining = components.filter(
+      (f) => !converted.has(relative(SRC, f).replaceAll('\\', '/')),
     )
-    expect(withUtilities.length).toBeLessThan(files.length)
+    const dirty = remaining.filter(
+      (f) => utilitiesIn(readFileSync(f, 'utf-8')).length > 0,
+    )
+
+    // Not an assertion about a number: it would need editing on every conversion
+    // and would only ever be satisfied by deleting the file. It prints, so the
+    // remaining work is visible instead of assumed to be finished.
+    console.log(
+      `  theme-neutral: ${converted.size} convertidos, ${dirty.length} de ` +
+        `${components.length} componentes siguen con utilidades`,
+    )
+    expect(dirty.length).toBeLessThan(components.length)
   })
 })
-
-const CONVERTED_OBJECT_SIZE = Object.keys(CONVERTED).length
