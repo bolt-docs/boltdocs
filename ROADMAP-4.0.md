@@ -91,11 +91,47 @@ The migration is executed as an ordered sequence. Each slice is developed on a f
 | --- | --- | --- | --- |
 | 1 | Shared contracts | `@bdocs/contracts` | Done |
 | 2 | SEO extraction | `@bdocs/plugin-seo` | Done |
-| 3 | UI extraction | `@bdocs/ui` | Planned |
+| 3 | UI extraction | `@bdocs/theme-neutral` | In progress |
 | 4 | Primitives extraction | `@bdocs/primitives` | Done |
 | 5 | Runtime boundary | `@bdocs/runtime` | Done |
 | 6 | Incremental MDX and SSG | core, Sätteri, SSG | Partially delivered in 3.4.0 |
 | 7 | Migration tooling and 4.0 release gate | repository-wide | Planned |
+
+### Status of slice 3
+
+Slice 3 was specified as extracting a package called `@bdocs/ui`. The package
+that landed is `@bdocs/theme-neutral`, and the difference is not only the name.
+An extracted UI *library* would have shipped the same Tailwind utility classes it
+found in core and left every consumer needing a Tailwind build to render it. That
+is a distribution change, not a boundary one.
+
+`@bdocs/theme-neutral` therefore ships a stylesheet with it: a token layer of
+plain custom properties and one CSS file per component. A theme a site can
+install on its own, restyle by overriding tokens, and load from a plain `<link>`.
+
+Conversion progress, measured against the build it replaces rather than asserted:
+
+| Components | State |
+| --- | --- |
+| Converted, both layers | 6 of 63 |
+| Still on utility classes | 39 of 63 |
+| Visual difference against the original | two regions, neither understood |
+
+The visual harness exists because "the UI did not change" is a claim no unit test
+can check, and the docs site is the only place the theme actually renders. It
+found four defects in the conversion that review had passed. `scripts/visual/`
+is documented in its own README.
+
+Two known gaps are recorded in the slice rather than hidden:
+
+- The docs' Tailwind `@source` covers `node_modules/boltdocs/dist` and the theme
+  now lives in a workspace package outside it, so utilities used only inside the
+  theme are never emitted. `sm:text-sm` and `hover:bg-surface` are absent from the
+  built CSS and those components render at base styles. Fixing it changes the UI
+  on roughly 900 screenshots, so it is a deliberate separate change.
+- Slice 3 is not a substitute for slice 7. An installable theme with a token API
+  and no migration guide for the imports it replaces is half of what a breaking
+  release owes its users.
 
 ### Route rules
 
@@ -114,6 +150,12 @@ Not every change to `4.0` belongs to a numbered slice. Two rounds of dependency 
 | `sharp` and `svgo` moved behind `experimental.imageOptimizer` | none | Install; opt-in rather than package split | Build with the flag off, core 1042 tests at the time |
 | Shiki grammars and themes vendored, `shiki` dropped | none | Install, down 11.7 MB | 259 pages byte-identical; both regex engines covered by tests |
 | Five documented code themes fixed | none | Correctness | Build with `theme: 'dracula'` emits the dracula palette |
+
+| `@bdocs/primitives` replaces `react-aria-components` | 4 | Install: 1014.3 → 853.9 kB raw, 271.9 → 221.4 kB gzip | 259 pages byte-identical after normalising RAC internals; 5 rendering bugs found |
+| `@bdocs/primitives` and `@bdocs/runtime` shrunk and minified | 4, 5 | Install: 90,138 → 45,640 B raw, 21,945 → 16,781 B gzip | 40 Playwright specs in Chromium; tree-shaking still 79 B for a single-export bundle |
+| `@bdocs/runtime` created: router, contexts, i18n, view transitions | 5 | Boundary | Bundle unchanged at 853.7 kB, which is the point: a pure move. 12 inherited `any`s dropped |
+| `@bdocs/theme-neutral` created with a native CSS token layer | 3 | Boundary, install | See the slice 3 section |
+| `scripts/visual/` — pixel and computed-style harness | none | Verification | Found 4 defects in its own first conversion, including one that made it report zero differences over the wrong page |
 
 The pattern is worth naming: the roadmap's slice 3 and 4 extract packages, which reduces coupling but not install size, because the heavy parts follow their importers. Dependency trimming had to be done directly to move the number, and it turned out to be where two real bugs were hiding — an unreachable 308 grammars and five themes that were documented but never registered.
 
