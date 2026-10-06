@@ -8,47 +8,62 @@ export interface PageNavProps extends ComponentBase {
   direction: 'prev' | 'next'
 }
 
+/**
+ * Structure and accessibility only.
+ *
+ * `aria-label` and `direction` are the whole contract here. The previous/next
+ * distinction travels as `data-direction` rather than as a `--prev` / `--next`
+ * class, because a direction is state and the theme styles state from data
+ * attributes — the primitives stay free of visual opinions and a theme can
+ * restyle the row without the markup changing.
+ */
 export function PageNav({ children, className }: ComponentBase) {
   return (
-    <nav
-      aria-label="Pagination"
-      className={cn('grid sm:grid-cols-2 gap-4', className)}
-    >
+    <nav aria-label="Pagination" className={cn('bdocs-page-nav', className)}>
       {children}
     </nav>
   )
 }
 
 function PageNavLink({ children, to, direction, className }: PageNavProps) {
-  const isNext = direction === 'next'
   return (
     <Link
       href={to}
-      className={cn(
-        'flex items-center outline-none no-underline',
-        isNext ? 'justify-end' : 'justify-start',
-        className,
-      )}
+      className={cn('bdocs-page-nav__card', className)}
+      data-direction={direction}
     >
       {children}
     </Link>
   )
 }
 
+function PageNavBody({ children, className }: ComponentBase) {
+  return (
+    <span className={cn('bdocs-page-nav__body', className)}>{children}</span>
+  )
+}
+
 function PageNavTitle({ children, className }: ComponentBase) {
-  return <span className={cn(className)}>{children}</span>
+  return (
+    <span className={cn('bdocs-page-nav__title', className)}>{children}</span>
+  )
 }
 
 function PageNavDescription({ children, className }: ComponentBase) {
-  return <span className={cn('truncate', className)}>{children}</span>
+  return (
+    <span className={cn('bdocs-page-nav__label', className)}>{children}</span>
+  )
 }
 
 function PageNavIcon({ children, className }: ComponentBase) {
-  return <span className={cn('shrink-0', className)}>{children}</span>
+  return (
+    <span className={cn('bdocs-page-nav__icon', className)}>{children}</span>
+  )
 }
 
 PageNav.Root = PageNav
 PageNav.Link = PageNavLink
+PageNav.Body = PageNavBody
 PageNav.Title = PageNavTitle
 PageNav.Description = PageNavDescription
 PageNav.Icon = PageNavIcon

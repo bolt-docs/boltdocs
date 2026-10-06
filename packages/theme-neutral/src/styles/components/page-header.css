@@ -1,0 +1,53 @@
+/*
+ * The page header: the breadcrumb/copy row, the title, the description, and the
+ * wrapper the pagination sits in.
+ *
+ * Spacing here is measured from the reading column's own rhythm rather than from
+ * the global scale, because these gaps set the vertical tempo of a page. They are
+ * still tokens, so a site can retune the rhythm globally.
+ */
+
+:where(.bdocs-page__padded) {
+  padding-block: var(--bdocs-space-4) var(--bdocs-space-20);
+  padding-inline: var(--bdocs-space-4);
+}
+
+@media (min-width: 40rem) {
+  :where(.bdocs-page__padded) {
+    padding-inline: var(--bdocs-space-8);
+  }
+}
+
+/* The breadcrumb/copy row: a hairline under it, both ends aligned. */
+:where(.bdocs-page__meta) {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--bdocs-space-3);
+  margin-block-end: var(--bdocs-space-4);
+  padding-block-end: var(--bdocs-space-4);
+  border-block-end: var(--bdocs-border-width) solid var(--_bdocs-line);
+}
+
+:where(.bdocs-page__title) {
+  margin-block: 0 var(--bdocs-space-3);
+  /* 2.25rem, not `--bdocs-text-h1` (2.5rem). The original was `text-4xl`; the
+     token is the docs' own H1 scale and using it here grew the title by 4px and
+     pushed every page's content down by the difference. */
+  font-size: 2.25rem;
+  font-weight: 700;
+  letter-spacing: -0.025em;
+  color: var(--_bdocs-ink);
+}
+
+:where(.bdocs-page__description) {
+  margin-block: 0 var(--bdocs-space-6);
+  font-size: 1.125rem;
+  line-height: 1.625;
+  color: var(--_bdocs-ink-muted);
+}
+
+:where(.bdocs-page__pagenav) {
+  margin-block-start: var(--bdocs-space-20);
+}

@@ -24,23 +24,26 @@ interface DocsLayoutThemeProps {
  * internally by each primitive so the layout itself does no slot "magic".
  *
  * A custom layout can reuse any primitive and the slot wiring just works.
+ *
+ * Styling is in `styles/components/docs-layout.css` and
+ * `styles/components/page-header.css`. Nothing here is a utility class.
  */
 function DocsLayoutComponent({ children }: DocsLayoutThemeProps) {
   const { routes: filteredRoutes, currentRoute, isCollectionPage } = useRoutes()
   const config = useConfig()
 
   return (
-    <DocsLayoutPrimitive className="selection:bg-primary-500/10 selection:text-primary-500">
+    <DocsLayoutPrimitive>
       <Navbar />
-      <DocsLayoutPrimitive.Body className="bg-main">
+      <DocsLayoutPrimitive.Body>
         {!isCollectionPage && (
           <Sidebar routes={filteredRoutes || []} config={config} />
         )}
         <DocsLayoutPrimitive.Content>
-          <DocsLayoutPrimitive.ContentMdx className="pt-4 pb-20 px-4 sm:px-8">
+          <DocsLayoutPrimitive.ContentMdx className="bdocs-page__padded">
             {!isCollectionPage && (
               <DocsLayoutPrimitive.Header>
-                <div className="mb-4 border-b border-subtle pb-4 flex flex-wrap items-center justify-between gap-3">
+                <div className="bdocs-page__meta">
                   <Breadcrumbs />
                   <CopyMarkdown
                     mdxRaw={currentRoute?._rawContent}
@@ -49,12 +52,10 @@ function DocsLayoutComponent({ children }: DocsLayoutThemeProps) {
                 </div>
 
                 {currentRoute?.title && (
-                  <h1 className="text-4xl font-bold tracking-tight text-body mb-3">
-                    {currentRoute.title}
-                  </h1>
+                  <h1 className="bdocs-page__title">{currentRoute.title}</h1>
                 )}
                 {currentRoute?.description && (
-                  <p className="text-lg text-muted mb-6 leading-relaxed">
+                  <p className="bdocs-page__description">
                     {currentRoute.description}
                   </p>
                 )}
@@ -71,13 +72,13 @@ function DocsLayoutComponent({ children }: DocsLayoutThemeProps) {
             {!isCollectionPage && <Giscus />}
 
             {!isCollectionPage && (
-              <div className="mt-20">
+              <div className="bdocs-page__pagenav">
                 <PageNav />
               </div>
             )}
           </DocsLayoutPrimitive.ContentMdx>
         </DocsLayoutPrimitive.Content>
-        <div className="overflow-y-auto sticky">
+        <div className="bdocs-layout__aside">
           <OnThisPage
             headings={currentRoute?.headings}
             filePath={currentRoute?.filePath}

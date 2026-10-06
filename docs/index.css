@@ -6,6 +6,18 @@
 
 /* Docs theme — dark-only design tokens (replaces boltdocs/theme/neutral.css) */
 @import "./src/theme/tokens.css";
+/*
+  @bdocs/theme-neutral — the theme's own stylesheet.
+
+  Loaded because the docs site is the only place the theme actually renders, and
+  a component converted from Tailwind utilities to native CSS gets its
+  `bdocs-*` rules from here. Without this import a converted component renders
+  unstyled, silently — the class is in the HTML and no rule matches it.
+
+  After `@theme`/Tailwind so the theme's component rules win at equal specificity
+  during the transition, while components still on utilities keep theirs.
+*/
+@import "@bdocs/theme-neutral/css";
 /* Docs theme — MDX content typography (proximity & spacing) */
 @import "./src/theme/prose.css";
 /* React Bits MagicBento — Powerful Features bento grid styles */

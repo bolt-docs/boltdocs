@@ -1,0 +1,101 @@
+/*
+ * Breadcrumb trail.
+ *
+ * Two rules carry the whole component:
+ *
+ *   A breadcrumb is a list of landmarks, not buttons. The separator is decorative
+ *   and marked `aria-hidden` at the call site, so it never has to be as visible as
+ *   the links — which is why it can be so faint.
+ *
+ *   The active crumb is `data-active`, not a class. Being the current page is
+ *   state; the theme decides that state looks inert rather than hoverable.
+ */
+
+:where(.bdocs-breadcrumbs) {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--bdocs-space-2);
+  /*
+   * 12px at every viewport, which is not what the original markup asked for and
+   * is nonetheless what it rendered: `sm:text-sm` was never emitted into the
+   * built CSS, because Tailwind never scanned the theme package, so the rule the
+   * class referred to did not exist. Matching the rendered result rather than the
+   * written intent is what keeps this change provably UI-neutral; the missing
+   * class is a separate, pre-existing bug and fixing it here would have shown up
+   * as a 2px shift across every page.
+   */
+  font-size: var(--bdocs-text-caption-s);
+  font-weight: 500;
+  line-height: var(--bdocs-text-caption-s-line);
+}
+
+:where(.bdocs-breadcrumbs__item) {
+  display: flex;
+  align-items: center;
+  gap: var(--bdocs-space-2);
+  min-width: 0;
+}
+
+:where(.bdocs-breadcrumbs__link) {
+  display: inline-flex;
+  align-items: center;
+  color: var(--_bdocs-ink-muted);
+  text-decoration: none;
+  transition: color var(--bdocs-duration) var(--bdocs-easing);
+}
+
+/*
+ * The rounded focus target lives on the focus rule, not the base one. A radius on
+ * every link is invisible until focus but changes the element's box, and the
+ * harness reports it as a difference from a build that had none.
+ */
+:where(.bdocs-breadcrumbs__link):focus-visible {
+  outline: 2px solid var(--_bdocs-focus-ring);
+  outline-offset: 2px;
+  border-radius: var(--bdocs-radius-xs);
+}
+
+:where(.bdocs-breadcrumbs__link:hover) {
+  color: var(--_bdocs-ink);
+}
+
+:where(.bdocs-breadcrumbs__link:focus-visible) {
+  outline: 2px solid var(--_bdocs-focus-ring);
+  outline-offset: 2px;
+}
+
+/*
+ * The current page. Not a link that happens to be disabled — the cursor and the
+ * pointer-events guard live here so the markup stays a plain link, and a site
+ * that wants it clickable deletes one block.
+ */
+:where(.bdocs-breadcrumbs__link[data-active]) {
+  color: var(--_bdocs-ink);
+  font-weight: 600;
+  cursor: default;
+  pointer-events: none;
+}
+
+:where(.bdocs-breadcrumbs__separator) {
+  display: inline-flex;
+  align-items: center;
+  /*
+   * Fainter than the links it separates: punctuation, not navigation.
+   *
+   * The alpha is on the colour, not on the element. `opacity` would fade the
+   * chevron as well, and the original's `text-muted/40` faded only the glyph's
+   * colour — the two measure differently over the canvas.
+   */
+  color: var(--_bdocs-ink-faintest);
+}
+
+:where(.bdocs-breadcrumbs__chevron) {
+  flex: none;
+  display: block;
+}
+
+:where(.bdocs-breadcrumbs__home-icon) {
+  flex: none;
+  display: block;
+}

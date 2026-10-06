@@ -2,98 +2,143 @@
  * Previous / next page navigation.
  *
  * The first component in the theme written against the native stylesheet rather
- * than Tailwind utilities. Two rules worth copying:
+ * than Tailwind utilities. Three rules worth copying:
  *
  *   Every value is a token, never a literal. `var(--_bdocs-line)` instead of a
  *   hex, so retheming is a token override and this file never changes.
  *
- *   Every rule is nested under the component's own root class. Nothing here is
- *   global, so a site can load two components that both style a card without
- *   them reaching each other.
+ *   Every rule is nested under the component's own root class, wrapped in
+ *   `:where()` so a site can override any of it with a plain class. An
+ *   un-wrapped `.bdocs-page-nav` at 0-1-0 ties with a utility and wins on source
+ *   order, which is how a theme starts fighting the site that installs it.
+ *
+ *   Direction arrives as `data-direction`, never as a modifier class. The
+ *   primitive carries state; the theme decides what that state looks like.
+ *
+ * ── Sizing ──────────────────────────────────────────────────────────────────
+ *
+ * The numbers below are not choices, they are transcriptions. The pixel harness
+ * (`scripts/visual/`) diffs the rendered site against the Tailwind build it
+ * replaced, and the values are the ones that diff reported as identical: 16px
+ * radius because `rounded-2xl` was 16px and not 14px, a 24px icon because the
+ * inline SVG was 24px, no `gap` on the card because the original had none. A
+ * "nicer" number here is a visible regression, and a screenshot is the only
+ * thing that would have caught it.
  */
 
-.bdocs-page-nav {
+:where(.bdocs-page-nav) {
   display: grid;
   grid-template-columns: 1fr;
-  gap: var(--bdocs-space-4, 1rem);
-  padding-top: var(--bdocs-space-8, 2rem);
+  gap: var(--bdocs-space-4);
+  padding-top: var(--bdocs-space-8);
   border-top: var(--bdocs-border-width) solid var(--_bdocs-line);
   user-select: none;
 }
 
 @media (min-width: 40rem) {
-  .bdocs-page-nav {
+  :where(.bdocs-page-nav) {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 
-.bdocs-page-nav__card {
+:where(.bdocs-page-nav__card) {
   display: flex;
   flex-direction: row;
   align-items: center;
-  gap: var(--bdocs-space-3, 0.75rem);
-  padding: var(--bdocs-space-5, 1.25rem);
+  /* No `gap`. The original had none — the icon and the label met, and adding one
+     here would have widened every card on the site. */
+  padding: var(--bdocs-space-5);
   border: var(--bdocs-border-width) solid var(--_bdocs-line);
-  border-radius: var(--bdocs-radius-lg);
+  border-radius: var(--bdocs-radius-2xl);
   background: var(--_bdocs-surface);
   color: inherit;
   text-decoration: none;
   transition:
-    border-color var(--bdocs-duration) var(--bdocs-easing),
-    background-color var(--bdocs-duration) var(--bdocs-easing);
+    border-color var(--bdocs-duration-slow) var(--bdocs-easing),
+    background-color var(--bdocs-duration-slow) var(--bdocs-easing);
 }
 
-.bdocs-page-nav__card--next {
+:where(.bdocs-page-nav__card[data-direction="next"]) {
   justify-content: flex-end;
   text-align: end;
 }
 
-.bdocs-page-nav__card:hover {
+:where(.bdocs-page-nav__card[data-direction="prev"]) {
+  justify-content: flex-start;
+  text-align: start;
+}
+
+:where(.bdocs-page-nav__card):hover {
   border-color: var(--_bdocs-brand);
   background: var(--_bdocs-brand-soft);
 }
 
-.bdocs-page-nav__card:focus-visible {
+:where(.bdocs-page-nav__card):focus-visible {
   outline: 2px solid var(--_bdocs-focus-ring);
   outline-offset: 2px;
+  border-radius: var(--bdocs-radius-2xl);
 }
 
-.bdocs-page-nav__body {
+/*
+ * `min-width: 0` is load-bearing, not decoration. A grid item defaults to
+ * `min-width: auto`, so a long page title refuses to shrink, overflows the card
+ * and pushes the row wider than the grid.
+ */
+:where(.bdocs-page-nav__body) {
   display: flex;
   flex-direction: column;
   min-width: 0;
 }
 
-.bdocs-page-nav__title {
-  margin-block-end: var(--bdocs-space-1, 0.25rem);
-  font-size: 0.6875rem;
+:where(.bdocs-page-nav__title) {
+  display: block;
+  font-size: var(--bdocs-text-caption-s);
   font-weight: 700;
+  /* 1rem, not the inherited 1.7. Tailwind's `text-xs` sets this itself, and
+     inheriting made the card 94px tall against the original's 78px, moving every
+     pixel below it on the page. Measured, not reasoned: see
+     `scripts/visual/measure-pagenav.mjs`. */
+  line-height: 1rem;
   text-transform: uppercase;
-  letter-spacing: 0.06em;
-  color: var(--_bdocs-ink-muted);
+  letter-spacing: 0.05em;
+  /* Muted at reduced strength, not muted with `opacity`. The alpha belongs to
+     the colour: fading the whole element also fades the icon it contains, and
+     the original faded only the text. */
+  color: var(--_bdocs-ink-faint);
 }
 
-.bdocs-page-nav__label {
+:where(.bdocs-page-nav__label) {
+  display: block;
   font-size: 0.875rem;
   font-weight: 700;
-  line-height: 1.4;
+  /* 1.25rem — Tailwind's `text-sm` measure. The `sm:text-base` in the original
+     markup never took effect at 1440px (measured, not assumed), so the label is
+     14px at every viewport. */
+  line-height: 1.25rem;
   color: var(--_bdocs-ink);
-  transition: color var(--bdocs-duration) var(--bdocs-easing);
+  transition: color var(--bdocs-duration-slow) var(--bdocs-easing);
+
+  /* Was `truncate` on the primitive. Truncation is presentation, so it lives
+     here — the markup carries meaning, the stylesheet carries looks. */
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-@media (min-width: 40rem) {
-  .bdocs-page-nav__label {
-    font-size: 1rem;
-  }
-}
-
-.bdocs-page-nav__card:hover .bdocs-page-nav__label {
+:where(.bdocs-page-nav__card):hover :where(.bdocs-page-nav__label) {
   color: var(--_bdocs-brand);
 }
 
-.bdocs-page-nav__icon {
+:where(.bdocs-page-nav__icon) {
   flex: none;
-  width: 1rem;
-  height: 1rem;
-  color: var(--_bdocs-ink-muted);
+  display: block;
+  width: 1.5rem;
+  height: 1.5rem;
+  color: var(--_bdocs-ink-faint);
+}
+
+:where(.bdocs-page-nav__icon) > svg {
+  display: block;
+  width: 100%;
+  height: 100%;
 }

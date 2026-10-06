@@ -1,0 +1,63 @@
+/*
+ * The documentation shell: root, body row, content column, page header.
+ *
+ * Layout lives here rather than in the components because it is layout. The
+ * primitives emit these classes and nothing else, which is what lets a theme
+ * resize the reading column without touching a component.
+ */
+
+:where(.bdocs-root) {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  overflow: hidden;
+  background-color: var(--_bdocs-page);
+  color: var(--_bdocs-ink);
+}
+
+:where(.bdocs-layout__body) {
+  display: flex;
+  flex: 1 1 0%;
+  width: 100%;
+  max-width: 120rem; /* --breakpoint-3xl in the Tailwind days */
+  margin-inline: auto;
+  overflow: hidden;
+  background-color: var(--_bdocs-page);
+}
+
+:where(.bdocs-layout__content) {
+  flex: 1 1 0%;
+  min-width: 0;
+  /* Both axes named, because the computed shorthand is part of what the harness
+     compares: `overflow-y: auto` on its own resolves to `auto auto` in Chrome,
+     while the previous build computed `hidden auto`. The content column must not
+     scroll sideways. */
+  overflow-x: hidden;
+  overflow-y: auto;
+}
+
+:where(.bdocs-layout__header) {
+  margin-block-end: var(--bdocs-space-10);
+}
+
+:where(.bdocs-page) {
+  width: 100%;
+}
+
+:where(.bdocs-page__column) {
+  width: 100%;
+  max-width: 48rem;
+  margin-inline: auto;
+}
+
+@media (min-width: 40rem) {
+  :where(.bdocs-page__column) {
+    max-width: 56rem;
+  }
+}
+
+@media (min-width: 64rem) {
+  :where(.bdocs-page__column) {
+    max-width: 64rem;
+  }
+}

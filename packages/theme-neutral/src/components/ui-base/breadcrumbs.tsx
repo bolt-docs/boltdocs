@@ -1,40 +1,33 @@
 import { useBreadcrumbs } from '../../hooks/use-breadcrumbs'
 import { Home } from './icons'
 import { Breadcrumbs as BreadcrumbsRoot } from '../primitives/breadcrumbs'
-import { cn } from '../../utils/cn'
 
+/**
+ * Breadcrumb trail.
+ *
+ * The active crumb is expressed as `data-active` on the link rather than as a
+ * class, so the muted-until-hover behaviour is a stylesheet decision. A site
+ * that wants the current page to still be clickable drops one rule.
+ */
 export function Breadcrumbs({ className }: { className?: string }) {
   const { crumbs, activeRoute } = useBreadcrumbs()
   if (crumbs.length === 0) return null
 
   return (
-    <BreadcrumbsRoot.Root
-      className={cn('gap-2 text-xs sm:text-sm font-medium', className)}
-    >
+    <BreadcrumbsRoot.Root className={className}>
       <BreadcrumbsRoot.Item>
-        <BreadcrumbsRoot.Link
-          href="/"
-          className="text-muted hover:text-body transition-colors flex items-center"
-        >
-          <Home size={14} />
+        <BreadcrumbsRoot.Link href="/" data-home="">
+          <Home size={14} className="bdocs-breadcrumbs__home-icon" />
         </BreadcrumbsRoot.Link>
       </BreadcrumbsRoot.Item>
       {crumbs.map((crumb, i) => {
         const isActive = crumb.href === activeRoute?.path
         return (
-          <BreadcrumbsRoot.Item
-            key={`crumb-${crumb.href}-${crumb.label}-${i}`}
-            className="gap-2"
-          >
-            <BreadcrumbsRoot.Separator className="text-muted/40" />
+          <BreadcrumbsRoot.Item key={`crumb-${crumb.href}-${crumb.label}-${i}`}>
+            <BreadcrumbsRoot.Separator />
             <BreadcrumbsRoot.Link
               href={crumb.href ?? ''}
-              className={cn(
-                'transition-colors',
-                isActive
-                  ? 'text-body font-semibold cursor-default pointer-events-none'
-                  : 'text-muted hover:text-body',
-              )}
+              data-active={isActive || undefined}
             >
               {crumb.label}
             </BreadcrumbsRoot.Link>

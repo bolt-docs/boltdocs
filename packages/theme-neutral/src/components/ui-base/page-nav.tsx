@@ -5,58 +5,42 @@ import { ChevronLeft, ChevronRight } from './icons'
 /**
  * Previous and next page navigation.
  *
- * Styling lives in `styles/components/page-nav.css` under a `bdocs-` prefix, not
- * in utility classes here. `className` still works and is appended last, so a site
- * can override any single piece without restating the rest.
+ * Styling lives in `styles/components/page-nav.css`, not in utility classes
+ * here. The primitives carry `bdocs-page-nav*` and `data-direction`; this layer
+ * only supplies content and the caller override.
  */
 export function PageNav({ className }: { className?: string }) {
   const { prevPage, nextPage } = usePageNav()
 
   if (!prevPage && !nextPage) return null
 
-  const card = 'bdocs-page-nav__card'
-
   return (
-    <PageNavPrimitive.Root
-      className={`bdocs-page-nav${className ? ` ${className}` : ''}`}
-    >
+    <PageNavPrimitive.Root className={className}>
       {prevPage ? (
-        <PageNavPrimitive.Link
-          to={prevPage.path}
-          direction="prev"
-          className={`${card} bdocs-page-nav__card--prev`}
-        >
-          <PageNavPrimitive.Icon className="bdocs-page-nav__icon">
+        <PageNavPrimitive.Link to={prevPage.path} direction="prev">
+          <PageNavPrimitive.Icon>
             <ChevronLeft />
           </PageNavPrimitive.Icon>
-          <div className="bdocs-page-nav__body">
-            <PageNavPrimitive.Title className="bdocs-page-nav__title">
-              Previous
-            </PageNavPrimitive.Title>
-            <PageNavPrimitive.Description className="bdocs-page-nav__label">
+          <PageNavPrimitive.Body>
+            <PageNavPrimitive.Title>Previous</PageNavPrimitive.Title>
+            <PageNavPrimitive.Description>
               {prevPage.title}
             </PageNavPrimitive.Description>
-          </div>
+          </PageNavPrimitive.Body>
         </PageNavPrimitive.Link>
       ) : (
         <div />
       )}
 
       {nextPage ? (
-        <PageNavPrimitive.Link
-          to={nextPage.path}
-          direction="next"
-          className={`${card} bdocs-page-nav__card--next`}
-        >
-          <div className="bdocs-page-nav__body">
-            <PageNavPrimitive.Title className="bdocs-page-nav__title">
-              Next
-            </PageNavPrimitive.Title>
-            <PageNavPrimitive.Description className="bdocs-page-nav__label">
+        <PageNavPrimitive.Link to={nextPage.path} direction="next">
+          <PageNavPrimitive.Body>
+            <PageNavPrimitive.Title>Next</PageNavPrimitive.Title>
+            <PageNavPrimitive.Description>
               {nextPage.title}
             </PageNavPrimitive.Description>
-          </div>
-          <PageNavPrimitive.Icon className="bdocs-page-nav__icon">
+          </PageNavPrimitive.Body>
+          <PageNavPrimitive.Icon>
             <ChevronRight />
           </PageNavPrimitive.Icon>
         </PageNavPrimitive.Link>

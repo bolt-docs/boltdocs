@@ -1,55 +1,83 @@
 /*
  * @bdocs/theme-neutral — element defaults.
  *
- * Scoped to `.bdocs-root` rather than applied to `body` and `:root` directly.
- * Boltdocs renders inside a host page as often as it is the whole page, and a
- * theme that rewrites the host's body background because it was imported is a
- * theme nobody can install twice or embed.
+ * Scoped to the theme's own root rather than applied to `body` and `:root`
+ * directly. Boltdocs renders inside a host page as often as it is the whole page,
+ * and a theme that rewrites the host's body background because it was imported
+ * is a theme nobody can install twice or embed.
+ *
+ * ── Why `:where()` wraps the root class too ─────────────────────────────────
+ *
+ * Everything here is a *default*, and a default that cannot be overridden is not
+ * a default. `:where()` has zero specificity by definition, which is what makes
+ * that true — but only for the part it wraps. This looks equivalent and is not:
+ *
+ *   .bdocs-root :where(a)          specificity 0-1-0   ties with .text-muted
+ *   :where(.bdocs-root) :where(a)   specificity 0-0-0   loses to .text-muted
+ *
+ * Both were shipped, and the first one won: at equal specificity the later
+ * stylesheet wins, this file is imported after Tailwind, so every link in the
+ * theme turned brand-blue regardless of its `text-muted` class. Sidebar links,
+ * breadcrumb links, card links — all wrong, and all invisible to a unit test.
+ *
+ * Wrapping the root too keeps the whole rule at zero specificity. A component
+ * stylesheet or a utility class can then always override it without `!important`
+ * and without knowing that `base.css` exists.
  */
 
-.bdocs-root {
+/*
+ * `color` is set on the root, not inherited into links. An `a` default is a trap:
+ * link colour is a per-component decision, and setting it centrally is how a
+ * sidebar link ends up looking like a call to action.
+ */
+:where(.bdocs-root) {
   font-family: var(--bdocs-font-family);
   font-size: var(--bdocs-font-size);
   line-height: var(--bdocs-line-height);
   color: var(--_bdocs-ink);
-  background-color: var(--_bdocs-surface);
+  background-color: var(--_bdocs-page);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
-.bdocs-root :where(h1, h2, h3, h4, h5, h6) {
+:where(.bdocs-root) :where(h1, h2, h3, h4, h5, h6) {
   line-height: var(--bdocs-heading-line-height);
   font-weight: 700;
   color: var(--_bdocs-ink);
 }
 
-.bdocs-root :where(code, pre, kbd, samp) {
+:where(.bdocs-root) :where(code, pre, kbd, samp) {
   font-family: var(--bdocs-font-mono);
 }
 
-.bdocs-root :where(a) {
-  color: var(--_bdocs-brand);
+/*
+ * Underline geometry only, never colour. The offset and thickness apply to every
+ * link in the theme; which colour it is stays with the component that owns it.
+ */
+:where(.bdocs-root) :where(a) {
   text-decoration-thickness: 1px;
   text-underline-offset: 0.15em;
 }
 
-.bdocs-root :where(a):focus-visible,
-.bdocs-root :where(button, [role="button"], summary):focus-visible {
+:where(.bdocs-root) :where(a):focus-visible,
+:where(.bdocs-root) :where(button, [role="button"], summary):focus-visible {
   outline: 2px solid var(--_bdocs-focus-ring);
   outline-offset: 2px;
   border-radius: var(--bdocs-radius-sm);
 }
 
-.bdocs-root ::selection {
+:where(.bdocs-root) ::selection {
   background-color: var(--_bdocs-brand-soft);
   color: var(--_bdocs-brand);
 }
 
 /*
  * `hidden` is how the theme removes a menu, a popover or a closed panel from the
- * layout. `[hidden]` alone loses to any `display` rule a component sets, so the
- * attribute is reinforced here rather than in every component.
+ * layout. The UA `[hidden]` rule is `display: none` at specificity 0-0-0, so any
+ * component that sets `display` at all beats it — and a hidden panel that still
+ * occupies space is a very visible bug. `!important` is correct here precisely
+ * because this is the one rule that must not lose.
  */
-.bdocs-root [hidden] {
+:where(.bdocs-root) [hidden] {
   display: none !important;
 }

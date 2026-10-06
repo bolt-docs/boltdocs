@@ -9,18 +9,17 @@ interface SlotProps {
 }
 
 /**
- * Root layout shell. Mount children like:
+ * Layout structure. Mount children like:
  *   <DocsLayout><Navbar /><DocsLayout.Body>...</DocsLayout.Body></DocsLayout>
+ *
+ * `bdocs-root` on the root is what scopes the theme's element defaults in
+ * `styles/base.css`. Without it the theme has no typography layer and only the
+ * per-component rules apply — which is exactly how the base sheet ended up
+ * inert the first time round.
  */
 function DocsLayoutRoot({ children, className, style }: SlotProps) {
   return (
-    <div
-      className={cn(
-        'h-screen flex flex-col overflow-hidden bg-main text-body',
-        className,
-      )}
-      style={style}
-    >
+    <div className={cn('bdocs-root', className)} style={style}>
       {children}
     </div>
   )
@@ -28,13 +27,7 @@ function DocsLayoutRoot({ children, className, style }: SlotProps) {
 
 function Body({ children, className, style }: SlotProps) {
   return (
-    <div
-      className={cn(
-        'mx-auto flex flex-1 w-full max-w-(--breakpoint-3xl) bg-main overflow-hidden',
-        className,
-      )}
-      style={style}
-    >
+    <div className={cn('bdocs-layout__body', className)} style={style}>
       {children}
     </div>
   )
@@ -42,13 +35,7 @@ function Body({ children, className, style }: SlotProps) {
 
 function Content({ children, className, style }: SlotProps) {
   return (
-    <main
-      className={cn(
-        'boltdocs-content flex-1 min-w-0 overflow-y-auto',
-        className,
-      )}
-      style={style}
-    >
+    <main className={cn('bdocs-layout__content', className)} style={style}>
       {children}
     </main>
   )
@@ -71,13 +58,10 @@ function ContentMdx({
   contentStyle,
 }: ContentMdxProps) {
   return (
-    <div className={cn('boltdocs-page w-full', className)} style={style}>
+    <div className={cn('bdocs-page', className)} style={style}>
       <SearchHighlight />
       <div
-        className={cn(
-          'mx-auto w-full max-w-3xl sm:max-w-4xl lg:max-w-5xl',
-          contentClassName,
-        )}
+        className={cn('bdocs-page__column', contentClassName)}
         style={contentStyle}
       >
         {children}
@@ -88,7 +72,7 @@ function ContentMdx({
 
 function Header({ children, className, style }: SlotProps) {
   return (
-    <header className={cn('mb-10', className)} style={style}>
+    <header className={cn('bdocs-layout__header', className)} style={style}>
       {children}
     </header>
   )

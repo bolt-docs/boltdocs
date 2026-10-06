@@ -17,4 +17,7 @@
  */
 @import "./tokens.css";
 @import "./base.css";
+@import "./components/breadcrumbs.css";
+@import "./components/docs-layout.css";
+@import "./components/page-header.css";
 @import "./components/page-nav.css";
