@@ -26,6 +26,13 @@
 @import "./components/menu.css";
 @import "./components/tabs.css";
 @import "./components/tooltip.css";
+@import "./components/cards.css";
+@import "./components/giscus.css";
+@import "./components/on-this-page.css";
+@import "./components/banner.css";
+@import "./components/error-debug.css";
+@import "./components/not-found.css";
+@import "./components/table.css";
 @import "./components/breadcrumbs.css";
 @import "./components/docs-layout.css";
 @import "./components/page-header.css";

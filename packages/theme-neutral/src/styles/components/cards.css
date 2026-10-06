@@ -1,0 +1,44 @@
+/*
+ * A grid of cards.
+ *
+ * `data-cols` drives the staircase. Written as classes in the component it would
+ * be four branches in JSX, where the breakpoints cannot be restyled and a fifth
+ * column needs another one.
+ */
+
+:where(.bdocs-cards) {
+  display: grid;
+  gap: var(--bdocs-space-4);
+  margin-block: var(--bdocs-space-6);
+  grid-template-columns: repeat(1, minmax(0, 1fr));
+}
+
+@media (min-width: 40rem) {
+  :where(.bdocs-cards[data-cols="2"]) {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 40rem) {
+  :where(.bdocs-cards[data-cols="3"]) {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 48rem) {
+  :where(.bdocs-cards[data-cols="3"]) {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 40rem) {
+  :where(.bdocs-cards[data-cols="4"]) {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 64rem) {
+  :where(.bdocs-cards[data-cols="4"]) {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}

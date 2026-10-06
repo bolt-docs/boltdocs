@@ -1,0 +1,12 @@
+/*
+ * The Giscus comment thread.
+ *
+ * Giscus renders its own iframe and posts its own styles; this only reserves the
+ * space so the page does not jump when the thread loads.
+ */
+
+:where(.bdocs-giscus) {
+  width: 100%;
+  max-width: 42rem;
+  margin-block: var(--bdocs-space-12) var(--bdocs-space-6);
+}

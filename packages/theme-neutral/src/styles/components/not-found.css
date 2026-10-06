@@ -1,0 +1,80 @@
+/*
+ * The 404 page.
+ *
+ * Centred in the viewport with a panel: a visitor who followed a dead link wants
+ * to be told what happened and offered a way out, not a bare status code.
+ */
+
+:where(.bdocs-not-found) {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 65vh;
+  padding-inline: var(--bdocs-space-4);
+  text-align: center;
+}
+
+:where(.bdocs-not-found__panel) {
+  max-width: 28rem;
+  margin-inline: auto;
+  padding: var(--bdocs-space-8);
+  display: flex;
+  flex-direction: column;
+  gap: var(--bdocs-space-6);
+  border: var(--bdocs-border-width) solid var(--_bdocs-line);
+  background-color: var(--_bdocs-surface);
+  border-radius: var(--bdocs-radius-2xl);
+  box-shadow: var(--bdocs-shadow-xs);
+}
+
+:where(.bdocs-not-found__code) {
+  display: block;
+  font-size: 4.375rem;
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: -0.025em;
+  color: var(--bdocs-primary);
+}
+
+:where(.bdocs-not-found__text) {
+  display: flex;
+  flex-direction: column;
+  gap: var(--bdocs-space-2);
+}
+
+:where(.bdocs-not-found__title) {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--_bdocs-ink);
+}
+
+:where(.bdocs-not-found__body) {
+  font-size: 0.875rem;
+  line-height: 1.625;
+  color: var(--_bdocs-ink-muted);
+}
+
+:where(.bdocs-not-found__action) {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--bdocs-space-2);
+  align-self: center;
+  padding: var(--bdocs-space-3) var(--bdocs-space-6);
+  font-size: var(--bdocs-text-caption-xs);
+  font-weight: 600;
+  color: var(--_bdocs-ink);
+  background-color: var(--_bdocs-page);
+  border: var(--bdocs-border-width) solid var(--_bdocs-line);
+  border-radius: var(--bdocs-radius-xl);
+  text-decoration: none;
+  user-select: none;
+  outline: none;
+  transition:
+    background-color var(--bdocs-duration-slow) var(--bdocs-easing),
+    border-color var(--bdocs-duration-slow) var(--bdocs-easing);
+}
+
+:where(.bdocs-not-found__action):hover {
+  background-color: var(--_bdocs-brand-soft);
+  border-color: var(--bdocs-primary-line-50);
+}

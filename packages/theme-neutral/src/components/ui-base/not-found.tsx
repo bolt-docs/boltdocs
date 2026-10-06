@@ -4,26 +4,16 @@ import { cn } from '../../utils/cn'
 
 export function NotFound({ className }: { className?: string }) {
   return (
-    <div
-      className={cn(
-        'flex items-center justify-center min-h-[65vh] text-center px-4',
-        className,
-      )}
-    >
-      <div className="space-y-6 max-w-md mx-auto p-8 border border-subtle bg-surface rounded-2xl shadow-xs">
-        <span className="block text-7xl font-extrabold tracking-tight text-primary-500">
-          404
-        </span>
-        <div className="space-y-2">
-          <h1 className="text-xl font-bold text-body">Page Not Found</h1>
-          <p className="text-sm text-muted leading-relaxed">
+    <div className={cn('bdocs-not-found', className)}>
+      <div className="bdocs-not-found__panel">
+        <span className="bdocs-not-found__code">404</span>
+        <div className="bdocs-not-found__text">
+          <h1 className="bdocs-not-found__title">Page Not Found</h1>
+          <p className="bdocs-not-found__body">
             The page you're looking for doesn't exist or has been moved.
           </p>
         </div>
-        <Link
-          href="/"
-          className="inline-flex items-center gap-2 rounded-xl border border-subtle bg-main px-6 py-2.5 text-xs font-semibold text-body hover:bg-primary-50/50 hover:border-primary-500/50 transition-all duration-300 outline-none select-none"
-        >
+        <Link href="/" className="bdocs-not-found__action">
           <ArrowLeft size={14} /> Go to Home
         </Link>
       </div>

@@ -1,0 +1,94 @@
+/*
+ * The internal error boundary.
+ *
+ * This one is not for visitors. It shows the message and the stack, because it
+ * is what a developer sees when a route throws in development, and a stack hidden
+ * behind a "something went wrong" is the thing you need most.
+ */
+
+:where(.bdocs-error-debug) {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 30vh;
+  padding: var(--bdocs-space-2);
+  font-family: var(--bdocs-font-mono);
+}
+
+:where(.bdocs-error-debug__title) {
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: var(--bdocs-danger);
+}
+
+:where(.bdocs-error-debug__message) {
+  max-width: 28rem;
+  margin-block-start: var(--bdocs-space-2);
+  overflow: auto;
+  font-size: 0.875rem;
+  white-space: pre-wrap;
+  overflow-wrap: break-word;
+}
+
+:where(.bdocs-error-debug__details) {
+  max-width: 28rem;
+  margin-block-start: var(--bdocs-space-2);
+  font-size: var(--bdocs-text-caption-xs);
+  text-align: start;
+}
+
+:where(.bdocs-error-debug__summary) {
+  cursor: pointer;
+  color: var(--_bdocs-ink-muted);
+  user-select: none;
+  outline: none;
+}
+
+:where(.bdocs-error-debug__stack) {
+  margin-block-start: var(--bdocs-space-2);
+  padding: var(--bdocs-space-2);
+  max-height: 12rem;
+  overflow: auto;
+  background-color: var(--_bdocs-surface-hover);
+  border: var(--bdocs-border-width) solid var(--_bdocs-line);
+  border-radius: var(--bdocs-radius);
+  white-space: pre-wrap;
+  overflow-wrap: break-word;
+}
+
+:where(.bdocs-error-debug__actions) {
+  display: flex;
+  align-items: center;
+  gap: var(--bdocs-space-2);
+  margin-block-start: var(--bdocs-space-2);
+}
+
+:where(.bdocs-error-debug__button) {
+  padding: var(--bdocs-space-3) var(--bdocs-space-2);
+  background-color: var(--_bdocs-surface-hover);
+  border: var(--bdocs-border-width) solid var(--_bdocs-line);
+  border-radius: var(--bdocs-radius);
+  font-family: var(--bdocs-font-mono);
+  font-weight: 600;
+  color: var(--_bdocs-ink);
+  cursor: pointer;
+  transition: transform var(--bdocs-duration) var(--bdocs-easing);
+}
+
+:where(.bdocs-error-debug__button):hover {
+  scale: 1.05;
+}
+
+:where(.bdocs-error-debug__button):active {
+  scale: 0.95;
+}
+
+:where(.bdocs-error-debug__button--ghost) {
+  background: transparent;
+  color: var(--_bdocs-ink-muted);
+}
+
+:where(.bdocs-error-debug__button--ghost):hover {
+  color: var(--_bdocs-ink);
+}

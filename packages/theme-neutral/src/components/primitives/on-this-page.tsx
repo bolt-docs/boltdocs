@@ -61,7 +61,7 @@ export interface OnThisPageContentProps extends ComponentBase {
   scrollRef?: RefObject<HTMLElement | null>
   /** Class applied to the bottom fade element (theme-owned). */
   fadeClassName?: string
-  /** Class applied to the inner content wrapper (`relative z-10`). */
+  /** Class applied to the inner content wrapper. */
   innerClassName?: string
 }
 
@@ -214,17 +214,14 @@ function OnThisPageContent({
     <div
       ref={setRefs}
       data-otp-content
-      className={cn('relative isolate overflow-y-auto', className)}
+      className={cn('bdocs-toc', className)}
       {...props}
     >
-      <div className={cn('relative z-10', innerClassName)}>{children}</div>
+      <div className={cn('bdocs-toc__inner', innerClassName)}>{children}</div>
       <div
         aria-hidden="true"
         data-otp-fade
-        className={cn(
-          'pointer-events-none sticky bottom-0 z-0 -mt-10 h-10 w-full',
-          fadeClassName,
-        )}
+        className={cn('bdocs-toc__fade', fadeClassName)}
       />
     </div>
   )
@@ -234,7 +231,7 @@ OnThisPageContent.displayName = 'OnThisPageContent'
 
 function OnThisPageList({ children, className }: ComponentBase) {
   return (
-    <ul data-otp-list className={cn('relative', className)}>
+    <ul data-otp-list className={cn('bdocs-toc__list', className)}>
       {children}
     </ul>
   )
@@ -360,7 +357,7 @@ function OnThisPageIndicator({ style, className }: OnThisPageIndicatorProps) {
       ref={containerRef}
       data-otp-indicator
       aria-hidden="true"
-      className={cn('absolute', className)}
+      className={cn('bdocs-toc__indicator', className)}
       style={{
         transition:
           'transform 180ms cubic-bezier(0.2, 0.8, 0.2, 1), height 180ms cubic-bezier(0.2, 0.8, 0.2, 1), opacity 150ms',

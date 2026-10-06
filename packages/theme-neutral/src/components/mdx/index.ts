@@ -1,6 +1,13 @@
 import { Field } from './field'
 import { Typographics } from './typographics'
-import { TableComponents } from './table'
+import {
+  Table,
+  TableHead,
+  TableBody,
+  TableRow,
+  TableHeader,
+  TableCell,
+} from './table'
 import { Callout } from './callout'
 import { CodeBlock } from './code-block'
 import { ImageComponents } from './image'
@@ -9,7 +16,12 @@ import { Cards } from './cards'
 
 export const mdx_components_default = {
   ...Typographics,
-  ...TableComponents,
+  table: Table,
+  thead: TableHead,
+  tbody: TableBody,
+  tr: TableRow,
+  th: TableHeader,
+  td: TableCell,
   ...ImageComponents,
   pre: CodeBlock,
   Field,

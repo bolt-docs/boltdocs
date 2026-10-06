@@ -41,6 +41,13 @@ const CONVERTED: Record<string, string> = {
   'components/primitives/tabs.tsx': 'tabs.css',
   'components/primitives/tooltip.tsx': 'tooltip.css',
   'components/mdx/callout.tsx': 'callout.css',
+  'components/mdx/cards.tsx': 'cards.css',
+  'components/mdx/table.tsx': 'table.css',
+  'components/ui-base/banner.tsx': 'banner.css',
+  'components/ui-base/giscus.tsx': 'giscus.css',
+  'components/ui-base/not-found.tsx': 'not-found.css',
+  'components/internal/error-boundary.tsx': 'error-debug.css',
+  'components/primitives/on-this-page.tsx': 'on-this-page.css',
 }
 
 /**

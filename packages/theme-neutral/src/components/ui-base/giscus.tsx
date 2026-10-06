@@ -94,7 +94,5 @@ export function Giscus({ className }: GiscusProps) {
 
   if (!giscusConfig) return null
 
-  return (
-    <div ref={ref} className={cn('w-full max-w-2xl mt-12 mb-6', className)} />
-  )
+  return <div ref={ref} className={cn('bdocs-giscus', className)} />
 }

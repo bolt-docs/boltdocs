@@ -1,0 +1,82 @@
+/*
+ * The dismissible site banner.
+ *
+ * The dismiss button is centred on its own line rather than offset from the right
+ * edge, so it lands in the same place at every width instead of drifting inward
+ * as the message wraps.
+ */
+
+:where(.bdocs-banner) {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--bdocs-space-2);
+  padding: 0.625rem var(--bdocs-space-4);
+  font-size: var(--bdocs-text-caption-xs);
+  font-weight: 600;
+  letter-spacing: 0.025em;
+  color: var(--_bdocs-brand-ink);
+  background-color: var(--_bdocs-brand-banner);
+  border-block-end: var(--bdocs-border-width) solid var(--_bdocs-brand-line);
+  user-select: none;
+  animation: bdocs-banner-in var(--bdocs-duration-slow) var(--bdocs-easing);
+}
+
+/* Only one direction to animate in: the banner is inserted, never removed. */
+@keyframes bdocs-banner-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :where(.bdocs-banner) {
+    animation: none;
+  }
+}
+
+:where(.bdocs-banner__text) {
+  flex: 1 1 0%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--bdocs-space-2);
+  text-align: center;
+  min-width: 0;
+}
+
+:where(.bdocs-banner__dismiss) {
+  position: absolute;
+  inset-block-start: 50%;
+  inset-inline-end: var(--bdocs-space-3);
+  translate: 0 -50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--bdocs-space-2);
+  background: transparent;
+  border: none;
+  border-radius: var(--bdocs-radius-xl);
+  color: inherit;
+  cursor: pointer;
+  outline: none;
+  opacity: 0.7;
+  transition:
+    opacity var(--bdocs-duration-slow) var(--bdocs-easing),
+    background-color var(--bdocs-duration-slow) var(--bdocs-easing);
+}
+
+:where(.bdocs-banner__dismiss):hover {
+  opacity: 1;
+  background-color: var(--_bdocs-brand-soft);
+}
+
+:where(.bdocs-banner__dismiss-icon) {
+  display: block;
+  width: 0.875rem;
+  height: 0.875rem;
+}

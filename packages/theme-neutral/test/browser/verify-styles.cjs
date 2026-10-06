@@ -248,7 +248,7 @@ async function main() {
   console.log(JSON.stringify(results, null, 2))
   if (fail.length > 0) {
     console.error(`\n✗ ${fail.length} comprobacion(es) fallida(s):`)
-    for (const f of fail) console.error('  - ' + f)
+    for (const f of fail) console.error(`  - ${f}`)
     process.exit(1)
   }
   console.log(

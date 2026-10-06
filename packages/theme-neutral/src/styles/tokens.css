@@ -392,6 +392,9 @@
   --_bdocs-line-strong: var(--bdocs-line-strong);
   --_bdocs-brand: var(--bdocs-primary);
   --_bdocs-brand-soft: var(--bdocs-primary-soft);
+  --_bdocs-brand-banner: var(--bdocs-primary-banner);
+  --_bdocs-brand-ink: var(--bdocs-primary-ink);
+  --_bdocs-brand-line: var(--bdocs-primary-line-soft);
   --_bdocs-chrome-bar: var(--bdocs-chrome-bar);
   --_bdocs-chrome-panel: var(--bdocs-chrome-panel);
   --_bdocs-accent-note: var(--bdocs-primary);

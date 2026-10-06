@@ -1,0 +1,89 @@
+/*
+ * Tables.
+ *
+ * Three things here that are easy to get wrong:
+ *
+ *   `overflow-x: auto` on the wrapper, not the table. A table inside an
+ *   `overflow: auto` parent does not scroll — it widens the parent and takes the
+ *   whole page sideways. The wrapper is the scroll container.
+ *
+ *   `border-collapse: collapse` with the borders on cells. `collapse` is what
+ *   makes a `last-child` row rule land on the bottom edge; with `separate` the
+ *   doubled borders show as hairlines twice as dark.
+ *
+ *   Zebra striping on `nth-child(even)` rather than on a class. Written as
+ *   `even:bg-*` in the component it was a variant the theme could not restyle,
+ *   and it marked rows the moment the table gained a header row.
+ */
+
+:where(.bdocs-table) {
+  width: 100%;
+  margin-block: var(--bdocs-space-6);
+  overflow-x: auto;
+  border: var(--bdocs-border-width) solid var(--_bdocs-line);
+  border-radius: var(--bdocs-radius-xl);
+  background-color: color-mix(in srgb, var(--_bdocs-surface) 30%, transparent);
+}
+
+:where(.bdocs-table__table) {
+  width: 100%;
+  border-collapse: collapse;
+  border-spacing: 0;
+  font-size: 0.875rem;
+  text-align: start;
+}
+
+:where(.bdocs-table__head) {
+  border-block-end: var(--bdocs-border-width) solid var(--_bdocs-line);
+  background-color: color-mix(
+    in srgb,
+    var(--_bdocs-surface-hover) 50%,
+    transparent
+  );
+}
+
+:where(.bdocs-table__row) {
+  border-block-end: var(--bdocs-border-width) solid var(--_bdocs-line);
+  transition: background-color var(--bdocs-duration) var(--bdocs-easing);
+}
+
+/* The last row's border would sit on top of the wrapper's own. */
+:where(.bdocs-table__row:last-child) {
+  border-block-end: none;
+}
+
+:where(.bdocs-table__row:nth-child(even)) {
+  background-color: color-mix(
+    in srgb,
+    var(--_bdocs-surface-hover) 10%,
+    transparent
+  );
+}
+
+:where(.bdocs-table__row:hover) {
+  background-color: color-mix(
+    in srgb,
+    var(--_bdocs-surface-hover) 20%,
+    transparent
+  );
+}
+
+:where(.bdocs-table__header),
+:where(.bdocs-table__cell) {
+  padding: var(--bdocs-space-3) var(--bdocs-space-4);
+  text-align: start;
+  vertical-align: top;
+}
+
+:where(.bdocs-table__header) {
+  font-family: var(--bdocs-font-mono);
+  font-size: var(--bdocs-text-caption-xs);
+  font-weight: 600;
+  color: var(--_bdocs-ink);
+  white-space: nowrap;
+}
+
+:where(.bdocs-table__cell) {
+  line-height: 1.625;
+  color: var(--bdocs-ink-body);
+}

@@ -1,25 +1,26 @@
 import { cn } from '../../utils/cn'
 
-export interface TableProps extends React.HTMLAttributes<HTMLTableElement> {
+export interface TableProps
+  extends React.TableHTMLAttributes<HTMLTableElement> {
   wrapperClassName?: string
 }
 
+/**
+ * Table, header, row, cell.
+ *
+ * Structural classes only. Every visual decision — the wrapper's hairline, the
+ * zebra striping, the header's monospace caps, the cell padding — is in
+ * `styles/components/table.css`, which means a theme can restyle a table without
+ * this file changing and without knowing that `even:` or `last:` ever existed.
+ */
 const Table = ({ wrapperClassName, ...props }: TableProps) => (
-  <div
-    className={cn(
-      'my-6 w-full overflow-x-auto rounded-xl border border-subtle bg-surface/30',
-      wrapperClassName,
-    )}
-  >
-    <table className="w-full border-collapse text-left text-sm" {...props} />
+  <div className={cn('bdocs-table', wrapperClassName)}>
+    <table className="bdocs-table__table" {...props} />
   </div>
 )
 
 const TableHead = (props: React.HTMLAttributes<HTMLTableSectionElement>) => (
-  <thead
-    className={cn('border-b border-subtle bg-soft/50', props.className)}
-    {...props}
-  />
+  <thead className={cn('bdocs-table__head', props.className)} {...props} />
 )
 
 const TableBody = (props: React.HTMLAttributes<HTMLTableSectionElement>) => (
@@ -27,37 +28,15 @@ const TableBody = (props: React.HTMLAttributes<HTMLTableSectionElement>) => (
 )
 
 const TableRow = (props: React.HTMLAttributes<HTMLTableRowElement>) => (
-  <tr
-    className={cn(
-      'border-b border-subtle last:border-0 even:bg-soft/10 hover:bg-soft/20 transition-colors',
-      props.className,
-    )}
-    {...props}
-  />
+  <tr className={cn('bdocs-table__row', props.className)} {...props} />
 )
 
 const TableHeader = (props: React.HTMLAttributes<HTMLTableCellElement>) => (
-  <th
-    className={cn(
-      'px-4 py-3 font-semibold text-body text-xs font-mono',
-      props.className,
-    )}
-    {...props}
-  />
+  <th className={cn('bdocs-table__header', props.className)} {...props} />
 )
 
 const TableCell = (props: React.HTMLAttributes<HTMLTableCellElement>) => (
-  <td
-    className={cn('px-4 py-3 text-paragraph leading-relaxed', props.className)}
-    {...props}
-  />
+  <td className={cn('bdocs-table__cell', props.className)} {...props} />
 )
 
-export const TableComponents = {
-  table: Table,
-  thead: TableHead,
-  tbody: TableBody,
-  tr: TableRow,
-  th: TableHeader,
-  td: TableCell,
-}
+export { Table, TableHead, TableBody, TableRow, TableHeader, TableCell }

@@ -1,0 +1,68 @@
+/*
+ * The right-hand table of contents.
+ *
+ * `isolation: isolate` because the sticky fade sits at a negative offset and
+ * overlaps the list: without a stacking context the fade's background paints
+ * over the links instead of under them.
+ */
+
+:where(.bdocs-toc) {
+  position: relative;
+  isolation: isolate;
+  overflow-y: auto;
+}
+
+:where(.bdocs-toc__inner) {
+  position: relative;
+  z-index: 10;
+}
+
+/*
+ * A gradient over the bottom of the list, so entries scrolling underneath fade
+ * out instead of being cut mid-glyph.
+ *
+ * `pointer-events: none` because it covers the last visible entry and would
+ * otherwise swallow its clicks.
+ *
+ * Sticky, and deliberately *not* given a negative top margin. The previous
+ * version had `-mt-10` and `h-10` together, which cancel: the element occupies
+ * the space it pushes up. Copying that pair faithfully as
+ * `margin-block-start: -40px` subtracted a real 40px from the rail and every
+ * entry after it moved — a 40px difference the harness attributed to the wrong
+ * component until the two builds were measured side by side.
+ *
+ * The gradient itself comes from the caller's class, which supplies the colour
+ * stops: `to-main` there, `--_bdocs-page` here. Keeping it there means the fade
+ * tracks whatever the surface behind it is, including a themed one.
+ */
+:where(.bdocs-toc__fade) {
+  position: sticky;
+  inset-block-end: 0;
+  z-index: 0;
+  width: 100%;
+  height: var(--bdocs-space-10);
+  pointer-events: none;
+}
+
+:where(.bdocs-toc__item) {
+  position: relative;
+}
+
+:where(.bdocs-toc__badge) {
+  position: absolute;
+}
+
+/*
+ * The list is the positioning context for the active-entry indicator, which is
+ * translated and resized to sit alongside whichever heading is current. It is
+ * `aria-hidden` and never receives pointer events — it is a mark, not a control.
+ */
+:where(.bdocs-toc__list) {
+  position: relative;
+}
+
+:where(.bdocs-toc__indicator) {
+  position: absolute;
+  inset-inline-start: 0;
+  pointer-events: none;
+}
