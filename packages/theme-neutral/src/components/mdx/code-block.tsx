@@ -42,8 +42,8 @@ const CopyButton = ({
       <Button
         onPress={onCopy}
         className={cn(
-          'grid place-items-center size-8 bg-transparent outline-none cursor-pointer transition-all duration-200 hover:scale-110 active:scale-95 [&>svg]:size-4 [&>svg]:stroke-2 z-10',
-          copied ? 'text-emerald-400' : 'text-muted hover:text-body',
+          'bdocs-code__action',
+          copied ? 'bdocs-code__action--copied' : '',
           className,
         )}
         aria-label="Copy code"
@@ -64,23 +64,20 @@ const CodeBlockFeedback = ({
   className?: string
 }) => {
   return (
-    <div
-      className={cn(
-        'flex items-center gap-0.5 border-r border-subtle pr-1.5 mr-1',
-        className,
-      )}
-    >
+    <div className={cn('bdocs-code__rating', className)}>
       <Tooltip content={rated === 'up' ? 'Helpful!' : 'This code is helpful'}>
         <Button
           onPress={() => onRate('up')}
           isDisabled={rated !== null}
           className={cn(
-            'grid place-items-center size-8 bg-transparent outline-none cursor-pointer transition-all duration-200 hover:scale-110 active:scale-95 [&>svg]:size-4 [&>svg]:stroke-2 z-10',
+            'bdocs-code__action',
             rated === 'up'
-              ? 'text-emerald-500 dark:text-emerald-400'
+              ? 'bdocs-code__action--rated-up'
               : rated === 'down'
-                ? 'opacity-30 cursor-not-allowed text-muted'
-                : 'text-muted hover:text-body',
+                ? 'bdocs-code__action--rated-down'
+                : rated
+                  ? 'bdocs-code__action--inert'
+                  : '',
           )}
           aria-label="Mark as helpful"
         >
@@ -107,12 +104,14 @@ const CodeBlockFeedback = ({
           onPress={() => onRate('down')}
           isDisabled={rated !== null}
           className={cn(
-            'grid place-items-center size-8 bg-transparent outline-none cursor-pointer transition-all duration-200 hover:scale-110 active:scale-95 [&>svg]:size-4 [&>svg]:stroke-2 z-10',
+            'bdocs-code__action',
             rated === 'down'
-              ? 'text-rose-500 dark:text-rose-400'
+              ? 'bdocs-code__action--rated-down'
               : rated === 'up'
-                ? 'opacity-30 cursor-not-allowed text-muted'
-                : 'text-muted hover:text-body',
+                ? 'bdocs-code__action--rated-up'
+                : rated
+                  ? 'bdocs-code__action--inert'
+                  : '',
           )}
           aria-label="Mark as unhelpful"
         >
@@ -193,9 +192,9 @@ export function CodeBlock(props: CodeBlockProps) {
     <CodePrimitive.CodeBlock plain={plain} className={shikiClassName}>
       {(effectiveTitle || !hideCopy) && (
         <CodePrimitive.CodeBlockHeader
-          className={cn({
-            'absolute top-2 left-0 w-full': !effectiveTitle,
-          })}
+          className={
+            !effectiveTitle ? 'bdocs-code__header--floating' : undefined
+          }
         >
           <CodePrimitive.CodeBlockGroup>
             {effectiveTitle && <span>{effectiveTitle}</span>}

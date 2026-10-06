@@ -33,6 +33,7 @@
 @import "./components/error-debug.css";
 @import "./components/not-found.css";
 @import "./components/table.css";
+@import "./components/code-block.css";
 @import "./components/breadcrumbs.css";
 @import "./components/docs-layout.css";
 @import "./components/page-header.css";

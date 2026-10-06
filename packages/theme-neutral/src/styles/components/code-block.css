@@ -1,0 +1,246 @@
+/*
+ * Code blocks.
+ *
+ * Three things here that are easy to get wrong, and all three were written as
+ * classes in the component first:
+ *
+ *   `overflow-x: auto` is on the `<pre>`, not the wrapper. The wrapper clips with
+ *   `overflow: hidden` so the rounded corners cut the code, and the `<pre>` does
+ *   the scrolling inside it. Putting `auto` on the wrapper instead makes the
+ *   rounded corners disappear as soon as anything scrolls.
+ *
+ *   The header sits on top of the code with a `background-color`, not a
+ *   translucent one. A code block scrolls under its header, and a translucent bar
+ *   over it shows the code sliding through.
+ *
+ *   The expand/collapse fade is a gradient in the *background-image* so the
+ *   component can keep passing its own colours to `style`, and the class only
+ *   says where the overlay sits.
+ *
+ * `contain-layout contain-paint` is not decoration: without it, a wide code block
+ * widens its ancestor and the whole page scrolls sideways instead of the block.
+ */
+
+:where(.bdocs-code) {
+  position: relative;
+  overflow: hidden;
+  background-color: var(--bdocs-code-bg);
+  contain: layout paint;
+}
+
+:where(.bdocs-code--framed) {
+  margin-block: var(--bdocs-space-6);
+  border: var(--bdocs-border-width) solid var(--_bdocs-line);
+  border-radius: var(--bdocs-radius-xl);
+}
+
+/* ── Header ─────────────────────────────────────────────────────────────── */
+
+:where(.bdocs-code__header) {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 2.25rem;
+  padding-block: 0.375rem;
+  padding-inline: var(--bdocs-space-4);
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: var(--_bdocs-ink-muted);
+  /* Opaque, for the reason above. */
+  background-color: var(--bdocs-code-bg);
+}
+
+:where(.bdocs-code__group) {
+  display: flex;
+  align-items: center;
+  gap: var(--bdocs-space-2);
+}
+
+:where(.bdocs-code__actions) {
+  display: flex;
+  align-items: center;
+  gap: 0.125rem;
+  padding-inline-start: var(--bdocs-space-2);
+  background-color: var(--bdocs-code-bg);
+  z-index: 10;
+}
+
+/* ── Content ────────────────────────────────────────────────────────────── */
+
+:where(.bdocs-code__content) {
+  position: relative;
+}
+
+:where(.bdocs-code__content--truncated) > pre,
+:where(.bdocs-code__content--truncated) > div > pre {
+  max-height: 300px;
+  overflow: hidden;
+}
+
+:where(.bdocs-code__shiki) {
+  overflow-x: auto;
+}
+
+:where(.bdocs-code__pre) {
+  margin: 0;
+  border: none;
+  border-radius: 0;
+  background: transparent;
+  font-size: 0.875rem;
+  line-height: 1.6;
+  overflow-x: auto;
+}
+
+/*
+ * The highlighted form gets its padding on the `<code>` and lays it out as a
+ * grid, which is what Shiki's own output expects. The unhighlighted form is
+ * plain preformatted text and pads the `<pre>` directly.
+ */
+:where(.bdocs-code__pre--highlighted) {
+  padding: 0;
+}
+
+:where(.bdocs-code__pre--highlighted) > code {
+  display: grid;
+  padding: var(--bdocs-space-5);
+  background: transparent;
+  white-space: pre;
+}
+
+:where(.bdocs-code__pre--plain) {
+  padding: var(--bdocs-space-5);
+}
+
+/* ── Expand / collapse fade ─────────────────────────────────────────────── */
+
+:where(.bdocs-code__fade) {
+  display: flex;
+  justify-content: center;
+}
+
+:where(.bdocs-code__fade--overlay) {
+  position: absolute;
+  inset-block-end: 0;
+  inset-inline: 0;
+  align-items: flex-end;
+  height: 8rem;
+  padding-block-end: var(--bdocs-space-4);
+  z-index: 10;
+}
+
+:where(.bdocs-code__fade--inline) {
+  position: relative;
+  padding-block: 0.25rem var(--bdocs-space-4);
+  margin-block-start: calc(var(--bdocs-space-4) * -1);
+}
+
+/* ── Header buttons ─────────────────────────────────────────────────────── */
+
+/*
+ * Copy, and the two rating buttons, are the same control in three states. One
+ * base rule plus state rules beats three copies of a fourteen-utility class
+ * string, and it is why adding a fourth action does not mean adding a fourth
+ * block of near-identical classes.
+ */
+:where(.bdocs-code__action) {
+  display: grid;
+  place-items: center;
+  width: 2rem;
+  height: 2rem;
+  background: transparent;
+  border: none;
+  border-radius: var(--bdocs-radius);
+  color: var(--_bdocs-ink-muted);
+  cursor: pointer;
+  outline: none;
+  z-index: 10;
+  transition:
+    color var(--bdocs-duration) var(--bdocs-easing),
+    scale var(--bdocs-duration) var(--bdocs-easing);
+}
+
+:where(.bdocs-code__action) > svg {
+  width: 1rem;
+  height: 1rem;
+  stroke-width: 2;
+}
+
+:where(.bdocs-code__action):hover {
+  color: var(--_bdocs-ink);
+  scale: 1.1;
+}
+
+:where(.bdocs-code__action):active {
+  scale: 0.95;
+}
+
+:where(.bdocs-code__action[data-state="copied"]),
+:where(.bdocs-code__action--copied) {
+  color: var(--bdocs-positive);
+}
+
+:where(.bdocs-code__action[data-state="up"]),
+:where(.bdocs-code__action--rated-up) {
+  color: var(--bdocs-positive);
+}
+
+:where(.bdocs-code__action[data-state="down"]),
+:where(.bdocs-code__action--rated-down) {
+  color: var(--bdocs-negative);
+}
+
+/* Rated, so the button stays visible but inert. */
+:where(.bdocs-code__action[data-muted]) {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+:where(.bdocs-code__rating) {
+  display: flex;
+  align-items: center;
+  gap: 0.125rem;
+  padding-inline-end: 0.375rem;
+  margin-inline-end: 0.25rem;
+  border-inline-end: var(--bdocs-border-width) solid var(--_bdocs-line);
+}
+/* ── Expand / collapse control ──────────────────────────────────────────── */
+
+/*
+ * Sits over the bottom of a truncated block, so it is translucent and blurs the
+ * code behind it rather than hiding it — the point is to show that there is more.
+ */
+:where(.bdocs-code__expand) {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--bdocs-space-2);
+  padding: var(--bdocs-space-2) var(--bdocs-space-5);
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: var(--_bdocs-ink);
+  background-color: var(--_bdocs-surface);
+  border: var(--bdocs-border-width) solid var(--_bdocs-line);
+  border-radius: var(--bdocs-radius-full);
+  cursor: pointer;
+  outline: none;
+  backdrop-filter: blur(12px);
+  transition:
+    background-color var(--bdocs-duration) var(--bdocs-easing),
+    translate var(--bdocs-duration) var(--bdocs-easing);
+}
+
+:where(.bdocs-code__expand):hover {
+  background-color: var(--_bdocs-surface-hover);
+  translate: 0 -1px;
+}
+
+/*
+ * A header with no title of its own is pinned over the top of the code rather
+ * than taking a row above it, so a code block that only has actions does not
+ * start 36 pixels lower than the surrounding prose.
+ */
+:where(.bdocs-code__header--floating) {
+  position: absolute;
+  inset-block-start: var(--bdocs-space-2);
+  inset-inline: 0;
+  width: 100%;
+}

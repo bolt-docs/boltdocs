@@ -48,6 +48,8 @@ const CONVERTED: Record<string, string> = {
   'components/ui-base/not-found.tsx': 'not-found.css',
   'components/internal/error-boundary.tsx': 'error-debug.css',
   'components/primitives/on-this-page.tsx': 'on-this-page.css',
+  'components/primitives/code-block.tsx': 'code-block.css',
+  'components/mdx/code-block.tsx': 'code-block.css',
 }
 
 /**
@@ -56,6 +58,10 @@ const CONVERTED: Record<string, string> = {
  * stylesheet?", so an empty entry is not an option.
  */
 const ALLOWED = new Map<string, string>([
+  [
+    'not-prose',
+    'Tailwind Typography plugin opt-out. Typography styles the prose wrapper by\n     * parsing the rendered HTML with its own cascade, so it cannot be expressed as\n     * a rule against our own classes — and inside a code block its margins would\n     * put a blank line above and below every one.',
+  ],
   [
     'prose',
     'Tailwind Typography plugin. It styles the MDX content wrapper by parsing the\n     * rendered HTML with its own cascade, so it cannot be expressed as a rule\n     * against our own classes. It is a site dependency, not a theme style —\n     * `max-w-none` alongside it stops it imposing a measure on the reading\n     * column, which the theme sets.',

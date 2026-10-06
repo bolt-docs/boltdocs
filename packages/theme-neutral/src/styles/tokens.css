@@ -100,6 +100,10 @@
   --bdocs-surface-hover: var(--_bdocs-gray-800);
   /* Wells: code blocks, inset content. */
   --bdocs-surface-sunken: var(--_bdocs-gray-950);
+  /* The code surface. Separate from `--bdocs-surface` because a code block needs
+     to stay legible against the Shiki palette, and retuning one should not force
+     the other. */
+  --bdocs-code-bg: var(--_bdocs-gray-900);
 }
 
 /* ------------------------------------------------------------------ *

@@ -65,12 +65,8 @@ function CodeBlock({
   return (
     <div
       className={cn(
-        'not-prose boltdocs-code-block',
-        'group relative overflow-hidden bg-(--color-code-bg)',
-        'contain-layout contain-paint',
-        {
-          'my-6 rounded-xl border border-subtle': !plain,
-        },
+        'bdocs-code boltdocs-code-block',
+        !plain && 'bdocs-code--framed',
         className,
       )}
       {...props}
@@ -90,14 +86,7 @@ function CodeBlockHeader({
   ...props
 }: CodeBlockHeaderProps) {
   return (
-    <div
-      className={cn(
-        'flex h-9 items-center justify-between px-4 py-1.5',
-        'text-[13px] font-medium text-muted',
-        className,
-      )}
-      {...props}
-    >
+    <div className={cn('bdocs-code__header', className)} {...props}>
       {children}
     </div>
   )
@@ -112,7 +101,7 @@ function CodeBlockGroup({
   ...props
 }: CodeBlockGroupProps) {
   return (
-    <div className={cn('flex items-center space-x-2', className)} {...props}>
+    <div className={cn('bdocs-code__group', className)} {...props}>
       {children}
     </div>
   )
@@ -127,13 +116,7 @@ function CodeBlockActions({
   ...props
 }: CodeBlockActionsProps) {
   return (
-    <div
-      className={cn(
-        'flex items-center gap-1 bg-(--color-code-bg) pl-2 z-10',
-        className,
-      )}
-      {...props}
-    >
+    <div className={cn('bdocs-code__actions', className)} {...props}>
       {children}
     </div>
   )
@@ -152,11 +135,8 @@ function CodeBlockContent({
   return (
     <div
       className={cn(
-        'relative',
-        {
-          '[&>pre]:max-h-[300px] [&>pre]:overflow-hidden [&>div>pre]:max-h-[300px] [&>div>pre]:overflow-hidden':
-            shouldTruncate,
-        },
+        'bdocs-code__content',
+        shouldTruncate && 'bdocs-code__content--truncated',
         className,
       )}
       {...props}
@@ -182,7 +162,7 @@ function CodeBlockPre({
     return (
       <div
         ref={ref as Ref<HTMLDivElement>}
-        className={cn('shiki-wrapper overflow-x-auto', className)}
+        className={cn('bdocs-code__shiki', className)}
         dangerouslySetInnerHTML={{ __html: highlightedHtml }}
         {...props}
       />
@@ -193,13 +173,10 @@ function CodeBlockPre({
     <pre
       ref={ref as Ref<HTMLPreElement>}
       className={cn(
-        'm-0 rounded-none border-none bg-transparent',
-        'text-[0.875rem] leading-[1.6] overflow-x-auto',
-        {
-          'p-0 [&>code]:grid [&>code]:p-5 [&>code]:bg-transparent [&>code]:whitespace-pre':
-            isHighlighted,
-          'p-5': !isHighlighted,
-        },
+        'bdocs-code__pre',
+        isHighlighted
+          ? 'bdocs-code__pre--highlighted'
+          : 'bdocs-code__pre--plain',
         className,
       )}
       {...props}
@@ -230,11 +207,9 @@ function CodeBlockExpand({
   return (
     <div
       className={cn(
-        {
-          'absolute bottom-0 inset-x-0 h-32 flex items-end justify-center pb-4 z-10':
-            shouldTruncate,
-          'relative flex justify-center pb-4 pt-1 -mt-4': !shouldTruncate,
-        },
+        shouldTruncate
+          ? 'bdocs-code__fade bdocs-code__fade--overlay'
+          : 'bdocs-code__fade bdocs-code__fade--inline',
         className,
       )}
       style={
@@ -249,10 +224,7 @@ function CodeBlockExpand({
     >
       <Button
         onPress={onToggle}
-        className={cn(
-          'inline-flex items-center gap-2 rounded-full bg-surface border border-subtle px-5 py-2 text-[0.8125rem] font-medium text-body outline-none cursor-pointer transition-all hover:bg-soft hover:-translate-y-px backdrop-blur-md',
-          buttonClassName,
-        )}
+        className={cn('bdocs-code__expand', buttonClassName)}
       >
         {expandIcon}
         {isExpanded ? collapseLabel : expandLabel}

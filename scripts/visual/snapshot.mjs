@@ -262,7 +262,11 @@ function pagesToShoot() {
   const available = new Set(sitePages())
   if (ALL) return [...available]
   // Scroll capture makes each page 3-6 images, so `--quick` trims the list hard.
-  const wanted = QUICK ? CURATED.slice(0, 4) : CURATED
+  // A single page, named. Converting one component should not cost a 914-image
+  // run to check; `PAGE=docs/components/mdx/code-blocks.html` shoots one page
+  // and diffs it against the same page in the other label.
+  const only = process.env.PAGE
+  const wanted = only ? [only] : QUICK ? CURATED.slice(0, 4) : CURATED
   const missing = wanted.filter((p) => !available.has(p))
   if (missing.length > 0) {
     throw new Error(
