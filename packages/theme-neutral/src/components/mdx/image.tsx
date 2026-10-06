@@ -1,6 +1,6 @@
 import { useTheme } from '@bdocs/runtime'
 import { cn } from '../../utils/cn'
-import { Image as ImagePrimitive } from '../primitives/image'
+import { Image as ImagePrimitive } from '../composition/image'
 
 export interface ImageProps extends React.ImgHTMLAttributes<HTMLImageElement> {
   theme?: 'light' | 'dark'
@@ -27,37 +27,21 @@ const Image = ({
   const caption = title || alt
 
   return (
-    <figure
-      className={cn(
-        'my-6 sm:my-8 flex flex-col items-center justify-center group not-prose',
-        figureClassName,
-      )}
-    >
-      <div
-        className={cn(
-          'relative w-full overflow-hidden rounded-lg sm:rounded-2xl border border-subtle bg-soft/30 transition-all duration-300 sm:max-w-[85%] lg:max-w-full',
-          figureInnerClassName,
-        )}
-      >
+    <figure className={cn('bdocs-figure', figureClassName)}>
+      <div className={cn('bdocs-figure__frame', figureInnerClassName)}>
         <ImagePrimitive
           src={src}
           alt={alt || ''}
           theme={theme}
           loading="lazy"
           decoding="async"
-          className={cn(
-            'w-full h-auto object-contain transition-transform duration-500 group-hover:scale-[1.01] my-0 rounded-md sm:rounded-xl block',
-            className,
-          )}
+          className={cn('bdocs-figure__image', className)}
           {...props}
         />
       </div>
       {caption && (
         <figcaption
-          className={cn(
-            'mt-2 sm:mt-3 text-center text-xs sm:text-sm text-muted font-medium select-none tracking-wide opacity-90 sm:opacity-80 group-hover:opacity-100 transition-opacity duration-300 px-2',
-            figcaptionClassName,
-          )}
+          className={cn('bdocs-figure__caption', figcaptionClassName)}
         >
           {caption}
         </figcaption>

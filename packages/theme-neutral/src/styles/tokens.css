@@ -104,6 +104,7 @@
      to stay legible against the Shiki palette, and retuning one should not force
      the other. */
   --bdocs-code-bg: var(--_bdocs-gray-900);
+  --bdocs-code-text: var(--_bdocs-gray-100);
 }
 
 /* ------------------------------------------------------------------ *

@@ -1,6 +1,6 @@
 import { useI18n } from '../../hooks/index'
-import { Button } from '../primitives/button'
-import { Menu } from '../primitives/menu'
+import { Button } from '../composition/button'
+import { Menu } from '../composition/menu'
 import { ChevronDown, Languages } from './icons'
 import { cn } from '../../utils/cn'
 

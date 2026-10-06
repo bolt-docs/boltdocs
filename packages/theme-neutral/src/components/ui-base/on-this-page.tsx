@@ -1,4 +1,4 @@
-import { OnThisPage as OTP } from '../primitives/on-this-page'
+import { OnThisPage as OTP } from '../composition/on-this-page'
 import type { OnThisPageProps } from '@bdocs/runtime'
 import { Pencil, CircleHelp, TextAlignStart } from './icons'
 import { cn } from '../../utils/cn'

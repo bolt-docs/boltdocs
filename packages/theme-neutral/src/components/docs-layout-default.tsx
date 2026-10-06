@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react'
-import { DocsLayout as DocsLayoutPrimitive } from './primitives/docs-layout'
+import { DocsLayout as DocsLayoutPrimitive } from './composition/docs-layout'
 import { Navbar } from './ui-base/navbar'
 import { Sidebar } from './ui-base/sidebar'
 import { Breadcrumbs } from './ui-base/breadcrumbs'

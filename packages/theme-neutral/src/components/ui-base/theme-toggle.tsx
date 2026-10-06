@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { Sun, Moon, Monitor } from './icons'
 import { useTheme } from '@bdocs/runtime'
 import { Button } from '@bdocs/primitives'
-import { Menu } from '../primitives/menu'
+import { Menu } from '../composition/menu'
 import { cn } from '../../utils/cn'
 
 export function ThemeToggle({ className }: { className?: string }) {

@@ -86,10 +86,10 @@ export { ScrollHandler } from './scroll-handler'
 export { InternalErrorBoundary } from './components/internal/error-boundary'
 
 // `Link` is the one layout primitive exported from here as well. Everything else
-// in `components/primitives` stays behind `@bdocs/theme-neutral/components/primitives`,
+// in `components/composition` stays behind `@bdocs/theme-neutral/composition`,
 // because that barrel reaches the search dialog and re-exporting it from `index`
 // is what turned the search chunk from lazy into part of the first visit.
-export { Link } from './components/primitives/link'
+export { Link } from './components/composition/link'
 
 // The icon resolver, because a custom layout that renders an icon by name needs
 // the same lookup the theme uses — and needs to read the site's registry rather

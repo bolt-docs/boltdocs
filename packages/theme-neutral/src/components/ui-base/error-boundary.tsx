@@ -1,4 +1,4 @@
-import { ErrorBoundary as PrimitiveErrorBoundary } from '../primitives/error-boundary'
+import { ErrorBoundary as PrimitiveErrorBoundary } from '../composition/error-boundary'
 import type { ReactNode } from 'react'
 
 interface ErrorBoundaryProps {

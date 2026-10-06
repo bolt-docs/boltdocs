@@ -1,7 +1,7 @@
 import {
   ErrorBoundary as PrimitiveErrorBoundary,
   type FallbackProps,
-} from '../primitives/error-boundary'
+} from '../composition/error-boundary'
 import type { ReactNode } from 'react'
 import { cn } from '../../utils/cn'
 

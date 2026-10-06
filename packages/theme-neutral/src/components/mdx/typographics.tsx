@@ -1,6 +1,6 @@
-import { Link } from '../primitives/link'
+import { Link } from '../composition/link'
 import { cn } from '../../utils/cn'
-import { Heading as HeadingPrimitive } from '../primitives/heading'
+import { Heading as HeadingPrimitive } from '../composition/heading'
 
 const Anchor = ({
   href,
@@ -11,10 +11,7 @@ const Anchor = ({
   return (
     <Link
       href={href || ''}
-      className={cn(
-        'text-primary-500 hover:text-primary-400 dark:text-primary-500 hover:underline font-medium transition-colors duration-200',
-        className,
-      )}
+      className={cn('bdocs-prose-link', className)}
       {...props}
     >
       {children}
@@ -36,14 +33,7 @@ const Heading = ({
   className,
   ...props
 }: React.ComponentProps<typeof HeadingPrimitive>) => {
-  const headingClass = HEADING_CLASSES[level] || ''
-  return (
-    <HeadingPrimitive
-      level={level}
-      className={cn(headingClass, className)}
-      {...props}
-    />
-  )
+  return <HeadingPrimitive level={level} className={className} {...props} />
 }
 
 export const Typographics = {
@@ -67,63 +57,39 @@ export const Typographics = {
     <Heading level={6} {...props} />
   ),
   p: ({ className, ...props }: React.HTMLAttributes<HTMLParagraphElement>) => (
-    <p
-      className={cn('text-paragraph leading-relaxed my-5', className)}
-      {...props}
-    />
+    <p className={cn('bdocs-prose-p', className)} {...props} />
   ),
   strong: ({ className, ...props }: React.HTMLAttributes<HTMLElement>) => (
-    <strong className={cn('font-semibold text-body', className)} {...props} />
+    <strong className={cn('bdocs-prose-strong', className)} {...props} />
   ),
   mark: ({ className, ...props }: React.HTMLAttributes<HTMLElement>) => (
-    <mark
-      className={cn(
-        'bg-primary-500/10 text-primary-500 font-semibold px-1.5 py-0.5 rounded-md',
-        className,
-      )}
-      {...props}
-    />
+    <mark className={cn('bdocs-prose-mark', className)} {...props} />
   ),
   code: ({ className, ...props }: React.HTMLAttributes<HTMLElement>) => (
-    <code
-      className={cn(
-        'bg-code-bg text-code-text rounded-md px-1.5 py-0.5 text-[0.875em] font-mono font-medium',
-        className,
-      )}
-      {...props}
-    />
+    <code className={cn('bdocs-prose-code', className)} {...props} />
   ),
   blockquote: ({
     className,
     ...props
   }: React.HTMLAttributes<HTMLQuoteElement>) => (
-    <blockquote
-      className={cn(
-        'border-l-4 border-primary-500 bg-soft/30 pl-4 py-2 my-6 italic text-muted rounded-r-lg',
-        className,
-      )}
-      {...props}
-    />
+    <blockquote className={cn('bdocs-prose-quote', className)} {...props} />
   ),
   hr: ({ className, ...props }: React.HTMLAttributes<HTMLHRElement>) => (
-    <hr className={cn('my-8 border-t border-subtle', className)} {...props} />
+    <hr className={cn('bdocs-prose-rule', className)} {...props} />
   ),
   ul: ({ className, ...props }: React.HTMLAttributes<HTMLUListElement>) => (
     <ul
-      className={cn('list-disc pl-6 my-5 space-y-2 text-paragraph', className)}
+      className={cn('bdocs-prose-list bdocs-prose-list--disc', className)}
       {...props}
     />
   ),
   ol: ({ className, ...props }: React.HTMLAttributes<HTMLOListElement>) => (
     <ol
-      className={cn(
-        'list-decimal pl-6 my-5 space-y-2 text-paragraph',
-        className,
-      )}
+      className={cn('bdocs-prose-list bdocs-prose-list--decimal', className)}
       {...props}
     />
   ),
   li: ({ className, ...props }: React.HTMLAttributes<HTMLLIElement>) => (
-    <li className={cn('pl-1', className)} {...props} />
+    <li className={cn('bdocs-prose-item', className)} {...props} />
   ),
 }

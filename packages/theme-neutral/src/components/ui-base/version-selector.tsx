@@ -1,6 +1,6 @@
 import { useVersion } from '../../hooks/use-version'
-import { Menu } from '../primitives/menu'
-import { Button } from '../primitives/button'
+import { Menu } from '../composition/menu'
+import { Button } from '../composition/button'
 import { ChevronDown } from './icons'
 import { cn } from '../../utils/cn'
 

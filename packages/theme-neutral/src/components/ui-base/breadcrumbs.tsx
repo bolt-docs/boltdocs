@@ -1,6 +1,6 @@
 import { useBreadcrumbs } from '../../hooks/use-breadcrumbs'
 import { Home } from './icons'
-import { Breadcrumbs as BreadcrumbsRoot } from '../primitives/breadcrumbs'
+import { Breadcrumbs as BreadcrumbsRoot } from '../composition/breadcrumbs'
 
 /**
  * Breadcrumb trail.

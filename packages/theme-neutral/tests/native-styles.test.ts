@@ -25,21 +25,21 @@ const SRC = join(__dirname, '..', 'src')
  * style-neutral however carefully the theme layer above it is written.
  */
 const CONVERTED: Record<string, string> = {
-  'components/primitives/page-nav.tsx': 'page-nav.css',
-  'components/primitives/docs-layout.tsx': 'docs-layout.css',
-  'components/primitives/breadcrumbs.tsx': 'breadcrumbs.css',
+  'components/composition/page-nav.tsx': 'page-nav.css',
+  'components/composition/docs-layout.tsx': 'docs-layout.css',
+  'components/composition/breadcrumbs.tsx': 'breadcrumbs.css',
   'components/ui-base/page-nav.tsx': 'page-nav.css',
   'components/ui-base/breadcrumbs.tsx': 'breadcrumbs.css',
   'components/docs-layout-default.tsx': 'docs-layout.css',
-  'components/primitives/button-group.tsx': 'button-group.css',
-  'components/primitives/callout.tsx': 'callout.css',
-  'components/primitives/error-boundary.tsx': 'error-boundary.css',
-  'components/primitives/heading.tsx': 'heading.css',
-  'components/primitives/image.tsx': 'image.css',
-  'components/primitives/menu.tsx': 'menu.css',
-  'components/primitives/popover.tsx': 'popover.css',
-  'components/primitives/tabs.tsx': 'tabs.css',
-  'components/primitives/tooltip.tsx': 'tooltip.css',
+  'components/composition/button-group.tsx': 'button-group.css',
+  'components/composition/callout.tsx': 'callout.css',
+  'components/composition/error-boundary.tsx': 'error-boundary.css',
+  'components/composition/heading.tsx': 'heading.css',
+  'components/composition/image.tsx': 'image.css',
+  'components/composition/menu.tsx': 'menu.css',
+  'components/composition/popover.tsx': 'popover.css',
+  'components/composition/tabs.tsx': 'tabs.css',
+  'components/composition/tooltip.tsx': 'tooltip.css',
   'components/mdx/callout.tsx': 'callout.css',
   'components/mdx/cards.tsx': 'cards.css',
   'components/mdx/table.tsx': 'table.css',
@@ -47,12 +47,15 @@ const CONVERTED: Record<string, string> = {
   'components/ui-base/giscus.tsx': 'giscus.css',
   'components/ui-base/not-found.tsx': 'not-found.css',
   'components/internal/error-boundary.tsx': 'error-debug.css',
-  'components/primitives/on-this-page.tsx': 'on-this-page.css',
-  'components/primitives/code-block.tsx': 'code-block.css',
+  'components/composition/on-this-page.tsx': 'on-this-page.css',
+  'components/composition/code-block.tsx': 'code-block.css',
   'components/ui-base/theme-toggle.tsx': 'selectors.css',
   'components/ui-base/i18n-selector.tsx': 'selectors.css',
   'components/ui-base/version-selector.tsx': 'selectors.css',
   'components/mdx/code-block.tsx': 'code-block.css',
+  'components/mdx/card.tsx': 'prose.css',
+  'components/mdx/field.tsx': 'prose.css',
+  'components/mdx/image.tsx': 'prose.css',
 }
 
 /**
@@ -281,7 +284,10 @@ describe('theme-neutral styles', () => {
     // the entire base layer matched nothing. The class has to appear in a
     // primitive, not only in a comment.
     expect(
-      readFileSync(join(SRC, 'components/primitives/docs-layout.tsx'), 'utf-8'),
+      readFileSync(
+        join(SRC, 'components/composition/docs-layout.tsx'),
+        'utf-8',
+      ),
     ).toContain('bdocs-root')
   })
 

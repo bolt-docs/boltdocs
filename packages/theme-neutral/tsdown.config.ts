@@ -6,18 +6,18 @@ export default defineConfig(
   packageConfig({
     // Two entries, and the split between them is load-bearing.
     //
-    // `index` is the ui-base surface. `components/primitives` is the
-    // layout-level primitives, and it holds the search dialog behind a dynamic
-    // import on purpose — a reader who never opens search never downloads it.
+    // `index` is the styled surface. `composition` is the style-neutral slot
+    // layer, and it holds the search dialog behind a dynamic import on purpose —
+    // a reader who never opens search never downloads it.
     //
-    // When the primitives barrel was also reachable from `index`, tsdown hoisted
+    // When the composition barrel was also reachable from `index`, tsdown hoisted
     // that dynamic import into a static one and the 112 kB search chunk became
     // part of the first visit: 853.7 kB of eager JS became 965 kB. Two entries
     // with no overlap in what they export is what keeps the boundary where the
     // source put it.
     entry: {
       index: 'src/index.ts',
-      'components-primitives': 'src/components/primitives/index.ts',
+      composition: 'src/components/composition/index.ts',
     },
     format: ['esm'],
     dts: true,

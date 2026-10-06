@@ -1,5 +1,5 @@
 import { ArrowLeft } from './icons'
-import { Link } from '../primitives/link'
+import { Link } from '../composition/link'
 import { cn } from '../../utils/cn'
 
 export function NotFound({ className }: { className?: string }) {

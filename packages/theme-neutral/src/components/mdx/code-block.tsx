@@ -4,8 +4,8 @@ import { cn } from '../../utils/cn'
 import { useCopyButton } from './use-copy-button'
 import { useExpandable } from './use-expandable'
 import { useCodeBlockFeedback } from './use-code-block-feedback'
-import * as CodePrimitive from '../primitives/code-block'
-import { Tooltip } from '../primitives/tooltip'
+import * as CodePrimitive from '../composition/code-block'
+import { Tooltip } from '../composition/tooltip'
 
 export interface CodeBlockProps {
   children?: React.ReactNode

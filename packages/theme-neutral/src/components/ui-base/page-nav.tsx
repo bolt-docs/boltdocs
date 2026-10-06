@@ -1,5 +1,5 @@
 import { usePageNav } from '../../hooks/use-page-nav'
-import { PageNav as PageNavPrimitive } from '../primitives/page-nav'
+import { PageNav as PageNavPrimitive } from '../composition/page-nav'
 import { ChevronLeft, ChevronRight } from './icons'
 
 /**

@@ -46,26 +46,19 @@ export function Card({
       ref={cardRef}
       href={href}
       onMouseMove={handleMouseMove}
-      className={cn(
-        'group relative flex flex-col gap-3 rounded-2xl border p-6 overflow-hidden',
-        'transition-[box-shadow,transform] duration-300',
-        'hover:shadow-lg dark:hover:shadow-none hover:-translate-y-0.5',
-        'bg-surface border-subtle text-paragraph',
-        href && 'cursor-pointer',
-        className,
-      )}
+      className={cn('bdocs-card', href && 'bdocs-card--linked', className)}
       {...(props as unknown as Record<string, unknown>)}
     >
       {/* Background Spotlight */}
       <div
-        className="pointer-events-none absolute inset-0 opacity-0 transition-opacity duration-300 group-hover:opacity-100"
+        className="bdocs-card__spotlight"
         style={{
           background: `radial-gradient(600px circle at var(--mouse-x, 50%) var(--mouse-y, 50%), color-mix(in srgb, ${spotlightColor} 8%, transparent), transparent 40%)`,
         }}
       />
       {/* Border Spotlight Glow */}
       <div
-        className="pointer-events-none absolute inset-0 rounded-2xl opacity-0 transition-opacity duration-300 group-hover:opacity-100"
+        className="bdocs-card__glow"
         style={{
           padding: '1px',
           background: `radial-gradient(400px circle at var(--mouse-x, 50%) var(--mouse-y, 50%), color-mix(in srgb, ${spotlightColor} 50%, transparent), transparent 40%)`,
@@ -77,40 +70,16 @@ export function Card({
       />
 
       {/* Header Content */}
-      <div
-        className={cn('relative z-10 flex items-center gap-3', headerClassName)}
-      >
+      <div className={cn('bdocs-card__header', headerClassName)}>
         {icon && (
-          <div
-            className={cn(
-              'shrink-0 transition-transform duration-500 group-hover:rotate-15 group-hover:scale-110 flex items-center justify-center text-muted group-hover:text-primary-500',
-              '[&>svg]:w-6 [&>svg]:h-6 [&>svg]:stroke-[1.5]',
-              iconClassName,
-            )}
-          >
-            {icon}
-          </div>
+          <div className={cn('bdocs-card__icon', iconClassName)}>{icon}</div>
         )}
         {title && (
-          <h3
-            className={cn(
-              'font-semibold text-base m-0 leading-none text-body',
-              titleClassName,
-            )}
-          >
-            {title}
-          </h3>
+          <h3 className={cn('bdocs-card__title', titleClassName)}>{title}</h3>
         )}
       </div>
 
-      <div
-        className={cn(
-          'relative z-10 text-[0.875rem] leading-[1.6] opacity-90 prose prose-neutral dark:prose-invert max-w-none [&>p]:m-0 [&>p+p]:mt-2',
-          bodyClassName,
-        )}
-      >
-        {children}
-      </div>
+      <div className={cn('bdocs-card__body', bodyClassName)}>{children}</div>
     </Wrapper>
   )
 }

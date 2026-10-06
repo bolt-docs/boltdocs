@@ -143,6 +143,29 @@ const TARGETS = [
   { name: 'sidebar', selector: 'aside, body nav:not([aria-label])' },
   { name: 'toc', selector: 'nav[aria-label="On this page"]' },
   { name: 'toc link', selector: 'nav[aria-label="On this page"] a' },
+
+  // Prose. These are the elements a site overrides most and the ones a markdown
+  // page is mostly made of, so a conversion that shifts them is invisible in a
+  // screenshot until it has already moved every paragraph by a pixel.
+  //
+  // `main` is the qualifier on purpose: the navbar and the sidebar are full of
+  // `p` and `code` elements that are chrome, and measuring those instead of the
+  // article would report a difference every conversion causes for free.
+  { name: 'prose h2', selector: 'main h2' },
+  { name: 'prose h3', selector: 'main h3' },
+  { name: 'prose h4', selector: 'main h4' },
+  { name: 'prose p', selector: 'main p' },
+  { name: 'prose strong', selector: 'main strong' },
+  { name: 'prose mark', selector: 'main mark' },
+  { name: 'prose inline code', selector: 'main p code, main li code' },
+  { name: 'prose ul', selector: 'main ul' },
+  { name: 'prose ol', selector: 'main ol' },
+  { name: 'prose li', selector: 'main li' },
+  { name: 'prose blockquote', selector: 'main blockquote' },
+  { name: 'prose hr', selector: 'main hr' },
+  { name: 'prose pre', selector: 'main pre' },
+  { name: 'prose figure', selector: 'main figure' },
+  { name: 'prose figcaption', selector: 'main figcaption' },
 ]
 
 const PAGES = [
@@ -150,6 +173,7 @@ const PAGES = [
   'docs/components/layout/page-nav.html',
   'docs/components/layout/breadcrumbs.html',
   'docs/es/guides/getting-started/installation.html',
+  'docs/components/mdx/code-blocks.html',
   'index.html',
 ]
 
@@ -268,15 +292,35 @@ function compare(a, b) {
   const A = JSON.parse(readFileSync(join(SHOTS, `${a}.styles.json`), 'utf-8'))
   const B = JSON.parse(readFileSync(join(SHOTS, `${b}.styles.json`), 'utf-8'))
   const keys = [...new Set([...Object.keys(A), ...Object.keys(B)])].sort()
+  // Counted before the loop so the summary cannot claim a clean bill of health
+  // for entries that were skipped for having no data.
   const rows = []
+  let skipped = 0
   for (const key of keys) {
     const x = A[key]
     const y = B[key]
-    if (!x || !y) {
+    // A selector that matched nothing is recorded as `null`, which is not the
+    // same as a selector that was absent from the report.
+    //
+    // Reporting a `null`-in-both entry as "appeared in B" invents a regression
+    // that does not exist — and it is the most likely entry on any page that
+    // happens not to have a blockquote. The one that matters is a component
+    // that stopped rendering, so only that direction is called a change.
+    if (x == null && y == null) {
+      skipped++
+      continue
+    }
+    if (x == null || y == null) {
       rows.push({
         key,
-        note: x ? 'solo en A (desaparecio)' : 'solo en B (aparecio)',
+        note: x
+          ? 'desaparecio (A lo midio, B no)'
+          : 'aparecio (B lo midio, A no)',
       })
+      continue
+    }
+    if (x.values == null || y.values == null) {
+      rows.push({ key, note: 'sin datos de estilo en uno de los dos' })
       continue
     }
     const props = []
@@ -289,7 +333,7 @@ function compare(a, b) {
   }
   for (const r of rows) console.log(`  ${r.key}\n      ${r.note}`)
   console.log(
-    `\n${rows.length === 0 ? '✓' : '✗'} ${keys.length} selectores comparados, ${rows.length} con diferencias`,
+    `\n${rows.length === 0 ? '✓' : '✗'} ${keys.length} selectores, ${skipped} sin datos en ambos, ${rows.length} con diferencias`,
   )
   process.exit(rows.length === 0 ? 0 : 1)
 }

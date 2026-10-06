@@ -1,7 +1,7 @@
 import { Info, Lightbulb, AlertTriangle, AlertCircle } from '../ui-base/icons'
 import { cn } from '../../utils/cn'
-import { Callout as CalloutPrimitive } from '../primitives/callout'
-import type { CalloutVariant } from '../primitives/callout'
+import { Callout as CalloutPrimitive } from '../composition/callout'
+import type { CalloutVariant } from '../composition/callout'
 
 export type { CalloutVariant }
 

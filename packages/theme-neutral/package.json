@@ -8,21 +8,9 @@
       "types": "./dist/index.d.mts",
       "import": "./dist/index.mjs"
     },
-    "./client": {
-      "types": "./dist/index.d.mts",
-      "import": "./dist/index.mjs"
-    },
     "./composition": {
-      "types": "./dist/index.d.mts",
-      "import": "./dist/index.mjs"
-    },
-    "./mdx": {
-      "types": "./dist/index.d.mts",
-      "import": "./dist/index.mjs"
-    },
-    "./components/primitives": {
-      "types": "./dist/components-primitives.d.mts",
-      "import": "./dist/components-primitives.mjs"
+      "types": "./dist/composition.d.mts",
+      "import": "./dist/composition.mjs"
     },
     "./css": "./dist/styles/index.css",
     "./package.json": "./package.json"
