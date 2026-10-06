@@ -28,6 +28,30 @@
   inside node_modules for class usage and generate the necessary CSS.
 */
 @source "./node_modules/boltdocs/dist";
+/*
+  The theme package.
+
+  Tailwind v4 uses the directory of the CSS entry as its base for automatic
+  source detection. That is `docs/`, and the theme lives in `packages/`, outside
+  it — so every utility used only inside a theme component was never emitted.
+  Measured, not assumed:
+
+    `sm:text-sm` on the breadcrumbs   absent -> breadcrumbs render at 12px forever
+    `hover:bg-surface` sidebar links   absent -> no hover state at all
+    `md:flex` on the copy buttons     absent -> "Copy Markdown" never renders
+
+  The `./node_modules/boltdocs/dist` line above is the same problem from before the
+  packages were split: it worked because the client components happened to be
+  bundled into the core package. It stopped working the moment the theme became
+  its own package.
+
+  This is the monorepo path. A site installing the theme from npm needs
+  `node_modules/@bdocs/theme-neutral/dist` instead, and the general fix belongs in
+  `@bdocs/plugin-tailwindcss`, which is where the path can be resolved rather than
+  written by hand in every project's CSS. Not done here.
+*/
+@source "../packages/theme-neutral/src";
+@source "../packages/primitives/src";
 
 /* Unordered list bullets — OpenAI-style muted dots.
    Tailwind v4 does not compose the `before:` variant with arbitrary
