@@ -1,13 +1,32 @@
 import { createHash } from 'node:crypto'
 import { dirname, isAbsolute, join, relative, resolve, sep } from 'node:path'
 import fs from 'fs-extra'
-import type { InlineConfig, LogOptions, PluginOption } from 'vite'
+import type { InlineConfig, LogOptions, Plugin, PluginOption } from 'vite'
 import { build as viteBuild, mergeConfig, version as viteVersion } from 'vite'
-import type { LogLevel, LogOrStringHandler, RollupLog } from 'rollup'
 import {
   SSR_BUNDLED_PACKAGE_PATTERNS,
   SSR_EXTERNAL_PACKAGE_NAMES,
 } from '../ssr-bundle-policy'
+
+/**
+ * The parameters of a Vite plugin's `onLog` hook, derived from Vite.
+ *
+ * These used to be imported from `rollup`, which this package does not depend
+ * on. It compiled, because Vite brings a bundler along transitively and hoists
+ * its types — and it was wrong twice over: Vite 8 is Rolldown, not Rollup, so
+ * the types described a bundler this package no longer runs, and the package
+ * could not be installed without a copy it never asked for. Both halves are the
+ * failure `scripts/check-undeclared-imports.mjs` exists to report.
+ *
+ * Deriving them from the hook Vite actually declares is also the only version
+ * that cannot drift: if the installed Vite changes `onLog`, these follow.
+ */
+type OnLogHook = Extract<
+  NonNullable<Plugin['onLog']>,
+  (...args: never[]) => unknown
+>
+type LogLevel = Parameters<OnLogHook>[0]
+type BundlerLog = Parameters<OnLogHook>[1]
 
 export interface BundleStep {
   name: 'Client build' | 'Server build'
@@ -331,18 +350,20 @@ function createClientBuildConfig(
             }
           },
         },
-        onLog(
-          level: LogLevel,
-          log: RollupLog,
-          defaultHandler: LogOrStringHandler,
-        ) {
+        onLog(level: LogLevel, log: BundlerLog) {
+          // Rolldown suppresses a log when the hook returns `false` and prints it
+          // otherwise. Rollup, which Vite used before 8, passed a
+          // `defaultHandler` as a third argument and printed when the hook
+          // returned nothing. Calling the third argument that no longer exists
+          // would throw on the first unsuppressed warning; returning nothing
+          // would print the messages this branch exists to hide.
           if (
             log.message.includes('react-helmet-async') ||
             input.shouldSuppressLog(log.message)
           ) {
-            return
+            return false
           }
-          defaultHandler(level, log)
+          return true
         },
       }),
     },
@@ -399,18 +420,20 @@ function createServerBuildConfig(
             ? { entryFileNames: 'combined.mjs', format: 'esm' }
             : { entryFileNames: 'combined.cjs', format: 'cjs' },
         platform: 'node',
-        onLog(
-          level: LogLevel,
-          log: RollupLog,
-          defaultHandler: LogOrStringHandler,
-        ) {
+        onLog(level: LogLevel, log: BundlerLog) {
+          // Rolldown suppresses a log when the hook returns `false` and prints it
+          // otherwise. Rollup, which Vite used before 8, passed a
+          // `defaultHandler` as a third argument and printed when the hook
+          // returned nothing. Calling the third argument that no longer exists
+          // would throw on the first unsuppressed warning; returning nothing
+          // would print the messages this branch exists to hide.
           if (
             log.message.includes('react-helmet-async') ||
             input.shouldSuppressLog(log.message)
           ) {
-            return
+            return false
           }
-          defaultHandler(level, log)
+          return true
         },
       }),
     },
