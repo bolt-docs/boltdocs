@@ -8,6 +8,19 @@ import { getTranslated } from '../../utils/i18n'
 import { useRoutes } from '../../hooks/use-routes'
 import { cn } from '../../utils/cn'
 
+/**
+ * The section tabs, rendered as navigation links.
+ *
+ * Not an ARIA tabs widget: these move the reader to a different page, and a
+ * `tablist` requires `tab` children and fails axe's `aria-required-children`.
+ * See the `role="none"` on the list, which is the other half of that decision.
+ *
+ * Every visible property — the row's centring, the tab metrics, the brand colour
+ * of the current section, the underline that tracks it — is in
+ * `styles/components/tabs.css`. The two state hooks the stylesheet reads are
+ * `data-active` on each link and the measured inline `--bdocs-tab-*` position on
+ * the indicator.
+ */
 export function Tabs({
   tabs,
   routes,
@@ -40,18 +53,8 @@ export function Tabs({
   )
 
   return (
-    <div
-      className={cn(
-        'mx-auto max-w-(--breakpoint-3xl) px-4 md:px-6 select-none',
-        className,
-      )}
-    >
-      {/* Tab-like navigation links, not an ARIA tabs widget: a tablist would
-          require tab children and fail axe's aria-required-children. */}
-      <T.List
-        role="none"
-        className="border-none py-0 scrollbar-hide relative flex flex-row items-center overflow-x-auto"
-      >
+    <div className={cn('bdocs-tabs__row', className)}>
+      <T.List role="none" className="bdocs-tabs__list">
         {tabs.map((tab, index) => {
           const isActive = index === activeIndex
           const firstRoute =
@@ -72,19 +75,15 @@ export function Tabs({
                   tabRefs.current[index] = el
                 },
               } as React.AnchorHTMLAttributes<HTMLAnchorElement>)}
-              className={`relative flex items-center gap-2 px-4 py-3.5 text-sm font-semibold transition-colors duration-300 outline-none whitespace-nowrap ${
-                isActive ? 'text-primary-500' : 'text-muted hover:text-body'
-              }`}
+              className="bdocs-tabs__nav-link"
+              data-active={isActive || undefined}
             >
               {renderTabIcon(tab.icon)}
               <span>{getTranslated(tab.text, currentLocale)}</span>
             </Link>
           )
         })}
-        <T.Indicator
-          style={indicatorStyle}
-          className="h-0.5 bg-primary-500 rounded-full transition-all duration-300"
-        />
+        <T.Indicator style={indicatorStyle} className="bdocs-tabs__indicator" />
       </T.List>
     </div>
   )

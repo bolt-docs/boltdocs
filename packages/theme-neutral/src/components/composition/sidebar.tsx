@@ -48,7 +48,10 @@ function Badge({
   if (!type) return null
 
   return (
-    <span data-badge={type} className={cn('ml-auto shrink-0', badgeClassName)}>
+    <span
+      data-badge={type}
+      className={cn('bdocs-sidebar__badge', badgeClassName)}
+    >
       {type}
     </span>
   )
@@ -59,7 +62,7 @@ function Badge({
  */
 export function SidebarRoot({ children, className }: ComponentBase) {
   return (
-    <aside data-sidebar-root className={className}>
+    <aside data-sidebar-root className={cn('bdocs-sidebar', className)}>
       {children}
     </aside>
   )
@@ -81,15 +84,10 @@ export function SidebarMobile({
       isOpen={isSidebarOpen}
       onOpenChange={(open) => !open && closeSidebar()}
       isDismissable={true}
-      className={cn('lg:hidden', overlayClassName)}
+      className={cn('bdocs-sidebar__mobile-overlay', overlayClassName)}
     >
-      <Modal className={cn('lg:hidden', className)}>
-        <Dialog
-          className={cn(
-            'h-full flex flex-col outline-none focus:outline-none',
-            dialogClassName,
-          )}
-        >
+      <Modal className={cn('bdocs-sidebar__modal', className)}>
+        <Dialog className={cn('bdocs-sidebar__dialog', dialogClassName)}>
           {children}
         </Dialog>
       </Modal>
@@ -101,7 +99,9 @@ export function SidebarMobile({
  * Shared Header for Sidebar
  */
 export function SidebarHeader({ children, className }: ComponentBase) {
-  return <div className={className}>{children}</div>
+  return (
+    <div className={cn('bdocs-sidebar__header', className)}>{children}</div>
+  )
 }
 
 /**
@@ -147,7 +147,7 @@ export function SidebarContent({
       ref={scrollRef}
       data-sidebar-content
       aria-label={label}
-      className={className}
+      className={cn('bdocs-sidebar__content', className)}
     >
       {children}
     </nav>
@@ -194,8 +194,14 @@ export function SidebarGroup({
   }, [active])
 
   const titleContent = title && (
-    <span className={cn('flex items-center gap-2', titleClassName)}>
-      {Icon && <IconRenderer icon={Icon} size={12} className={iconClassName} />}
+    <span className={cn('bdocs-sidebar__group-title', titleClassName)}>
+      {Icon && (
+        <IconRenderer
+          icon={Icon}
+          size={12}
+          className={cn('bdocs-sidebar__group-icon', iconClassName)}
+        />
+      )}
       {title}
     </span>
   )
@@ -205,7 +211,7 @@ export function SidebarGroup({
       data-group
       data-active={active || undefined}
       data-collapsible={collapsible || undefined}
-      className={className}
+      className={cn('bdocs-sidebar__group', className)}
     >
       {title &&
         (renderTitle ? (
@@ -215,10 +221,7 @@ export function SidebarGroup({
             onClick={() => setIsOpen(!isOpen)}
             aria-expanded={isOpen}
             data-open={isOpen || undefined}
-            className={cn(
-              'group flex w-full cursor-pointer items-center justify-between gap-2 text-left outline-none',
-              headerClassName,
-            )}
+            className={cn('bdocs-sidebar__group-header', headerClassName)}
           >
             {titleContent}
             {trailing ?? (
@@ -226,8 +229,8 @@ export function SidebarGroup({
                 size={12}
                 data-open={isOpen || undefined}
                 className={cn(
-                  'shrink-0 transition-transform duration-200',
-                  isOpen && 'rotate-90',
+                  'bdocs-sidebar__group-chevron',
+                  isOpen && 'bdocs-sidebar__group-chevron--open',
                 )}
               />
             )}
@@ -235,20 +238,27 @@ export function SidebarGroup({
         ) : (
           <h4
             className={cn(
-              'flex items-center gap-2 outline-none',
+              'bdocs-sidebar__group-header bdocs-sidebar__group-header--static',
               headerClassName,
             )}
           >
             {titleContent}
             {trailing && (
-              <span className={cn('ml-auto', trailingClassName)}>
+              <span
+                className={cn(
+                  'bdocs-sidebar__group-trailing',
+                  trailingClassName,
+                )}
+              >
                 {trailing}
               </span>
             )}
           </h4>
         ))}
       {(!collapsible || isOpen) && (
-        <div className={cn('flex flex-col', contentClassName)}>{children}</div>
+        <div className={cn('bdocs-sidebar__group-content', contentClassName)}>
+          {children}
+        </div>
       )}
     </div>
   )
@@ -304,17 +314,19 @@ export function SidebarLink({
       data-active={active || undefined}
       data-depth={depth !== undefined ? depth : undefined}
       aria-current={active ? 'page' : undefined}
-      className={cn('group flex items-center gap-2.5 outline-none', className)}
+      className={cn('bdocs-sidebar__item', className)}
     >
       {Icon && (
         <IconRenderer
           icon={Icon}
           size={16}
-          className={cn('shrink-0', iconClassName)}
+          className={cn('bdocs-sidebar__item-icon', iconClassName)}
         />
       )}
       {children ?? (
-        <span className={cn('truncate', labelClassName)}>{label}</span>
+        <span className={cn('bdocs-sidebar__item-label', labelClassName)}>
+          {label}
+        </span>
       )}
       {badge && <Badge badge={badge} badgeClassName={badgeClassName} />}
       {trailing}
@@ -355,8 +367,8 @@ export function SidebarSubGroup({
   renderToggle?: (props: { isOpen: boolean }) => ReactNode
 }) {
   return (
-    <div className={cn('flex flex-col', rootClassName)}>
-      <div className={cn('group relative flex items-center', wrapperClassName)}>
+    <div className={cn('bdocs-sidebar__subgroup', rootClassName)}>
+      <div className={cn('bdocs-sidebar__subgroup-wrapper', wrapperClassName)}>
         <SidebarLink
           label={label}
           href={href}
@@ -364,7 +376,11 @@ export function SidebarSubGroup({
           icon={Icon}
           badge={badge}
           depth={depth}
-          className={cn('flex-1 pr-8', linkClassName, className)}
+          className={cn(
+            'bdocs-sidebar__subgroup-link',
+            linkClassName,
+            className,
+          )}
         />
         {renderToggle ? (
           renderToggle({ isOpen })
@@ -377,24 +393,25 @@ export function SidebarSubGroup({
             }}
             aria-expanded={isOpen}
             data-open={isOpen || undefined}
-            className={cn(
-              'absolute right-1 cursor-pointer outline-none',
-              toggleClassName,
-            )}
+            className={cn('bdocs-sidebar__toggle', toggleClassName)}
           >
             <ChevronRight
               size={14}
               data-open={isOpen || undefined}
               className={cn(
-                'transition-transform duration-200',
-                isOpen && 'rotate-90',
+                'bdocs-sidebar__toggle-chevron',
+                isOpen && 'bdocs-sidebar__toggle-chevron--open',
               )}
             />
           </button>
         )}
       </div>
       {isOpen && (
-        <div className={cn('flex flex-col', contentClassName)}>{children}</div>
+        <div
+          className={cn('bdocs-sidebar__subgroup-content', contentClassName)}
+        >
+          {children}
+        </div>
       )}
     </div>
   )
@@ -658,7 +675,11 @@ export function SidebarItems({
   }
   pushUngrouped()
 
-  return <div className={className}>{renderedElements}</div>
+  return (
+    <div className={cn('bdocs-sidebar__items', className)}>
+      {renderedElements}
+    </div>
+  )
 }
 
 /**

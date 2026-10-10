@@ -40,3 +40,10 @@
 @import "./components/docs-layout.css";
 @import "./components/page-header.css";
 @import "./components/page-nav.css";
+@import "./components/navbar.css";
+@import "./components/sidebar.css";
+@import "./components/search-dialog.css";
+@import "./components/copy-markdown.css";
+@import "./components/last-updated.css";
+@import "./components/timeline.css";
+@import "./components/feedback.css";

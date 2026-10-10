@@ -66,7 +66,7 @@ export interface NavbarSocialsProps extends ComponentBase {
 export function Navbar({ children, className, ...props }: ComponentBase) {
   return (
     <header
-      className={cn('boltdocs-navbar sticky top-0 z-50', className)}
+      className={cn('boltdocs-navbar bdocs-navbar', className)}
       {...props}
     >
       {children}
@@ -76,49 +76,20 @@ export function Navbar({ children, className, ...props }: ComponentBase) {
 
 function NavbarContent({ children, className }: ComponentBase) {
   return (
-    <div
-      className={cn(
-        'mx-auto flex lg:h-navbar max-w-(--breakpoint-3xl) items-center px-4 md:px-6',
-        className,
-      )}
-    >
-      {children}
-    </div>
+    <div className={cn('bdocs-navbar__content', className)}>{children}</div>
   )
 }
 
 function NavbarLeft({ children, className }: ComponentBase) {
-  return (
-    <div className={cn('flex flex-1 items-center gap-4 min-w-0', className)}>
-      {children}
-    </div>
-  )
+  return <div className={cn('bdocs-navbar__left', className)}>{children}</div>
 }
 
 function NavbarRight({ children, className }: ComponentBase) {
-  return (
-    <div
-      className={cn(
-        'flex flex-1 items-center justify-end gap-2 md:gap-4 min-w-0',
-        className,
-      )}
-    >
-      {children}
-    </div>
-  )
+  return <div className={cn('bdocs-navbar__right', className)}>{children}</div>
 }
 
 function NavbarCenter({ children, className }: ComponentBase) {
-  return (
-    <div
-      className={cn(
-        'hidden lg:flex flex-1 justify-center items-center gap-4 px-4 min-w-0',
-        className,
-      )}
-    >
-      {children}
-    </div>
-  )
+  return <div className={cn('bdocs-navbar__center', className)}>{children}</div>
 }
 
 function NavbarLogo({
@@ -141,10 +112,7 @@ function NavbarLogo({
   const resolve = (value: string) => resolvePublicAssetUrl(value, config.base)
 
   return (
-    <Link
-      href={href}
-      className={cn('flex items-center gap-2 shrink-0 outline-none', className)}
-    >
+    <Link href={href} className={cn('bdocs-navbar__logo', className)}>
       {hasPair ? (
         /**
          * Both variants are always in the DOM and CSS picks the visible one.
@@ -166,7 +134,7 @@ function NavbarLogo({
             fetchPriority="high"
             data-logo-theme="light"
             className={cn(
-              'h-6 w-6 object-contain dark:hidden',
+              'bdocs-navbar__logo-image bdocs-navbar__logo-image--light',
               logoClassName,
               logoLightClassName,
             )}
@@ -179,7 +147,7 @@ function NavbarLogo({
             data-logo-theme="dark"
             aria-hidden="true"
             className={cn(
-              'hidden h-6 w-6 object-contain dark:block',
+              'bdocs-navbar__logo-image bdocs-navbar__logo-image--dark',
               logoClassName,
               logoDarkClassName,
             )}
@@ -192,7 +160,7 @@ function NavbarLogo({
           width={width}
           height={height}
           fetchPriority="high"
-          className={cn('h-6 w-6 object-contain', logoClassName)}
+          className={cn('bdocs-navbar__logo-image', logoClassName)}
         />
       ) : null}
     </Link>
@@ -223,14 +191,7 @@ function NavbarTitle({
         titleText ? `Go to ${titleText} home` : undefined
       }
     >
-      <span
-        className={cn(
-          'text-lg font-bold tracking-tight hidden sm:inline-block',
-          className,
-        )}
-      >
-        {children}
-      </span>
+      <span className={cn('bdocs-navbar__title', className)}>{children}</span>
     </Link>
   )
 }
@@ -248,13 +209,7 @@ function NavbarLinks({
   label?: string
 }) {
   return (
-    <nav
-      aria-label={label}
-      className={cn(
-        'hidden md:flex items-center gap-6 text-sm font-medium',
-        className,
-      )}
-    >
+    <nav aria-label={label} className={cn('bdocs-navbar__links', className)}>
       {children}
     </nav>
   )
@@ -274,11 +229,11 @@ function NavbarLink({
       // A handful of always-visible top-level destinations, so warming them on
       // visibility is nearly free and makes the first click of a visit instant.
       prefetch={to === 'external' ? 'none' : 'viewport'}
-      className={cn('transition-all outline-none', className)}
+      className={cn('bdocs-navbar__link', className)}
     >
       {label as any}
       {to === 'external' && (
-        <span className={cn('ml-1 inline-block', iconClassName)}>
+        <span className={cn('bdocs-navbar__link-icon', iconClassName)}>
           <ExternalLink size={12} />
         </span>
       )}
@@ -325,23 +280,18 @@ function NavbarDropdown({
 
   return (
     <div
-      className={cn('relative', className)}
+      className={cn('bdocs-navbar__dropdown', className)}
       onMouseEnter={() => setOpen(true)}
       onMouseLeave={() => setOpen(false)}
     >
-      <div
-        className={cn(
-          'flex items-center gap-1 outline-none select-none cursor-pointer',
-          triggerClassName,
-        )}
-      >
+      <div className={cn('bdocs-navbar__dropdown-trigger', triggerClassName)}>
         {label}
-        <span className={cn('shrink-0', iconClassName)}>
+        <span className={cn('bdocs-navbar__dropdown-indicator', iconClassName)}>
           {icon ?? (
             <svg
               className={cn(
-                'size-6 transition-transform',
-                isOpen && 'rotate-180',
+                'bdocs-navbar__dropdown-chevron',
+                isOpen && 'bdocs-navbar__dropdown-chevron--open',
               )}
               fill="none"
               viewBox="0 0 24 24"
@@ -359,15 +309,8 @@ function NavbarDropdown({
         </span>
       </div>
       {isOpen && (
-        <div
-          className={cn('absolute top-full left-0 pt-1 z-9999', panelClassName)}
-        >
-          <div
-            className={cn(
-              'min-w-[180px] p-1 bg-surface border border-subtle rounded-md shadow-lg',
-              menuClassName,
-            )}
-          >
+        <div className={cn('bdocs-navbar__dropdown-panel', panelClassName)}>
+          <div className={cn('bdocs-navbar__dropdown-menu', menuClassName)}>
             {children}
           </div>
         </div>
@@ -386,10 +329,7 @@ function NavbarDropdownItem({
   className?: string
 }) {
   return (
-    <Link
-      href={href}
-      className={cn('block px-2 py-1.5 rounded hover:bg-surface', className)}
-    >
+    <Link href={href} className={cn('bdocs-navbar__dropdown-item', className)}>
       {label}
     </Link>
   )
@@ -405,10 +345,7 @@ function NavbarSearchTriggerDesktop({
     <ButtonRAC
       {...props}
       onPress={onPress}
-      className={cn(
-        'hidden lg:flex items-center justify-between gap-2 px-3 py-2 text-sm outline-none cursor-pointer w-full max-w-[720px]',
-        className,
-      )}
+      className={cn('bdocs-navbar__search-desktop', className)}
     >
       {children}
     </ButtonRAC>
@@ -425,10 +362,7 @@ function NavbarSearchTriggerMobile({
     <ButtonRAC
       {...props}
       onPress={onPress}
-      className={cn(
-        'lg:hidden flex h-10 w-10 items-center justify-center outline-none cursor-pointer',
-        className,
-      )}
+      className={cn('bdocs-navbar__search-mobile', className)}
       aria-label={props['aria-label'] || 'Search'}
     >
       {children}
@@ -448,28 +382,11 @@ function NavbarSearchTriggerKbd({
   }, [])
 
   return (
-    <div
-      className={cn(
-        'hidden sm:flex items-center gap-1 pointer-events-none select-none',
-        className,
-      )}
-    >
-      <kbd
-        className={cn(
-          'flex items-center justify-center font-mono text-[10px]',
-          kbdClassName,
-        )}
-      >
+    <div className={cn('bdocs-navbar__search-kbd', className)}>
+      <kbd className={cn('bdocs-navbar__kbd', kbdClassName)}>
         {isMac ? '⌘' : 'Ctrl'}
       </kbd>
-      <kbd
-        className={cn(
-          'flex items-center justify-center font-mono text-[10px]',
-          kbdClassName,
-        )}
-      >
-        K
-      </kbd>
+      <kbd className={cn('bdocs-navbar__kbd', kbdClassName)}>K</kbd>
     </div>
   )
 }
@@ -485,7 +402,7 @@ function NavbarTheme({ className, theme, onThemeChange }: NavbarThemeProps) {
     <ToggleButton
       isSelected={theme === 'dark'}
       onChange={onThemeChange}
-      className={cn('outline-none cursor-pointer', className)}
+      className={cn('bdocs-navbar__theme', className)}
       aria-label="Toggle theme"
     >
       {theme === 'dark' ? <Sun size={20} /> : <Moon size={20} />}
@@ -506,7 +423,7 @@ function NavbarSocials({ icon, link, className }: NavbarSocialsProps) {
       href={link}
       target="_blank"
       rel="noopener noreferrer"
-      className={cn('outline-none', className)}
+      className={cn('bdocs-navbar__social', className)}
     >
       <Icon name={icon} />
     </Link>
@@ -517,7 +434,7 @@ function NavbarSplit({ className }: ComponentBase) {
   return (
     <Separator
       orientation="vertical"
-      className={cn('h-full w-px', className)}
+      className={cn('bdocs-navbar__split', className)}
     />
   )
 }
@@ -530,10 +447,7 @@ function NavbarMore({ onPress, className }: NavbarMoreProps) {
   return (
     <ButtonRAC
       onPress={onPress}
-      className={cn(
-        'md:hidden flex items-center justify-center outline-none cursor-pointer',
-        className,
-      )}
+      className={cn('bdocs-navbar__more', className)}
       aria-label="More navigation"
     >
       <MoreVertical size={20} />
@@ -576,31 +490,18 @@ function NavbarMobileMenu({
       onOpenChange={(open) => !open && onClose()}
       isDismissable={true}
       className={cn(
-        'fixed inset-0 z-60 md:hidden transition-all duration-100',
+        'bdocs-navbar__mobile-overlay',
         className,
         overlayClassName,
       )}
     >
-      <Modal className={cn('fixed inset-0 outline-none', modalClassName)}>
-        <Dialog
-          className={cn(
-            'relative h-full outline-none flex flex-col p-6 pt-[calc(1.5rem+env(safe-area-inset-top,0px))] pb-[calc(1.5rem+env(safe-area-inset-bottom,0px))] px-[calc(1.5rem+env(safe-area-inset-left,0px))]',
-            dialogClassName,
-          )}
-        >
-          <div
-            className={cn(
-              'flex items-center justify-between mb-6',
-              closeRowClassName,
-            )}
-          >
-            <span></span>
+      <Modal className={cn('bdocs-navbar__mobile', modalClassName)}>
+        <Dialog className={cn('bdocs-navbar__mobile-dialog', dialogClassName)}>
+          <div className={cn('bdocs-navbar__mobile-row', closeRowClassName)}>
+            <span />
             <ButtonRAC
               onPress={onClose}
-              className={cn(
-                'flex items-center justify-center outline-none cursor-pointer text-muted hover:text-body transition-colors',
-                closeButtonClassName,
-              )}
+              className={cn('bdocs-navbar__mobile-close', closeButtonClassName)}
               aria-label="Close menu"
             >
               <X size={24} />
@@ -608,10 +509,7 @@ function NavbarMobileMenu({
           </div>
           <nav
             aria-label="Mobile navigation"
-            className={cn(
-              'flex-1 overflow-y-auto flex flex-col gap-4',
-              navClassName,
-            )}
+            className={cn('bdocs-navbar__mobile-nav', navClassName)}
           >
             {children}
           </nav>
@@ -633,7 +531,7 @@ function NavbarMobileLink({
       href={href}
       target={to === 'external' ? '_blank' : undefined}
       onClick={onPress}
-      className={cn('group flex items-center outline-none', className)}
+      className={cn('bdocs-navbar__mobile-link', className)}
     >
       {label as any}
     </Link>
@@ -694,17 +592,19 @@ function NavbarMobileLinkItem({
 
   if (hasItems) {
     return (
-      <div className={cn('flex flex-col gap-1', groupClassName, className)}>
+      <div
+        className={cn('bdocs-navbar__mobile-group', groupClassName, className)}
+      >
         <div
           className={cn(
-            'px-3 py-2 text-sm transition-all',
-            active ? 'text-body' : 'text-muted/80 hover:text-body',
+            'bdocs-navbar__mobile-label',
+            active ? 'bdocs-navbar__mobile-label--active' : undefined,
             labelClassName,
           )}
         >
           {link.label as string}
         </div>
-        <div className={cn('flex flex-col gap-1 pl-4', listClassName)}>
+        <div className={cn('bdocs-navbar__mobile-list', listClassName)}>
           {link.items?.map((item) => (
             <NavbarMobileLinkItem
               key={item.href}
@@ -729,8 +629,8 @@ function NavbarMobileLinkItem({
       href={localizedHref}
       onPress={onClose}
       className={cn(
-        'transition-all',
-        active ? 'text-body' : 'text-muted/80 hover:text-body',
+        'bdocs-navbar__mobile-link',
+        active ? 'bdocs-navbar__mobile-link--active' : undefined,
         className,
       )}
     />

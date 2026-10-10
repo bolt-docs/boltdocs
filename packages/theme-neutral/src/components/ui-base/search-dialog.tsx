@@ -18,6 +18,14 @@ interface SearchResult {
   snippet?: string
 }
 
+/**
+ * The matched run inside a result title or snippet.
+ *
+ * A class rather than an inline style, and `mark` rather than a `span`: the
+ * element is already semantic, the browser's default colour is the only thing
+ * wrong with it, and a site that restyles the match should restyle it in one
+ * place.
+ */
 export function SearchResultHighlight({
   text,
   query,
@@ -31,16 +39,14 @@ export function SearchResultHighlight({
   const regex = createSearchHighlightRegex(query.split(/\s+/))
   if (!regex) return <>{text}</>
   const parts = text.split(regex)
+
   return (
     <>
       {parts.map((part, index) =>
         index % 2 === 1 ? (
           <mark
             key={`${part}-${index}`}
-            className={cn(
-              'bg-primary-500/20 text-primary-600 dark:text-primary-400 font-bold px-0.5 rounded-sm',
-              markClassName,
-            )}
+            className={cn('bdocs-search-mark', markClassName)}
           >
             {part}
           </mark>
@@ -92,23 +98,21 @@ export function SearchDialog({
         aria-label="Search docs"
         aria-keyshortcuts="Control+K Meta+K"
         onPress={() => setIsOpen(true)}
-        className="rounded-xl border border-subtle bg-surface text-muted transition-all duration-200 hover:border-primary-500/50 hover:text-body hover:bg-soft/50 hover:shadow-sm active:scale-[0.98] focus-visible:ring-2 focus-visible:ring-primary-500/30"
+        className="bdocs-search-trigger"
       >
-        <div className="flex items-center gap-2">
+        <div className="bdocs-search-trigger__label">
           <Search size={16} />
           {/* paragraph (not muted): the hint text on the trigger background
               must meet 4.5:1 contrast (axe `color-contrast`). */}
-          <span className="text-paragraph hidden sm:inline-block">
-            Search docs...
-          </span>
+          <span className="bdocs-search-trigger__hint">Search docs...</span>
         </div>
-        <Navbar.SearchTrigger.Kbd className="[&_kbd]:bg-main [&_kbd]:border [&_kbd]:border-subtle [&_kbd]:rounded [&_kbd]:px-1.5 [&_kbd]:h-5 [&_kbd]:w-5" />
+        <Navbar.SearchTrigger.Kbd className="bdocs-search-trigger__kbd" />
       </Navbar.SearchTrigger.Desktop>
 
       <Navbar.SearchTrigger.Mobile
         aria-label="Search docs"
         onPress={() => setIsOpen(true)}
-        className="rounded-xl text-muted transition-all duration-200 hover:text-body active:scale-95 focus-visible:ring-2 focus-visible:ring-primary-500/30"
+        className="bdocs-search-trigger bdocs-search-trigger--icon"
       >
         <Search size={20} />
       </Navbar.SearchTrigger.Mobile>
@@ -118,35 +122,32 @@ export function SearchDialog({
           isOpen={isOpen}
           isDismissable
           onOpenChange={setIsOpen}
-          className={cn(
-            'fixed inset-0 z-100 flex items-center justify-center p-4 bg-black/40 backdrop-blur-xs animate-fade-in',
-            className,
-          )}
+          className={cn('bdocs-search-overlay', className)}
         >
-          <SearchDialogPrimitive.Content className="w-full max-w-lg bg-main border border-subtle shadow-md rounded-2xl overflow-hidden p-6">
+          <SearchDialogPrimitive.Content className="bdocs-search-panel">
             <SearchDialogPrimitive.Dialog
               aria-label="Search documentation"
               aria-describedby={statusId}
               aria-busy={isLoading}
-              className="flex flex-col min-h-0 h-[450px]"
+              className="bdocs-search-dialog"
             >
-              <SearchDialogPrimitive.Autocomplete className="flex flex-col min-h-0">
+              <SearchDialogPrimitive.Autocomplete className="bdocs-search-body">
                 <SearchDialogPrimitive.Input
                   value={query}
                   onChange={setQuery}
-                  className="flex items-center gap-2 border border-subtle bg-surface px-4 py-2.5 rounded-xl focus-within:border-primary-500 mb-4"
+                  className="bdocs-search-field"
                 >
                   <SearchDialogPrimitive.Input.SearchInput
                     aria-label="Search documentation"
                     placeholder="Search documentation..."
-                    className="w-full bg-transparent outline-none text-body text-sm"
+                    className="bdocs-search-input"
                   />
                   {query && (
                     <SearchDialogPrimitive.Input.Button
                       slot="clear"
                       aria-label="Clear search"
                       onPress={() => setQuery('')}
-                      className="text-muted hover:text-body hover:bg-surface rounded-md p-1 cursor-pointer select-none transition-colors"
+                      className="bdocs-search-clear"
                     >
                       <X size={16} />
                     </SearchDialogPrimitive.Input.Button>
@@ -163,10 +164,7 @@ export function SearchDialog({
                 </div>
 
                 {isLoading ? (
-                  <div
-                    className="flex flex-1 items-center justify-center px-4 py-8 text-sm text-muted"
-                    aria-hidden="true"
-                  >
+                  <div className="bdocs-search-state" aria-hidden="true">
                     {status === 'loading'
                       ? 'Loading search index…'
                       : status === 'indexing'
@@ -174,37 +172,36 @@ export function SearchDialog({
                         : 'Searching…'}
                   </div>
                 ) : error ? (
-                  <div className="flex flex-1 items-center justify-center px-4 py-8 text-center text-sm text-muted">
+                  <div className="bdocs-search-state bdocs-search-state--centered">
                     Search is temporarily unavailable.
                   </div>
                 ) : query.trim() && list.length === 0 ? (
-                  <div className="flex flex-1 items-center justify-center px-4 py-8 text-sm text-muted">
-                    No results found.
-                  </div>
+                  <div className="bdocs-search-state">No results found.</div>
                 ) : (
                   <SearchDialogPrimitive.List
                     items={list as SearchResult[]}
                     onAction={handleSelect}
+                    className="bdocs-search-results"
                   >
                     {(item: SearchResult) => (
                       <SearchDialogPrimitive.Item
                         key={item.id}
                         textValue={item.title}
-                        className="flex items-center gap-3 px-4 py-2 rounded-xl group dark:hover:bg-primary-300/40 hover:bg-primary-200/50 transition-colors duration-100"
+                        className="bdocs-search-result"
                       >
                         <SearchDialogPrimitive.Item.Icon
                           isHeading={item.isHeading}
-                          className="text-muted group-hover:text-primary-500 group-focus:text-primary-500"
+                          className="bdocs-search-result__icon"
                         />
-                        <div className="flex flex-col justify-center min-w-0">
-                          <SearchDialogPrimitive.Item.Title className="text-sm font-medium text-body truncate dark:group-hover:text-primary-100">
+                        <div className="bdocs-search-result__text">
+                          <SearchDialogPrimitive.Item.Title className="bdocs-search-result__title">
                             <SearchResultHighlight
                               text={item.title}
                               query={query}
                               markClassName={markClassName}
                             />
                           </SearchDialogPrimitive.Item.Title>
-                          <SearchDialogPrimitive.Item.Bio className="text-xs text-muted truncate">
+                          <SearchDialogPrimitive.Item.Bio className="bdocs-search-result__bio">
                             <SearchResultHighlight
                               text={item.snippet ?? item.bio}
                               query={query}

@@ -25,42 +25,31 @@ export function Feedback({ className }: FeedbackProps) {
   } = useFeedback()
 
   return (
-    <div
-      className={cn(
-        'w-full max-w-2xl mt-12 mb-6 p-6 rounded-2xl border border-subtle bg-surface/50 backdrop-blur-xs select-none',
-        className,
-      )}
-    >
+    <div className={cn('bdocs-feedback', className)}>
       {submitted ? (
-        <div className="flex flex-col items-center justify-center py-4 text-center animate-in fade-in zoom-in duration-300">
-          <div className="flex h-12 w-12 items-center justify-center rounded-full bg-emerald-500/10 text-emerald-500 mb-3 border border-emerald-500/20">
+        <div className="bdocs-feedback__thanks">
+          <div className="bdocs-feedback__thanks-mark">
             <Check size={24} />
           </div>
-          <h3 className="text-lg font-semibold text-default">
+          <h3 className="bdocs-feedback__thanks-title">
             Thank you for your feedback!
           </h3>
-          <p className="text-sm text-muted mt-1">
+          <p className="bdocs-feedback__thanks-body">
             Your comments help us improve the documentation.
           </p>
         </div>
       ) : (
-        <div className="flex flex-col gap-4">
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+        <div className="bdocs-feedback__body">
+          <div className="bdocs-feedback__row">
             {/* h3: the page h1/h2 live above; an h4 here skips a level (axe
                 `heading-order`). */}
-            <h3 className="text-base font-semibold text-default">
-              Was this page helpful?
-            </h3>
-            <div className="flex items-center gap-2">
+            <h3 className="bdocs-feedback__title">Was this page helpful?</h3>
+            <div className="bdocs-feedback__ratings">
               <button
                 type="button"
                 onClick={() => setRating('good')}
-                className={cn(
-                  'flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-sm font-medium transition-all duration-200 outline-none cursor-pointer',
-                  rating === 'good'
-                    ? 'border-primary-500 bg-primary-500/10 text-primary-500 dark:text-primary-400'
-                    : 'border-subtle hover:border-body hover:bg-surface text-muted hover:text-body',
-                )}
+                className="bdocs-feedback__rating"
+                data-selected={rating === 'good' || undefined}
                 aria-label="Helpful"
               >
                 <FaceGood />
@@ -70,12 +59,8 @@ export function Feedback({ className }: FeedbackProps) {
               <button
                 type="button"
                 onClick={() => setRating('neutral')}
-                className={cn(
-                  'flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-sm font-medium transition-all duration-200 outline-none cursor-pointer',
-                  rating === 'neutral'
-                    ? 'border-primary-500 bg-primary-500/10 text-primary-500 dark:text-primary-400'
-                    : 'border-subtle hover:border-body hover:bg-surface text-muted hover:text-body',
-                )}
+                className="bdocs-feedback__rating"
+                data-selected={rating === 'neutral' || undefined}
                 aria-label="Neutral"
               >
                 <FaceRegular />
@@ -85,12 +70,8 @@ export function Feedback({ className }: FeedbackProps) {
               <button
                 type="button"
                 onClick={() => setRating('bad')}
-                className={cn(
-                  'flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-sm font-medium transition-all duration-200 outline-none cursor-pointer',
-                  rating === 'bad'
-                    ? 'border-primary-500 bg-primary-500/10 text-primary-500 dark:text-primary-400'
-                    : 'border-subtle hover:border-body hover:bg-surface text-muted hover:text-body',
-                )}
+                className="bdocs-feedback__rating"
+                data-selected={rating === 'bad' || undefined}
                 aria-label="Not helpful"
               >
                 <FaceBad />
@@ -100,25 +81,21 @@ export function Feedback({ className }: FeedbackProps) {
           </div>
 
           {rating && (
-            <div className="flex flex-col gap-3 mt-1 animate-in slide-in-from-top-3 duration-300">
+            <div className="bdocs-feedback__comment">
               <textarea
                 value={comment}
                 onChange={(e) => setComment(e.target.value)}
                 placeholder="¿Tienes alguna sugerencia para mejorar esta página? (Opcional)"
-                className="w-full h-24 p-3 text-sm rounded-xl border border-subtle bg-main text-body placeholder:text-muted focus:outline-none focus:ring-1 focus:ring-primary-500 focus:border-primary-500 resize-none transition-shadow"
+                className="bdocs-feedback__textarea"
               />
-              <div className="flex items-center justify-between gap-3">
-                {error && (
-                  <p className="text-xs text-rose-500 font-medium flex-1">
-                    {error}
-                  </p>
-                )}
-                <div className="flex items-center gap-2 ml-auto">
+              <div className="bdocs-feedback__actions">
+                {error && <p className="bdocs-feedback__error">{error}</p>}
+                <div className="bdocs-feedback__actions-right">
                   <button
                     type="button"
                     onClick={() => submit()}
                     disabled={loading}
-                    className="px-4 py-2 rounded-xl text-xs font-semibold bg-primary-500 hover:bg-primary-600 active:bg-primary-700 text-white transition-colors outline-none cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="bdocs-feedback__submit"
                   >
                     {loading ? 'Submitting...' : 'Submit'}
                   </button>

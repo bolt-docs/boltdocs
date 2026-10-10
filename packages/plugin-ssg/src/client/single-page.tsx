@@ -58,7 +58,6 @@ export function ViteReactSSG(
 
     if (client) {
       await documentReady()
-      // @ts-expect-error global variable
       context.initialState =
         transformState?.(window.__INITIAL_STATE__ || {}) ||
         deserializeState(window.__INITIAL_STATE__)
@@ -82,14 +81,14 @@ export function ViteReactSSG(
           : rootContainer
 
       if (!container) {
-        // @ts-expect-error global variable
-        if (typeof $jsdom === 'undefined')
+        // `$jsdom` is set by the test harness, never by a browser.
+        if (typeof (globalThis as { $jsdom?: unknown }).$jsdom === 'undefined')
           console.warn('[vite-react-ssg] Root container not found.')
         return
       }
 
       const context = await createRoot(true)
-      window.__VITE_REACT_SSG_CONTEXT__ = context as any
+      window.__VITE_REACT_SSG_CONTEXT__ = context
       const routeApi = App as unknown as RouterEntryModule
       const RouteRenderer = routeApi.RouteRenderer
       const matchRouteBranch = routeApi.matchRouteBranch

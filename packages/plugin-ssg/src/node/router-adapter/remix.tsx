@@ -1,5 +1,4 @@
 import type { IncomingMessage, ServerResponse } from 'node:http'
-import type { FilledContext } from 'react-helmet-async'
 import type {
   LoaderFunction,
   LoaderFunctionArgs,
@@ -54,7 +53,7 @@ import {
 } from '../../polyfill/node-adapter'
 import { withLeadingSlash } from '../../utils/path'
 import { renderStaticApp } from '../serverRenderer'
-import { extractHelmet } from './utils'
+import { extractHelmet, type FilledHelmetContext } from './utils'
 
 export class RemixAdapter implements IRouterAdapter<ViteReactSSGContext> {
   context: ViteReactSSGContext<true>
@@ -133,7 +132,7 @@ export class RemixAdapter implements IRouterAdapter<ViteReactSSGContext> {
     const styleCollector = this.getStyleCollector
       ? await this.getStyleCollector()
       : null
-    const helmetContext = {} as FilledContext
+    const helmetContext: FilledHelmetContext = { helmet: {} as never }
     const routePath = new URL(request.url).pathname
 
     const matchStart = performance.now()

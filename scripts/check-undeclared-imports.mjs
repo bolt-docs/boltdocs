@@ -227,12 +227,11 @@ for (const name of OPTIONAL_BY_DESIGN.keys()) {
     const manifestPath = join(PACKAGES, dir, 'package.json')
     if (!existsSync(manifestPath)) continue
     const pkg = JSON.parse(readFileSync(manifestPath, 'utf8'))
-    if (pkg.name === name) continue // the package itself
-    const declaredNow =
-      pkg.name === name ||
-      (pkg.dependencies ?? {})[name] ||
-      (pkg.peerDependencies ?? {})[name]
-    if (declaredNow) staleExceptions.push(`${pkg.name} now declares ${name}`)
+    // The package itself is not a place it could have been declared *instead*.
+    if (pkg.name === name) continue
+    if (pkg.dependencies?.[name] || pkg.peerDependencies?.[name]) {
+      staleExceptions.push(`${pkg.name} now declares ${name}`)
+    }
   }
 }
 

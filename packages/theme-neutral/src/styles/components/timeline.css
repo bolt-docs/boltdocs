@@ -1,0 +1,204 @@
+/*
+ * Timeline — a vertical sequence of dated entries.
+ *
+ * Reads as a spine: one continuous rule down the left, a dot per entry, and the
+ * text indented past it. `position: relative` on the list is the positioning
+ * context for the connector, and `overflow` is deliberately left visible — the
+ * dot's ring would be clipped otherwise.
+ *
+ * ── Why `data-variant` and not a palette table ────────────────────────────
+ *
+ * The five accents used to be eleven records of Tailwind class strings, spread
+ * onto class names at the call site. `border-danger-500/30` on a badge meant the
+ * component shipped no colour of its own: a site with a different Tailwind
+ * palette restyled the timeline by accident, and a site with no Tailwind at all
+ * got an unstyled one.
+ *
+ * Here the variant is an attribute and this file owns the mapping. A site that
+ * wants `danger` to be purple writes one rule against `[data-variant="danger"]`.
+ */
+
+:where(.bdocs-timeline) {
+  position: relative;
+  margin-block: var(--bdocs-space-8);
+  margin-inline-start: var(--bdocs-space-3);
+}
+
+/* `space-y-7` between entries; `space-y-3` under `--compact`. */
+:where(.bdocs-timeline) > * + * {
+  margin-block-start: var(--bdocs-space-7);
+}
+
+:where(.bdocs-timeline--compact) > * + * {
+  margin-block-start: var(--bdocs-space-3);
+}
+
+/*
+ * The spine. Absolute, so it is continuous across entries rather than a border
+ * per item — a per-item border would show a gap at every margin.
+ *
+ * `start: 5.5px` centres it under a 12px dot that starts at 0: 0 + 6 - 0.5.
+ */
+:where(.bdocs-timeline__connector) {
+  position: absolute;
+  inset-block: var(--bdocs-space-3);
+  /* 5.5px: the dot centre, minus half the rule's own width. */
+  inset-inline-start: 5.5px;
+  width: 1px;
+  background-color: var(--_bdocs-line);
+  pointer-events: none;
+}
+
+:where(.bdocs-timeline__item) {
+  position: relative;
+  /* `ps-8`: clears the dot and its ring. */
+  padding-inline-start: var(--bdocs-space-8);
+}
+
+/*
+ * The dot.
+ *
+ * Raised off the page surface with a ring of the variant's own hue, so the
+ * entry marks its position on the spine without competing with the text.
+ */
+:where(.bdocs-timeline__dot) {
+  position: absolute;
+  inset-inline-start: 0;
+  inset-block-start: var(--bdocs-space-1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 0.75rem;
+  height: 0.75rem;
+  border-radius: var(--bdocs-radius-full);
+  background-color: var(--_bdocs-surface);
+  border-width: 2px;
+  border-style: solid;
+  box-shadow: var(--bdocs-shadow-sm);
+}
+
+/* The filled centre used when the variant has no icon of its own. */
+:where(.bdocs-timeline__dot-fallback) {
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: var(--bdocs-radius-full);
+  background-color: var(--_bdocs-variant);
+}
+
+/* An icon inside the dot sits on the brand fill, so it needs ink that beats it. */
+:where(.bdocs-timeline__dot-icon) {
+  color: var(--_bdocs-on-brand);
+}
+
+/*
+ * The header row: date, then badge.
+ *
+ * `flex-wrap` because a long title pushes the badge to its own line rather than
+ * overflowing the column.
+ */
+:where(.bdocs-timeline__header) {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--bdocs-space-2);
+  margin-block-end: var(--bdocs-space-1);
+}
+
+:where(.bdocs-timeline__time) {
+  font-family: var(--bdocs-font-mono);
+  font-size: 0.6875rem;
+  line-height: var(--bdocs-text-caption-s-line);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-variant-numeric: tabular-nums;
+  color: var(--_bdocs-ink-muted);
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+:where(.bdocs-timeline__title) {
+  margin: 0;
+  font-size: var(--bdocs-text-body-m);
+  font-weight: 600;
+  line-height: 1.375;
+  color: var(--_bdocs-ink);
+}
+
+:where(.bdocs-timeline__body) {
+  margin-block-start: var(--bdocs-space-2);
+  font-size: 0.9rem;
+  line-height: 1.6;
+}
+
+/* The prose wrapper's own margins, suppressed: the timeline owns the spacing. */
+:where(.bdocs-timeline__body) > :where(p) {
+  margin: 0;
+}
+
+:where(.bdocs-timeline__body) > :where(p + p) {
+  margin-block-start: var(--bdocs-space-2);
+}
+
+:where(.bdocs-timeline__body) :where(a) {
+  color: var(--_bdocs-brand);
+  text-decoration: none;
+}
+
+:where(.bdocs-timeline__body) :where(a):hover {
+  text-decoration: underline;
+}
+
+/* ------------------------------------------------------------------ *
+ * Variants
+ *
+ * One block per semantic variant, applied to both the dot's ring and the badge.
+ * Writing them together is the point: changing what `warning` looks like now
+ * changes it in both places, which the class-string version could not do without
+ * editing five strings in two records.
+ * ------------------------------------------------------------------ */
+
+:where([data-variant="primary"]) {
+  --_bdocs-variant: var(--_bdocs-brand);
+  --_bdocs-variant-ink: var(--bdocs-primary-ink);
+}
+
+:where([data-variant="success"]) {
+  --_bdocs-variant: var(--_bdocs-accent-success);
+  --_bdocs-variant-ink: var(--_bdocs-accent-success);
+}
+
+:where([data-variant="info"]) {
+  --_bdocs-variant: var(--_bdocs-accent-info);
+  --_bdocs-variant-ink: var(--_bdocs-accent-info);
+}
+
+:where([data-variant="warning"]) {
+  --_bdocs-variant: var(--_bdocs-accent-warning);
+  --_bdocs-variant-ink: var(--_bdocs-accent-warning);
+}
+
+:where([data-variant="danger"]) {
+  --_bdocs-variant: var(--_bdocs-accent-danger);
+  --_bdocs-variant-ink: var(--_bdocs-accent-danger);
+}
+
+:where(.bdocs-timeline__dot) {
+  border-color: color-mix(in srgb, var(--_bdocs-variant) 70%, transparent);
+}
+
+:where(.bdocs-timeline__badge) {
+  display: inline-flex;
+  align-items: center;
+  padding-inline: var(--bdocs-space-2);
+  padding-block: 0.125rem;
+  border-radius: var(--bdocs-radius-full);
+  border: var(--bdocs-border-width) solid
+    color-mix(in srgb, var(--_bdocs-variant) 30%, transparent);
+  background-color: color-mix(in srgb, var(--_bdocs-variant) 10%, transparent);
+  font-size: 0.625rem;
+  line-height: var(--bdocs-text-caption-xs-line);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.025em;
+  color: var(--_bdocs-variant-ink);
+}

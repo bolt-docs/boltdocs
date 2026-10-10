@@ -1,0 +1,388 @@
+/*
+ * The search dialog.
+ *
+ * Two components, one stylesheet: the trigger the navbar carries (a button that
+ * looks like a field, with a ⌘K hint inside it) and the dialog it opens.
+ *
+ * One element can carry classes from both layers — the primitives emit the
+ * structural hook, the theme appends to it. That is deliberate and it happens in
+ * exactly one place: the result list. The composition layer emits
+ * `bdocs-search-results` (a `ListBox` needs to be identified) and the theme
+ * layer contributes nothing of its own, because the layout is not a style.
+ *
+ * ── The `[&_kbd]:…` variant that used to be here ────────────────────────────
+ *
+ * The ⌘K hint was styled with a Tailwind *arbitrary child variant*: nine rule
+ * fragments inside one class attribute, all of which only had meaning inside
+ * Tailwind's build. Reading that markup told you nothing about what the keys
+ * looked like, and the one thing it did encode — their size — lived in a class
+ * name string nobody could grep for.
+ *
+ * The style is now `.bdocs-search-trigger__kbd :where(kbd)` in this file. The
+ * markup stopped describing the CSS, and the CSS became findable.
+ */
+
+/* ------------------------------------------------------------------ *
+ * The matched run inside a result title or snippet.
+ * ------------------------------------------------------------------ */
+
+:where(.bdocs-search-mark) {
+  padding-inline: 0.125rem;
+  border-radius: var(--bdocs-radius-xs);
+  background-color: var(--bdocs-primary-soft-10);
+  color: var(--bdocs-primary-ink);
+  font-weight: 700;
+}
+
+/* ------------------------------------------------------------------ *
+ * The trigger.
+ *
+ * Reads as a text field, behaves as a button. The border brightens to the brand
+ * on hover: a control that only changes colour on focus is a control most
+ * readers never notice.
+ * ------------------------------------------------------------------ */
+
+:where(.bdocs-search-trigger) {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-radius: var(--bdocs-radius-xl);
+  border: var(--bdocs-border-width) solid var(--_bdocs-line);
+  background-color: var(--_bdocs-surface);
+  color: var(--_bdocs-ink-muted);
+  cursor: pointer;
+  outline: none;
+  -webkit-user-select: none;
+  user-select: none;
+  transition:
+    border-color var(--bdocs-duration-slow) var(--bdocs-easing),
+    color var(--bdocs-duration-slow) var(--bdocs-easing),
+    background-color var(--bdocs-duration-slow) var(--bdocs-easing),
+    box-shadow var(--bdocs-duration-slow) var(--bdocs-easing),
+    transform var(--bdocs-duration-slow) var(--bdocs-easing);
+}
+
+:where(.bdocs-search-trigger):hover {
+  border-color: color-mix(in srgb, var(--_bdocs-brand) 50%, transparent);
+  color: var(--_bdocs-ink);
+  background-color: color-mix(
+    in srgb,
+    var(--_bdocs-surface-hover) 50%,
+    transparent
+  );
+  box-shadow: var(--bdocs-shadow-xs);
+}
+
+:where(.bdocs-search-trigger):active {
+  transform: scale(0.98);
+}
+
+:where(.bdocs-search-trigger):focus-visible {
+  outline: 2px solid var(--_bdocs-brand);
+  outline-offset: -2px;
+}
+
+:where(.bdocs-search-trigger__label) {
+  display: flex;
+  align-items: center;
+  gap: var(--bdocs-space-2);
+  min-width: 0;
+}
+
+/*
+ * `hidden sm:inline-block`: the words "Search docs..." do not fit next to a logo
+ * on a 390px viewport, and the icon trigger below takes over.
+ */
+:where(.bdocs-search-trigger__hint) {
+  display: none;
+  color: var(--_bdocs-ink-body);
+}
+
+@media (min-width: 40rem) {
+  :where(.bdocs-search-trigger__hint) {
+    display: inline-block;
+  }
+}
+
+/*
+ * The ⌘K hint.
+ *
+ * `pointer-events: none` on the wrapper so the two keys do not each swallow a
+ * click meant for the button behind them.
+ */
+:where(.bdocs-search-trigger__kbd) {
+  display: none;
+  align-items: center;
+  gap: 0.125rem;
+  pointer-events: none;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+@media (min-width: 40rem) {
+  :where(.bdocs-search-trigger__kbd) {
+    display: flex;
+  }
+}
+
+:where(.bdocs-search-trigger__kbd) :where(kbd) {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.25rem;
+  height: 1.25rem;
+  padding-inline: 0.375rem;
+  border: var(--bdocs-border-width) solid var(--_bdocs-line);
+  border-radius: var(--bdocs-radius-xs);
+  background-color: var(--_bdocs-page);
+  font-family: var(--bdocs-font-mono);
+  font-size: 0.625rem;
+  line-height: var(--bdocs-text-caption-xs-line);
+  color: var(--_bdocs-ink-muted);
+}
+
+/* The icon-only trigger used in place of the field on a phone. */
+:where(.bdocs-search-trigger--icon) {
+  width: 2.5rem;
+  height: 2.5rem;
+  justify-content: center;
+}
+
+:where(.bdocs-search-trigger--icon):active {
+  transform: scale(0.95);
+}
+
+/* ------------------------------------------------------------------ *
+ * The dialog.
+ *
+ * A single panel, centred, over a wash of the page. `overflow: hidden` on the
+ * panel is load-bearing: the field's focus ring is drawn outside its own box,
+ * and without it the ring is clipped by the panel's corner instead of being
+ * contained by it.
+ * ------------------------------------------------------------------ */
+
+:where(.bdocs-search-overlay) {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--bdocs-space-4);
+  background-color: var(--bdocs-scrim-dialog);
+  -webkit-backdrop-filter: blur(var(--bdocs-scrim-blur));
+  backdrop-filter: blur(var(--bdocs-scrim-blur));
+  animation: bdocs-search-fade-in var(--bdocs-duration-slow) var(--bdocs-easing);
+}
+
+@keyframes bdocs-search-fade-in {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :where(.bdocs-search-overlay) {
+    animation: none;
+  }
+}
+
+:where(.bdocs-search-panel) {
+  width: 100%;
+  max-width: 32rem;
+  padding: var(--bdocs-space-6);
+  background-color: var(--_bdocs-page);
+  border: var(--bdocs-border-width) solid var(--_bdocs-line);
+  border-radius: var(--bdocs-radius-2xl);
+  box-shadow: var(--bdocs-shadow-lg);
+  /* See the note above. */
+  overflow: hidden;
+}
+
+:where(.bdocs-search-dialog) {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  height: 450px;
+  outline: none;
+}
+
+:where(.bdocs-search-body) {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 0%;
+  min-height: 0;
+}
+
+:where(.bdocs-search-field) {
+  display: flex;
+  align-items: center;
+  gap: var(--bdocs-space-2);
+  padding-inline: var(--bdocs-space-4);
+  padding-block: 0.625rem;
+  margin-block-end: var(--bdocs-space-4);
+  background-color: var(--_bdocs-surface);
+  border: var(--bdocs-border-width) solid var(--_bdocs-line);
+  border-radius: var(--bdocs-radius-xl);
+  transition:
+    border-color var(--bdocs-duration) var(--bdocs-easing),
+    box-shadow var(--bdocs-duration) var(--bdocs-easing);
+}
+
+/* Typing in the field is the signal that the reader is reading results. */
+:where(.bdocs-search-field):focus-within {
+  border-color: var(--_bdocs-brand);
+  box-shadow: 0 0 0 3px var(--bdocs-primary-soft-10);
+}
+
+:where(.bdocs-search-input) {
+  width: 100%;
+  background: transparent;
+  outline: none;
+  border: none;
+  color: var(--_bdocs-ink);
+  font-size: var(--bdocs-text-body-m);
+}
+
+:where(.bdocs-search-clear) {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--bdocs-space-1);
+  border: none;
+  border-radius: var(--bdocs-radius-sm);
+  background: transparent;
+  color: var(--_bdocs-ink-muted);
+  cursor: pointer;
+  outline: none;
+  -webkit-user-select: none;
+  user-select: none;
+  transition:
+    background-color var(--bdocs-duration) var(--bdocs-easing),
+    color var(--bdocs-duration) var(--bdocs-easing);
+}
+
+:where(.bdocs-search-clear):hover {
+  background-color: var(--_bdocs-surface-hover);
+  color: var(--_bdocs-ink);
+}
+
+/* Every empty state shares one rule. */
+:where(.bdocs-search-state) {
+  display: flex;
+  flex: 1 1 0%;
+  align-items: center;
+  justify-content: center;
+  padding-inline: var(--bdocs-space-4);
+  padding-block: var(--bdocs-space-8);
+  font-size: var(--bdocs-text-body-m);
+  color: var(--_bdocs-ink-muted);
+}
+
+/* The one that can wrap: an error sentence, not a status word. */
+:where(.bdocs-search-state--centered) {
+  text-align: center;
+}
+
+/*
+ * The results.
+ *
+ * Emitted by the composition layer, because a `ListBox` has to be identified to
+ * be a scroll container at all — it is structure, not style. The theme adds
+ * nothing here.
+ */
+:where(.bdocs-search-results) {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 0%;
+  min-height: 0;
+  gap: 0.125rem;
+  overflow-y: auto;
+  outline: none;
+}
+
+:where(.bdocs-search-result) {
+  display: flex;
+  align-items: center;
+  gap: var(--bdocs-space-3);
+  padding-inline: var(--bdocs-space-4);
+  padding-block: var(--bdocs-space-2);
+  border-radius: var(--bdocs-radius-xl);
+  cursor: pointer;
+  outline: none;
+  transition:
+    background-color var(--bdocs-duration-slow) var(--bdocs-easing),
+    color var(--bdocs-duration-slow) var(--bdocs-easing);
+}
+
+/*
+ * The hovered result. A tint of the brand rather than a solid wash, so the
+ * result still reads as belonging to the page rather than as a separate selected
+ * surface. The transition is 100ms, faster than the theme's default: the pointer
+ * crosses a list, and a 250ms fade reads as lag.
+ */
+:where(.bdocs-search-result):hover,
+:where(.bdocs-search-result)[data-focused] {
+  background-color: var(--bdocs-primary-soft-10);
+}
+
+:where(.bdocs-search-result__icon) {
+  flex: none;
+  color: var(--_bdocs-ink-muted);
+  transition: color var(--bdocs-duration-slow) var(--bdocs-easing);
+}
+
+:where(.bdocs-search-result):hover :where(.bdocs-search-result__icon),
+:where(.bdocs-search-result)[data-focused] :where(.bdocs-search-result__icon) {
+  color: var(--_bdocs-brand);
+}
+
+:where(.bdocs-search-result__text) {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-width: 0;
+}
+
+:where(.bdocs-search-result__title) {
+  font-size: var(--bdocs-text-body-m);
+  font-weight: 500;
+  color: var(--_bdocs-ink);
+  /* `truncate`: a long route title must not widen the dialog. */
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* `hidden sm:inline` — the snippet is the first thing to go when space is tight. */
+:where(.bdocs-search-result__bio) {
+  display: none;
+  font-size: var(--bdocs-text-caption-s);
+  color: var(--_bdocs-ink-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+@media (min-width: 40rem) {
+  :where(.bdocs-search-result__bio) {
+    display: block;
+  }
+}
+
+:where(.bdocs-search-result__hint) {
+  margin-inline-start: auto;
+  display: flex;
+  align-items: center;
+  gap: 0.125rem;
+  opacity: 0.5;
+}
+
+:where(.bdocs-search-result__hint-label) {
+  font-size: 0.625rem;
+  line-height: var(--bdocs-text-caption-xs-line);
+}

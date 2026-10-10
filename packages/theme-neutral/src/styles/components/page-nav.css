@@ -58,12 +58,12 @@
     background-color var(--bdocs-duration-slow) var(--bdocs-easing);
 }
 
-:where(.bdocs-page-nav__card[data-direction="next"]) {
+:where(.bdocs-page-nav__card)[data-direction="next"] {
   justify-content: flex-end;
   text-align: end;
 }
 
-:where(.bdocs-page-nav__card[data-direction="prev"]) {
+:where(.bdocs-page-nav__card)[data-direction="prev"] {
   justify-content: flex-start;
   text-align: start;
 }

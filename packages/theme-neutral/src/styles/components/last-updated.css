@@ -1,0 +1,25 @@
+/*
+ * The "Last updated on …" line at the foot of a page.
+ *
+ * Sits below the page-nav card, separated by a hairline. The empty leading span
+ * is not an accident: `justify-content: space-between` between an empty first
+ * child and the date puts the date at the right edge and leaves the left edge for
+ * something a site may add.
+ */
+
+:where(.bdocs-last-updated) {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-block-start: var(--bdocs-space-16);
+  padding-block-start: var(--bdocs-space-6);
+  border-block-start: var(--bdocs-border-width) solid var(--_bdocs-line);
+  font-size: var(--bdocs-text-caption-s);
+  color: var(--_bdocs-ink-muted);
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+:where(.bdocs-last-updated__date) {
+  font-style: italic;
+}

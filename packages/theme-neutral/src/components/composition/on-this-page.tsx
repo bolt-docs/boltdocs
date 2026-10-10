@@ -174,7 +174,11 @@ export function OnThisPage({
   label?: string
 }) {
   return (
-    <nav data-otp-root aria-label={label} className={className}>
+    <nav
+      data-otp-root
+      aria-label={label}
+      className={cn('bdocs-toc__root', className)}
+    >
       {children}
     </nav>
   )
@@ -182,7 +186,7 @@ export function OnThisPage({
 
 function OnThisPageHeader({ children, className, ...props }: ComponentBase) {
   return (
-    <div className={className} {...props}>
+    <div className={cn('bdocs-toc__header', className)} {...props}>
       {children}
     </div>
   )
@@ -239,7 +243,10 @@ function OnThisPageList({ children, className }: ComponentBase) {
 
 function OnThisPageItem({ level, children, className }: OnThisPageItemProps) {
   return (
-    <li data-level={level || undefined} className={className}>
+    <li
+      data-level={level || undefined}
+      className={cn('bdocs-toc__item', className)}
+    >
       {children}
     </li>
   )
@@ -298,7 +305,7 @@ function OnThisPageLink({
       onClick={handleClick}
       data-active={computedActive || undefined}
       aria-current={computedActive ? 'true' : undefined}
-      className={className}
+      className={cn('bdocs-toc__link', className)}
     >
       {children}
     </a>
