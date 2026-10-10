@@ -1,0 +1,706 @@
+/*
+ * The navbar: the site's fixed top bar.
+ *
+ * Translucent, so the page scrolls behind it. The translucency is
+ * `--bdocs-chrome-bar`, which is the canvas at 80% — a theme that changes its
+ * canvas gets chrome that moves with it, rather than a dark bar on a light page.
+ *
+ * Breakpoints are the Tailwind defaults this build replaced: `sm` 40rem, `md`
+ * 48rem, `lg` 64rem. The navbar has three layouts across that range — the
+ * desktop three-column bar, a version that hides the centre links, and the
+ * hamburger — and the columns are the load-bearing part: `flex-1` on each of
+ * left and right with the centre auto-width is what keeps the logo and the
+ * social icons at the edges at every width.
+ *
+ * The legacy `boltdocs-navbar` class is kept alongside `bdocs-navbar` because
+ * sites may already style it; it carries no rules of its own.
+ */
+
+:where(.bdocs-navbar) {
+  position: sticky;
+  top: 0;
+  z-index: 50;
+}
+
+/* `border-b-0` is applied by the theme's own variant below, not here: the
+   navbar's default state has a hairline under it, and the tabs strip supplies
+   its own. */
+:where(.bdocs-navbar--bordered) {
+  border-block-end: var(--bdocs-border-width) solid var(--_bdocs-line);
+}
+
+:where(.bdocs-navbar__content) {
+  display: flex;
+  align-items: center;
+  margin-inline: auto;
+  /* `lg:h-navbar` — h-navbar is the whole bar, so it applies from `lg` up, where
+     the row does not wrap. Below `lg` the height comes from the content. */
+  padding-inline: var(--bdocs-space-4);
+  max-width: 120rem; /* --breakpoint-3xl in the Tailwind days */
+}
+
+@media (min-width: 48rem) {
+  :where(.bdocs-navbar__content) {
+    padding-inline: var(--bdocs-space-6);
+  }
+}
+
+@media (min-width: 64rem) {
+  :where(.bdocs-navbar__content) {
+    height: var(--bdocs-navbar-height);
+  }
+}
+
+:where(.bdocs-navbar__left),
+:where(.bdocs-navbar__right) {
+  display: flex;
+  flex: 1 1 0%;
+  align-items: center;
+  min-width: 0;
+}
+
+:where(.bdocs-navbar__left) {
+  gap: var(--bdocs-space-4);
+}
+
+:where(.bdocs-navbar__right) {
+  justify-content: flex-end;
+  gap: var(--bdocs-space-2);
+}
+
+@media (min-width: 48rem) {
+  :where(.bdocs-navbar__right) {
+    gap: var(--bdocs-space-4);
+  }
+}
+
+/*
+ * The centre column carries the search field, which is a button on desktop and
+ * an icon on mobile. Hidden below `lg` because a centred search field and a
+ * 390px viewport cannot both be there.
+ */
+:where(.bdocs-navbar__center) {
+  display: none;
+  flex: 1 1 0%;
+  align-items: center;
+  justify-content: center;
+  gap: var(--bdocs-space-4);
+  padding-inline: var(--bdocs-space-4);
+  min-width: 0;
+}
+
+@media (min-width: 64rem) {
+  :where(.bdocs-navbar__center) {
+    display: flex;
+  }
+}
+
+:where(.bdocs-navbar__logo) {
+  display: flex;
+  align-items: center;
+  gap: var(--bdocs-space-2);
+  flex: none;
+  outline: none;
+}
+
+:where(.bdocs-navbar__logo-image) {
+  width: 1.5rem;
+  height: 1.5rem;
+  object-fit: contain;
+}
+
+/*
+ * One or two `<img>` in the DOM, never both visible: which one shows is decided
+ * by the `dark` class on `<html>`, which is set before first paint. Both are
+ * always rendered so the server and the browser agree without a hydration
+ * mismatch — see the note in the component.
+ */
+:where(.bdocs-navbar__logo-image--light) {
+  display: none;
+}
+
+:where(.dark) :where(.bdocs-navbar__logo-image--light) {
+  display: block;
+}
+
+:where(.bdocs-navbar__logo-image--dark) {
+  display: none;
+}
+
+:where(.dark) :where(.bdocs-navbar__logo-image--dark) {
+  display: block;
+}
+
+/* The title hides below `sm`: the logo is enough on a phone. */
+:where(.bdocs-navbar__title) {
+  display: none;
+  font-size: var(--bdocs-text-body-l);
+  font-weight: 700;
+  letter-spacing: -0.025em;
+}
+
+@media (min-width: 40rem) {
+  :where(.bdocs-navbar__title) {
+    display: inline-block;
+  }
+}
+
+/* The top-level links. `hidden md:flex`: the hamburger takes over below `md`. */
+:where(.bdocs-navbar__links) {
+  display: none;
+  align-items: center;
+  gap: var(--bdocs-space-6);
+  font-size: var(--bdocs-text-body-m);
+  font-weight: 500;
+}
+
+@media (min-width: 48rem) {
+  :where(.bdocs-navbar__links) {
+    display: flex;
+  }
+}
+
+:where(.bdocs-navbar__link) {
+  transition:
+    color var(--bdocs-duration) var(--bdocs-easing),
+    opacity var(--bdocs-duration) var(--bdocs-easing);
+  outline: none;
+}
+
+/* The external-link glyph sits beside the label, not inside it. */
+:where(.bdocs-navbar__link-icon) {
+  display: inline-block;
+  margin-inline-start: var(--bdocs-space-1);
+}
+
+/* ── Dropdown ─────────────────────────────────────────────────────────── */
+
+:where(.bdocs-navbar__dropdown) {
+  position: relative;
+}
+
+:where(.bdocs-navbar__dropdown-trigger) {
+  display: flex;
+  align-items: center;
+  gap: var(--bdocs-space-1);
+  cursor: pointer;
+  outline: none;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+:where(.bdocs-navbar__dropdown-indicator) {
+  flex: none;
+  display: flex;
+}
+
+:where(.bdocs-navbar__dropdown-chevron) {
+  width: 1.5rem;
+  height: 1.5rem;
+  transition: transform var(--bdocs-duration) var(--bdocs-easing);
+}
+
+:where(.bdocs-navbar__dropdown-chevron--open) {
+  transform: rotate(180deg);
+}
+
+/*
+ * The panel hangs from the trigger with a gap under it, so moving the pointer
+ * from the trigger to the panel does not close it on the way.
+ */
+:where(.bdocs-navbar__dropdown-panel) {
+  position: absolute;
+  inset-block-start: 100%;
+  inset-inline-start: 0;
+  /* The gap: a padding rather than a margin, so the panel itself is flush with
+     the trigger's left edge. */
+  padding-block-start: var(--bdocs-space-1);
+  /* Above the sticky navbar's own stacking context but below a dialog. */
+  z-index: 9999;
+}
+
+:where(.bdocs-navbar__dropdown-menu) {
+  min-width: 180px;
+  padding: var(--bdocs-space-1);
+  background-color: var(--_bdocs-surface);
+  border: var(--bdocs-border-width) solid var(--_bdocs-line);
+  border-radius: var(--bdocs-radius-sm);
+  box-shadow: var(--bdocs-shadow-lg);
+}
+
+:where(.bdocs-navbar__dropdown-item) {
+  display: block;
+  padding-inline: var(--bdocs-space-2);
+  padding-block: 0.375rem;
+  border-radius: var(--bdocs-radius-sm);
+  transition:
+    background-color var(--bdocs-duration) var(--bdocs-easing),
+    color var(--bdocs-duration) var(--bdocs-easing);
+}
+
+:where(.bdocs-navbar__dropdown-item):hover {
+  background-color: var(--_bdocs-surface-hover);
+}
+
+/* ── Search triggers ──────────────────────────────────────────────────── */
+
+:where(.bdocs-navbar__search-desktop) {
+  display: none;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--bdocs-space-2);
+  width: 100%;
+  max-width: 720px;
+  padding-inline: var(--bdocs-space-3);
+  padding-block: var(--bdocs-space-2);
+  font-size: var(--bdocs-text-body-m);
+  cursor: pointer;
+  outline: none;
+}
+
+@media (min-width: 64rem) {
+  :where(.bdocs-navbar__search-desktop) {
+    display: flex;
+  }
+}
+
+:where(.bdocs-navbar__search-mobile) {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  cursor: pointer;
+  outline: none;
+}
+
+@media (min-width: 64rem) {
+  :where(.bdocs-navbar__search-mobile) {
+    display: none;
+  }
+}
+
+/*
+ * The ⌘K hint. Hidden below `sm`, and inert at every size: it is a label, and a
+ * label that starts a selection on double-click is a label nobody can read.
+ */
+:where(.bdocs-navbar__search-kbd) {
+  display: none;
+  align-items: center;
+  gap: var(--bdocs-space-1);
+  pointer-events: none;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+@media (min-width: 40rem) {
+  :where(.bdocs-navbar__search-kbd) {
+    display: flex;
+  }
+}
+
+:where(.bdocs-navbar__kbd) {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--bdocs-font-mono);
+  font-size: 0.625rem;
+  line-height: var(--bdocs-text-caption-xs-line);
+}
+
+/* ── Right-side controls ─────────────────────────────────────────────── */
+
+:where(.bdocs-navbar__theme),
+:where(.bdocs-navbar__social),
+:where(.bdocs-navbar__more) {
+  cursor: pointer;
+  outline: none;
+}
+
+/* The vertical hairline between the icon groups. */
+:where(.bdocs-navbar__split) {
+  height: 100%;
+  width: 1px;
+  flex: none;
+}
+
+/* ── Mobile menu ─────────────────────────────────────────────────────── */
+
+:where(.bdocs-navbar__mobile-overlay) {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  transition: opacity var(--bdocs-duration-slow) var(--bdocs-easing);
+}
+
+@media (min-width: 48rem) {
+  :where(.bdocs-navbar__mobile-overlay) {
+    display: none;
+  }
+}
+
+:where(.bdocs-navbar__mobile) {
+  position: fixed;
+  inset: 0;
+  outline: none;
+}
+
+/*
+ * A full-height panel with safe-area padding, because the hamburger is a phone
+ * affordance and the notch is not.
+ */
+:where(.bdocs-navbar__mobile-dialog) {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  padding: var(--bdocs-space-6);
+  padding-block-start: calc(1.5rem + env(safe-area-inset-top, 0px));
+  padding-block-end: calc(1.5rem + env(safe-area-inset-bottom, 0px));
+  padding-inline-start: calc(1.5rem + env(safe-area-inset-left, 0px));
+  padding-inline-end: calc(1.5rem + env(safe-area-inset-right, 0px));
+  outline: none;
+}
+
+:where(.bdocs-navbar__mobile-row) {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-block-end: var(--bdocs-space-6);
+}
+
+:where(.bdocs-navbar__mobile-close) {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  outline: none;
+  color: var(--_bdocs-ink-muted);
+  transition:
+    color var(--bdocs-duration) var(--bdocs-easing),
+    background-color var(--bdocs-duration) var(--bdocs-easing);
+}
+
+:where(.bdocs-navbar__mobile-close):hover {
+  color: var(--_bdocs-ink);
+  background-color: var(--_bdocs-surface-hover);
+}
+
+:where(.bdocs-navbar__mobile-nav) {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 0%;
+  gap: var(--bdocs-space-4);
+  overflow-y: auto;
+}
+
+:where(.bdocs-navbar__mobile-link) {
+  display: flex;
+  align-items: center;
+  outline: none;
+  transition:
+    color var(--bdocs-duration) var(--bdocs-easing),
+    opacity var(--bdocs-duration) var(--bdocs-easing);
+  color: var(--_bdocs-ink-muted-80);
+}
+
+:where(.bdocs-navbar__mobile-link):hover,
+:where(.bdocs-navbar__mobile-link--active) {
+  color: var(--_bdocs-ink);
+}
+
+:where(.bdocs-navbar__mobile-group) {
+  display: flex;
+  flex-direction: column;
+  gap: var(--bdocs-space-1);
+}
+
+:where(.bdocs-navbar__mobile-label) {
+  padding-inline: var(--bdocs-space-3);
+  padding-block: var(--bdocs-space-2);
+  font-size: var(--bdocs-text-body-m);
+  color: var(--_bdocs-ink-muted-80);
+  transition: color var(--bdocs-duration) var(--bdocs-easing);
+}
+
+:where(.bdocs-navbar__mobile-label):hover,
+:where(.bdocs-navbar__mobile-label--active) {
+  color: var(--_bdocs-ink);
+}
+
+:where(.bdocs-navbar__mobile-list) {
+  display: flex;
+  flex-direction: column;
+  gap: var(--bdocs-space-1);
+  padding-inline-start: var(--bdocs-space-4);
+}
+/* ------------------------------------------------------------------ *
+ * The theme layer's own slots.
+ *
+ * The primitives own the structure; this block owns the pieces of it that only
+ * exist in the default composition — the sidebar toggle, the draft chip, the
+ * rows the responsive rules hang on, and the mobile "Connect" group.
+ * ------------------------------------------------------------------ */
+
+/* Translucency + a hairline under it, applied as a pair rather than as two
+   utilities so the two states cannot disagree. */
+:where(.bdocs-navbar--chrome) {
+  color: var(--_bdocs-ink);
+  background-color: var(--_bdocs-chrome-bar);
+  -webkit-backdrop-filter: blur(var(--bdocs-chrome-blur));
+  backdrop-filter: blur(var(--bdocs-chrome-blur));
+}
+
+/* When a tabs strip sits underneath, it supplies the divider. */
+:where(.bdocs-navbar--flush) {
+  border-block-end-color: transparent;
+}
+
+/*
+ * A conditional section's breakpoint.
+ *
+ * `row` is shown from `sm`; `row--narrow` from `lg` (it holds the mobile search
+ * icon, so it is the `lg:hidden` pair); `row--md` and `row--md-social` from
+ * `md`. Each is `display: none` until its breakpoint, so the sections behave the
+ * same way the utility variants did.
+ */
+:where(.bdocs-navbar__row) {
+  display: none;
+  align-items: center;
+}
+
+@media (min-width: 40rem) {
+  :where(.bdocs-navbar__row) {
+    display: flex;
+  }
+}
+
+:where(.bdocs-navbar__row--narrow) {
+  display: flex;
+}
+
+@media (min-width: 64rem) {
+  :where(.bdocs-navbar__row--narrow) {
+    display: none;
+  }
+}
+
+:where(.bdocs-navbar__row--md),
+:where(.bdocs-navbar__row--md-social) {
+  display: none;
+  align-items: center;
+}
+
+@media (min-width: 48rem) {
+  :where(.bdocs-navbar__row--md) {
+    display: flex;
+  }
+
+  :where(.bdocs-navbar__row--md-social) {
+    display: flex;
+    gap: var(--bdocs-space-1);
+  }
+}
+
+:where(.bdocs-navbar__menu-toggle) {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  margin-inline-end: var(--bdocs-space-2);
+  padding: 0.375rem;
+  width: 2rem;
+  height: 2rem;
+  flex: none;
+  background: transparent;
+  border: none;
+  border-radius: var(--bdocs-radius-xl);
+  cursor: pointer;
+  outline: none;
+  -webkit-user-select: none;
+  user-select: none;
+  transition:
+    background-color var(--bdocs-duration) var(--bdocs-easing),
+    color var(--bdocs-duration) var(--bdocs-easing);
+}
+
+@media (max-width: 63.999rem) {
+  :where(.bdocs-navbar__menu-toggle) {
+    display: flex;
+  }
+}
+
+:where(.bdocs-navbar__menu-toggle):hover {
+  background-color: var(--_bdocs-brand-soft-weak);
+}
+
+:where(.bdocs-navbar__menu-icon) {
+  width: 1.25rem;
+  height: 1.25rem;
+  color: var(--_bdocs-ink);
+}
+
+:where(.bdocs-navbar__draft) {
+  display: none;
+  align-items: center;
+  padding-inline: var(--bdocs-space-2);
+  padding-block: 0.125rem;
+  border-radius: var(--bdocs-radius-full);
+  border: var(--bdocs-border-width) solid
+    color-mix(in srgb, var(--bdocs-warning) 30%, transparent);
+  background-color: color-mix(in srgb, var(--bdocs-warning) 20%, transparent);
+  font-size: var(--bdocs-text-caption-s);
+  font-weight: 500;
+  color: var(--_bdocs-accent-warning);
+}
+
+@media (min-width: 40rem) {
+  :where(.bdocs-navbar__draft) {
+    display: inline-flex;
+  }
+}
+
+:where(.bdocs-navbar__search) {
+  display: flex;
+  align-items: center;
+  width: 100%;
+}
+
+:where(.bdocs-navbar__search-skeleton) {
+  width: 8rem;
+  height: 2.25rem;
+  border-radius: var(--bdocs-radius-sm);
+  background-color: var(--_bdocs-surface);
+  animation: bdocs-navbar-pulse var(--bdocs-duration-slow) var(--bdocs-easing)
+    infinite;
+}
+
+@keyframes bdocs-navbar-pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.55;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :where(.bdocs-navbar__search-skeleton) {
+    animation: none;
+  }
+}
+
+/* The label inside a plain link. `bdocs-navbar__link-label` is also used for the
+   dropdown's trigger, so both share their colour rules here. */
+:where(.bdocs-navbar__link-label) {
+  padding-inline: var(--bdocs-space-2);
+  padding-block: var(--bdocs-space-1);
+  border-radius: var(--bdocs-radius-xs);
+  font-weight: 500;
+  color: var(--_bdocs-ink-muted);
+  transition: color var(--bdocs-duration) var(--bdocs-easing);
+}
+
+:where(.bdocs-navbar__link-label):hover {
+  color: var(--_bdocs-ink);
+}
+
+:where(.bdocs-navbar__link-label--active) {
+  color: var(--_bdocs-brand);
+}
+
+:where(.bdocs-navbar__split--filled) {
+  background-color: var(--_bdocs-line);
+}
+
+/*
+ * The icon buttons.
+ *
+ * `focus-visible:ring-2 ring-primary-500/30` in the utility version: a ring that
+ * only appears on keyboard focus. Written here rather than as an exception
+ * because the browser's own focus outline is already handled by `base.css`, and
+ * this is the theme's *additional* affordance for these specific controls.
+ */
+:where(.bdocs-navbar__social-button),
+:where(.bdocs-navbar__more-button) {
+  padding: 0.375rem;
+  border-radius: var(--bdocs-radius-sm);
+  color: var(--_bdocs-ink-muted);
+  cursor: pointer;
+  outline: none;
+  -webkit-user-select: none;
+  user-select: none;
+  transition:
+    color var(--bdocs-duration) var(--bdocs-easing),
+    background-color var(--bdocs-duration) var(--bdocs-easing),
+    transform var(--bdocs-duration) var(--bdocs-easing);
+}
+
+:where(.bdocs-navbar__social-button):hover {
+  color: var(--_bdocs-ink);
+  background-color: var(--_bdocs-surface-hover);
+}
+
+:where(.bdocs-navbar__more-button):hover {
+  color: var(--_bdocs-ink);
+}
+
+:where(.bdocs-navbar__more-button):active {
+  transform: scale(0.9);
+}
+
+:where(.bdocs-navbar__social-button):focus-visible,
+:where(.bdocs-navbar__more-button):focus-visible {
+  outline: 2px solid var(--_bdocs-brand);
+  outline-offset: -2px;
+}
+
+:where(.bdocs-navbar__mobile-surface) {
+  background-color: var(--_bdocs-chrome-panel);
+  -webkit-backdrop-filter: blur(var(--bdocs-chrome-blur-strong));
+  backdrop-filter: blur(var(--bdocs-chrome-blur-strong));
+}
+
+:where(.bdocs-navbar__mobile-links) {
+  display: flex;
+  flex-direction: column;
+  gap: var(--bdocs-space-1);
+}
+
+:where(.bdocs-navbar__tabs) {
+  width: 100%;
+  border-block-end: var(--bdocs-border-width) solid var(--_bdocs-line);
+  background-color: var(--_bdocs-page);
+}
+
+/* ── The mobile "Connect" group ──────────────────────────────────────── */
+
+:where(.bdocs-navbar__connect) {
+  margin-block-start: var(--bdocs-space-6);
+}
+
+:where(.bdocs-navbar__connect-title) {
+  padding-inline: var(--bdocs-space-2);
+  margin-block-end: var(--bdocs-space-4);
+  font-size: var(--bdocs-text-caption-s);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--_bdocs-ink-faintest);
+}
+
+:where(.bdocs-navbar__connect-list) {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--bdocs-space-2);
+  padding-inline: var(--bdocs-space-2);
+}
+
+:where(.bdocs-navbar__connect-button) {
+  flex: 1 1 0%;
+  justify-content: center;
+  padding: var(--bdocs-space-3);
+  background-color: var(--_bdocs-surface);
+  border: var(--bdocs-border-width) solid var(--_bdocs-line);
+  border-radius: var(--bdocs-radius-xl);
+}

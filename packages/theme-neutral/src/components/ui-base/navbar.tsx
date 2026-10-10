@@ -21,6 +21,19 @@ const SearchDialog = lazy(() =>
   })),
 )
 
+/**
+ * The default navbar composition.
+ *
+ * Structure and behaviour only — every visible property is in
+ * `styles/components/navbar.css`. The slots the stylesheet reads are the
+ * `bdocs-navbar__*` classes the primitives already emit plus a handful this
+ * file adds for the sections it owns directly (the draft chip, the icon rows,
+ * the mobile "Connect" group).
+ *
+ * Where a section is conditional, the breakpoint that shows or hides it is a
+ * class on that section rather than a utility on the container: `bdocs-navbar__row`
+ * below is what the stylesheet keys the `hidden sm:flex` rule on.
+ */
 export function Navbar({ className }: { className?: string }) {
   const { links, title, logo, logoProps, social, config } = useNavbar()
   const {
@@ -40,8 +53,8 @@ export function Navbar({ className }: { className?: string }) {
   return (
     <NavbarPrimitive.Root
       className={cn(
-        'border-b border-subtle bg-main/80 backdrop-blur-md',
-        hasTabs && 'border-b-0',
+        'bdocs-navbar--bordered bdocs-navbar--chrome',
+        hasTabs && 'bdocs-navbar--flush',
         className,
       )}
     >
@@ -50,13 +63,13 @@ export function Navbar({ className }: { className?: string }) {
           {isDocs && (
             <Button
               onPress={toggleSidebar}
-              className="mr-2 lg:hidden p-1.5 h-8 w-8 flex items-center justify-center bg-transparent border-none outline-none select-none cursor-pointer rounded-xl hover:bg-primary-50/50 transition-colors"
+              className="bdocs-navbar__menu-toggle"
               aria-label={isSidebarOpen ? 'Close sidebar' : 'Open sidebar'}
             >
               {isSidebarOpen ? (
-                <X className="w-5 h-5 text-body" />
+                <X className="bdocs-navbar__menu-icon" />
               ) : (
-                <MenuIcon className="w-5 h-5 text-body" />
+                <MenuIcon className="bdocs-navbar__menu-icon" />
               )}
             </Button>
           )}
@@ -74,21 +87,19 @@ export function Navbar({ className }: { className?: string }) {
           <NavbarPrimitive.Title href="site:/">{title}</NavbarPrimitive.Title>
 
           {currentRoute?.draft && (
-            <span className="hidden sm:inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400 border border-yellow-200 dark:border-yellow-800">
-              Draft
-            </span>
+            <span className="bdocs-navbar__draft">Draft</span>
           )}
 
-          <div className="hidden sm:block">
+          {/* `hidden sm:block`: the version selector needs room its label does
+              not have on a phone, and the mobile menu carries it. */}
+          <div className="bdocs-navbar__row">
             {config.versions && currentVersion && <VersionSelector />}
           </div>
         </NavbarPrimitive.Left>
         <NavbarPrimitive.Center>
-          <div className="flex items-center gap-2">
+          <div className="bdocs-navbar__search">
             <Suspense
-              fallback={
-                <div className="h-9 w-32 animate-pulse rounded-md bg-surface" />
-              }
+              fallback={<div className="bdocs-navbar__search-skeleton" />}
             >
               <SearchDialog routes={routes || []} />
             </Suspense>
@@ -96,7 +107,7 @@ export function Navbar({ className }: { className?: string }) {
         </NavbarPrimitive.Center>
         <NavbarPrimitive.Right>
           <Suspense fallback={null}>
-            <div className="lg:hidden flex items-center gap-1">
+            <div className="bdocs-navbar__row bdocs-navbar__row--narrow">
               <SearchDialog routes={routes || []} />
             </div>
           </Suspense>
@@ -106,34 +117,34 @@ export function Navbar({ className }: { className?: string }) {
             ))}
           </NavbarPrimitive.Links>
 
-          <div className="hidden sm:flex items-center gap-2">
+          <div className="bdocs-navbar__row bdocs-navbar__row--narrow">
             {config.i18n && currentLocale && <I18nSelector />}
-            <NavbarPrimitive.Split className="bg-subtle" />
+            <NavbarPrimitive.Split className="bdocs-navbar__split--filled" />
           </div>
 
-          <div className="hidden md:block">
+          <div className="bdocs-navbar__row bdocs-navbar__row--md">
             <ThemeToggle />
           </div>
 
           {social.length > 0 && (
-            <div className="hidden md:block">
-              <NavbarPrimitive.Split className="bg-subtle" />
+            <div className="bdocs-navbar__row bdocs-navbar__row--md">
+              <NavbarPrimitive.Split className="bdocs-navbar__split--filled" />
             </div>
           )}
-          <div className="hidden md:flex items-center gap-1">
+          <div className="bdocs-navbar__row bdocs-navbar__row--md-social">
             {social.map(({ icon, link }: BoltdocsSocialLink) => (
               <NavbarPrimitive.Socials
                 key={link}
                 icon={icon}
                 link={link}
-                className="p-1.5 text-muted hover:text-body hover:bg-surface rounded-md transition-all focus-visible:ring-2 focus-visible:ring-primary-500/30"
+                className="bdocs-navbar__social-button"
               />
             ))}
           </div>
 
           <NavbarPrimitive.More
             onPress={() => setIsMobileMenuOpen(true)}
-            className="text-muted hover:text-body active:scale-90 transition-all focus-visible:ring-2 focus-visible:ring-primary-500/30"
+            className="bdocs-navbar__more-button"
           />
         </NavbarPrimitive.Right>
       </NavbarPrimitive.Content>
@@ -141,9 +152,9 @@ export function Navbar({ className }: { className?: string }) {
       <NavbarPrimitive.MobileMenu
         isOpen={isMobileMenuOpen}
         onClose={() => setIsMobileMenuOpen(false)}
-        className="bg-main/98 backdrop-blur-2xl"
+        className="bdocs-navbar__mobile-surface"
       >
-        <div className="flex flex-col gap-1">
+        <div className="bdocs-navbar__mobile-links">
           {links.map((link) => (
             <NavbarMobileLinkItem
               key={link.href}
@@ -154,17 +165,15 @@ export function Navbar({ className }: { className?: string }) {
         </div>
 
         {social.length > 0 && (
-          <div className="mt-6">
-            <div className="px-4 mb-4 text-xs font-bold uppercase tracking-widest text-muted/50">
-              Connect
-            </div>
-            <div className="flex flex-wrap gap-2 px-2">
+          <div className="bdocs-navbar__connect">
+            <div className="bdocs-navbar__connect-title">Connect</div>
+            <div className="bdocs-navbar__connect-list">
               {social.map(({ icon, link }: BoltdocsSocialLink) => (
                 <NavbarPrimitive.Socials
                   key={link}
                   icon={icon}
                   link={link}
-                  className="p-3 bg-surface border border-subtle rounded-xl flex-1 justify-center"
+                  className="bdocs-navbar__connect-button"
                 />
               ))}
             </div>
@@ -173,7 +182,7 @@ export function Navbar({ className }: { className?: string }) {
       </NavbarPrimitive.MobileMenu>
 
       {isDocs && hasTabs && themeConfig?.tabs && (
-        <div className="w-full border-b border-subtle bg-main">
+        <div className="bdocs-navbar__tabs">
           <Tabs
             tabs={themeConfig.tabs}
             routes={routes || []}
@@ -198,8 +207,8 @@ function NavbarLinkItem({ link }: { link: NavbarLinkType }) {
         label={
           <span
             className={cn(
-              'transition-colors outline-none font-medium focus-visible:ring-2 focus-visible:ring-primary-500/30 rounded-sm px-2 py-1',
-              active ? 'text-primary-500' : 'text-muted hover:text-body',
+              'bdocs-navbar__link-label',
+              active && 'bdocs-navbar__link-label--active',
             )}
           >
             {link.label as string}
@@ -223,8 +232,8 @@ function NavbarLinkItem({ link }: { link: NavbarLinkType }) {
       href={localizedHref}
       active={active}
       className={cn(
-        'transition-colors outline-none font-medium focus-visible:ring-2 focus-visible:ring-primary-500/30 rounded-sm',
-        active ? 'text-primary-500' : 'text-muted hover:text-body',
+        'bdocs-navbar__link-label',
+        active && 'bdocs-navbar__link-label--active',
       )}
     />
   )

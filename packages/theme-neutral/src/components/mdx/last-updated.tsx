@@ -9,6 +9,10 @@ interface LastUpdatedProps {
 /**
  * A subtle display for when the page was last updated.
  * Small, opaque, and positioned at the bottom of the content with a thin top border divider.
+ *
+ * `select-none` is kept in the stylesheet rather than as an exception: a date the
+ * reader is not meant to copy should not start a selection that includes the
+ * paragraph above it.
  */
 export function LastUpdated({ date, className }: LastUpdatedProps) {
   if (!date) return null
@@ -21,14 +25,11 @@ export function LastUpdated({ date, className }: LastUpdatedProps) {
   const formattedDate = formatDeterministicDate(d)
 
   return (
-    <div
-      className={cn(
-        'mt-16 pt-6 border-t border-subtle flex items-center justify-between text-xs text-muted select-none',
-        className,
-      )}
-    >
-      <span></span>
-      <span className="italic">Last updated on {formattedDate}</span>
+    <div className={cn('bdocs-last-updated', className)}>
+      <span />
+      <span className="bdocs-last-updated__date">
+        Last updated on {formattedDate}
+      </span>
     </div>
   )
 }

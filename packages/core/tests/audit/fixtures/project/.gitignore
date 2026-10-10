@@ -1,3 +1,29 @@
-.boltdocs/
-.marker-*
-*MARKER*
+# Audit test fixtures.
+#
+# These plugins have to be real files on disk. `boltdocs audit` reads a plugin's
+# package directory statically — package.json, the entry it declares, the install
+# script it declares — and skips a directory that is not there. A fixture that is
+# not committed is a fixture that silently audits *nothing*.
+#
+# The parent `packages/core/.gitignore` ignores `node_modules/`, which is right
+# for every real dependency and wrong here: these four packages are test inputs,
+# not dependencies. Negating the rules below re-includes them, and the audit
+# tests were failing on this, not on the code they test.
+#
+# `packages/core/tests/audit/fixtures/project/.gitignore` also ignores the marker
+# files the audit must never create — those stay ignored, because a marker on
+# disk is a test failure and not a fixture.
+
+!/
+!node_modules/
+
+# Everything under the fixture's node_modules is checked in *except* the
+# markers. The marker patterns live in the file above, so the two rules
+# compose: the negation keeps real packages, the marker rules keep the
+# "proof the audit did not run the plugin" files out.
+!node_modules/evil-plugin/
+!node_modules/evil-plugin/**
+!node_modules/clean-plugin/
+!node_modules/clean-plugin/**
+!node_modules/sneaky-plugin/
+!node_modules/sneaky-plugin/**

@@ -115,15 +115,14 @@ export function CopyMarkdown({
   if (nothingToCopy) return null
 
   return (
-    <div className={cn('relative inline-flex z-100 shrink-0 w-max', className)}>
-      <ButtonGroup className="rounded-xl border border-subtle bg-surface transition-all duration-300 hover:border-primary-500/50 group overflow-hidden">
+    <div className={cn('bdocs-copy-markdown', className)}>
+      <ButtonGroup className="bdocs-copy-markdown__group">
         {/* Mobile: icon-only copy button */}
         <Button
           onPress={handleCopy}
           className={cn(
-            'md:hidden flex items-center justify-center w-8 h-8 bg-transparent outline-none select-none cursor-pointer border-none',
-            'text-muted transition-all duration-300 hover:bg-primary-500/5 hover:text-body',
-            copied && 'text-emerald-500 hover:bg-emerald-500/5',
+            'bdocs-copy-markdown__button bdocs-copy-markdown__button--icon',
+            copied && 'bdocs-copy-markdown__button--copied',
           )}
           aria-label={copied ? 'Copied!' : 'Copy Markdown'}
         >
@@ -134,44 +133,39 @@ export function CopyMarkdown({
         <Button
           onPress={handleCopy}
           className={cn(
-            'hidden md:flex items-center gap-2 px-5 py-2 bg-transparent text-[0.8125rem] font-semibold h-9 shrink-0 outline-none select-none cursor-pointer border-none',
-            'text-body transition-all duration-300 hover:bg-primary-500/5',
-            copied && 'text-emerald-500 hover:bg-emerald-500/5',
+            'bdocs-copy-markdown__button bdocs-copy-markdown__button--label',
+            copied && 'bdocs-copy-markdown__button--copied',
           )}
         >
           {copied ? <Check size={16} /> : <Copy size={16} />}
           {copied ? 'Copied!' : 'Copy Markdown'}
         </Button>
 
-        <Menu.Trigger className="absolute top-full right-0 mt-2 z-100">
-          <Button
-            className={cn(
-              'flex items-center justify-center px-2.5 md:px-3.5 h-8 md:h-9 border-none border-l border-subtle/50 text-muted rounded-none bg-transparent shrink-0 outline-none select-none cursor-pointer',
-              'transition-all duration-300 hover:bg-primary-500/5 hover:text-primary-500',
-            )}
-          >
+        <Menu.Trigger className="bdocs-copy-markdown__menu-trigger">
+          <Button className="bdocs-copy-markdown__menu-button">
             <ChevronDown size={14} />
           </Button>
-          <Menu.Root className="w-52 bg-main border border-subtle rounded-xl p-1.5 shadow-md outline-none flex flex-col gap-0.5 animate-fade-in z-100">
+          <Menu.Root className="bdocs-copy-markdown__menu">
             <Menu.Item
               onAction={handleCopy}
-              className="flex items-center px-3 py-2 rounded-lg text-xs font-medium text-body dark:hover:bg-primary-300/50 hover:bg-primary-200/50 transition-colors duration-100 cursor-pointer select-none outline-none group"
+              className="bdocs-copy-markdown__menu-item"
             >
-              <Copy
-                size={16}
-                className="size-4 text-muted dark:group-hover:text-primary-500 group-hover:text-primary-400"
-              />
-              <span className="ml-2">Copy Markdown</span>
+              <Copy size={16} className="bdocs-copy-markdown__menu-icon" />
+              <span className="bdocs-copy-markdown__menu-label">
+                Copy Markdown
+              </span>
             </Menu.Item>
             <Menu.Item
               onAction={handleOpenRaw}
-              className="flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-medium text-body dark:hover:bg-primary-300/50 hover:bg-primary-200/50 transition-colors duration-100 cursor-pointer select-none outline-none group"
+              className="bdocs-copy-markdown__menu-item"
             >
               <ExternalLink
                 size={16}
-                className="size-4 text-muted dark:group-hover:text-primary-500 group-hover:text-primary-400"
+                className="bdocs-copy-markdown__menu-icon"
               />
-              <span className="ml-2">View as Markdown</span>
+              <span className="bdocs-copy-markdown__menu-label">
+                View as Markdown
+              </span>
             </Menu.Item>
           </Menu.Root>
         </Menu.Trigger>

@@ -1,6 +1,7 @@
 import type { ViteReactSSGContext } from '../types'
 import type {
   Manifest,
+  ManifestChunk,
   PageCacheEntry,
   SSRManifest,
   StaticLoaderDataManifest,
@@ -21,14 +22,17 @@ import type {
 
 export type { Manifest, PageCacheEntry, SSRManifest, StaticLoaderDataManifest }
 
-export interface ManifestItem {
-  css?: string[]
-  file: string
-  imports?: string[]
-  dynamicImports?: string[]
-  src?: string
-  assets?: string[]
-}
+/**
+ * One entry in a bundle manifest.
+ *
+ * The third copy of this shape, and the drift had already reached `tsc`: the
+ * contract declares `readonly string[]` for the file lists — it has to, because
+ * the bundler hands them over frozen — and this package's own version declared
+ * mutable arrays, so every place that read a manifest chunk was a type error.
+ * Aliasing the contract instead of restating it is the fix that cannot come
+ * back.
+ */
+export type ManifestItem = ManifestChunk
 
 /**
  * The cache entry this package writes. Aliased rather than redeclared so the

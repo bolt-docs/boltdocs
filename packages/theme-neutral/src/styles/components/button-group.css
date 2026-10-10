@@ -16,16 +16,16 @@
   flex-direction: row;
 }
 
-:where(.bdocs-button-group[data-orientation="vertical"]) {
+:where(.bdocs-button-group)[data-orientation="vertical"] {
   flex-direction: column;
 }
 
-:where(.bdocs-button-group[data-orientation="horizontal"])
+:where(.bdocs-button-group)[data-orientation="horizontal"]
   > *:not(:first-child) {
   margin-inline-start: -1px;
 }
 
-:where(.bdocs-button-group[data-orientation="vertical"]) > *:not(:first-child) {
+:where(.bdocs-button-group)[data-orientation="vertical"] > *:not(:first-child) {
   margin-block-start: -1px;
 }
 
@@ -45,22 +45,22 @@
 }
 
 /* Outer corners, per group radius. */
-:where(.bdocs-button-group[data-radius="md"]) {
+:where(.bdocs-button-group)[data-radius="md"] {
   border-radius: var(--bdocs-radius);
 }
 
-:where(.bdocs-button-group[data-radius="lg"]) {
+:where(.bdocs-button-group)[data-radius="lg"] {
   border-radius: var(--bdocs-radius-lg);
 }
 
-:where(.bdocs-button-group[data-radius="xl"]) {
+:where(.bdocs-button-group)[data-radius="xl"] {
   border-radius: var(--bdocs-radius-xl);
 }
 
-:where(.bdocs-button-group[data-radius="full"]) {
+:where(.bdocs-button-group)[data-radius="full"] {
   border-radius: var(--bdocs-radius-full);
 }
 
-:where(.bdocs-button-group[data-radius="none"]) {
+:where(.bdocs-button-group)[data-radius="none"] {
   border-radius: 0;
 }

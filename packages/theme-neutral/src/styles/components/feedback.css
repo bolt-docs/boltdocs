@@ -1,0 +1,250 @@
+/*
+ * The feedback card.
+ *
+ * A bordered panel with a translucent fill, so the page reads through it slightly
+ * and the card does not look like a hole in the content. The fill is at half
+ * opacity and the blur is 2px — enough to separate it from the prose, not enough
+ * to make the text behind it unreadable if the layout shifts.
+ *
+ * `data-selected` rather than a class for the chosen rating. A chosen rating is
+ * state, and all three ratings look the same when selected, so the "selected"
+ * colour is brand — the same one that says "you are here" everywhere else in the
+ * theme. A modifier class would also have needed to outrank the hover rule to
+ * work, which is the trap `tests/native-styles.test.ts` guards against.
+ *
+ * The submit button uses the brand ramp rather than the brand itself:
+ * `--bdocs-primary` → `hover` → `active`, three depths of the same hue, so the
+ * button's whole life cycle is one colour getting darker.
+ */
+
+:where(.bdocs-feedback) {
+  width: 100%;
+  max-width: 42rem;
+  margin-block-start: var(--bdocs-space-12);
+  margin-block-end: var(--bdocs-space-6);
+  padding: var(--bdocs-space-6);
+  border-radius: var(--bdocs-radius-2xl);
+  border: var(--bdocs-border-width) solid var(--_bdocs-line);
+  background-color: color-mix(in srgb, var(--_bdocs-surface) 50%, transparent);
+  -webkit-backdrop-filter: blur(var(--bdocs-scrim-blur));
+  backdrop-filter: blur(var(--bdocs-scrim-blur));
+  /* The card is a control surface as a whole; selecting its text is never what
+     the reader meant. */
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+:where(.bdocs-feedback__body) {
+  display: flex;
+  flex-direction: column;
+  gap: var(--bdocs-space-4);
+}
+
+/* The title and the ratings sit side by side where there is room, and stack
+   below that — the ratings need three buttons and a 390px viewport has not got
+   390px for a heading too. */
+:where(.bdocs-feedback__row) {
+  display: flex;
+  flex-direction: column;
+  gap: var(--bdocs-space-3);
+}
+
+@media (min-width: 40rem) {
+  :where(.bdocs-feedback__row) {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+  }
+}
+
+:where(.bdocs-feedback__title) {
+  margin: 0;
+  font-size: var(--bdocs-text-body-m);
+  font-weight: 600;
+  color: var(--_bdocs-ink);
+}
+
+:where(.bdocs-feedback__ratings) {
+  display: flex;
+  align-items: center;
+  gap: var(--bdocs-space-2);
+}
+
+:where(.bdocs-feedback__rating) {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding-inline: var(--bdocs-space-3);
+  padding-block: 0.375rem;
+  border-radius: var(--bdocs-radius-lg);
+  border: var(--bdocs-border-width) solid transparent;
+  font-size: var(--bdocs-text-body-m);
+  font-weight: 500;
+  color: var(--_bdocs-ink-muted);
+  cursor: pointer;
+  outline: none;
+  transition:
+    border-color var(--bdocs-duration-slow) var(--bdocs-easing),
+    background-color var(--bdocs-duration-slow) var(--bdocs-easing),
+    color var(--bdocs-duration-slow) var(--bdocs-easing);
+}
+
+:where(.bdocs-feedback__rating):hover {
+  border-color: var(--_bdocs-ink);
+  background-color: var(--_bdocs-surface);
+  color: var(--_bdocs-ink);
+}
+
+:where(.bdocs-feedback__rating)[data-selected] {
+  border-color: var(--_bdocs-brand);
+  background-color: var(--bdocs-primary-soft-10);
+  color: var(--bdocs-primary-ink);
+}
+
+:where(.bdocs-feedback__rating):focus-visible {
+  outline: 2px solid var(--_bdocs-brand);
+  outline-offset: 2px;
+}
+
+/* --- The comment box, revealed once a rating is picked --------------------- */
+
+:where(.bdocs-feedback__comment) {
+  display: flex;
+  flex-direction: column;
+  gap: var(--bdocs-space-3);
+  margin-block-start: var(--bdocs-space-1);
+  animation: bdocs-feedback-reveal var(--bdocs-duration-slow)
+    var(--bdocs-easing);
+}
+
+@keyframes bdocs-feedback-reveal {
+  from {
+    opacity: 0;
+    transform: translateY(-0.75rem);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :where(.bdocs-feedback__comment) {
+    animation: none;
+  }
+}
+
+:where(.bdocs-feedback__textarea) {
+  width: 100%;
+  height: 6rem;
+  padding: var(--bdocs-space-3);
+  border-radius: var(--bdocs-radius-xl);
+  border: var(--bdocs-border-width) solid var(--_bdocs-line);
+  background-color: var(--_bdocs-page);
+  color: var(--_bdocs-ink-body);
+  font-family: inherit;
+  font-size: var(--bdocs-text-body-m);
+  resize: none;
+  transition:
+    border-color var(--bdocs-duration) var(--bdocs-easing),
+    box-shadow var(--bdocs-duration) var(--bdocs-easing);
+}
+
+:where(.bdocs-feedback__textarea)::placeholder {
+  color: var(--_bdocs-ink-muted);
+}
+
+:where(.bdocs-feedback__textarea):focus {
+  outline: none;
+  border-color: var(--_bdocs-brand);
+  box-shadow: 0 0 0 1px var(--_bdocs-brand);
+}
+
+:where(.bdocs-feedback__actions) {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--bdocs-space-3);
+}
+
+:where(.bdocs-feedback__error) {
+  flex: 1 1 0%;
+  font-size: var(--bdocs-text-caption-s);
+  font-weight: 500;
+  color: var(--_bdocs-negative);
+}
+
+:where(.bdocs-feedback__actions-right) {
+  display: flex;
+  align-items: center;
+  gap: var(--bdocs-space-2);
+  margin-inline-start: auto;
+}
+
+:where(.bdocs-feedback__submit) {
+  padding-inline: var(--bdocs-space-4);
+  padding-block: var(--bdocs-space-2);
+  border-radius: var(--bdocs-radius-xl);
+  border: none;
+  font-size: var(--bdocs-text-caption-s);
+  font-weight: 600;
+  color: var(--_bdocs-on-brand);
+  background-color: var(--_bdocs-brand);
+  cursor: pointer;
+  outline: none;
+  transition: background-color var(--bdocs-duration) var(--bdocs-easing);
+}
+
+:where(.bdocs-feedback__submit):hover {
+  background-color: var(--bdocs-primary-hover);
+}
+
+:where(.bdocs-feedback__submit):active {
+  background-color: var(--bdocs-primary-hover);
+}
+
+:where(.bdocs-feedback__submit):disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* --- The thank-you state ------------------------------------------------- */
+
+:where(.bdocs-feedback__thanks) {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding-block: var(--bdocs-space-4);
+  text-align: center;
+  animation: bdocs-feedback-reveal var(--bdocs-duration-slow)
+    var(--bdocs-easing);
+}
+
+:where(.bdocs-feedback__thanks-mark) {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 3rem;
+  height: 3rem;
+  margin-block-end: var(--bdocs-space-3);
+  border-radius: var(--bdocs-radius-full);
+  border: var(--bdocs-border-width) solid
+    color-mix(in srgb, var(--_bdocs-positive) 20%, transparent);
+  background-color: color-mix(in srgb, var(--_bdocs-positive) 10%, transparent);
+  color: var(--_bdocs-positive);
+}
+
+:where(.bdocs-feedback__thanks-title) {
+  margin: 0;
+  font-size: var(--bdocs-text-body-l);
+  font-weight: 600;
+  color: var(--_bdocs-ink);
+}
+
+:where(.bdocs-feedback__thanks-body) {
+  margin-block: var(--bdocs-space-1) 0;
+  font-size: var(--bdocs-text-body-m);
+  color: var(--_bdocs-ink-muted);
+}

@@ -60,7 +60,7 @@
   );
 }
 
-:where(.bdocs-table__row:hover) {
+:where(.bdocs-table__row):hover {
   background-color: color-mix(
     in srgb,
     var(--_bdocs-surface-hover) 20%,

@@ -52,7 +52,10 @@ export interface SearchDialogItemIconProps {
  */
 export function SearchDialog({ className, ...props }: ModalOverlayProps) {
   return (
-    <ModalOverlay className={cn('fixed inset-0 z-100', className)} {...props} />
+    <ModalOverlay
+      className={cn('bdocs-search-overlay', className)}
+      {...props}
+    />
   )
 }
 
@@ -68,10 +71,7 @@ function SearchDialogContent({ className, ...props }: ModalOverlayProps) {
  */
 function SearchDialogDialog({ children, className, ...props }: DialogProps) {
   return (
-    <Dialog
-      className={cn('flex flex-col focus:outline-none', className)}
-      {...props}
-    >
+    <Dialog className={cn('bdocs-search-dialog', className)} {...props}>
       {children}
       {/* Plugin slot: search-dialog — content injected INSIDE the dialog body */}
     </Dialog>
@@ -83,7 +83,7 @@ function SearchDialogDialog({ children, className, ...props }: DialogProps) {
  */
 function SearchDialogField({ className, ...props }: SearchFieldProps) {
   return (
-    <SearchField className={cn('flex items-center', className)} {...props} />
+    <SearchField className={cn('bdocs-search-field', className)} {...props} />
   )
 }
 
@@ -91,15 +91,7 @@ function SearchDialogField({ className, ...props }: SearchFieldProps) {
  * Pure, unstyled SearchInput (maps to Input)
  */
 function SearchDialogSearchInput({ className, ...props }: InputProps) {
-  return (
-    <Input
-      className={cn(
-        'w-full bg-transparent outline-none border-none',
-        className,
-      )}
-      {...props}
-    />
-  )
+  return <Input className={cn('bdocs-search-input', className)} {...props} />
 }
 
 /**
@@ -122,13 +114,13 @@ function SearchDialogAutocomplete<T extends object>({
   innerClassName?: string
 }) {
   return (
-    <div className={cn('flex-1 min-h-0', className)}>
+    <div className={cn('bdocs-search-body', className)}>
       <Autocomplete
         {...props}
         // `className` is valid at runtime via SlotProps but is not declared on
         // the component's props, so it needs the explicit intersection. This
         // was previously masked by an `as any` on the component reference.
-        {...{ className: cn('flex flex-col min-h-0', innerClassName) }}
+        {...{ className: cn('bdocs-search-list', innerClassName) }}
       >
         {children}
       </Autocomplete>
@@ -145,10 +137,7 @@ function SearchDialogList<T extends object>({
   ...props
 }: ListBoxProps<T> & { className?: string }) {
   return (
-    <ListBox
-      {...props}
-      className={cn('flex-1 overflow-y-auto outline-none min-h-0', className)}
-    >
+    <ListBox {...props} className={cn('bdocs-search-results', className)}>
       {children as any}
     </ListBox>
   )
@@ -165,13 +154,7 @@ function SearchDialogItemRoot({
   ...props
 }: SearchDialogItemProps) {
   return (
-    <ListBoxItem
-      {...props}
-      className={cn(
-        'group flex items-center outline-none cursor-pointer',
-        className,
-      )}
-    >
+    <ListBoxItem {...props} className={cn('bdocs-search-result', className)}>
       {(itemProps) => (
         <>
           {children}
@@ -181,13 +164,8 @@ function SearchDialogItemRoot({
               selected: itemProps.isSelected,
             })
           ) : itemProps.isFocused || itemProps.isSelected ? (
-            <div
-              className={cn(
-                'ml-auto opacity-50 flex items-center gap-1',
-                hintClassName,
-              )}
-            >
-              <span className="text-[10px]">Select</span>
+            <div className={cn('bdocs-search-result__hint', hintClassName)}>
+              <span className="bdocs-search-result__hint-label">Select</span>
               <CornerDownLeft size={10} />
             </div>
           ) : null}
@@ -203,7 +181,7 @@ function SearchDialogItemIcon({
   icon,
 }: SearchDialogItemIconProps) {
   return (
-    <div className={cn('shrink-0', className)}>
+    <div className={cn('bdocs-search-result__icon', className)}>
       {icon ?? (isHeading ? <Hash size={18} /> : <FileText size={18} />)}
     </div>
   )
@@ -211,13 +189,15 @@ function SearchDialogItemIcon({
 
 function SearchDialogItemTitle({ children, className }: ComponentBase) {
   return (
-    <span className={cn('block truncate flex-1', className)}>{children}</span>
+    <span className={cn('bdocs-search-result__title', className)}>
+      {children}
+    </span>
   )
 }
 
 function SearchDialogItemBio({ children, className }: ComponentBase) {
   return (
-    <span className={cn('ml-2 truncate hidden sm:inline', className)}>
+    <span className={cn('bdocs-search-result__bio', className)}>
       {children}
     </span>
   )

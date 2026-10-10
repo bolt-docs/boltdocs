@@ -91,8 +91,8 @@
   border-radius: inherit;
 }
 
-:where(.bdocs-card:hover) :where(.bdocs-card__spotlight),
-:where(.bdocs-card:hover) :where(.bdocs-card__glow) {
+:where(.bdocs-card):hover :where(.bdocs-card__spotlight),
+:where(.bdocs-card):hover :where(.bdocs-card__glow) {
   opacity: 1;
 }
 
@@ -124,7 +124,7 @@
 
 /* A fifteen-degree tilt, not a rotation to a corner: enough to read as
    responsive, not enough to look like the icon fell over. */
-:where(.bdocs-card:hover) :where(.bdocs-card__icon) {
+:where(.bdocs-card):hover :where(.bdocs-card__icon) {
   color: var(--bdocs-primary);
   rotate: 15deg;
   scale: 1.1;
@@ -203,7 +203,7 @@
   }
 }
 
-:where(.bdocs-figure:hover) :where(.bdocs-figure__image) {
+:where(.bdocs-figure):hover :where(.bdocs-figure__image) {
   scale: 1.01;
 }
 
@@ -228,7 +228,7 @@
   }
 }
 
-:where(.bdocs-figure:hover) :where(.bdocs-figure__caption) {
+:where(.bdocs-figure):hover :where(.bdocs-figure__caption) {
   opacity: 1;
 }
 

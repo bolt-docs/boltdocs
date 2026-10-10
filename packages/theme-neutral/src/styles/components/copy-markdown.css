@@ -1,0 +1,230 @@
+/*
+ * "Copy Markdown" — the button row that lets a reader take a page's source.
+ *
+ * Three controls in one group: a copy button that fills with a label on wide
+ * viewports and collapses to an icon on narrow ones, and a chevron that opens a
+ * menu with the same two actions plus "View as Markdown".
+ *
+ * The group is a `rounded-xl` pill with a hairline border and the buttons inside
+ * have no borders of their own — the only divider is a 50%-opacity hairline
+ * before the chevron. `overflow: hidden` on the group is what makes that work:
+ * without it the buttons' corners poke outside the pill's radius.
+ *
+ * The copied state is a separate colour (`--bdocs-positive`) rather than a
+ * heavier weight on the same one, because "it worked" and "you can still use
+ * this" are different messages and should not look the same.
+ */
+
+:where(.bdocs-copy-markdown) {
+  position: relative;
+  display: inline-flex;
+  z-index: 100;
+  flex: none;
+  width: max-content;
+}
+
+:where(.bdocs-copy-markdown__group) {
+  border-radius: var(--bdocs-radius-xl);
+  border: var(--bdocs-border-width) solid var(--_bdocs-line);
+  background-color: var(--_bdocs-surface);
+  /* See the note above: the buttons inside are square-cornered and the pill is
+     not, so the pill clips them. */
+  overflow: hidden;
+  transition:
+    border-color var(--bdocs-duration-slow) var(--bdocs-easing),
+    box-shadow var(--bdocs-duration-slow) var(--bdocs-easing);
+}
+
+:where(.bdocs-copy-markdown__group):hover {
+  border-color: color-mix(in srgb, var(--_bdocs-brand) 50%, transparent);
+}
+
+:where(.bdocs-copy-markdown__button) {
+  display: flex;
+  align-items: center;
+  background: transparent;
+  border: none;
+  outline: none;
+  cursor: pointer;
+  -webkit-user-select: none;
+  user-select: none;
+  color: var(--_bdocs-ink-body);
+  transition:
+    background-color var(--bdocs-duration-slow) var(--bdocs-easing),
+    color var(--bdocs-duration-slow) var(--bdocs-easing);
+}
+
+:where(.bdocs-copy-markdown__button):hover {
+  background-color: var(--bdocs-primary-soft-5);
+}
+
+/* `md:hidden` — the icon-only variant, and the default. */
+:where(.bdocs-copy-markdown__button--icon) {
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  color: var(--_bdocs-ink-muted);
+}
+
+:where(.bdocs-copy-markdown__button--icon):hover {
+  color: var(--_bdocs-ink);
+}
+
+/* `hidden md:flex` — the labelled variant. */
+:where(.bdocs-copy-markdown__button--label) {
+  display: none;
+  flex: none;
+  gap: var(--bdocs-space-2);
+  height: 2.25rem;
+  padding-inline: var(--bdocs-space-5);
+  padding-block: var(--bdocs-space-2);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--_bdocs-ink);
+}
+
+@media (min-width: 48rem) {
+  :where(.bdocs-copy-markdown__button--label) {
+    display: flex;
+  }
+
+  :where(.bdocs-copy-markdown__button--icon) {
+    display: none;
+  }
+}
+
+/*
+ * Copied. The whole button changes colour, not just the icon, and the hover
+ * background moves to the positive hue with it — a green check with a blue
+ * hover would read as two states at once.
+ */
+:where(.bdocs-copy-markdown__button--copied) {
+  color: var(--_bdocs-positive);
+}
+
+:where(.bdocs-copy-markdown__button--copied):hover {
+  color: var(--_bdocs-positive);
+  background-color: color-mix(in srgb, var(--_bdocs-positive) 5%, transparent);
+}
+
+/* --- The chevron, and the menu it opens ---------------------------------- */
+
+:where(.bdocs-copy-markdown__menu-trigger) {
+  position: absolute;
+  inset-block-start: 100%;
+  inset-inline-end: 0;
+  margin-block-start: var(--bdocs-space-2);
+  z-index: 100;
+}
+
+:where(.bdocs-copy-markdown__menu-button) {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 2rem;
+  padding-inline: var(--bdocs-space-2);
+  background: transparent;
+  border: none;
+  /* The one divider inside the pill. `border-subtle/50`: a rule you can see is
+     a rule you can feel, and this one separates a control that is already
+     visually distinct. */
+  border-inline-start: var(--bdocs-border-width) solid
+    color-mix(in srgb, var(--_bdocs-line) 50%, transparent);
+  border-radius: 0;
+  color: var(--_bdocs-ink-muted);
+  cursor: pointer;
+  outline: none;
+  flex: none;
+  -webkit-user-select: none;
+  user-select: none;
+  transition:
+    background-color var(--bdocs-duration-slow) var(--bdocs-easing),
+    color var(--bdocs-duration-slow) var(--bdocs-easing);
+}
+
+@media (min-width: 48rem) {
+  :where(.bdocs-copy-markdown__menu-button) {
+    height: 2.25rem;
+    padding-inline: var(--bdocs-space-3);
+  }
+}
+
+:where(.bdocs-copy-markdown__menu-button):hover {
+  background-color: var(--bdocs-primary-soft-5);
+  color: var(--_bdocs-brand);
+}
+
+:where(.bdocs-copy-markdown__menu) {
+  display: flex;
+  flex-direction: column;
+  gap: 0.125rem;
+  width: 13rem;
+  padding: var(--bdocs-space-1);
+  background-color: var(--_bdocs-page);
+  border: var(--bdocs-border-width) solid var(--_bdocs-line);
+  border-radius: var(--bdocs-radius-xl);
+  box-shadow: var(--bdocs-shadow-lg);
+  outline: none;
+  z-index: 100;
+  animation: bdocs-copy-menu-in var(--bdocs-duration) var(--bdocs-easing);
+}
+
+@keyframes bdocs-copy-menu-in {
+  from {
+    opacity: 0;
+    transform: translateY(-0.25rem);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :where(.bdocs-copy-markdown__menu) {
+    animation: none;
+  }
+}
+
+:where(.bdocs-copy-markdown__menu-item) {
+  display: flex;
+  align-items: center;
+  padding-inline: var(--bdocs-space-3);
+  padding-block: var(--bdocs-space-2);
+  border-radius: var(--bdocs-radius-lg);
+  font-size: var(--bdocs-text-caption-s);
+  font-weight: 500;
+  color: var(--_bdocs-ink);
+  cursor: pointer;
+  outline: none;
+  -webkit-user-select: none;
+  user-select: none;
+  transition:
+    background-color var(--bdocs-duration-slow) var(--bdocs-easing),
+    color var(--bdocs-duration-slow) var(--bdocs-easing);
+}
+
+:where(.bdocs-copy-markdown__menu-item):hover,
+:where(.bdocs-copy-markdown__menu-item)[data-focused] {
+  background-color: var(--bdocs-primary-soft-10);
+  color: var(--_bdocs-brand);
+}
+
+:where(.bdocs-copy-markdown__menu-icon) {
+  flex: none;
+  width: 1rem;
+  height: 1rem;
+  color: var(--_bdocs-ink-muted);
+  transition: color var(--bdocs-duration-slow) var(--bdocs-easing);
+}
+
+:where(.bdocs-copy-markdown__menu-item):hover
+  :where(.bdocs-copy-markdown__menu-icon),
+:where(.bdocs-copy-markdown__menu-item)[data-focused]
+  :where(.bdocs-copy-markdown__menu-icon) {
+  color: var(--_bdocs-brand);
+}
+
+:where(.bdocs-copy-markdown__menu-label) {
+  margin-inline-start: var(--bdocs-space-2);
+}

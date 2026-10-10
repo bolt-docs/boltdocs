@@ -113,25 +113,77 @@ Conversion progress, measured against the build it replaces rather than asserted
 
 | Components | State |
 | --- | --- |
-| Converted, both layers | 6 of 63 |
-| Still on utility classes | 39 of 63 |
-| Visual difference against the original | two regions, neither understood |
+| Converted, both layers | 41 of 57 |
+| Still on utility classes | **0 of 57** |
+| Token dangling at computed-value time | 3 found, 0 left |
+| Visual difference against the original | **not measured** — see below |
 
-The visual harness exists because "the UI did not change" is a claim no unit test
-can check, and the docs site is the only place the theme actually renders. It
-found four defects in the conversion that review had passed. `scripts/visual/`
-is documented in its own README.
+The denominator is the 57 files that actually carry a `class`/`className`
+attribute, not every `.tsx` in the package. Counting the latter mixed in hooks,
+contexts and utilities — files that never had a class — and reported 63 where the
+real number was 23, which is what the guard itself says it was written to fix.
 
-Two known gaps are recorded in the slice rather than hidden:
+### What is still open in slice 3
+
+Two things, both recorded rather than asserted:
+
+**The visual harness has never been run on this conversion.** It is the only
+thing that can prove the CSS did not move a pixel, and the machines this ran on
+could not render it: `scripts/visual/` resolves `playwright` and `sharp` from the
+root `package.json`, and neither was a dependency there. Both are now
+dependencies (`playwright@1.59.1`, `sharp@0.34.5`), which is a real fix, and
+`sharp` additionally needed its native build skipped to install at all. So the
+comparison a conversion deserves has not happened, and the honest claim is
+*nothing about the rendered pixels*.
+
+**Three tokens were declared, consumed, and never defined.**
+`--_bdocs-brand-banner`, `--_bdocs-brand-ink` and `--_bdocs-brand-line` pointed
+at public tokens that did not exist. A `var()` resolving to nothing makes its
+whole declaration invalid at computed-value time without an error, so
+`banner.css` was rendering with no colour, no background and no bottom border,
+and the guard could not catch it because it only read the component
+stylesheets. It now reads the private layer of `tokens.css` too. `--bdocs-primary-ink`,
+`--bdocs-primary-banner` and `--bdocs-primary-line-soft` are defined, and the
+banner renders as designed.
+
+### The `:where()` rule, and the bug that produced it
+
+Every base rule in these stylesheets is wrapped in `:where(…)`. That is
+deliberate and it is documented at the top of `base.css`: the theme is a
+*default*, and a default that beats the site's own CSS is not a default.
+
+The conversion exposed the failure mode of taking that too far. Two rules, both
+written the way that looks right:
+
+```css
+:where(.bdocs-toc__link):hover        /* 0-1-0 */
+:where(.bdocs-toc__link[data-active]) /* 0-0-0 */
+```
+
+The attribute is inside `:where()`, so it contributes nothing; specificity
+beats source order, so hover wins and the *active* table-of-contents entry turns
+body-coloured under the pointer. The neighbouring form is worse because it
+hides — both states inside the group are 0-0-0 and the later line wins, correct
+by luck and one edit from being wrong.
+
+`tests/native-styles.test.ts` enforces the rule that fixes both: `:where()`
+wraps the root class and nothing that expresses state. A `--modifier` class is
+allowed inside, because it is an alternative to the root rather than a state
+layered on it. The test found 8 violations when it landed, 5 of them
+preexisting.
+
+### The two gaps that were open before this, and where they are now
 
 - The docs' Tailwind `@source` covers `node_modules/boltdocs/dist` and the theme
   now lives in a workspace package outside it, so utilities used only inside the
-  theme are never emitted. `sm:text-sm` and `hover:bg-surface` are absent from the
-  built CSS and those components render at base styles. Fixing it changes the UI
-  on roughly 900 screenshots, so it is a deliberate separate change.
+  theme are never emitted. **Fixed** — `docs/index.css` adds
+  `@source "../packages/theme-neutral/src"` and `../packages/primitives/src`.
+  It changes the UI on roughly 900 screenshots, and the harness is the thing that
+  would have measured it, so "fixed" here means "the source is declared", not
+  "the result is verified".
 - Slice 3 is not a substitute for slice 7. An installable theme with a token API
   and no migration guide for the imports it replaces is half of what a breaking
-  release owes its users.
+  release owes its users. **Still open** — slice 7 is Planned.
 
 ### Route rules
 
@@ -156,8 +208,70 @@ Not every change to `4.0` belongs to a numbered slice. Two rounds of dependency 
 | `@bdocs/runtime` created: router, contexts, i18n, view transitions | 5 | Boundary | Bundle unchanged at 853.7 kB, which is the point: a pure move. 12 inherited `any`s dropped |
 | `@bdocs/theme-neutral` created with a native CSS token layer | 3 | Boundary, install | See the slice 3 section |
 | `scripts/visual/` — pixel and computed-style harness | none | Verification | Found 4 defects in its own first conversion, including one that made it report zero differences over the wrong page |
+| **Every bare import declared by its package** | 2, 3, 5 | Install, correctness | 15 undeclared imports across 5 packages, now 0 |
+| `@bdocs/plugin-ssg` typecheck repaired | 5 | Correctness | `tsc --noEmit` on the package went from 10 errors to 0 |
+| `packages/core` typecheck repaired | 2 | Correctness | `tsc --noEmit` on the core went from 1 error to 0 |
+| **Audit test fixtures committed** | none | Correctness | 6 tests were failing on a tree with no local changes |
 
 The pattern is worth naming: the roadmap's slice 3 and 4 extract packages, which reduces coupling but not install size, because the heavy parts follow their importers. Dependency trimming had to be done directly to move the number, and it turned out to be where two real bugs were hiding — an unreachable 308 grammars and five themes that were documented but never registered.
+
+### The undeclared-import audit, and what it found
+
+`scripts/check-undeclared-imports.mjs` answers one question: does the package
+that imports a module declare it? Fifteen answers were no, and they had one
+shape in common — they resolved here and nowhere else. pnpm's `node_modules` is
+strict, so a package that imports something it does not declare is a package that
+cannot be installed alone. Inside a monorepo its neighbours cover for it, which
+is why the build stayed green while `@bdocs/theme-neutral` was uninstallable.
+
+The one that actually broke a build: the theme imported `flexsearch`, `clsx`,
+`tailwind-merge`, `dompurify`, `react-helmet-async` and
+`scroll-into-view-if-needed` and declared none of them. A fresh install fails
+with `Rolldown failed to resolve import "flexsearch"` from `theme-neutral/dist`,
+three packages away from the cause.
+
+Three more, all of which were worse than a broken build because they were not
+broken:
+
+- `boltdocs` imported `react-router-dom` in `boltdocs/client` without declaring
+  it, so `tsc --noEmit` on the core failed on a clean tree.
+- `@bdocs/plugin-ssg` took the `onLog` parameter types from `rollup` — a bundler
+  it does not depend on, and does not run: Vite 8 is Rolldown. The types were
+  wrong as well as undeclared. Rolldown's `onLog` takes **two** arguments, not
+  Rollup's three, and suppresses by returning `false` rather than by calling a
+  default handler. Calling the missing third argument throws on the first
+  unsuppressed warning. The hook now derives its types from Vite's own
+  declaration, which is also the version that cannot drift.
+- `@bdocs/processor-satteri` reached into `boltdocs/node/cache` and
+  `boltdocs/node/highlight` with no `boltdocs` dependency, behind a dynamic
+  `import()`. Nothing failed at build time and everything failed at runtime.
+
+The script uses TypeScript's scanner rather than a regex, because a regex
+reported eleven findings in `processor-satteri` of which three were real: the
+quote after the `from` keyword in `trimmed.indexOf(' from ')` has exactly the
+shape of a module specifier. An audit that cries wolf protects nothing. The
+allowlist is checked for staleness too — an exception that a package later
+declares is reported, because an exception outliving its reason is a hole.
+
+### The audit fixtures that were never committed
+
+Six tests in `packages/core/tests/audit/` were failing on a clean tree with no
+local changes, on both this branch and `4.0`. Not a flake and not a regression:
+`packages/core/.gitignore` ignores `node_modules/`, which is right for every real
+dependency and wrong for these four packages — `evil-plugin`, `clean-plugin`,
+`sneaky-plugin` and the marker files they must never write are test inputs. The
+fixture directory was empty, so the audit had nothing to read and reported every
+plugin as unresolved.
+
+They are committed now, with a local `.gitignore` that re-includes them. Two
+things followed from writing them against the rules instead of against the
+test's expectations. `fs-write` runs on the `raw` layer of the scanner, where
+the string in `require('node:fs')` survives — so a destructured
+`writeFileSync` is invisible to it, and the fixture has to write through the
+binding. And `no-license`/`no-provenance` are not noise: a package with no
+license and no repository is a real finding, so the clean fixture declares them.
+
+`pnpm check:boundaries` runs the import audit.
 
 A known item left deliberately unaddressed: `@shikijs/langs` is still installed through `@bdocs/plugin-ask-ai` → `streamdown` → `shiki`, which is the same 11.7 MB arriving through a third-party chat-markdown renderer. That is a `streamdown` decision, not a core one, and is not covered by any slice.
 

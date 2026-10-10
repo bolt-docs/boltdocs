@@ -4,7 +4,77 @@
  * `isolation: isolate` because the sticky fade sits at a negative offset and
  * overlaps the list: without a stacking context the fade's background paints
  * over the links instead of under them.
+ *
+ * Two layers own classes here, and the split is deliberate:
+ *
+ *   bdocs-toc__*     the composition layer (primitives). Structure and the
+ *                    hooks — root, list, item, link, indicator, fade.
+ *   bdocs-otp__*     nothing. The theme reads the composition's classes rather
+ *                    than adding a second set, because a stylesheet that styles
+ *                    a class the markup no longer renders is the failure mode
+ *                    `tests/native-styles.test.ts` exists to catch.
+ *
+ * The depth indentation is a `data-level` attribute selector rather than a
+ * per-level class. It used to be `data-[level=3]:pl-3`, an arbitrary Tailwind
+ * variant; the value is the same 12px, but written here it sits next to the
+ * line-height and colour it belongs with.
  */
+
+/* ------------------------------------------------------------------ *
+ * Rail
+ *
+ * Hidden below `xl`, because at narrower widths the reading column and the
+ * table of contents compete for the same pixels and the content wins. The
+ * `--empty` variant is the same box with no headings in it: it still reserves
+ * the column, so the reading column does not reflow when a page happens to
+ * have no headings.
+ * ------------------------------------------------------------------ */
+
+:where(.bdocs-toc__root) {
+  display: none;
+  flex: none;
+  width: var(--bdocs-toc-width);
+  position: sticky;
+  top: var(--bdocs-navbar-height);
+}
+
+:where(.bdocs-toc__root--empty) {
+  display: block;
+}
+
+@media (min-width: 80rem) {
+  :where(.bdocs-toc__root) {
+    display: flex;
+    flex-direction: column;
+  }
+
+  :where(.bdocs-toc__root--empty) {
+    display: block;
+  }
+}
+
+:where(.bdocs-toc__header) {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: var(--bdocs-space-2);
+  margin-block-end: var(--bdocs-space-4);
+  font-size: var(--bdocs-text-caption-s);
+  font-weight: 700;
+  line-height: var(--bdocs-text-caption-s-line);
+  color: var(--_bdocs-ink);
+}
+
+:where(.bdocs-toc__tree) {
+  font-size: var(--bdocs-text-body-m);
+  border-inline-start: var(--bdocs-border-width) solid var(--_bdocs-line);
+}
+
+/* `space-y-0.5` in the utility version. Written as an adjacent sibling so it
+   does not depend on a class being present on the children. */
+:where(.bdocs-toc__tree) > * + * {
+  margin-block-start: 0.125rem;
+}
 
 :where(.bdocs-toc) {
   position: relative;
@@ -31,9 +101,11 @@
  * entry after it moved — a 40px difference the harness attributed to the wrong
  * component until the two builds were measured side by side.
  *
- * The gradient itself comes from the caller's class, which supplies the colour
- * stops: `to-main` there, `--_bdocs-page` here. Keeping it there means the fade
- * tracks whatever the surface behind it is, including a themed one.
+ * The gradient uses the theme's own page colour rather than a caller-supplied
+ * one: the fade is a property of the theme's surface, and requiring the caller
+ * to name the colour it fades *to* is a bug waiting for the first site that
+ * forgets. `--_bdocs-page` is what a site overriding `--bdocs-canvas` changes,
+ * so the fade follows the canvas on its own.
  */
 :where(.bdocs-toc__fade) {
   position: sticky;
@@ -42,6 +114,10 @@
   width: 100%;
   height: var(--bdocs-space-10);
   pointer-events: none;
+  /* `from-transparent to-main` in the utility version. Both stops written here
+     because a gradient needs a colour at each end and `to` is meaningless
+     without it. */
+  background-image: linear-gradient(to bottom, transparent, var(--_bdocs-page));
 }
 
 :where(.bdocs-toc__item) {
@@ -50,6 +126,37 @@
 
 :where(.bdocs-toc__badge) {
   position: absolute;
+}
+
+:where(.bdocs-toc__link) {
+  display: block;
+  padding-block: 0.125rem;
+  padding-inline-start: var(--bdocs-space-4);
+  /* 13px, not the 14px of `text-sm`. It was `text-[13px]`, an arbitrary value
+     that has no token; a token would have implied it was part of the scale. */
+  font-size: 0.8125rem;
+  color: var(--_bdocs-ink-muted);
+  text-decoration: none;
+  transition: color var(--bdocs-duration) var(--bdocs-easing);
+}
+
+:where(.bdocs-toc__link):hover {
+  color: var(--_bdocs-ink);
+}
+
+/*
+ * The current entry. `data-active` rather than a class: being the heading you are
+ * reading is state, and it is set by the IntersectionObserver rather than by the
+ * route, so it can change without any prop changing.
+ */
+:where(.bdocs-toc__link)[data-active] {
+  color: var(--_bdocs-brand);
+}
+
+/* Level 3 is indented one step more than level 2. That is the whole scale:
+   the table of contents shows h2 and h3 only. */
+:where(.bdocs-toc__item)[data-level="3"] {
+  padding-inline-start: var(--bdocs-space-3);
 }
 
 /*
@@ -63,6 +170,52 @@
 
 :where(.bdocs-toc__indicator) {
   position: absolute;
-  inset-inline-start: 0;
+  /* `-left-px`: one pixel out, so the track sits over the list's own border
+     instead of inside it. */
+  inset-inline-start: -1px;
+  width: 0.125rem;
+  border-radius: var(--bdocs-radius-full);
+  background-color: var(--_bdocs-brand);
   pointer-events: none;
+}
+
+/* ------------------------------------------------------------------ *
+ * The "Need help?" footer.
+ *
+ * Sits under the tree with a rule above it. The links are destination links
+ * rather than anchors, so they carry the same muted-to-body colour shift as the
+ * TOC links without the active state — there is no current entry here.
+ * ------------------------------------------------------------------ */
+
+:where(.bdocs-toc__help) {
+  margin-block-start: var(--bdocs-space-8);
+  padding-block-start: var(--bdocs-space-8);
+  border-block-start: var(--bdocs-border-width) solid var(--_bdocs-line);
+}
+
+:where(.bdocs-toc__help) > * + * {
+  margin-block-start: var(--bdocs-space-4);
+}
+
+:where(.bdocs-toc__help-title) {
+  font-size: var(--bdocs-text-caption-s);
+  font-weight: 700;
+  color: var(--_bdocs-ink);
+}
+
+:where(.bdocs-toc__help-list) > * + * {
+  margin-block-start: var(--bdocs-space-3);
+}
+
+:where(.bdocs-toc__help-link) {
+  display: flex;
+  align-items: center;
+  gap: var(--bdocs-space-2);
+  font-size: var(--bdocs-text-body-m);
+  color: var(--_bdocs-ink-muted);
+  transition: color var(--bdocs-duration) var(--bdocs-easing);
+}
+
+:where(.bdocs-toc__help-link):hover {
+  color: var(--_bdocs-ink);
 }

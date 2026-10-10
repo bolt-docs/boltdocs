@@ -141,6 +141,22 @@
   --bdocs-ink-faintest: rgb(142 142 142 / 40%);
   /* On top of a brand fill. */
   --bdocs-on-brand: #ffffff;
+
+  /*
+   * Scrims: the wash behind anything that floats over the page.
+   *
+   * A modal is not lighter than the page it covers — that is the point of it —
+   * so these are black at partial opacity rather than a second surface colour.
+   * Two strengths, because a dialog that dims the page to 25% reads as
+   * unmissable and a mobile panel that does the same reads as broken.
+   */
+  --bdocs-scrim-dialog: rgb(0 0 0 / 25%);
+  --bdocs-scrim-panel: rgb(0 0 0 / 20%);
+  /* Blur behind the scrims. Small on purpose: enough to read "this is behind
+     you", not enough to make the page underneath unreadable if the dialog is
+     dismissed by a click that missed. */
+  --bdocs-scrim-blur: 2px;
+  --bdocs-panel-blur: 4px;
 }
 
 /* ------------------------------------------------------------------ *
@@ -247,6 +263,44 @@
   --bdocs-warning: #fbb529;
   --bdocs-info: #22c2f7;
 
+  /*
+   * Brand *text*, as distinct from brand *fill*.
+   *
+   * The original timeline badge wrote `text-primary-600 dark:text-primary-400` —
+   * a different colour in light mode than in dark, because `--color-primary-600`
+   * (#2769db) does not clear contrast on this canvas while the 400 shade does.
+   * This theme is dark-only, so the value is the one that was actually rendered.
+   * Naming it separately from `--bdocs-primary` means a site can overrule the
+   * hue of brand *text* without moving every brand fill on the page.
+   */
+  --bdocs-primary-ink: var(--_bdocs-primary-400);
+
+  /*
+   * The banner's own three colours.
+   *
+   * These three were *consumed* by `banner.css` and never defined anywhere: the
+   * private aliases below pointed at public tokens that did not exist. A
+   * `var()` that resolves to nothing makes its whole declaration invalid at
+   * computed-value time, without an error — the property simply falls back to
+   * `unset` and inherits. The banner was rendering in the body colour with no
+   * background and no bottom border, and nothing anywhere said so.
+   *
+   * They exist now, and the token guard in
+   * `packages/theme-neutral/tests/native-styles.test.ts` reads the private
+   * aliases in `tokens.css` too, so the next one of these fails a test instead
+   * of shipping.
+   */
+  --bdocs-primary-banner: color-mix(
+    in srgb,
+    var(--bdocs-primary) 18%,
+    transparent
+  );
+  --bdocs-primary-line-soft: color-mix(
+    in srgb,
+    var(--bdocs-primary) 40%,
+    transparent
+  );
+
   /* Was `emerald-500` / `rose-500` in the Tailwind days: raw palette names used
      where a role was meant. Kept as roles so they can be re-hued. */
   --bdocs-positive: var(--bdocs-success);
@@ -336,6 +390,9 @@
   --bdocs-space-4: 1rem;
   --bdocs-space-5: 1.25rem;
   --bdocs-space-6: 1.5rem;
+  /* 1.75rem. Not in Tailwind's default scale by name but written as `space-y-7`
+     by the timeline, which needs a gap between the 12px and the 24px steps. */
+  --bdocs-space-7: 1.75rem;
   --bdocs-space-8: 2rem;
   --bdocs-space-10: 2.5rem;
   --bdocs-space-12: 3rem;
@@ -402,18 +459,41 @@
   --_bdocs-line-strong: var(--bdocs-line-strong);
   --_bdocs-brand: var(--bdocs-primary);
   --_bdocs-brand-soft: var(--bdocs-primary-soft);
+  --_bdocs-brand-ink: var(--bdocs-primary-ink);
+  --_bdocs-brand-banner: var(--bdocs-primary-banner);
+  --_bdocs-brand-line: var(--bdocs-primary-line-soft);
   /* The option you are already on: brand ink on a much fainter brand fill than the
      hover state, so "current" and "hovered" are distinguishable at a glance. */
   --_bdocs-brand-soft-weak: var(--bdocs-primary-soft-5);
-  --_bdocs-brand-banner: var(--bdocs-primary-banner);
-  --_bdocs-brand-ink: var(--bdocs-primary-ink);
-  --_bdocs-brand-line: var(--bdocs-primary-line-soft);
-  --_bdocs-chrome-bar: var(--bdocs-chrome-bar);
-  --_bdocs-chrome-panel: var(--bdocs-chrome-panel);
-  --_bdocs-accent-note: var(--bdocs-primary);
+  /* Ink that has to sit on a brand fill. Named after the place it is used rather
+     than as "white", so a theme with a light brand colour can darken it. */
+  --_bdocs-on-brand: var(--bdocs-on-brand);
+  /* Accents for the five status hues, used by the callouts and the timeline.
+     Named as tokens rather than written per-component, because both places that
+     need "the danger accent" need the same one. */
+  --_bdocs-accent-success: var(--bdocs-success);
   --_bdocs-accent-info: var(--bdocs-info);
-  --_bdocs-accent-tip: var(--bdocs-success);
   --_bdocs-accent-warning: var(--bdocs-warning);
   --_bdocs-accent-danger: var(--bdocs-danger);
+  /* The two callout accents that are not status colours. `note` is the brand
+     itself, because a note is the default mood of a callout; `tip` is success,
+     because a tip is the good news. */
+  --_bdocs-accent-note: var(--bdocs-primary);
+  --_bdocs-accent-tip: var(--bdocs-success);
+  /* "It worked" — a different message from "you can still use this", which is why
+     it has its own hue instead of reusing the brand. */
+  --_bdocs-positive: var(--bdocs-positive);
+  --_bdocs-negative: var(--bdocs-negative);
+  /*
+   * The timeline's variant, and its default.
+   *
+   * Declared here so a timeline whose variant attribute is missing still renders
+   * something. `timeline.css` re-declares it per variant, which is what lets a
+   * site retheme one variant with one rule.
+   */
+  --_bdocs-variant: var(--bdocs-primary);
+  --_bdocs-variant-ink: var(--bdocs-primary-ink);
+  --_bdocs-chrome-bar: var(--bdocs-chrome-bar);
+  --_bdocs-chrome-panel: var(--bdocs-chrome-panel);
   --_bdocs-focus-ring: var(--bdocs-primary);
 }

@@ -27,7 +27,15 @@ export function serializeState(state: any): string | null {
   }
 }
 
-export function deserializeState(state: string) {
+/**
+ * Reads the double-encoded state `serializeState` wrote.
+ *
+ * `state` is optional because the server skips the `<script>` entirely when
+ * there is nothing to serialise — `window.__INITIAL_STATE__` is then genuinely
+ * absent rather than empty, and the `|| '{}'` below is what keeps that from
+ * being a parse error.
+ */
+export function deserializeState(state?: string | null) {
   try {
     return JSON.parse(state || '{}')
   } catch (err) {

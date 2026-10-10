@@ -19,23 +19,24 @@ interface SidebarProps {
 }
 
 /**
- * Default look for the sidebar tree. States are driven by the primitive's
- * `data-*` attributes (`data-active`, `data-open`, `data-badge`).
+ * Default look for the sidebar tree.
+ *
+ * Every visible property is in `styles/components/sidebar.css`; the slots here
+ * exist so a site can add to or replace one piece without rewriting the
+ * stylesheet. States are read from the primitive's `data-*` attributes
+ * (`data-active`, `data-open`, `data-badge`) — none of them is a class.
  */
 const defaultItemsClassNames: SidebarSlots = {
-  item: 'rounded-lg px-2.5 py-1.5 text-sm transition-all text-muted hover:bg-surface hover:text-body data-active:bg-primary-500/10 data-active:text-primary-500 data-active:font-medium data-active:shadow-sm',
-  groupHeader:
-    'px-2 mb-2 text-[11px] font-bold uppercase tracking-widest text-muted/50',
-  groupContent: 'gap-0.5',
-  subgroup: 'gap-0.5',
-  subgroupLink:
-    'rounded-lg px-2.5 py-1.5 text-sm transition-all text-muted hover:bg-surface hover:text-body data-active:bg-primary-500/10 data-active:text-primary-500 data-active:font-medium data-active:shadow-sm',
-  subgroupContent: 'ml-4 pl-3 border-l border-subtle/50 mt-0.5 gap-0.5',
-  toggle: 'p-1.5 text-muted hover:text-body transition-colors',
+  item: 'bdocs-sidebar__item',
+  groupHeader: 'bdocs-sidebar__group-header',
+  groupContent: 'bdocs-sidebar__group-content',
+  subgroup: 'bdocs-sidebar__subgroup',
+  subgroupLink: 'bdocs-sidebar__subgroup-link',
+  subgroupContent: 'bdocs-sidebar__subgroup-content',
+  toggle: 'bdocs-sidebar__toggle',
 }
 
-const defaultContentClassName =
-  'flex-1 overflow-y-auto p-4 pb-16 custom-scrollbar flex flex-col gap-6'
+const defaultContentClassName = 'bdocs-sidebar__content'
 
 const mergeSlots = (
   defaults: SidebarSlots,
@@ -69,7 +70,7 @@ function SidebarMain({ routes, config, className }: SidebarProps) {
           width={24}
           height={24}
           data-logo-theme="light"
-          className="rounded-xl dark:hidden"
+          className="bdocs-sidebar__header-logo bdocs-sidebar__header-logo--light"
         />
         <img
           src={resolvePublicAssetUrl(logo.dark, config.base)}
@@ -78,7 +79,7 @@ function SidebarMain({ routes, config, className }: SidebarProps) {
           height={24}
           data-logo-theme="dark"
           aria-hidden="true"
-          className="hidden rounded-xl dark:block"
+          className="bdocs-sidebar__header-logo bdocs-sidebar__header-logo--dark"
         />
       </>
     ) : (
@@ -87,7 +88,7 @@ function SidebarMain({ routes, config, className }: SidebarProps) {
         alt={logoProps?.alt || title}
         width={24}
         height={24}
-        className="rounded-xl"
+        className="bdocs-sidebar__header-logo"
       />
     )
   ) : null
@@ -97,41 +98,28 @@ function SidebarMain({ routes, config, className }: SidebarProps) {
   return (
     <>
       {/* Desktop Version */}
-      <SidebarPrimitive.Root
-        className={cn(
-          'hidden lg:flex flex-col w-sidebar sticky top-navbar h-[calc(100vh-var(--spacing-navbar))] border-r border-subtle bg-main',
-          className,
-        )}
-      >
+      <SidebarPrimitive.Root className={className}>
         <SidebarPrimitive.Content className={defaultContentClassName}>
           <SidebarPrimitive.Items
             routes={routes}
-            className="flex flex-col gap-6"
+            className="bdocs-sidebar__items"
             classNames={defaultItemsClassNames}
           />
         </SidebarPrimitive.Content>
       </SidebarPrimitive.Root>
 
       {/* Mobile Version */}
-      <SidebarPrimitive.Mobile
-        overlayClassName="fixed inset-0 z-50 bg-black/20 backdrop-blur-sm lg:hidden entering:animate-in entering:fade-in exiting:animate-out exiting:fade-out duration-300"
-        className={cn(
-          'fixed top-0 left-0 bottom-0 w-80 bg-main border-r border-subtle shadow-2xl outline-none entering:animate-in entering:slide-in-from-left exiting:animate-out exiting:slide-out-to-left duration-300',
-          className,
-        )}
-      >
-        <SidebarPrimitive.Header className="flex items-center justify-between p-4 border-b border-subtle">
-          <div className="flex items-center gap-3">
+      <SidebarPrimitive.Mobile className="bdocs-sidebar__mobile-surface">
+        <SidebarPrimitive.Header>
+          <div className="bdocs-sidebar__header-brand">
             {SidebarLogo}
-            <span className="font-bold text-lg tracking-tight text-body truncate max-w-[120px]">
-              {title}
-            </span>
+            <span className="bdocs-sidebar__header-title">{title}</span>
           </div>
-          <div className="flex items-center gap-2">
-            <ThemeSwitcher className="w-24 h-9 rounded-xl" />
+          <div className="bdocs-sidebar__header-actions">
+            <ThemeSwitcher className="bdocs-sidebar__theme-switcher" />
             <Button
               onPress={closeSidebar}
-              className="h-9 w-9 flex items-center justify-center bg-transparent border-none outline-none select-none cursor-pointer rounded-xl hover:bg-primary-50/50 text-muted hover:text-body transition-colors"
+              className="bdocs-sidebar__close"
               aria-label="Close sidebar"
             >
               <X size={20} />
@@ -140,21 +128,21 @@ function SidebarMain({ routes, config, className }: SidebarProps) {
         </SidebarPrimitive.Header>
         <SidebarPrimitive.Content className={defaultContentClassName}>
           {hasUtilities && (
-            <div className="flex flex-col gap-4 mb-10">
-              <div className="flex gap-3">
+            <div className="bdocs-sidebar__utilities">
+              <div className="bdocs-sidebar__utilities-row">
                 {config.versions && (
-                  <VersionSelector className="flex-1 justify-between h-10 bg-surface border-subtle rounded-xl" />
+                  <VersionSelector className="bdocs-sidebar__selector" />
                 )}
                 {config.i18n && (
-                  <I18nSelector className="flex-1 justify-between h-10 bg-surface border-subtle rounded-xl" />
+                  <I18nSelector className="bdocs-sidebar__selector" />
                 )}
               </div>
-              <div className="mt-2 border-b border-subtle" />
+              <div className="bdocs-sidebar__utilities-divider" />
             </div>
           )}
           <SidebarPrimitive.Items
             routes={routes}
-            className="flex flex-col gap-6"
+            className="bdocs-sidebar__items"
             classNames={defaultItemsClassNames}
           />
         </SidebarPrimitive.Content>
@@ -168,7 +156,7 @@ function SidebarItems(props: SidebarItemsProps) {
   return (
     <SidebarPrimitive.Items
       {...rest}
-      className={cn('flex flex-col gap-6', rest.className)}
+      className={cn('bdocs-sidebar__items', rest.className)}
       classNames={mergeSlots(defaultItemsClassNames, classNames)}
     />
   )

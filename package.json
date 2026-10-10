@@ -33,6 +33,7 @@
     "benchmark:baseline": "tsx scripts/benchmarks/run-baseline.ts",
     "benchmark:gate": "tsx scripts/benchmarks/gate.ts",
     "knip": "knip",
+    "check:boundaries": "node scripts/check-undeclared-imports.mjs",
     "prepare": "husky"
   },
   "lint-staged": {
@@ -53,6 +54,8 @@
     "knip": "^5.66.0",
     "lint-staged": "^17.3.0",
     "markdownlint-cli2": "^0.21.0",
+    "playwright": "1.59.1",
+    "sharp": "0.34.5",
     "tinybench": "^6.0.2",
     "tsx": "^4.21.0",
     "turbo": "latest",

@@ -174,23 +174,23 @@
   scale: 0.95;
 }
 
-:where(.bdocs-code__action[data-state="copied"]),
+:where(.bdocs-code__action)[data-state="copied"],
 :where(.bdocs-code__action--copied) {
   color: var(--bdocs-positive);
 }
 
-:where(.bdocs-code__action[data-state="up"]),
+:where(.bdocs-code__action)[data-state="up"],
 :where(.bdocs-code__action--rated-up) {
   color: var(--bdocs-positive);
 }
 
-:where(.bdocs-code__action[data-state="down"]),
+:where(.bdocs-code__action)[data-state="down"],
 :where(.bdocs-code__action--rated-down) {
   color: var(--bdocs-negative);
 }
 
 /* Rated, so the button stays visible but inert. */
-:where(.bdocs-code__action[data-muted]) {
+:where(.bdocs-code__action)[data-muted] {
   opacity: 0.3;
   cursor: not-allowed;
 }

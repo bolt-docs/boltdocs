@@ -66,6 +66,13 @@ export function hydrate(
 
   if (useLegacyRender || !isReact18) {
     reactHydrate(app, container)
+  } else if (container instanceof DocumentFragment) {
+    // React 19 hydrates a `DocumentFragment` — `createRoot` above already takes
+    // one — but `@types/react-dom@19.0.0` still declares `hydrateRoot`'s
+    // container as `Element | Document`. The runtime accepts it; only the
+    // declaration is behind. Narrowed here, at the one call, so the widening is
+    // visible instead of sprayed through the file.
+    reactHydrateRoot(container as unknown as Element, app)
   } else {
     reactHydrateRoot(container, app)
   }

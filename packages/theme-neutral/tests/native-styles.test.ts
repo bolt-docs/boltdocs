@@ -56,6 +56,16 @@ const CONVERTED: Record<string, string> = {
   'components/mdx/card.tsx': 'prose.css',
   'components/mdx/field.tsx': 'prose.css',
   'components/mdx/image.tsx': 'prose.css',
+  'components/mdx/last-updated.tsx': 'last-updated.css',
+  'components/mdx/timeline.tsx': 'timeline.css',
+  'components/composition/navbar.tsx': 'navbar.css',
+  'components/composition/sidebar.tsx': 'sidebar.css',
+  'components/composition/search-dialog.tsx': 'search-dialog.css',
+  'components/ui-base/navbar.tsx': 'navbar.css',
+  'components/ui-base/sidebar.tsx': 'sidebar.css',
+  'components/ui-base/search-dialog.tsx': 'search-dialog.css',
+  'components/ui-base/copy-markdown.tsx': 'copy-markdown.css',
+  'components/ui-base/feedback.tsx': 'feedback.css',
 }
 
 /**
@@ -186,7 +196,100 @@ const componentStyles = () => {
     : []
 }
 
+/** A selector, and the part of it that survives stripping every `:where()`. */
+interface Selector {
+  selector: string
+  bare: string
+}
+
 describe('theme-neutral styles', () => {
+  /**
+   * Every selector in a component stylesheet, paired with what contributes
+   * specificity once the `:where(…)` groups are stripped out.
+   */
+  const selectorsOf = (css: string): Selector[] => {
+    const out: Selector[] = []
+    for (const match of css.matchAll(/(^|[};])\s*([^{};]+?)\s*\{/g)) {
+      for (const raw of match[2].split(',')) {
+        const selector = raw.trim()
+        if (!selector || selector.startsWith('@')) continue
+        // The `:where()` groups contribute nothing. Strip them so what is left
+        // is what actually counts.
+        const bare = selector.replace(/:where\([^()]*\)/g, '').trim()
+        out.push({ selector, bare })
+      }
+    }
+    return out
+  }
+
+  it('keeps state selectors outside :where()', () => {
+    // The theme's own rule, and the one that makes the rest of this file
+    // predictable:
+    //
+    //   :where() wraps the ROOT CLASS. Nothing else goes inside it.
+    //
+    // The reason is a bug that shipped once already, in this package, during the
+    // first round of conversions. Two rules, both written the way that "looked"
+    // right:
+    //
+    //   :where(.bdocs-toc__link):hover        specificity 0-1-0
+    //   :where(.bdocs-toc__link[data-active]) specificity 0-0-0
+    //
+    // `[data-active]` is inside `:where()`, so it contributes nothing. Specificity
+    // beats source order, so hover wins: the currently-active table-of-contents
+    // entry turned body-coloured the moment the pointer reached it, in a build
+    // where the utility version it replaced kept the brand colour. Nothing
+    // failed — no test compares a computed colour, and no reviewer reads
+    // `:where()` as arithmetic.
+    //
+    // The neighbouring form is worse because it hides. When *both* states are
+    // inside the group they are both 0-0-0 and the later line wins — correct by
+    // luck, and one edit away from being wrong with no test to catch it.
+    //
+    // So the rule is not "the state must outrank the base", which is satisfied by
+    // accident in that case. It is: the root class is the only thing `:where()`
+    // wraps. Then the ranking is structural —
+    //
+    //   :where(.bdocs-toc__link)              0-0-0   base
+    //   :where(.bdocs-toc__link):hover        0-1-0   hover
+    //   :where(.bdocs-toc__link)[data-active] 0-2-0   current, and it wins
+    //
+    // and `:where()` is still doing its actual job on the base rule: a site can
+    // override the theme's colours with any rule it likes, because a default that
+    // beats the user's CSS is not a default.
+    //
+    // What is deliberately allowed inside `:where()` is a `--modifier` class,
+    // because that is an *alternative* to the root class rather than a state
+    // layered on it — `--light` and `--dark` logos never co-occur. Flagging those
+    // would train this guard to be ignored, and a guard that gets ignored
+    // protects nothing. A modifier that *is* state (a copied flag) uses a
+    // `data-*` attribute instead, which is what the rest of the theme already
+    // does.
+    const INSIDE = /:where\(([^()]*)\)/g
+    const STATE =
+      /:(?:hover|focus-visible|focus-within|active)\b|\[(?:data|aria)-[a-z-]+\]/
+
+    const offenders: Record<string, string[]> = {}
+    for (const file of componentStyles()) {
+      const css = readFileSync(join(SRC, 'styles/components', file), 'utf-8')
+      // Comments first, or the `:where(...)` inside a comment explaining a
+      // `:where(...)` is read as one.
+      const code = css.replace(/\/\*[\s\S]*?\*\//g, '')
+      const bad: string[] = []
+
+      for (const { selector } of selectorsOf(code)) {
+        for (const m of selector.matchAll(INSIDE)) {
+          if (STATE.test(m[1])) {
+            bad.push(selector)
+            break
+          }
+        }
+      }
+      if (bad.length > 0) offenders[file] = bad
+    }
+    expect(offenders).toEqual({})
+  })
+
   it('ships a stylesheet that resolves without Tailwind', () => {
     const index = readFileSync(join(SRC, 'styles/index.css'), 'utf-8')
     // Quote-agnostic on purpose. Biome rewrites the CSS to double quotes, and a

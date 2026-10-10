@@ -67,84 +67,35 @@ export interface TimelineItemProps
 }
 
 // ───────────────────────────────────────────────────────────────────────
-// Variant palette
+// Variant → attribute
 // ───────────────────────────────────────────────────────────────────────
 
-interface VariantPalette {
-  /** Ring colour around the dot. */
-  ring: string
-  /** Filled centre colour. */
-  fill: string
-  /** Badge pill colour. */
-  badgeBg: string
-  badgeText: string
-  badgeBorder: string
+/**
+ * The five semantic variants.
+ *
+ * This used to be a table of eleven *Tailwind class strings* — `ring`,
+ * `fill`, `badgeBg`, `badgeText`, `badgeBorder`, five per variant, spread onto
+ * class names at the call site. The classes were the whole vocabulary, so
+ * anything that changed one of them was a code change and a site could not
+ * retheme a single variant.
+ *
+ * The variant is now a `data-variant` attribute, and `timeline.css` maps each
+ * one to tokens. A site that wants `danger` to be purple writes one rule;
+ * the palette is data, not a dependency on a CSS build.
+ */
+const LIFECYCLE_ALIAS: Record<string, string> = {
+  major: 'primary',
+  minor: 'success',
+  patch: 'info',
+  new: 'primary',
+  deprecated: 'warning',
+  breaking: 'danger',
 }
 
-// Semantic palette only — the seven semantic variants. Lifecycle
-// aliases are added below in a second pass via `Object.assign` so we
-// avoid the TDZ trap of self-referencing VARIANT_PALETTE during init.
-const VARIANT_PALETTE: Record<TimelineVariant, VariantPalette> = {
-  primary: {
-    ring: 'border-primary-500/70',
-    fill: 'bg-primary-500',
-    badgeBg: 'bg-primary-500/10',
-    badgeText: 'text-primary-600 dark:text-primary-400',
-    badgeBorder: 'border-primary-500/30',
-  },
-  success: {
-    ring: 'border-success-500/70',
-    fill: 'bg-success-500',
-    badgeBg: 'bg-success-500/10',
-    badgeText: 'text-success-500',
-    badgeBorder: 'border-success-500/30',
-  },
-  info: {
-    ring: 'border-info-500/70',
-    fill: 'bg-info-500',
-    badgeBg: 'bg-info-500/10',
-    badgeText: 'text-info-500',
-    badgeBorder: 'border-info-500/30',
-  },
-  warning: {
-    ring: 'border-warning-500/70',
-    fill: 'bg-warning-500',
-    badgeBg: 'bg-warning-500/10',
-    badgeText: 'text-warning-500',
-    badgeBorder: 'border-warning-500/30',
-  },
-  danger: {
-    ring: 'border-danger-500/70',
-    fill: 'bg-danger-500',
-    badgeBg: 'bg-danger-500/10',
-    badgeText: 'text-danger-500',
-    badgeBorder: 'border-danger-500/30',
-  },
-  // Lifecycle aliases — will be overwritten right below.
-  major: { ring: '', fill: '', badgeBg: '', badgeText: '', badgeBorder: '' },
-  minor: { ring: '', fill: '', badgeBg: '', badgeText: '', badgeBorder: '' },
-  patch: { ring: '', fill: '', badgeBg: '', badgeText: '', badgeBorder: '' },
-  new: { ring: '', fill: '', badgeBg: '', badgeText: '', badgeBorder: '' },
-  deprecated: {
-    ring: '',
-    fill: '',
-    badgeBg: '',
-    badgeText: '',
-    badgeBorder: '',
-  },
-  breaking: { ring: '', fill: '', badgeBg: '', badgeText: '', badgeBorder: '' },
+/** Resolves a lifecycle alias to the semantic variant it is bound to. */
+function semantic(variant: TimelineVariant): string {
+  return LIFECYCLE_ALIAS[variant] ?? variant
 }
-
-// Bind lifecycle aliases to semantic variants. Object.assign runs
-// after the const initialiser completes, so this is safe.
-Object.assign(VARIANT_PALETTE, {
-  major: VARIANT_PALETTE.primary,
-  minor: VARIANT_PALETTE.success,
-  patch: VARIANT_PALETTE.info,
-  new: VARIANT_PALETTE.primary,
-  deprecated: VARIANT_PALETTE.warning,
-  breaking: VARIANT_PALETTE.danger,
-})
 
 // ───────────────────────────────────────────────────────────────────────
 // Helpers
@@ -180,7 +131,10 @@ function formatDate(
 }
 
 const VARIANT_DEFAULT_ICON: Partial<
-  Record<TimelineVariant, React.ComponentType<any>>
+  Record<
+    TimelineVariant,
+    React.ComponentType<{ size?: number; className?: string }>
+  >
 > = {
   success: Check,
   info: Info,
@@ -202,8 +156,8 @@ function TimelineRoot({
   return (
     <ol
       className={cn(
-        'relative my-8 ms-3',
-        compact ? 'space-y-3' : 'space-y-7',
+        'bdocs-timeline',
+        compact && 'bdocs-timeline--compact',
         className,
       )}
       {...props}
@@ -211,10 +165,7 @@ function TimelineRoot({
       {/* Connector line — continuous across items, hidden from AT */}
       <span
         aria-hidden="true"
-        className={cn(
-          'pointer-events-none absolute top-3 bottom-3 start-[5.5px] w-px bg-subtle',
-          connectorClassName,
-        )}
+        className={cn('bdocs-timeline__connector', connectorClassName)}
       />
       {children}
     </ol>
@@ -242,21 +193,22 @@ function TimelineItem({
   bodyClassName,
   ...props
 }: TimelineItemProps) {
-  const palette = VARIANT_PALETTE[variant] ?? VARIANT_PALETTE.primary
   const formatted = formatDate(date, locale)
   const badgeCfg = normalizeBadge(badge)
+  const resolved = semantic(variant)
 
   // Default icon when none provided
   const FallbackIcon = VARIANT_DEFAULT_ICON[variant]
   const dot =
     icon ??
     (FallbackIcon ? (
-      <FallbackIcon size={12} className="text-white" aria-hidden="true" />
-    ) : (
-      <span
+      <FallbackIcon
+        size={12}
+        className="bdocs-timeline__dot-icon"
         aria-hidden="true"
-        className={cn('w-2 h-2 rounded-full', palette.fill)}
       />
+    ) : (
+      <span aria-hidden="true" className="bdocs-timeline__dot-fallback" />
     ))
 
   const ariaLabel =
@@ -272,26 +224,17 @@ function TimelineItem({
     : { 'aria-hidden': 'true' as const }
 
   return (
-    <li className={cn('relative ps-8', className)} {...props}>
+    <li className={cn('bdocs-timeline__item', className)} {...props}>
       <span
         {...a11yProps}
-        className={cn(
-          'absolute start-0 top-1 flex items-center justify-center w-3 h-3 rounded-full',
-          'bg-surface border-2 shadow-sm',
-          palette.ring,
-          dotClassName,
-        )}
+        data-variant={resolved}
+        className={cn('bdocs-timeline__dot', dotClassName)}
       >
         {dot}
       </span>
 
       {/* Header row: date + optional badge */}
-      <div
-        className={cn(
-          'flex items-center gap-2 flex-wrap mb-1',
-          headerClassName,
-        )}
-      >
+      <div className={cn('bdocs-timeline__header', headerClassName)}>
         {formatted && (
           <time
             dateTime={
@@ -299,23 +242,15 @@ function TimelineItem({
                 ? date.toISOString()
                 : new Date(date as string | number).toISOString()
             }
-            className={cn(
-              'text-[11px] uppercase tracking-wider font-mono tabular-nums text-muted select-none',
-              timeClassName,
-            )}
+            className={cn('bdocs-timeline__time', timeClassName)}
           >
             {formatted}
           </time>
         )}
         {badgeCfg && (
           <span
-            className={cn(
-              'inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wide border',
-              palette.badgeBg,
-              palette.badgeText,
-              palette.badgeBorder,
-              badgeClassName,
-            )}
+            data-variant={semantic(badgeCfg.variant)}
+            className={cn('bdocs-timeline__badge', badgeClassName)}
           >
             {badgeCfg.text}
           </span>
@@ -323,20 +258,13 @@ function TimelineItem({
       </div>
 
       {/* Title */}
-      <h3
-        className={cn(
-          'text-base font-semibold text-body m-0 leading-snug',
-          titleClassName,
-        )}
-      >
-        {title}
-      </h3>
+      <h3 className={cn('bdocs-timeline__title', titleClassName)}>{title}</h3>
 
       {/* Body (Markdown inside MDX) */}
       {children && (
         <div
           className={cn(
-            'mt-2 text-[0.9rem] leading-[1.6] text-paragraph prose prose-neutral dark:prose-invert max-w-none [&>p]:m-0 [&>p+p]:mt-2 [&_a]:text-primary-500 [&_a]:no-underline hover:[&_a]:underline',
+            'bdocs-timeline__body prose prose-neutral dark:prose-invert max-w-none',
             bodyClassName,
           )}
         >
