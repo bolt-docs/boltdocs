@@ -45,22 +45,35 @@ describe('configureWatcher', () => {
 })
 
 describe('createHotUpdateHandler', () => {
-  it('suppresses default HMR for pages-external files', () => {
+  it('does not suppress HMR for pages-external files', () => {
+    // External pages are plain React modules behind the user entry. Suppressing
+    // their HMR meant a one-line edit could only ever be a full reload, so the
+    // module graph and React Fast Refresh own them.
     const handler = createHotUpdateHandler('/project/docs')
 
     expect(
       handler?.({
         file: '/project/docs/pages-external/roadmap.mdx',
       } as never),
-    ).toEqual([])
+    ).toBeUndefined()
     expect(
       handler?.({
         file: '/project/docs/pages-external/_sections/home-page.tsx',
       } as never),
-    ).toEqual([])
+    ).toBeUndefined()
     expect(
       handler?.({
         file: '/project/docs/pages-external/index.tsx',
+      } as never),
+    ).toBeUndefined()
+  })
+
+  it('still suppresses default HMR for docs content', () => {
+    const handler = createHotUpdateHandler('/project/docs')
+
+    expect(
+      handler?.({
+        file: '/project/docs/guide.mdx',
       } as never),
     ).toEqual([])
   })

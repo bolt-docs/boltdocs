@@ -1,22 +1,72 @@
 ---
 title: Static File Routing
 sidebarPosition: 4
-description: Map literal files in docs/pages-external to routes with experimental.fileRouting.
+description: Map files in docs/pages-external to routes, including dynamic segments, with experimental.fileRouting.
 ---
 
-With `experimental.fileRouting`, every literal file in `docs/pages-external/` becomes a route:
+With `experimental.fileRouting`, every file in `docs/pages-external/` becomes a route:
 
 ```text
 docs/pages-external/
-├── home.tsx      → /home
-├── about.tsx     → /about
-└── pricing.mdx   → /pricing
+├── home.tsx            → /home
+├── about.tsx           → /about
+├── pricing.mdx         → /pricing
+├── blog/
+│   ├── index.mdx       → /blog
+│   └── [slug].mdx      → /blog/:slug
+└── docs/
+    └── [...parts].mdx  → /docs/*
 ```
 
-`.tsx`, `.ts`, `.jsx`, `.js`, `.mdx`, and `.md` are supported. Dynamic segments like `[id]`, groups like `(marketing)`, `index.*`, and reserved helpers like `layout`, `icons`, and `mdx-components` are ignored. The existing object API in `pages-external/index.tsx` can coexist with file routes; avoid mapping the same URL twice.
+`.tsx`, `.ts`, `.jsx`, `.js`, `.mdx`, and `.md` are supported. The existing object API in `pages-external/index.tsx` can coexist with file routes; avoid mapping the same URL twice.
+
+## Dynamic segments
+
+A bracketed segment declares a dynamic route, using the same syntax you know from other frameworks.
+
+| File or directory | Route | Matches |
+| --- | --- | --- |
+| `[slug].mdx` | `/:slug` | one segment |
+| `blog/[slug].mdx` | `/blog/:slug` | one segment under `/blog` |
+| `[...parts].mdx` | `/*` | the rest of the path |
+| `docs/[...parts].mdx` | `/docs/*` | the rest of the path under `/docs` |
+| `[[...parts]].mdx` | `/*?` | zero or more segments |
+
+This lets a single MDX file serve an entire route tree instead of one file per page. The captured values are available to the page through the router.
+
+## Index files
+
+An `index` file maps to its directory route:
+
+```text
+docs/pages-external/guides/index.mdx  →  /guides
+```
+
+This works at the root as well, so `docs/pages-external/index.mdx` becomes `/`.
+
+## Localization
 
 When `i18n` is configured, a top-level directory matching a configured locale provides the localized variant of a page: `es/roadmap.mdx` becomes `/es/roadmap` and wins over the fallback, while locale URLs without a localized file fall back to the default locale file — just like docs i18n fallback routes.
 
-See the [External Pages guide](/docs/guides/customization/external-pages) for the legacy API, layouts, limitations, and file-routing details.
+The locale prefix is applied before any dynamic segment, so `es/blog/[slug].mdx` serves `/es/blog/:slug` and does not produce a doubled prefix.
+
+## Reserved files
+
+These names are framework helpers rather than routes and are always ignored:
+
+```text
+layout.tsx
+icons.tsx
+mdx-components.tsx
+index.{tsx,ts,jsx,js}   (legacy object API)
+```
+
+Files and directories whose names start with `_` are also ignored, which is the usual way to colocate a helper with a page.
+
+## Conflicts
+
+If two files resolve to the same URL, the first route wins and the rest are dropped rather than producing a broken router. Keep one owner per URL, and use a [redirect](/docs/guides/operations/redirects) when you need to send an old path to a new page.
+
+See the [External Pages guide](/docs/guides/customization/external-pages) for the legacy API, layouts, and limitations.
 
 See [Experimental Features](/docs/guides/advanced/experimental) for the full opt-in setup.

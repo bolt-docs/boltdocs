@@ -1,0 +1,93 @@
+---
+title: Redirects
+sidebarPosition: 3
+description: Declare redirects in configuration and let Boltdocs handle client navigation, static output, and validation.
+---
+
+Redirects are a configuration concern in Boltdocs. Declare them once and the framework applies them in the client router, in the static output, and during build validation.
+
+```ts title="boltdocs.config.ts"
+import { defineConfig } from 'boltdocs'
+
+export default defineConfig({
+  redirects: [
+    { from: '/docs/old-guide', to: '/docs/guides/new-guide' },
+  ],
+})
+```
+
+## Options
+
+| Option | Type | Default | Description |
+| --- | --- | --- | --- |
+| `from` | `string` | — | Source path. Must be a path, not an external URL. |
+| `to` | `string` | — | Destination path or absolute URL. |
+| `status` | `301 \| 302 \| 307 \| 308` | `301` | HTTP status recorded for the redirect. |
+| `locale` | `boolean` | `false` | Mirror the redirect across every configured locale. |
+
+## How redirects are applied
+
+A single declaration is handled in three places.
+
+**Client navigation** resolves the redirect inside the router, so a link inside the app never flashes an intermediate page or triggers a full document load.
+
+**Static output** writes a real HTML document for the source path, so the redirect also works on a cold load, on any static host, and without JavaScript. The document contains a `<meta http-equiv="refresh">` for immediate redirection, a `<link rel="canonical">` so search engines consolidate the signal, and a `location.replace` script so the dead URL never enters the browser history.
+
+**Build validation** runs before anything is written, which is where most of the value is. A redirect mistake is otherwise invisible until it strands traffic.
+
+## Validation
+
+Boltdocs fails the build instead of publishing a broken redirect:
+
+| Situation | Behavior |
+| --- | --- |
+| Two redirects declare the same `from` | Build error naming the conflicting source |
+| `from` matches an existing route | Build error instead of silently shadowing a page |
+| Redirects form a cycle | Build error printing the full cycle, such as `/a -> /b -> /a` |
+| `from` is an external URL or contains a hash | Configuration error |
+| Redirect chain such as `/a -> /b -> /c` | Collapsed into a single hop, so the browser never bounces |
+
+Because chains are collapsed, a visitor always performs one navigation even when several redirects happen to point at each other.
+
+## External destinations
+
+Use an absolute URL when the destination lives on another site:
+
+```ts
+export default defineConfig({
+  redirects: [
+    { from: '/changelog', to: 'https://example.com/changelog' },
+  ],
+})
+```
+
+External targets are never rewritten, and the redirect document points at them directly.
+
+## Localized redirects
+
+Set `locale: true` to mirror a redirect across every configured locale:
+
+```ts
+export default defineConfig({
+  i18n: { defaultLocale: 'en', locales: ['en', 'es'] },
+  redirects: [{ from: '/docs/legacy', to: '/docs', locale: true }],
+})
+```
+
+This expands to `/en/docs/legacy` and `/es/docs/legacy`. A source that already starts with a locale prefix is not prefixed twice.
+
+## Temporary redirects
+
+Permanent statuses (`301` and `308`) are the default because documentation URLs change far more often than they move. Use `302` or `307` while a destination is still being decided:
+
+```ts
+export default defineConfig({
+  redirects: [
+    { from: '/docs/preview', to: '/docs/guides/start', status: 302 },
+  ],
+})
+```
+
+## Relationship to the file router
+
+A redirect is not the same as a file route. If `docs/pages-external/old.mdx` exists, that file owns `/old`, and a redirect for the same path is a configuration error. Remove the file, or point the redirect somewhere else.

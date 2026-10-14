@@ -4,6 +4,7 @@ import { resolveConfig } from '../../config'
 import { createViteConfig } from '../../index'
 import { inspectPluginsSecurity } from '../../security/inspect'
 import { generateRoutes, getExternalRoutePaths } from '../../routes'
+import { buildTypeRoutePaths } from '../../route-paths'
 import path from 'node:path'
 
 export class ConfigResolveStep implements PipelineStep<BuildContext> {
@@ -30,13 +31,11 @@ export class ConfigResolveStep implements PipelineStep<BuildContext> {
     // Keep the complete route contract on the context. Type generation and
     // link-tree writing happen in TypeGenerateStep, which runs in parallel
     // with SEO validation after this step completes.
-    const routePaths = routes.map((r) => r.path)
-    const basePath = (ctx.config.base || '/docs').replace(/\/$/, '')
-    if (!routePaths.includes(basePath)) routePaths.push(basePath)
-    const externalPaths = getExternalRoutePaths(docsDir, ctx.config)
-    for (const p of externalPaths) {
-      if (!routePaths.includes(p)) routePaths.push(p)
-    }
+    const routePaths = buildTypeRoutePaths(
+      routes,
+      ctx.config.base,
+      getExternalRoutePaths(docsDir, ctx.config),
+    )
     ctx.routePaths = routePaths
 
     ctx.viteConfig = await createViteConfig(

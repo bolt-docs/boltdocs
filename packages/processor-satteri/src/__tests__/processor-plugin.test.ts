@@ -22,12 +22,14 @@ describe('createSatteriProcessorPlugin', () => {
     expect(metaPlugin).toHaveProperty('code')
   })
 
-  it('includes 2 hast plugins (slug + code highlight)', () => {
+  it('includes the built-in hast plugins', () => {
     const plugin = createSatteriProcessorPlugin()
-    expect(plugin.hastPlugins).toHaveLength(2)
     const names = plugin.hastPlugins.map((p) => (p as { name: string }).name)
     expect(names).toContain('boltdocs-rehype-slug')
     expect(names).toContain('boltdocs-rehype-code-highlight')
+    // Drops whitespace text nodes that React rejects inside table sections.
+    expect(names).toContain('boltdocs-rehype-table-whitespace')
+    expect(plugin.hastPlugins).toHaveLength(names.length)
   })
 
   it('returns plugins with proper structure for compilation', () => {

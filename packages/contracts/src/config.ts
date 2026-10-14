@@ -190,6 +190,19 @@ export interface BoltdocsDraftsConfig {
   environments?: string[]
 }
 
+export type RedirectStatus = 301 | 302 | 307 | 308
+
+export interface RedirectConfig {
+  /** Source path. External URLs and hash targets are rejected. */
+  from: string
+  /** Destination path or absolute URL. */
+  to: string
+  /** HTTP status. Permanent statuses (301/308) are the default. */
+  status?: RedirectStatus
+  /** Mirror the redirect for every configured locale. */
+  locale?: boolean
+}
+
 export interface BoltdocsConfigContract<Plugin = PluginDefinition> {
   siteUrl?: string
   docsDir?: string
@@ -201,6 +214,7 @@ export interface BoltdocsConfigContract<Plugin = PluginDefinition> {
   plugins?: Plugin[]
   collections?: BoltdocsCollectionsConfig
   robots?: BoltdocsRobotsConfig
+  redirects?: RedirectConfig[]
   security?: BoltdocsSecurityConfig
   seo?: BoltdocsSeoConfig
   integrations?: BoltdocsIntegrationsConfig

@@ -277,7 +277,7 @@ export function satteriRehypeCodeHighlightPlugin(config?: CodeHighlightConfig) {
             type: 'element',
             tagName: 'pre',
             properties,
-            children: preElement.children,
+            children: html !== undefined ? [] : preElement.children,
           } as unknown as Element
         } catch (highlightError) {
           // Language not bundled (or transient engine failure). Degrade

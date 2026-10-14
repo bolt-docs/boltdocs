@@ -1488,8 +1488,10 @@ export async function build(
   let onPageRenderedLastOpen = 0
   const cacheWriteMs = 0
   let cachedOutputMs = 0
-  let workerRoundTripMs = 0
-  let workerRoundTripCount = 0
+  // Per-batch worker wait (queue + IPC + clone), one sample per batch. Kept as a
+  // distribution: a sum across concurrent batches double-counts overlapping wait
+  // and can exceed the build's own wall time.
+  const workerBatchWaitSamplesMs: number[] = []
   let renderedPageCount = 0
   let cachedPageCount = 0
   let outputLinkMs = 0
@@ -2010,12 +2012,20 @@ export async function build(
         routerContext: createSsgRouterContextPayload(fallback.routerContext),
       }
     },
-    onWorkerResult: async (path, plan, result, elapsedMs) => {
-      workerRoundTripMs += Math.max(
-        0,
-        elapsedMs - (result.timings?.totalMs ?? 0),
-      )
-      workerRoundTripCount++
+    onWorkerResult: async (path, plan, result, elapsedMs, batchIndex = 0) => {
+      // `elapsedMs` is measured from the batch's dispatch, so every page in a
+      // batch observes the same value. Sample only the first page of each batch
+      // and subtract the router's own measurement, leaving queue wait plus IPC
+      // and structured clone.
+      //
+      // Reported as a distribution, never a sum: batches run concurrently, so a
+      // total double-counts overlapping wait and can exceed the build's wall
+      // time. The previous sum reported 2,768,043ms for a 40s build.
+      if (batchIndex === 0) {
+        workerBatchWaitSamplesMs.push(
+          Math.max(0, elapsedMs - (result.timings?.totalMs ?? 0)),
+        )
+      }
       if (result.timings) {
         ssrPageTimesMs.push(Math.round(result.timings.totalMs))
         recordRouterTimings(result.timings)
@@ -2275,13 +2285,17 @@ export async function build(
       ssrImportMs: Math.round(ssrImportDurationMs),
       workerPoolSetupMs: Math.round(workerPoolSetupMs),
       routePreparationMs: Math.round(routePreparationMs),
-      // Includes queue wait, worker execution not covered by router timings,
-      // structured clone and any fallback overhead; it is not pure IPC time.
-      workerTransportMs: Math.round(workerRoundTripMs),
-      workerRoundTripMs: Math.round(workerRoundTripMs),
-      workerTransportAvgMs:
-        workerRoundTripCount > 0
-          ? Math.round(workerRoundTripMs / workerRoundTripCount)
+      // Per-batch worker wait: queue time, worker execution not covered by the
+      // router timings, structured clone and fallback overhead. Reported as
+      // percentiles because batches run concurrently, so a total would
+      // double-count overlapping wait past the build's wall time. Compare each
+      // sample against `routerRenderAvgMs`, not against the build duration.
+      workerBatchCount: workerBatchWaitSamplesMs.length,
+      workerBatchWaitP50Ms: computePercentile(workerBatchWaitSamplesMs, 50),
+      workerBatchWaitP95Ms: computePercentile(workerBatchWaitSamplesMs, 95),
+      workerBatchWaitMaxMs:
+        workerBatchWaitSamplesMs.length > 0
+          ? Math.round(Math.max(...workerBatchWaitSamplesMs))
           : 0,
       finalizeP50Ms: computePercentile(finalizePageTimesMs, 50),
       finalizeP95Ms: computePercentile(finalizePageTimesMs, 95),

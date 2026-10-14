@@ -83,6 +83,46 @@ describe('useNavbar', () => {
     expect(title).toBe('Boltdocs')
   })
 
+  it('returns both logo variants so the render cannot depend on the theme', () => {
+    ;(useConfig as any).mockReturnValue({
+      theme: { logo: { light: '/logo-light.svg', dark: '/logo-dark.svg' } },
+    })
+
+    const { result } = renderHook(() => useNavbar())
+    expect(result.current.logo).toEqual({
+      light: '/logo-light.svg',
+      dark: '/logo-dark.svg',
+    })
+  })
+
+  it('returns the same logo pair regardless of the resolved theme', () => {
+    ;(useConfig as any).mockReturnValue({
+      theme: { logo: { light: '/l.svg', dark: '/d.svg' } },
+    })
+
+    // The server cannot know the resolved theme, so a theme-dependent `src`
+    // makes the two sides disagree and React discards the server HTML.
+    const light = renderHook(() => useNavbar()).result.current.logo
+    ;(useTheme as any).mockReturnValue({ theme: 'dark', resolvedTheme: 'dark' })
+    const dark = renderHook(() => useNavbar()).result.current.logo
+
+    expect(dark).toEqual(light)
+  })
+
+  it('normalizes a string logo into the pair shape with no dark variant', () => {
+    ;(useConfig as any).mockReturnValue({ theme: { logo: '/only.svg' } })
+
+    const { result } = renderHook(() => useNavbar())
+    expect(result.current.logo).toEqual({ light: '/only.svg', dark: null })
+  })
+
+  it('returns a null logo when none is configured', () => {
+    ;(useConfig as any).mockReturnValue({ theme: {} })
+
+    const { result } = renderHook(() => useNavbar())
+    expect(result.current.logo).toBeNull()
+  })
+
   it('should set active for matching pathname', () => {
     ;(useLocation as any).mockReturnValue({ pathname: '/docs' })
     ;(useConfig as any).mockReturnValue({

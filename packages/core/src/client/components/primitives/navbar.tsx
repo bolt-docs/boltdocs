@@ -30,12 +30,20 @@ export interface NavbarLinkProps extends Omit<ComponentBase, 'children'> {
 
 export interface NavbarLogoProps extends Omit<ComponentBase, 'children'> {
   src: string
+  /** Source used while the `dark` class is absent from `<html>`. */
+  srcLight?: string
+  /** Source used while the `dark` class is present on `<html>`. */
+  srcDark?: string | null
   alt: string
   width?: number
   height?: number
   href?: BoltdocsRoutePathWithFallback
   /** Class name for the logo `<img>` element. */
   logoClassName?: string
+  /** Class name for the light-theme logo `<img>`, when two are rendered. */
+  logoLightClassName?: string
+  /** Class name for the dark-theme logo `<img>`, when two are rendered. */
+  logoDarkClassName?: string
 }
 
 export interface NavbarSearchTriggerProps extends ComponentBase {
@@ -115,23 +123,71 @@ function NavbarCenter({ children, className }: ComponentBase) {
 
 function NavbarLogo({
   src,
+  srcLight,
+  srcDark,
   alt,
   width = 24,
   height = 24,
   className,
   logoClassName,
+  logoLightClassName,
+  logoDarkClassName,
   href = '/',
 }: NavbarLogoProps) {
   const config = useConfig()
+
+  const light = srcLight ?? src
+  const hasPair = Boolean(srcDark) && srcDark !== light
+  const resolve = (value: string) => resolvePublicAssetUrl(value, config.base)
 
   return (
     <Link
       href={href}
       className={cn('flex items-center gap-2 shrink-0 outline-none', className)}
     >
-      {src ? (
+      {hasPair ? (
+        /**
+         * Both variants are always in the DOM and CSS picks the visible one.
+         *
+         * Rendering only the active source would make the markup depend on the
+         * resolved theme, which the server cannot know: it would render one
+         * `src` while the browser renders the other, the hoisted preload `href`
+         * would no longer match, and React would throw away the server HTML
+         * with a hydration mismatch. Two elements that are identical on both
+         * sides cost one extra request-free `<img>` and remove the whole class
+         * of bug.
+         */
+        <>
+          <img
+            src={resolve(light)}
+            alt={alt}
+            width={width}
+            height={height}
+            fetchPriority="high"
+            data-logo-theme="light"
+            className={cn(
+              'h-6 w-6 object-contain dark:hidden',
+              logoClassName,
+              logoLightClassName,
+            )}
+          />
+          <img
+            src={resolve(srcDark as string)}
+            alt={alt}
+            width={width}
+            height={height}
+            data-logo-theme="dark"
+            aria-hidden="true"
+            className={cn(
+              'hidden h-6 w-6 object-contain dark:block',
+              logoClassName,
+              logoDarkClassName,
+            )}
+          />
+        </>
+      ) : src ? (
         <img
-          src={resolvePublicAssetUrl(src, config.base)}
+          src={resolve(src)}
           alt={alt}
           width={width}
           height={height}
@@ -215,6 +271,9 @@ function NavbarLink({
     <Link
       href={href}
       target={to === 'external' ? '_blank' : undefined}
+      // A handful of always-visible top-level destinations, so warming them on
+      // visibility is nearly free and makes the first click of a visit instant.
+      prefetch={to === 'external' ? 'none' : 'viewport'}
       className={cn('transition-all outline-none', className)}
     >
       {label as any}

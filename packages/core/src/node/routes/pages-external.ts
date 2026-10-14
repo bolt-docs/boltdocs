@@ -40,11 +40,38 @@ function walkFiles(directory: string): string[] {
 }
 
 /**
+ * Converts a filesystem segment into its router pattern.
+ *
+ * - `[slug]`      → `:slug`   (single dynamic segment)
+ * - `[...slug]`   → `*`       (catch-all, greedy remainder)
+ * - `[[...slug]]` → `*?`      (optional catch-all)
+ *
+ * A literal segment is returned unchanged, so static files keep working exactly
+ * as before.
+ */
+function toRouterSegment(segment: string): string {
+  if (segment.startsWith('[[...') && segment.endsWith(']]')) {
+    return '*?'
+  }
+  if (segment.startsWith('[...') && segment.endsWith(']')) {
+    return '*'
+  }
+  if (segment.startsWith('[') && segment.endsWith(']')) {
+    return `:${segment.slice(1, -1)}`
+  }
+  return segment
+}
+
+/**
  * Maps a `pages-external` file to its route. A top-level directory whose name
  * matches a configured locale is consumed as the locale prefix (mirroring the
  * `docs/{locale}/…` i18n convention), so `es/roadmap.mdx` becomes the `/es/roadmap`
  * route for the `es` locale. Any other leading directory stays a literal URL
  * segment (e.g. `guides/start.mdx` → `/guides/start`).
+ *
+ * Directory and file names may declare dynamic segments using the familiar
+ * bracket syntax, so `blog/[slug].mdx` becomes `/blog/:slug` and
+ * `docs/[...parts].mdx` becomes `/docs/*`.
  */
 function buildFileRoute(
   filePath: string,
@@ -67,7 +94,9 @@ function buildFileRoute(
 
   const last = segments.at(-1)
   if (last === 'index') segments.pop()
-  const pathname = `/${segments.join('/')}`
+
+  const routeSegments = segments.map(toRouterSegment)
+  const pathname = `/${routeSegments.join('/')}`
   const routePath = pathname === '/' ? '/' : pathname.replace(/\/$/, '')
 
   return {
@@ -81,9 +110,11 @@ function buildFileRoute(
 }
 
 /**
- * Discovers static `pages-external` files when experimental file routing is
- * enabled. Dynamic segments are intentionally not supported in this first
- * version; a filename is always one literal URL segment.
+ * Discovers `pages-external` files when experimental file routing is enabled.
+ *
+ * Static files map one-to-one to URL segments. Bracket segments declare dynamic
+ * routes: `[slug]` captures one segment and `[...parts]` captures the rest, so
+ * a single MDX file can serve a whole route tree.
  */
 export function getExternalFileRoutes(
   docsDir: string,
@@ -101,12 +132,6 @@ export function getExternalFileRoutes(
     .filter((filePath) => {
       const basename = path.basename(filePath)
       return !/^(?:layout|icons|mdx-components)\.(?:tsx?|jsx?)$/.test(basename)
-    })
-    .filter((filePath) => {
-      const segments = path.relative(externalDir, filePath).split(path.sep)
-      return !segments.some(
-        (segment) => segment.startsWith('[') || segment.startsWith('('),
-      )
     })
     .map((filePath) => buildFileRoute(filePath, externalDir, config))
     .sort((a, b) => a.path.localeCompare(b.path))
@@ -132,12 +157,13 @@ export function getExternalRoutePaths(
 
     if (pagesMatch) {
       const keyRegex = /(['"])(.+?)\1\s*:/g
-      let match: RegExpExecArray | null
-      while ((match = keyRegex.exec(pagesMatch[1])) !== null) {
+      let match: RegExpExecArray | null = keyRegex.exec(pagesMatch[1])
+      while (match !== null) {
         const pathname = match[2].startsWith('/') ? match[2] : `/${match[2]}`
         for (const localized of withLocales(pathname, config)) {
           if (!keys.includes(localized)) keys.push(localized)
         }
+        match = keyRegex.exec(pagesMatch[1])
       }
     }
   }

@@ -192,6 +192,25 @@ interface WsPayload {
 }
 
 /** Waits until `server.ws.send` was called with a payload matching `predicate`. */
+/**
+ * Waits until the debounced watcher has finished processing, so an assertion
+ * about messages that must NOT be sent is not made too early.
+ */
+async function waitForSettledWatcher(
+  ctx: { wsSend: { mock: { calls: unknown[][] } } },
+  quietMs = 400,
+): Promise<void> {
+  let last = ctx.wsSend.mock.calls.length
+  const deadline = Date.now() + 3000
+  for (;;) {
+    await new Promise((r) => setTimeout(r, quietMs))
+    const now = ctx.wsSend.mock.calls.length
+    if (now === last) return
+    last = now
+    if (Date.now() > deadline) return
+  }
+}
+
 async function waitForWsEvent(
   wsSend: TestServer['wsSend'],
   predicate: (payload: WsPayload) => boolean,
@@ -323,7 +342,7 @@ describe('dev server HMR integration', () => {
     expect(guide?.title).toBe('Guide v2')
   })
 
-  it('emits full-reload and invalidates the entry when a pages-external file changes', async () => {
+  it('leaves pages-external files to the module graph so edits fast-refresh', async () => {
     const ctx = await startDevServer({
       'pages-external/roadmap.mdx': '# Roadmap v1\n',
     })
@@ -344,31 +363,21 @@ describe('dev server HMR integration', () => {
       'utf-8',
     )
 
-    const event = await waitForWsEvent(
-      ctx.wsSend,
-      (p) => p?.type === 'full-reload',
-    )
-    expect(event).toEqual({ type: 'full-reload' })
-
     // External pages never trigger the docs content-update event.
     expect(
       ctx.wsSend.mock.calls.some(([p]) => p?.event === 'boltdocs:mdx-update'),
     ).toBe(false)
 
-    // The virtual entry module was invalidated in the module graph.
-    await vi.waitFor(
-      () => {
-        const invalidated = invalidateModuleSpy.mock.calls
-          .slice(callsBefore)
-          .some(
-            ([mod]) =>
-              (mod as { id?: string })?.id === '\0virtual:boltdocs-entry.tsx',
-          )
-        expect(invalidated).toBe(true)
-      },
-      { timeout: 5000 },
-    )
-  })
+    // They must not force a full reload either: they are plain React modules
+    // behind the user entry, so the module graph handles them and React Fast
+    // Refresh swaps them in place. A reload here discarded scroll position and
+    // loader state on every one-line edit. Asserted synchronously after the
+    // watcher has settled rather than by waiting for a message that must never
+    // arrive.
+    await waitForSettledWatcher(ctx)
+    const sent = ctx.wsSend.mock.calls.map(([p]) => p)
+    expect(sent.some((p) => p?.type === 'full-reload')).toBe(false)
+  }, 15_000) // The settle wait plus the watcher debounce exceeds the default budget.
 
   it('regenerates the entry when a pages-external file is added or removed', async () => {
     const ctx = await startDevServer({})

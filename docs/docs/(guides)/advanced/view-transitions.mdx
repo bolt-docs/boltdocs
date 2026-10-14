@@ -82,6 +82,35 @@ transition(() => setOpen(true))
 transition.start(() => setOpen(true))
 ```
 
-The runner exposes `transition.enabled` and `transition.supported` when a component needs to show a compatibility indicator. The callback can return a promise. The resulting handle exposes `ready`, `updateCallbackDone`, `finished`, and `skipTransition` when the browser provides them.
+The runner exposes `transition.enabled`, `transition.supported`, and `transition.reducedMotion` when a component needs to branch on the real capability instead of guessing. The callback can return a promise. The resulting handle exposes `ready`, `updateCallbackDone`, `finished`, and `skipTransition` when the browser provides them.
+
+## Directional transitions
+
+Boltdocs tracks a history cursor while the app is running, so it knows whether a visitor moved forward or backward through the site. The direction is forwarded as a transition type alongside any configured types:
+
+```css title="theme.css"
+::view-transition-old(page) {
+  animation: fade-out 150ms ease;
+}
+
+::view-transition-new(page) {
+  animation: fade-in 150ms ease;
+}
+
+/* Backward navigation */
+::view-transition-group(back) {
+  animation-duration: 220ms;
+}
+```
+
+The type is added only once, and only when it is not already listed in your configuration, so a project that already declares `forward` is not affected.
+
+Direction is derived from `popstate`, which is why the router stores a small index marker in `history.state`. Anchor-only navigation does not animate, because nothing on the page actually changes.
+
+## Respecting reduced motion
+
+A view transition animates the entire document, so Boltdocs checks `prefers-reduced-motion` before starting one. When the visitor asks the operating system to reduce motion, the navigation happens immediately with no animation.
+
+The check is live rather than read once at startup, so changing the system preference takes effect without a reload. The router and `useViewTransition()` both honor it, and `transition.reducedMotion` lets a custom control explain why the animation did not play.
 
 See [Experimental Features](/docs/guides/advanced/experimental) for the full opt-in setup.

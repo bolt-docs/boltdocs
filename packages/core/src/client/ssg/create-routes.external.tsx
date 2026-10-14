@@ -32,12 +32,29 @@ function getLocales(config: BoltdocsConfig): string[] {
     : Object.keys(config.i18n.locales)
 }
 
+/**
+ * Lists the locale-prefixed variants of a path.
+ *
+ * The default locale is skipped on purpose. It is already the unprefixed path,
+ * so prefixing it would mint a second URL for the same page: a site with
+ * `defaultLocale: 'en'` would serve both `/about` and `/en/about`. That is not
+ * a harmless duplicate. The docs site is served under a base, and the SSG path
+ * collector prepends the base to the prefixed variant, so it emitted
+ * `/docs/en/about` — a URL the client router never learns about, because the
+ * base is not part of the route. Visitors landing there got a 404 on a page
+ * the build had itself written.
+ *
+ * A developer configuring a second locale should not have to know this, so the
+ * redundant variant is never generated in the first place.
+ */
 function getLocalizedPaths(
   pathname: string,
   config: BoltdocsConfig,
 ): Array<{ path: string; locale?: string }> {
   const paths = [{ path: pathname, locale: config.i18n?.defaultLocale }]
+  const defaultLocale = config.i18n?.defaultLocale
   for (const locale of getLocales(config)) {
+    if (locale === defaultLocale) continue
     const localizedPath =
       pathname === '/' ? `/${locale}` : `/${locale}${pathname}`
     if (!paths.some((entry) => entry.path === localizedPath)) {

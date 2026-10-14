@@ -431,6 +431,26 @@ export const DraftsConfigSchema = z.object({
 })
 
 /**
+ * Zod schema for a single declarative redirect.
+ */
+export const RedirectConfigSchema = z.object({
+  from: z
+    .string()
+    .min(1, 'Redirect "from" cannot be empty')
+    .refine((value) => !/^[a-z][a-z0-9+.-]*:\/\//i.test(value), {
+      message: 'Redirect "from" must be a path, not an external URL',
+    })
+    .refine((value) => !value.includes('#'), {
+      message: 'Redirect "from" cannot contain a hash fragment',
+    }),
+  to: z.string().min(1, 'Redirect "to" cannot be empty'),
+  status: z
+    .union([z.literal(301), z.literal(302), z.literal(307), z.literal(308)])
+    .optional(),
+  locale: z.boolean().optional(),
+})
+
+/**
  * Root Zod schema for Boltdocs project configuration.
  */
 export const BoltdocsConfigSchema = z.object({
@@ -446,6 +466,7 @@ export const BoltdocsConfigSchema = z.object({
   plugins: z.array(BoltdocsPluginSchema).optional(),
   collections: CollectionsConfigSchema.optional(),
   robots: RobotsConfigSchema.optional(),
+  redirects: z.array(RedirectConfigSchema).optional(),
   security: SecurityConfigSchema.optional(),
   seo: BoltdocsSeoConfigSchema.optional(),
   integrations: IntegrationsConfigSchema.optional(),

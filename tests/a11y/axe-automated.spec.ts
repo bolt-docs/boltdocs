@@ -21,6 +21,12 @@ test.describe('Accessibility Automated Tests (axe-core)', () => {
   })
 
   test('should have valid page structure with landmarks', async ({ page }) => {
+    // Deliberately unscoped: `region` is a best-practice rule, so filtering to
+    // the WCAG tag sets used elsewhere would drop it and pass vacuously. The
+    // full rule set costs more than the default 30s budget allows under
+    // parallel workers.
+    test.setTimeout(90_000)
+
     const accessibilityScanResults = await new AxeBuilder({ page }).analyze()
 
     const missingRoles = accessibilityScanResults.violations.filter(
@@ -31,6 +37,11 @@ test.describe('Accessibility Automated Tests (axe-core)', () => {
   })
 
   test('should have proper heading hierarchy', async ({ page }) => {
+    // Unscoped like the landmark test below, so `heading-order` is actually
+    // evaluated rather than filtered away. Needs the larger budget under
+    // parallel workers.
+    test.setTimeout(90_000)
+
     const accessibilityScanResults = await new AxeBuilder({ page }).analyze()
 
     const headingIssues = accessibilityScanResults.violations.filter(

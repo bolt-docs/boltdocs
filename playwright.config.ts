@@ -7,6 +7,13 @@ export default defineConfig({
   testDir: './tests/a11y',
   /* Run tests in files in parallel */
   fullyParallel: true,
+  /*
+   * These specs drive the dev server, which serves unbundled modules and
+   * several hundred requests per page. Under the default parallel worker count
+   * a 30s budget produced timeouts that had nothing to do with the assertion
+   * under test.
+   */
+  timeout: 60_000,
   /* Fail the build on CI if you accidentally left test.only in the source code. */
   forbidOnly: !!process.env.CI,
   /* Retry on CI only */

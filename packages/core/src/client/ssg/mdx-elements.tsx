@@ -147,6 +147,14 @@ const EagerMdxElement = ({
         >
       }
       collectionPostComponent={collectionPostComponent}
+      /**
+       * Route metadata is available synchronously, unlike loader data, so the
+       * layout is decided from it. Deciding from the loader left the first
+       * client render without collection data, which made the page render the
+       * documentation layout over the collection layout the server had sent.
+       */
+      collection={route.collection}
+      route={route}
     />
   )
 }

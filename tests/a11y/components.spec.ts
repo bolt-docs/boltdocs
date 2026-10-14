@@ -36,19 +36,26 @@ test.describe('Component-Specific Accessibility Tests', () => {
   })
 
   test('language switcher should be accessible', async ({ page }) => {
-    const langSwitcher = page
-      .locator(
-        '[aria-label*="language" i], [aria-label*="locale" i], [class*="lang"]',
-      )
-      .first()
+    // Target the real trigger. The previous selector keyed off
+    // `aria-label*="language"` / `[class*="lang"]`, which matched an unrelated
+    // element that carries no `aria-expanded`, so the assertion was testing
+    // the selector rather than the control. React Aria's MenuTrigger already
+    // supplies the menu semantics, so key off those.
+    const trigger = page.locator('button[aria-haspopup]').first()
+    const switcher = trigger.or(
+      page.locator('[aria-label*="language" i][aria-expanded]'),
+    )
+    const control = (await trigger.count()) > 0 ? trigger : switcher.first()
 
-    if ((await langSwitcher.count()) > 0) {
-      await langSwitcher.focus()
-      await page.keyboard.press('Enter')
+    test.skip(
+      (await control.count()) === 0,
+      'no language switcher rendered on this site',
+    )
 
-      const isExpanded = await langSwitcher.getAttribute('aria-expanded')
-      expect(['true', 'false']).toContain(isExpanded)
-    }
+    expect(await control.getAttribute('aria-expanded')).toBe('false')
+
+    await control.click()
+    await expect(control).toHaveAttribute('aria-expanded', 'true')
   })
 
   test('code blocks should be accessible', async ({ page }) => {
@@ -59,7 +66,7 @@ test.describe('Component-Specific Accessibility Tests', () => {
   })
 
   test('images should have proper alt text', async ({ page }) => {
-    const images = page.locator('img').all()
+    const images = await page.locator('img').all()
 
     for (const img of images) {
       const alt = await img.getAttribute('alt')
@@ -74,7 +81,7 @@ test.describe('Component-Specific Accessibility Tests', () => {
   })
 
   test('tables should be accessible', async ({ page }) => {
-    const tables = page.locator('table').all()
+    const tables = await page.locator('table').all()
 
     for (const table of tables) {
       const caption = await table.locator('caption').count()
@@ -86,22 +93,29 @@ test.describe('Component-Specific Accessibility Tests', () => {
   })
 
   test('links should have descriptive text', async ({ page }) => {
-    const links = page.locator('a[href]').all()
+    // An image-only link is not a problem: its accessible name comes from the
+    // image's `alt`. The previous version only looked at text content,
+    // `aria-label` and `title`, so the navbar logo was reported as unnamed.
+    // Collecting in one evaluate also avoids a round trip per link.
+    const unnamed = await page.evaluate(() => {
+      const problems: string[] = []
 
-    const problematicLinks = []
-    for (const link of links) {
-      const text = await link.textContent()
-      const ariaLabel = await link.getAttribute('aria-label')
-      const title = await link.getAttribute('title')
+      for (const link of document.querySelectorAll('a[href]')) {
+        const named =
+          (link.getAttribute('aria-label') ?? '').trim().length > 0 ||
+          (link.getAttribute('title') ?? '').trim().length > 0 ||
+          (link.textContent ?? '').trim().length > 0 ||
+          [...link.querySelectorAll('img[alt]')].some(
+            (img) => (img.getAttribute('alt') ?? '').trim().length > 0,
+          )
 
-      const isDescriptive = (text?.trim().length ?? 0) > 0 || ariaLabel || title
-      if (!isDescriptive) {
-        const href = await link.getAttribute('href')
-        problematicLinks.push(href)
+        if (!named) problems.push(link.getAttribute('href') ?? '(no href)')
       }
-    }
 
-    expect(problematicLinks).toHaveLength(0)
+      return problems
+    })
+
+    expect(unnamed).toEqual([])
   })
 
   test('should handle theme switching accessibly', async ({ page }) => {

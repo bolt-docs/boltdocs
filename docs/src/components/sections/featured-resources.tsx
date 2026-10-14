@@ -1,11 +1,17 @@
 import { Link } from 'boltdocs/primitives'
-import { useRecentPosts } from 'boltdocs/client'
+import {
+  resolvePublicAssetUrl,
+  useConfig,
+  useRecentPosts,
+} from 'boltdocs/client'
+import { formatDate } from 'boltdocs/client'
 import { ArrowRight } from 'lucide-react'
 import { useTranslations } from '@/i18n/index'
 import { Section } from '@/theme/section'
 
 function PostCard({
   post,
+  base,
 }: {
   post: {
     path: string
@@ -15,6 +21,7 @@ function PostCard({
     excerpt?: string
     tags?: string[]
   }
+  base: string | undefined
 }) {
   return (
     <Link
@@ -23,8 +30,15 @@ function PostCard({
     >
       <div className="relative aspect-video w-full overflow-hidden bg-code-bg">
         {post.coverImage ? (
+          /**
+           * The configured base is applied here. The cover path in frontmatter
+           * is site-root-relative, and a site served under a sub-path needs the
+           * base prefixed. Skipping it produces a 404 in the browser while the
+           * server-rendered markup looks correct, and the differing `src` is a
+           * hydration mismatch.
+           */
           <img
-            src={post.coverImage}
+            src={resolvePublicAssetUrl(post.coverImage, base)}
             alt={post.title}
             className="object-cover w-full h-full group-hover:scale-105 transition-transform duration-500"
           />
@@ -35,11 +49,9 @@ function PostCard({
       <div className="flex flex-col p-5 flex-1">
         {post.date && (
           <time className="text-[10px] font-mono text-muted mb-2">
-            {new Date(post.date).toLocaleDateString(undefined, {
-              year: 'numeric',
-              month: 'short',
-              day: 'numeric',
-            })}
+            {/* Locale and zone are pinned so the server and the browser render
+                the same string. */}
+            {formatDate(post.date)}
           </time>
         )}
         <h3 className="text-base font-bold tracking-tight text-body group-hover:text-primary-300 transition-colors line-clamp-2 mb-2">
@@ -52,6 +64,7 @@ function PostCard({
 
 export function FeaturedResources() {
   const recentPosts = useRecentPosts('blog', 4)
+  const config = useConfig()
   const t = useTranslations()
   return (
     <Section maxWidth="xl" padding="md">
@@ -74,7 +87,7 @@ export function FeaturedResources() {
           different post count than the server rendered. */}
       <div className="mx-auto flex max-w-7xl max-md:justify-center [&>*+*]:max-md:hidden gap-6 overflow-x-auto scrollbar-hide">
         {recentPosts.map((post) => (
-          <PostCard post={post} key={post.filePath} />
+          <PostCard post={post} base={config.base} key={post.filePath} />
         ))}
       </div>
       <div className="mx-auto mt-5 max-w-7xl flex justify-center md:hidden">

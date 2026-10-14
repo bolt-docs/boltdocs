@@ -9,6 +9,8 @@ export type {
   BoltdocsTypes,
 } from '../shared/types'
 export * from './ssg'
+export { formatDate } from './collections/utils'
+export { formatDeterministicDate } from './utils/date'
 export { useConfig } from './app/config-context'
 export { useTheme } from './app/theme-context'
 export { useMdxComponents } from './app/mdx-components-context'

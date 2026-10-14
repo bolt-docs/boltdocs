@@ -1,6 +1,6 @@
 {
   "name": "@bdocs/contracts",
-  "version": "0.1.0",
+  "version": "0.0.0",
   "description": "Framework-neutral contracts for Boltdocs 4.0 packages and integrations.",
   "type": "module",
   "sideEffects": false,

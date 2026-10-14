@@ -1,3 +1,11 @@
+/*
+ * Layer order is declared up front so the accessibility baseline below can
+ * live in a layer ordered after `utilities`. Cascade layers beat specificity,
+ * so a rule in `base` cannot outrank the `outline-none` utility no matter how
+ * specific its selector is. `a11y` is intentionally last.
+ */
+@layer theme, base, components, utilities, a11y;
+
 @layer base {
   *,
   *::before,
@@ -21,6 +29,10 @@
     font-family: var(--font-sans);
     line-height: 1.7;
   }
+
+  /*
+   * Focus visibility lives in the `a11y` layer below, not here.
+   */
 
   /*
    * ═══ Mermaid anti-scroll guard ═══
@@ -285,5 +297,34 @@
       content: "-";
       @apply absolute left-2 text-danger-500 font-bold;
     }
+  }
+}
+
+@layer a11y {
+  /*
+   * ═══ Focus visibility baseline (WCAG 2.4.7) ═══
+   * Components suppress the user-agent ring with `outline-none` and are
+   * expected to supply their own `focus-visible:` affordance. Plenty of them
+   * do not, which left the banner dismiss button, the navbar links, the
+   * language switcher and the code copy button with no visible focus
+   * indicator at all. `focus-visible:outline-2` on its own is not enough
+   * either: it emits `outline-style: var(--tw-outline-style)`, and that
+   * variable is only defined by the all-in-one `outline` utility, so the
+   * declaration is invalid and nothing is painted.
+   *
+   * This is a floor, not a design: anything without a deliberate indicator
+   * gets a visible one, and a theme can still replace it by redefining the
+   * rule in its own sheet. It sits in the `a11y` layer, declared after
+   * `utilities`, so the `outline-none` utility cannot silently drop it.
+   */
+  a:focus-visible,
+  button:focus-visible,
+  input:focus-visible,
+  select:focus-visible,
+  textarea:focus-visible,
+  summary:focus-visible,
+  [tabindex]:focus-visible {
+    outline: 2px solid var(--color-primary-500);
+    outline-offset: 2px;
   }
 }

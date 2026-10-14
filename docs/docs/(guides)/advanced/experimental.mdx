@@ -28,6 +28,16 @@ export default defineConfig({
 
 The experimental surface is split into three feature areas, each documented on its own page:
 
-- [View Transitions](/docs/guides/advanced/view-transitions) — native browser animations between router states, plus the `TransitionLink` component and the `useViewTransition()` hook.
+- [View Transitions](/docs/guides/advanced/view-transitions) — native browser animations between router states, with directional transition types and live `prefers-reduced-motion` support, plus the `TransitionLink` component and the `useViewTransition()` hook.
 - [Structured Data](/docs/guides/advanced/structured-data) — type-safe JSON-LD graphs for website, article, and breadcrumbs.
-- [Static file routing](/docs/guides/advanced/file-routing) — map literal files in `docs/pages-external/` to routes without a `pages` object.
+- [Static file routing](/docs/guides/advanced/file-routing) — map files in `docs/pages-external/` to routes, including dynamic segments such as `[slug]` and `[...parts]`.
+
+## What changed in 3.4.0
+
+Both experimental features received substantial work in 3.4.0.
+
+**View Transitions** now track navigation direction and forward it as a `forward` or `back` transition type, so a theme can animate backward navigation differently. They also respect `prefers-reduced-motion`: when the visitor asks for reduced motion the navigation happens immediately, because a document-wide animation is exactly what that setting is meant to suppress.
+
+**File routing** now supports dynamic segments. A bracketed file or directory maps to a router pattern, so `blog/[slug].mdx` serves `/blog/:slug` and `docs/[...parts].mdx` serves `/docs/*`. Static files behave exactly as before.
+
+Declarative [redirects](/docs/guides/operations/redirects) are **not** experimental: they are a stable configuration option in 3.4.0.

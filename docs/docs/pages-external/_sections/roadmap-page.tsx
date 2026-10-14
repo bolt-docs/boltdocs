@@ -5,6 +5,8 @@ import {
   Hammer,
   CheckCircle2,
   LoaderCircle,
+  Package,
+  ArrowUpRight,
 } from 'lucide-react'
 import { cn } from 'boltdocs/client'
 import { Section } from '@/theme/section'
@@ -12,27 +14,40 @@ import { Section } from '@/theme/section'
 type RoadmapItem = {
   title: string
   description: string
-  status: 'in-progress' | 'planning'
+  status: 'shipped' | 'in-progress' | 'planning'
 }
 
 const ROADMAP: RoadmapItem[] = [
+  // Shipped in 3.4.0
+  {
+    title: 'Redirects',
+    description:
+      'Declarative redirects via config with 301/302/307/308, loop detection, chain collapsing, locale mirroring, and static HTML output.',
+    status: 'shipped',
+  },
+  {
+    title: 'Instant Navigation',
+    description:
+      'View Transitions with directional types, live prefers-reduced-motion support, and full-site dev prewarming.',
+    status: 'shipped',
+  },
+  {
+    title: 'Incremental SSG',
+    description:
+      'Content-addressed page cache. A single page edit recompiles and re-renders one route instead of the whole site.',
+    status: 'shipped',
+  },
+  {
+    title: 'Shared contracts',
+    description:
+      '@bdocs/contracts publishes the framework-neutral route, plugin, lifecycle, and configuration contracts used by 4.0.',
+    status: 'shipped',
+  },
   // In Progress
   {
     title: 'Boltdocs migrate MVP — VitePress first',
     description:
       'A first-party migration tool to move existing VitePress sites to Boltdocs with minimal friction.',
-    status: 'in-progress',
-  },
-  {
-    title: 'Instant Navigation',
-    description:
-      'Prefetching, View Transitions, and no page reloads for buttery-smooth navigation.',
-    status: 'in-progress',
-  },
-  {
-    title: 'Redirects',
-    description:
-      'Declarative redirects via config with 301/308 support and loop detection.',
     status: 'in-progress',
   },
   {
@@ -140,105 +155,309 @@ const ROADMAP: RoadmapItem[] = [
   },
 ]
 
+const MIGRATION_ROUTE = [
+  {
+    step: 'Shared contracts',
+    package: '@bdocs/contracts',
+    status: 'Done',
+    description:
+      'Route, plugin, lifecycle, highlighting, and configuration contracts extracted from the core with backward-compatible re-exports.',
+  },
+  {
+    step: 'SEO extraction',
+    package: '@bdocs/plugin-seo',
+    status: 'Next',
+    description:
+      'Move sitemap, robots, metadata, Open Graph, and structured data behind the plugin API. The core keeps only the orchestration.',
+  },
+  {
+    step: 'UI extraction',
+    package: '@bdocs/ui',
+    status: 'Planned',
+    description:
+      'Move the ui-base components into their own package while keeping the existing boltdocs exports working.',
+  },
+  {
+    step: 'Primitives extraction',
+    package: '@bdocs/primitives',
+    status: 'Planned',
+    description:
+      'Move the style-neutral primitives out of the core. Primitives keep owning structure and data-* state, never colors.',
+  },
+  {
+    step: 'Runtime boundary',
+    package: '@bdocs/runtime',
+    status: 'Planned',
+    description:
+      'Separate the browser runtime from the Node build engine so neither pulls in the other dependencies.',
+  },
+  {
+    step: 'Incremental MDX and SSG',
+    package: 'core, Sätteri, SSG',
+    status: 'In progress',
+    description:
+      'Per-module identities and dependency edges so a single edit invalidates only the modules and routes it actually affects.',
+  },
+  {
+    step: 'Migration tooling',
+    package: 'repository-wide',
+    status: 'Planned',
+    description:
+      'Codemods, compatibility adapters, diagnostics, and the upgrade guide for package imports and removed private APIs.',
+  },
+]
+
 const STATUS_META = {
+  shipped: {
+    label: 'Shipped',
+    icon: CheckCircle2,
+    accent: 'text-success-500',
+    badgeBg: 'bg-success-500/10 text-success-500',
+  },
   'in-progress': {
     label: 'In Progress',
     icon: LoaderCircle,
     accent: 'text-accent-400',
     badgeBg: 'bg-accent-500/10 text-accent-400',
-    bar: 'bg-linear-to-r from-accent-500 to-primary-500',
   },
   planning: {
     label: 'Planning',
     icon: CircleDot,
     accent: 'text-muted',
     badgeBg: 'bg-subtle text-muted',
-    bar: 'bg-dim/40',
   },
 } as const
 
+type MigrationStep = (typeof MIGRATION_ROUTE)[number]
+
+const MIGRATION_STATUS_STYLES: Record<string, string> = {
+  Done: 'bg-success-500 text-white ring-success-500/30',
+  Next: 'bg-accent-500 text-white ring-accent-500/40',
+  'In progress': 'bg-accent-500/15 text-accent-400 ring-accent-500/20',
+  Planned: 'bg-subtle text-muted ring-subtle',
+}
+
+const MIGRATION_STATUS_TEXT: Record<string, string> = {
+  Done: 'text-success-500',
+  Next: 'text-accent-400',
+  'In progress': 'text-accent-400',
+  Planned: 'text-muted',
+}
+
+function StatusPill({ status }: { status: RoadmapItem['status'] }) {
+  if (status === 'shipped') {
+    return (
+      <span className="inline-flex items-center gap-1 rounded-full bg-success-500/10 px-2 py-0.5 text-[11px] font-medium text-success-500">
+        <CheckCircle2 className="size-3" /> Shipped
+      </span>
+    )
+  }
+  if (status === 'in-progress') {
+    return (
+      <span className="inline-flex items-center gap-1 rounded-full bg-accent-500/10 px-2 py-0.5 text-[11px] font-medium text-accent-400">
+        <LoaderCircle className="size-3 animate-spin" /> Active
+      </span>
+    )
+  }
+  return (
+    <span className="inline-flex items-center gap-1 rounded-full bg-subtle px-2 py-0.5 text-[11px] font-medium text-muted">
+      <Clock className="size-3" /> Planned
+    </span>
+  )
+}
+
 function RoadmapItemCard({ item }: { item: RoadmapItem }) {
-  const meta = STATUS_META[item.status]
-  const Icon = meta.icon
+  const Icon = STATUS_META[item.status].icon
 
   return (
-    <div className="group flex items-start gap-5 p-5 rounded-2xl bg-surface">
-      <div
-        className={`mt-0.5 shrink-0 flex items-center justify-center size-10 rounded-xl ${meta.badgeBg}`}
-      >
-        <Icon className="w-5 h-5" />
+    <article className="group flex flex-col gap-3 rounded-2xl bg-surface p-4 transition-colors hover:bg-surface-2 sm:p-5">
+      <div className="flex items-start justify-between gap-3">
+        <div
+          className={`flex size-8 shrink-0 items-center justify-center rounded-lg ${STATUS_META[item.status].badgeBg}`}
+        >
+          <Icon
+            className={`size-4 ${item.status === 'in-progress' ? 'animate-spin' : ''}`}
+          />
+        </div>
+        <StatusPill status={item.status} />
       </div>
-      <div className="flex-1 min-w-0">
-        <h3 className="text-base font-semibold text-body leading-snug">
+      <div className="min-w-0">
+        <h3 className="text-sm font-semibold leading-snug text-body">
           {item.title}
         </h3>
-        <p className="mt-1.5 text-sm text-paragraph leading-relaxed">
+        <p className="mt-1 text-[13px] leading-relaxed text-paragraph">
           {item.description}
         </p>
       </div>
-      <span className="hidden sm:inline-flex h-6 shrink-0 items-center rounded-full px-3 text-xs font-medium">
-        {item.status === 'in-progress' ? (
-          <span className="flex items-center gap-1.5 rounded-full bg-accent-500/10  px-2.5 py-0.5 text-accent-400">
-            <LoaderCircle className="size-3 animate-spin" /> Active
-          </span>
-        ) : (
-          <span className="flex items-center gap-1.5 rounded-full bg-subtle px-2.5 py-0.5 text-muted">
-            <Clock className="size-3" /> Planned
-          </span>
-        )}
-      </span>
+    </article>
+  )
+}
+
+/**
+ * Compact variant used for the long "Planning" list.
+ *
+ * The planning backlog is mostly short `Plugin: name` entries, so rendering
+ * each one as a full card turns the page into an endless scroll. These render
+ * as dense rows that keep the same information at roughly a third of the
+ * height.
+ */
+function RoadmapItemRow({ item }: { item: RoadmapItem }) {
+  return (
+    <li className="flex items-start gap-2.5 rounded-xl bg-surface px-3.5 py-2.5">
+      <CircleDot className="mt-0.5 size-3.5 shrink-0 text-dim" />
+      <div className="min-w-0">
+        <h3 className="text-[13px] font-medium leading-snug text-body">
+          {item.title}
+        </h3>
+        <p className="mt-0.5 text-xs leading-relaxed text-muted">
+          {item.description}
+        </p>
+      </div>
+    </li>
+  )
+}
+
+function SectionHeading({
+  icon: Icon,
+  label,
+  tone,
+  count,
+}: {
+  icon: typeof Hammer
+  label: string
+  tone: string
+  count: number
+}) {
+  return (
+    <div className="mb-4 flex items-center gap-3">
+      <div
+        className={`inline-flex items-center gap-2 rounded-full px-3 py-1 text-sm font-semibold ${tone}`}
+      >
+        <Icon className="size-4" />
+        {label}
+        <span className="text-xs font-normal opacity-70">{count}</span>
+      </div>
+      <div className="h-px flex-1 bg-subtle" />
     </div>
   )
 }
 
-export default function RoadmapPage() {
-  const [tab, setTab] = useState<'all' | 'in-progress' | 'planning'>('all')
+function MigrationTimeline({ steps }: { steps: MigrationStep[] }) {
+  return (
+    <ol className="relative">
+      {/* One continuous rail behind every node, so the steps read as a single
+          ordered migration rather than a set of unrelated cards. */}
+      <span
+        className="absolute left-[15px] top-3 bottom-3 w-px bg-subtle"
+        aria-hidden="true"
+      />
+      {steps.map((step, index) => (
+        <li key={step.step} className="relative flex gap-4 pb-6 last:pb-0">
+          <span
+            className={`relative z-10 flex size-8 shrink-0 items-center justify-center rounded-full text-xs font-bold ring-4 ring-body ${MIGRATION_STATUS_STYLES[step.status] ?? MIGRATION_STATUS_STYLES.Planned}`}
+            aria-hidden="true"
+          >
+            {index + 1}
+          </span>
+          <div className="min-w-0 flex-1 pt-1">
+            <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1">
+              <h3 className="text-sm font-semibold leading-snug text-body">
+                {step.step}
+              </h3>
+              <span
+                className={`text-[11px] font-medium uppercase tracking-wide ${MIGRATION_STATUS_TEXT[step.status] ?? MIGRATION_STATUS_TEXT.Planned}`}
+              >
+                {step.status}
+              </span>
+            </div>
+            <code className="mt-1 inline-block rounded bg-subtle px-1.5 py-0.5 text-[11px] text-muted">
+              {step.package}
+            </code>
+            <p className="mt-1.5 text-[13px] leading-relaxed text-paragraph">
+              {step.description}
+            </p>
+          </div>
+        </li>
+      ))}
+    </ol>
+  )
+}
 
+export default function RoadmapPage() {
+  const [tab, setTab] = useState<
+    'all' | 'shipped' | 'in-progress' | 'planning'
+  >('all')
+
+  const shipped = ROADMAP.filter((i) => i.status === 'shipped')
   const inProgress = ROADMAP.filter((i) => i.status === 'in-progress')
   const planning = ROADMAP.filter((i) => i.status === 'planning')
   const visible =
-    tab === 'all' ? ROADMAP : tab === 'in-progress' ? inProgress : planning
+    tab === 'all'
+      ? ROADMAP
+      : tab === 'shipped'
+        ? shipped
+        : tab === 'in-progress'
+          ? inProgress
+          : planning
 
   const tabs = [
     { key: 'all' as const, label: `All (${ROADMAP.length})` },
+    { key: 'shipped' as const, label: `Shipped (${shipped.length})` },
     {
       key: 'in-progress' as const,
       label: `In Progress (${inProgress.length})`,
     },
-    { key: 'planning' as const, label: `Planning (${planning.length})` },
+    { key: 'planning' as const, label: `Planned (${planning.length})` },
   ]
 
+  const showSections = tab === 'all'
+  const compactList = tab === 'planning' || !showSections
+
   return (
-    <div className="font-sans antialiased min-h-screen text-body relative overflow-hidden">
+    <div className="min-h-screen overflow-hidden font-sans text-body antialiased">
       <Section padding="sm" maxWidth="xl">
-        <div className="text-center mb-6">
-          <h1 className="text-4xl md:text-6xl font-semibold tracking-tighter text-body mb-6">
+        <header className="mx-auto mb-6 max-w-3xl text-center">
+          <h1 className="text-3xl font-semibold tracking-tighter text-body md:text-5xl">
             What&apos;s coming next
           </h1>
-          <div className="mt-8 flex items-center justify-center gap-6 text-sm">
-            <span className="flex items-center gap-2 text-paragraph">
-              <span className="size-2.5 rounded-full bg-accent-500 animate-pulse" />
+          <p className="mx-auto mt-3 text-sm text-paragraph md:text-base">
+            Boltdocs 3.4 is the stable line: redirects, incremental builds,
+            accessible View Transitions, and the shared contract layer. The 4.0
+            architecture migration continues in parallel on a dedicated branch.
+          </p>
+          <div className="mt-5 flex flex-wrap items-center justify-center gap-x-5 gap-y-2 text-xs text-paragraph">
+            <span className="inline-flex items-center gap-1.5">
+              <span className="size-2 rounded-full bg-success-500" />
+              {shipped.length} shipped
+            </span>
+            <span className="inline-flex items-center gap-1.5">
+              <span className="size-2 animate-pulse rounded-full bg-accent-500" />
               {inProgress.length} in progress
             </span>
-            <span className="flex items-center gap-2 text-paragraph">
-              <span className="size-2.5 rounded-full bg-dim/60" />
+            <span className="inline-flex items-center gap-1.5">
+              <span className="size-2 rounded-full bg-dim/60" />
               {planning.length} planned
             </span>
           </div>
-        </div>
+        </header>
 
-        <div className="flex justify-center mb-10">
-          <div className="inline-flex items-center gap-1 p-1 rounded-full bg-surface">
+        <div className="sticky top-16 z-20 -mx-2 mb-6 flex justify-center px-2 py-2 backdrop-blur-sm">
+          <div
+            role="tablist"
+            aria-label="Roadmap filters"
+            className="inline-flex max-w-full items-center gap-1 overflow-x-auto rounded-full bg-surface p-1"
+          >
             {tabs.map((t) => (
               <button
                 key={t.key}
+                role="tab"
+                aria-selected={tab === t.key}
                 onClick={() => setTab(t.key)}
                 className={cn(
-                  `px-5 py-2 rounded-full text-sm font-medium transition-all duration-300 cursor-pointer`,
+                  'cursor-pointer whitespace-nowrap rounded-full px-4 py-1.5 text-xs font-medium transition-all duration-300 md:text-sm',
                   {
                     'bg-primary-500/15 text-primary-30': tab === t.key,
-                    'text-muted hover:text-body border border-transparent':
-                      tab !== t.key,
+                    'text-muted hover:text-body': tab !== t.key,
                   },
                 )}
               >
@@ -248,51 +467,108 @@ export default function RoadmapPage() {
           </div>
         </div>
 
-        {tab === 'all' ? (
-          <div className="flex flex-col">
-            <section className="mb-14">
-              <div className="flex items-center gap-3 mb-6">
-                <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-accent-500/10 text-accent-400 text-sm font-semibold">
-                  <Hammer className="size-5" />
-                  In Progress
-                </div>
-                <div className="h-px flex-1 bg-subtle" />
+        {showSections ? (
+          <div className="flex flex-col gap-8">
+            <section aria-labelledby="shipped-heading">
+              <div id="shipped-heading">
+                <SectionHeading
+                  icon={CheckCircle2}
+                  label="Shipped in 3.4.0"
+                  tone="bg-success-500/10 text-success-500"
+                  count={shipped.length}
+                />
               </div>
-              <div className="flex flex-col gap-4">
+              <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+                {shipped.map((item) => (
+                  <RoadmapItemCard key={item.title} item={item} />
+                ))}
+              </div>
+            </section>
+
+            <section aria-labelledby="progress-heading">
+              <div id="progress-heading">
+                <SectionHeading
+                  icon={Hammer}
+                  label="In Progress"
+                  tone="bg-accent-500/10 text-accent-400"
+                  count={inProgress.length}
+                />
+              </div>
+              <div className="grid gap-3 sm:grid-cols-2">
                 {inProgress.map((item) => (
                   <RoadmapItemCard key={item.title} item={item} />
                 ))}
               </div>
             </section>
 
-            <section>
-              <div className="flex items-center gap-3 mb-6">
-                <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-surface text-muted text-sm font-semibold">
-                  <CheckCircle2 className="size-5" />
-                  Planning
-                </div>
-                <div className="h-px flex-1 bg-subtle" />
+            <section aria-labelledby="planned-heading">
+              <div id="planned-heading">
+                <SectionHeading
+                  icon={CircleDot}
+                  label="Planned"
+                  tone="bg-surface text-muted"
+                  count={planning.length}
+                />
               </div>
-              <div className="grid sm:grid-cols-2 gap-4">
+              <ul className="grid gap-2 md:grid-cols-2 xl:grid-cols-3">
                 {planning.map((item) => (
-                  <RoadmapItemCard key={item.title} item={item} />
+                  <RoadmapItemRow key={item.title} item={item} />
                 ))}
-              </div>
+              </ul>
             </section>
           </div>
         ) : (
-          <div
-            className={
-              tab === 'in-progress'
-                ? 'flex flex-col gap-4'
-                : 'grid sm:grid-cols-2 gap-4'
-            }
+          <ul
+            className={cn(
+              'grid gap-2',
+              compactList
+                ? 'md:grid-cols-2 xl:grid-cols-3'
+                : 'sm:grid-cols-2 xl:grid-cols-4',
+            )}
           >
-            {visible.map((item) => (
-              <RoadmapItemCard key={item.title} item={item} />
-            ))}
-          </div>
+            {visible.map((item) =>
+              item.status === 'planning' ? (
+                <RoadmapItemRow key={item.title} item={item} />
+              ) : (
+                <li key={item.title} className="contents">
+                  <RoadmapItemCard item={item} />
+                </li>
+              ),
+            )}
+          </ul>
         )}
+
+        <section className="mt-10" aria-labelledby="migration-heading">
+          <div className="mb-2 flex items-center gap-3">
+            <h2
+              id="migration-heading"
+              className="inline-flex items-center gap-2 rounded-full bg-surface px-3 py-1 text-sm font-semibold text-body"
+            >
+              <Package className="size-4" />
+              Boltdocs 4.0 migration
+            </h2>
+            <div className="h-px flex-1 bg-subtle" />
+          </div>
+          <p className="mb-4 max-w-3xl text-[13px] text-paragraph">
+            4.0 is an architecture release, not a feature release. The goal is a
+            smaller core with explicit package boundaries, optional
+            integrations, and builds whose cost is proportional to the change.
+            Every slice ships on the <code>4.0</code> branch and is merged back
+            into <code>develop</code> only when it is backward compatible.
+          </p>
+
+          <MigrationTimeline steps={MIGRATION_ROUTE} />
+
+          <a
+            href="https://github.com/bolt-docs/boltdocs/blob/4.0/ROADMAP-4.0.md"
+            target="_blank"
+            rel="noreferrer"
+            className="mt-4 inline-flex items-center gap-1.5 text-sm font-medium text-accent-400 transition-colors hover:text-accent-300"
+          >
+            Read the full 4.0 roadmap
+            <ArrowUpRight className="size-4" />
+          </a>
+        </section>
       </Section>
     </div>
   )

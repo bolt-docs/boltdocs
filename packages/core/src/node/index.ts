@@ -147,14 +147,25 @@ export function shouldEnableBundledDev(
   return !isProduction && value === 'true'
 }
 
+/**
+ * Whether `@vitejs/plugin-react` runs in dev.
+ *
+ * React Fast Refresh is what makes an edit to `layout.tsx`, an icon set or an
+ * external page swap in place instead of reloading the document. Without it
+ * there is no refresh runtime in the page, so every such edit falls back to a
+ * full reload and loses scroll position and loader state.
+ *
+ * It used to be skipped for any non-root base, which meant the common
+ * `base: '/docs'` documentation site had no Fast Refresh at all. The plugin
+ * handles a sub-path base correctly; only the bundled-dev opt-in remains
+ * environment-gated.
+ */
 export function shouldUseReactPlugin(
   isProduction: boolean,
-  base: string,
   value = process.env.BOLTDOCS_REACT_REFRESH,
 ): boolean {
   if (isProduction) return true
-  if (value === 'true') return true
-  return base === '/' || base === ''
+  return value !== 'false'
 }
 
 export default async function boltdocs(
@@ -162,6 +173,7 @@ export default async function boltdocs(
 ): Promise<Plugin[]> {
   const { resolveConfig } = await import('./config')
   const { generateRoutes, getExternalRoutePaths } = await import('./routes')
+  const { buildTypeRoutePaths } = await import('./route-paths')
   const { generateProjectTypes, writeLinkTree } = await import(
     './types-generator'
   )
@@ -170,15 +182,11 @@ export default async function boltdocs(
   const docsDir = options?.docsDir || 'docs'
   const config = await resolveConfig(docsDir)
   const routes = await generateRoutes(docsDir, config)
-  const routePaths = routes.map((r) => r.path)
-  const basePath = (config.base || '/docs').replace(/\/$/, '')
-  if (!routePaths.includes(basePath)) {
-    routePaths.push(basePath)
-  }
-  const externalPaths = getExternalRoutePaths(docsDir, config)
-  for (const p of externalPaths) {
-    if (!routePaths.includes(p)) routePaths.push(p)
-  }
+  const routePaths = buildTypeRoutePaths(
+    routes,
+    config.base,
+    getExternalRoutePaths(docsDir, config),
+  )
   generateProjectTypes(config, docsDir, undefined, routePaths)
   writeLinkTree(routePaths)
 
@@ -272,17 +280,20 @@ export async function createViteConfig(
   const shouldGenerateTypes = !options.skipTypes
   const shouldGenerateLinkTree = !options.skipLinkTree
   if (shouldGenerateTypes || shouldGenerateLinkTree) {
-    const [{ getExternalRoutePaths }, { generateProjectTypes, writeLinkTree }] =
-      await Promise.all([import('./routes'), import('./types-generator')])
-    const routePaths = routes.map((r) => r.path)
-    const basePath = (config.base || '/docs').replace(/\/$/, '')
-    if (!routePaths.includes(basePath)) {
-      routePaths.push(basePath)
-    }
-    const externalPaths = getExternalRoutePaths(docsDir, config)
-    for (const p of externalPaths) {
-      if (!routePaths.includes(p)) routePaths.push(p)
-    }
+    const [
+      { getExternalRoutePaths },
+      { generateProjectTypes, writeLinkTree },
+      { buildTypeRoutePaths },
+    ] = await Promise.all([
+      import('./routes'),
+      import('./types-generator'),
+      import('./route-paths'),
+    ])
+    const routePaths = buildTypeRoutePaths(
+      routes,
+      config.base,
+      getExternalRoutePaths(docsDir, config),
+    )
     if (shouldGenerateTypes) {
       generateProjectTypes(config, docsDir, root, routePaths)
     }
@@ -403,7 +414,7 @@ export async function createViteConfig(
     plugins: [
       ...(userViteConfig.plugins ?? []),
       ssrDirnamePolyfillPlugin(),
-      ...(shouldUseReactPlugin(isProd, effectiveBase) ? reactPlugin() : []),
+      ...(shouldUseReactPlugin(isProd) ? reactPlugin() : []),
       ...boltdocsPlugin(
         { docsDir, root, routes } as BoltdocsPluginOptions,
         config,

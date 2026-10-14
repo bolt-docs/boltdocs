@@ -20,6 +20,10 @@ import { setupPrewarming } from './prewarm'
 import { configureWatcher } from './watcher'
 import { setupHmr, createHotUpdateHandler } from './hmr-handler'
 import {
+  installExternalPageRewrite,
+  invalidateExternalPagePaths,
+} from './external-page-rewrite'
+import {
   setHmrSender,
   applyPluginServerMiddleware,
   runPluginServerStartCallbacks,
@@ -46,6 +50,11 @@ export function createDevServerPlugin(
       // registrations before plugins run again, but never during document HMR.
       resetPluginRuntimeRegistries(runtime)
       invalidateDirectoryMetaCache(virtualModuleState)
+      invalidateExternalPagePaths()
+
+      // Must be installed before Vite's internal base middleware, which 404s
+      // every path outside `base`. See the module for the full rationale.
+      installExternalPageRewrite(server, docsDir, getConfig)
 
       const lifecycle = getLifecycle()
       await lifecycle?.runHook('dev:before').catch((e) => {
@@ -58,9 +67,18 @@ export function createDevServerPlugin(
 
       routesPromise
         .then((routes) =>
-          import('../types-generator').then(({ writeLinkTree }) =>
-            writeLinkTree(routes.map((r) => r.path)),
-          ),
+          import('../routes').then(async ({ getExternalRoutePaths }) => {
+            const { writeLinkTree } = await import('../types-generator')
+            const { buildTypeRoutePaths } = await import('../route-paths')
+            const config = getConfig()
+            writeLinkTree(
+              buildTypeRoutePaths(
+                routes,
+                config.base,
+                getExternalRoutePaths(docsDir, config),
+              ),
+            )
+          }),
         )
         .catch(() => {})
 

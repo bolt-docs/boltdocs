@@ -4,6 +4,8 @@ import {
   usePrefetch,
   hasUriScheme,
 } from '../../router'
+import React from 'react'
+import { observeForPrefetch } from '../../router/prefetch-viewport'
 import { useLocalizedTo } from '../../hooks/use-localized-to'
 import { cn } from '../../utils/cn'
 import { useViewTransition } from '../../view-transitions'
@@ -13,8 +15,15 @@ export interface LinkProps
   href?: BoltdocsRoutePathWithFallback
   /** Alias for href, supported for React Router-style collection components. */
   to?: BoltdocsRoutePathWithFallback
-  /** Should prefetch the page on hover? Default 'hover' */
-  prefetch?: 'hover' | 'none'
+  /**
+   * When to warm the destination's route chunk and loader data.
+   *
+   * - `hover` — on pointer enter or keyboard focus. Default.
+   * - `viewport` — also as soon as the link is about to be scrolled into view,
+   *   so readers who scroll and click never wait. Implies hover.
+   * - `none` — never prefetch.
+   */
+  prefetch?: 'hover' | 'viewport' | 'none'
   /** Wrap local navigation in the experimental View Transition API. */
   transition?: boolean
   /** Native transition types for this link. */
@@ -91,7 +100,7 @@ export function Link(props: LinkProps) {
   }
 
   const handlePrefetch = () => {
-    if (prefetch === 'hover' && localizedHref) {
+    if (prefetch !== 'none' && localizedHref) {
       void prefetchRoute(localizedHref)
     }
   }
@@ -106,10 +115,30 @@ export function Link(props: LinkProps) {
     handlePrefetch()
   }
 
+  const anchorRef = React.useRef<HTMLAnchorElement | null>(null)
+
+  // The observer needs the real node, but `ref` belongs to the caller, so both
+  // have to be honoured.
+  const setRef = React.useCallback(
+    (node: HTMLAnchorElement | null) => {
+      anchorRef.current = node
+      if (typeof ref === 'function') ref(node)
+      else if (ref) ref.current = node
+    },
+    [ref],
+  )
+
+  React.useEffect(() => {
+    if (prefetch !== 'viewport' || !localizedHref) return
+    return observeForPrefetch(anchorRef.current, () => {
+      void prefetchRoute(localizedHref)
+    })
+  }, [prefetch, localizedHref, prefetchRoute])
+
   return (
     <a
       {...rest}
-      ref={ref}
+      ref={setRef}
       href={localizedHref}
       target={linkTarget}
       download={download}

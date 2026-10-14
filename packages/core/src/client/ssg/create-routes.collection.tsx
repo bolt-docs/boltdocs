@@ -2,6 +2,7 @@ import type { RouteRecord } from '../router'
 import type { ComponentRoute, BoltdocsConfig } from '../types'
 import type React from 'react'
 import { buildUrl, useLocation, useLoaderData } from '../router'
+import { formatDeterministicDate } from '../utils/date'
 import { Link } from '../components/primitives/link'
 import type { CollectionsData } from '../collections/collections-context'
 import { usePosts } from '../collections/hooks'
@@ -134,7 +135,10 @@ function DefaultCollectionList() {
             </h2>
             {post.date && (
               <time className="text-xs text-muted block mb-2">
-                {new Date(post.date).toLocaleDateString()}
+                {/* Pinned locale and zone: an ambient default makes the
+                    server and browser render different text and React discards
+                    the server HTML. */}
+                {formatDeterministicDate(post.date, { month: 'short' })}
               </time>
             )}
             {post.excerpt && (

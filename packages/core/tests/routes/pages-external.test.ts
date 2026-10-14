@@ -2,128 +2,106 @@ import fs from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
 import { afterEach, describe, expect, it } from 'vitest'
-import {
-  getExternalFileRoutes,
-  getExternalRoutePaths,
-} from '../../src/node/routes/pages-external'
+import { getExternalFileRoutes } from '../../src/node/routes/pages-external'
+import type { BoltdocsConfig } from '../../src/shared/types'
 
-const temporaryDirectories: string[] = []
+const created: string[] = []
+
+function createDocsDir(files: string[]): string {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'boltdocs-file-routing-'))
+  created.push(root)
+  const docsDir = path.join(root, 'docs')
+  for (const file of files) {
+    const target = path.join(docsDir, file)
+    fs.mkdirSync(path.dirname(target), { recursive: true })
+    fs.writeFileSync(target, '# content')
+  }
+  return docsDir
+}
+
+const config: BoltdocsConfig = { experimental: { fileRouting: true } }
 
 afterEach(() => {
-  for (const directory of temporaryDirectories.splice(0)) {
-    fs.rmSync(directory, { recursive: true, force: true })
+  for (const root of created.splice(0)) {
+    fs.rmSync(root, { recursive: true, force: true })
   }
 })
 
-describe('pages-external file routing', () => {
-  it('discovers static tsx and mdx files only when enabled', () => {
-    const root = fs.mkdtempSync(path.join(os.tmpdir(), 'boltdocs-external-'))
-    temporaryDirectories.push(root)
-    const externalDir = path.join(root, 'pages-external')
-    fs.mkdirSync(externalDir, { recursive: true })
-    fs.writeFileSync(
-      path.join(externalDir, 'home.tsx'),
-      'export default function Home() {}',
-    )
-    fs.writeFileSync(path.join(externalDir, 'about.mdx'), '# About')
-    fs.writeFileSync(
-      path.join(externalDir, '[id].tsx'),
-      'export default function Dynamic() {}',
-    )
+describe('getExternalFileRoutes', () => {
+  it('returns nothing when file routing is disabled', () => {
+    const docsDir = createDocsDir(['pages-external/about.mdx'])
+    expect(getExternalFileRoutes(docsDir, {})).toEqual([])
+  })
 
-    expect(getExternalFileRoutes(root, {})).toEqual([])
-    expect(
-      getExternalFileRoutes(root, { experimental: { fileRouting: true } }),
-    ).toEqual([
-      expect.objectContaining({ path: '/about', kind: 'mdx' }),
-      expect.objectContaining({ path: '/home', kind: 'component' }),
+  it('maps static files to literal routes', () => {
+    const docsDir = createDocsDir([
+      'pages-external/about.mdx',
+      'pages-external/guides/start.mdx',
+    ])
+
+    const routes = getExternalFileRoutes(docsDir, config)
+    expect(routes.map((route) => route.path)).toEqual([
+      '/about',
+      '/guides/start',
     ])
   })
 
-  it('keeps the legacy pages index and adds localized file routes', () => {
-    const root = fs.mkdtempSync(path.join(os.tmpdir(), 'boltdocs-external-'))
-    temporaryDirectories.push(root)
-    const externalDir = path.join(root, 'pages-external')
-    fs.mkdirSync(externalDir, { recursive: true })
-    fs.writeFileSync(
-      path.join(externalDir, 'index.tsx'),
-      "export const pages = { '/legacy': Legacy }",
-    )
-    fs.writeFileSync(
-      path.join(externalDir, 'home.tsx'),
-      'export default function Home() {}',
-    )
+  it('maps index files to their directory route', () => {
+    const docsDir = createDocsDir(['pages-external/guides/index.mdx'])
 
-    const paths = getExternalRoutePaths(root, {
-      experimental: { fileRouting: true },
-      i18n: { defaultLocale: 'en', locales: { en: 'English', es: 'Español' } },
-    })
+    expect(getExternalFileRoutes(docsDir, config)[0].path).toBe('/guides')
+  })
 
-    expect(paths).toEqual([
-      '/legacy',
-      '/en/legacy',
-      '/es/legacy',
-      '/home',
-      '/en/home',
-      '/es/home',
+  it('maps a single dynamic segment to a router param', () => {
+    const docsDir = createDocsDir(['pages-external/blog/[slug].mdx'])
+
+    expect(getExternalFileRoutes(docsDir, config)[0].path).toBe('/blog/:slug')
+  })
+
+  it('maps a catch-all segment to a wildcard', () => {
+    const docsDir = createDocsDir(['pages-external/docs/[...parts].mdx'])
+
+    expect(getExternalFileRoutes(docsDir, config)[0].path).toBe('/docs/*')
+  })
+
+  it('maps an optional catch-all segment', () => {
+    const docsDir = createDocsDir(['pages-external/shop/[[...parts]].mdx'])
+
+    expect(getExternalFileRoutes(docsDir, config)[0].path).toBe('/shop/*?')
+  })
+
+  it('supports dynamic directories and static siblings together', () => {
+    const docsDir = createDocsDir([
+      'pages-external/blog/[slug].mdx',
+      'pages-external/blog/index.mdx',
+    ])
+
+    expect(getExternalFileRoutes(docsDir, config).map((r) => r.path)).toEqual([
+      '/blog',
+      '/blog/:slug',
     ])
   })
 
-  it('maps a configured locale directory to a localized route', () => {
-    const root = fs.mkdtempSync(path.join(os.tmpdir(), 'boltdocs-external-'))
-    temporaryDirectories.push(root)
-    const externalDir = path.join(root, 'pages-external')
-    fs.mkdirSync(path.join(externalDir, 'es'), { recursive: true })
-    fs.writeFileSync(path.join(externalDir, 'roadmap.mdx'), '# Roadmap')
-    fs.writeFileSync(
-      path.join(externalDir, 'es', 'roadmap.mdx'),
-      '# Hoja de ruta',
-    )
-    fs.writeFileSync(
-      path.join(externalDir, 'es', 'index.tsx'),
-      'export default function HomeEs() {}',
-    )
-    // `fr` is not a configured locale, so it stays a literal URL segment.
-    fs.mkdirSync(path.join(externalDir, 'fr'), { recursive: true })
-    fs.writeFileSync(path.join(externalDir, 'fr', 'start.mdx'), '# Démarrage')
+  it('keeps the locale prefix before the dynamic segment', () => {
+    const docsDir = createDocsDir(['pages-external/es/blog/[slug].mdx'])
 
-    const routes = getExternalFileRoutes(root, {
-      experimental: { fileRouting: true },
-      i18n: { defaultLocale: 'en', locales: { en: 'English', es: 'Español' } },
+    const [route] = getExternalFileRoutes(docsDir, {
+      ...config,
+      i18n: { defaultLocale: 'en', locales: ['en', 'es'] },
     })
-
-    expect(routes).toEqual([
-      expect.objectContaining({ path: '/es', locale: 'es', kind: 'component' }),
-      expect.objectContaining({
-        path: '/es/roadmap',
-        locale: 'es',
-        kind: 'mdx',
-      }),
-      expect.objectContaining({ path: '/fr/start', kind: 'mdx' }),
-      expect.objectContaining({ path: '/roadmap', kind: 'mdx' }),
-    ])
+    expect(route.locale).toBe('es')
+    expect(route.path).toBe('/es/blog/:slug')
   })
 
-  it('does not re-localize routes that already carry a locale', () => {
-    const root = fs.mkdtempSync(path.join(os.tmpdir(), 'boltdocs-external-'))
-    temporaryDirectories.push(root)
-    const externalDir = path.join(root, 'pages-external')
-    fs.mkdirSync(path.join(externalDir, 'es'), { recursive: true })
-    fs.writeFileSync(path.join(externalDir, 'roadmap.mdx'), '# Roadmap')
-    fs.writeFileSync(
-      path.join(externalDir, 'es', 'roadmap.mdx'),
-      '# Hoja de ruta',
-    )
+  it('ignores framework files inside pages-external', () => {
+    const docsDir = createDocsDir([
+      'pages-external/layout.tsx',
+      'pages-external/icons.tsx',
+      'pages-external/real.mdx',
+    ])
 
-    const paths = getExternalRoutePaths(root, {
-      experimental: { fileRouting: true },
-      i18n: { defaultLocale: 'en', locales: { en: 'English', es: 'Español' } },
-    })
-
-    expect([...paths].sort()).toEqual([
-      '/en/roadmap',
-      '/es/roadmap',
-      '/roadmap',
+    expect(getExternalFileRoutes(docsDir, config).map((r) => r.path)).toEqual([
+      '/real',
     ])
   })
 })
