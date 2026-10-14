@@ -1,0 +1,40 @@
+{
+  "name": "@bdocs/plugin-search-pagefind",
+  "version": "1.0.0",
+  "description": "Index a Boltdocs site with Pagefind after the static build",
+  "publishConfig": {
+    "access": "public"
+  },
+  "files": [
+    "dist"
+  ],
+  "exports": {
+    ".": {
+      "types": "./dist/node/index.d.mts",
+      "import": "./dist/node/index.mjs"
+    }
+  },
+  "scripts": {
+    "build": "tsdown --config-loader unrun",
+    "dev": "tsdown --watch --config-loader unrun",
+    "test": "vitest run"
+  },
+  "packageManager": "pnpm@10.30.2",
+  "author": "Jesus Alcala",
+  "license": "MIT",
+  "type": "module",
+  "dependencies": {
+    "@bdocs/contracts": "workspace:*"
+  },
+  "peerDependencies": {
+    "boltdocs": "workspace:^"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "boltdocs": "workspace:^",
+    "tsdown": "^0.21.7",
+    "typescript": "^5.9.3",
+    "tsdown-config": "workspace:*",
+    "vitest": "^3.2.4"
+  }
+}

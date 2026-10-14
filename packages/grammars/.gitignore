@@ -1,0 +1,6 @@
+dist
+node_modules
+
+# The vendored grammar/theme assets ARE tracked. `.gitignore` does not apply to
+# files already in the index, so listing them here would be misleading rather
+# than protective — they are part of the package, not build output.

@@ -81,6 +81,8 @@ export type {
   RouteHeading,
   RouteMeta,
   SearchDocument,
+  SearchIndexEntry,
+  SearchIndexParams,
   StructuredData,
   TransformHtmlParams,
   TransformResult,

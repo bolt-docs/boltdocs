@@ -30,7 +30,22 @@ interface CodeHighlighterResponse {
   }>
   getOptions(lang: string, meta: ParsedMeta): Record<string, unknown>
   ensureLanguage?(lang: string): Promise<boolean>
+  renderPlaintext?(
+    code: string,
+    options: Record<string, unknown>,
+  ): Promise<string>
 }
+
+/**
+ * Class applied to a block that no engine could highlight.
+ *
+ * Named after the state, not the engine. The previous `shiki-fallback` told a
+ * theme what had produced the block, which made every non-Shiki engine a
+ * guest in someone else's stylesheet — and the core reset.css keys 28 rules off
+ * `.shiki`. A theme styles `data-code-state`, and the engine name stays where
+ * it belongs: in `data-code-engine`.
+ */
+const FALLBACK_CLASS = 'bd-code-fallback'
 
 /**
  * Merge class arrays from two property sets.
@@ -50,6 +65,57 @@ function mergeClassArrays(
 }
 
 /** Copies every property except class/className — those are merged by the caller. */
+/**
+ * Count the lines of a rendered block from its HAST.
+ *
+ * Engines disagree about how lines are marked — Shiki wraps each in
+ * `<span class="line">`, others wrap in `<div>`, others emit nothing — so the
+ * count is taken here, where the tree is in hand, and published as an attribute
+ * rather than inferred from markup by the view.
+ *
+ * The view used to do this by counting `<span class="line">`, which meant a
+ * block from any other engine always measured one line and never offered
+ * expand/collapse. Counting here costs one walk and fixes it for every engine.
+ */
+function countLines(element: Element | undefined): number {
+  if (!element) return 0
+  const code = element.children?.find(
+    (child) =>
+      child.type === 'element' && (child as Element).tagName === 'code',
+  ) as Element | undefined
+  const root = code ?? element
+  const children = root.children ?? []
+  if (children.length === 0) return 0
+
+  const textLines = (node: unknown): number => {
+    const typed = node as { type?: string; value?: string }
+    if (typed?.type === 'text')
+      return String(typed.value ?? '').split('\n').length
+    const childrenOf = (node as { children?: unknown[] })?.children
+    if (!Array.isArray(childrenOf)) return 0
+    return childrenOf.reduce((sum, child) => sum + textLines(child), 0)
+  }
+
+  // One line per element child (the engine's own line wrappers), falling back
+  // to counting newlines in a block that emitted no wrappers at all.
+  const elements = children.filter((child) => child.type === 'element')
+  if (elements.length > 0) return elements.length
+
+  const text = children.reduce((sum, child) => sum + textLines(child), 0)
+  // A trailing newline produces one empty final entry; a code block that ends
+  // with a newline does not have a blank last line.
+  return Math.max(
+    1,
+    text -
+      (children.at(-1)?.type === 'text' &&
+      String((children.at(-1) as { value?: string })?.value ?? '').endsWith(
+        '\n',
+      )
+        ? 1
+        : 0),
+  )
+}
+
 function copyNonClassProps(target: Properties, source?: Properties): void {
   const props = source ?? {}
   for (const [key, value] of Object.entries(props)) {
@@ -71,6 +137,8 @@ function assembleProperties(
     engineName: string
     themeMode: 'dual' | 'single'
     parsedMeta: ParsedMeta
+    /** The engine's rendered `<pre>`, for the published line count. */
+    preElement?: Element
   },
 ): Properties {
   const properties: Properties = {}
@@ -78,6 +146,15 @@ function assembleProperties(
   copyNonClassProps(properties, engineProps)
   properties.className = mergeClassArrays(nodeProps, engineProps)
   properties['data-highlighted'] = 'true'
+  // State is engine-neutral: `highlighted` | `plaintext` | `fallback`. A theme
+  // styles this attribute and does not need to know which engine ran.
+  properties['data-code-state'] = 'highlighted'
+  // Published so the view never has to count engine markup to decide whether a
+  // block is expandable. It used to split on `<span class="line">`, which is a
+  // Shiki convention: a block from any other engine measured one line and the
+  // expand control silently did not exist for it.
+  const lineCount = countLines(ctx.preElement)
+  if (lineCount > 0) properties['data-line-count'] = String(lineCount)
   properties['data-lang'] = ctx.lang
   properties['data-code-engine'] = ctx.engineName
   properties['data-theme-mode'] = ctx.themeMode
@@ -267,7 +344,7 @@ export function satteriRehypeCodeHighlightPlugin(config?: CodeHighlightConfig) {
           const properties = assembleProperties(
             node.properties,
             preElement.properties,
-            { lang, engineName, themeMode, parsedMeta },
+            { lang, engineName, themeMode, parsedMeta, preElement },
           )
           if (html !== undefined) {
             properties['data-highlighted-html'] = html
@@ -283,25 +360,29 @@ export function satteriRehypeCodeHighlightPlugin(config?: CodeHighlightConfig) {
           // Language not bundled (or transient engine failure). Degrade
           // gracefully: retry as plaintext so the block keeps its engine
           // styling instead of silently falling back to an unformatted pre.
-          if (lang !== 'plaintext') {
-            try {
-              const plainHast = highlighter.codeToHast(codeText, {
-                ...options,
-                lang: 'plaintext',
-              })
-              const plainPre: Element =
-                plainHast.type === 'root'
-                  ? (plainHast.children[0] as Element)
-                  : (plainHast as Element)
-
+          //
+          // Through `renderPlaintext`, never through `lang: 'plaintext'`. That
+          // id is a Shiki convention: an engine that has never heard of it
+          // throws, and this fallback — the thing standing between a failed
+          // grammar and a broken page — would fail exactly like the thing it
+          // was written to rescue.
+          try {
+            if (typeof adapter?.renderPlaintext === 'function') {
+              const plainHtml = await adapter.renderPlaintext(codeText, options)
               const properties: Properties = {}
               copyNonClassProps(properties, node.properties)
-              copyNonClassProps(properties, plainPre.properties)
-              properties.className = mergeClassArrays(
-                node.properties,
-                plainPre.properties,
-              )
+              properties.className = (
+                (node.properties?.className ??
+                  node.properties?.class ??
+                  []) as string[]
+              ).slice()
               properties['data-highlighted'] = 'true'
+              properties['data-code-state'] = 'plaintext'
+              // Plaintext has no engine markup, so the count comes from the
+              // source text. Without it the block reads as one line and the
+              // expand control never appears.
+              const plainLines = codeText.split('\n').length
+              properties['data-line-count'] = String(plainLines)
               properties['data-lang'] = lang
               properties['data-code-engine'] = engineName
               properties['data-theme-mode'] = themeMode
@@ -311,41 +392,38 @@ export function satteriRehypeCodeHighlightPlugin(config?: CodeHighlightConfig) {
               if (parsedMeta.wordWrap === true) {
                 properties['data-word-wrap'] = 'true'
               }
+              if (parsedMeta.title) {
+                properties['data-title'] = parsedMeta.title
+              }
+              properties['data-highlighted-html'] = plainHtml
 
               console.warn(
-                `[boltdocs] Highlighter language "${lang}" is not bundled; falling back to plaintext highlighting for this code block.`,
+                `[boltdocs] Highlighter language "${lang}" is not bundled; rendering this code block without highlighting.`,
                 highlightError instanceof Error
                   ? highlightError.message
                   : highlightError,
               )
 
-              if (parsedMeta.title) {
-                properties['data-title'] = parsedMeta.title
-              }
-
-              // Generate HTML for plaintext fallback too.
-              try {
-                const plainHtml = await highlighter.codeToHtml(codeText, {
-                  ...options,
-                  lang: 'plaintext',
-                })
-                properties['data-highlighted-html'] = plainHtml
-              } catch {
-                // Ignore — fall back to HAST children.
-              }
-
               return {
                 type: 'element',
                 tagName: 'pre',
                 properties,
-                children: plainPre.children,
+                children: [],
               } as unknown as Element
-            } catch {
-              // Fall through to the fallback path below.
             }
+          } catch {
+            // The engine could not render plaintext either. Fall through.
           }
 
-          // Fallback: add shiki-fallback class
+          console.warn(
+            `[boltdocs] Highlighter language "${lang}" could not be rendered; leaving the code block unhighlighted.`,
+            highlightError instanceof Error
+              ? highlightError.message
+              : highlightError,
+          )
+
+          // Nothing rendered it. Mark the state in data the theme can read, and keep
+          // the block's original children so the code is still visible.
           const properties: Properties = {}
           const originalProps = node.properties ?? {}
           copyNonClassProps(properties, node.properties)
@@ -354,9 +432,10 @@ export function satteriRehypeCodeHighlightPlugin(config?: CodeHighlightConfig) {
             ...(((originalProps?.className ?? originalProps?.class) as
               | string[]
               | undefined) ?? []),
-            'shiki-fallback',
+            FALLBACK_CLASS,
           ]
           properties['data-highlighted'] = 'false'
+          properties['data-code-state'] = 'fallback'
           properties['data-lang'] = lang
           properties['data-code-engine'] = engineName
           properties['data-theme-mode'] = themeMode

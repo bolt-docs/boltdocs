@@ -18,6 +18,17 @@ export interface CodeBlockProps {
   'data-title'?: string
   'data-highlighted'?: string
   'data-highlighted-html'?: string
+  /**
+   * Render state published by the pipeline: `highlighted` | `plaintext` |
+   * `fallback`. Preferred over `data-highlighted`, which cannot distinguish
+   * "an engine rendered it without colour" from "nothing rendered it".
+   */
+  'data-code-state'?: string
+  /**
+   * Line count published by the pipeline. Preferred over counting engine
+   * markup in the view, which only ever worked for Shiki.
+   */
+  'data-line-count'?: string | number
   plain?: boolean
   lineNumbers?: boolean | string
   showLineNumbers?: boolean | string
@@ -141,12 +152,14 @@ export function CodeBlock(props: CodeBlockProps) {
     highlightedHtml,
     'data-highlighted-html': dataHighlightedHtml,
     'data-highlighted': dataHighlighted,
+    'data-code-state': dataCodeState,
+    'data-line-count': dataLineCount,
     title,
     'data-title': dataTitle,
     lang: langProp,
     'data-lang': dataLang,
     plain = false,
-    className: shikiClassName,
+    className: engineClassName,
     lineNumbers,
     showLineNumbers,
     wordWrap,
@@ -158,25 +171,38 @@ export function CodeBlock(props: CodeBlockProps) {
   } = props
 
   const lang = langProp || dataLang || ''
-  const isHighlighted =
-    dataHighlighted === 'true' ||
-    (typeof shikiClassName === 'string' && shikiClassName.includes('shiki'))
+  // Read the state the pipeline published. The previous fallback guessed from
+  // `className.includes('shiki')`, which meant the view decided that any engine
+  // not named Shiki had produced nothing — a block from Sugar or Pagefind
+  // rendered unstyled, with no error anywhere.
+  const codeState = readCodeBlockState({
+    'data-code-state': dataCodeState,
+    'data-highlighted': dataHighlighted,
+  })
+  const isHighlighted = stateIsHighlighted(codeState)
 
   const rawHighlightedHtml = highlightedHtml || dataHighlightedHtml
   const effectiveHighlightedHtml =
     typeof rawHighlightedHtml === 'string'
-      ? rawHighlightedHtml.replace(
-          /<span class="line">\s*(?:<span[^>]*>\s*<\/span>)?\s*<\/span>\s*(<\/code>\s*<\/pre>)/g,
-          '$1',
-        )
+      ? cleanHighlightedHtml(rawHighlightedHtml)
       : rawHighlightedHtml
   const effectiveTitle = title || dataTitle
+
+  // Declared after the HTML it may fall back to reading. The pipeline's
+  // `data-line-count` is authoritative; the HTML and the children are only
+  // consulted when an engine published no count of its own.
+  const lineCount = readLineCount(
+    { 'data-line-count': dataLineCount },
+    effectiveHighlightedHtml,
+    children,
+  )
 
   const { copied, handleCopy } = useCopyButton()
   const { isExpanded, isExpandable, shouldTruncate, toggle, preRef } =
     useExpandable({
       children,
       highlightedHtml: effectiveHighlightedHtml,
+      lineCount,
     })
   const {
     rated,
@@ -189,7 +215,7 @@ export function CodeBlock(props: CodeBlockProps) {
     handleRate(type, preRef.current?.textContent ?? '')
 
   return (
-    <CodePrimitive.CodeBlock plain={plain} className={shikiClassName}>
+    <CodePrimitive.CodeBlock plain={plain} className={engineClassName}>
       {(effectiveTitle || !hideCopy) && (
         <CodePrimitive.CodeBlockHeader
           className={
@@ -225,7 +251,7 @@ export function CodeBlock(props: CodeBlockProps) {
           ref={preRef}
           highlightedHtml={effectiveHighlightedHtml}
           isHighlighted={isHighlighted}
-          className={shikiClassName}
+          className={engineClassName}
           {...rest}
         >
           {children}

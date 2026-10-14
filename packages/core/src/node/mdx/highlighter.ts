@@ -4,13 +4,13 @@ import {
   type RegexEngine,
   createHighlighterCore,
 } from '@shikijs/core'
-import { THEMES_BUILD } from './shiki-themes'
+import { THEMES_BUILD } from '@bdocs/grammars/themes'
 import {
   COMMON_LANGS,
   LAZY_LANG_IMPORTS,
   normalizeLanguage,
   type Languages,
-} from './shiki-langs'
+} from '@bdocs/grammars'
 import type { ShikiTheme } from '../../shared/types'
 
 /** Which regex engine backs the Shiki core. `oniguruma` is the default. */
@@ -55,9 +55,12 @@ async function resolveEngine(kind: RegexEngineKind): Promise<RegexEngine> {
 /**
  * Main Shiki Highlighter Factory.
  *
- * Only COMMON_LANGS are registered eagerly — loading every bundled TextMate
- * grammar up front costs ~2.5s of synchronous CPU. Languages outside the
- * common set are loaded lazily via {@link ensureLanguage}.
+ * Languages outside COMMON_LANGS are loaded lazily via {@link ensureLanguage};
+ * the common set is registered up front. **That split was measured, not
+ * assumed** — emptying the eager set saves 202 ms of highlighter construction
+ * here and costs 57% of total build time, because grammars load once per
+ * Sätteri compile worker and the pool contends for the same cores. See the note
+ * on `COMMON_LANGS` in `@bdocs/grammars` before changing it.
  *
  * The JavaScript regex engine is the default: it swaps the Oniguruma WASM
  * engine for a native JS implementation, cutting startup from ~2.5s to

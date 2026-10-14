@@ -1,10 +1,10 @@
 ---
 title: Comandos CLI
 sidebarPosition: 4
-description: Todos los comandos de la CLI de Boltdocs — dev, build, preview, audit, doctor y generate-changelog — más los exit codes que puedes usar en CI.
+description: Todos los comandos de la CLI de Boltdocs — dev, build, preview, audit, migrate, doctor y generate-changelog — más los exit codes que puedes usar en CI.
 ---
 
-La **CLI de Boltdocs** impulsa todo el flujo de trabajo: arranca tu servidor de desarrollo, construye el sitio estático, previsualiza el bundle de producción, audita tus plugins en busca de advertencias de seguridad, comprueba la salud de tu documentación y genera páginas de changelog.
+La **CLI de Boltdocs** impulsa todo el flujo de trabajo: arranca tu servidor de desarrollo, construye el sitio estático, previsualiza el bundle de producción, audita tus plugins en busca de advertencias de seguridad, te ayuda a migrar a 4.0, comprueba la salud de tu documentación y genera páginas de changelog.
 
 La ejecutas con `npx boltdocs` o — una vez añadida a los scripts de tu `package.json` — con `pnpm docs:dev`, `pnpm docs:build` y compañía:
 
@@ -87,6 +87,33 @@ El comando es fail-closed: un plugin no resuelto o no escaneado se trata como no
 ```
 
 Si el audit devuelve `1`, tu job de CI falla — exactamente cuando quieres que un humano revise un plugin antes de que se publique.
+
+---
+
+## `migrate` — ayuda para el upgrade a 4.0
+
+Reporta los patrones de 3.x que 4.0 cambió, y opcionalmente arregla los mecánicos. Usalo antes de upgradingar.
+
+* **Uso:** `boltdocs migrate [root]`
+* **Opciones:** `--apply` escribe los arreglos seguros
+
+Es un **dry run por defecto** — no escribe nada y el reporte viene agrupado por archivo:
+
+```bash
+npx boltdocs migrate
+npx boltdocs migrate --apply
+```
+
+### Códigos de salida (contrato de CI)
+
+| Código | Significado |
+| :--- | :--- |
+| **`0`** | Sin hallazgos bloqueantes. Podés upgradingar. |
+| **`1`** | Al menos un hallazgo bloqueante — el sitio no compila ni sirve correctamente en 4.0 hasta que lo resuelvas. |
+
+Los dos hallazgos bloqueantes son los que causan regresiones **silenciosas**: un `@bdocs/plugin-seo` faltante te cuesta `sitemap.xml` y `robots.txt`, y el core solo advierte sobre eso durante el build.
+
+Los hallazgos marcados `manual` nunca se reescriben, porque un codemod que renombra `onPress` a `onAction` en todo un archivo produce código que type-chequea y hace lo incorrecto en runtime. Mirá la [guía de upgrade a 4.0](/docs/es/guides/operations/upgrading-4-0) para qué significa cada uno.
 
 ---
 

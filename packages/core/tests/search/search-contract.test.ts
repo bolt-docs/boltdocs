@@ -82,21 +82,28 @@ describe('search plugin contract', () => {
       '/project',
     )
 
-    expect(results).toHaveLength(1)
-    expect(results[0]).toMatchObject({ last: 'post' })
+    // The hook now returns the entries to publish, not an opaque wrapper. The
+    // chain runs once, in `pre → normal → post` order, and each plugin's
+    // return value is threaded to the next.
     expect(order).toEqual(['pre', 'normal', 'post'])
     expect(preHook).toHaveBeenCalledOnce()
     expect(normalHook).toHaveBeenCalledOnce()
     expect(postHook).toHaveBeenCalledOnce()
+    // These hooks thread a `last` marker but publish no entries, so the asset
+    // stays unclaimed — `null` rather than an empty list.
+    expect(results).toBeNull()
   })
 
-  it('does not run a chain when no plugin implements search indexing', async () => {
+  it('returns null when no plugin implements search indexing', async () => {
+    // `null`, not `[]`: "no engine claimed the asset" and "an engine produced
+    // zero entries" must not look alike, because only the first is worth
+    // telling a user about.
     const config = {
       plugins: [{ name: 'unrelated', hooks: {} }],
     } as unknown as BoltdocsConfig
 
     await expect(
       executeSearchIndexHook(routes, config, '/project/docs', '/project'),
-    ).resolves.toEqual([])
+    ).resolves.toBeNull()
   })
 })

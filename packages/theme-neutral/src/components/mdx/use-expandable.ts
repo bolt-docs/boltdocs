@@ -1,23 +1,13 @@
 import { useEffect, useRef, useState } from 'react'
-
-/**
- * Counts the rendered lines of a pre-rendered Shiki block.
- *
- * `data-highlighted-html` holds the same markup the server writes, so the count
- * is available before the DOM exists. Returns 0 when there is no HTML, which
- * leaves the caller on the DOM-measured path.
- */
-function countHighlightedLines(highlightedHtml?: string): number {
-  if (!highlightedHtml) return 0
-  const spans = highlightedHtml.split('<span class="line"').length - 1
-  return spans > 0 ? spans : highlightedHtml.split('\n').length
-}
+import { readLineCount } from './code-state'
 
 export interface UseExpandableOptions {
   /** The raw children rendered inside the code area (for line counting). */
   children?: React.ReactNode
-  /** Pre-rendered Shiki HTML when available (for line counting). */
+  /** Pre-rendered engine HTML when available (for line counting). */
   highlightedHtml?: string
+  /** Line count published by the pipeline. Preferred over counting. */
+  lineCount?: number
   /** Number of lines above which the block becomes expandable. @default 6 */
   maxLines?: number
 }
@@ -28,11 +18,11 @@ export interface UseExpandableOptions {
  * should be visually truncated, and a toggle handler.
  */
 export function useExpandable(options: UseExpandableOptions = {}) {
-  const { children, highlightedHtml, maxLines = 6 } = options
+  const { children, highlightedHtml, lineCount, maxLines = 6 } = options
   const [isExpanded, setIsExpanded] = useState(false)
 
   /**
-   * Seed the expandable state from the pre-rendered HTML when it is available.
+   * Seed the expandable state from a count the server already computed.
    *
    * The block measures itself against the live DOM, which does not exist during
    * server rendering, so the flag started as `false` on both sides and the
@@ -40,12 +30,18 @@ export function useExpandable(options: UseExpandableOptions = {}) {
    * control the server HTML did not contain, and React discarded the whole
    * server-rendered page with error #418.
    *
-   * Counting newlines in `data-highlighted-html` gives the same answer on both
-   * sides, so the first client render already matches. The effect below stays
-   * as the authority once layout is known, because a block can also be
-   * truncated by overflow rather than by line count.
+   * `data-line-count` is published by the pipeline from the same tree that
+   * produced the markup, so it gives the same answer on both sides. The
+   * previous seed counted `<span class="line">` in the rendered HTML, which is a
+   * Shiki convention: a block from any other engine measured one line, was
+   * never expandable, and the control simply did not exist for it.
    */
-  const seededIsExpandable = countHighlightedLines(highlightedHtml) > maxLines
+  const seededIsExpandable =
+    readLineCount(
+      lineCount !== undefined ? { 'data-line-count': lineCount } : {},
+      highlightedHtml,
+      children,
+    ) > maxLines
   const [isExpandable, setIsExpandable] = useState(seededIsExpandable)
   const preRef = useRef<HTMLElement | null>(null)
 
@@ -69,7 +65,7 @@ export function useExpandable(options: UseExpandableOptions = {}) {
       Number(node.scrollHeight) > Number(node.clientHeight)
 
     setIsExpandable(lines > maxLines || hasOverflow)
-  }, [children, highlightedHtml, maxLines])
+  }, [children, highlightedHtml, lineCount, maxLines])
 
   return {
     isExpanded,

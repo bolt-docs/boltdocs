@@ -2,6 +2,11 @@ import { useCopyButton } from './use-copy-button'
 import { useExpandable } from './use-expandable'
 import { useCodeBlockFeedback } from './use-code-block-feedback'
 import type { CodeBlockProps } from './code-block'
+import {
+  cleanHighlightedHtml,
+  isHighlighted as stateIsHighlighted,
+  readCodeBlockState,
+} from './code-state'
 
 /**
  * @deprecated Use the feature-scoped hooks instead: `useCopyButton`,
@@ -10,18 +15,15 @@ import type { CodeBlockProps } from './code-block'
  */
 export function useCodeBlock(props: CodeBlockProps) {
   const lang = props.lang || props['data-lang'] || ''
-  const isHighlighted =
-    props['data-highlighted'] === 'true' ||
-    (typeof props.className === 'string' && props.className.includes('shiki'))
+  // Same reader as `CodeBlock` — the deprecated hook guessed from the class
+  // name, and the two copies of that guess had already begun to disagree.
+  const isHighlighted = stateIsHighlighted(readCodeBlockState(props))
 
   const rawHighlightedHtml =
     props.highlightedHtml || props['data-highlighted-html']
   const effectiveHighlightedHtml =
     typeof rawHighlightedHtml === 'string'
-      ? rawHighlightedHtml.replace(
-          /<span class="line">\s*(?:<span[^>]*>\s*<\/span>)?\s*<\/span>\s*(<\/code>\s*<\/pre>)/g,
-          '$1',
-        )
+      ? cleanHighlightedHtml(rawHighlightedHtml)
       : rawHighlightedHtml
   const effectiveTitle = props.title || props['data-title']
 

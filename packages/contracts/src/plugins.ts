@@ -185,6 +185,14 @@ export interface PluginClientConfig {
   head?: PluginHeadEntry[]
 }
 
+/**
+ * One page, as handed to a search *engine* plugin.
+ *
+ * This is the input shape: a flat page record with its own headings and
+ * frontmatter, before any index-specific shaping. It is deliberately not the
+ * shape that reaches the browser — see `SearchIndexEntry` for that, and the note
+ * there on why the two differ rather than being unified.
+ */
 export interface SearchDocument {
   id: string
   path: string
@@ -194,6 +202,46 @@ export interface SearchDocument {
   frontmatter: Record<string, unknown>
   locale?: string
   version?: string
+}
+
+/**
+ * One entry in the runtime `search.json` asset.
+ *
+ * Distinct from {@link SearchDocument} because the two answer different
+ * questions. An engine indexes a *page* and wants everything about it; a browser
+ * renders a *result* and wants a link and a label. Carrying frontmatter into a
+ * 1 MB asset to satisfy an engine that never reads it costs every visitor bytes,
+ * and making each engine re-derive a breadcrumb means each implements it slightly
+ * differently.
+ */
+export interface SearchIndexEntry {
+  id: string
+  title: string
+  content: string
+  /** Deep link, fragment included. */
+  url: string
+  /** Breadcrumb label for a result row. */
+  display: string
+  locale?: string
+  version?: string
+}
+
+/**
+ * What an engine plugin is given, and what it may return.
+ *
+ * `documents` is the page list. `entries` is what the framework will publish, so
+ * an engine that builds its own index shape (an Algolia record, a Pagefind page)
+ * returns `undefined` here and owns its output — declaring that it handles
+ * indexing rather than silently leaving `search.json` half-built.
+ */
+export interface SearchIndexParams {
+  documents: SearchDocument[]
+  routes: RouteMeta[]
+  /**
+   * Entries to publish as `search.json`, or `undefined` to leave the asset
+   * alone because this engine produces its own.
+   */
+  entries?: SearchIndexEntry[]
 }
 
 export interface PluginContext<
@@ -316,8 +364,8 @@ export interface PluginLifecycleHooks<
   ) => RouteMeta[] | Promise<RouteMeta[]> | undefined
   'search:index'?: (
     ctx: PluginContext<Config, Request, Response>,
-    params: { documents: SearchDocument[]; routes: RouteMeta[] },
-  ) => unknown | Promise<unknown>
+    params: SearchIndexParams,
+  ) => SearchIndexParams | undefined | Promise<SearchIndexParams | undefined>
   'server:configure'?: (
     ctx: PluginContext<Config, Request, Response>,
     params: { server: unknown; middleware: PluginServerAPI<Request, Response> },

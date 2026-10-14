@@ -1,10 +1,10 @@
 ---
 title: CLI Commands
 sidebarPosition: 4
-description: All Boltdocs CLI commands — dev, build, preview, audit, doctor and generate-changelog — plus the exit codes you can use in CI.
+description: All Boltdocs CLI commands — dev, build, preview, audit, migrate, doctor and generate-changelog — plus the exit codes you can use in CI.
 ---
 
-The **Boltdocs CLI** powers the entire workflow: start your dev server, build the static site, preview the production bundle, audit your plugins for security warnings, check the health of your documentation, and generate changelog pages.
+The **Boltdocs CLI** powers the entire workflow: start your dev server, build the static site, preview the production bundle, audit your plugins for security warnings, migrate to 4.0, check the health of your documentation, and generate changelog pages.
 
 You run it with `npx boltdocs` or — once added to your `package.json` scripts — with `pnpm docs:dev`, `pnpm docs:build` and friends:
 
@@ -87,6 +87,33 @@ The command is fail-closed: an unresolved or unscanned plugin is treated as untr
 ```
 
 If the audit returns `1`, your CI job fails — exactly when you want a human to review a plugin before it ships.
+
+---
+
+## `migrate` — 4.0 upgrade helper
+
+Reports the 3.x patterns that 4.0 changed, and optionally fixes the mechanical ones. Use it before upgrading.
+
+* **Usage:** `boltdocs migrate [root]`
+* **Options:** `--apply` writes the safe fixes
+
+It is a **dry run by default** — nothing is written and the report is grouped by file:
+
+```bash
+npx boltdocs migrate
+npx boltdocs migrate --apply
+```
+
+### Exit codes (CI contract)
+
+| Exit code | Meaning |
+| :--- | :--- |
+| **`0`** | No blocking findings. Safe to upgrade. |
+| **`1`** | At least one blocking finding — the site will not build or serve correctly on 4.0 until resolved. |
+
+The two blocking findings are the ones that cause **silent** regressions: a missing `@bdocs/plugin-seo` costs you `sitemap.xml` and `robots.txt`, and the core only warns about it during the build.
+
+Findings marked `manual` are never rewritten, because a codemod that renames `onPress` to `onAction` across a file produces code that type-checks and does the wrong thing at runtime. See the [4.0 upgrade guide](/docs/guides/operations/upgrading-4-0) for what each one means.
 
 ---
 

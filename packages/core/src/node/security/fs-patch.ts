@@ -89,7 +89,18 @@ function isWriteFlag(flags: unknown): boolean {
   return true
 }
 
+let patchInstalled = false
+
 export function applyFsPatch(): void {
+  // Wrapping twice would stack two layers of guard, and the outer layer's
+  // captured `projectRoot` would shadow a later `setProjectRoot`. Make it
+  // idempotent: installing the patch is a statement of intent, not a counter.
+  if (patchInstalled) {
+    patchEnabled = true
+    return
+  }
+  patchInstalled = true
+
   const originalWriteFile = fs.writeFile
   fs.writeFile = ((path: unknown, ...args: unknown[]) => {
     try {

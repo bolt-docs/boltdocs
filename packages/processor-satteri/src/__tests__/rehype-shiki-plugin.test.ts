@@ -15,6 +15,9 @@ const { mockHighlighter, mockAdapter } = vi.hoisted(() => {
       initialize: vi.fn().mockResolvedValue(mh),
       getOptions: vi.fn().mockReturnValue({ lang: 'javascript' }),
       ensureLanguage: vi.fn().mockResolvedValue(true),
+      // Present by default, like the real Shiki adapter. Tests that exercise
+      // the no-engine fallback delete it.
+      renderPlaintext: vi.fn().mockResolvedValue('<pre><code></code></pre>'),
     },
   }
 })
@@ -58,6 +61,12 @@ describe('satteriRehypeCodeHighlightPlugin', () => {
     mockAdapter.initialize.mockResolvedValue(mockHighlighter)
     mockAdapter.getOptions.mockReturnValue({ lang: 'javascript' })
     mockAdapter.ensureLanguage.mockResolvedValue(true)
+    // Only for the degraded path. A blanket mock here short-circuits the
+    // highlight a case is actually asserting, and the failure surfaces as an
+    // empty className rather than as a mis-mocked fallback.
+    mockAdapter.renderPlaintext.mockImplementation(async () => {
+      throw new Error('renderPlaintext not expected in this case')
+    })
   })
 
   it('returns a plugin with correct name', () => {
@@ -381,7 +390,72 @@ describe('satteriRehypeCodeHighlightPlugin', () => {
     expect(result.children.length).toBeGreaterThan(0)
   })
 
-  it('returns shiki-fallback on highlight error', async () => {
+  it('degrades to a plaintext block, marked as such, when the language is not bundled', async () => {
+    // The recoverable fallback: the engine threw for `nginx`, and
+    // `renderPlaintext` produced a block anyway. The code stays visible and the
+    // state is declared, so a theme can style it without knowing the engine.
+    mockAdapter.renderPlaintext.mockResolvedValue(
+      '<pre class="shiki"><code>server { listen 80; }</code></pre>',
+    )
+    mockHighlighter.codeToHast.mockImplementationOnce(() => {
+      throw new Error('Language `nginx` not found')
+    })
+
+    const plugin = satteriRehypeCodeHighlightPlugin() as {
+      element: { filter: string[]; visit: (...args: unknown[]) => unknown }
+    }
+    const result = (await plugin.element.visit(
+      {
+        type: 'element',
+        tagName: 'pre',
+        properties: {},
+        children: [
+          {
+            type: 'element',
+            tagName: 'code',
+            properties: { className: ['language-nginx'] },
+            children: [{ type: 'text', value: 'server { listen 80; }' }],
+          },
+        ],
+      },
+      {
+        textContent: () => 'server { listen 80; }',
+        source: 'test',
+        fileURL: undefined,
+        data: {},
+        removeNode: vi.fn(),
+        replaceNode: vi.fn(),
+        insertBefore: vi.fn(),
+        insertAfter: vi.fn(),
+        wrapNode: vi.fn(),
+        prependChild: vi.fn(),
+        appendChild: vi.fn(),
+        insertChildAt: vi.fn(),
+        removeChildAt: vi.fn(),
+        setProperty: vi.fn(),
+        parent: vi.fn(),
+        indexOf: vi.fn(),
+        report: vi.fn(),
+        getDiagnostics: () => [],
+      },
+    )) as { properties: Record<string, unknown> }
+
+    expect(result.properties['data-code-state']).toBe('plaintext')
+    expect(result.properties['data-highlighted']).toBe('true')
+    expect(String(result.properties['data-highlighted-html'])).toContain(
+      'listen 80',
+    )
+    // Never the engine's id on the runtime.
+    expect(mockHighlighter.codeToHast).toHaveBeenCalledTimes(1)
+  })
+
+  it('returns bd-code-fallback when neither the engine nor plaintext can render', async () => {
+    // Both paths fail: the engine throws for the requested language AND
+    // `renderPlaintext` refuses. This is the last resort, where the block keeps
+    // its original children so the code is still readable.
+    mockAdapter.renderPlaintext.mockRejectedValue(
+      new Error('engine cannot render plaintext'),
+    )
     mockHighlighter.codeToHast.mockImplementation(() => {
       throw new Error('highlight error')
     })
@@ -428,87 +502,11 @@ describe('satteriRehypeCodeHighlightPlugin', () => {
 
     const resultNode = result as { properties: Record<string, unknown> }
     expect(resultNode.properties['data-highlighted']).toBe('false')
-    expect(resultNode.properties.className).toContain('shiki-fallback')
-  })
-
-  it('retries with plaintext when the language is not bundled', async () => {
-    mockHighlighter.codeToHast
-      .mockImplementationOnce(() => {
-        throw new Error('Language `nginx` not found')
-      })
-      .mockImplementationOnce(() => ({
-        type: 'root',
-        children: [
-          {
-            type: 'element',
-            tagName: 'pre',
-            properties: {
-              className: ['shiki', 'github-dark'],
-              style: 'background-color:#24292e;color:#e1e4e8',
-            },
-            children: [
-              {
-                type: 'element',
-                tagName: 'code',
-                properties: {},
-                children: [{ type: 'text', value: 'server { listen 80; }' }],
-              },
-            ],
-          },
-        ],
-      }))
-
-    const plugin = satteriRehypeCodeHighlightPlugin() as {
-      element: { filter: string[]; visit: (...args: unknown[]) => unknown }
-    }
-
-    const result = await plugin.element.visit(
-      {
-        type: 'element',
-        tagName: 'pre',
-        properties: {},
-        children: [
-          {
-            type: 'element',
-            tagName: 'code',
-            properties: { className: ['language-nginx'] },
-            children: [{ type: 'text', value: 'server { listen 80; }' }],
-          },
-        ],
-      },
-      {
-        textContent: () => 'server { listen 80; }',
-        source: 'test',
-        fileURL: undefined,
-        data: {},
-        removeNode: vi.fn(),
-        replaceNode: vi.fn(),
-        insertBefore: vi.fn(),
-        insertAfter: vi.fn(),
-        wrapNode: vi.fn(),
-        prependChild: vi.fn(),
-        appendChild: vi.fn(),
-        insertChildAt: vi.fn(),
-        removeChildAt: vi.fn(),
-        setProperty: vi.fn(),
-        parent: vi.fn(),
-        indexOf: vi.fn(),
-        report: vi.fn(),
-        getDiagnostics: () => [],
-      },
-    )
-
-    expect(mockHighlighter.codeToHast).toHaveBeenCalledTimes(2)
-    expect(mockHighlighter.codeToHast).toHaveBeenLastCalledWith(
-      'server { listen 80; }',
-      expect.objectContaining({ lang: 'plaintext' }),
-    )
-
-    const resultNode = result as { properties: Record<string, unknown> }
-    expect(resultNode.properties['data-highlighted']).toBe('true')
-    expect(resultNode.properties['data-lang']).toBe('nginx')
-    expect(resultNode.properties.className).toEqual(
-      expect.arrayContaining(['shiki']),
+    // Named after the state, not the engine. See FALLBACK_CLASS in the plugin.
+    expect(resultNode.properties.className).toContain('bd-code-fallback')
+    expect(resultNode.properties['data-code-state']).toBe('fallback')
+    expect(JSON.stringify(resultNode.properties)).not.toContain(
+      'shiki-fallback',
     )
   })
 

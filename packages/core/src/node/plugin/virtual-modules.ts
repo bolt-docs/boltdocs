@@ -2,7 +2,10 @@ import type { Plugin, ResolvedConfig } from 'vite'
 import { generateRoutes } from '../routes'
 import type { RouteMeta } from '../routes/types'
 import { normalizePath } from '../utils'
-import { generateSearchData, type SearchDocument } from '../search'
+import {
+  buildSearchData,
+  type SearchResultDocument as SearchDocument,
+} from '../search/registry'
 import {
   virtualModuleRegistry,
   type PluginRuntimeState,
@@ -313,15 +316,30 @@ async function regenerateRouteData(
   regenerateSearchAndCollections(moduleState)
 }
 
-function regenerateSearchAndCollections(state?: VirtualModuleState): void {
+/**
+ * Recompute the search documents from the routes currently held.
+ *
+ * Exported because the search index is produced after the routes module is
+ * first built: `build:routes` registers the default generator, and an engine
+ * plugin's `search:index` can replace what gets published. Without refreshing
+ * here the client bundle would emit whatever the module cache happened to hold
+ * from before either ran — which is how a site that configured the plugin
+ * silently stopped shipping `search.json`.
+ */
+export function regenerateSearchAndCollections(
+  state?: VirtualModuleState,
+): void {
   const moduleState = getVirtualModuleState(state)
   const routes = Array.from(moduleState.routesDataMap.values())
 
-  const searchData = generateSearchData(routes as any)
+  // Null when no search plugin is configured, which is a different thing from
+  // an empty index: the build warns once rather than shipping a `search.json`
+  // that no engine will ever query.
+  const searchData = buildSearchData(routes as any)
   moduleState.searchDataMap.clear()
   moduleState.serializedSearchData = null
   moduleState.serializedPageSourceData = null
-  for (const doc of searchData) {
+  for (const doc of searchData ?? []) {
     moduleState.searchDataMap.set(doc.id, doc)
   }
 

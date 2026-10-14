@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { generateSearchData } from '../../src/node/search'
+import { generateSearchData } from '../src/node/generate'
 
 describe('search', () => {
   describe('generateSearchData', () => {

@@ -1,0 +1,41 @@
+{
+  "name": "@bdocs/grammars",
+  "version": "1.0.0",
+  "description": "TextMate grammars and themes for Boltdocs syntax highlighting",
+  "type": "module",
+  "publishConfig": {
+    "access": "public"
+  },
+  "files": [
+    "dist"
+  ],
+  "exports": {
+    ".": {
+      "types": "./dist/langs.d.mts",
+      "import": "./dist/langs.mjs"
+    },
+    "./themes": {
+      "types": "./dist/themes.d.mts",
+      "import": "./dist/themes.mjs"
+    },
+    "./grammars/*": "./dist/grammars/*",
+    "./package.json": "./package.json"
+  },
+  "scripts": {
+    "build": "tsdown --config-loader unrun",
+    "dev": "tsdown --watch --config-loader unrun",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@shikijs/types": "3.23.0"
+  },
+  "devDependencies": {
+    "tsdown": "^0.21.7",
+    "tsdown-config": "workspace:*",
+    "typescript": "^5.9.3",
+    "vitest": "^3.2.4",
+    "@types/node": "^22.15.3",
+    "@shikijs/core": "3.23.0",
+    "@shikijs/engine-javascript": "3.23.0"
+  }
+}

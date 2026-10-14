@@ -1,0 +1,319 @@
+---
+title: "4.0 Upgrade"
+sidebarPosition: 4
+description: "Migrating a site from Boltdocs 3.x to 4.0. What changed in the package graph, what the `boltdocs migrate` command fixes for you, and the changes that need a human decision."
+---
+
+Boltdocs 4.0 separates the framework contracts, the Node build engine, the browser runtime, the SSG pipeline and every optional integration into separate packages. This page is the upgrade path: what moved, what the `migrate` command does for you, and what it deliberately refuses to guess.
+
+<Callout type="info">
+  **Start with the command.** `boltdocs migrate` reports every 3.x pattern in your project and fixes the mechanical ones. Run it before reading further — the output tells you which sections below actually apply to you.
+</Callout>
+
+## 1. Run the migration
+
+```bash
+npx boltdocs migrate
+```
+
+It is a dry run by default. Nothing is written, and the report is grouped by file with the severity of each finding:
+
+```text
+[boltdocs] Scanning for 3.x patterns... (dry run — nothing will be written)
+
+boltdocs.config.ts
+  blocking boltdocs.config.ts  `siteUrl` configured without `@bdocs/plugin-seo`
+            Add `import seoPlugin from '@bdocs/plugin-seo'` and `seoPlugin()` to `plugins`.
+
+src/nav.tsx
+  blocking src/nav.tsx:1  Import from `react-aria-components` moved to `@bdocs/primitives`
+            → react-aria-components
+            Rewrite the specifier to `@bdocs/primitives`.
+  warning  src/nav.tsx:2  `@bdocs/theme-neutral/components/primitives` is now `@bdocs/theme-neutral/composition`
+            → @bdocs/theme-neutral/components/primitives
+            Rewrite the specifier to `@bdocs/theme-neutral/composition`.
+```
+
+When you are happy with the report:
+
+```bash
+npx boltdocs migrate --apply
+```
+
+Every finding marked `fixable` is applied. Findings marked `manual` are left alone — see §4 for what they are and why a tool cannot decide them.
+
+### Exit codes
+
+| Code | Meaning |
+| --- | --- |
+| `0` | No blocking findings. Safe to upgrade. |
+| `1` | At least one blocking finding. The site will not build or serve correctly on 4.0 until you resolve them. |
+
+That makes it usable as a CI gate:
+
+```yaml title=".github/workflows/ci.yml"
+- name: Check 4.0 readiness
+  run: npx boltdocs migrate
+```
+
+### What it changes and what it refuses to change
+
+The distinction is not a limitation of the implementation. A codemod that renames `onPress` to `onAction` across a file produces code that type-checks and does the wrong thing at runtime, which is worse than a line in a report you can read.
+
+| Finding | Action | What it does |
+| --- | --- | --- |
+| `react-aria/import` | fixable | Rewrites the specifier to `@bdocs/primitives` |
+| `theme/subpath` | fixable | Rewrites removed theme subpaths to their real entry point |
+| `seo/plugin-missing` | fixable | Adds `@bdocs/plugin-seo` to your config |
+| `deps/react-aria` | fixable | Removes the stale `react-aria-components` entry |
+| `deps/primitives` | fixable | Declares `@bdocs/primitives` if you referenced react-aria |
+| `react-aria/on-press` | **manual** | Reports the prop, names its replacement |
+| `react-aria/is-selected` | **manual** | Reports the prop, names its replacement |
+| `react-aria/ssr-provider` | **manual** | Reports `<SSRProvider>`, which was removed outright |
+
+<Callout type="warn">
+  **The command never edits a `plugins` array it cannot read.** A shorthand (`plugins,`), an array built from a variable, or a single-line `plugins: [mermaid()]` is reported rather than edited. Appending to an array the tool cannot see into would produce a config that loads fine and silently drops every plugin.
+</Callout>
+
+## 2. The package graph
+
+The published scope is `@bdocs/*`. The target graph for 4.0:
+
+```text
+@bdocs/contracts
+  ├─ @bdocs/core-node
+  ├─ @bdocs/runtime
+  ├─ @bdocs/ssg
+  ├─ @bdocs/processor-satteri
+  └─ @bdocs/plugin-*
+```
+
+`@bdocs/contracts` is small, framework-neutral and dependency-light. It holds the public types for routes, manifests, plugins, build and render contexts, module identities and invalidation events. It imports no Node.js, Vite, React, SSG or individual integration — there is a test that fails the build if it ever does, because a type-only import of a bundler type compiles, ships nothing, and quietly welds the contract layer to the toolchain the separation exists to break.
+
+### `boltdocs` is ESM-only
+
+The package no longer ships a CommonJS build. Every entry point is `type: module` and resolves through `default` rather than `import`/`require`.
+
+| | 3.x | 4.0 |
+| --- | --- | --- |
+| tarball | 5.84 MB (195 files) | **2.93 MB (100 files)** |
+| build outputs | ESM **+ CJS** | ESM |
+
+The CJS build was 2.87 MB — 49% of the tarball — and nothing in the ecosystem resolved to it. Vite, Rolldown, React Server Components and Node itself all consume the ESM build; the package was already `"type": "module"`, and even the `boltdocs` CLI binary is ESM.
+
+<Callout type="warn">
+  **A CommonJS consumer must convert to ESM.** If your build config does `require('boltdocs')`, or if a plugin of yours runs under CommonJS, it needs `import()` or an `.mjs` extension. Nothing is broken silently: there is no `require` condition, so Node raises `ERR_PACKAGE_PATH_NOT_EXPORTED` at resolve time rather than failing halfway through your build.
+</Callout>
+
+If you need a bridge, the `import()` form works from CommonJS today:
+
+```js
+// CommonJS config
+const { defineConfig } = await import('boltdocs')
+```
+
+## 3. What actually changed
+
+### `react-aria-components` → `@bdocs/primitives`
+
+The client primitives are implemented in this repository rather than delegated. `react-aria-components` was a **required peer** of `boltdocs`, so every site installed its closure whether or not it used a single interactive component.
+
+Measured on the documentation site, per visit:
+
+| | eager JS, raw | eager JS, gzip |
+| --- | --- | --- |
+| `react-aria-components` | 1014.3 kB | 271.9 kB |
+| `@bdocs/primitives` | 853.8 kB | 221.3 kB |
+| **delta** | **−160.5 kB (−15.8%)** | **−50.6 kB (−18.6%)** |
+
+```bash
+# nothing to uninstall by hand beyond the entry itself
+npx boltdocs migrate --apply
+```
+
+Rendered output is unchanged: of 259 pages, every one is byte-identical once react-aria's internal bookkeeping (`data-rac`, `react-aria-*` ids, attribute serialisation order) is normalised away.
+
+### Props that did not carry over
+
+Most of the surface moved unchanged. These did not, and `migrate` reports them rather than rewriting them:
+
+| Before | After | Why |
+| --- | --- | --- |
+| `onPress` on a menu item | `onAction` | The new handler also receives the intent (`press` or `close`), so a rename changes what your function is called with |
+| `isSelected` on an item | `selectedKeys` on `Menu`, with `selectionMode` | Selection is a property of the collection, not of the item |
+| `<SSRProvider>` | *(removed)* | It existed because react-aria derived ids from a module counter that disagrees across the hydration boundary. `useId` agrees by construction, so there is nothing to reconcile |
+| `placement`, `offset`, `crossOffset` on menus and popovers | CSS via `className` | Positioning is CSS-anchored to the trigger |
+
+<Callout type="warn">
+  **Menus and popovers no longer collide-test or flip.** They are positioned with CSS relative to their trigger. Boltdocs anchors them to navbar and sidebar items where the surrounding layout already decides the side, so a popover near a viewport edge will overflow rather than flip.
+</Callout>
+
+### `@bdocs/theme-neutral` subpaths
+
+The package exported four subpaths that all resolved to the same barrel, and two of them exported a *different* `Navbar` and `Sidebar` under the same name. A site that reached for the wrong one got style-neutral slots where it expected styled components, with no way to tell.
+
+| Before | After |
+| --- | --- |
+| `@bdocs/theme-neutral/components/primitives` | `@bdocs/theme-neutral/composition` |
+| `@bdocs/theme-neutral/client` | `@bdocs/theme-neutral` |
+| `@bdocs/theme-neutral/mdx` | `@bdocs/theme-neutral` |
+
+`boltdocs/client/primitives` keeps its 3.x name and re-exports the composition layer.
+
+### Search moved to a plugin
+
+Until 4.0 the core generated `search.json` itself, so every site had one and the built-in search dialog worked. The generator now lives in `@bdocs/plugin-search`:
+
+```bash
+pnpm add @bdocs/plugin-search
+```
+
+```ts title="boltdocs.config.ts"
+import { defineConfig } from 'boltdocs'
+import searchPlugin from '@bdocs/plugin-search'
+
+export default defineConfig({
+  plugins: [searchPlugin()],
+})
+```
+
+Without it the build prints one informational line and emits no `search.json`. A missing search plugin costs a dialog that returns nothing — immediately visible, and a deliberate choice for a site that never wanted one. That is why the notice is `info` rather than `warn`: escalating it would train people to ignore build output.
+
+The registration runs the other way on purpose. The core exposes a registry (`boltdocs/node/search`) and the plugin registers into it, because the alternative — a `dependencies` entry from core to plugin — is a workspace cycle, since the plugin needs `boltdocs` for its config types. The registry also keeps search optional in the way that matters: a site that never configures it carries no search implementation at all.
+
+`flexsearch` is no longer a dependency of `boltdocs`. It was declared and never imported in the core's source — it is the *query* engine, and it belongs to whoever reads the index (`@bdocs/theme-neutral` for the built-in dialog), not to the process that writes the file.
+
+This split is half of a two-axis design. What a search *document* is lives in the plugin and is engine-neutral. Which engine indexes and queries it — FlexSearch, Pagefind, Algolia, Meilisearch — is a separate concern, handed the documents through the `build:search` plugin hook.
+
+### SEO moved to a plugin
+
+Until 4.0 the core wrote `sitemap.xml` and `robots.txt` itself, so every site had them. Both now live in `@bdocs/plugin-seo` and must be added explicitly:
+
+```ts title="boltdocs.config.ts"
+import { defineConfig } from 'boltdocs'
+import seoPlugin from '@bdocs/plugin-seo'
+
+export default defineConfig({
+  siteUrl: 'https://example.com',
+  plugins: [seoPlugin()],
+})
+```
+
+The core **warns during the build** when it finds `siteUrl`, `robots` or `seo` configured with no SEO plugin, rather than failing. A site that upgrades without this loses its sitemap silently, which is exactly the kind of regression that reaches production unnoticed.
+
+Two plugin hooks changed to make this possible:
+
+- **`build:routes` is new.** It fires after routes are generated and before the SSG render — the only window in which a plugin can influence what gets rendered, which route SEO enrichment needs for `canonical` and `og:url` to be in the HTML.
+- **`build:generate` moved out of the SEO step.** It used to be the tail of the SEO write step, so `@bdocs/plugin-rss` depended on an SEO step it had nothing to do with. It has its own step now and is reachable without SEO.
+
+The JSON-LD factories (`createArticleStructuredData` and friends) moved to `@bdocs/contracts` and are still re-exported from `boltdocs` and `boltdocs/client`. They are not part of the plugin: reaching them through an optional plugin would imply it is required to use them.
+
+### Image optimization is opt-in
+
+`sharp` and `svgo` moved behind `experimental.imageOptimizer` and are no longer installed by default. If your site optimized images, turn it back on:
+
+```ts title="boltdocs.config.ts"
+export default defineConfig({
+  experimental: {
+    imageOptimizer: true,
+  },
+})
+```
+
+```bash
+pnpm add -D sharp svgo
+```
+
+## 4. Changes that need a human decision
+
+These are the findings `migrate` reports as `manual`. Each one is a judgement about your code, not a pattern match.
+
+<Callout type="info">
+  Read every manual finding before you commit. The command names the replacement but cannot verify that your handler still does the right thing once the signature changes.
+</Callout>
+
+### A menu whose activation moved to `onAction`
+
+```tsx
+// Before 3.x — with react-aria-components
+<Menu onSelectionChange={setSelected} selectionMode="single">
+  <MenuItem onPress={openSettings} isSelected={settingsOpen}>
+    Settings
+  </MenuItem>
+</Menu>
+```
+
+```tsx
+// After 4.0 — with @bdocs/primitives
+<Menu
+  selectionMode="single"
+  selectedKeys={settingsOpen ? ['settings'] : []}
+  onSelectionChange={(keys) => setSelected(keys)}
+>
+  <MenuItem id="settings" onAction={() => openSettings()}>
+    Settings
+  </MenuItem>
+</Menu>
+```
+
+`onAction` receives the key and the intent. A handler that previously took a press event now receives neither, which is why this is not renamed for you.
+
+### A `layout.tsx` that wrapped everything in `SSRProvider`
+
+```tsx
+// Before — remove the wrapper entirely
+<SSRProvider>
+  <MyLayout>{children}</MyLayout>
+</SSRProvider>
+```
+
+```tsx
+// After
+<MyLayout>{children}</MyLayout>
+```
+
+### A `plugins` array the command would not edit
+
+If `migrate` reported this as `manual`, your `plugins` value is a shorthand, a variable, or a single-line array. Add the plugin by hand:
+
+```ts
+import seoPlugin from '@bdocs/plugin-seo'
+
+export default defineConfig({
+  siteUrl: 'https://example.com',
+  plugins: [...myPlugins, seoPlugin()],
+})
+```
+
+## 5. Verify the upgrade
+
+```bash
+npx boltdocs migrate          # must report zero blocking findings
+pnpm install
+pnpm build                     # the core warns if SEO is configured without the plugin
+```
+
+Then check the things a build cannot tell you:
+
+- **`dist/sitemap.xml` and `dist/robots.txt` exist.** These are the artifacts most likely to disappear silently.
+- **Menus open, close and report selection.** The props that moved are the ones a type-checker will not catch.
+- **Popovers near a viewport edge.** They no longer flip.
+
+## 6. Rollback
+
+4.0 is a breaking release with no compatibility adapter for the package graph. To go back:
+
+```bash
+git checkout -b pre-4.0
+git revert .
+pnpm install
+```
+
+Because the command writes only mechanical changes, reverting its diff restores a working 3.x site exactly. This is why the default is a dry run and why the manual findings are never auto-applied — the automated diff is small enough to read and throw away.
+
+## See also
+
+- [Boltdocs 3.2.0 upgrade](/docs/guides/operations/upgrading-3-2) — the previous breaking upgrade, still relevant if you are coming from 3.1
+- [Boltdocs 4.0 roadmap](/roadmap) — the slices behind these changes
+- [Configuration reference](/docs/guides/getting-started/configuration) — the full config schema
+- [Plugin authoring](/docs/plugins) — writing against the `@bdocs/*` contracts

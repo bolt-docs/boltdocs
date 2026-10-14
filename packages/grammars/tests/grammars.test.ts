@@ -4,9 +4,9 @@ import { fileURLToPath } from 'node:url'
 import { describe, expect, it } from 'vitest'
 
 const HERE = dirname(fileURLToPath(import.meta.url))
-const SRC = resolve(HERE, '../../src/node/mdx')
+const SRC = resolve(HERE, '../src')
 const GRAMMARS = join(SRC, 'grammars')
-const LANGS_MODULE = join(SRC, 'shiki-langs.ts')
+const LANGS_MODULE = join(SRC, 'langs.ts')
 
 const RELATIVE_IMPORT = /(?:from|import)\s*\(?\s*['"]\.\/([^'"]+\.mjs)['"]/g
 
@@ -68,26 +68,39 @@ describe('vendored shiki grammars', () => {
     // A regression that reintroduces the full set would show up as a large jump.
     expect(grammarFiles().length).toBeLessThan(70)
   })
+
+  it('ships a type declaration next to every grammar', () => {
+    // The grammars are vendored `.mjs` files, so `tsc --noEmit` on this
+    // package would fail on `implicitly has an 'any' type` without a sibling
+    // `.d.mts`. The core hit exactly that: 46 errors at once.
+    const missing = grammarFiles().filter(
+      (f) => !existsSync(join(GRAMMARS, f.replace(/\.mjs$/, '.d.mts'))),
+    )
+
+    expect(missing).toEqual([])
+  })
 })
 
-describe('highlighter dependency granularity', () => {
-  it('does not import the full `shiki` package', () => {
-    // `shiki` resolves `shiki/core`, `shiki/wasm` and `shiki/engine/javascript`
-    // but declares `@shikijs/langs` (9.9 MB) and `@shikijs/themes` (1.8 MB) as
-    // ordinary dependencies. Naming it in any import reinstates 11.7 MB that no
-    // module here reads. `package-shape.test.ts` guards the manifest side; this
-    // guards the source side, since a package can be imported without declared.
-    const source = readFileSync(join(SRC, 'highlighter.ts'), 'utf8')
+describe('package boundary', () => {
+  it('carries no runtime dependency on the framework', () => {
+    // The point of the split is that a site can depend on the grammar data
+    // without the framework. A `boltdocs` dependency here would invert it.
+    const pkg = JSON.parse(
+      readFileSync(resolve(HERE, '../package.json'), 'utf8'),
+    ) as { dependencies?: Record<string, string> }
 
-    expect(source).not.toMatch(/from\s+['"]shiki(?:\/|['"])/)
-    expect(source).not.toMatch(/import\(\s*['"]shiki(?:\/|['"])/)
+    for (const dep of Object.keys(pkg.dependencies ?? {})) {
+      expect(dep, `@bdocs/grammars must not depend on ${dep}`).not.toMatch(
+        /^boltdocs$|^@bdocs\/(core|ssg|runtime|theme-neutral)$/,
+      )
+    }
   })
 
-  it('imports the engines from their own packages', () => {
-    const source = readFileSync(join(SRC, 'highlighter.ts'), 'utf8')
+  it('declares no runtime dependency beyond the grammar types', () => {
+    const pkg = JSON.parse(
+      readFileSync(resolve(HERE, '../package.json'), 'utf8'),
+    ) as { dependencies?: Record<string, string> }
 
-    expect(source).toContain("from '@shikijs/core'")
-    expect(source).toContain("'@shikijs/engine-oniguruma/wasm-inlined'")
-    expect(source).toContain("'@shikijs/engine-javascript'")
+    expect(Object.keys(pkg.dependencies ?? {})).toEqual(['@shikijs/types'])
   })
 })

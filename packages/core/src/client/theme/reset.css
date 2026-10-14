@@ -214,6 +214,20 @@
     -webkit-overflow-scrolling: touch;
   }
 
+  /* Render state, engine-neutral (`data-code-state` + `shiki-fallback` alias).
+     `highlighted` | `plaintext` | `fallback`. A theme styles this attribute and
+     never needs to know which engine produced the block; the alias keeps a
+     theme written against 3.x rendering identically. */
+  pre[data-code-state="fallback"],
+  pre.shiki-fallback {
+    @apply bg-subtle text-muted;
+  }
+
+  pre[data-code-state="fallback"] code,
+  pre.shiki-fallback code {
+    @apply text-[12px];
+  }
+
   pre.shiki span.line,
   pre[data-highlighted] span.line {
     @apply relative block px-4 py-0;
@@ -266,7 +280,8 @@
     /* Sync with line text */
   }
 
-  /* Shiki Highlight */
+  /* Line highlight (engine-agnostic `data-line-highlight` + Shiki alias) */
+  pre [data-line-highlight],
   pre span.shiki-line-highlight {
     @apply relative z-0 inline-block w-full;
 

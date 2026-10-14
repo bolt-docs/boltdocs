@@ -2,15 +2,12 @@ import { existsSync, readFileSync, readdirSync } from 'node:fs'
 import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { describe, expect, it } from 'vitest'
-import {
-  THEMES_BUILD,
-  THEMES_DEFAULT,
-  THEMES_SUPPORTED,
-} from '../../src/node/mdx/shiki-themes'
-import { highlight } from '../../src/node/mdx/highlighter'
+import { createHighlighterCore } from '@shikijs/core'
+import { createJavaScriptRegexEngine } from '@shikijs/engine-javascript'
+import { THEMES_BUILD, THEMES_DEFAULT, THEMES_SUPPORTED } from '../src/themes'
 
 const HERE = dirname(fileURLToPath(import.meta.url))
-const THEMES = resolve(HERE, '../../src/node/mdx/themes')
+const THEMES = resolve(HERE, '../src/themes')
 
 function themeFiles(): string[] {
   return readdirSync(THEMES).filter((f) => f.endsWith('.mjs'))
@@ -46,21 +43,40 @@ describe('vendored shiki themes', () => {
 
   it('does not import @shikijs/themes', () => {
     const source = readFileSync(
-      join(resolve(HERE, '../../src/node/mdx'), 'shiki-themes.ts'),
+      join(resolve(HERE, '../src'), 'themes.ts'),
       'utf8',
     )
 
     expect(source).not.toMatch(/^\s*import\s.*@shikijs\/themes/m)
   })
 
+  it('ships a type declaration next to every theme', () => {
+    const missing = themeFiles().filter(
+      (f) => !existsSync(join(THEMES, f.replace(/\.mjs$/, '.d.mts'))),
+    )
+
+    expect(missing).toEqual([])
+  })
+
   it('loads every supported theme and highlights with it', async () => {
-    const h = await highlight({ regexEngine: 'javascript' })
-    const loaded = h.getLoadedThemes()
+    // Built here rather than through the core's `highlight()`: this package
+    // must be verifiable on its own, without the framework it serves. The
+    // JavaScript engine is the core's default, and unlike oniguruma it needs
+    // no WASM — which is what makes the check synchronous.
+    const highlighter = await createHighlighterCore({
+      themes: THEMES_BUILD,
+      langs: [],
+      engine: createJavaScriptRegexEngine(),
+    })
+    const loaded = highlighter.getLoadedThemes()
 
     for (const name of THEMES_SUPPORTED) {
       expect(loaded).toContain(name)
       // The failure this guards threw at build time rather than degrading.
-      const html = h.codeToHtml('const x = 1', { lang: 'ts', theme: name })
+      const html = highlighter.codeToHtml('const x = 1', {
+        lang: 'text',
+        theme: name,
+      })
       expect(html).toContain('<pre')
     }
   })

@@ -7,6 +7,7 @@ export * from './dev'
 export * from './build'
 export * from './doctor'
 export * from './audit'
+export * from './migrate'
 export {
   colors,
   confirm,

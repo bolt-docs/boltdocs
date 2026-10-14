@@ -130,6 +130,31 @@ export class ShikiAdapter implements CodeHighlighterAdapter {
   }
 
   /**
+   * Render code with no highlighting.
+   *
+   * Shiki has a real `plaintext` grammar, so this is a normal render — but the
+   * pipeline reaches it through this method rather than by sending the id
+   * itself, because the id is a Shiki convention and not part of the contract.
+   * An engine without a plaintext grammar either implements this differently or
+   * omits it; both are fine, and the framework falls back to an escaped `<pre>`.
+   */
+  async renderPlaintext(
+    code: string,
+    options: Record<string, unknown>,
+  ): Promise<string> {
+    try {
+      const runtime = await this.initialize()
+      return await runtime.codeToHtml(code, {
+        ...options,
+        lang: 'plaintext',
+      })
+    } catch (e) {
+      logError(`[ShikiAdapter] Failed to render plaintext:`, e)
+      return `<pre class="${SHIKI_CLASSES.FALLBACK}"><code>${escapeHtml(code)}</code></pre>`
+    }
+  }
+
+  /**
    * Assembles Shiki options including transformers for a specific code block.
    */
   getOptions(lang: string, meta: unknown): Record<string, unknown> {

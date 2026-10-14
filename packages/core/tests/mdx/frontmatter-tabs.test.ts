@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { parseDocFile } from '../../src/node/routes/parser'
-import { generateSearchData } from '../../src/node/search'
+import { generateSearchData } from '@bdocs/plugin-search'
 import fs from 'node:fs'
 import path from 'node:path'
 import os from 'node:os'

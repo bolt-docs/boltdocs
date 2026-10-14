@@ -98,6 +98,19 @@ cli
   })
 
 cli
+  .command(
+    'migrate [root]',
+    'Report (and optionally fix) 3.x patterns before 4.0',
+  )
+  .option('--apply', 'Write the safe fixes. Omit for a dry run')
+  .action(async (root: string, options: { apply?: boolean }) => {
+    // No ensureDui(): this command must run against a project that does not
+    // build yet, and it renders its own minimal output by design.
+    const { migrateAction } = await import('./cli/migrate')
+    return migrateAction(root, options)
+  })
+
+cli
   .command('doctor [root]', 'Check the health of your documentation')
   .option(
     '--fix',

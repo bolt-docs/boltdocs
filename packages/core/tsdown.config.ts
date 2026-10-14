@@ -17,9 +17,13 @@ export default defineConfig([
       'node/cache': 'src/node/cache.ts',
       'node/highlight': 'src/node/highlight/index.ts',
       'node/mdx/shiki-adapter': 'src/node/mdx/shiki-adapter.ts',
+      // Search is a registry, not an implementation: `@bdocs/plugin-search`
+      // registers its generator here rather than the core depending on it,
+      // which would be a cycle and would make search mandatory.
+      'node/search/registry': 'src/node/search/registry.ts',
       'server/index': 'src/node/feedback/adapters/index.ts',
     },
-    format: ['esm', 'cjs'],
+    format: ['esm'],
     dts: true,
     tsconfig: './tsconfig.json',
     minify: true,
@@ -71,7 +75,7 @@ export default defineConfig([
       'client/primitives': 'src/client/primitives.ts',
       'client/mdx': 'src/client/mdx.ts',
     },
-    format: ['esm', 'cjs'],
+    format: ['esm'],
     dts: true,
     tsconfig: './tsconfig.json',
     minify: false,

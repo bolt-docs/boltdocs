@@ -24,6 +24,15 @@ export default defineConfig({
       '@bdocs/runtime': path.resolve(__dirname, '../runtime/src'),
       '@bdocs/primitives': path.resolve(__dirname, '../primitives/src'),
       '@bdocs/contracts': path.resolve(__dirname, '../contracts/src'),
+      // Search generation lives in a plugin the core does not depend on. The
+      // alias points at source for the same reason the others do: a built
+      // bundle is a different module instance than the one a test can mock,
+      // and `tests/mdx/frontmatter-tabs.test.ts` asserts on the documents it
+      // produces.
+      '@bdocs/plugin-search': path.resolve(
+        __dirname,
+        '../plugin-search/src/node',
+      ),
       'virtual:boltdocs-search': path.resolve(
         __dirname,
         './tests/mocks/virtual-search.ts',

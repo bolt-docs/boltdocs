@@ -15,6 +15,15 @@ export interface ModalOverlayProps
   onOpenChange?: (isOpen: boolean) => void
   /** Set false to keep a click on the backdrop from closing the modal. */
   isDismissable?: boolean
+  /**
+   * Slot for the scrim's appearance.
+   *
+   * A modal backdrop is the one element where a theme's choice is most visible —
+   * `bg-black/50` reads as a different product on a dark site — so the colour is
+   * a slot rather than a default. The overlay still ships without one, which is
+   * honest: a primitive that guessed would be a second theme nobody chose.
+   */
+  overlayClassName?: string
   children?: React.ReactNode
 }
 
@@ -35,6 +44,7 @@ export function ModalOverlay(
     onOpenChange,
     isDismissable = true,
     className,
+    overlayClassName,
     children,
     onClick,
     ...rest
@@ -130,7 +140,13 @@ export function ModalOverlay(
       ref={ref}
       data-bdocs-modal-overlay=""
       className={cn(
-        'fixed inset-0 z-50 flex items-center justify-center bg-black/50',
+        // Position and layout are the primitive's; the overlay colour is the
+        // theme's. `bg-black/50` here would be the one hard-coded colour in the
+        // package — a modal scrim that cannot be themed, on a component whose
+        // entire contract is that it ships no appearance. `separator.tsx`
+        // documents why it dropped its `bg-border` for the same reason.
+        'fixed inset-0 z-50 flex items-center justify-center',
+        overlayClassName,
         className,
       )}
       {...rest}

@@ -43,18 +43,36 @@ describe('packages/core/package.json shape', () => {
     // The highlighter imports `@shikijs/core`, not `shiki`. The full `shiki`
     // package pulls in `@shikijs/langs` (9.9 MB, 347 grammars) and
     // `@shikijs/themes` (1.8 MB) as ordinary dependencies, and this project
-    // imports neither: grammars are vendored under
-    // `src/node/mdx/grammars` and themes under `src/node/mdx/shiki-themes.ts`.
+    // imports neither: the reachable grammar set is vendored in
+    // `@bdocs/grammars` and the seven themes alongside it.
     // Depending on `shiki` would reinstall 11.7 MB of unreachable payload on
-    // every consumer. `tests/node/grammars.test.ts` guards the grammar side.
+    // every consumer. `@bdocs/grammars` guards the grammar side from its own
+    // suite.
     expect(deps.dependencies.shiki).toBeUndefined()
     expect(deps.dependencies['@shikijs/langs']).toBeUndefined()
+    expect(deps.dependencies['@bdocs/grammars']).toBe('workspace:*')
     expect(deps.dependencies['@shikijs/core']).toBe('3.23.0')
     expect(deps.dependencies['@shikijs/types']).toBe('3.23.0')
     expect(deps.dependencies['@shikijs/engine-oniguruma']).toBe('3.23.0')
     expect(deps.dependencies['@shikijs/engine-javascript']).toBe('3.23.0')
     // @mdx-js/rollup was replaced by the Sätteri processor in 3.2.x
     expect(deps.dependencies['@bdocs/processor-satteri']).toBe('workspace:*')
+  })
+
+  it('does NOT depend on a search engine or on the search plugin', () => {
+    // Search moved to `@bdocs/plugin-search`, which registers a generator
+    // through `boltdocs/node/search` rather than the core importing it. Both
+    // directions were tried: a `dependencies` entry is a workspace cycle
+    // (the plugin needs `boltdocs` for its config types), and keeping the
+    // generator inline would make search mandatory for every site — the exact
+    // coupling the 4.0 roadmap set out to remove.
+    expect(deps.dependencies['@bdocs/plugin-search']).toBeUndefined()
+
+    // `flexsearch` was declared here and imported nowhere in the core's source.
+    // It is the *query* engine, and it belongs to whoever reads the index —
+    // `@bdocs/theme-neutral` for the built-in dialog — not to the process that
+    // writes `search.json`.
+    expect(deps.dependencies.flexsearch).toBeUndefined()
   })
 
   it('does NOT ship sharp/svgo from core (they belong to plugin-image-optimizer)', () => {

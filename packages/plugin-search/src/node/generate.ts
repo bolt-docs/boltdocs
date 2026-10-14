@@ -1,5 +1,46 @@
-import type { RouteMeta } from '../routes/types'
+/**
+ * Search document generation.
+ *
+ * Builds the flat document list that backs `search.json` — the asset the
+ * browser fetches when the search dialog opens. It runs at build time, over
+ * route metadata, and its output is data: this package decides what a
+ * *document* is, never how it is indexed or queried.
+ *
+ * ## Why this is a plugin
+ *
+ * The generator used to live in the core. The 4.0 roadmap states the rule the
+ * move enforces: "`@bdocs/core-node` … will not import optional integrations
+ * such as Mermaid, Math, Ask AI, **Search**, RSS or image optimization."
+ *
+ * Keeping search out also removed a dead dependency: `flexsearch` was declared
+ * in the core's `dependencies` and never imported anywhere in its source. It is
+ * the *engine*, and it belongs to whoever queries the index — `@bdocs/theme-neutral`
+ * for the built-in dialog — not to the process that writes the file.
+ *
+ * ## Engines are a separate axis
+ *
+ * This package is the one half that is engine-neutral. The other is the
+ * `build:search` plugin hook, already declared in `@bdocs/contracts`, which
+ * hands these documents to whichever engine a site configured — FlexSearch,
+ * Pagefind, Algolia, Meilisearch. Nothing here knows an engine exists, and
+ * nothing an engine produces is required to read this output.
+ */
+import type { RouteMeta } from '@bdocs/contracts'
 
+/**
+ * One searchable unit.
+ *
+ * A page is one document; each of its headings is another, so a search for a
+ * phrase deep in a long page returns a deep link rather than the top of the
+ * document. `url` carries the fragment and `display` carries the breadcrumb —
+ * the query layer renders `display` and navigates to `url`, so neither has to
+ * know about routes or groups.
+ *
+ * Distinct from `SearchDocument` in `@bdocs/contracts`, which is the *input*
+ * shape a plugin receives before this transformation. Keeping them apart is
+ * deliberate: an engine plugin should not have to re-derive `display`, and this
+ * output should not carry frontmatter an engine has no use for.
+ */
 export interface SearchDocument {
   id: string
   title: string
