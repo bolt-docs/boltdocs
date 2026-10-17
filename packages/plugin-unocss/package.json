@@ -1,6 +1,6 @@
 {
   "name": "@bdocs/plugin-unocss",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "description": "UnoCSS atomic engine plugin for Boltdocs",
   "main": "./dist/index.mjs",
   "module": "./dist/index.mjs",
