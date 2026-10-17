@@ -117,6 +117,7 @@ export async function createServer(
         ...(viteConfig.plugins ?? []),
         ssrServerPlugin({
           template,
+          htmlEntry: merged.htmlEntry || 'index.html',
           ssrEntry,
           onBeforePageRender,
           onPageRendered,

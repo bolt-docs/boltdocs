@@ -69,6 +69,7 @@ export interface HandlerCreaterOptions<Context> extends Options<Context> {
 
 export function ssrServerPlugin({
   template,
+  htmlEntry = 'index.html',
   ssrEntry,
   onBeforePageRender,
   entry,
@@ -96,7 +97,17 @@ export function ssrServerPlugin({
             return adapter.handleLoader(req, res)
           }
 
-          const indexHTML = await server.transformIndexHtml(url, template)
+          // Transform the *entry* HTML, not the request URL. Vite derives the
+          // html-proxy filename by joining this argument with the project root,
+          // so a route URL such as `/docs` can resolve to a real directory (a
+          // `docs/docs` content folder under a `/docs` base). Vite then emits a
+          // sourcemap pointing at that directory and logs
+          // `Sourcemap for "/docs" points to missing source files`.
+          const indexHTML = await server.transformIndexHtml(
+            `/${htmlEntry.replace(/^\/+/, '')}`,
+            template,
+            url,
+          )
           const transformedIndexHTML =
             (await onBeforePageRender?.(url, indexHTML, appCtx)) || indexHTML
 
