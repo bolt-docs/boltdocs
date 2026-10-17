@@ -10,8 +10,9 @@ Boltdocs 3.4.0 — architecture contracts and incremental build foundation.
 
 This release publishes the new `@bdocs/contracts` package as the framework-neutral
 contract layer for routes, plugin lifecycle, plugin definitions, highlighting,
-search documents, and configuration. `boltdocs` now re-exports those contracts so
-the existing 3.x public API keeps working unchanged.
+search documents, and configuration. Its first public version is **`0.1.0`**
+(kept pre-1.0 while 4.0 reshapes the seam). `boltdocs` now re-exports those
+contracts so the existing 3.x public API keeps working unchanged.
 
 Highlights:
 
