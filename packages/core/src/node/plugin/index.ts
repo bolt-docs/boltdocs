@@ -414,7 +414,6 @@ export function boltdocsPlugin(
                 'scheduler',
                 ...getExternalAbsolutePaths(req),
               ],
-              optimizeDeps: { include: ['react-fast-compare'] },
               noExternal: [],
             },
           }
@@ -553,8 +552,6 @@ export function boltdocsPlugin(
               'react-dom/client',
               'react-router-dom',
               'react-helmet-async',
-              'react-fast-compare',
-              'invariant',
               // Default docs themes import lucide-react statically; without
               // this entry its late discovery triggers a full-page reload on
               // cold starts.
@@ -598,7 +595,6 @@ export function boltdocsPlugin(
               'scheduler',
               ...getExternalAbsolutePaths(req),
             ],
-            optimizeDeps: { include: ['react-fast-compare'] },
             // Externalize all framework packages so @bdocs/ssg and the docs
             // app share a single react-router-dom instance/context.
             noExternal: [],
