@@ -27,8 +27,3 @@ wrong-logo flash.
 **Cover images.** `post.coverImage` from frontmatter is site-root-relative, and
 a site served under a sub-path needs the base prefixed. Skipping it produced a
 404 in the browser while the server-rendered markup still looked correct.
-
-**React Aria ids.** `BoltdocsShell` now mounts `SSRProvider` as its outermost
-layer. Without it React Aria derives element ids from a module-level counter
-that starts from a different value on the server and in the browser, and pages
-containing an interactive widget fail hydration.
