@@ -41,9 +41,16 @@ export default defineConfig({
 | Parameter | Type | Default | Description |
 | ----------- | ------ | --------- | ------------- |
 | `siteUrl` | `string` | — | Production domain URL. Used for sitemap.xml, RSS feeds, canonical headers, llms.txt |
-| `base` | `string` | `'/'` | Sub-path where the website is served (e.g. `'/docs/'`) |
+| `base` | `string` | `'/'` | Sub-path where the website is served (e.g. `'/docs'`). Vite applies it to public URLs; never hand-write it into `favicon`/`logo` (see [favicon](#theme-configuration-theme)) |
 | `docsDir` | `string` | `'./docs'` | Relative path to the folder containing Markdown/MDX content |
+| `aliases` | `AliasOptions` | — | Vite resolve aliases, e.g. `{ '@': path.resolve(import.meta.dirname, 'src') }` |
 | `plugins` | `BoltdocsPlugin[]` | `[]` | Array of active plugins |
+| `redirects` | `Redirect[]` | `[]` | Declarative redirects (see [Redirects](#redirects)) |
+| `drafts` | `object` | — | `{ visible?: boolean, environments?: string[] }` — reveal draft pages |
+| `robots` | `string \| object` | — | `robots.txt` content or rules object (see [Robots](#robots)) |
+| `experimental` | `object` | — | Opt-in APIs (see [Experimental](#experimental)) |
+| `featureFlags` | `Record<string, boolean \| string>` | — | Flags consumed by `frontmatter.featureFlags` for conditional pages |
+| `vite` | `UserConfig` | — | Deliberate Vite overrides |
 
 ---
 
@@ -61,7 +68,7 @@ theme: {
     height: 32,
   },
   githubRepo: 'user/repo',                       // Auto-enables GitHub icon in navbar
-  favicon: '/favicon.ico',                       // Custom favicon
+  favicon: '/favicon.svg',                       // Relative to public/; omit `base` (Vite adds it)
   navbar: [                                      // Custom navbar items
     {
       label: 'Guides',
@@ -173,6 +180,7 @@ ssg: {
   criticalCss: 'zig-critters',  // Default: WASM-based critical CSS
   // 'beasties' — JS-based critical CSS (opt-in, slower)
   // 'none' — skip critical CSS entirely
+  criticalCssMaxSize: 24576,    // Per-page byte budget; larger pages skip the inline (default 24576)
 }
 ```
 
@@ -214,8 +222,14 @@ seo: {
     google: 'google-site-verification-code',
     bing: 'bing-verification-code',
   },
+  structuredData: {                              // JSON-LD (object or array of objects)
+    '@type': 'WebSite',
+    name: 'My Docs',
+  },
 }
 ```
+
+The `StructuredData` component (exported from `boltdocs`) and the `createArticleStructuredData` / `createBreadcrumbStructuredData` / `createWebSiteStructuredData` factories produce this JSON-LD per page. See the docs guide `advanced/structured-data`.
 
 ---
 
@@ -285,6 +299,8 @@ integrations: {
 }
 ```
 
+**Search.** Offline **FlexSearch** is the default and needs no configuration. Algolia is opt-in through `integrations.search.algolia`. Build a custom search UI with the `useSearch()` hook (`{ query, setQuery, list, isOpen, setIsOpen, handleSelect, status }`); the default dialog is exported as `SearchDialog`.
+
 ---
 
 ## Drafts (`drafts`)
@@ -321,6 +337,45 @@ robots: {
 // Or simply a string:
 robots: 'User-agent: *\nAllow: /'
 ```
+
+---
+
+## Redirects (`redirects`)
+
+Declarative redirects, applied in the client router, in the static output, and validated at build time:
+
+```ts
+redirects: [
+  { from: '/docs/old-guide', to: '/docs/guides/new-guide' },
+  { from: '/changelog', to: 'https://example.com/changelog' }, // external
+  { from: '/legacy', to: '/docs', status: 308, locale: true }, // mirrored per locale
+]
+```
+
+| Option | Type | Default | Description |
+| --- | --- | --- | --- |
+| `from` | `string` | — | Source path (no external URL, no `#` fragment) |
+| `to` | `string` | — | Destination path or absolute URL |
+| `status` | `301 \| 302 \| 307 \| 308` | `301` | Recorded HTTP status |
+| `locale` | `boolean` | `false` | Mirror the redirect across every configured locale |
+
+The build fails on a duplicate `from`, a `from` that shadows an existing route, a cycle, or an invalid source. Chains (`/a → /b → /c`) collapse to a single hop. See the docs guide `operations/redirects`.
+
+---
+
+## Experimental (`experimental`)
+
+Opt-in APIs, disabled by default:
+
+```ts
+experimental: {
+  viewTransitions: { enabled: true, types: ['page'] },  // or `true`
+  fileRouting: true,
+}
+```
+
+- **`viewTransitions`** — native browser animations between router states, with directional (`forward`/`back`) transition types and `prefers-reduced-motion` support. Components: `TransitionLink`, hooks: `useViewTransition()` / `startViewTransition`.
+- **`fileRouting`** — maps files in `docs/pages-external/` to routes, including dynamic segments (`blog/[slug].mdx` → `/blog/:slug`, `docs/[...parts].mdx` → `/docs/*`).
 
 ---
 

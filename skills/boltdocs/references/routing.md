@@ -169,6 +169,24 @@ docs/
 
 ---
 
+## External Pages & Static File Routing
+
+Files under `pages-external/` map to routes outside the docs tree (landing pages, `/showcase`, `/roadmap`). With `experimental.fileRouting: true` a literal file becomes a route — including dynamic segments:
+
+```text
+docs/pages-external/
+  index.tsx            → /
+  showcase.tsx         → /showcase
+  blog/[slug].mdx      → /blog/:slug
+  docs/[...parts].mdx  → /docs/*
+```
+
+Underscore-prefixed folders (`_sections/`) are auxiliary and never become routes. External pages can be declared as static `component` imports or as lazy `loader`s (3.3+) — lazy loaders keep the page out of the docs entry bundle while the SSG still pre-renders its HTML.
+
+Declarative **redirects** live in `boltdocs.config.ts`, not in the file tree; see [Redirects](configuration.md#redirects-redirects).
+
+---
+
 ## i18n Routing
 
 When `i18n` is configured, routes are prefixed by locale:

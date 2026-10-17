@@ -1,138 +1,113 @@
 ---
 name: boltdocs
-description: Guidelines for developers using the Boltdocs documentation framework. Covers configuration, plugin API, MDX content, routing, collections, styling, and CLI usage.
+description: Guidelines for developers using the Boltdocs documentation framework (3.4.0). Covers configuration, migration and upgrades, plugin API, MDX content, routing, collections, styling, and CLI usage.
 ---
 
 # Boltdocs Agent Guidelines
 
-This directory establishes standards and blueprints for developers creating, extending, or maintaining a documentation project built on top of the **Boltdocs** framework.
+This directory is the working knowledge base for anyone creating, extending, or maintaining a documentation project built on top of the **Boltdocs** framework. It targets **Boltdocs 3.4.0** — the React 19 + Vite 8.1 + Tailwind CSS v4 line, powered by the Sätteri Rust-based MDX processor.
+
+Everything here is written so an AI pair-programmer can act without guessing: read the [reference guides](#reference-guides), then the page-relevant file.
 
 ## Overview
 
-Boltdocs is a **React/Vite documentation framework** powered by the Sätteri Rust-based MDX processor. It features:
+Boltdocs is a **React/Vite documentation framework with a first-class static site generator**. The parts you will actually touch:
 
-- **File-system routing**: Every `.md`/`.mdx` file in the `docs/` folder maps to a URL
-- **Collection system**: Bracket directories (`[blog]`) for blogs, changelogs, release notes
-- **Plugin system (`definePlugin`)**: Astro-inspired lifecycle hooks, client UI slots, middleware pipeline, CSS injection, virtual modules
-- **SSG pipeline**: Production build pipeline with config resolution, route generation, SEO, SSG, and post-build asset hooks
-- **MDX processing**: Sätteri Rust-based compiler (default) or standard MDX processor
-- **i18n & versioning**: Multi-locale and multi-version documentation support
-- **Search contract**: Standardized `SearchDocument[]` interface for search engine plugins
-- **Client registry**: Plugin-provided UI slots, providers, MDX components, and head elements
-- **Plugin context APIs**: Caches, diagnostics, paths, virtual modules, middleware, HMR, and server APIs
-- **`@bdocs/plugin-llms-text`**: Automatic `llms.txt` file generation for LLM optimization (llmstxt.org)
-- **CSS framework agnostic**: Tailwind CSS v4, SASS/SCSS, UnoCSS, or vanilla CSS — all supported via plugins
-- **Style-neutral primitives**: Layout/UI primitives ship structure + behavior + `data-*` state attributes; all visuals are decided by the theme via CSS
+- **File-system routing** — every `.md`/`.mdx` under the content folder maps to a URL, with `meta.json` for sidebar control.
+- **Collections** — bracket directories (`[blog]`, `[changelog]`) with custom `post.tsx` / `list.tsx` / `layout.tsx` components.
+- **Plugin system** — `definePlugin`/`createPlugin` with typed lifecycle hooks, client UI slots, providers, middleware, CSS injection, and virtual modules.
+- **SSG pipeline** — `ConfigResolve → RouteGenerate → SEOValidate → TypeGenerate → SSGBuild → SEOWrite`, with a content-addressed page cache that re-renders only the edited page.
+- **MDX processing** — the Sätteri Rust compiler (default) or standard `@mdx-js/mdx`.
+- **i18n & versioning** — multi-locale (`docs/{locale}/…`) and multi-version (`docs/{version}/…`) trees with fallback generation.
+- **Search** — offline **FlexSearch** by default, opt-in **Algolia**; exposed through the `useSearch()` hook.
+- **Stable configuration** — declarative `redirects`, `robots`, `seo`, `security`, `integrations`, `ssg`, and `vite` overrides.
+- **Experimental (opt-in)** — `experimental.viewTransitions` and `experimental.fileRouting`.
+- **Agnostic styling** — Tailwind CSS v4, SASS/SCSS, UnoCSS, or vanilla CSS, all via plugins.
+- **Style-neutral primitives** — layout/UI primitives ship structure + behavior + `data-*` state attributes; themes decide every visual.
 
-## When to Apply
+## What's new (3.2 → 3.4)
+
+| Release | Highlights that change how you work |
+| --- | --- |
+| **3.4.0** | New `@bdocs/contracts` package (framework-neutral contracts for routes, plugins, lifecycle, highlighting, search, config); `boltdocs` re-exports it, so the 3.x public API is unchanged. Content-addressed SSG page cache — a single page edit no longer re-renders the whole site. **Viewport-triggered prefetch**: `Link` accepts `prefetch="viewport"` (sidebar/navbar links opt in). View Transitions track direction (`forward`/`back`) and honor `prefers-reduced-motion`. File routing gains dynamic segments (`[slug]`, `[...parts]`). |
+| **3.3.x** | Entry-bundle diet: KaTeX is baked at build time and FlexSearch loads on demand. Lazy `pages-external` loaders. Vite 8.1 toolchain alignment. axe-clean accessibility pass (tabs, OnThisPage, navbar, search). Shiki `colorHighlighting.options.colorReplacements`. |
+| **3.2.0** | Nitro Phase 1 (5× faster warm builds, WASM highlighting, pipeline timing). `react-aria-components` became an explicit dependency — see [migrations](references/migrations.md). |
+
+## When to apply
 
 Use these guidelines when:
 
-- Writing or refactoring configuration inside `boltdocs.config.ts`
-- Adding new documentation sections, pages, or folders under `docs/`
-- Creating or modifying plugins using `definePlugin` or `createPlugin`
-- Writing MDX page content using built-in components like `<Callout>`, `<Card>`, or Mermaid diagrams
-- Overriding HTML tags or registering global React components in `mdx-components.tsx`
-- Styling the documentation theme via CSS variables, Tailwind CSS v4, SASS, or UnoCSS
-- Theming or replacing layout primitives (`Sidebar`, `OnThisPage`, `Navbar`) — style `data-*` state attributes, never bake visuals into a primitive
-- Setting up collections (`[blog]`, `[changelog]`) with custom post/list/layout components
-- Configuring i18n, versioning, SEO, analytics, or security features
-- Using the CLI commands (dev, build, preview, audit, doctor, generate-changelog)
-- Writing plugins that inject UI slots, providers, or middleware into the pipeline
-- Writing `.mdx` page content — see the content conventions below before adding headings or links
+- Writing or refactoring `boltdocs.config.ts`
+- Adding pages, sections, or folders under the content directory
+- Creating or modifying plugins with `definePlugin`/`createPlugin`
+- Writing MDX content with built-ins like `<Callout>`, `<Cards>`, or Mermaid diagrams
+- Overriding HTML tags or registering global components in `mdx-components.tsx`
+- Styling via CSS variables, Tailwind v4, SASS, or UnoCSS
+- Theming or replacing layout primitives — style `data-*` state attributes, never bake visuals into a primitive
+- Setting up collections, i18n, versioning, SEO, analytics, security, redirects, or experimental features
+- Upgrading a project across Boltdocs versions — start with [Upgrading & Migration](references/migrations.md)
+- Using the CLI (`dev`, `build`, `preview`, `audit`, `doctor`, `generate-changelog`)
+- Authoring `.mdx` — read the [content conventions](#content-conventions-mdx-pages) first
 
-## Reference Guides
+## Reference guides
 
-Read the following documents in the `references/` directory for detailed specifications:
+Read the matching file in `references/` for full detail:
 
-1. **[Configuration Guide](references/configuration.md)**
-   - Customizing `boltdocs.config.ts` using `defineConfig`
-   - Complete config reference: theme, i18n, versions, collections, plugins, SEO, security, integrations, drafts, feature flags, SSG, MDX processor
-   - Vite configuration overrides
+1. **[Configuration](references/configuration.md)** — `defineConfig`, every top-level option: theme, i18n, versions, collections, plugins, SEO (incl. structured data), security, integrations, redirects, robots, drafts, feature flags, SSG, MDX, experimental, `aliases`, and Vite overrides.
+2. **[Routing & directory organization](references/routing.md)** — file-system discovery, frontmatter, `meta.json`, tabs, i18n/versioning, external pages, static file routing, and redirects.
+3. **[Collections](references/collections.md)** — bracket directories, custom `post.tsx`/`list.tsx`/`layout.tsx`, pagination, sorting, i18n.
+4. **[Components](references/components.md)** — built-in MDX components, `mdx-components.tsx`, plugin client slots, layout primitives + state contract, `Link` prefetch, and view transitions.
+5. **[Plugin API](references/plugin-api.md)** — `definePlugin`/`createPlugin`, lifecycle hooks, client config, context API, search contract, middleware, chain signals, validation.
+6. **[Official plugins](references/plugins.md)** — every `@bdocs/plugin-*` package with install + config.
+7. **[Styling](references/styling.md)** — Tailwind v4, SASS, UnoCSS, vanilla CSS, theme tokens, dark mode, primitive state styling.
+8. **[CLI](references/cli.md)** — `dev`, `build`, `preview`, `doctor`, `audit`, `generate-changelog`, env vars.
+9. **[Upgrading & migration](references/migrations.md)** — moving a project across the 3.x line and planning for 4.0.
 
-2. **[Routing & Directory Organization](references/routing.md)**
-   - File-system page discovery and URL mapping
-   - Frontmatter fields (title, sidebarPosition, badge, icon, tags, author, draft, etc.)
-   - `meta.json` directory configuration (sidebar ordering, collapsible groups, icons)
-   - Tab alignment with `theme.tabs`
-   - i18n routes (`/{locale}/docs/...`) and versioning (`/{version}/docs/...`)
+## Upgrading & migration
 
-3. **[Collections System](references/collections.md)**
-   - Bracket directories (`[blog]`, `[changelog]`) for content collections
-   - Custom post.tsx, list.tsx, layout.tsx components per collection
-   - Pagination, sorting, date formatting
-   - Collection configuration in `boltdocs.config.ts`
+Boltdocs is semver-minor friendly, but install-time peer changes and structural changes still need recipes. The full guide lives in **[references/migrations.md](references/migrations.md)**; the short version:
 
-4. **[Built-in & Custom Components](references/components.md)**
-   - Built-in MDX components: Callout, Cards, Tabs, Timeline, Mermaid, Math
-   - Custom components via `mdx-components.tsx`
-   - Plugin client UI slots (`'header:right'`, `'search:dialog'`, etc.)
-   - Plugin-provided MDX components and providers
-   - **Layout primitives & state contract** — style-neutral `Sidebar`/`OnThisPage`/`Navbar`/`Tabs` with `data-*` attributes (`data-active`, `data-open`, `data-selected`, `data-level`, …)
+- **3.2.0** — declare `react-aria-components` yourself to clear the peer warning (it stopped being transitive). CI-strict setups have a scoped `.npmrc` fix.
+- **3.3.x** — drop-in; benefits are automatic (build-time KaTeX, on-demand FlexSearch, lazy external pages).
+- **3.4.0** — no code changes: `@bdocs/contracts` is a new published package and `boltdocs` re-exports it for backwards compatibility. New features are opt-in (`prefetch="viewport"`, `experimental.*`, `redirects`).
+- **4.0** — see the docs roadmap (`/roadmap`) for the architecture migration plan before you adopt 4.x-only APIs.
 
-5. **[Plugin API](references/plugin-api.md)**
-   - `definePlugin` and `createPlugin` API reference
-   - Lifecycle hooks (`build:before`, `build:after`, `transform:source`, `frontmatter:transform`, `search:index`, etc.)
-   - Client UI slots (`client.slots`, `client.providers`, `client.mdxComponents`, `client.head`)
-   - Plugin context APIs: caches, diagnostics, paths, virtual modules, middleware, HMR, server
-   - Search contract (`SearchDocument[]`)
-   - Middleware pipeline and chain signals (`__signal: 'skip' | 'break'`)
-   - Plugin validation and error handling
+## Content conventions (`.mdx` pages)
 
-6. **[Official Plugins](references/plugins.md)**
-   - All `@bdocs/*` plugins: Tailwind CSS, SASS/SCSS, UnoCSS, Mermaid, Math, RSS, Image Optimizer, Ask AI, LLMs Text
-   - Installation, configuration, and usage examples
+These keep the rendered site consistent and are enforced by the project's a11y and lint checks:
 
-7. **[Styling & Theme Customization](references/styling.md)**
-   - Tailwind CSS v4 setup with `@bdocs/plugin-tailwindcss`
-   - SASS/SCSS with `@bdocs/plugin-sass`
-   - UnoCSS with `@bdocs/plugin-unocss`
-   - Vanilla CSS and CSS Modules (zero-config core support)
-   - Theme CSS variables and semantic color mappings
-   - Dark mode overrides and `@custom-variant` syntax
-   - **Primitive state styling** — theme `data-*` state attributes (`data-active`, `data-selected`, `data-open`, …) via CSS or Tailwind variants
-   - Biome compatibility
-
-8. **[CLI Reference](references/cli.md)**
-   - `boltdocs dev` — development server
-   - `boltdocs build` — production build
-   - `boltdocs preview` — preview production build
-   - `boltdocs doctor` — documentation health check
-   - `boltdocs audit` — plugin security audit
-   - `boltdocs generate-changelog` — changelog from CHANGELOG.md
-
-## Content Conventions (`.mdx` pages)
-
-These rules keep the rendered site consistent and are enforced by the project's a11y and lint checks:
-
-- **One H1 per page — never repeat the frontmatter title.** The default layout renders the page title as `<h1>{currentRoute.title}</h1>` and the `description` under it, both from frontmatter. Do **not** add a `# Title` heading or a description paragraph to the content — it renders as a duplicated heading and is an accessibility failure. Content starts with prose or the first `##` section directly.
-- **Unique headings per page.** The OnThisPage TOC lists every `h2`–`h4`; duplicate heading text produces duplicate TOC entries. Playwright test `tests/a11y/on-this-page.spec.ts` fails on duplicates.
-- **Canonical hrefs — never hand-write locale/version prefixes.** All links go through `useLocalizedTo()`, which adds the active locale and version. Write `/docs/guides` (never `/es/docs/guides` or `/v2/docs/guides`). External URLs (`https://...`) pass through untouched; `/showcase`-style `pages-external/` routes stay as-is. `theme.navbar` items support only `{ label, href, items? }` — there is no `to` field in config.
+- **One H1 per page — never repeat the frontmatter title.** The layout already renders `<h1>{route.title}</h1>` and the `description` from frontmatter. Do **not** add a `# Title` heading or a description paragraph — it duplicates the heading and fails accessibility. Start with prose or the first `##` section.
+- **Unique headings per page.** OnThisPage lists every `h2`–`h4`; duplicate text creates duplicate TOC entries (Playwright `on-this-page` test fails).
+- **Canonical hrefs — never hand-write locale/version prefixes.** Links pass through `useLocalizedTo()`, which adds the active locale and version. Write `/docs/guides` (never `/es/docs/guides` or `/v2/docs/guides`). `site:/path` forces the site root; `https://…` passes through untouched.
 - **Compact table separators.** markdownlint MD060 requires `| --- |` (spaces inside), never `|---|`.
+- **Escape nested backticks.** To show a fenced block inside prose, wrap it in four backticks (` ```` ```mermaid ```` `), never a single backtick — the MDX preprocessor will swallow closing tags.
 
-## Quick Reference
+## Quick reference
 
 | Package | npm name | Path | Purpose |
 | --------- | ---------- | ------ | --------- |
-| Core | `boltdocs` | `packages/core` | Main engine: CLI, MDX pipeline, Vite plugins, routing, config |
-| SSG | `@bdocs/ssg` | `packages/plugin-ssg` | Static Site Generator: client/server Vite builds, HTML rendering |
-| Mermaid | `@bdocs/plugin-mermaid` | `packages/plugin-mermaid` | Remark plugin + React container for Mermaid.js diagrams |
-| Math | `@bdocs/plugin-math` | `packages/plugin-math` | KaTeX math parsing with remark/preprocessing |
-| Image Optimizer | `@bdocs/plugin-image-optimizer` | `packages/plugin-image-optimizer` | Sharp/SVGO image optimization Vite plugin |
-| Ask AI | `@bdocs/plugin-ask-ai` | `packages/plugin-ask-ai` | Context-aware AI assistant querying plugin |
-| RSS | `@bdocs/plugin-rss` | `packages/plugin-rss` | RSS and Atom feeds generation |
-| LLMs Text | `@bdocs/plugin-llms-text` | `packages/plugin-llms-text` | llms.txt specification file generation |
-| Tailwind CSS | `@bdocs/plugin-tailwindcss` | `packages/plugin-tailwindcss` | Tailwind CSS v4 integration via `@tailwindcss/vite` |
-| SASS/SCSS | `@bdocs/plugin-sass` | `packages/plugin-sass` | SASS/SCSS preprocessor with Vite configuration |
-| UnoCSS | `@bdocs/plugin-unocss` | `packages/plugin-unocss` | UnoCSS atomic CSS engine via `@unocss/vite` |
-| Unist-utils | `@bdocs/unist-utils` | `packages/unist-utils` | Strictly-typed AST utilities for unist/mdast/hast |
+| Core | `boltdocs` | `packages/core` | Engine: CLI, MDX pipeline, Vite plugins, routing, config, client UI |
+| Contracts | `@bdocs/contracts` | `packages/contracts` | Framework-neutral contracts (routes, plugins, lifecycle, highlighting, search, config); re-exported by `boltdocs` |
+| SSG | `@bdocs/ssg` | `packages/plugin-ssg` | Static Site Generator: client/server Vite builds, HTML rendering, content-addressed page cache |
+| Parser | `@bdocs/parser` | `packages/parser` | Zig/WASM markdown parser with cross-platform native binaries |
 | Processor (Sätteri) | `@bdocs/processor-satteri` | `packages/processor-satteri` | Rust-based MDX compiler (default processor) |
-| Parser | `@bdocs/parser` | `packages/parser` | Zig/WASM markdown parser with native binaries |
+| Unist-utils | `@bdocs/unist-utils` | `packages/unist-utils` | Strictly-typed AST utilities for unist/mdast/hast |
+| zig-critters | `@bdocs/zig-critters` | `packages/zig-critters` | WASM critical-CSS extractor used by the default `ssg.criticalCss` |
+| Mermaid | `@bdocs/plugin-mermaid` | `packages/plugin-mermaid` | Remark plugin + React container for Mermaid diagrams |
+| Math | `@bdocs/plugin-math` | `packages/plugin-math` | KaTeX math, baked at build time |
+| Image Optimizer | `@bdocs/plugin-image-optimizer` | `packages/plugin-image-optimizer` | Sharp/SVGO image optimization |
+| Ask AI | `@bdocs/plugin-ask-ai` | `packages/plugin-ask-ai` | Context-aware AI assistant |
+| RSS | `@bdocs/plugin-rss` | `packages/plugin-rss` | RSS and Atom feeds |
+| LLMs Text | `@bdocs/plugin-llms-text` | `packages/plugin-llms-text` | `llms.txt` generation |
+| Tailwind CSS | `@bdocs/plugin-tailwindcss` | `packages/plugin-tailwindcss` | Tailwind CSS v4 via `@tailwindcss/vite` |
+| SASS/SCSS | `@bdocs/plugin-sass` | `packages/plugin-sass` | SASS/SCSS preprocessor |
+| UnoCSS | `@bdocs/plugin-unocss` | `packages/plugin-unocss` | UnoCSS via `@unocss/vite` |
+| Scaffolder | `create-boltdocs` | `packages/create-boltdocs` | `create-boltdocs` project scaffolder |
 
-## Common Patterns
+## Common patterns
 
-```ts
-// boltdocs.config.ts — full configuration
+```ts title="boltdocs.config.ts"
+import path from 'node:path'
 import { defineConfig } from 'boltdocs'
 import tailwindcssPlugin from '@bdocs/plugin-tailwindcss'
 import mermaidPlugin from '@bdocs/plugin-mermaid'
@@ -141,9 +116,12 @@ import rssPlugin from '@bdocs/plugin-rss'
 
 export default defineConfig({
   siteUrl: 'https://docs.example.com',
+  base: '/',
+  aliases: { '@': path.resolve(import.meta.dirname, 'src') },
   theme: {
     title: 'My Docs',
-    logo: { light: '/logo-light.svg', dark: '/logo-dark.svg' },
+    favicon: '/favicon.svg',            // relative to public/
+    logo: { light: '/logo-dark.svg', dark: '/logo-light.svg' },
     githubRepo: 'user/repo',
     tabs: [
       { id: 'guides', text: 'Guides', icon: 'BookOpen' },
@@ -154,13 +132,20 @@ export default defineConfig({
     defaultLocale: 'en',
     locales: { en: 'English', es: 'Español' },
   },
+  redirects: [{ from: '/docs/old', to: '/docs/new' }],
   plugins: [
     tailwindcssPlugin(),
     mathPlugin(),
     rssPlugin(),
-    mermaidPlugin({
-      themes: { light: 'neutral', dark: 'dark' },
-    }),
+    mermaidPlugin({ themes: { light: 'neutral', dark: 'dark' } }),
   ],
 })
 ```
+
+## Ground rules
+
+- **Never suggest a `vite.config.ts`.** Boltdocs builds the Vite pipeline internally; use the `vite` config key only for deliberate overrides.
+- **Use `defineConfig`** for autocomplete and validation.
+- **Keep links canonical** (`/docs/...`) and let the resolver add locale/version.
+- **Do not bake visuals into primitives** — emit `data-*` state and style it from the theme.
+- **Preserve existing plugin version ranges** (`boltdocsVersion`) when editing configs.

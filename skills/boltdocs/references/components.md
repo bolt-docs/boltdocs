@@ -16,11 +16,17 @@ Use callouts to highlight important guidelines, warnings, or tips.
 
 #### Variants
 
-- `"info"` (Default blue)
-- `"note"` (Muted neutral)
-- `"tip"` (Green success)
-- `"warning"` (Yellow attention)
-- `"danger"` (Red alert)
+`variant` accepts `'note' | 'tip' | 'warning' | 'danger' | 'info'` (default: `'note'`).
+
+| Variant | Tone |
+| --- | --- |
+| `note` | Default — primary/neutral |
+| `info` | Informational |
+| `tip` | Success / best practice |
+| `warning` | Attention |
+| `danger` | Destructive / alert |
+
+`<Callout>` also accepts `title`, `iconClassName`, `titleClassName`, and `bodyClassName`. There is no `type` prop — always use `variant`.
 
 ---
 
@@ -124,6 +130,32 @@ Always escape inline code with four backticks:
 
 ```markdown
 Use ```` ```mermaid ```` code blocks to define diagrams.
+```
+
+---
+
+## Links, Prefetching & View Transitions
+
+Every link goes through the framework `Link` (from `boltdocs`), which localizes hrefs and can warm a route before the click:
+
+```tsx
+<Link to="/docs/guides" prefetch="viewport">Guides</Link>
+```
+
+| `prefetch` | Behavior |
+| --- | --- |
+| `'hover'` (default for most links) | Warm on `mouseenter`/`focus` |
+| `'viewport'` | Warm when the link approaches the viewport (shared `IntersectionObserver`, ~200px root margin) |
+| `'none'` | Never prefetch |
+
+The sidebar and navbar top-level items opt into `'viewport'` so scrolling warms the destination before you click. Prefetching downloads the route's lazy chunk and loader data — never the HTML — through a bounded queue (two in flight, dropped when saturated).
+
+### View Transitions (experimental, `experimental.viewTransitions`)
+
+When enabled, `TransitionLink` and the `useViewTransition()` / `startViewTransition` exports animate router changes. Transitions carry a direction type (`forward` / `back`) and are skipped entirely when the visitor prefers reduced motion.
+
+```tsx
+import { TransitionLink, useViewTransition } from 'boltdocs'
 ```
 
 ---
