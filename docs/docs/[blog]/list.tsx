@@ -113,7 +113,7 @@ function PostCard({ post, href, base, featured = false }: PostCardProps) {
           </time>
           <ArrowUpRight
             aria-hidden="true"
-            className="size-5 shrink-0 text-muted transition-colors group-hover:text-primary-400"
+            className="md:size-5 size-3 shrink-0 text-muted transition-colors group-hover:text-primary-400"
           />
         </div>
       </div>

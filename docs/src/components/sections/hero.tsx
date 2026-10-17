@@ -34,7 +34,7 @@ export const Hero = () => {
 
       <div className="max-w-5xl mx-auto text-center relative z-10 w-full py-14 sm:py-16 md:py-20">
         <Link
-          href="site:/blog/boltdocs-3.3.0"
+          href="site:/blog/boltdocs-3.4.0"
           className="group inline-flex items-center gap-2.5 px-5 py-2 rounded-full bg-white/10 backdrop-blur-md border border-white/20 text-white font-medium cursor-pointer transition-all duration-300 hover:bg-white/20 hover:border-white/30"
         >
           <span className="text-sm flex items-center gap-2.5">

@@ -17,14 +17,6 @@ export function Sidebar({ routes, config }: SidebarProps) {
   const { logo, title, logoProps } = useNavbar()
   const { closeSidebar } = useUI()
 
-  /**
-   * Both logo variants are rendered and CSS selects the visible one.
-   *
-   * Choosing the source from the resolved theme would make the server and the
-   * browser emit different `src` values, which is a hydration mismatch. The
-   * `dark` class on `<html>` is set before first paint, so this costs nothing
-   * visually.
-   */
   const SidebarLogo = logo ? (
     logo.dark && logo.dark !== logo.light ? (
       <>
@@ -121,7 +113,7 @@ export function Sidebar({ routes, config }: SidebarProps) {
           )}
           <SidebarPrimitive.Items
             routes={routes}
-            className="flex flex-col gap-6"
+            className="flex flex-col gap-6 pl-2"
             classNames={sidebarClassNames}
           />
         </SidebarPrimitive.Content>

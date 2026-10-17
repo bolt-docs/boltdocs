@@ -137,7 +137,7 @@ export default function ShowcasePage() {
       className="font-sans antialiased min-h-screen text-body flex flex-col justify-start relative"
     >
       <div className="max-w-4xl mx-auto text-center">
-        <h1 className="text-4xl md:text-6xl font-semibold tracking-tighter text-body mb-6">
+        <h1 className="text-3xl md:text-5xl font-semibold tracking-tighter text-body mb-6">
           {t.showcaseTitle}
         </h1>
       </div>
@@ -151,7 +151,7 @@ export default function ShowcasePage() {
                 <div className="mb-8">
                   <div className="flex items-center gap-3 mb-3">
                     <Terminal className="w-6 h-6 text-primary-400" />
-                    <h2 className="text-2xl md:text-3xl font-bold tracking-tight text-body">
+                    <h2 className="text-xl md:text-2xl font-bold tracking-tight text-body">
                       {item.name}
                     </h2>
                   </div>

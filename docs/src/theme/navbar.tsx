@@ -127,7 +127,7 @@ export function Navbar() {
             rel="noopener noreferrer"
             className="mt-6 flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-medium text-muted hover:text-body hover:bg-soft rounded-lg transition-colors"
           >
-            <Github className="size-16" />
+            <Github className="size-5" />
             GitHub
           </a>
         )}
