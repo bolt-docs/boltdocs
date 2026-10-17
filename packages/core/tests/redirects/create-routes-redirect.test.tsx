@@ -1,21 +1,12 @@
 import { describe, expect, it } from 'vitest'
 import { renderToStaticMarkup } from 'react-dom/server'
-import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import { buildRedirectRoutes } from '../../src/client/ssg/create-routes.redirect'
 import type { BoltdocsConfig } from '../../src/shared/types'
 
 function renderAt(path: string, config: BoltdocsConfig): string {
   const routes = buildRedirectRoutes({ config })
-  return renderToStaticMarkup(
-    <MemoryRouter initialEntries={[path]}>
-      <Routes>
-        {routes.map((route) => (
-          <Route key={route.path} path={route.path} element={route.element} />
-        ))}
-        <Route path="*" element={<p>not found</p>} />
-      </Routes>
-    </MemoryRouter>,
-  )
+  const matched = routes.find((route) => route.path === path)
+  return renderToStaticMarkup(matched ? matched.element : <p>not found</p>)
 }
 
 describe('buildRedirectRoutes', () => {

@@ -1,6 +1,5 @@
 import { useEffect } from 'react'
-import { useNavigate } from 'react-router-dom'
-import type { RouteRecord } from '../router'
+import { useNavigate, type RouteRecord } from '../router'
 import type { BoltdocsConfig, RedirectConfig } from '../types'
 
 interface RedirectRouteOptions {
