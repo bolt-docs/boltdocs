@@ -1,0 +1,269 @@
+---
+title: "Boltdocs 3.4.0 — Builds incrementales, redirecciones declarativas y una capa de contratos compartida"
+description: "Boltdocs 3.4.0 introduce redirecciones declarativas, rebuilds incrementales más rápidos, una renovación de la hidratación, View Transitions accesibles y el nuevo paquete @bdocs/contracts."
+date: 2026-10-16
+cover: /blog-covers/Boltdocs-3.4.0.webp
+author:
+  name: Jesús Alcalá
+  avatar: /avatar.jpeg
+excerpt: "Boltdocs 3.4.0 hace que los builds de ediciones sean proporcionales al cambio, incorpora redirecciones declarativas, recorta el 22% del JavaScript por visita, elimina todos los desajustes de hidratación del sitio de documentación y publica el paquete agnóstico al framework @bdocs/contracts sobre el que se construirá la arquitectura 4.0."
+tags: ["Release", "Performance"]
+tab: "3.4.0"
+---
+
+Boltdocs 3.4.0 es la release en la que el build finalmente deja de hacer el mismo trabajo dos veces. Editar una sola página ahora recompila un documento y re-renderiza una ruta, y el framework gana el sistema de redirecciones declarativas, el file-routing dinámico y las View Transitions conscientes del movimiento reducido que le faltaban.
+
+También es la release en la que una página renderizada en el servidor dejó de renderizarse dos veces. Cada desajuste de hidratación que pudimos reproducir desapareció, que es lo menos glamoroso y lo más trascendente de esta versión.
+
+Esta release publica `@bdocs/contracts`, el primer paquete del trabajo de arquitectura 4.0. Es aditivo: cada tipo que incluye sigue re-exportándose desde `boltdocs`, así que actualizar no cambia nada en tu proyecto.
+
+<Callout type="info">
+  3.4.0 es retrocompatible. No se elimina ningún import, clave de configuración
+  ni API de plugins. El trabajo de cambios disruptivos llega después, en la
+  rama `4.0`, y se publicará con codemods y una guía de migración.
+</Callout>
+
+## Una página ya no se renderiza dos veces
+
+El compilador de MDX estaba adjuntando el HTML serializado de syntax highlighting como `data-highlighted-html` **y además** dejando los hijos del árbol de resaltado en el mismo nodo. El compilador emite ambos, así que cada code block llegaba al navegador dos veces: una como string de HTML y otra como árbol de React.
+
+El árbol era peso puro. El code block renderiza `data-highlighted-html` y se ignora por completo sus hijos — el botón de copiar y el control de expandir/colapsar leen el DOM renderizado, no el árbol. Ahora los hijos solo se emiten cuando la serialización falla, que es el único caso en que el árbol es la única vía de renderizado disponible.
+
+El efecto medido en este sitio de documentación, que es de 263 páginas:
+
+|                                      | Antes   | Después |
+| ------------------------------------ | ------- | ------- |
+| JavaScript entregado por visita      | 2440 KB | 1907 KB |
+| Nodos duplicados de React por página | 11,539  | 0       |
+| Cliente total construido             | 8310 KB | 5672 KB |
+
+**22% menos JavaScript por visita.** Los nodos duplicados eran la mayor fuente individual de peso muerto en el cliente.
+
+## Todos los desajustes de hidratación, arreglados de raíz
+
+React 19 descarta la página entera renderizada en el servidor cuando el navegador produce un markup distinto, y la reconstruye. En este sitio ocurría en 16 de 266 páginas: React tiraba ~690 nodos por página y los reconstruía. Cuatro causas independientes, cada una arreglada donde se originaba en lugar de parchada en la capa de componentes.
+
+**Whitespace dentro de las secciones de tablas.** El compilador de MDX conservaba los saltos de línea que separaban las filas de las tablas y los emitía como hijos de texto de `<tbody>`. React lo rechaza de plano, y el parser del navegador ya descartó esos nodos de texto cuando la hidratación corre, así que las dos partes nunca pueden estar de acuerdo. El whitespace ahora se elimina del árbol, lo que también arregla las tablas en temas personalizados.
+
+**Fechas formateadas con la locale del runtime.** `toLocaleDateString()` sin una locale explícita se resuelve contra el entorno. El servidor renderizaba `26 de septiembre de 2026` con una locale de sistema `es` mientras el navegador producía `September 26, 2026`. La zona horaria tenía que fijarse por la misma razón: una fecha de frontmatter como `2026-09-27` se parsea como medianoche UTC, así que cualquier zona detrás de UTC renderiza el día anterior. Cuatro sitios de llamada habían implementado esto de forma ligeramente distinta entre sí; ahora comparten un solo helper, exportado para que los temas también puedan usarlo.
+
+**Un logo que dependía del tema.** Resolver `theme.logo` a una única fuente desde el tema resuelto parece inofensivo, pero el servidor no puede conocer el tema. Eso cambiaba el `<img src>`, que cambiaba el `href` de la precarga que React genera para `fetchPriority="high"`, así que el cliente nunca reclamaba el nodo que el servidor había emitido. Ahora ambas variantes se renderizan y el CSS elige la visible, según la clase `dark` que un script bloqueante establece antes del primer paint — lo que también elimina el flash de logo incorrecto.
+
+**Las publicaciones de colecciones elegían el layout equivocado.** `MdxPage` decidía entre el layout de colección y el layout de documentación inspeccionando los datos del loader, pero el primer render del cliente corre sin ellos. El servidor había enviado el layout de colección y el cliente renderizaba el de documentación. Ahora la decisión se toma desde la tabla de rutas, que se conoce de forma síncrona.
+
+Verificado en todas las páginas generadas: **266 páginas, sin errores de hidratación y sin 404.** Antes 16 páginas reportaban el desajuste y 3 devolvían 404.
+
+<Callout type="warning">
+  Si renderizas `MdxPage` directamente en lugar de pasar por la tabla de
+  rutas, los datos del loader siguen siendo la vía para señalar una
+  publicación de colección.
+</Callout>
+
+## Los builds de ediciones ahora son incrementales
+
+Reconstruir un sitio de documentación tras editar una página invalidaba todo el sitio. El compilador de MDX era correcto, pero la caché de renderizado usaba como clave los bytes del chunk de cliente emitido, y Vite con frecuencia emite un único chunk combinado para sitios pequeños y medianos. Por lo tanto, una edición de texto cambiaba un byte en un archivo del que dependían todas las páginas.
+
+Boltdocs 3.4.0 usa como clave cada ruta por lo que realmente la afecta:
+
+- el **hash de contenido del archivo fuente**;
+- una **identidad compartida del cliente** que cubre el código del framework y del proyecto;
+- la **identidad de la hoja de estilos**;
+- la **identidad del motor de CSS crítico**.
+
+El resultado es medible. En el sitio de benchmark de 20 páginas, un rebuild tras una edición ahora reporta:
+
+```text
+1 page new / 20 pages cached
+```
+
+en lugar de re-renderizar las 21 rutas renderizadas.
+
+La misma idea aplica a la precompilación de MDX. Cuando exactamente un documento está desactualizado, Boltdocs lo compila en el propio proceso en lugar de arrancar el pool de workers de compilación, lo que elimina el costo de arranque del pool de la edición más común.
+
+## Programación del renderizado que realmente paraleliza
+
+El pool de workers del SSG estaba configurado correctamente pero nunca se usaba en paralelo. Los lotes se renderizaban secuencialmente dentro de cada worker, y el lote se dimensionaba según la ventana en vuelo — `workers * 2`. Con seis workers eso significaba un trabajo serial de doce páginas por worker, así que los workers nunca se entrelazaban y el tiempo total de pared se volvía aproximadamente `ceil(pages / workers) × batchDuration`.
+
+La cola, no el render, era el costo: la espera medida por lote era un P50 de **21,180 ms** frente a un render por página de 206 ms.
+
+El lote por defecto ahora es de dos páginas, lo que mantiene a cada worker alimentado con trabajos cortos que el scheduler puede entrelazar. En un build de 263 páginas, la espera por lote pasó de un P50 de 21,180 ms a **170 ms**, y la fase de renderizado de 75.3 s a 63.1 s. Un `batchSize` explícito sigue respetándose y sigue limitándose a un mínimo de dos.
+
+La métrica que reportaba esto también estaba mal: medía el tiempo transcurrido desde el envío del lote pero lo reportaba por página, así que un build de 40 s reportaba tiempos de worker de 2,768,043 ms. Ahora reporta una distribución por lote.
+
+## Redirecciones declarativas
+
+Las redirecciones ahora son un asunto de configuración en lugar de un plugin escrito a mano. Decláralas una vez y Boltdocs se encarga del router del cliente, del output estático y de la validación.
+
+```ts title="boltdocs.config.ts"
+import { defineConfig } from "boltdocs";
+
+export default defineConfig({
+  redirects: [
+    { from: "/docs/old-guide", to: "/docs/guides/new-guide" },
+    { from: "/changelog", to: "https://example.com/changelog" },
+    { from: "/docs/legacy", to: "/docs", locale: true },
+  ],
+});
+```
+
+Cada redirección se maneja en tres lugares:
+
+- **Navegación del cliente** resuelve la redirección en el router, así un enlace dentro de la app nunca muestra un parpadeo de una página intermedia.
+- **Output estático** escribe un documento HTML real para la ruta de origen, que contiene un `<meta http-equiv="refresh">`, un `<link rel="canonical">` y un script con `location.replace`. La redirección funciona en cualquier host estático sin JavaScript, y como usa `replace`, el botón atrás del visitante se salta la URL muerta.
+- **Validación en el build** rechaza el error de configuración antes de que se escriba nada.
+
+La validación es la parte que más importa en la práctica, porque un bug de redirección es invisible hasta que deja tráfico varado:
+
+| Comprobación                     | Comportamiento                                                     |
+| -------------------------------- | ------------------------------------------------------------------ |
+| `from` duplicado                 | Error de build nombrando la fuente en conflicto                    |
+| La fuente oculta una ruta real   | Error de build en lugar de ocultar una página en silencio          |
+| Bucle de redirección             | Error de build con el ciclo completo, por ejemplo `/a -> /b -> /a` |
+| Cadena (`/a -> /b -> /c`)        | Se colapsa a un solo salto, así el navegador nunca rebota          |
+
+`status` acepta `301`, `302`, `307` y `308`, y por defecto es `301`. Poner `locale: true` replica la redirección en todas las locales configuradas, que es el caso común cuando una página de documentación fue traducida pero una URL se consolidó después.
+
+## View Transitions que respetan al visitante
+
+View Transitions pasaron de una llamada desnuda a `startViewTransition()` a una integración consciente de la navegación.
+
+**Tipos direccionales.** Boltdocs rastrea un cursor de historial y envía un tipo de transición `forward` o `back`, así un tema puede animar distinto la navegación hacia adelante y hacia atrás:
+
+```css title="theme.css"
+::view-transition-old(page) {
+  animation: fade-out 150ms ease;
+}
+
+html[data-transition="back"]::view-transition-old(page) {
+  animation: slide-in-right 200ms ease;
+}
+```
+
+**El movimiento reducido se respeta.** Cuando el sistema operativo reporta `prefers-reduced-motion: reduce`, Boltdocs se salta por completo la animación del documento y realiza la navegación de inmediato. Una view transition anima el documento entero, así que ignorar esa preferencia convierte una configuración de accesibilidad en una regresión de sensibilidad al movimiento. El chequeo es en vivo, así que un visitante puede cambiar la configuración sin recargar.
+
+`useViewTransition()` también expone `reducedMotion` y `supported` directamente, así que los layouts personalizados y las páginas externas pueden ramificar según la capacidad real en lugar de adivinar.
+
+## File-routing con segmentos dinámicos
+
+`experimental.fileRouting` antes mapeaba los nombres de archivo a segmentos de URL de uno a uno e ignoraba los directorios con corchetes. Boltdocs 3.4.0 soporta la sintaxis de corchetes que ya conoces:
+
+```text
+docs/pages-external/blog/[slug].mdx      →  /blog/:slug
+docs/pages-external/docs/[...parts].mdx  →  /docs/*
+docs/pages-external/shop/[[...parts]].mdx →  /shop/*?
+```
+
+Esto significa que un único archivo MDX puede ahora servir un árbol de rutas entero, con los valores capturados disponibles para la página a través del router. Los archivos estáticos siguen funcionando exactamente igual que antes, y el prefijo de locale sigue aplicándose antes del segmento dinámico, así que `es/blog/[slug].mdx` sirve `/es/blog/:slug`.
+
+## `@bdocs/contracts`
+
+El trabajo 4.0 necesitaba un vocabulario compartido del que el core, el pipeline del SSG, Sätteri y todos los plugins pudieran depender sin depender unos de otros. Ese paquete ya está publicado.
+
+```ts
+import type {
+  RouteMeta,
+  PluginDefinition,
+  PluginContext,
+  PluginLifecycleHooks,
+  CodeHighlightConfig,
+  BoltdocsConfigContract,
+} from "@bdocs/contracts";
+```
+
+`@bdocs/contracts` no tiene dependencias en runtime de Node.js, Vite, React ni de ninguna integración. Contiene:
+
+- metadatos de rutas y headings;
+- definiciones de plugins, hooks de ciclo de vida, cachés, diagnósticos, HMR y middleware de servidor;
+- el SPI del code highlighter;
+- contratos de documentos de búsqueda;
+- configuración agnóstica al framework;
+- identidades de módulos y eventos de invalidación usados por los builds incrementales.
+
+Cada uno de estos tipos sigue re-exportándose desde `boltdocs`, así que el código existente sigue compilando:
+
+```ts
+import type { RouteMeta, PluginContext } from "boltdocs";
+```
+
+`@bdocs/processor-satteri` ahora consume el contrato de ciclo de vida directamente en lugar de meterse en los tipos del core, que es el primer beneficio concreto de la frontera.
+
+## Navegación que se precarga antes de que hagas clic
+
+El prefetch ya corría en hover y en el foco del teclado, lo que se queda corto frente a cómo se lee realmente la documentación. Un lector recorre el sidebar con el scroll, lee un heading y hace clic — sin que el puntero haya llegado a aterrizar sobre el enlace. Todos los destinos plausibles estaban en pantalla, fríos.
+
+`Link` ahora acepta `prefetch="viewport"`, que conserva el comportamiento en hover y además precarga el destino a medida que el enlace se acerca al viewport:
+
+```tsx title="app/my-link.tsx"
+import { Link } from "boltdocs/client";
+
+export function DocsLink() {
+  return (
+    <Link href="/docs/guides/getting-started/installation" prefetch="viewport">
+      Installation
+    </Link>
+  );
+}
+```
+
+Los enlaces del sidebar y los elementos de primer nivel del navbar activan la precarga, ya que son los grupos más densos de destinos en una página.
+
+Un detalle que vale la pena precisar, porque muchas veces se hace al revés: esto no descarga HTML. El router renderiza en el cliente, así que el documento se descargaría y se descartaría. Lo que se precarga es el chunk lazy de la ruta y sus datos de loader — las únicas dos cosas por las que una transición realmente espera. Por eso mismo encaja en la cola de prefetch existente sin ninguna maquinaria nueva: dos peticiones en vuelo, un backlog superficial, y el trabajo se cae cuando está saturado, exactamente como ya se comportaba el prefetch en hover. Un margen de 200px inicia la precarga justo antes de que el enlace entre por scroll.
+
+Es opt-in por enlace en lugar de global, así que los temas y sitios existentes no empiezan a pagar silenciosamente por ancho de banda extra.
+
+## Ediciones que se quedan como ediciones
+
+**React Fast Refresh funciona con una base que no es la raíz.** `@vitejs/plugin-react` se omitía en dev para cualquier base distinta de `/` — que es la configuración de documentación más común que existe, `base: '/docs'`. Sin el plugin no hay runtime de refresco en absoluto, así que cada edición de `layout.tsx`, `icons.tsx` o de una página externa caía en una recarga completa del documento que tiraba la posición del scroll y volvía a ejecutar todos los loaders. El plugin maneja correctamente una base de sub-ruta; la restricción se eliminó. `BOLTDOCS_REACT_REFRESH=false` sigue permitiendo desactivarlo.
+
+**Las páginas externas en dev ya no dan 404.** Vite comparte la base de Boltdocs, y su middleware de base respondía a cada petición fuera de ella con `404 The server is configured with a public base URL of /docs`. Las páginas externas son rutas reales que viven en la raíz del sitio por diseño (`/`, `/about`, `/roadmap`, `/showcase`), y el build las emitía en la raíz del dist donde producción siempre las servía — así que el único entorno que fallaba era el que editas. El servidor de desarrollo ahora reescribe la URL interna de una ruta externa conocida a su forma prefijada con la base antes de que corra el check de base de Vite; la URL del navegador no se toca.
+
+**Editar una página externa ya no recarga el documento.** Esos archivos son módulos React comunes detrás del entry del usuario, así que el module graph de Vite y Fast Refresh ya los manejan. Suprimir eso convertía una edición de una línea de una landing page en el tipo de edición más lento posible.
+
+**Un guardado que trunca ya no se ve como una eliminación.** Un editor que trunca antes de escribir eliminaba brevemente el archivo del crawl, así que la ruta desaparecía y volvía en la siguiente escritura. Ahora se rastrean las escrituras en curso, y el re-diff está protegido.
+
+**Las páginas externas bajo la locale por defecto ya no dan 404.** Con `defaultLocale: 'en'`, las variantes localizadas de una página externa se generaban para _todas_ las locales configuradas incluida la por defecto, acuñando una segunda URL para la misma página. En un sitio bajo una base eso se convertía en `/docs/en/about`: un documento que el propio build escribió, en una URL que el router del cliente nunca conoce, porque la base no es parte de la ruta. Los visitantes recibían un 404 en una página que existía. Ahora se omite la locale por defecto — ya es la ruta sin prefijo.
+
+**El autocompletado de enlaces deja de perder rutas.** El árbol de enlaces generado y la ampliación de `RoutePaths` se armaban con cuatro copias separadas de la misma lógica, más una quinta en el servidor de dev que solo pasaba las rutas de documentación. Se habían desfasado, así que `/roadmap`, `/showcase`, `/about` y la propia base faltaban, y las rutas de colecciones se ofrecían sin su base (`/blog/post` en lugar de `/docs/blog/post`). Un único helper compartido ahora los construye. Relacionado: regenerar tipos durante el HMR llamaba al generador sin route paths, despojando el bloque entero de `RoutePaths` — así que editar `mdx-components` o agregar una página mataba silenciosamente el autocompletado hasta la siguiente corrida completa.
+
+## Foco de teclado que de verdad se ve
+
+Los componentes suprimen el anillo del user-agent con `outline-none` y se espera que provean su propia affordance de `focus-visible:`. Muchos no lo hacían: el botón de descartar del banner, los enlaces del navbar, el selector de idioma y el botón de copiar código eran alcanzables por teclado con **ningún indicador de foco visible en absoluto**, lo que falla WCAG 2.4.7 Focus Visible.
+
+`focus-visible:outline-2` por sí solo tampoco bastaba. Emite `outline-style: var(--tw-outline-style)`, una variable que solo define la utilidad all-in-one `outline`, así que la declaración era inválida y no se pintaba nada.
+
+`reset.css` ahora declara un orden de cascade layers y lleva una línea base en una nueva capa `a11y` ordenada después de `utilities` — las cascade layers superan a la especificidad de selectores, así que una regla en `base` no puede vencer a la utilidad `outline-none` por más específica que sea. La línea base es un piso, no un diseño: los componentes con un indicador deliberado siguen ganando, y un tema puede reemplazarlo desde su propia hoja de estilos.
+
+La suite de accesibilidad pasó de 18 pruebas fallando a 0. Siete de esos fallos eran de las propias pruebas: `locator.all()` sin `await`, aserciones sobre estados que no pueden ocurrir, y URLs que ya no existían.
+
+## Otras mejoras
+
+- **Relevancia y snippets de búsqueda** — mejor scoring, coincidencias resaltadas, cancelación de consultas obsoletas y actualizaciones del índice a través de HMR.
+- **Completion de Ask AI** — soporte multi-proveedor, adaptadores de servidor endurecidos, límites de petición y de entrada, rate limiting y una UI de chat accesible.
+- **Resolución de rutas** — la resolución de locale y versión está indexada en lugar de re-escanearse por ruta, lo que elimina la mayor parte del costo de routing en sitios grandes.
+- **Accesibilidad** — superficies limpias de axe en toda la documentación, con una suite de regresión de Playwright que protege la tabla de contenidos en página.
+
+## Actualización
+
+```bash
+pnpm add boltdocs@3.4.0
+```
+
+No hay nada que migrar. Si quieres adoptar las nuevas funciones, actívalas de a una:
+
+```ts title="boltdocs.config.ts"
+import { defineConfig } from "boltdocs";
+
+export default defineConfig({
+  redirects: [{ from: "/docs/old", to: "/docs/new" }],
+  experimental: {
+    viewTransitions: { enabled: true },
+    fileRouting: true,
+  },
+});
+```
+
+## Qué viene después
+
+3.4.0 es la línea estable. La arquitectura 4.0 continúa en una rama dedicada: extracción del SEO a un plugin, `ui-base` y los primitives moviéndose a sus propios paquetes, un runtime del navegador separado del motor de Node, y builds incrementales completos del cliente y del servidor.
+
+El roadmap público vive en la [página de roadmap](/roadmap), y el plan de migración interno se rastrea en el repositorio.

@@ -24,16 +24,14 @@ export const layout = ({ children }: { children: React.ReactNode }) => {
         dismissible
         className="bg-white dark:bg-white text-black dark:text-black group"
       >
-        {t.bannerNewVersion}{' '}
+        <span>{t.bannerNewVersion}</span>
         <Link
-          href="site:/blog/boltdocs-3.3.0"
-          className="underline underline-offset-4 font-semibold"
+          href="site:/blog/boltdocs-3.4.0"
+          className="underline underline-offset-4 font-semibold group-hover:translate-x-0.5 transition-transform"
         >
           {t.bannerReadPost}
         </Link>
-        <span>
-          <ArrowRight className="size-5 group-hover:translate-x-2 transition-transform " />
-        </span>
+        <ArrowRight className="size-4 group-hover:translate-x-1 transition-transform" />
       </Banner>
       <Navbar />
       {children}
