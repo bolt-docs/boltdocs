@@ -1,5 +1,44 @@
 # @bdocs/ssg
 
+## 0.5.0
+
+### Minor Changes
+
+- [`1d62dac`](https://github.com/bolt-docs/boltdocs/commit/1d62dac2bc237a919df6a89d5ebf7c94a94f742b) Thanks [@jesusalcaladev](https://github.com/jesusalcaladev)! - Boltdocs 3.4.0 — architecture contracts and incremental build foundation.
+
+  This release publishes the new `@bdocs/contracts` package as the framework-neutral
+  contract layer for routes, plugin lifecycle, plugin definitions, highlighting,
+  search documents, and configuration. Its first public version is **`0.1.0`**
+  (kept pre-1.0 while 4.0 reshapes the seam). `boltdocs` now re-exports those
+  contracts so the existing 3.x public API keeps working unchanged.
+
+  Highlights:
+  - introduce `@bdocs/contracts` with route, plugin, lifecycle, highlighting, and configuration contracts;
+  - keep `boltdocs` exports backward compatible through re-exports;
+  - make `@bdocs/processor-satteri` consume the shared lifecycle contract directly;
+  - align `@bdocs/ssg` and `@bdocs/plugin-ask-ai` on the new contract boundary;
+  - ship the Vite 8.1 toolchain alignment and the content-addressed SSG page cache;
+  - avoid full-site re-render on a single page edit.
+
+### Patch Changes
+
+- [`8abe562`](https://github.com/bolt-docs/boltdocs/commit/8abe5625b80f4e588341d4488c774a323561256a) Thanks [@jesusalcaladev](https://github.com/jesusalcaladev)! - Transform the HTML entry instead of the request URL in dev
+
+  The SSG dev middleware called `server.transformIndexHtml(url, template)` with
+  the request URL. Vite derives the html-proxy filename by joining that argument
+  with the project root, so a route such as `/docs` resolved to a real directory
+  (a `docs/docs` content folder under a `/docs` base) and emitted a sourcemap
+  pointing at a directory: `Sourcemap for "/docs" points to missing source
+files`. The entry HTML is now transformed with the configured HTML entry path.
+
+- [`53be90d`](https://github.com/bolt-docs/boltdocs/commit/53be90d0edf5daabb207d87bd3e9f79160ffa4cc) Thanks [@jesusalcaladev](https://github.com/jesusalcaladev)! - Fix a render scheduling bug that serialized page rendering across the worker pool.
+
+  Batches render sequentially inside a worker, and the batch was sized to the in-flight window (`workers * 2`). With six workers that meant a twelve-page serial job per worker, so the workers never interleaved and total wall time became roughly `ceil(pages / workers) * batchDuration`. Measured per-batch wait was a P50 of 21 seconds against a per-page render of 206ms — the queue, not the render, was the cost.
+
+  The default batch is now two pages, which keeps every worker fed with short jobs that the scheduler can interleave. On a 263-page build this dropped measured batch wait from a P50 of 21,180ms to 170ms and reduced the render phase from 75.3s to 63.1s on the same machine. An explicit `batchSize` is still honoured and still clamped to a minimum of two.
+
+  Also adds the per-batch wait to the build's benchmark output as a count plus P50/P95/max. The previous figure summed queue wait across concurrent batches, which double-counted overlapping time and reported 2,768,043ms for a 40s build.
+
 ## 0.4.4
 
 ### Patch Changes
