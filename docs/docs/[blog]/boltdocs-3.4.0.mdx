@@ -1,8 +1,8 @@
 ---
 title: "Boltdocs 3.4.0 — Incremental Builds, Redirects, and a Shared Contract Layer"
 description: "Boltdocs 3.4.0 introduces declarative redirects, faster incremental rebuilds, a hydration overhaul, accessible View Transitions, and the new @bdocs/contracts package."
-date: 2026-09-27
-cover: /blog-covers/Boltdocs-3.3.0.webp
+date: 2026-10-16
+cover: /blog-covers/Boltdocs-3.4.0.webp
 author:
   name: Jesús Alcalá
   avatar: /avatar.jpeg
@@ -18,7 +18,9 @@ It is also the release where a server-rendered page stopped rendering twice. Eve
 This release publishes `@bdocs/contracts`, the first package of the 4.0 architecture work. It is additive: every type it carries is still re-exported from `boltdocs`, so upgrading changes nothing in your project.
 
 <Callout type="info">
-  3.4.0 is backward compatible. No import, configuration key, or plugin API is removed. The breaking work happens later, on the `4.0` branch, and will ship with codemods and a migration guide.
+  3.4.0 is backward compatible. No import, configuration key, or plugin API is
+  removed. The breaking work happens later, on the `4.0` branch, and will ship
+  with codemods and a migration guide.
 </Callout>
 
 ## A page no longer renders twice
@@ -29,11 +31,11 @@ The tree was pure weight. The code block renders `data-highlighted-html` and ign
 
 The measured effect on this documentation site, which is 263 pages:
 
-| | Before | After |
-| --- | --- | --- |
+|                                | Before  | After   |
+| ------------------------------ | ------- | ------- |
 | JavaScript delivered per visit | 2440 KB | 1907 KB |
-| Duplicate React nodes per page | 11,539 | 0 |
-| Total built client | 8310 KB | 5672 KB |
+| Duplicate React nodes per page | 11,539  | 0       |
+| Total built client             | 8310 KB | 5672 KB |
 
 **22% less JavaScript per visit.** The duplicate nodes were the single largest source of dead weight in the client.
 
@@ -52,7 +54,8 @@ React 19 discards the entire server-rendered page when the browser produces diff
 Verified across every generated page: **266 pages, no hydration errors and no 404s.** Previously 16 pages reported the mismatch and 3 returned 404.
 
 <Callout type="warning">
-  If you render `MdxPage` directly instead of going through the route table, the loader data remains the way to signal a collection post.
+  If you render `MdxPage` directly instead of going through the route table, the
+  loader data remains the way to signal a collection post.
 </Callout>
 
 ## Edited builds are now incremental
@@ -91,15 +94,15 @@ The metric that reported this was also wrong: it measured elapsed time from batc
 Redirects are now a configuration concern instead of a hand-written plugin. Declare them once and Boltdocs handles the client router, the static output, and the validation.
 
 ```ts title="boltdocs.config.ts"
-import { defineConfig } from 'boltdocs'
+import { defineConfig } from "boltdocs";
 
 export default defineConfig({
   redirects: [
-    { from: '/docs/old-guide', to: '/docs/guides/new-guide' },
-    { from: '/changelog', to: 'https://example.com/changelog' },
-    { from: '/docs/legacy', to: '/docs', locale: true },
+    { from: "/docs/old-guide", to: "/docs/guides/new-guide" },
+    { from: "/changelog", to: "https://example.com/changelog" },
+    { from: "/docs/legacy", to: "/docs", locale: true },
   ],
-})
+});
 ```
 
 Each redirect is handled in three places:
@@ -110,12 +113,12 @@ Each redirect is handled in three places:
 
 Validation is the part that matters most in practice, because a redirect bug is invisible until it strands traffic:
 
-| Check | Behavior |
-| --- | --- |
-| Duplicate `from` | Build error naming the conflicting source |
-| Source shadows a real route | Build error instead of silently shadowing a page |
-| Redirect loop | Build error with the full cycle, for example `/a -> /b -> /a` |
-| Chain (`/a -> /b -> /c`) | Collapsed to a single hop, so the browser never bounces |
+| Check                       | Behavior                                                      |
+| --------------------------- | ------------------------------------------------------------- |
+| Duplicate `from`            | Build error naming the conflicting source                     |
+| Source shadows a real route | Build error instead of silently shadowing a page              |
+| Redirect loop               | Build error with the full cycle, for example `/a -> /b -> /a` |
+| Chain (`/a -> /b -> /c`)    | Collapsed to a single hop, so the browser never bounces       |
 
 `status` accepts `301`, `302`, `307`, and `308`, and defaults to `301`. Setting `locale: true` mirrors the redirect across every configured locale, which is the common case when a documentation page was translated but a URL was later consolidated.
 
@@ -130,7 +133,7 @@ View Transitions graduated from a bare `startViewTransition()` call to a navigat
   animation: fade-out 150ms ease;
 }
 
-html[data-transition='back']::view-transition-old(page) {
+html[data-transition="back"]::view-transition-old(page) {
   animation: slide-in-right 200ms ease;
 }
 ```
@@ -163,7 +166,7 @@ import type {
   PluginLifecycleHooks,
   CodeHighlightConfig,
   BoltdocsConfigContract,
-} from '@bdocs/contracts'
+} from "@bdocs/contracts";
 ```
 
 `@bdocs/contracts` has no runtime dependencies on Node.js, Vite, React, or any integration. It contains:
@@ -178,7 +181,7 @@ import type {
 Every one of these types is still re-exported from `boltdocs`, so existing code keeps compiling:
 
 ```ts
-import type { RouteMeta, PluginContext } from 'boltdocs'
+import type { RouteMeta, PluginContext } from "boltdocs";
 ```
 
 `@bdocs/processor-satteri` now consumes the lifecycle contract directly instead of reaching into core types, which is the first concrete payoff of the boundary.
@@ -190,14 +193,14 @@ Prefetching already ran on hover and keyboard focus, which misses how documentat
 `Link` now accepts `prefetch="viewport"`, which keeps hover behaviour and additionally warms the destination as the link approaches the viewport:
 
 ```tsx title="app/my-link.tsx"
-import { Link } from 'boltdocs/client'
+import { Link } from "boltdocs/client";
 
 export function DocsLink() {
   return (
     <Link href="/docs/guides/getting-started/installation" prefetch="viewport">
       Installation
     </Link>
-  )
+  );
 }
 ```
 
@@ -217,7 +220,7 @@ It is opt-in per link rather than global, so existing themes and sites do not si
 
 **A save that truncates is no longer seen as a deletion.** An editor that truncates before writing briefly removed the file from the crawl, so the route vanished and came back on the next write. Writes in progress are now tracked, and the re-diff is guarded.
 
-**External pages under the default locale no longer 404.** With `defaultLocale: 'en'`, the localized variants of an external page were generated for *every* configured locale including the default one, minting a second URL for the same page. On a site under a base that became `/docs/en/about`: a document the build itself wrote, at a URL the client router never learns about, because the base is not part of the route. Visitors got a 404 on a page that existed. The default locale is now skipped — it is already the unprefixed path.
+**External pages under the default locale no longer 404.** With `defaultLocale: 'en'`, the localized variants of an external page were generated for _every_ configured locale including the default one, minting a second URL for the same page. On a site under a base that became `/docs/en/about`: a document the build itself wrote, at a URL the client router never learns about, because the base is not part of the route. Visitors got a 404 on a page that existed. The default locale is now skipped — it is already the unprefixed path.
 
 **Link autocompletion stops dropping routes.** The generated link tree and the `RoutePaths` augmentation were assembled by four separate copies of the same logic, plus a fifth in the dev server that only passed documentation routes. They had drifted, so `/roadmap`, `/showcase`, `/about` and the base itself were missing, and collection routes were offered without their base (`/blog/post` instead of `/docs/blog/post`). One shared helper now builds them. Related: regenerating types during HMR used to call the generator without route paths, stripping the whole `RoutePaths` block — so editing `mdx-components` or adding a page silently killed autocompletion until the next full run.
 
@@ -247,15 +250,15 @@ pnpm add boltdocs@3.4.0
 There is nothing to migrate. If you want to adopt the new features, enable them one at a time:
 
 ```ts title="boltdocs.config.ts"
-import { defineConfig } from 'boltdocs'
+import { defineConfig } from "boltdocs";
 
 export default defineConfig({
-  redirects: [{ from: '/docs/old', to: '/docs/new' }],
+  redirects: [{ from: "/docs/old", to: "/docs/new" }],
   experimental: {
     viewTransitions: { enabled: true },
     fileRouting: true,
   },
-})
+});
 ```
 
 ## What comes next
