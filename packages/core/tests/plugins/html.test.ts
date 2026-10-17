@@ -85,7 +85,7 @@ describe('plugin html', () => {
       expect(result).not.toContain('<meta name="twitter:description"')
     })
 
-    it('should prefix root-relative favicon and preload URLs with the base', () => {
+    it('emits favicon and preload URLs without the base so Vite applies it once', () => {
       const config = {
         base: '/docs',
         theme: {
@@ -95,8 +95,37 @@ describe('plugin html', () => {
       }
       const result = injectHtmlMeta(baseHtml, config as any)
 
-      expect(result).toContain('<link rel="icon" href="/docs/favicon.ico">')
-      expect(result).toContain('href="/docs/logo-light.svg"')
+      // Vite prepends `base` to these `href`s exactly once, in both dev and
+      // build. Pre-prefixing it here made Vite apply it twice in dev
+      // (`/docs/docs/...`) and the favicon 404'd.
+      expect(result).toContain('<link rel="icon" href="/favicon.ico">')
+      expect(result).toContain('href="/logo-light.svg"')
+      expect(result).not.toContain('/docs/favicon.ico')
+      expect(result).not.toContain('/docs/logo-light.svg')
+    })
+
+    it('strips a base already written by the user so injection is idempotent', () => {
+      const config = {
+        base: '/docs',
+        theme: { favicon: '/docs/favicon.ico' },
+      }
+      const result = injectHtmlMeta(baseHtml, config as any)
+
+      expect(result).toContain('<link rel="icon" href="/favicon.ico">')
+      expect(result).not.toContain('/docs/favicon.ico')
+    })
+
+    it('leaves external and protocol-relative URLs untouched', () => {
+      const external = injectHtmlMeta(baseHtml, {
+        theme: { favicon: 'https://cdn.example.com/icon.svg' },
+      } as any)
+      expect(external).toContain('href="https://cdn.example.com/icon.svg"')
+
+      const protocolRelative = injectHtmlMeta(baseHtml, {
+        base: '/docs',
+        theme: { favicon: '//cdn.example.com/icon.svg' },
+      } as any)
+      expect(protocolRelative).toContain('href="//cdn.example.com/icon.svg"')
     })
 
     it('should inject favicon from string logo', () => {

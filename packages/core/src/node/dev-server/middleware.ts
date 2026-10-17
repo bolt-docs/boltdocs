@@ -1,8 +1,11 @@
+import fs from 'node:fs'
+import path from 'node:path'
 import type { ViteDevServer } from 'vite'
 import type { BoltdocsConfig } from '../config'
 import { SECURITY_HEADERS } from '../security/headers'
 import { getCSPHeader } from '../security/csp'
-import { getHtmlTemplate, injectHtmlMeta } from '../plugin/html'
+import { getHtmlTemplate } from '../plugin/html'
+import { createStaticSsgOptions } from '../plugin/ssg-static-options'
 import { createFeedbackMiddleware } from '../plugin/middlewares'
 
 const ASSET_URL_RE =
@@ -45,9 +48,24 @@ export function setupMiddlewares(
     const config = getConfig()
 
     if (accept.includes('text/html') && !ASSET_URL_RE.test(url)) {
-      let html = getHtmlTemplate(config)
-      html = injectHtmlMeta(html, config)
-      html = await server.transformIndexHtml(req.url || '/', html)
+      const htmlEntry = createStaticSsgOptions(config).htmlEntry
+      // Serve the project's real `index.html` so the dev server matches the
+      // production template (custom head, theme seeding, preconnects, …).
+      // Fall back to the neutral shell when the entry is missing.
+      const templatePath = path.join(server.config.root, htmlEntry)
+      const template = fs.existsSync(templatePath)
+        ? fs.readFileSync(templatePath, 'utf-8')
+        : getHtmlTemplate(config)
+      // The `transformIndexHtml` hook injects the head meta (favicon,
+      // preload, robots, …) exactly once — do not call `injectHtmlMeta` here
+      // as well, that duplicated every injected tag. Pass the html entry
+      // (never the request URL) so Vite's html proxy resolves a real file
+      // instead of a content directory such as `docs/docs`.
+      const html = await server.transformIndexHtml(
+        `/${htmlEntry.replace(/^\/+/, '')}`,
+        template,
+        req.url || '/',
+      )
       res.statusCode = 200
       res.setHeader('Content-Type', 'text/html')
       res.end(html)
