@@ -2,13 +2,6 @@ import {
   ArrowRight,
   ExternalLink,
   Terminal,
-  Palette,
-  ListChecks,
-  TextCursorInput,
-  LoaderCircle,
-  Table2,
-  BarChart3,
-  KeyRound,
   ChevronRight,
   ChevronLeft,
 } from 'lucide-react'
@@ -20,7 +13,6 @@ import { useTranslations } from '@/i18n/index'
 import { Section } from '@/theme/section'
 
 function ShowcaseItems() {
-  const t = useTranslations()
   const items = [
     {
       name: 'DUI — Terminal UI',
@@ -99,9 +91,9 @@ function ImageCarousel({ images }: { images: string[] }) {
             <ChevronRight className="size-16" />
           </button>
           <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-2">
-            {images.map((_, i) => (
+            {images.map((image, i) => (
               <button
-                key={i}
+                key={image}
                 onClick={() => {
                   setCurrent(i)
                   setLoaded((prev) => new Set(prev).add(i))
