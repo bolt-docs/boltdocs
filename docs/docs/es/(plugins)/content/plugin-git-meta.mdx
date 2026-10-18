@@ -2,9 +2,10 @@
 title: "Metadatos de Git"
 sidebarPosition: 7
 description: Obtén fechas de última actualización y listas de contribuidores desde el historial de git con @bdocs/plugin-git-meta.
+badge: "New"
 ---
 
-*El paquete `@bdocs/plugin-git-meta` incluye dos plugins que leen el historial de tu repositorio: uno para la fecha de última actualización de cada página y otro para la lista de contribuidores. Ambos comparten un único escaneo de `git log`, así que activarlos juntos apenas añade coste.*
+_El paquete `@bdocs/plugin-git-meta` incluye dos plugins que leen el historial de tu repositorio: uno para la fecha de última actualización de cada página y otro para la lista de contribuidores. Ambos comparten un único escaneo de `git log`, así que activarlos juntos apenas añade coste._
 
 ## Conceptos y arquitectura
 
@@ -19,9 +20,9 @@ Solo se tienen en cuenta commits que no son merges. Las fechas usan la fecha de 
 
 ### Qué añade cada plugin
 
-| Plugin | Campo de la ruta | Origen |
-| :--- | :--- | :--- |
-| `lastUpdatedPlugin()` | `route.lastUpdated` | Último commit no-merge que tocó el archivo |
+| Plugin                 | Campo de la ruta     | Origen                                              |
+| :--------------------- | :------------------- | :-------------------------------------------------- |
+| `lastUpdatedPlugin()`  | `route.lastUpdated`  | Último commit no-merge que tocó el archivo          |
 | `contributorsPlugin()` | `route.contributors` | Autores de cada commit no-merge que tocó el archivo |
 
 ---
@@ -33,18 +34,12 @@ pnpm add @bdocs/plugin-git-meta
 ```
 
 ```ts title="boltdocs.config.ts"
-import { defineConfig } from 'boltdocs'
-import {
-  contributorsPlugin,
-  lastUpdatedPlugin,
-} from '@bdocs/plugin-git-meta'
+import { defineConfig } from "boltdocs";
+import { contributorsPlugin, lastUpdatedPlugin } from "@bdocs/plugin-git-meta";
 
 export default defineConfig({
-  plugins: [
-    lastUpdatedPlugin(),
-    contributorsPlugin(),
-  ],
-})
+  plugins: [lastUpdatedPlugin(), contributorsPlugin()],
+});
 ```
 
 Los dos plugins son independientes. Activa solo el que necesites.
@@ -55,37 +50,37 @@ Los dos plugins son independientes. Activa solo el que necesites.
 
 ### `lastUpdatedPlugin`
 
-| Opción | Tipo | Por defecto | Descripción |
-| :--- | :--- | :--- | :--- |
-| `fallbackToMtime` | `boolean` | `false` | Usa la fecha de modificación del archivo cuando git no tiene historial para la página (archivo sin seguimiento, clon superficial). |
-| `overrideFrontmatter` | `boolean` | `false` | Sustituye por la fecha de git un valor `lastUpdated` escrito como string o `Date` en el frontmatter. |
-| `paths` | `string[]` | — | Solo procesa rutas que empiecen por alguno de estos prefijos. |
-| `excludePaths` | `string[]` | — | Omite rutas que empiecen por alguno de estos prefijos. |
+| Opción                | Tipo       | Por defecto | Descripción                                                                                                                        |
+| :-------------------- | :--------- | :---------- | :--------------------------------------------------------------------------------------------------------------------------------- |
+| `fallbackToMtime`     | `boolean`  | `false`     | Usa la fecha de modificación del archivo cuando git no tiene historial para la página (archivo sin seguimiento, clon superficial). |
+| `overrideFrontmatter` | `boolean`  | `false`     | Sustituye por la fecha de git un valor `lastUpdated` escrito como string o `Date` en el frontmatter.                               |
+| `paths`               | `string[]` | —           | Solo procesa rutas que empiecen por alguno de estos prefijos.                                                                      |
+| `excludePaths`        | `string[]` | —           | Omite rutas que empiecen por alguno de estos prefijos.                                                                             |
 
 ```ts
 lastUpdatedPlugin({
   overrideFrontmatter: true,
-  excludePaths: ['/changelog'],
-})
+  excludePaths: ["/changelog"],
+});
 ```
 
 Si `fallbackToMtime` está desactivado y un archivo no tiene historial de git, la fecha existente de la ruta se mantiene. Las fechas explícitas del frontmatter siempre ganan salvo que actives `overrideFrontmatter`.
 
 ### `contributorsPlugin`
 
-| Opción | Tipo | Por defecto | Descripción |
-| :--- | :--- | :--- | :--- |
-| `max` | `number` | `12` | Máximo de contribuidores por página (1–100). |
-| `order` | `'commits' \| 'recent'` | `'commits'` | Ordena por total de commits o por la contribución más reciente. |
-| `excludeBots` | `boolean` | `true` | Descarta cuentas automáticas como dependabot, renovate e identidades `[bot]`. |
-| `excludeAuthors` | `string[]` | `[]` | Nombres o emails a excluir. |
-| `minCommits` | `number` | `1` | Ignora contribuidores por debajo de este número de commits. |
-| `mergeByName` | `boolean` | `true` | Combina identidades que comparten el mismo nombre visible. |
-| `includeEmail` | `boolean` | `false` | Incluye el email del autor en los metadatos de la ruta. |
-| `autoRender` | `boolean` | `true` | Monta el componente exportado `Contributors` en el pie de página por defecto. |
-| `profiles` | `Record<string, Profile>` | `{}` | Overrides por identidad, indexados por email o nombre visible. |
-| `paths` | `string[]` | — | Solo procesa rutas que empiecen por alguno de estos prefijos. |
-| `excludePaths` | `string[]` | — | Omite rutas que empiecen por alguno de estos prefijos. |
+| Opción           | Tipo                      | Por defecto | Descripción                                                                   |
+| :--------------- | :------------------------ | :---------- | :---------------------------------------------------------------------------- |
+| `max`            | `number`                  | `12`        | Máximo de contribuidores por página (1–100).                                  |
+| `order`          | `'commits' \| 'recent'`   | `'commits'` | Ordena por total de commits o por la contribución más reciente.               |
+| `excludeBots`    | `boolean`                 | `true`      | Descarta cuentas automáticas como dependabot, renovate e identidades `[bot]`. |
+| `excludeAuthors` | `string[]`                | `[]`        | Nombres o emails a excluir.                                                   |
+| `minCommits`     | `number`                  | `1`         | Ignora contribuidores por debajo de este número de commits.                   |
+| `mergeByName`    | `boolean`                 | `true`      | Combina identidades que comparten el mismo nombre visible.                    |
+| `includeEmail`   | `boolean`                 | `false`     | Incluye el email del autor en los metadatos de la ruta.                       |
+| `autoRender`     | `boolean`                 | `true`      | Monta el componente exportado `Contributors` en el pie de página por defecto. |
+| `profiles`       | `Record<string, Profile>` | `{}`        | Overrides por identidad, indexados por email o nombre visible.                |
+| `paths`          | `string[]`                | —           | Solo procesa rutas que empiecen por alguno de estos prefijos.                 |
+| `excludePaths`   | `string[]`                | —           | Omite rutas que empiecen por alguno de estos prefijos.                        |
 
 ### Perfiles y avatares
 
@@ -95,13 +90,13 @@ Los emails noreply de GitHub (`12345+usuario@users.noreply.github.com`) generan 
 contributorsPlugin({
   max: 8,
   profiles: {
-    'jane@example.com': {
-      name: 'Jane Doe',
-      avatar: 'https://github.com/janedoe.png?size=64',
-      url: 'https://github.com/janedoe',
+    "jane@example.com": {
+      name: "Jane Doe",
+      avatar: "https://github.com/janedoe.png?size=64",
+      url: "https://github.com/janedoe",
     },
   },
-})
+});
 ```
 
 Las claves de `profiles` se comparan primero con el email y después con el nombre visible. Los emails nunca se envían al cliente salvo que actives `includeEmail`.
@@ -113,7 +108,7 @@ Las claves de `profiles` se comparan primero con el email y después con el nomb
 La UI vive en el plugin, no en el core. `contributorsPlugin()` monta el componente exportado `Contributors` en el lado izquierdo del pie de página por defecto mediante el slot de cliente `page:footer:start`, junto a la fecha de última actualización del framework. Desactiva el montaje automático si prefieres renderizarlo tú:
 
 ```ts
-contributorsPlugin({ autoRender: false })
+contributorsPlugin({ autoRender: false });
 ```
 
 ### Pies de página personalizados
@@ -121,59 +116,59 @@ contributorsPlugin({ autoRender: false })
 La entrada cliente del plugin exporta `Contributors`, `LastUpdated` y un `GitMetaFooter` listo para usar. Todos los componentes aceptan class slots y render props:
 
 ```tsx title="theme/my-page-footer.tsx"
-import { GitMetaFooter } from '@bdocs/plugin-git-meta/client'
-import { useRoutes } from 'boltdocs/client'
+import { GitMetaFooter } from "@bdocs/plugin-git-meta/client";
+import { useRoutes } from "boltdocs/client";
 
 export function MyPageFooter() {
-  const { currentRoute } = useRoutes()
+  const { currentRoute } = useRoutes();
 
   return (
     <GitMetaFooter
       date={currentRoute?.lastUpdated}
       contributors={currentRoute?.contributors}
       maxContributors={5}
-      labels={{ contributors: 'Autores', lastUpdated: 'Actualizado el' }}
+      labels={{ contributors: "Autores", lastUpdated: "Actualizado el" }}
       className="mt-16 border-t border-subtle pt-6"
-      contributorClassNames={{ avatar: 'ring-2 ring-surface' }}
+      contributorClassNames={{ avatar: "ring-2 ring-surface" }}
     />
-  )
+  );
 }
 ```
 
 Usa `Contributors` por separado cuando la fecha se renderiza en otro sitio:
 
 ```tsx
-import { Contributors } from '@bdocs/plugin-git-meta/client'
+import { Contributors } from "@bdocs/plugin-git-meta/client";
 
 <Contributors
   contributors={currentRoute?.contributors}
   max={3}
   size="md"
-  classNames={{ link: 'font-medium' }}
-  renderName={(contributor) => contributor.name.split(' ')[0]}
-/>
+  classNames={{ link: "font-medium" }}
+  renderName={(contributor) => contributor.name.split(" ")[0]}
+/>;
 ```
 
 ### Props de los componentes
 
-| Componente | Props principales |
-| :--- | :--- |
-| `Contributors` | `contributors`, `max`, `size` (`sm`/`md`), `showAvatars`, `showNames`, `label`, `classNames`, `className`, `linkTarget`, `renderAvatar`, `renderName`, `renderContributor` |
-| `LastUpdated` | `date`, `label`, `formatDate`, `className` |
+| Componente      | Props principales                                                                                                                                                                                            |
+| :-------------- | :----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `Contributors`  | `contributors`, `max`, `size` (`sm`/`md`), `showAvatars`, `showNames`, `label`, `classNames`, `className`, `linkTarget`, `renderAvatar`, `renderName`, `renderContributor`                                   |
+| `LastUpdated`   | `date`, `label`, `formatDate`, `className`                                                                                                                                                                   |
 | `GitMetaFooter` | `date`, `contributors`, `showContributors`, `showLastUpdated`, `maxContributors`, `labels`, `formatDate`, `className`, `contributorsClassName`, `dateClassName`, `contributorClassNames`, `contributorProps` |
 
 ### Forma de los datos
 
 Cada contribuidor es un `RouteContributor`:
 
-| Campo | Tipo | Notas |
-| :--- | :--- | :--- |
-| `name` | `string` | Nombre visible tras aplicar perfiles y fusión por nombre. |
-| `commits` | `number` | Número de commits del contribuidor en la página. |
-| `lastCommit` | `string` | Fecha ISO del último commit del contribuidor. |
-| `avatar` | `string` | URL de avatar opcional. |
-| `url` | `string` | URL de perfil opcional. |
-| `email` | `string` | Solo presente cuando `includeEmail` está activo. |
+| Campo        | Tipo     | Notas                                                     |
+| :----------- | :------- | :-------------------------------------------------------- |
+| `name`       | `string` | Nombre visible tras aplicar perfiles y fusión por nombre. |
+| `commits`    | `number` | Número de commits del contribuidor en la página.          |
+| `lastCommit` | `string` | Fecha ISO del último commit del contribuidor.             |
+| `avatar`     | `string` | URL de avatar opcional.                                   |
+| `url`        | `string` | URL de perfil opcional.                                   |
+| `email`      | `string` | Solo presente cuando `includeEmail` está activo.          |
 
 ---
 
@@ -189,15 +184,15 @@ Cada contribuidor es un `RouteContributor`:
 
 ## Solución de problemas
 
-| Síntoma | Causa probable | Solución |
-| :--- | :--- | :--- |
-| No aparecen fechas ni contribuidores | El directorio de docs no está dentro de un repositorio git | Ejecuta el build desde un checkout o activa `fallbackToMtime`. |
-| Una página nueva no tiene metadatos | El archivo nunca se ha commiteado | Haz commit, o usa `fallbackToMtime` para la fecha. |
-| Las fechas son más antiguas de lo esperado | Un squash merge convierte el pull request en un solo commit | Descarga el historial completo o acepta la fecha del squash. |
-| Falta un contribuidor | Filtrado de bots, `minCommits`, `excludeAuthors` o `max` | Revisa las opciones de contribuidores. |
-| No hay avatar | El email del commit no es noreply de GitHub | Añade una entrada en `profiles`. |
-| Aparecen emails en los datos de la ruta | `includeEmail: true` | Desactívalo si los metadatos son públicos. |
-| Los componentes no se ven | `autoRender: false` o un layout personalizado sin footer | Renderiza `Contributors` / `GitMetaFooter` tú mismo. |
+| Síntoma                                    | Causa probable                                              | Solución                                                       |
+| :----------------------------------------- | :---------------------------------------------------------- | :------------------------------------------------------------- |
+| No aparecen fechas ni contribuidores       | El directorio de docs no está dentro de un repositorio git  | Ejecuta el build desde un checkout o activa `fallbackToMtime`. |
+| Una página nueva no tiene metadatos        | El archivo nunca se ha commiteado                           | Haz commit, o usa `fallbackToMtime` para la fecha.             |
+| Las fechas son más antiguas de lo esperado | Un squash merge convierte el pull request en un solo commit | Descarga el historial completo o acepta la fecha del squash.   |
+| Falta un contribuidor                      | Filtrado de bots, `minCommits`, `excludeAuthors` o `max`    | Revisa las opciones de contribuidores.                         |
+| No hay avatar                              | El email del commit no es noreply de GitHub                 | Añade una entrada en `profiles`.                               |
+| Aparecen emails en los datos de la ruta    | `includeEmail: true`                                        | Desactívalo si los metadatos son públicos.                     |
+| Los componentes no se ven                  | `autoRender: false` o un layout personalizado sin footer    | Renderiza `Contributors` / `GitMetaFooter` tú mismo.           |
 
 ---
 
