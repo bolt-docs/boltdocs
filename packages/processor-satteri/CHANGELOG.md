@@ -1,5 +1,12 @@
 # @bdocs/processor-satteri
 
+## 0.4.1
+
+### Patch Changes
+
+- Updated dependencies [[`cdd636a`](https://github.com/bolt-docs/boltdocs/commit/cdd636a8e949bb56284f389c35128b76c094b5bd)]:
+  - @bdocs/contracts@0.1.1
+
 ## 0.4.0
 
 ### Minor Changes
