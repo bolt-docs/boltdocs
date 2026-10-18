@@ -6,6 +6,7 @@ import llmsTextPlugin from '@bdocs/plugin-llms-text'
 import rssPlugin from '@bdocs/plugin-rss'
 import searchPlugin from '@bdocs/plugin-search'
 import seoPlugin from '@bdocs/plugin-seo'
+import { contributorsPlugin, lastUpdatedPlugin } from '@bdocs/plugin-git-meta'
 import tailwindcssPlugin from '@bdocs/plugin-tailwindcss'
 // import askAiPlugin from '@bdocs/plugin-ask-ai'
 
@@ -24,6 +25,19 @@ export default defineConfig({
     },
   },
   plugins: [
+    lastUpdatedPlugin({ fallbackToMtime: true }),
+    contributorsPlugin({
+      max: 8,
+      profiles: {
+        // Commits use a personal email; pin the public GitHub identity so the
+        // official docs render a real avatar and profile link.
+        'jesusalcalarojas@gmail.com': {
+          name: 'Jesús Alcalá',
+          avatar: 'https://github.com/jesusalcaladev.png?size=64',
+          url: 'https://github.com/jesusalcaladev',
+        },
+      },
+    }),
     tailwindcssPlugin(),
     mathPlugin(),
     llmsTextPlugin(),

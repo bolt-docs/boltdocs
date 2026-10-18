@@ -22,7 +22,7 @@ export default function BlogPost({
   const { LastUpdated } = allComponents
 
   return (
-    <article className="max-w-4xl mx-auto py-12 mt-64 px-4 sm:px-6 lg:px-8">
+    <article className="w-full mx-auto py-12 px-4 sm:px-6 lg:px-2">
       <header className="mb-10 pb-10 border-b border-subtle">
         <div className="flex flex-row gap-2 h-auto items-center justify-center">
           {date && (

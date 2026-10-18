@@ -26,6 +26,7 @@ export type {
   BoltdocsViewTransitionsConfig,
   RedirectConfig,
   RedirectStatus,
+  RouteContributor,
 } from '@bdocs/contracts'
 
 /**

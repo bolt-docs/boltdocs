@@ -5,8 +5,6 @@ import {
   Hammer,
   CheckCircle2,
   LoaderCircle,
-  Package,
-  ArrowUpRight,
 } from 'lucide-react'
 import { cn } from 'boltdocs/client'
 import { Section } from '@/theme/section'
@@ -43,6 +41,12 @@ const ROADMAP: RoadmapItem[] = [
       '@bdocs/contracts publishes the framework-neutral route, plugin, lifecycle, and configuration contracts used by 4.0.',
     status: 'shipped',
   },
+  {
+    title: 'Plugin: git metadata',
+    description:
+      'Last-updated dates and contributor lists derived from git history, with a customizable footer.',
+    status: 'shipped',
+  },
   // In Progress
   {
     title: 'Boltdocs migrate MVP — VitePress first',
@@ -70,16 +74,6 @@ const ROADMAP: RoadmapItem[] = [
   {
     title: 'Plugin: reading-time',
     description: 'Reading time derived automatically from content.',
-    status: 'planning',
-  },
-  {
-    title: 'Plugin: last-updated',
-    description: 'Last-updated dates sourced from git history.',
-    status: 'planning',
-  },
-  {
-    title: 'Plugin: contributors',
-    description: 'Author and contributor lists derived from git.',
     status: 'planning',
   },
   {
@@ -155,58 +149,6 @@ const ROADMAP: RoadmapItem[] = [
   },
 ]
 
-const MIGRATION_ROUTE = [
-  {
-    step: 'Shared contracts',
-    package: '@bdocs/contracts',
-    status: 'Done',
-    description:
-      'Route, plugin, lifecycle, highlighting, and configuration contracts extracted from the core with backward-compatible re-exports.',
-  },
-  {
-    step: 'SEO extraction',
-    package: '@bdocs/plugin-seo',
-    status: 'Next',
-    description:
-      'Move sitemap, robots, metadata, Open Graph, and structured data behind the plugin API. The core keeps only the orchestration.',
-  },
-  {
-    step: 'UI extraction',
-    package: '@bdocs/ui',
-    status: 'Planned',
-    description:
-      'Move the ui-base components into their own package while keeping the existing boltdocs exports working.',
-  },
-  {
-    step: 'Primitives extraction',
-    package: '@bdocs/primitives',
-    status: 'Planned',
-    description:
-      'Move the style-neutral primitives out of the core. Primitives keep owning structure and data-* state, never colors.',
-  },
-  {
-    step: 'Runtime boundary',
-    package: '@bdocs/runtime',
-    status: 'Planned',
-    description:
-      'Separate the browser runtime from the Node build engine so neither pulls in the other dependencies.',
-  },
-  {
-    step: 'Incremental MDX and SSG',
-    package: 'core, Sätteri, SSG',
-    status: 'In progress',
-    description:
-      'Per-module identities and dependency edges so a single edit invalidates only the modules and routes it actually affects.',
-  },
-  {
-    step: 'Migration tooling',
-    package: 'repository-wide',
-    status: 'Planned',
-    description:
-      'Codemods, compatibility adapters, diagnostics, and the upgrade guide for package imports and removed private APIs.',
-  },
-]
-
 const STATUS_META = {
   shipped: {
     label: 'Shipped',
@@ -227,22 +169,6 @@ const STATUS_META = {
     badgeBg: 'bg-subtle text-muted',
   },
 } as const
-
-type MigrationStep = (typeof MIGRATION_ROUTE)[number]
-
-const MIGRATION_STATUS_STYLES: Record<string, string> = {
-  Done: 'bg-success-500 text-white ring-success-500/30',
-  Next: 'bg-accent-500 text-white ring-accent-500/40',
-  'In progress': 'bg-accent-500/15 text-accent-400 ring-accent-500/20',
-  Planned: 'bg-subtle text-muted ring-subtle',
-}
-
-const MIGRATION_STATUS_TEXT: Record<string, string> = {
-  Done: 'text-success-500',
-  Next: 'text-accent-400',
-  'In progress': 'text-accent-400',
-  Planned: 'text-muted',
-}
 
 function StatusPill({ status }: { status: RoadmapItem['status'] }) {
   if (status === 'shipped') {
@@ -342,47 +268,6 @@ function SectionHeading({
   )
 }
 
-function MigrationTimeline({ steps }: { steps: MigrationStep[] }) {
-  return (
-    <ol className="relative">
-      {/* One continuous rail behind every node, so the steps read as a single
-          ordered migration rather than a set of unrelated cards. */}
-      <span
-        className="absolute left-[15px] top-3 bottom-3 w-px bg-subtle"
-        aria-hidden="true"
-      />
-      {steps.map((step, index) => (
-        <li key={step.step} className="relative flex gap-4 pb-6 last:pb-0">
-          <span
-            className={`relative z-10 flex size-8 shrink-0 items-center justify-center rounded-full text-xs font-bold ring-4 ring-body ${MIGRATION_STATUS_STYLES[step.status] ?? MIGRATION_STATUS_STYLES.Planned}`}
-            aria-hidden="true"
-          >
-            {index + 1}
-          </span>
-          <div className="min-w-0 flex-1 pt-1">
-            <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1">
-              <h3 className="text-sm font-semibold leading-snug text-body">
-                {step.step}
-              </h3>
-              <span
-                className={`text-[11px] font-medium uppercase tracking-wide ${MIGRATION_STATUS_TEXT[step.status] ?? MIGRATION_STATUS_TEXT.Planned}`}
-              >
-                {step.status}
-              </span>
-            </div>
-            <code className="mt-1 inline-block rounded bg-subtle px-1.5 py-0.5 text-[11px] text-muted">
-              {step.package}
-            </code>
-            <p className="mt-1.5 text-[13px] leading-relaxed text-paragraph">
-              {step.description}
-            </p>
-          </div>
-        </li>
-      ))}
-    </ol>
-  )
-}
-
 export default function RoadmapPage() {
   const [tab, setTab] = useState<
     'all' | 'shipped' | 'in-progress' | 'planning'
@@ -473,7 +358,7 @@ export default function RoadmapPage() {
               <div id="shipped-heading">
                 <SectionHeading
                   icon={CheckCircle2}
-                  label="Shipped in 3.4.0"
+                  label="Shipped"
                   tone="bg-success-500/10 text-success-500"
                   count={shipped.length}
                 />
@@ -537,38 +422,6 @@ export default function RoadmapPage() {
             )}
           </ul>
         )}
-
-        <section className="mt-10" aria-labelledby="migration-heading">
-          <div className="mb-2 flex items-center gap-3">
-            <h2
-              id="migration-heading"
-              className="inline-flex items-center gap-2 rounded-full bg-surface px-3 py-1 text-sm font-semibold text-body"
-            >
-              <Package className="size-4" />
-              Boltdocs 4.0 migration
-            </h2>
-            <div className="h-px flex-1 bg-subtle" />
-          </div>
-          <p className="mb-4 max-w-3xl text-[13px] text-paragraph">
-            4.0 is an architecture release, not a feature release. The goal is a
-            smaller core with explicit package boundaries, optional
-            integrations, and builds whose cost is proportional to the change.
-            Every slice ships on the <code>4.0</code> branch and is merged back
-            into <code>develop</code> only when it is backward compatible.
-          </p>
-
-          <MigrationTimeline steps={MIGRATION_ROUTE} />
-
-          <a
-            href="https://github.com/bolt-docs/boltdocs/blob/4.0/ROADMAP-4.0.md"
-            target="_blank"
-            rel="noreferrer"
-            className="mt-4 inline-flex items-center gap-1.5 text-sm font-medium text-accent-400 transition-colors hover:text-accent-300"
-          >
-            Read the full 4.0 roadmap
-            <ArrowUpRight className="size-4" />
-          </a>
-        </section>
       </Section>
     </div>
   )

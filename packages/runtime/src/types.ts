@@ -7,6 +7,7 @@ import type {
   BadgeValue,
   BoltdocsConfig,
   BoltdocsRoutePathWithFallback,
+  RouteContributor,
 } from './contract-types'
 
 // Re-export so consumers can `import { BoltdocsConfig } from 'boltdocs/client'`.
@@ -69,6 +70,8 @@ export interface ComponentRoute {
   date?: string | Date
   /** The last updated timestamp or date */
   lastUpdated?: string | number | Date
+  /** Page contributors derived from version control history */
+  contributors?: RouteContributor[]
   /** The collection this route belongs to (from [name] directories) */
   collection?: string
   /** Tags for blog posts */

@@ -78,6 +78,7 @@ export type {
   RedirectConfig,
   RedirectStatus,
   RegisteredVirtualModule,
+  RouteContributor,
   RouteHeading,
   RouteMeta,
   SearchDocument,

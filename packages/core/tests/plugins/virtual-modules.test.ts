@@ -54,6 +54,26 @@ describe('plugin client projection', () => {
     expect(source).toContain('import("@bdocs/plugin-ask-ai/client")')
     expect(source).toContain('module["AskAiBubble"]')
   })
+
+  it('statically imports eager page slots so they render during SSR', () => {
+    const source = generateClientRegistryModule([
+      {
+        name: 'git-meta',
+        client: {
+          slots: {
+            'page:footer:start':
+              '@bdocs/plugin-git-meta/client#ContributorsSlot',
+          },
+        },
+      } as never,
+    ])
+
+    expect(source).toContain(
+      'import * as slotModule0 from "@bdocs/plugin-git-meta/client"',
+    )
+    expect(source).toContain('Component: slotModule0["ContributorsSlot"]')
+    expect(source).not.toContain('import("@bdocs/plugin-git-meta/client")')
+  })
 })
 
 describe('virtual route client projection', () => {

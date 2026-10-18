@@ -5,7 +5,7 @@ sidebarHidden: true
 description: Plugins oficiales de Boltdocs — plugins de contenido y MDX más integraciones de frameworks CSS.
 ---
 
-import { Bot, FileText, Calculator, GitFork, Rss, Boxes, Palette, Braces, Shapes, Sparkles } from 'lucide-react'
+import { Bot, FileText, Calculator, GitFork, Rss, Boxes, Palette, Braces, Shapes, Sparkles, Users } from 'lucide-react'
 
 Los plugins de Boltdocs extienden el core mediante hooks en remark, rehype, Vite y el registro de client. Instálalos con pnpm y regístralos en `plugins` dentro de `boltdocs.config.ts`:
 
@@ -42,6 +42,9 @@ export default defineConfig({
   </Card>
   <Card title="Unist Utils" icon={<Boxes />} href="/docs/plugins/content/unist-utils">
     Utilidades de AST para crear plugins de remark y rehype.
+  </Card>
+  <Card title="Metadatos de Git" icon={<Users />} href="/docs/plugins/content/plugin-git-meta">
+    Fechas de última actualización y contribuidores derivados del historial de git.
   </Card>
 </Cards>
 

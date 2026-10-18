@@ -23,7 +23,7 @@ function DocsThemeLayout({ children }: { children?: ReactNode }) {
           <Sidebar routes={filteredRoutes || []} config={config} />
         )}
         <DocsLayoutPrimitive.Content>
-          <DocsLayoutPrimitive.ContentMdx className="pt-4 pb-20 px-28 max-sm:px-5">
+          <DocsLayoutPrimitive.ContentMdx className="pt-4 pb-20 px-10 max-sm:px-5">
             {!isCollectionPage && (
               <DocsLayoutPrimitive.Header className="mt-5">
                 {currentRoute?.title && (

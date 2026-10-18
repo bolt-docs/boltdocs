@@ -1,16 +1,19 @@
 /*
  * The "Last updated on …" line at the foot of a page.
  *
- * Sits below the page-nav card, separated by a hairline. The empty leading span
- * is not an accident: `justify-content: space-between` between an empty first
- * child and the date puts the date at the right edge and leaves the left edge for
- * something a site may add.
+ * Sits below the page-nav card, separated by a hairline. The first child is the
+ * `page:footer:start` plugin slot, so `justify-content: space-between` puts the
+ * date at the right edge and leaves the left edge for whatever a plugin renders
+ * there (the contributors list, by default). Wrapping keeps a long list of
+ * contributors from squeezing the date on a narrow viewport.
  */
 
 :where(.bdocs-last-updated) {
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
   justify-content: space-between;
+  gap: var(--bdocs-space-3);
   margin-block-start: var(--bdocs-space-16);
   padding-block-start: var(--bdocs-space-6);
   border-block-start: var(--bdocs-border-width) solid var(--_bdocs-line);

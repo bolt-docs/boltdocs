@@ -304,6 +304,7 @@ function buildCollectionRoutes(options: {
             version: route.version,
             date: route.date,
             lastUpdated: route.lastUpdated,
+            contributors: route.contributors,
           }),
           getStaticPaths: () => [subPath || '.'],
         }
@@ -357,6 +358,7 @@ function buildCollectionRoutes(options: {
         locale: r.locale,
         version: r.version,
         lastUpdated: r.lastUpdated,
+        contributors: r.contributors,
         frontmatter: r.frontmatter,
       }))
 

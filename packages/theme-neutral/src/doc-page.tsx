@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react'
+import { LastUpdated as DefaultLastUpdated } from './components/mdx/last-updated'
 import { useMergedComponents } from './hooks/use-merged-components'
 
 /**
@@ -11,20 +12,23 @@ export function DocPage({
   mdxComponents: propComponents,
 }: any) {
   const allComponents = useMergedComponents(propComponents)
-  // Optional. The theme does not ship a "last updated" widget — it is a
-  // site-specific detail with no default answer — so a site or a plugin provides
-  // it through `mdx-components.tsx`. Destructuring it unconditionally and
-  // rendering it would crash the page for every site that opts out.
-  const LastUpdated = allComponents.LastUpdated as
-    | ((props: { date: string | number | Date }) => ReactNode)
+  // A site may provide its own footer through `mdx-components.tsx`, and it wins
+  // when it does. Otherwise the theme's footer renders, and that is deliberate:
+  // it is the host of the `page:footer:start` plugin slot, so a contributors
+  // plugin has somewhere to mount without every site wiring a component by
+  // hand. It only renders for a route that has a date or contributors, which is
+  // when there is anything to say.
+  const SiteLastUpdated = allComponents.LastUpdated as
+    | ((props: { date?: string | number | Date }) => ReactNode)
     | undefined
+  const PageFooter = SiteLastUpdated ?? DefaultLastUpdated
   if (!Content) return null
 
   return (
     <>
       <Content components={allComponents} />
-      {route?.lastUpdated && LastUpdated && (
-        <LastUpdated date={route.lastUpdated} />
+      {(route?.lastUpdated || route?.contributors?.length) && (
+        <PageFooter date={route?.lastUpdated} />
       )}
     </>
   )

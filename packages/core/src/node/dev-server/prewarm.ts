@@ -74,6 +74,39 @@ function getOptimizedDependencyUrl(
 }
 
 /**
+ * Collect the local chunk imports of an optimized dependency file
+ * (`./rolldown-runtime-XXXX.js`, `./chunk-XXXX.js`, ...). Vite's optimizer
+ * names its shared chunks with a content hash, so a file written by a previous
+ * run can reference a chunk that a re-optimization has already replaced.
+ */
+function referencedLocalChunks(depsDir: string, file: string): string[] {
+  try {
+    const code = fs.readFileSync(path.join(depsDir, file), 'utf-8')
+    const chunks: string[] = []
+    const importRe = /(?:from\s*|import\s*)["'](\.\/[^"']+\.js)["']/g
+    for (const match of code.matchAll(importRe)) chunks.push(match[1])
+    return chunks
+  } catch {
+    return []
+  }
+}
+
+/**
+ * An optimized dependency is only safe to warm when it exists *and* every
+ * sibling chunk it imports is present. Warming a file whose shared runtime
+ * chunk was just deleted by the optimizer is what produced the
+ * "Pre-transform error: The file does not exist at .../rolldown-runtime-*.js"
+ * seen on the first start after a version bump or `--force`.
+ */
+function isWarmable(depsDir: string, file: string): boolean {
+  if (!fs.existsSync(path.join(depsDir, file))) return false
+  for (const chunk of referencedLocalChunks(depsDir, file)) {
+    if (!fs.existsSync(path.join(depsDir, chunk))) return false
+  }
+  return true
+}
+
+/**
  * Warm Vite's optimizeDeps output through Vite's public warmup API. Calling
  * transformRequest('/react') is not equivalent: it asks Vite to resolve a
  * filesystem URL and silently does not warm the browser dependency bundle.
@@ -82,15 +115,10 @@ function warmDependencies(server: ViteDevServer): void {
   const config = server.config
   if (!config?.cacheDir) return
 
-  // Optimized dependency filenames are stable (`react-dom/client` becomes
-  // `react-dom_client.js`). Requesting them immediately is safe even before
-  // `_metadata.json` exists; Vite's optimizer will still complete its native
-  // pass if the files are not ready yet.
+  const depsDir = path.join(config.cacheDir, 'deps')
   const entries = DEPENDENCY_ENTRIES.map((dep) => ({
     file: `${dep.replaceAll('/', '_')}.js`,
-  })).filter(({ file }) =>
-    fs.existsSync(path.join(config.cacheDir, 'deps', file)),
-  )
+  })).filter(({ file }) => isWarmable(depsDir, file))
 
   void Promise.allSettled(
     entries.map((entry) =>
@@ -109,13 +137,17 @@ export function setupPrewarming(
 ): void {
   if (activePrewarms.has(server)) return
 
-  // Kick off dependency warming immediately — no delay. Vite owns the
-  // optimizer lifecycle; the helper only requests its stable output URLs.
-  warmDependencies(server)
-
   const prewarm = new Promise<void>((resolve) => {
     setTimeout(async () => {
       try {
+        // Warm the optimized dependencies only once the server has settled.
+        // Doing this synchronously in `configureServer` raced a running
+        // re-optimization (fresh install, version bump, `--force`): it
+        // requested chunks from the previous run that the optimizer had
+        // already replaced, which Vite surfaced as a pre-transform error on
+        // an otherwise healthy start.
+        warmDependencies(server)
+
         const routes = routesPromise
           ? await routesPromise
           : await (await import('../routes')).generateRoutes(

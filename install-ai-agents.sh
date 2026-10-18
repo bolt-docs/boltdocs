@@ -17,8 +17,25 @@ DIM='\033[2m'
 TARGET=""
 OUTPUT_DIR=""
 YES_MODE=false
-GITHUB_RAW="https://raw.githubusercontent.com/jesus-alcala/boltdocs/develop/skills/boltdocs"
+GITHUB_REF="main"
+GITHUB_REPO="bolt-docs/boltdocs"
+GITHUB_RAW="https://raw.githubusercontent.com/${GITHUB_REPO}/${GITHUB_REF}/skills/boltdocs"
 LOCAL_SRC="skills/boltdocs"
+
+# Files fetched in standalone (curl) mode. Keep in sync with the entries in
+# `skills/boltdocs/` so every reference reaches the AI environments.
+SKILL_FILES=(
+  "SKILL.md"
+  "references/cli.md"
+  "references/collections.md"
+  "references/components.md"
+  "references/configuration.md"
+  "references/migrations.md"
+  "references/plugin-api.md"
+  "references/plugins.md"
+  "references/routing.md"
+  "references/styling.md"
+)
 
 # Print banner
 show_banner() {
@@ -140,18 +157,10 @@ resolve_sources() {
     check_command curl
     echo -e "${YELLOW}Local skill sources not found. Fetching from Github...${RC}"
     TEMP_DIR=$(mktemp -d)
-    
+
     mkdir -p "$TEMP_DIR/references"
-    
-    local files=(
-      "SKILL.md"
-      "references/configuration.md"
-      "references/routing.md"
-      "references/components.md"
-      "references/styling.md"
-    )
-    
-    for file in "${files[@]}"; do
+
+    for file in "${SKILL_FILES[@]}"; do
       echo -e "${DIM}Downloading $file...${RC}"
       curl -fsSL "$GITHUB_RAW/$file" -o "$TEMP_DIR/$file" || {
         echo -e "${RED}Failed to download $file${RC}"

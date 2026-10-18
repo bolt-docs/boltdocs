@@ -404,8 +404,6 @@ export async function createViteConfig(
         'react-dom/client',
         'react-helmet-async',
         'react-router-dom',
-        'react-fast-compare',
-        'invariant',
         'use-sync-external-store/shim',
       ],
     },
@@ -438,7 +436,6 @@ export async function createViteConfig(
           ...(userSsr.optimizeDeps?.include ?? []),
           'react',
           'react-dom',
-          'react-fast-compare',
         ],
       },
       noExternal: [],
@@ -505,6 +502,7 @@ export async function createViteConfig(
 
 export { generateRoutes, invalidateRouteCache } from './routes'
 export type { RouteMeta } from './routes'
+export type { RouteContributor } from '../shared/types'
 export type {
   BoltdocsConfig,
   BoltdocsThemeConfig,

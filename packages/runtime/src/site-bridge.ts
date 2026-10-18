@@ -71,10 +71,20 @@ export interface SiteBridge {
   clientSlots: Record<string, SiteSlot[]>
 }
 
-/** One plugin-provided client slot. */
+/**
+ * One plugin-provided client slot.
+ *
+ * `Component` is present for eager slots, which the generated registry imports
+ * statically so they render during SSR: every slot except `floating:after`.
+ * `load` is present for the lazy ones, and the slot host resolves it inside a
+ * Suspense boundary.
+ */
 export interface SiteSlot {
   id: string
-  load: () => Promise<{ default: ComponentType }>
+  /** Present for eager slots (statically imported). */
+  Component?: ComponentType<any>
+  /** Present for lazy slots such as `floating:after`. */
+  load?: () => Promise<{ default: ComponentType }>
 }
 
 /**

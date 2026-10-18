@@ -1,5 +1,170 @@
 # boltdocs
 
+## 3.4.1
+
+### Patch Changes
+
+- [`fc9d351`](https://github.com/bolt-docs/boltdocs/commit/fc9d351be3e18a4d804f5215b82dd3f565ec8f58) Thanks [@jesusalcaladev](https://github.com/jesusalcaladev)! - Fix i18n locale switching for collection routes (blog posts)
+
+  The locale switching logic in `useI18n` hook incorrectly hardcoded locale position for collection routes, causing 404s when switching languages on blog posts.
+
+  **Fixed scenarios:**
+  - `/es/blog/post` → English now correctly navigates to `/blog/post` (was staying at `/es/blog/post`)
+  - `/blog/post` → Spanish now correctly navigates to `/es/blog/post` (was going to `/blog/es/post`)
+  - Versioned collection routes preserve version: `/v2/es/blog/post` ↔ `/v2/blog/post`
+  - Collection root pages (e.g., `/docs/blog`) no longer navigate away when switching locale
+
+  The fix uses the same path parsing logic as the router (`getCollectionFromPath`) to correctly detect locale position relative to version prefixes and collection names.
+
+## 3.4.0
+
+### Minor Changes
+
+- [`f0a7586`](https://github.com/bolt-docs/boltdocs/commit/f0a75864646c3752c4ea258e2890ecc31717aa9f) Thanks [@jesusalcaladev](https://github.com/jesusalcaladev)! - Add viewport-triggered route prefetching so scrolling to a link warms it before the click.
+
+  Prefetching only ran on `mouseenter`/`focus`, which misses how docs are actually read: a reader scrolls the sidebar, reads a heading, and clicks without ever hovering. Every plausible destination was on screen and untouched.
+
+  `Link` now accepts `prefetch="viewport"`, which keeps hover behaviour and additionally warms the destination as the link approaches the viewport via a single shared `IntersectionObserver`. The sidebar links and the navbar's top-level items opt in. Prefetching downloads the route's lazy chunk and loader data, not the HTML, so it slots into the existing prefetch queue unchanged: two requests in flight, a shallow backlog, and dropped work when saturated. A 200px root margin starts the warm-up just before the link scrolls in.
+
+  Opt-in per link rather than global, so themes and existing users do not silently start paying for extra bandwidth.
+
+- [`1d62dac`](https://github.com/bolt-docs/boltdocs/commit/1d62dac2bc237a919df6a89d5ebf7c94a94f742b) Thanks [@jesusalcaladev](https://github.com/jesusalcaladev)! - Boltdocs 3.4.0 — architecture contracts and incremental build foundation.
+
+  This release publishes the new `@bdocs/contracts` package as the framework-neutral
+  contract layer for routes, plugin lifecycle, plugin definitions, highlighting,
+  search documents, and configuration. Its first public version is **`0.1.0`**
+  (kept pre-1.0 while 4.0 reshapes the seam). `boltdocs` now re-exports those
+  contracts so the existing 3.x public API keeps working unchanged.
+
+  Highlights:
+  - introduce `@bdocs/contracts` with route, plugin, lifecycle, highlighting, and configuration contracts;
+  - keep `boltdocs` exports backward compatible through re-exports;
+  - make `@bdocs/processor-satteri` consume the shared lifecycle contract directly;
+  - align `@bdocs/ssg` and `@bdocs/plugin-ask-ai` on the new contract boundary;
+  - ship the Vite 8.1 toolchain alignment and the content-addressed SSG page cache;
+  - avoid full-site re-render on a single page edit.
+
+### Patch Changes
+
+- [`f6235ac`](https://github.com/bolt-docs/boltdocs/commit/f6235ac3559a7bc0f05ab053b1b630e01d978986) Thanks [@jesusalcaladev](https://github.com/jesusalcaladev)! - Render client-side redirects through the framework's own router
+
+  `buildRedirectRoutes` rendered its redirect boundary with `useNavigate` from
+  `react-router-dom`, but the framework ships its own context-based router
+  (`packages/core/src/client/router`) and never mounts a react-router provider.
+  On a client navigation into a configured redirect the hook had no router to
+  read from, so `redirects` threw instead of navigating. The boundary now uses the
+  internal `useNavigate`, matching every other component, and core no longer
+  imports `react-router-dom` — a package it stopped declaring when the dependency
+  was dropped from the manifest, which also broke the redirect tests' module
+  resolution.
+
+- [`05d8ddc`](https://github.com/bolt-docs/boltdocs/commit/05d8ddc432f804b0fdc8f5c5db4ac8090c92a2d8) Thanks [@jesusalcaladev](https://github.com/jesusalcaladev)! - Fix the favicon and logo preload URLs in the dev server
+
+  The dev HTML middleware injected the head meta itself and then called
+  `server.transformIndexHtml`, whose hook injected it again, so every injected
+  `<link>`/`<meta>` was emitted twice. On top of that, `injectHtmlMeta` prefixed
+  `config.base` onto the favicon and logo-preload URLs, and Vite's dev HTML
+  transform prepends the base to root-absolute public URLs as well. Under a
+  non-root base (`/docs`) the two produced `/docs/docs/light.svg`, so the favicon
+  only failed in `boltdocs dev` while production stayed correct (Vite's build
+  HTML transform is base-aware).
+
+  The framework now emits those Vite-processed URLs without the base and lets Vite
+  apply it exactly once, strips a base already written by the user so injection is
+  idempotent, injects the head meta from the single `transformIndexHtml` hook, and
+  serves the project's real `index.html` to browsers in dev instead of the neutral
+  shell.
+
+- [`d7f19fb`](https://github.com/bolt-docs/boltdocs/commit/d7f19fb48d280a760acf75d26f2bfa728e5e2a60) Thanks [@jesusalcaladev](https://github.com/jesusalcaladev)! - Silence the dev server when a dependency is inlined by the optimizer
+
+  `react-fast-compare` and `invariant` were listed in `optimizeDeps.include`, but
+  they are transitive dependencies of `react-helmet-async` that pnpm does not
+  hoist to the project root. Vite could not resolve them and logged
+  "Failed to resolve dependency" on every cold start. Both are inlined into
+  `react-helmet-async`'s own optimized bundle, so the explicit entries were
+  unnecessary and are removed.
+
+- [`c38766b`](https://github.com/bolt-docs/boltdocs/commit/c38766b3fb1fdd1e45578bd3cb3d31c699cf4a30) Thanks [@jesusalcaladev](https://github.com/jesusalcaladev)! - Defer dependency prewarming until the optimizer settles
+
+  `setupPrewarming` warmed the optimized dependencies synchronously in
+  `configureServer`, racing Vite's dependency optimizer. On the first start after
+  a version bump, or with `--force`, it requested chunks written by the previous
+  run that the optimizer had already replaced, which surfaced as
+  "Pre-transform error: The file does not exist at .../rolldown-runtime-\*.js".
+  Warming now runs after the prewarm delay and skips any dependency whose shared
+  chunks are missing.
+
+- [`e203fcb`](https://github.com/bolt-docs/boltdocs/commit/e203fcbce495f96f66594e33ea21c2e430e9fde1) Thanks [@jesusalcaladev](https://github.com/jesusalcaladev)! - Fix site-root external pages 404ing in `dev` when a `base` is configured, and fix link autocompletion dropping external and collection routes.
+
+  Vite is configured with the same `base` as Boltdocs, and Vite's base middleware answers every request outside that base with `404 The server is configured with a public base URL of /docs`. External pages are real routes that live at the site root by design (`/`, `/about`, `/roadmap`, `/showcase`), and the SSG already emitted them at the dist root, so production always served them while `dev` could not. The dev server now rewrites the internal URL of a known external path to its base-prefixed form before Vite's base check runs; the browser URL is untouched and the rendered HTML keeps using absolute `/docs/...` asset URLs.
+
+  The generated link tree and `types.d.ts` route list are now assembled by a single shared helper. Four call sites had each grown their own copy and a fifth in the dev server only passed the raw doc route paths, so `/roadmap`, `/showcase`, `/about` and `/docs` were missing from the generated tree and lost autocompletion. The shared helper also base-prefixes collection routes, whose metadata omits the base even though the SSG emits them under it, fixing entries like `/blog/post` being offered instead of `/docs/blog/post`. `generateProjectTypes` calls made during HMR no longer strip the `RoutePaths` augmentation, which previously wiped link autocompletion on any `mdx-components` edit or page addition until the next full run.
+
+- [`24e3607`](https://github.com/bolt-docs/boltdocs/commit/24e36071381699e8112123935243e82e641c6728) Thanks [@jesusalcaladev](https://github.com/jesusalcaladev)! - Give every focusable element a visible keyboard focus indicator.
+
+  Components suppress the user-agent ring with `outline-none` and are expected to supply their own `focus-visible:` affordance, but many did not. The banner dismiss button, the navbar links, the language switcher and the code copy button were reachable by keyboard with no visible focus indicator at all, which fails WCAG 2.4.7 Focus Visible. `focus-visible:outline-2` alone was not sufficient either: it emits `outline-style: var(--tw-outline-style)`, a variable only defined by the all-in-one `outline` utility, so the declaration was invalid and nothing was painted.
+
+  `reset.css` now declares a layer order and carries a baseline in a new `a11y` layer ordered after `utilities`, since cascade layers outrank selector specificity and a rule in `base` cannot beat the `outline-none` utility. The baseline is a floor rather than a design: components with a deliberate indicator still win, and a theme can replace it from its own stylesheet.
+
+- [`147d39f`](https://github.com/bolt-docs/boltdocs/commit/147d39fb2e23c575b92cfa281869fffa50221a50) Thanks [@jesusalcaladev](https://github.com/jesusalcaladev)! - Make server-rendered dates deterministic and fix theme-dependent assets
+
+  Three classes of hydration mismatch, all caused by the server and the browser
+  computing different markup for the same content.
+
+  **Dates.** `toLocaleDateString` without a locale resolves against the runtime
+  default, which is not the same in Node and in a browser: the server rendered
+  "26 de septiembre de 2026" from an `es` system locale while the client produced
+  "September 26, 2026". The time zone had to be pinned for the same reason, since
+  a frontmatter date such as `2026-09-27` parses as UTC midnight and any zone
+  behind UTC renders the previous day. All call sites now share one helper
+  (`formatDate` / `formatDeterministicDate`, both exported) with an explicit
+  locale and zone.
+
+  **Logo.** `useNavbar` resolved `theme.logo` to a single source based on the
+  resolved theme, which the server cannot know. That changed the `<img src>` and,
+  with it, the `href` of the preload React hoists for `fetchPriority="high"`, so
+  the client never claimed the node the server had emitted. The hook now returns
+  both variants and CSS selects the visible one, keyed off the `dark` class that a
+  blocking script sets on `<html>` before first paint. That also removes the
+  wrong-logo flash.
+
+  **Cover images.** `post.coverImage` from frontmatter is site-root-relative, and
+  a site served under a sub-path needs the base prefixed. Skipping it produced a
+  404 in the browser while the server-rendered markup still looked correct.
+
+- [`7841b09`](https://github.com/bolt-docs/boltdocs/commit/7841b0979f4cd60d70829bd9d6c5feb332dc8e12) Thanks [@jesusalcaladev](https://github.com/jesusalcaladev)! - Restore React Fast Refresh for sites configured with a non-root `base`, and stop forcing a full reload when a layout or external page is edited.
+
+  `@vitejs/plugin-react` was skipped in dev for any base other than `/`, so the most common documentation setup — `base: '/docs'` — had no refresh runtime at all. Without it there is nothing to swap a module in place, so every edit to `layout.tsx`, `icons.tsx` or an external page fell back to a full document reload that discarded scroll position and re-ran every loader. The plugin handles a sub-path base correctly, so the restriction is removed; `BOLTDOCS_REACT_REFRESH=false` still opts out.
+
+  The dev server also no longer answers a `pages-external` change with a full reload. Those files are plain React modules behind the user entry, so Vite's module graph and React Fast Refresh already handle them; the previous suppression made a one-line edit to a landing page the slowest possible kind of edit.
+
+- [`e7b213c`](https://github.com/bolt-docs/boltdocs/commit/e7b213cfd4a0c3b6232a79e8861e2215f0b4bd09) Thanks [@jesusalcaladev](https://github.com/jesusalcaladev)! - Fix two routing bugs that broke server-rendered pages
+
+  **External pages under the default locale returned 404.** `getLocalizedPaths`
+  looped over every configured locale to build the localized variants of an
+  external page, including the default one. That minted a second URL for the same
+  page, and on a site served under a base the SSG wrote `/docs/en/about` — a
+  document the build itself generated and the client router never learned about,
+  because the base is not part of the route. Visitors got a 404 on a page that
+  existed. The default locale is now skipped; it is already the unprefixed path.
+
+  **Collection posts failed hydration.** `MdxPage` decided between the collection
+  layout and the documentation layout by inspecting the route's loader data. The
+  generated client entry declares `hasLoaderData={false}`, so the first client
+  render runs with no loader data at all, and the layout came out wrong: the
+  server had sent the collection layout and the client rendered the documentation
+  one. React compared two different first children and threw the whole page away
+  (error [#418](https://github.com/bolt-docs/boltdocs/issues/418)), re-rendering every node.
+
+  The layout is now decided from the route table, which is known synchronously,
+  with the loader kept as a fallback for callers that render `MdxPage` directly.
+  A project declaring a collection does not have to know about any of this.
+
+- Updated dependencies [[`c00f9ff`](https://github.com/bolt-docs/boltdocs/commit/c00f9ffb422109918e246974c4172ba10b362554), [`8abe562`](https://github.com/bolt-docs/boltdocs/commit/8abe5625b80f4e588341d4488c774a323561256a), [`53be90d`](https://github.com/bolt-docs/boltdocs/commit/53be90d0edf5daabb207d87bd3e9f79160ffa4cc), [`147d39f`](https://github.com/bolt-docs/boltdocs/commit/147d39fb2e23c575b92cfa281869fffa50221a50), [`1d62dac`](https://github.com/bolt-docs/boltdocs/commit/1d62dac2bc237a919df6a89d5ebf7c94a94f742b)]:
+  - @bdocs/processor-satteri@0.4.0
+  - @bdocs/ssg@0.5.0
+  - @bdocs/contracts@0.1.0
+
 ## 3.3.6
 
 ### Patch Changes

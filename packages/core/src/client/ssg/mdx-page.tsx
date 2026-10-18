@@ -83,6 +83,7 @@ export function MdxPage({
           locale: postRoute?.locale,
           version: postRoute?.version,
           lastUpdated: postRoute?.lastUpdated,
+          contributors: postRoute?.contributors,
           frontmatter: postRoute?.frontmatter,
         }}
         content={MDXComponent}
@@ -117,6 +118,7 @@ export function MdxPage({
         group: docData?.group,
         groupTitle: docData?.groupTitle,
         lastUpdated: docData?.lastUpdated,
+        contributors: docData?.contributors,
         frontmatter: docData?.frontmatter,
       }}
       content={MDXComponent}

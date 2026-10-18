@@ -1,10 +1,95 @@
 import { useMemo } from 'react'
-import { useLocation, useNavigate } from '@bdocs/runtime'
+import {
+  addUrlBase,
+  getConfiguredLocales,
+  getVersionPrefixSegments,
+  isConfiguredVersion,
+  normalizeUrlPath,
+  stripUrlBase,
+  useConfig,
+  useLocation,
+  useNavigate,
+} from '@bdocs/runtime'
+import type { BoltdocsLocale, UrlContractConfig } from '@bdocs/runtime'
 import { getBaseFilePath } from '../utils/get-base-file-path'
 import { useRoutes } from './use-routes'
-import { useConfig } from '@bdocs/runtime'
 import { useBoltdocsContext } from '../store/boltdocs-context'
-import type { BoltdocsLocale } from '@bdocs/runtime'
+
+function matchConfiguredVersion(
+  parts: string[],
+  start: number,
+  config: UrlContractConfig,
+): { version?: string; nextIndex: number } {
+  const prefix = getVersionPrefixSegments(config)
+  const versionIndex = start + prefix.length
+  const hasPrefix = prefix.every(
+    (segment, index) => parts[start + index] === segment,
+  )
+
+  if (!hasPrefix || !isConfiguredVersion(parts[versionIndex], config)) {
+    return { nextIndex: start }
+  }
+
+  return {
+    version: parts[versionIndex],
+    nextIndex: versionIndex + 1,
+  }
+}
+
+/**
+ * Rewrites a pathname to the target locale.
+ *
+ * Locale position is not fixed: it sits after the base and any version prefix,
+ * and collection routes carry the collection segment after it. The hardcoded
+ * `collection ? 1 : 0` index this replaces put the new locale in the wrong slot
+ * for versioned and unversioned collection routes alike, which is how `/es/blog`
+ * turned into `/blog/es` and 404'd.
+ */
+function parsePathForLocaleSwitch(
+  pathname: string,
+  config: UrlContractConfig,
+  targetLocale: string,
+  defaultLocale: string,
+  collectionName?: string,
+): string {
+  // Strip the base path first (e.g., /docs)
+  const baseStripped = stripUrlBase(pathname, config.base)
+
+  // Parse the path without the base
+  const parts = normalizeUrlPath(baseStripped).split('/').filter(Boolean)
+  let index = 0
+
+  // Skip version prefix
+  const versionMatch = matchConfiguredVersion(parts, index, config)
+  index = versionMatch.nextIndex
+
+  // Check for locale at current position
+  const configuredLocales = getConfiguredLocales(config)
+  const hasLocale = configuredLocales.includes(parts[index] || '')
+
+  // Collection root pages are locale-independent: the collection index is the
+  // same page in every language, so switching locale must not move the reader.
+  const isCollectionRoot =
+    collectionName &&
+    parts.length === index + 1 &&
+    parts[index] === collectionName &&
+    !hasLocale
+
+  if (isCollectionRoot) {
+    return pathname
+  }
+
+  if (hasLocale) {
+    parts.splice(index, 1)
+  }
+
+  if (targetLocale !== defaultLocale) {
+    parts.splice(index, 0, targetLocale)
+  }
+
+  const newBaseStripped = '/' + parts.join('/')
+  return addUrlBase(newBaseStripped, config.base)
+}
 
 export interface LocaleOption {
   key: BoltdocsLocale
@@ -88,28 +173,31 @@ export function useI18n(): UseI18nReturn {
           }
         }
       } else {
-        let rawExternal = currentRoute.path || ''
-
-        const parts = rawExternal.split('/').filter(Boolean)
-        const localePosition = currentRoute.collection ? 1 : 0
-
-        if (
-          parts.length > localePosition &&
-          (Array.isArray(i18n.locales)
-            ? i18n.locales.includes(parts[localePosition])
-            : !!i18n.locales[parts[localePosition]])
-        ) {
-          parts.splice(localePosition, 1)
-          rawExternal = `/${parts.join('/')}`
+        // Collection routes and external pages: rewrite the route path, which
+        // is already canonical and base-prefixed.
+        const contractConfig: UrlContractConfig = {
+          base: config.base,
+          i18n: config.i18n
+            ? {
+                defaultLocale: config.i18n.defaultLocale,
+                locales: config.i18n.locales,
+              }
+            : undefined,
+          versions: config.versions
+            ? {
+                defaultVersion: config.versions.defaultVersion,
+                prefix: config.versions.prefix,
+                versions: config.versions.versions,
+              }
+            : undefined,
         }
-
-        const cleanParts = rawExternal.split('/').filter(Boolean)
-        if (locale === i18n.defaultLocale) {
-          targetPath = rawExternal === '' ? '/' : rawExternal
-        } else {
-          cleanParts.splice(localePosition, 0, locale)
-          targetPath = `/${cleanParts.join('/')}` || '/'
-        }
+        targetPath = parsePathForLocaleSwitch(
+          currentRoute.path || '',
+          contractConfig,
+          locale,
+          i18n.defaultLocale,
+          currentRoute.collection,
+        )
       }
     } else {
       const currentPath = location.pathname
@@ -117,29 +205,41 @@ export function useI18n(): UseI18nReturn {
       if (isCollectionPage) {
         targetPath = currentPath
       } else {
-        const parts = currentPath.split('/').filter(Boolean)
-
-        if (
-          parts.length > 0 &&
-          (Array.isArray(i18n.locales)
-            ? i18n.locales.includes(parts[0])
-            : !!i18n.locales[parts[0]])
-        ) {
-          parts.shift()
+        const contractConfig: UrlContractConfig = {
+          base: config.base,
+          i18n: config.i18n
+            ? {
+                defaultLocale: config.i18n.defaultLocale,
+                locales: config.i18n.locales,
+              }
+            : undefined,
+          versions: config.versions
+            ? {
+                defaultVersion: config.versions.defaultVersion,
+                prefix: config.versions.prefix,
+                versions: config.versions.versions,
+              }
+            : undefined,
         }
-
-        if (locale !== i18n.defaultLocale) {
-          parts.unshift(locale)
-        }
-
-        targetPath = `/${parts.join('/')}`
+        targetPath = parsePathForLocaleSwitch(
+          currentPath,
+          contractConfig,
+          locale,
+          i18n.defaultLocale,
+        )
       }
     }
 
     if (!targetPath || targetPath === '') targetPath = '/'
     targetPath = targetPath.replace(/\/+/g, '/')
 
-    navigate(targetPath)
+    // Skip navigation when the target is the current path. Collection root
+    // pages are locale-independent, so their rewrite lands back on the same
+    // URL and a navigation would only remount the page.
+    const currentPath = currentRoute?.path || location.pathname
+    if (targetPath !== currentPath) {
+      navigate(targetPath)
+    }
   }
 
   const locales = i18n?.locales

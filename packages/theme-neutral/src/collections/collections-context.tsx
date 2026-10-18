@@ -1,5 +1,5 @@
 import { createContext, use, useEffect, useState } from 'react'
-import type { ComponentRoute } from '@bdocs/runtime'
+import type { ComponentRoute, RouteContributor } from '@bdocs/runtime'
 
 export interface CollectionPost {
   path: string
@@ -14,6 +14,7 @@ export interface CollectionPost {
   version?: string
   frontmatter?: Record<string, any>
   lastUpdated?: string | number | Date
+  contributors?: RouteContributor[]
   headings?: { level: number; text: string; id: string }[]
   draft?: boolean
   /** Collection id this post belongs to (added by the server for HMR). */

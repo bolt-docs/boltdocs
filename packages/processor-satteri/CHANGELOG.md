@@ -1,5 +1,50 @@
 # @bdocs/processor-satteri
 
+## 0.4.0
+
+### Minor Changes
+
+- [`1d62dac`](https://github.com/bolt-docs/boltdocs/commit/1d62dac2bc237a919df6a89d5ebf7c94a94f742b) Thanks [@jesusalcaladev](https://github.com/jesusalcaladev)! - Boltdocs 3.4.0 — architecture contracts and incremental build foundation.
+
+  This release publishes the new `@bdocs/contracts` package as the framework-neutral
+  contract layer for routes, plugin lifecycle, plugin definitions, highlighting,
+  search documents, and configuration. Its first public version is **`0.1.0`**
+  (kept pre-1.0 while 4.0 reshapes the seam). `boltdocs` now re-exports those
+  contracts so the existing 3.x public API keeps working unchanged.
+
+  Highlights:
+  - introduce `@bdocs/contracts` with route, plugin, lifecycle, highlighting, and configuration contracts;
+  - keep `boltdocs` exports backward compatible through re-exports;
+  - make `@bdocs/processor-satteri` consume the shared lifecycle contract directly;
+  - align `@bdocs/ssg` and `@bdocs/plugin-ask-ai` on the new contract boundary;
+  - ship the Vite 8.1 toolchain alignment and the content-addressed SSG page cache;
+  - avoid full-site re-render on a single page edit.
+
+### Patch Changes
+
+- [`c00f9ff`](https://github.com/bolt-docs/boltdocs/commit/c00f9ffb422109918e246974c4172ba10b362554) Thanks [@jesusalcaladev](https://github.com/jesusalcaladev)! - Stop shipping every highlighted code block twice to the browser.
+
+  The Shiki rehype plugin attached the serialized HTML as `data-highlighted-html` and also left the HAST children on the node. The MDX compiler turns both into output, so every code block reached the client twice: once as an HTML string and once as a React tree.
+
+  The tree was dead weight. `CodeBlockPre` renders `data-highlighted-html` through `dangerouslySetInnerHTML` and ignores children entirely; the copy button and the expand/collapse logic both read the rendered DOM via `preRef.current.textContent`, not the children.
+
+  Children are now emitted only when serialization fails, which is the one case where the JSX path is the only rendering route. On the 263-page docs site this removed all 11,539 duplicate React code-block nodes and cut the JavaScript delivered per visit from 2440 KB to 1907 KB (-22%), and the total built client from 8310 KB to 5672 KB.
+
+- [`147d39f`](https://github.com/bolt-docs/boltdocs/commit/147d39fb2e23c575b92cfa281869fffa50221a50) Thanks [@jesusalcaladev](https://github.com/jesusalcaladev)! - Drop whitespace-only text nodes inside table sections during MDX compilation
+
+  The compiler preserved the newlines that separate table rows and cells and
+  emitted them as text children of `<tbody>` and `<tr>`. React rejects that
+  outright: during server rendering the whitespace is written into the HTML, and
+  by the time the client hydrates the browser's parser has already discarded
+  those text nodes while building the table, so the two sides disagree and React
+  discards the whole page (error [#418](https://github.com/bolt-docs/boltdocs/issues/418)).
+
+  The fix removes the whitespace from the HAST rather than from the component
+  layer, so it also applies to user-supplied mappings of the table elements.
+
+- Updated dependencies [[`1d62dac`](https://github.com/bolt-docs/boltdocs/commit/1d62dac2bc237a919df6a89d5ebf7c94a94f742b)]:
+  - @bdocs/contracts@0.1.0
+
 ## 0.3.4
 
 ### Patch Changes

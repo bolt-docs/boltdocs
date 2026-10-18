@@ -99,6 +99,7 @@ export function usePost(
           version: route.version,
           frontmatter: route.frontmatter,
           lastUpdated: route.lastUpdated,
+          contributors: route.contributors,
           headings: route.headings,
         }) as CollectionPost,
       [route],

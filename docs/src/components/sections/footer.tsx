@@ -61,7 +61,7 @@ export const Footer = () => {
             <Github className="size-7" />
           </Link>
           <Link
-            href="https://www.instagram.com/boldocts26"
+            href="https://www.instagram.com/juanrojascode"
             aria-label="Instagram"
             className="hover:scale-105 transition-transform"
           >

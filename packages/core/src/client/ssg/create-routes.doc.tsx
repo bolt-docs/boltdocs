@@ -113,6 +113,7 @@ function buildDocRoutes(options: {
         groupTitle: route.groupTitle,
         date: route.date,
         lastUpdated: route.lastUpdated,
+        contributors: route.contributors,
       }),
       getStaticPaths: () => [path],
     }
@@ -420,6 +421,7 @@ function buildDocRoutes(options: {
             groupTitle: fallbackMetaObj.groupTitle,
             date: fallbackMetaObj.date,
             lastUpdated: fallbackMetaObj.lastUpdated,
+            contributors: fallbackMetaObj.contributors,
           })
 
           docRoutes.push(fallbackRoute)

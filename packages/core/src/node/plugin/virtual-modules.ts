@@ -59,6 +59,7 @@ export function toClientRouteData(route: RouteMeta): ClientRouteData {
     seo: route.seo,
     date: route.date,
     lastUpdated: route.lastUpdated,
+    contributors: route.contributors,
     category: route.category,
     order: route.order,
     sidebarLabel: route.sidebarLabel,
@@ -142,15 +143,36 @@ export function generateClientRegistryModule(
     }
   }
 
+  // `floating:after` is mounted once in the app shell and may pull a large
+  // bundle, so it stays lazy. Every other slot renders inside the page tree
+  // and must be available during SSR, so it is imported eagerly.
+  const eagerImports: string[] = []
+  let eagerIndex = 0
+
   const serializedSlots = Object.entries(slots).map(([slot, specs]) => {
-    const loaders = specs.map((spec, index) => {
+    const entries = specs.map((spec, index) => {
       const { modulePath, exportName } = parseClientComponentSpec(spec)
-      return `{ id: ${JSON.stringify(`${slot}:${index}`)}, load: () => import(${JSON.stringify(modulePath)}).then(module => ({ default: module[${JSON.stringify(exportName)}] || module.default })) }`
+      const id = JSON.stringify(`${slot}:${index}`)
+
+      if (slot === 'floating:after') {
+        return `{ id: ${id}, load: () => import(${JSON.stringify(modulePath)}).then(module => ({ default: module[${JSON.stringify(exportName)}] || module.default })) }`
+      }
+
+      const moduleVar = `slotModule${eagerIndex++}`
+      eagerImports.push(
+        `import * as ${moduleVar} from ${JSON.stringify(modulePath)}`,
+      )
+      const component =
+        exportName === 'default'
+          ? `${moduleVar}.default`
+          : `${moduleVar}[${JSON.stringify(exportName)}]`
+      return `{ id: ${id}, Component: ${component} }`
     })
-    return `  ${JSON.stringify(slot)}: [${loaders.join(', ')}]`
+    return `  ${JSON.stringify(slot)}: [${entries.join(', ')}]`
   })
 
-  return `const slots = {\n${serializedSlots.join(',\n')}\n};\nexport default slots;\n`
+  const imports = eagerImports.length ? `${eagerImports.join('\n')}\n` : ''
+  return `${imports}const slots = {\n${serializedSlots.join(',\n')}\n};\nexport default slots;\n`
 }
 
 export interface VirtualModuleState {

@@ -12,6 +12,7 @@
     "generate-changelog": "boltdocs generate-changelog ../packages/core/CHANGELOG.md"
   },
   "dependencies": {
+    "@bdocs/plugin-git-meta": "workspace:*",
     "@bdocs/plugin-llms-text": "workspace:*",
     "@bdocs/plugin-math": "workspace:*",
     "@bdocs/plugin-mermaid": "workspace:*",

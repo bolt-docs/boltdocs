@@ -100,10 +100,28 @@ function resolvePublicUrl(value: string, config: BoltdocsConfig): string {
   return base && base !== '/' ? `${base}${value}` : value
 }
 
+/**
+ * Public asset URL for attributes Vite rewrites (`<link href>`, `<script src>`).
+ *
+ * Vite prepends `config.base` to root-absolute public URLs found in
+ * `index.html`, exactly once, in both dev and build. Pre-prefixing the base
+ * here made Vite apply it a second time in dev (`/docs/docs/light.svg`) while
+ * the build stayed correct, so the favicon and the logo preload only 404'd in
+ * the dev server. Return the path without a base prefix and let Vite own the
+ * transformation; a base already written by the user is stripped so the result
+ * is idempotent.
+ */
+function vitePublicUrl(value: string, config: BoltdocsConfig): string {
+  if (!value.startsWith('/') || value.startsWith('//')) return value
+  const base = (config.base || '/').replace(/^\/+|\/+$/g, '')
+  if (!base) return value
+  if (value === `/${base}`) return '/'
+  if (value.startsWith(`/${base}/`)) return value.slice(base.length + 1)
+  return value
+}
+
 function buildMetaTags(meta: ResolvedMeta, config: BoltdocsConfig): string {
-  const favicon = meta.favicon
-    ? resolvePublicUrl(meta.favicon, config)
-    : undefined
+  const favicon = meta.favicon ? vitePublicUrl(meta.favicon, config) : undefined
   const tags = [
     favicon ? `<link rel="icon" href="${escapeHtml(favicon)}">` : '',
     meta.robotsContent
@@ -171,7 +189,7 @@ function buildPreloadLinks(config: BoltdocsConfig): string {
     }
     const type = typeMap[ext || ''] || 'image/png'
     links.push(
-      `<link rel="preload" as="image" href="${resolvePublicUrl(logoSrc, config)}" type="${type}" fetchpriority="high">`,
+      `<link rel="preload" as="image" href="${vitePublicUrl(logoSrc, config)}" type="${type}" fetchpriority="high">`,
     )
   }
 
