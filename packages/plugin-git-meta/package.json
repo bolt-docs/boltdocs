@@ -1,6 +1,6 @@
 {
   "name": "@bdocs/plugin-git-meta",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Git-derived page metadata for Boltdocs — last-updated dates and contributor lists",
   "publishConfig": {
     "access": "public"
