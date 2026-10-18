@@ -1,0 +1,208 @@
+---
+title: "Git Metadata"
+sidebarPosition: 7
+description: Derive last-updated dates and contributor lists from git history with @bdocs/plugin-git-meta.
+---
+
+*The `@bdocs/plugin-git-meta` package ships two plugins that read your repository's history: one for page last-updated dates and one for contributor lists. Both share a single `git log` scan, so enabling them together costs almost nothing extra.*
+
+## Concepts & Architecture
+
+### How it works
+
+1. **One scan per build.** The package runs a single `git log --name-only` over the documentation directory and aggregates the result per file.
+2. **HEAD-keyed cache.** The scan is cached by repository root and HEAD. The second plugin reuses the first plugin's result, and a dev server automatically sees new commits without a restart.
+3. **`routes:resolved` enrichment.** Both plugins run through the documented `routes:resolved` hook, after routes are crawled, normalized, and sorted. The enriched metadata reaches the SSG route table and the client `virtual:boltdocs-routes` module.
+4. **Layout rendering.** Routes carry `lastUpdated` and `contributors`; the default page footer renders both. Custom themes can read them with `useRoutes()`.
+
+Only non-merge commits are considered. Dates use the committer date (`%cI`), and contributor identities are grouped by email before the optional name merge.
+
+### What each plugin adds
+
+| Plugin | Route field | Source |
+| :--- | :--- | :--- |
+| `lastUpdatedPlugin()` | `route.lastUpdated` | Last non-merge commit touching the file |
+| `contributorsPlugin()` | `route.contributors` | Authors of every non-merge commit touching the file |
+
+---
+
+## Installation
+
+```bash
+pnpm add @bdocs/plugin-git-meta
+```
+
+```ts title="boltdocs.config.ts"
+import { defineConfig } from 'boltdocs'
+import {
+  contributorsPlugin,
+  lastUpdatedPlugin,
+} from '@bdocs/plugin-git-meta'
+
+export default defineConfig({
+  plugins: [
+    lastUpdatedPlugin(),
+    contributorsPlugin(),
+  ],
+})
+```
+
+Both plugins are independent. Enable only the one you need.
+
+---
+
+## Configuration
+
+### `lastUpdatedPlugin`
+
+| Option | Type | Default | Description |
+| :--- | :--- | :--- | :--- |
+| `fallbackToMtime` | `boolean` | `false` | Use the file modification time when git has no history for a page (untracked file, shallow clone). |
+| `overrideFrontmatter` | `boolean` | `false` | Replace a string or `Date` written in `lastUpdated` frontmatter with the git date. |
+| `paths` | `string[]` | — | Only process routes whose path starts with one of these prefixes. |
+| `excludePaths` | `string[]` | — | Skip routes whose path starts with one of these prefixes. |
+
+```ts
+lastUpdatedPlugin({
+  overrideFrontmatter: true,
+  excludePaths: ['/changelog'],
+})
+```
+
+When `fallbackToMtime` is disabled and a file has no git history, the existing route date is left untouched. Explicit frontmatter dates always win unless `overrideFrontmatter` is enabled.
+
+### `contributorsPlugin`
+
+| Option | Type | Default | Description |
+| :--- | :--- | :--- | :--- |
+| `max` | `number` | `12` | Maximum contributors stored per page (1–100). |
+| `order` | `'commits' \| 'recent'` | `'commits'` | Rank by total commits or by the latest contribution. |
+| `excludeBots` | `boolean` | `true` | Drop automation accounts such as dependabot, renovate, and `[bot]` identities. |
+| `excludeAuthors` | `string[]` | `[]` | Names or emails to exclude. |
+| `minCommits` | `number` | `1` | Ignore contributors below this commit count. |
+| `mergeByName` | `boolean` | `true` | Combine identities that share a display name. |
+| `includeEmail` | `boolean` | `false` | Include the author email in route metadata. |
+| `autoRender` | `boolean` | `true` | Mount the exported `Contributors` component in the default page footer. |
+| `profiles` | `Record<string, Profile>` | `{}` | Per-identity overrides keyed by email or display name. |
+| `paths` | `string[]` | — | Only process routes whose path starts with one of these prefixes. |
+| `excludePaths` | `string[]` | — | Skip routes whose path starts with one of these prefixes. |
+
+### Profiles and avatars
+
+GitHub noreply emails (`12345+user@users.noreply.github.com`) automatically produce an avatar and a profile URL. For authors who commit with a personal email, map them explicitly:
+
+```ts
+contributorsPlugin({
+  max: 8,
+  profiles: {
+    'jane@example.com': {
+      name: 'Jane Doe',
+      avatar: 'https://github.com/janedoe.png?size=64',
+      url: 'https://github.com/janedoe',
+    },
+  },
+})
+```
+
+Profile keys are matched against the email first, then the display name. Emails are never exposed to the client unless `includeEmail` is enabled.
+
+---
+
+## Rendering dates and contributors
+
+The UI lives in the plugin, not in the core. `contributorsPlugin()` mounts the exported `Contributors` component on the left side of the default page footer through the `page:footer:start` client slot, next to the framework's last-updated date. Disable the automatic mount when you want to render it yourself:
+
+```ts
+contributorsPlugin({ autoRender: false })
+```
+
+### Custom footers
+
+The plugin client entry exports `Contributors`, `LastUpdated`, and a ready-made `GitMetaFooter`. Every component accepts class slots and render props:
+
+```tsx title="theme/my-page-footer.tsx"
+import { GitMetaFooter } from '@bdocs/plugin-git-meta/client'
+import { useRoutes } from 'boltdocs/client'
+
+export function MyPageFooter() {
+  const { currentRoute } = useRoutes()
+
+  return (
+    <GitMetaFooter
+      date={currentRoute?.lastUpdated}
+      contributors={currentRoute?.contributors}
+      maxContributors={5}
+      labels={{ contributors: 'Autores', lastUpdated: 'Actualizado el' }}
+      className="mt-16 border-t border-subtle pt-6"
+      contributorClassNames={{ avatar: 'ring-2 ring-surface' }}
+    />
+  )
+}
+```
+
+Use `Contributors` alone when the date is rendered elsewhere:
+
+```tsx
+import { Contributors } from '@bdocs/plugin-git-meta/client'
+
+<Contributors
+  contributors={currentRoute?.contributors}
+  max={3}
+  size="md"
+  classNames={{ link: 'font-medium' }}
+  renderName={(contributor) => contributor.name.split(' ')[0]}
+/>
+```
+
+### Component props
+
+| Component | Key props |
+| :--- | :--- |
+| `Contributors` | `contributors`, `max`, `size` (`sm`/`md`), `showAvatars`, `showNames`, `label`, `classNames`, `className`, `linkTarget`, `renderAvatar`, `renderName`, `renderContributor` |
+| `LastUpdated` | `date`, `label`, `formatDate`, `className` |
+| `GitMetaFooter` | `date`, `contributors`, `showContributors`, `showLastUpdated`, `maxContributors`, `labels`, `formatDate`, `className`, `contributorsClassName`, `dateClassName`, `contributorClassNames`, `contributorProps` |
+
+### Route data shape
+
+Each contributor is a `RouteContributor`:
+
+| Field | Type | Notes |
+| :--- | :--- | :--- |
+| `name` | `string` | Display name after profiles and name merging. |
+| `commits` | `number` | Number of commits authored on the page. |
+| `lastCommit` | `string` | ISO date of the contributor's latest commit. |
+| `avatar` | `string` | Optional avatar URL. |
+| `url` | `string` | Optional profile URL. |
+| `email` | `string` | Only present when `includeEmail` is enabled. |
+
+---
+
+## Performance & limitations
+
+- **Shallow clones** only expose the commits that were cloned. In CI, use a deeper fetch (for example `fetch-depth: 0`) if you want complete contributor history.
+- **Squash merges** collapse a pull request into one commit, so the squashed author receives the credit for the whole change.
+- **Renames** are not followed. A renamed file starts its history at the rename commit.
+- **Merge commits** are skipped on purpose: they would attribute every file in a pull request to the person who merged it.
+- **No git repository** in the build environment? Both plugins are no-ops; `lastUpdated` keeps the core's file modification time and `contributors` stays empty.
+
+---
+
+## Troubleshooting
+
+| Symptom | Likely cause | Fix |
+| :--- | :--- | :--- |
+| No dates or contributors | The docs directory is not inside a git repository | Run the build from a checkout, or enable `fallbackToMtime`. |
+| A new page has no metadata | The file has never been committed | Commit it, or use `fallbackToMtime` for the date. |
+| Dates look older than expected | Squash merges collapse a pull request into one commit | Fetch full history or accept the squash date. |
+| A contributor is missing | Bot filtering, `minCommits`, `excludeAuthors`, or `max` | Review the contributors options. |
+| No avatar | The commit email is not a GitHub noreply address | Add a `profiles` entry. |
+| Emails appear in route data | `includeEmail: true` | Disable it if the metadata is public. |
+| Components are not visible | `autoRender: false`, or a custom layout without the footer | Render `Contributors` / `GitMetaFooter` yourself. |
+
+---
+
+## See also
+
+- [Lifecycle Hooks](/docs/api/plugin-api/lifecycle-hooks) — `routes:resolved` and the rest of the plugin lifecycle.
+- [Collections](/docs/integrations/features/collections) — `lastUpdated` and author metadata in collection posts.
+- [Frontmatter](/docs/guides/content/frontmatter) — manually overriding `lastUpdated`.

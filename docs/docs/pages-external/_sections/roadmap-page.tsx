@@ -41,6 +41,12 @@ const ROADMAP: RoadmapItem[] = [
       '@bdocs/contracts publishes the framework-neutral route, plugin, lifecycle, and configuration contracts used by 4.0.',
     status: 'shipped',
   },
+  {
+    title: 'Plugin: git metadata',
+    description:
+      'Last-updated dates and contributor lists derived from git history, with a customizable footer.',
+    status: 'shipped',
+  },
   // In Progress
   {
     title: 'Boltdocs migrate MVP — VitePress first',
@@ -68,16 +74,6 @@ const ROADMAP: RoadmapItem[] = [
   {
     title: 'Plugin: reading-time',
     description: 'Reading time derived automatically from content.',
-    status: 'planning',
-  },
-  {
-    title: 'Plugin: last-updated',
-    description: 'Last-updated dates sourced from git history.',
-    status: 'planning',
-  },
-  {
-    title: 'Plugin: contributors',
-    description: 'Author and contributor lists derived from git.',
     status: 'planning',
   },
   {
@@ -362,7 +358,7 @@ export default function RoadmapPage() {
               <div id="shipped-heading">
                 <SectionHeading
                   icon={CheckCircle2}
-                  label="Shipped in 3.4.0"
+                  label="Shipped"
                   tone="bg-success-500/10 text-success-500"
                   count={shipped.length}
                 />
