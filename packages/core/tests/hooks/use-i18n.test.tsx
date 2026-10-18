@@ -30,11 +30,17 @@ function configure({
   allRoutes,
   currentLocale,
   currentVersion,
+  versions,
 }: {
   currentRoute: Route
   allRoutes: Route[]
   currentLocale: string
   currentVersion?: string
+  versions?: {
+    defaultVersion: string
+    versions: { label: string; path: string }[]
+    prefix?: string
+  }
 }) {
   vi.mocked(useNavigate).mockReturnValue(navigate)
   vi.mocked(useLocation).mockReturnValue({
@@ -48,6 +54,13 @@ function configure({
       defaultLocale: 'en',
       locales: { en: 'English', es: 'Español' },
     },
+    versions: versions
+      ? {
+          defaultVersion: versions.defaultVersion,
+          prefix: versions.prefix || '',
+          versions: versions.versions,
+        }
+      : undefined,
   } as never)
   vi.mocked(useRoutes).mockReturnValue({
     allRoutes,
@@ -141,6 +154,10 @@ describe('useI18n locale navigation', () => {
       allRoutes: [englishRoute, spanishRoute],
       currentLocale: 'en',
       currentVersion: 'v2',
+      versions: {
+        defaultVersion: 'v2',
+        versions: [{ label: 'v2', path: 'v2' }],
+      },
     })
 
     const { result } = renderHook(() => useI18n())
@@ -167,5 +184,150 @@ describe('useI18n locale navigation', () => {
 
     expect(navigate).not.toHaveBeenCalled()
     expect(setLocale).not.toHaveBeenCalled()
+  })
+})
+
+describe('useI18n collection locale navigation', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+  })
+
+  it('navigates from a Spanish blog post to English (no version prefix)', () => {
+    const englishRoute: Route = {
+      path: '/docs/blog/boltdocs-3-4-0',
+      filePath: '[blog]/boltdocs-3-4-0.mdx',
+      collection: 'blog',
+    }
+    const spanishRoute: Route = {
+      path: '/docs/es/blog/boltdocs-3-4-0',
+      filePath: 'es/[blog]/boltdocs-3-4-0.mdx',
+      locale: 'es',
+      collection: 'blog',
+    }
+
+    configure({
+      currentRoute: spanishRoute,
+      allRoutes: [englishRoute, spanishRoute],
+      currentLocale: 'es',
+    })
+
+    const { result } = renderHook(() => useI18n())
+    result.current.handleLocaleChange('en')
+
+    expect(setLocale).toHaveBeenCalledWith('en')
+    expect(navigate).toHaveBeenCalledWith('/docs/blog/boltdocs-3-4-0')
+  })
+
+  it('navigates from an English blog post to Spanish (no version prefix)', () => {
+    const englishRoute: Route = {
+      path: '/docs/blog/boltdocs-3-4-0',
+      filePath: '[blog]/boltdocs-3-4-0.mdx',
+      collection: 'blog',
+    }
+    const spanishRoute: Route = {
+      path: '/docs/es/blog/boltdocs-3-4-0',
+      filePath: 'es/[blog]/boltdocs-3-4-0.mdx',
+      locale: 'es',
+      collection: 'blog',
+    }
+
+    configure({
+      currentRoute: englishRoute,
+      allRoutes: [englishRoute, spanishRoute],
+      currentLocale: 'en',
+    })
+
+    const { result } = renderHook(() => useI18n())
+    result.current.handleLocaleChange('es')
+
+    expect(setLocale).toHaveBeenCalledWith('es')
+    expect(navigate).toHaveBeenCalledWith('/docs/es/blog/boltdocs-3-4-0')
+  })
+
+  it('preserves version while switching locale on a versioned blog post', () => {
+    const englishRoute: Route = {
+      path: '/docs/v2/blog/boltdocs-3-4-0',
+      filePath: 'v2/[blog]/boltdocs-3-4-0.mdx',
+      version: 'v2',
+      collection: 'blog',
+    }
+    const spanishRoute: Route = {
+      path: '/docs/v2/es/blog/boltdocs-3-4-0',
+      filePath: 'v2/es/[blog]/boltdocs-3-4-0.mdx',
+      locale: 'es',
+      version: 'v2',
+      collection: 'blog',
+    }
+
+    configure({
+      currentRoute: englishRoute,
+      allRoutes: [englishRoute, spanishRoute],
+      currentLocale: 'en',
+      currentVersion: 'v2',
+      versions: {
+        defaultVersion: 'v2',
+        versions: [{ label: 'v2', path: 'v2' }],
+      },
+    })
+
+    const { result } = renderHook(() => useI18n())
+    result.current.handleLocaleChange('es')
+
+    expect(setLocale).toHaveBeenCalledWith('es')
+    expect(navigate).toHaveBeenCalledWith('/docs/v2/es/blog/boltdocs-3-4-0')
+  })
+
+  it('navigates from a versioned Spanish blog post to English', () => {
+    const englishRoute: Route = {
+      path: '/docs/v2/blog/boltdocs-3-4-0',
+      filePath: 'v2/[blog]/boltdocs-3-4-0.mdx',
+      version: 'v2',
+      collection: 'blog',
+    }
+    const spanishRoute: Route = {
+      path: '/docs/v2/es/blog/boltdocs-3-4-0',
+      filePath: 'v2/es/[blog]/boltdocs-3-4-0.mdx',
+      locale: 'es',
+      version: 'v2',
+      collection: 'blog',
+    }
+
+    configure({
+      currentRoute: spanishRoute,
+      allRoutes: [englishRoute, spanishRoute],
+      currentLocale: 'es',
+      currentVersion: 'v2',
+      versions: {
+        defaultVersion: 'v2',
+        versions: [{ label: 'v2', path: 'v2' }],
+      },
+    })
+
+    const { result } = renderHook(() => useI18n())
+    result.current.handleLocaleChange('en')
+
+    expect(setLocale).toHaveBeenCalledWith('en')
+    expect(navigate).toHaveBeenCalledWith('/docs/v2/blog/boltdocs-3-4-0')
+  })
+
+  it('does not navigate away from collection root page when switching locale', () => {
+    const blogRootRoute: Route = {
+      path: '/docs/blog',
+      filePath: '[blog]/_index.mdx',
+      collection: 'blog',
+    }
+
+    configure({
+      currentRoute: blogRootRoute,
+      allRoutes: [blogRootRoute],
+      currentLocale: 'en',
+    })
+
+    const { result } = renderHook(() => useI18n())
+    result.current.handleLocaleChange('es')
+
+    // Collection root pages are locale-independent, should not navigate
+    expect(navigate).not.toHaveBeenCalled()
+    expect(setLocale).toHaveBeenCalledWith('es')
   })
 })
