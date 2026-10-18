@@ -7,6 +7,7 @@ export type {
   BoltdocsLocale,
   BoltdocsVersion,
   BoltdocsTypes,
+  RouteContributor,
 } from '../shared/types'
 export * from './ssg'
 export { formatDate } from './collections/utils'

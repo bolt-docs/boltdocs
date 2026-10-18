@@ -1,4 +1,5 @@
 import { createContext, use, useEffect, useState } from 'react'
+import type { RouteContributor } from '../../shared/types'
 import type { ComponentRoute } from '../types'
 
 export interface CollectionPost {
@@ -14,6 +15,7 @@ export interface CollectionPost {
   version?: string
   frontmatter?: Record<string, any>
   lastUpdated?: string | number | Date
+  contributors?: RouteContributor[]
   headings?: { level: number; text: string; id: string }[]
   draft?: boolean
   /** Collection id this post belongs to (added by the server for HMR). */

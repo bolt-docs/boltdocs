@@ -61,7 +61,10 @@ declare module 'virtual:boltdocs-client-registry' {
     string,
     Array<{
       id: string
-      load: () => Promise<{ default: React.ComponentType }>
+      /** Present for eager slots (statically imported). */
+      Component?: React.ComponentType<any>
+      /** Present for lazy slots such as `floating:after`. */
+      load?: () => Promise<{ default: React.ComponentType }>
     }>
   >
   export default slots

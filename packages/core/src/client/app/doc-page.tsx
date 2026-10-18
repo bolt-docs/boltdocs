@@ -16,7 +16,9 @@ export function DocPage({
   return (
     <>
       <Content components={allComponents} />
-      {route?.lastUpdated && <LastUpdated date={route.lastUpdated} />}
+      {(route?.lastUpdated || route?.contributors?.length) && (
+        <LastUpdated date={route?.lastUpdated} />
+      )}
     </>
   )
 }
