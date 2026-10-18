@@ -137,6 +137,14 @@ export class PluginLifecycleManager implements IPluginLifecycleManager {
       try {
         const result = await hookFn(context, params)
         if (result !== undefined) {
+          // `routes:resolved` is documented as returning the route array
+          // itself, while the generic chain pipes a params object. Normalize
+          // the documented shape here so plugins can return either.
+          if (Array.isArray(result) && hookName === 'routes:resolved') {
+            params = { ...params, routes: result } as TParams
+            continue
+          }
+
           // Check for chain control signals (backwards-compatible — hooks
           // that don't set __signal behave exactly as before).
           const signal: string | undefined = (result as any).__signal

@@ -20,6 +20,7 @@ import {
   type RouteDiscoverySnapshot,
 } from './cache'
 import { sortRoutes } from './sorter'
+import { runRoutesResolvedHook } from './route-hooks'
 import {
   hashFrontmatterData,
   setFrontmatterHash,
@@ -800,7 +801,10 @@ export async function generateRoutes(
       throw ROUTE_GENERATION_INVALIDATED
     }
 
-    return allRoutes
+    // Let plugins enrich the final metadata (contributors, git last-updated
+    // dates, reading time, ...). The hook runs after sorting so plugins see
+    // the same order the sidebar and SSG route table use.
+    return runRoutesResolvedHook(allRoutes, config, docsDir)
   })()
 
   routeContext.activeGenerations.set(generationKey, currentTask)
