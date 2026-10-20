@@ -212,6 +212,8 @@ Not every change to `4.0` belongs to a numbered slice. Two rounds of dependency 
 | `@bdocs/plugin-ssg` typecheck repaired | 5 | Correctness | `tsc --noEmit` on the package went from 10 errors to 0 |
 | `packages/core` typecheck repaired | 2 | Correctness | `tsc --noEmit` on the core went from 1 error to 0 |
 | **Audit test fixtures committed** | none | Correctness | 6 tests were failing on a tree with no local changes |
+| `PluginLifecycleManager` no longer loads the build pipeline | 2 | Dev startup, correctness | The `node/pipeline` barrel re-exported `createBuildPipeline`, so importing the step runner pulled in every build step, Vite and the SSG package. Module init for the plugin lifecycle: 3248 → 852 ms; the `routes:resolved` hook test file went from timing out on a loaded machine to 716 ms; core suite 1024/1024 |
+| **Core `tsc --noEmit` regressed** | 2 | Correctness | The row above claims the core typecheck went from 1 error to 0. It is now 9 errors on a clean tree — `mdx/shiki-adapter.ts` (4), `plugins/search-contract.ts` (2), `search/registry.ts`, `plugin/index.ts`, `dev-server/index.ts`. The claim above is stale, and the drift is the same contracts/unist-utils type split the errors describe |
 
 The pattern is worth naming: the roadmap's slice 3 and 4 extract packages, which reduces coupling but not install size, because the heavy parts follow their importers. Dependency trimming had to be done directly to move the number, and it turned out to be where two real bugs were hiding — an unreachable 308 grammars and five themes that were documented but never registered.
 

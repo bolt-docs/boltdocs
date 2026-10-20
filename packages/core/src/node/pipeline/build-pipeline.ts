@@ -1,4 +1,4 @@
-import { Pipeline } from './index'
+import { Pipeline } from './pipeline'
 import type { BuildContext } from './types'
 import { ConfigResolveStep } from './steps/config-resolve'
 import { RouteGenerateStep } from './steps/route-generate'

@@ -61,7 +61,10 @@ describe('routes:resolved lifecycle hook', () => {
     expect(routes.length).toBeGreaterThan(0)
     expect(routes.every((route) => route.badge === 'hooked')).toBe(true)
     expect(routes[0].contributors?.[0].name).toBe('Test Author')
-  })
+    // The first test in this file pays for loading the plugin lifecycle
+    // module graph, which used to include the entire build pipeline. The
+    // remaining tests reuse the loaded module and run in milliseconds.
+  }, 30_000)
 
   it('accepts a replaced route array from the hook', async () => {
     const docsDir = await createDocsDir()

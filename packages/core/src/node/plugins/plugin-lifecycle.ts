@@ -15,7 +15,12 @@ import type {
   PluginLogger,
 } from './plugin-types'
 import { BoltdocsPluginStore } from './plugin-store'
-import { Pipeline, type PipelineStep } from '../pipeline'
+// Imported from the runner's own module, not the `pipeline` barrel: the barrel
+// re-exports `createBuildPipeline`, which reaches every build step and with
+// them Vite and the SSG package. The plugin lifecycle runs on the first route
+// generation of a dev server, and it has no business loading the build graph
+// to sequence a few hook steps.
+import { Pipeline, type PipelineStep } from '../pipeline/pipeline'
 import * as dui from '@bdocs/dui'
 import {
   createPluginCachesAPI,
