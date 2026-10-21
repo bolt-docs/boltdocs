@@ -77,16 +77,21 @@ The distinction is not a limitation of the implementation. A codemod that rename
 
 ## 2. The package graph
 
-The published scope is `@bdocs/*`. The target graph for 4.0:
+The published scope is `@bdocs/*`. The graph for 4.0:
 
 ```text
-@bdocs/contracts
-  ├─ @bdocs/core-node
-  ├─ @bdocs/runtime
-  ├─ @bdocs/ssg
-  ├─ @bdocs/processor-satteri
-  └─ @bdocs/plugin-*
+@bdocs/contracts   (no dependencies)
+@bdocs/primitives  (no dependencies)
+@bdocs/runtime     → @bdocs/contracts
+@bdocs/theme-neutral → @bdocs/contracts, @bdocs/primitives, @bdocs/runtime
+@bdocs/ssg         → @bdocs/contracts
+boltdocs (engine)  → @bdocs/contracts, @bdocs/processor-satteri, @bdocs/ssg
 ```
+
+The engine keeps the name it has always had. Renaming it would break every
+`import { createPlugin } from 'boltdocs'` in every plugin and every site, and
+the separation exists to untangle the layers, not to rename the package that
+already sits at the bottom of them.
 
 `@bdocs/contracts` is small, framework-neutral and dependency-light. It holds the public types for routes, manifests, plugins, build and render contexts, module identities and invalidation events. It imports no Node.js, Vite, React, SSG or individual integration — there is a test that fails the build if it ever does, because a type-only import of a bundler type compiles, ships nothing, and quietly welds the contract layer to the toolchain the separation exists to break.
 

@@ -3,7 +3,7 @@
  *
  * The plugin context in `./plugins` is what a plugin author receives. These are
  * the contracts the framework itself passes between its own stages, extracted so
- * that `@bdocs/core-node` and `@bdocs/ssg` can be separated without either
+ * that the engine and `@bdocs/ssg` can be separated without either
  * importing the other.
  *
  * Everything here is a plain data shape: a filesystem path is a `string`, and a

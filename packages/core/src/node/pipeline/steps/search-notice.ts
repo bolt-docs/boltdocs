@@ -10,7 +10,7 @@ import { info } from '@bdocs/dui'
  * the built-in search dialog worked. The generator now lives in
  * `@bdocs/plugin-search`, registered through a registry so the core can stay
  * free of it — the coupling the 4.0 roadmap named when it listed Search among
- * the integrations `@bdocs/core-node` must not import.
+ * the integrations the engine must not import.
  *
  * This is `info`, not `warn`, and the difference is deliberate. Losing an SEO
  * plugin costs `sitemap.xml` and `robots.txt`, which nothing tells a user about

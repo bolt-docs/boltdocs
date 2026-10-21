@@ -14,7 +14,7 @@ import type { RouteMeta } from '@bdocs/contracts'
  * generator — and pnpm reports cyclic workspace dependencies rather than
  * resolving them. Worse, it would make the generator unavoidable: every site
  * would carry a search implementation whether or not it shipped a search box,
- * which is the coupling the 4.0 roadmap set out to remove ("`@bdocs/core-node`
+ * which is the coupling the 4.0 roadmap set out to remove ("the engine
  * … will not import optional integrations such as … **Search**").
  *
  * So the dependency runs the other way. The plugin is a dependency of a site

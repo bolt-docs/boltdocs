@@ -9,7 +9,7 @@
  * ## Why this is a plugin
  *
  * The generator used to live in the core. The 4.0 roadmap states the rule the
- * move enforces: "`@bdocs/core-node` … will not import optional integrations
+ * move enforces: "the engine … will not import optional integrations
  * such as Mermaid, Math, Ask AI, **Search**, RSS or image optimization."
  *
  * Keeping search out also removed a dead dependency: `flexsearch` was declared

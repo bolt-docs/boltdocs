@@ -36,15 +36,20 @@ document was never published and is not adopted: renaming the scope would be a
 breaking change to every existing import for no functional gain. All new
 packages in the graph below use `@bdocs/*`.
 
-The target package graph is:
+The engine keeps the name it has. Earlier drafts of this graph called it
+`@bdocs/core-node`, and the name was never published: renaming the engine
+would break every `import { createPlugin } from 'boltdocs'` in every plugin
+and every site, and the graph exists to separate the *layers*, not to rename
+the package that already sits at the bottom of them. The graph below is the
+one that shipped.
 
 ```text
-@bdocs/contracts
-  ├─ @bdocs/core-node
-  ├─ @bdocs/runtime
-  ├─ @bdocs/ssg
-  ├─ @bdocs/processor-satteri
-  └─ @bdocs/plugin-*
+@bdocs/contracts   (no dependencies)
+@bdocs/primitives  (no dependencies)
+@bdocs/runtime     → @bdocs/contracts
+@bdocs/theme-neutral → @bdocs/contracts, @bdocs/primitives, @bdocs/runtime
+@bdocs/ssg         → @bdocs/contracts
+boltdocs (engine)  → @bdocs/contracts, @bdocs/processor-satteri, @bdocs/ssg
 ```
 
 ### Contracts
@@ -53,9 +58,15 @@ The target package graph is:
 
 Contracts must not import Node.js, Vite, React, SSG, or individual integrations.
 
-### Core Node
+### The engine
 
-`@bdocs/core-node` will own configuration resolution, route generation, frontmatter validation, plugin lifecycle, build orchestration, dev-server state, and invalidation. It will not import optional integrations such as Mermaid, Math, Ask AI, Search, RSS, or image optimization.
+`boltdocs` owns configuration resolution, route generation, frontmatter
+validation, plugin lifecycle, build orchestration, dev-server state, and
+invalidation. It does not import optional integrations such as Mermaid, Math,
+Ask AI, Search, RSS, or image optimization, and — as of the core cleanse — it
+does not import the UI layer either. The theme is resolved from the project by
+name and imported at build time, which is what makes a second theme a second
+package rather than a fork of the engine.
 
 ### Runtime
 

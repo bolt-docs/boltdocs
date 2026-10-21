@@ -78,16 +78,21 @@ La distinción no es una limitación de la implementación. Un codemod que renom
 
 ## 2. El grafo de paquetes
 
-El scope publicado es `@bdocs/*`. El grafo objetivo para 4.0:
+El scope publicado es `@bdocs/*`. El grafo de 4.0:
 
 ```text
-@bdocs/contracts
-  ├─ @bdocs/core-node
-  ├─ @bdocs/runtime
-  ├─ @bdocs/ssg
-  ├─ @bdocs/processor-satteri
-  └─ @bdocs/plugin-*
+@bdocs/contracts   (sin dependencias)
+@bdocs/primitives  (sin dependencias)
+@bdocs/runtime     → @bdocs/contracts
+@bdocs/theme-neutral → @bdocs/contracts, @bdocs/primitives, @bdocs/runtime
+@bdocs/ssg         → @bdocs/contracts
+boltdocs (motor)   → @bdocs/contracts, @bdocs/processor-satteri, @bdocs/ssg
 ```
+
+El motor conserva el nombre que siempre tuvo. Renombrarlo rompería cada
+`import { createPlugin } from 'boltdocs'` de cada plugin y de cada sitio, y la
+separación existe para desenredar las capas, no para renombrar el package que
+ya está en la base de ellas.
 
 `@bdocs/contracts` es chico, neutral al framework y con pocas dependencias. Contiene los tipos públicos de rutas, manifests, plugins, contextos de build y render, identidades de módulo y eventos de invalidación. No importa Node.js, Vite, React, SSG ni integraciones individuales — hay un test que rompe el build si alguna vez lo hace, porque un import type-only de un tipo de bundler compila, no shippea nada, ysolda en silencio la capa de contracts al toolchain que la separación existe para romper.
 
