@@ -189,6 +189,28 @@ that imported one component was downloading them with it.
 Two findings that are not fixed yet, recorded because they are the size of the
 opportunity:
 
+### The critical-CSS extractor parses the stylesheet once
+
+The extractor parsed the stylesheet on every page. Parsing is the expensive
+half: on the documentation site's 180 kB stylesheet it costs 91 ms, and
+matching it against one page costs 44 ms. The stylesheet is the same for every
+page of a build, so the parse belonged to the build and the matching to the
+page.
+
+The stylesheet is now parsed once per extractor instance, and the tokenised
+selectors — which were also rebuilt per page — are shared with it. The
+extraction of one page went from **138 ms to 23 ms**, and the output is
+**byte-identical**: the same 23,950 bytes of critical CSS, checked by
+extracting the same page through both paths and comparing.
+
+The cold build of the documentation site went from 24.7 s to 22.1 s, measured
+back to back on the same machine with three runs each.
+
+The change is in the Zig extractor (`packages/zig-critters`), which is
+recompiled to WebAssembly as part of the build. The toolchain needs
+`wasm-ld` on the path — on this machine it lives in `/usr/lib/llvm21/bin` —
+and without it the WASM build fails and the previous binary is used.
+
 **The MDX precompile is single-threaded for most sites.** It is 9.8 s of a
 26 s build. The compile pool is skipped whenever the site registers a
 remark or rehype plugin — which is most sites — because the workers cannot

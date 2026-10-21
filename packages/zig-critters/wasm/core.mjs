@@ -72,10 +72,19 @@ const MAX_ARENA = 32 * 1024 * 1024
 class ZigCrittersInstance {
   constructor(instance) {
     this.instance = instance
-    const { memory, processCriticalCss, getResultPtr, reset, __heap_base } =
-      instance.exports
+    const {
+      memory,
+      processCriticalCss,
+      processPreparedCriticalCss,
+      prepareStylesheet,
+      getResultPtr,
+      reset,
+      __heap_base,
+    } = instance.exports
     this.memory = memory
     this.processCriticalCss = processCriticalCss
+    this.processPreparedCriticalCss = processPreparedCriticalCss
+    this.prepareStylesheet = prepareStylesheet
     this.getResultPtr = getResultPtr
     this.reset = reset
     this.heapBase = Number(__heap_base.value)
@@ -85,6 +94,9 @@ class ZigCrittersInstance {
     this.cssCapacity = 0
     this.htmlCapacity = 0
     this.arenaSize = MIN_ARENA
+    // The stylesheet the WASM has parsed, so a page is matched against the
+    // rules instead of against a stylesheet parsed again for every page.
+    this.parsedCssString = null
   }
 
   #ensureCapacity(totalBytes) {
@@ -105,7 +117,13 @@ class ZigCrittersInstance {
    * encoding and zero copying.
    */
   #prepareCss(css) {
-    if (css === this.cssString && this.cssBytes) return this.cssBytes
+    // Compared by value, not by reference: a pool worker receives the
+    // stylesheet as a structured clone, so the reference is different on every
+    // job even though the content is the same. The comparison costs
+    // microseconds on 180 kB; the parse it avoids costs 91 ms.
+    if (this.cssString !== null && css === this.cssString && this.cssBytes) {
+      return this.cssBytes
+    }
 
     const bytes = textEncoder.encode(css)
     this.#ensureCapacity(this.heapBase + bytes.length + 64 * 1024)
@@ -122,6 +140,25 @@ class ZigCrittersInstance {
     this.cssString = css
     this.cssBytes = bytes
     return bytes
+  }
+
+  /**
+   * Parse the stylesheet once, so the pages are matched against the rules
+   * rather than against a stylesheet parsed again for every page.
+   *
+   * Parsing is the expensive half: on the documentation site's 180 kB
+   * stylesheet it costs 91 ms and the matching costs 44 ms. The stylesheet is
+   * the same for every page of a build.
+   */
+  #parseStylesheet(css) {
+    // Compared by value, for the same reason as the stylesheet's bytes: a
+    // pool worker gets a fresh copy of the string on every job.
+    if (this.parsedCssString !== null && css === this.parsedCssString) return
+    // The bytes live at the resident offset; the WASM copies them into the
+    // stylesheet's own arena, where a growth of the linear memory cannot
+    // invalidate them.
+    this.prepareStylesheet(this.heapBase, this.cssBytes.length)
+    this.parsedCssString = css
   }
 
   /**
@@ -145,13 +182,15 @@ class ZigCrittersInstance {
     )
 
     const compress = options.compress !== false ? 1 : 0
-    const resultLen = this.processCriticalCss(
+
+    // The stylesheet is parsed after the page's bytes are in place, so the
+    // parse sees the final memory layout. The parse happens once per
+    // stylesheet; the pages are matched against the rules it produced.
+    this.#parseStylesheet(css)
+
+    const resultLen = this.processPreparedCriticalCss(
       htmlOffset,
       htmlBytes.length,
-      this.heapBase,
-      cssBytes.length,
-      htmlOffset + this.htmlCapacity,
-      this.arenaSize,
       compress,
     )
 
