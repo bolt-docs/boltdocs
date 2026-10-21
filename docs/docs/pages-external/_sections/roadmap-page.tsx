@@ -47,12 +47,24 @@ const ROADMAP: RoadmapItem[] = [
       'Last-updated dates and contributor lists derived from git history, with a customizable footer.',
     status: 'shipped',
   },
+  {
+    title: 'The UI layer is a package',
+    description:
+      'The engine no longer ships the theme: `boltdocs/client` is gone, the theme is a package the site installs, and `boltdocs migrate` rewrites the imports.',
+    status: 'shipped',
+  },
   // In Progress
   {
-    title: 'Boltdocs migrate MVP — VitePress first',
+    title: 'Boltdocs migrate — VitePress first',
     description:
       'A first-party migration tool to move existing VitePress sites to Boltdocs with minimal friction.',
     status: 'in-progress',
+  },
+  {
+    title: 'Boltdocs migrate — 3.x to 4.0',
+    description:
+      'Reports every 3.x pattern in a project and fixes the mechanical ones: the moved import paths, react-aria, the theme and plugin subpaths, and the manifest.',
+    status: 'shipped',
   },
   {
     title: 'Virtual routes',
