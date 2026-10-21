@@ -2,7 +2,7 @@
   "name": "@bdocs/runtime",
   "version": "1.0.0",
   "type": "module",
-  "description": "Browser-facing React runtime for Boltdocs: routing, navigation, hydration, and client contexts. Framework-neutral — no filesystem, Vite, or server-only code.",
+  "description": "Browser-facing React runtime for Boltdocs: routing, navigation, hydration, and client contexts. Framework-neutral \u2014 no filesystem, Vite, or server-only code.",
   "exports": {
     ".": {
       "types": "./dist/index.d.mts",
@@ -33,6 +33,7 @@
     "@testing-library/jest-dom": "^6.6.0",
     "@testing-library/react": "^16.0.0",
     "@testing-library/user-event": "^14.6.1",
+    "@types/node": "22.0.0",
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
     "jsdom": "^24.1.0",

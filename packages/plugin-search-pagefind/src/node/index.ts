@@ -107,11 +107,11 @@ export default function pagefindSearchPlugin(
        * which is the whole requirement here — a search index built from
        * metadata would be missing every word the MDX pipeline rendered.
        */
-      async 'build:generate'(
-        ctx: PluginContext<{ outDir?: string }>,
-      ): Promise<void> {
+      async 'build:generate'(ctx: PluginContext): Promise<void> {
         const logger = ctx.logger
-        const outDir = ctx.config?.outDir ?? ctx.outDir
+        // The output directory is the context's, not the configuration's: the
+        // configuration describes the site, the context describes the build.
+        const outDir = ctx.outDir
         if (!outDir) {
           logger.warn(
             '[pagefind] no output directory in the build context; skipping.',

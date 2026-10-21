@@ -1,6 +1,6 @@
 import type { ReactElement, ReactNode } from 'react'
 import type { ViteReactSSGClientOptions, ViteReactSSGContext } from '../types'
-import type { RouterEntryModule } from '../router-contract'
+import { asRouterDescriptor, type SsgApp } from '../router-contract'
 import * as _helmet from 'react-helmet-async'
 const { HelmetProvider } = _helmet
 import { hydrate, render } from '../polyfill/react-helper'
@@ -9,7 +9,7 @@ import { deserializeState } from '../utils/state'
 export * from '../types'
 
 export function ViteReactSSG(
-  App: ReactNode,
+  App: SsgApp,
   fn?: (context: ViteReactSSGContext<false>) => Promise<void> | void,
   options: ViteReactSSGClientOptions = {},
 ) {
@@ -26,6 +26,7 @@ export function ViteReactSSG(
     )
 
   const isClient = typeof window !== 'undefined'
+  const descriptor = asRouterDescriptor(App)
 
   async function createRoot(client = false, routePath?: string) {
     const appRenderCallbacks: Function[] = []
@@ -43,18 +44,17 @@ export function ViteReactSSG(
       transformState,
       routePath,
       getStyleCollector,
-      routes: Array.isArray(App) ? App : (App as any)?.routes || [],
+      routes: Array.isArray(App) ? App : descriptor.routes || [],
       routerOptions: undefined,
       base: '/',
       app: App,
       routerType: 'single-page',
     }
-    ;(context as any).RouteRenderer = (App as any)?.RouteRenderer
-    ;(context as any).matchRouteBranch = (App as any)?.matchRouteBranch
-    ;(context as any).matchRouteBranchWithParams = (
-      App as any
-    )?.matchRouteBranchWithParams
-    ;(context as any).resolveRouteBranch = (App as any)?.resolveRouteBranch
+    ;(context as any).RouteRenderer = descriptor.RouteRenderer
+    ;(context as any).matchRouteBranch = descriptor.matchRouteBranch
+    ;(context as any).matchRouteBranchWithParams =
+      descriptor.matchRouteBranchWithParams
+    ;(context as any).resolveRouteBranch = descriptor.resolveRouteBranch
 
     if (client) {
       await documentReady()
@@ -89,12 +89,11 @@ export function ViteReactSSG(
 
       const context = await createRoot(true)
       window.__VITE_REACT_SSG_CONTEXT__ = context
-      const routeApi = App as unknown as RouterEntryModule
-      const RouteRenderer = routeApi.RouteRenderer
-      const matchRouteBranch = routeApi.matchRouteBranch
-      const resolveRouteBranch = routeApi.resolveRouteBranch
+      const RouteRenderer = descriptor.RouteRenderer
+      const matchRouteBranch = descriptor.matchRouteBranch
+      const resolveRouteBranch = descriptor.resolveRouteBranch
       const routesToRender =
-        (App as any)?.routes || (Array.isArray(App) ? App : [])
+        descriptor.routes || (Array.isArray(App) ? App : [])
 
       let app: ReactElement
       if (RouteRenderer && matchRouteBranch && resolveRouteBranch) {
@@ -126,7 +125,7 @@ export function ViteReactSSG(
         // Keep the generic @bdocs/ssg API usable with a normal ReactNode.
         // Boltdocs entries provide the route contract above; other apps can
         // still use ViteReactSSG as a plain SSR/hydration wrapper.
-        app = <HelmetProvider>{App}</HelmetProvider>
+        app = <HelmetProvider>{App as ReactNode}</HelmetProvider>
       }
       const isSSR =
         document.querySelector('[data-server-rendered=true]') !== null

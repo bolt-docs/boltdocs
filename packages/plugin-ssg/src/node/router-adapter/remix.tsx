@@ -180,7 +180,7 @@ export class RemixAdapter implements IRouterAdapter<ViteReactSSGContext> {
       }
 
       loaderData = loaderValues.reduce<Record<string, unknown>>(
-        (merged, value) => ({ ...merged, ...value }),
+        (merged, value) => Object.assign(merged, value),
         {},
       )
       loadersMs = performance.now() - loadersStart

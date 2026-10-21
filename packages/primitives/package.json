@@ -37,14 +37,15 @@
     "@testing-library/jest-dom": "^6.6.0",
     "@testing-library/react": "^16.0.0",
     "@testing-library/user-event": "^14.6.1",
+    "@types/node": "22.0.0",
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
     "jsdom": "^24.1.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "tsdown": "^0.21.7",
-    "typescript": "^5.9.3",
     "tsdown-config": "workspace:*",
+    "typescript": "^5.9.3",
     "vitest": "^3.0.0"
   }
 }

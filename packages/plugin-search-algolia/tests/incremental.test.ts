@@ -3,8 +3,9 @@ import {
   diffRecords,
   recordFingerprint,
   generateAlgoliaRecords,
+  type AlgoliaRecord,
 } from '../src/node/records'
-import type { AlgoliaRecord, SearchDocument } from '@bdocs/contracts'
+import type { SearchDocument } from '@bdocs/contracts'
 
 const record = (
   id: string,

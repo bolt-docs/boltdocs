@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useConfig } from '@bdocs/runtime'
+import type { PluginDefinition } from '@bdocs/contracts'
 import type { ClientController } from './abort'
 import { createClientController } from './abort'
 
@@ -142,9 +143,9 @@ export function useAskAi(options: UseAskAiOptions = {}) {
   const messageIdRef = useRef(0)
 
   const boltdocsConfig = useConfig()
-  const askAiPluginMeta = boltdocsConfig?.plugins?.find(
-    (p) => p.name === 'boltdocs-plugin-ask-ai',
-  )?.metadata as
+  const askAiPluginMeta = (
+    boltdocsConfig?.plugins as PluginDefinition[] | undefined
+  )?.find((p) => p.name === 'boltdocs-plugin-ask-ai')?.metadata as
     | (Record<string, unknown> & {
         endpoint?: string
         devMode?: boolean

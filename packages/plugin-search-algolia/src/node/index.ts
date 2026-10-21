@@ -125,7 +125,7 @@ export async function upload(
       base,
       headers,
       logger,
-      'delete',
+      'deleteObject',
       removed.map((objectID) => ({ objectID })),
     )
     logger.info(`[algolia] removed ${removed.length} stale records`)

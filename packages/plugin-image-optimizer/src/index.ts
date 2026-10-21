@@ -122,7 +122,13 @@ function ViteImageOptimizer(optionsParam: Options = {}): Plugin {
 
   const processFile = async (filePath: string, buffer: Buffer) => {
     try {
-      const contentHash = crypto.createHash('md5').update(buffer).digest('hex')
+      // This project's `@types/node` rejects a `Buffer` as `BinaryLike` — the
+      // `SharedArrayBuffer` variance — so the bytes are copied into a plain
+      // `Uint8Array`, which is the same content.
+      const contentHash = crypto
+        .createHash('md5')
+        .update(new Uint8Array(buffer))
+        .digest('hex')
       const formatOpts = getFormatOpts(filePath)
       const optionsHash = computeOptionsHash(formatOpts)
       const memoryKey = `${optionsHash}-${contentHash}`
@@ -302,7 +308,7 @@ function ViteImageOptimizer(optionsParam: Options = {}): Plugin {
                   cached,
                 )
                 if (content && content?.length > 0 && !skipWrite) {
-                  await fsp.writeFile(fullFilePath, content)
+                  await fsp.writeFile(fullFilePath, new Uint8Array(content))
                   mtimeCache.set(relativePath, Date.now())
                 }
                 return
@@ -314,7 +320,7 @@ function ViteImageOptimizer(optionsParam: Options = {}): Plugin {
               buffer,
             )
             if (content && content?.length > 0 && !skipWrite) {
-              await fsp.writeFile(fullFilePath, content)
+              await fsp.writeFile(fullFilePath, new Uint8Array(content))
               mtimeCache.set(relativePath, Date.now())
               if (assetCache) {
                 const sourceHash = await assetCache.getFileHash(publicFilePath)

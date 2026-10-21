@@ -29,6 +29,7 @@
   "license": "MIT",
   "type": "module",
   "dependencies": {
+    "@bdocs/contracts": "workspace:*",
     "@bdocs/dui": "^0.6.0",
     "@bdocs/runtime": "workspace:*",
     "clsx": "2.1.1",
@@ -46,7 +47,7 @@
   "devDependencies": {
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.2",
-    "@types/node": "^22.0.0",
+    "@types/node": "22.0.0",
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
     "boltdocs": "workspace:*",

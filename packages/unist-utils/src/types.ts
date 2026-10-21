@@ -1,3 +1,5 @@
+import type { Node as UnistNode } from 'unist'
+
 /**
  * Public AST node types for unist (mdast + hast).
  *
@@ -13,22 +15,18 @@
 
 // ── Generic unist ─────────────────────────────────────────────────────────
 //
-// `Node` and `Parent` mirror the structural shape of `unist`'s public
-// types so callers that import them from `@bdocs/unist-utils` stay
-// assignment-compatible with anything typed against `unist` itself
-// (notably `unist-util-visit@^5`).
+// `Node` and `Parent` extend `unist`'s public types, so a caller that imports
+// them from `@bdocs/unist-utils` stays assignment-compatible with anything
+// typed against `unist` itself (notably `unist-util-visit@^5` and the MDX
+// toolchain).
 //
-// We declare them here so the package does not need a direct
-// dependency on the `unist` types package.
+// They used to be declared here as a structural copy, "so the package does not
+// need a direct dependency on the `unist` types package". The copy drifted: a
+// node typed against `unist` was not assignable to it, which is exactly the
+// compatibility the comment promised. `@types/unist` is a types-only package
+// with no runtime cost, so the dependency is cheaper than the drift.
 
-export interface Node {
-  type: string
-  data?: Record<string, unknown>
-  position?: {
-    start: { line: number; column: number; offset?: number }
-    end: { line: number; column: number; offset?: number }
-  }
-  children?: Array<Node>
+export interface Node extends UnistNode {
   value?: unknown
 }
 

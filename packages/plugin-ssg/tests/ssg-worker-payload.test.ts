@@ -28,7 +28,7 @@ describe('SSG worker router context payload', () => {
       maxThreads: 1,
     })
     try {
-      const result = (await pool.run()) as {
+      const result = (await pool.run({})) as {
         _appHTMLBuffer: ArrayBuffer
       }
       expect(decodeSsgText(result._appHTMLBuffer)).toBe(
@@ -64,7 +64,7 @@ describe('SSG worker router context payload', () => {
       maxThreads: 1,
     })
     try {
-      const result = (await pool.run()) as {
+      const result = (await pool.run({})) as {
         _appHTMLBuffer: ArrayBuffer
       }
       expect(decodeSsgText(result._appHTMLBuffer)).toContain(

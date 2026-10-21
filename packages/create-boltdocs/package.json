@@ -29,11 +29,11 @@
     "prompts": "^2.4.2"
   },
   "devDependencies": {
-    "@types/node": "^22.0.0",
+    "@types/node": "22.0.0",
     "@types/prompts": "^2.4.9",
     "tsdown": "^0.21.7",
+    "tsdown-config": "workspace:*",
     "typescript": "^5.5.0",
-    "vitest": "^3.2.4",
-    "tsdown-config": "workspace:*"
+    "vitest": "^3.2.4"
   }
 }

@@ -245,7 +245,9 @@ async function main() {
     transform(_code: string, id: string) {
       const starts: Map<string, number> = (globalThis as any).__tfStarts
       if (!starts?.has(id)) return null
-      const dt = performance.now() - starts.get(id)!
+      const startedAt = starts.get(id)
+      if (startedAt === undefined) return null
+      const dt = performance.now() - startedAt
       starts.delete(id)
       transformWall.total += dt
       transformWall.count++
@@ -403,7 +405,9 @@ async function main() {
   transformWall.slow
     .sort((a, b) => b.ms - a.ms)
     .slice(0, 20)
-    .forEach((s) => console.log(`    ${String(s.ms).padStart(5)}ms  ${s.id}`))
+    .forEach((s) => {
+      console.log(`    ${String(s.ms).padStart(5)}ms  ${s.id}`)
+    })
 
   const report = {
     timestamp: new Date().toISOString(),

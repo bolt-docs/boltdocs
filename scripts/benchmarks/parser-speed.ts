@@ -78,8 +78,9 @@ function countHeadings(
 ): { level: number; text: string; id: string }[] {
   const headings: { level: number; text: string; id: string }[] = []
   const regex = /^(#{1,6})\s+(.+)$/gm
-  let match
-  while ((match = regex.exec(content)) !== null) {
+  let match: RegExpExecArray | null = regex.exec(content)
+  while (match !== null) {
+    match = regex.exec(content)
     headings.push({
       level: match[1].length,
       text: match[2].trim(),

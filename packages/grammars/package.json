@@ -30,12 +30,12 @@
     "@shikijs/types": "3.23.0"
   },
   "devDependencies": {
+    "@shikijs/core": "3.23.0",
+    "@shikijs/engine-javascript": "3.23.0",
+    "@types/node": "22.0.0",
     "tsdown": "^0.21.7",
     "tsdown-config": "workspace:*",
     "typescript": "^5.9.3",
-    "vitest": "^3.2.4",
-    "@types/node": "^22.15.3",
-    "@shikijs/core": "3.23.0",
-    "@shikijs/engine-javascript": "3.23.0"
+    "vitest": "^3.2.4"
   }
 }

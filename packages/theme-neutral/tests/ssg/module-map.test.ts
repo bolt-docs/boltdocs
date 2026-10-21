@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { buildModuleMap } from '../../src/ssg/create-routes.utils.ts'
+import { buildModuleMap } from '../../src/ssg/create-routes.utils'
 
 describe('buildModuleMap', () => {
   it('maps localized file paths to combined.mjs keys', () => {

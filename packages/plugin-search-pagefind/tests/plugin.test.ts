@@ -43,7 +43,7 @@ describe('pagefind plugin', () => {
   it('indexes the output directory after the render', async () => {
     const plugin = pagefindSearchPlugin({ binaryPath: '/bin/pagefind' })
 
-    await plugin.hooks?.['build:generate']?.(ctx('/p/dist'))
+    await plugin.hooks?.['build:generate']?.(ctx('/p/dist'), {} as never)
 
     expect(spawn).toHaveBeenCalledTimes(1)
     const [binary, args] = spawn.mock.calls[0]
@@ -56,7 +56,7 @@ describe('pagefind plugin', () => {
   it('runs in the output directory so relative paths resolve', async () => {
     const plugin = pagefindSearchPlugin({ binaryPath: '/bin/pagefind' })
 
-    await plugin.hooks?.['build:generate']?.(ctx('/p/dist'))
+    await plugin.hooks?.['build:generate']?.(ctx('/p/dist'), {} as never)
 
     expect(spawn.mock.calls[0][2].cwd).toBe('/p/dist')
   })
@@ -64,7 +64,7 @@ describe('pagefind plugin', () => {
   it('uses the default site key', async () => {
     const plugin = pagefindSearchPlugin({ binaryPath: '/bin/pagefind' })
 
-    await plugin.hooks?.['build:generate']?.(ctx('/p/dist'))
+    await plugin.hooks?.['build:generate']?.(ctx('/p/dist'), {} as never)
 
     expect(spawn.mock.calls[0][1]).toContain('--site-key')
     expect(spawn.mock.calls[0][1]).toContain('boltdocs')
@@ -76,7 +76,7 @@ describe('pagefind plugin', () => {
       siteKey: 'my-docs',
     })
 
-    await plugin.hooks?.['build:generate']?.(ctx('/p/dist'))
+    await plugin.hooks?.['build:generate']?.(ctx('/p/dist'), {} as never)
 
     expect(spawn.mock.calls[0][1]).toContain('my-docs')
   })
@@ -87,7 +87,7 @@ describe('pagefind plugin', () => {
       excludePatterns: ['changelog', '/es/'],
     })
 
-    await plugin.hooks?.['build:generate']?.(ctx('/p/dist'))
+    await plugin.hooks?.['build:generate']?.(ctx('/p/dist'), {} as never)
 
     const args: string[] = spawn.mock.calls[0][1]
     expect(args).toContain('changelog')
@@ -99,7 +99,7 @@ describe('pagefind plugin', () => {
     const context = ctx(undefined)
 
     await expect(
-      plugin.hooks?.['build:generate']?.(context),
+      plugin.hooks?.['build:generate']?.(context, {} as never),
     ).resolves.toBeUndefined()
     expect(spawn).not.toHaveBeenCalled()
   })
@@ -114,7 +114,7 @@ describe('pagefind plugin', () => {
     const context = ctx('/p/dist')
 
     await expect(
-      plugin.hooks?.['build:generate']?.(context),
+      plugin.hooks?.['build:generate']?.(context, {} as never),
     ).resolves.toBeUndefined()
   })
 

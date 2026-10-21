@@ -1,7 +1,7 @@
 {
   "name": "@bdocs/plugin-search",
   "version": "1.0.0",
-  "description": "Search index generation for Boltdocs — the search.json asset and its documents",
+  "description": "Search index generation for Boltdocs \u2014 the search.json asset and its documents",
   "publishConfig": {
     "access": "public"
   },
@@ -30,11 +30,11 @@
     "boltdocs": "workspace:^"
   },
   "devDependencies": {
-    "@types/node": "^22.0.0",
+    "@types/node": "22.0.0",
     "boltdocs": "workspace:^",
     "tsdown": "^0.21.7",
-    "typescript": "^5.9.3",
     "tsdown-config": "workspace:*",
+    "typescript": "^5.9.3",
     "vitest": "^3.2.4"
   }
 }

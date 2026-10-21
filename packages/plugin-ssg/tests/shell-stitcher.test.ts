@@ -64,7 +64,9 @@ describe('ShellStitcher', () => {
       '<!--BDOCS_SLOT:TITLE-->',
       '</div>',
     ].join('\n')
-    const out = new ShellStitcher({ template: tpl }).stitch({ title: 'X' })
+    const out = new ShellStitcher({ template: tpl }).stitch({
+      title: 'X',
+    } as ShellSlots)
     expect(out.match(/X/g)).toHaveLength(2)
     expect(out).not.toContain('<!--BDOCS_SLOT:TITLE-->')
   })

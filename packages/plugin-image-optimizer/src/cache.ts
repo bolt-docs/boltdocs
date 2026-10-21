@@ -80,7 +80,10 @@ export class AssetCache {
       try {
         await fsPromises.mkdir(this.assetsDir, { recursive: true })
         const tempPath = `${cachedPath}.${crypto.randomBytes(4).toString('hex')}.tmp`
-        await fsPromises.writeFile(tempPath, content)
+        await fsPromises.writeFile(
+          tempPath,
+          typeof content === 'string' ? content : new Uint8Array(content),
+        )
         await fsPromises.rename(tempPath, cachedPath)
       } catch (e) {
         // Ignore asset write errors

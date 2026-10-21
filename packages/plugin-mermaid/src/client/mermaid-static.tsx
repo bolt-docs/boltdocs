@@ -99,10 +99,7 @@ export function MermaidStatic({
         className={cn(
           'not-prose mermaid-inline relative my-6 w-full max-h-[300px] overflow-hidden rounded-xl border border-subtle bg-surface/30 backdrop-blur-sm',
           `mermaid-inline-${instanceId}`,
-          {
-            'cursor-grabbing': zoomPan.isDragging,
-            'cursor-grab': !zoomPan.isDragging,
-          },
+          zoomPan.isDragging ? 'cursor-grabbing' : 'cursor-grab',
         )}
         {...interactiveProps}
       >

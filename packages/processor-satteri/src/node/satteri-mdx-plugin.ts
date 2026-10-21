@@ -137,7 +137,19 @@ function getManifestPath(root: string): string {
 }
 
 function hashInput(input: string | Buffer): string {
-  return crypto.createHash('md5').update(input).digest('hex')
+  // This project's `@types/node` rejects a `Buffer` as `BinaryLike` — the
+  // `SharedArrayBuffer` variance — so the bytes are copied into a plain
+  // `Uint8Array`, which is the same content.
+  const bytes =
+    typeof input === 'string'
+      ? input
+      : new Uint8Array(
+          input.buffer.slice(
+            input.byteOffset,
+            input.byteOffset + input.byteLength,
+          ),
+        )
+  return crypto.createHash('md5').update(bytes).digest('hex')
 }
 
 function writeFileIfChanged(filePath: string, content: string): boolean {

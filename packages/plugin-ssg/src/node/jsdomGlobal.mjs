@@ -76,7 +76,9 @@ export function jsdomGlobal(html = defaultHtml, options = {}) {
     KEYS.push('$jsdom')
   }
 
-  KEYS.forEach((key) => (global[key] = window[key]))
+  KEYS.forEach((key) => {
+    global[key] = window[key]
+  })
 
   // setup document / window / window.console
   global.document = document
@@ -87,7 +89,9 @@ export function jsdomGlobal(html = defaultHtml, options = {}) {
   global.$jsdom = jsdom
 
   const cleanup = () => {
-    KEYS.forEach((key) => delete global[key])
+    KEYS.forEach((key) => {
+      delete global[key]
+    })
     try {
       window.close()
     } catch (e) {

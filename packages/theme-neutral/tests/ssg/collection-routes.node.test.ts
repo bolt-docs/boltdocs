@@ -9,7 +9,7 @@ vi.mock('../../src/components/docs-layout-default', () => ({
   default: ({ children }: { children: React.ReactNode }) => children,
 }))
 
-import { buildCollectionRoutes } from '../../src/ssg/create-routes.collection.tsx'
+import { buildCollectionRoutes } from '../../src/ssg/create-routes.collection'
 
 function makePost(
   path: string,
@@ -55,11 +55,11 @@ describe('buildCollectionRoutes post sub-paths', () => {
     // a root-level /blog/... that matches nothing.
     const enPostPaths = (enLayout?.children || []).map((route) => route.path)
     expect(enPostPaths).toContain('boltdocs-3.3.0')
-    expect(enPostPaths.every((path) => !path.startsWith('/'))).toBe(true)
+    expect(enPostPaths.every((path) => !path?.startsWith('/'))).toBe(true)
 
     const esPostPaths = (esLayout?.children || []).map((route) => route.path)
     expect(esPostPaths).toContain('boltdocs-3.2.0')
-    expect(esPostPaths.every((path) => !path.startsWith('/'))).toBe(true)
+    expect(esPostPaths.every((path) => !path?.startsWith('/'))).toBe(true)
   })
 
   it('produces relative SSG static paths for collection posts', () => {

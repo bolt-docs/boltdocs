@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import type { BoltdocsConfig } from '../../src/shared/types'
-import { buildExternalFileRoutes } from '../../src/ssg/create-routes.external.tsx'
+import type { BoltdocsConfig } from '@bdocs/runtime'
+import { buildExternalFileRoutes } from '../../src/ssg/create-routes.external'
 
 const config: BoltdocsConfig = {
   i18n: { defaultLocale: 'en', locales: { en: 'English', es: 'Español' } },
@@ -51,7 +51,7 @@ describe('buildExternalFileRoutes locale selection', () => {
 
     const prefixed = children
       .map((route) => route.path)
-      .filter((p) => /^\/en\//.test(p))
+      .filter((p) => /^\/en\//.test(p ?? ''))
     expect(prefixed).toEqual([])
   })
 

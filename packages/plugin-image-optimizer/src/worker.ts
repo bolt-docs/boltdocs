@@ -35,13 +35,13 @@ parentPort.on(
           .toBuffer()
       }
 
-      parentPort.postMessage({
+      parentPort?.postMessage({
         type: 'SUCCESS',
         filePath: msg.filePath,
         buffer: result,
       })
     } catch (error: any) {
-      parentPort.postMessage({
+      parentPort?.postMessage({
         type: 'ERROR',
         filePath: msg.filePath,
         error: error.message || 'Unknown optimization error',

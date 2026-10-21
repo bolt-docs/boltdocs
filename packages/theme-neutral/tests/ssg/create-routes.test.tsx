@@ -3,6 +3,19 @@ import { createRoutes } from '../../src/ssg/create-routes'
 import type { ComponentRoute } from '@bdocs/runtime'
 import type * as React from 'react'
 
+/**
+ * An element's props.
+ *
+ * The tests read the props the route elements carry — the metadata, the lazy
+ * component, the loader — and a bare React element types them as `unknown`.
+ * This is where the test says what it expects to find.
+ */
+type ElementProps = Record<string, any>
+
+function propsOf(element: unknown): ElementProps {
+  return (element as React.ReactElement<ElementProps>).props
+}
+
 vi.mock('virtual:boltdocs-search', () => ({
   default: async () => [],
 }))
@@ -48,12 +61,14 @@ describe('createRoutes', () => {
     const routesData: ComponentRoute[] = [
       {
         path: '/docs/en/intro',
+        componentPath: '',
         filePath: 'docs/en/intro.md',
         title: 'Intro',
         locale: 'en',
       },
       {
         path: '/docs/es/intro',
+        componentPath: '',
         filePath: 'docs/es/intro.md',
         title: 'Intro (ES)',
         locale: 'es',
@@ -65,8 +80,8 @@ describe('createRoutes', () => {
       i18n: {
         defaultLocale: 'en',
         locales: {
-          en: { label: 'English' },
-          es: { label: 'Spanish' },
+          en: 'English',
+          es: 'Spanish',
         },
       },
     }
@@ -93,6 +108,7 @@ describe('createRoutes', () => {
       routesData: [
         {
           path: '/docs/guides',
+          componentPath: '',
           filePath: 'guides/index.md',
           title: 'Guides',
           tab: 'guides',
@@ -100,6 +116,7 @@ describe('createRoutes', () => {
         },
         {
           path: '/docs/api',
+          componentPath: '',
           filePath: 'api/index.md',
           title: 'API',
           tab: 'api',
@@ -122,7 +139,7 @@ describe('createRoutes', () => {
     })
 
     const shellElement = result.routes[0].element as React.ReactElement
-    const metadata = shellElement.props.routes as ComponentRoute[]
+    const metadata = propsOf(shellElement).routes as ComponentRoute[]
     const rootMetadata = metadata.find((route) => route.path === '/docs')
     const guidesMetadata = metadata.find(
       (route) => route.path === '/docs/guides',
@@ -137,6 +154,7 @@ describe('createRoutes', () => {
     const routesData: ComponentRoute[] = [
       {
         path: '/docs/intro',
+        componentPath: '',
         filePath: 'docs/intro.md',
         title: 'Intro',
         locale: 'en',
@@ -148,8 +166,8 @@ describe('createRoutes', () => {
       i18n: {
         defaultLocale: 'en',
         locales: {
-          en: { label: 'English' },
-          es: { label: 'Spanish' },
+          en: 'English',
+          es: 'Spanish',
         },
       },
     }
@@ -170,9 +188,7 @@ describe('createRoutes', () => {
     const shellElement = result.routes[0].element as
       | React.ReactElement<any>
       | undefined
-    const allMetadata = shellElement?.props?.routes as
-      | ComponentRoute[]
-      | undefined
+    const allMetadata = (shellElement?.props?.routes ?? []) as ComponentRoute[]
 
     // The children list has the parent docs layout route
     const docsLayoutRoute = result.routes[0].children?.find(
@@ -197,12 +213,14 @@ describe('createRoutes', () => {
     const routesData: ComponentRoute[] = [
       {
         path: '/docs/intro',
+        componentPath: '',
         filePath: 'docs/intro.md',
         title: 'Intro',
         locale: 'en',
       },
       {
         path: '/docs/es/intro',
+        componentPath: '',
         filePath: 'es/intro.md',
         title: 'Introducción',
         locale: 'es',
@@ -213,8 +231,8 @@ describe('createRoutes', () => {
       i18n: {
         defaultLocale: 'en',
         locales: {
-          en: { label: 'English' },
-          es: { label: 'Spanish' },
+          en: 'English',
+          es: 'Spanish',
         },
       },
     }
@@ -238,20 +256,22 @@ describe('createRoutes', () => {
     )
     expect(esFallback?.lazy).toBeDefined()
 
-    const lazyResult = await esFallback?.lazy?.()
-    const Component = lazyResult.Component!
+    const lazyResult = (await esFallback?.lazy?.()) as Record<string, any>
+    const Component = lazyResult.Component as unknown as (
+      props: Record<string, unknown>,
+    ) => React.ReactElement
     const element = Component({}) as React.ReactElement
-    const eagerElement = element.props.children as React.ReactElement
+    const eagerElement = propsOf(element).children as React.ReactElement
 
-    const localizedContent = eagerElement.props.moduleLoader.default({})
-    expect(localizedContent.props.children).toBe('Spanish')
-    expect(eagerElement.props.route.filePath).toBe('es/intro.md')
-    expect(eagerElement.props.route.locale).toBe('es')
+    const localizedContent = propsOf(eagerElement).moduleLoader.default({})
+    expect(propsOf(localizedContent).children).toBe('Spanish')
+    expect(propsOf(eagerElement).route.filePath).toBe('es/intro.md')
+    expect(propsOf(eagerElement).route.locale).toBe('es')
 
-    const loaderData = await esFallback?.loader?.({
+    const loaderData = (await esFallback?.loader?.({
       request: new Request('http://localhost/docs/es'),
       params: {},
-    })
+    })) as Record<string, any>
     expect(loaderData.filePath).toBe('es/intro.md')
     expect(loaderData.locale).toBe('es')
     expect(loaderData.frontmatter.title).toBe('Introducción')
@@ -261,6 +281,7 @@ describe('createRoutes', () => {
     const routesData: ComponentRoute[] = [
       {
         path: '/docs/v2/intro',
+        componentPath: '',
         filePath: 'v2/intro.md',
         title: 'Intro',
         locale: 'en',
@@ -268,6 +289,7 @@ describe('createRoutes', () => {
       },
       {
         path: '/docs/v2/es/intro',
+        componentPath: '',
         filePath: 'v2/es/intro.md',
         title: 'Introducción',
         locale: 'es',
@@ -279,8 +301,8 @@ describe('createRoutes', () => {
       i18n: {
         defaultLocale: 'en',
         locales: {
-          en: { label: 'English' },
-          es: { label: 'Spanish' },
+          en: 'English',
+          es: 'Spanish',
         },
       },
       versions: {
@@ -305,14 +327,21 @@ describe('createRoutes', () => {
     )
     expect(versionedFallback?.lazy).toBeDefined()
 
-    const lazyResult = await versionedFallback?.lazy?.()
-    const element = lazyResult.Component?.({}) as React.ReactElement
-    const eagerElement = element.props.children as React.ReactElement
-    const localizedContent = eagerElement.props.moduleLoader.default({})
+    const lazyResult = (await versionedFallback?.lazy?.()) as Record<
+      string,
+      any
+    >
+    const element = (
+      lazyResult.Component as (
+        props: Record<string, unknown>,
+      ) => React.ReactElement
+    )({})
+    const eagerElement = propsOf(element).children as React.ReactElement
+    const localizedContent = propsOf(eagerElement).moduleLoader.default({})
 
-    expect(localizedContent.props.children).toBe('Spanish v2')
-    expect(eagerElement.props.route.filePath).toBe('v2/es/intro.md')
-    expect(eagerElement.props.route.locale).toBe('es')
-    expect(eagerElement.props.route.version).toBe('v2')
+    expect(propsOf(localizedContent).children).toBe('Spanish v2')
+    expect(propsOf(eagerElement).route.filePath).toBe('v2/es/intro.md')
+    expect(propsOf(eagerElement).route.locale).toBe('es')
+    expect(propsOf(eagerElement).route.version).toBe('v2')
   })
 })

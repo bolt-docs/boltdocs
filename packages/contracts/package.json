@@ -24,6 +24,7 @@
   "packageManager": "pnpm@10.30.2",
   "license": "MIT",
   "devDependencies": {
+    "@types/node": "22.0.0",
     "tsdown": "catalog:",
     "tsdown-config": "workspace:*",
     "typescript": "^5.9.3",

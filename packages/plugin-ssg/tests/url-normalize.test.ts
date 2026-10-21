@@ -19,7 +19,7 @@ describe('normalizeUrl middleware', () => {
   })
 
   it('preserves query string verbatim through the decode', () => {
-    const req = {
+    const req: { url: string; originalUrl?: string } = {
       url: '/blog/Jes%C3%BAs%20Alcal%C3%A1?html-proxy&index=0.js',
     }
     const next = vi.fn()

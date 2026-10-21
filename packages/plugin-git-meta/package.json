@@ -40,7 +40,7 @@
   },
   "devDependencies": {
     "@testing-library/react": "^16.0.0",
-    "@types/node": "^22.0.0",
+    "@types/node": "22.0.0",
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
     "boltdocs": "workspace:^",
@@ -48,8 +48,8 @@
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "tsdown": "^0.21.7",
+    "tsdown-config": "workspace:*",
     "typescript": "^5.9.3",
-    "vitest": "^3.2.4",
-    "tsdown-config": "workspace:*"
+    "vitest": "^3.2.4"
   }
 }

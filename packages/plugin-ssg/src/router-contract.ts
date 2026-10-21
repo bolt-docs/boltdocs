@@ -70,6 +70,35 @@ export type RequiredRouterEntryModule = {
   ) => Promise<RouterRouteRecord[]>
 }
 
+/**
+ * The app the SSG mounts.
+ *
+ * The engine's generated entry hands over the object `createRoutes` returns:
+ * the route table and the router's matching functions. A plain React element is
+ * accepted too, which is what the parameter said before the descriptor was
+ * typed, and what the code still supports.
+ */
+export type SsgApp =
+  | ReactNode
+  | (RouterEntryModule & {
+      routes?: RouterRouteRecord[]
+    })
+
+/**
+ * The descriptor half of an {@link SsgApp}, or an empty one.
+ *
+ * A React element is not a descriptor, and the code that reads `routes` and
+ * the matching functions has to say so rather than cast its way there.
+ */
+export function asRouterDescriptor(app: SsgApp): RouterEntryModule & {
+  routes?: RouterRouteRecord[]
+} {
+  if (app && typeof app === 'object' && !Array.isArray(app)) {
+    return app as RouterEntryModule & { routes?: RouterRouteRecord[] }
+  }
+  return {}
+}
+
 export function withRouteIds(
   routes: RouterRouteRecord[],
   parentId = '',

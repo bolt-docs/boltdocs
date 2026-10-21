@@ -118,10 +118,7 @@ export function MermaidFullscreen({ svgStr, onClose }: MermaidFullscreenProps) {
           isVisible && !isClosing
             ? 'opacity-100 scale-100 translate-y-0'
             : 'opacity-0 scale-95 translate-y-4',
-          {
-            'cursor-grabbing': zoomPan.isDragging,
-            'cursor-grab': !zoomPan.isDragging,
-          },
+          zoomPan.isDragging ? 'cursor-grabbing' : 'cursor-grab',
         )}
         style={{
           height: '70%',

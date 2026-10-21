@@ -213,13 +213,14 @@ async function runBuild(
       // Parse structured phase timing lines: [boltdocs] { name: '...', duration: ..., success: ... }
       const phaseRegex =
         /\[boltdocs\]\s*\{\s*name:\s*'([^']+)'\s*,\s*duration:\s*([\d.]+)\s*,\s*success:\s*(true|false)/g
-      let match: RegExpExecArray | null
-      while ((match = phaseRegex.exec(text)) !== null) {
+      let match: RegExpExecArray | null = phaseRegex.exec(text)
+      while (match !== null) {
         phases.push({
           name: match[1].trim(),
           durationMs: Number.parseFloat(match[2]),
           success: match[3] === 'true',
         })
+        match = phaseRegex.exec(text)
       }
 
       // Also parse the [satteri-mdx] precompile line

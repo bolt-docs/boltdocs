@@ -229,9 +229,9 @@ describe('executeRenderSchedule', () => {
     const fallback = vi.fn(
       async (
         path: string,
-        _plan: RenderPlan,
-        _error: unknown,
-        _pool: RenderPoolLike,
+        _plan?: RenderPlan,
+        _error?: unknown,
+        _pool?: RenderPoolLike,
       ) => resultFor(path),
     )
     fixture.input.onWorkerFailure = fallback

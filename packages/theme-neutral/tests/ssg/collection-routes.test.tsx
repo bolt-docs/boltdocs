@@ -13,11 +13,13 @@ describe('collection route matching', () => {
     const routesData: ComponentRoute[] = [
       {
         path: '/docs/api',
+        componentPath: '',
         filePath: 'docs/api.md',
         title: 'API',
       },
       {
         path: '/blog/hello-world',
+        componentPath: '',
         filePath: '[blog]/hello-world.md',
         title: 'Hello',
         collection: 'blog',
@@ -28,7 +30,7 @@ describe('collection route matching', () => {
       base: '/docs',
       i18n: {
         defaultLocale: 'en',
-        locales: { en: { label: 'English' }, es: { label: 'Spanish' } },
+        locales: { en: 'English', es: 'Spanish' },
       },
     }
 
@@ -51,6 +53,7 @@ describe('collection route matching', () => {
     const routesData: ComponentRoute[] = [
       {
         path: '/blog/hello-world',
+        componentPath: '',
         filePath: '[blog]/hello-world.md',
         title: 'Hello',
         collection: 'blog',
@@ -61,7 +64,7 @@ describe('collection route matching', () => {
       base: '/docs',
       i18n: {
         defaultLocale: 'en',
-        locales: { en: { label: 'English' }, es: { label: 'Spanish' } },
+        locales: { en: 'English', es: 'Spanish' },
       },
     }
 
@@ -80,6 +83,7 @@ describe('collection route matching', () => {
     const routesData: ComponentRoute[] = [
       {
         path: '/blog',
+        componentPath: '',
         filePath: '[blog]/_index.md',
         title: 'Blog',
         collection: 'blog',
@@ -90,7 +94,7 @@ describe('collection route matching', () => {
       base: '/docs',
       i18n: {
         defaultLocale: 'en',
-        locales: { en: { label: 'English' }, es: { label: 'Spanish' } },
+        locales: { en: 'English', es: 'Spanish' },
       },
     }
 
@@ -109,6 +113,7 @@ describe('collection route matching', () => {
     const routesData: ComponentRoute[] = [
       {
         path: '/blog',
+        componentPath: '',
         filePath: '[blog]/_index.md',
         title: 'Blog landing',
         description: 'A collection landing page',
@@ -120,7 +125,7 @@ describe('collection route matching', () => {
       base: '/docs',
       i18n: {
         defaultLocale: 'en',
-        locales: { en: { label: 'English' }, es: { label: 'Spanish' } },
+        locales: { en: 'English', es: 'Spanish' },
       },
     }
 
@@ -161,6 +166,7 @@ describe('collection route matching', () => {
     const routesData: ComponentRoute[] = [
       {
         path: '/blog/hello-world',
+        componentPath: '',
         filePath: '[blog]/hello-world.md',
         title: 'Hello',
         collection: 'blog',
@@ -171,7 +177,7 @@ describe('collection route matching', () => {
       base: '/docs',
       i18n: {
         defaultLocale: 'en',
-        locales: { en: { label: 'English' }, es: { label: 'Spanish' } },
+        locales: { en: 'English', es: 'Spanish' },
       },
     }
 

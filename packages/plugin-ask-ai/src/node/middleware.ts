@@ -58,8 +58,11 @@ function sendError(
 }
 
 function safeSecretEqual(candidate: string, expected: string): boolean {
-  const candidateBytes = Buffer.from(candidate)
-  const expectedBytes = Buffer.from(expected)
+  // `timingSafeEqual` takes an `ArrayBufferView`, and this project's
+  // `@types/node` rejects a `Buffer` for it — the `SharedArrayBuffer`
+  // variance. A plain `Uint8Array` is the same bytes.
+  const candidateBytes = new Uint8Array(Buffer.from(candidate))
+  const expectedBytes = new Uint8Array(Buffer.from(expected))
   return (
     candidateBytes.byteLength === expectedBytes.byteLength &&
     timingSafeEqual(candidateBytes, expectedBytes)

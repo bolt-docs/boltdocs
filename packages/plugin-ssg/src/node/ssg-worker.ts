@@ -16,6 +16,7 @@
  */
 
 import Piscina from 'piscina'
+
 import { createRequire } from 'node:module'
 import { workerData } from 'node:worker_threads'
 import { getAdapter } from './router-adapter'
@@ -96,7 +97,17 @@ async function renderOne(path: string, transfer = true) {
     },
   }
 
-  return transfer ? Piscina.move(transferableResult) : resultPayload
+  // The cast is at a library boundary: Piscina's own type for `move` is
+  // derived from `MessagePort.postMessage`'s transfer list, which is
+  // `Transferable[]` — and a transferable list *item* carrying Piscina's own
+  // symbols is exactly what the function documents, but the type cannot
+  // describe it. The runtime reads the two getters, which is what the library
+  // does with them.
+  return transfer
+    ? Piscina.move(
+        transferableResult as unknown as Parameters<typeof Piscina.move>[0],
+      )
+    : resultPayload
 }
 
 export default async function renderTask(msg: {
@@ -130,6 +141,8 @@ export default async function renderTask(msg: {
         })
       }
     }
+    // See the note on the single-render path above: the library's type for
+    // `move` cannot describe a transferable list item.
     return Piscina.move({
       get [Piscina.transferableSymbol]() {
         return transferables
@@ -137,7 +150,7 @@ export default async function renderTask(msg: {
       get [Piscina.valueSymbol]() {
         return results
       },
-    })
+    } as unknown as Parameters<typeof Piscina.move>[0])
   }
   throw new Error('Invalid render job payload')
 }

@@ -1,6 +1,6 @@
 import type { Options as BeastiesOptions } from 'beasties'
 import type { ReactElement, ReactNode } from 'react'
-import type { RouterRouteRecord } from './router-contract'
+import type { RouterRouteRecord, SsgApp } from './router-contract'
 
 /** Minimal router shape kept for the public SSG context without a DOM-router dependency. */
 export interface Router {
@@ -169,7 +169,15 @@ export interface ViteReactSSGOptions<Context = ViteReactSSGContext> {
 
 export interface ViteReactSSGContext<HasRouter extends boolean = true> {
   router?: HasRouter extends true ? Router : undefined
-  routes: HasRouter extends true ? Readonly<RouteRecord[]> : undefined
+  /**
+   * The route table.
+   *
+   * Both modes have one. The router modes read it from the router; the
+   * single-page mode reads it from the app descriptor it was handed, which is
+   * why the flag used to make this field `undefined` and contradicted the code
+   * that filled it.
+   */
+  routes: Readonly<RouteRecord[]>
   routerOptions: HasRouter extends true ? RouterOptions : undefined
   initialState: Record<string, unknown>
   isClient: boolean
@@ -186,7 +194,13 @@ export interface ViteReactSSGContext<HasRouter extends boolean = true> {
   routePath?: string
   base: string
   getStyleCollector: (() => StyleCollector | Promise<StyleCollector>) | null
-  app?: HasRouter extends true ? never : ReactNode
+  /**
+   * The app the SSG mounts.
+   *
+   * The single-page mode's descriptor, or the React element the router modes
+   * mount. Absent in the router modes, which own their own app.
+   */
+  app?: HasRouter extends true ? never : SsgApp
 
   routerType: 'remix' | 'single-page'
 }

@@ -32,7 +32,14 @@ describe('UnoCSS plugin Vite integration', () => {
       'dist-chunk',
       'shadow-dom',
     ] as const) {
-      expect(unocssPlugin({ mode }).vitePlugins).toHaveLength(1)
+      // `UnoCSS()` returns the plugin list itself. Wrapping it in another
+      // array produced a nested list — Vite flattens it, so it worked, and the
+      // engine received a list of lists instead of a list of plugins.
+      const vitePlugins = unocssPlugin({ mode }).vitePlugins!
+      expect(vitePlugins.length).toBeGreaterThan(0)
+      for (const vitePlugin of vitePlugins) {
+        expect(Array.isArray(vitePlugin)).toBe(false)
+      }
     }
   })
 

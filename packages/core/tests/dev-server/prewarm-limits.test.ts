@@ -25,6 +25,9 @@ describe('dev server prewarm limits', () => {
   it('reports how many files were actually warmed', () => {
     // The log used to print `files.length`, which claims every page was warmed
     // even when the cap had silently dropped some.
+    // The literal, not an interpolation: the test reads the source file and
+    // looks for the text the log line is built from.
+    // biome-ignore lint/suspicious/noTemplateCurlyInString: the source text
     expect(source).toContain('${selectedFiles.length}/${files.length}')
   })
   it('yields the event loop between batches', () => {

@@ -6,11 +6,29 @@ import {
   extractNewStyleTags,
 } from '../src/node/critical-cache'
 
+/**
+ * A digest the cache key accepts.
+ *
+ * `@types/node` rejects a `Buffer` as `crypto.BinaryLike` — the
+ * `SharedArrayBuffer` variance — so the digest is copied into a plain
+ * `Uint8Array`, which is what the source does with file contents for the
+ * same reason.
+ */
+function digest(algorithm: string, input: string): Uint8Array {
+  const buffer = crypto.createHash(algorithm).update(input).digest()
+  return new Uint8Array(
+    buffer.buffer.slice(
+      buffer.byteOffset,
+      buffer.byteOffset + buffer.byteLength,
+    ),
+  )
+}
+
 describe('criticalCssCacheKey', () => {
   it('produces stable keys for identical inputs', () => {
     const html = '<div class="a"><p>text</p></div>'
     const css = '.a{color:red}'
-    const cssHash = crypto.createHash('sha256').update(css).digest()
+    const cssHash = digest('sha256', css)
     expect(createCriticalCssCacheKey(html, cssHash, css, 'zig-critters')).toBe(
       createCriticalCssCacheKey(html, cssHash, css, 'zig-critters'),
     )
@@ -19,7 +37,7 @@ describe('criticalCssCacheKey', () => {
   it('changes when the engine changes', () => {
     const html = '<div class="a"><p>text</p></div>'
     const css = '.a{color:red}'
-    const cssHash = crypto.createHash('sha256').update(css).digest()
+    const cssHash = digest('sha256', css)
     expect(
       createCriticalCssCacheKey(html, cssHash, css, 'zig-critters'),
     ).not.toBe(createCriticalCssCacheKey(html, cssHash, css, 'beasties'))
@@ -27,14 +45,8 @@ describe('criticalCssCacheKey', () => {
 
   it('changes when the CSS changes', () => {
     const html = '<div class="a"><p>text</p></div>'
-    const cssHashA = crypto
-      .createHash('sha256')
-      .update('.a{color:red}')
-      .digest()
-    const cssHashB = crypto
-      .createHash('sha256')
-      .update('.a{color:blue}')
-      .digest()
+    const cssHashA = digest('sha256', '.a{color:red}')
+    const cssHashB = digest('sha256', '.a{color:blue}')
     expect(
       createCriticalCssCacheKey(
         html,
@@ -57,7 +69,7 @@ describe('criticalCssCacheKey', () => {
     const htmlB = '<div class="a"><p>two</p></div>'
     const htmlC = '<div class="a"><span>one</span></div>'
     const css = '.a{color:red}'
-    const cssHash = crypto.createHash('sha256').update(css).digest()
+    const cssHash = digest('sha256', css)
     expect(createCriticalCssCacheKey(htmlA, cssHash, css, 'zig-critters')).toBe(
       createCriticalCssCacheKey(htmlB, cssHash, css, 'zig-critters'),
     )

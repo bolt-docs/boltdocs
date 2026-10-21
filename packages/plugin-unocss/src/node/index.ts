@@ -28,12 +28,12 @@ export function unocssPlugin(
   return createPlugin({
     name: 'plugin-unocss',
     version: '1.0.0',
-    vitePlugins: [
-      UnoCSS({
-        ...unocssOptions,
-        ...(content ? { content } : {}),
-      }),
-    ],
+    // `UnoCSS()` returns the plugin list itself; wrapping it in another array
+    // produced a nested list that Vite happened to flatten.
+    vitePlugins: UnoCSS({
+      ...unocssOptions,
+      ...(content ? { content } : {}),
+    }),
   })
 }
 

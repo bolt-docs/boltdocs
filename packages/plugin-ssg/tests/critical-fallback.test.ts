@@ -1,4 +1,5 @@
 import { describe, it, expect, vi } from 'vitest'
+import type { ZigCritters } from '../src/node/critical'
 
 /**
  * Unit tests for critical CSS engine selection:
@@ -43,7 +44,9 @@ async function selectEngines(options: {
 
 describe('critical CSS engine selection', () => {
   it('uses zig-critters only when the engine factory succeeds', async () => {
-    const zig = { extractCriticalCss: vi.fn() }
+    // The mock implements the one method the selection reads; the rest of
+    // the interface is not what this test is about.
+    const zig = { extractCriticalCss: vi.fn() } as unknown as ZigCritters
     vi.mocked(createZigCrittersEngine).mockResolvedValue(zig)
     vi.mocked(getBeasties).mockResolvedValue({ process: vi.fn() } as never)
 
@@ -75,7 +78,7 @@ describe('critical CSS engine selection', () => {
   it('passes pool concurrency to the engine factory', async () => {
     vi.mocked(createZigCrittersEngine).mockResolvedValue({
       extractCriticalCss: vi.fn(),
-    })
+    } as unknown as ZigCritters)
     await selectEngines({ turbo: false, beastiesOptions: false })
     expect(createZigCrittersEngine).toHaveBeenCalledWith({ concurrency: 4 })
     expect(getZigCritters).not.toHaveBeenCalled()

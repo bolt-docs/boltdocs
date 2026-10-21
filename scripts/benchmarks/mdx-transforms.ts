@@ -134,8 +134,9 @@ export async function runMdxTransformSuite(
         const content = fs.readFileSync(path.join(dir, file), 'utf-8')
         const headings: string[] = []
         const regex = /^#{1,6}\s+(.+)$/gm
-        let match
-        while ((match = regex.exec(content)) !== null) {
+        let match: RegExpExecArray | null = regex.exec(content)
+        while (match !== null) {
+          match = regex.exec(content)
           headings.push(match[1].trim())
         }
         headings
@@ -147,8 +148,9 @@ export async function runMdxTransformSuite(
         const content = fs.readFileSync(path.join(dir, file), 'utf-8')
         const links: string[] = []
         const regex = /\[([^\]]+)\]\(([^)]+)\)/g
-        let match
-        while ((match = regex.exec(content)) !== null) {
+        let match: RegExpExecArray | null = regex.exec(content)
+        while (match !== null) {
+          match = regex.exec(content)
           links.push(match[2])
         }
         links
@@ -160,8 +162,9 @@ export async function runMdxTransformSuite(
         const content = fs.readFileSync(path.join(dir, file), 'utf-8')
         const blocks: { lang: string; code: string }[] = []
         const regex = /```(\w+)?\n([\s\S]*?)```/g
-        let match
-        while ((match = regex.exec(content)) !== null) {
+        let match: RegExpExecArray | null = regex.exec(content)
+        while (match !== null) {
+          match = regex.exec(content)
           blocks.push({ lang: match[1] || 'text', code: match[2] })
         }
         blocks
@@ -172,13 +175,14 @@ export async function runMdxTransformSuite(
       for (const file of files) {
         const content = fs.readFileSync(path.join(dir, file), 'utf-8')
         const slugRegex = /^#{1,6}\s+(.+)$/gm
-        let match
-        while ((match = slugRegex.exec(content)) !== null) {
+        let match: RegExpExecArray | null = slugRegex.exec(content)
+        while (match !== null) {
           match[1]
             .trim()
             .toLowerCase()
             .replace(/[^\w\s-]/g, '')
             .replace(/\s+/g, '-')
+          match = slugRegex.exec(content)
         }
       }
     })
@@ -192,23 +196,26 @@ export async function runMdxTransformSuite(
 
         const headings: string[] = []
         const hRegex = /^#{1,6}\s+(.+)$/gm
-        let hMatch
-        while ((hMatch = hRegex.exec(body)) !== null) {
+        let hMatch: RegExpExecArray | null = hRegex.exec(body)
+        while (hMatch !== null) {
           headings.push(hMatch[1].trim())
+          hMatch = hRegex.exec(body)
         }
 
         const links: string[] = []
         const lRegex = /\[([^\]]+)\]\(([^)]+)\)/g
-        let lMatch
-        while ((lMatch = lRegex.exec(body)) !== null) {
+        let lMatch: RegExpExecArray | null = lRegex.exec(body)
+        while (lMatch !== null) {
           links.push(lMatch[2])
+          lMatch = lRegex.exec(body)
         }
 
         const codeBlocks: string[] = []
         const cRegex = /```(\w+)?\n([\s\S]*?)```/g
-        let cMatch
-        while ((cMatch = cRegex.exec(body)) !== null) {
+        let cMatch: RegExpExecArray | null = cRegex.exec(body)
+        while (cMatch !== null) {
           codeBlocks.push(cMatch[2])
+          cMatch = cRegex.exec(body)
         }
 
         const wordCount = body.split(/\s+/).length
