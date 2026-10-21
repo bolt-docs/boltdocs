@@ -211,14 +211,54 @@ recompiled to WebAssembly as part of the build. The toolchain needs
 `wasm-ld` on the path — on this machine it lives in `/usr/lib/llvm21/bin` —
 and without it the WASM build fails and the previous binary is used.
 
-**The MDX precompile is single-threaded for most sites.** It is 9.8 s of a
-26 s build. The compile pool is skipped whenever the site registers a
+### The highlighter's engine is Oniguruma
+
+Highlighting is 96% of an MDX compile — on the documentation site's 971 code
+blocks it is 8.5 s of a 12.9 s compile. The engine was the JavaScript one, on
+the strength of a startup cost that no longer held: the code claimed it cut
+the engine build from ~2.5 s to ~200 ms, and measured today it is 548 ms
+against 357 ms. The startup was the wrong cost to weigh.
+
+| | Oniguruma | JavaScript |
+| --- | --- | --- |
+| Engine startup | 548 ms | 357 ms |
+| One code block | 2.8 ms | 9.9 ms |
+| 654 unique blocks | 1.8 s | 6.4 s |
+
+A build pays the startup once and the blocks once per language, so the blocks
+decide. The precompile went from 8.6 s to 6.6 s, and the build from 24.2 s
+to 21.6 s — measured across three interleaved A/B builds.
+
+Oniguruma is also the faithful engine: the JavaScript one degrades unsupported
+grammar regexes to approximate matches, while Oniguruma matches TextMate
+exactly. The two produce byte-identical output on the documentation site's
+code blocks, and where they differ it is Oniguruma resolving a Markdown
+front matter block as YAML, which is what it is.
+
+**The MDX precompile is single-threaded for most sites.** It is 6.6 s of a
+21.6 s build. The compile pool is skipped whenever the site registers a
 remark or rehype plugin — which is most sites — because the workers cannot
 run the user's plugins: they are functions, and a function does not cross a
 worker boundary. The site cannot have a parallel precompile until the plugin
 API can describe an MDX hook in a way a worker can rebuild. The documentation
 site is in exactly that case (the Mermaid plugin transforms code blocks), and
 its precompile runs on one core while seven sit idle.
+
+**The compile pool is a pessimisation on a small machine, and the reason is
+the warm-up.** Measured on the documentation site: one core compiles the 234
+pages in 9.8 s; a pool of eight workers takes 15.6 s. Each worker loads the
+site's twenty grammars and compiles their regexes for itself, so the pool
+spends 70 s of CPU where the single thread spends 10 s. The pool only pays
+for itself on a site with few languages, or with pages big enough that the
+warm-up is amortised over them.
+
+Enabling the pool for sites *with* user plugins was measured and it did not
+help: the precompile went from 6.6 s to 7.7 s, and the build did not move.
+The plugin API can describe a hook for a worker to rebuild — the module, the
+export and the options — and the machinery was built and measured, but on
+this machine it bought nothing, so it was not kept. The description of a
+rebuildable hook is the piece the API still needs; the fact that the pool
+does not pay for itself on four cores is the piece that has to change first.
 
 **The search dialog is in the eager set.** 110 kB — 12% of the first visit —
 for a feature most readers never open. Vite preloads the entry chunk's dynamic
