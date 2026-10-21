@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest'
-import { createRoutes } from '../../src/client/ssg/create-routes.tsx'
+import { createRoutes } from '../../src/ssg/create-routes'
 import type { ComponentRoute } from '@bdocs/runtime'
 import type * as React from 'react'
 

@@ -52,13 +52,13 @@ export default defineConfig([
       ],
     },
     async onSuccess() {
-      // Only `reset.css` stays in the core. Everything else a theme needs moved
+      // `reset.css` stays in the core. Everything else a theme needs moved
       // to the theme package, which ships it from `@bdocs/theme-neutral/css`.
       // Copying a theme stylesheet from here would mean the core and the theme
       // both claimed to own it, and a second theme would have nowhere to put its
       // own.
-      const resetSrc = path.resolve(__dirname, 'src/client/theme/reset.css')
-      const destDir = path.resolve(__dirname, 'dist/client/theme')
+      const resetSrc = path.resolve(__dirname, 'src/theme/reset.css')
+      const destDir = path.resolve(__dirname, 'dist/theme')
       if (!fs.existsSync(destDir)) {
         fs.mkdirSync(destDir, { recursive: true })
       }
@@ -67,13 +67,15 @@ export default defineConfig([
       console.log('✓ Theme reset.css copied to dist')
     },
   }),
-  // Client Build
+  // The SSG bridge.
+  //
+  // The one client-shaped entry the engine still publishes: the component that
+  // mounts the app, re-exported from `@bdocs/ssg` so a generated entry reaches
+  // it through the package the site already depends on. The UI layer itself
+  // lives in a theme package and is not here.
   packageConfig({
     entry: {
-      'client/index': 'src/client/index.ts',
-      'client/router': 'src/client/router/index.ts',
-      'client/primitives': 'src/client/primitives.ts',
-      'client/mdx': 'src/client/mdx.ts',
+      'ssg/index': 'src/ssg.ts',
     },
     format: ['esm'],
     dts: true,
@@ -104,6 +106,8 @@ export default defineConfig([
         'virtual:boltdocs-entry.tsx',
         'virtual:boltdocs-search',
         'virtual:boltdocs-search.ts',
+        'virtual:boltdocs-site-bridge',
+        'virtual:boltdocs-site-bridge.ts',
       ],
     },
   }),

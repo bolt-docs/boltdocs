@@ -50,8 +50,8 @@ A code block has three optional regions:
 ## Putting it together
 
 ```tsx
-import { Button, CodeBlock } from 'boltdocs/primitives'
-import { useCopyButton, useExpandable } from 'boltdocs/client'
+import { Button, CodeBlock } from '@bdocs/theme-neutral/composition'
+import { useCopyButton, useExpandable } from '@bdocs/theme-neutral'
 import { Copy, Check } from 'lucide-react'
 
 export function RawSnippet({ lang, code, html }: { lang: string; code: string; html: string }) {
@@ -93,7 +93,7 @@ That's it — the inner HTML is the pre-rendered Shiki output, so it works durin
 
 ## Hooks
 
-Feature-scoped hooks give you the interactive behavior without coupling to the shell. They are exported from `boltdocs/client` and can be used with the primitive parts or standalone.
+Feature-scoped hooks give you the interactive behavior without coupling to the shell. They are exported from `@bdocs/theme-neutral` and can be used with the primitive parts or standalone.
 
 ### `useCopyButton`
 

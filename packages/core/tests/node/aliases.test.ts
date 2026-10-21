@@ -12,10 +12,6 @@ describe('createBoltdocsAliases', () => {
         replacement: '/project/boltdocs-entry.tsx',
       },
       {
-        find: 'boltdocs/client',
-        replacement: '/project/boltdocs-client.mjs',
-      },
-      {
         find: 'use-sync-external-store/shim/index.js',
         replacement: 'react',
       },
@@ -30,28 +26,46 @@ describe('createBoltdocsAliases', () => {
     ])
   })
 
-  it('uses source aliases for the monorepo development client', () => {
+  it('aliases the theme package to its source during development', () => {
     const aliases = createBoltdocsAliases({
       root: '/project',
-      clientSourceRoot: '/workspace/packages/core/src/client',
+      themeSource: {
+        package: '@bdocs/theme-neutral',
+        file: '/workspace/packages/theme-neutral/src/index.ts',
+      },
     })
 
-    expect(aliases).toEqual(
-      expect.arrayContaining([
-        {
-          find: 'boltdocs/primitives',
-          replacement: '/workspace/packages/core/src/client/primitives.ts',
-        },
-        {
-          find: 'boltdocs/mdx',
-          replacement: '/workspace/packages/core/src/client/mdx.ts',
-        },
-        {
-          find: 'boltdocs/client/router',
-          replacement: '/workspace/packages/core/src/client/router/index.ts',
-        },
-      ]),
+    const theme = aliases.find((alias) =>
+      alias.find instanceof RegExp
+        ? alias.find.test('@bdocs/theme-neutral')
+        : alias.find === '@bdocs/theme-neutral',
     )
+
+    expect(theme).toBeDefined()
+    expect(theme?.replacement).toBe(
+      '/workspace/packages/theme-neutral/src/index.ts',
+    )
+  })
+
+  it('matches the theme package exactly, so its subpaths still resolve', () => {
+    const aliases = createBoltdocsAliases({
+      root: '/project',
+      themeSource: {
+        package: '@bdocs/theme-neutral',
+        file: '/workspace/packages/theme-neutral/src/index.ts',
+      },
+    })
+
+    const theme = aliases.find((alias) => alias.find instanceof RegExp) as {
+      find: RegExp
+    }
+
+    // The stylesheet is a subpath of the same package. A prefix match would
+    // rewrite it to a file inside the source tree, and the site would load no
+    // CSS at all.
+    expect(theme.find.test('@bdocs/theme-neutral')).toBe(true)
+    expect(theme.find.test('@bdocs/theme-neutral/css')).toBe(false)
+    expect(theme.find.test('@bdocs/theme-neutral/composition')).toBe(false)
   })
 
   it('includes framework aliases and custom aliases', () => {
@@ -149,10 +163,6 @@ describe('createBoltdocsAliases', () => {
   it('keeps every reserved framework alias authoritative', () => {
     const reservedAliases = [
       'boltdocs/entry',
-      'boltdocs/client',
-      'boltdocs/primitives',
-      'boltdocs/mdx',
-      'boltdocs/client/router',
       'use-sync-external-store/shim/index.js',
       'use-sync-external-store/shim',
       'use-sync-external-store',
@@ -163,7 +173,6 @@ describe('createBoltdocsAliases', () => {
     }
     const aliases = createBoltdocsAliases({
       root: '/project',
-      clientSourceRoot: '/workspace/core/src/client',
       aliases: customAliases,
     })
 

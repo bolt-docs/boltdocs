@@ -474,6 +474,15 @@ export const BoltdocsConfigSchema = z.object({
   siteUrl: z.string().url().optional(),
   docsDir: z.string().optional(),
   base: z.string().optional(),
+  /**
+   * The package that provides the UI layer.
+   *
+   * The engine does not depend on a theme: it resolves this package from the
+   * project at build time and imports the route surface from it. The default
+   * is the theme Boltdocs ships, and a site that wants a different look
+   * installs a different one and names it here.
+   */
+  themePackage: z.string().optional(),
   theme: ThemeConfigSchema.optional(),
   i18n: I18nConfigSchema.optional(),
   versions: VersionsConfigSchema.optional(),

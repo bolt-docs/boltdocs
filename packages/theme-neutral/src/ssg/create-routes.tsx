@@ -2,13 +2,13 @@ import type {
   RouteRecord,
   CreateRoutesResult,
   RouteRendererProps,
-} from '../router'
-import type { ComponentRoute, BoltdocsConfig } from '../types'
+} from '@bdocs/runtime'
+import type { ComponentRoute, BoltdocsConfig } from '@bdocs/runtime'
 import { BoltdocsShell } from './boltdocs-shell'
 import type React from 'react'
-import type { CollectionsData } from '@bdocs/theme-neutral'
+import type { CollectionsData } from '../collections/collections-context'
 import { NotFoundWrapper } from './mdx-elements'
-import { DocsLayout } from '@bdocs/theme-neutral'
+import DocsLayout from '../components/docs-layout-default'
 import { buildDocRoutes } from './create-routes.doc'
 import {
   buildExternalRoutes,
@@ -22,9 +22,9 @@ import {
   matchRouteBranch,
   matchRouteBranchWithParams,
   resolveRouteBranch,
-} from '../router'
+} from '@bdocs/runtime'
 
-interface CreateRoutesOptions {
+export interface CreateRoutesOptions {
   routesData: ComponentRoute[]
   collectionsData?: CollectionsData
   collectionLayouts?: Record<

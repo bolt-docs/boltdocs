@@ -4,7 +4,7 @@ import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 const HERE = dirname(fileURLToPath(import.meta.url))
-const RESET = resolve(HERE, '../../src/client/theme/reset.css')
+const RESET = resolve(HERE, '../../src/theme/reset.css')
 
 const css = readFileSync(RESET, 'utf8')
 

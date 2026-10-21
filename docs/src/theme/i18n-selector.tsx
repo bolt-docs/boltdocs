@@ -1,8 +1,8 @@
-import { useI18n } from 'boltdocs/client'
+import { useI18n } from '@bdocs/theme-neutral'
 import { Button } from '@/theme/button'
-import { Menu } from 'boltdocs/primitives'
+import { Menu } from '@bdocs/theme-neutral/composition'
 import { ChevronDown, Languages } from 'lucide-react'
-import { cn } from 'boltdocs/client'
+import { cn } from '@bdocs/theme-neutral'
 
 export function I18nSelector({ className }: { className?: string }) {
   const { currentLocale, availableLocales, handleLocaleChange } = useI18n()

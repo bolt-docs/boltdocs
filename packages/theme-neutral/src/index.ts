@@ -101,6 +101,7 @@ export {
   IconRenderer,
 } from './components/ui-base/icon-renderer'
 export { SearchHighlight } from './components/ui-base/search-highlight'
+export { Giscus } from './components/ui-base/giscus'
 export { Navbar } from './components/ui-base/navbar'
 export { Sidebar } from './components/ui-base/sidebar'
 export { OnThisPage } from './components/ui-base/on-this-page'
@@ -117,7 +118,7 @@ export * from './mdx'
 
 export { cn } from './utils/cn'
 export { formatDate } from './collections/utils'
-export { formatDeterministicDate } from './utils/date'
+export { formatDeterministicDate } from '@bdocs/runtime'
 export { reactToText } from './utils/react-to-text'
 export { copyToClipboard } from './utils/copy-clipboard'
 export {
@@ -126,6 +127,30 @@ export {
 } from './utils/sanitize-svg'
 export { getBaseFilePath } from './utils/get-base-file-path'
 export { clearHighlights, highlightTerms } from './hooks/use-search-highlight'
+
+/**
+ * The routing and rendering surface.
+ *
+ * `createRoutes` and the shell live here, not in the engine: every route
+ * element they produce is a theme component. The build pipeline imports them
+ * from this package, which is why a theme has to be installed by the site —
+ * the engine never depends on one.
+ */
+export { createRoutes, BoltdocsShell, MdxPage } from './ssg'
+export type { CreateRoutesOptions } from './ssg'
+
+/**
+ * The router primitives the build pipeline drives.
+ *
+ * They belong to the runtime, and a theme re-exports the ones its own entry
+ * point needs so a build only has to resolve one package for the client half.
+ */
+export {
+  RouteRenderer,
+  matchRouteBranch,
+  matchRouteBranchWithParams,
+  resolveRouteBranch,
+} from '@bdocs/runtime'
 
 export {
   StructuredData,

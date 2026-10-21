@@ -1,11 +1,11 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import type { MermaidPluginOptions } from '../shared/types'
-import { useTheme } from 'boltdocs/client'
+import { useTheme } from '@bdocs/runtime'
 import { useMermaidRender } from './use-mermaid-render'
 import { useZoomPan } from './use-zoom-pan'
 import { Toolbar } from './toolbar'
 import { MermaidFullscreen } from './mermaid-fullscreen'
-import { cn } from 'boltdocs/client'
+import { cn } from '@bdocs/primitives'
 
 export interface MermaidProps {
   chart: string

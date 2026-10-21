@@ -1,4 +1,4 @@
-import { usePosts } from 'boltdocs/client'
+import { usePosts } from '@bdocs/theme-neutral'
 
 export default function BlogList() {
   const posts = usePosts('blog')

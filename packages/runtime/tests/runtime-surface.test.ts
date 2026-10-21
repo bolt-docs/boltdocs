@@ -1,38 +1,31 @@
 import { describe, expect, it } from 'vitest'
 
 /**
- * The seams between core and `@bdocs/runtime`.
+ * The public surface of the runtime's own entry points.
  *
- * Every file that used to hold a runtime implementation is now a re-export from
- * `@bdocs/runtime`, and each one is written as an explicit list of names rather
- * than `export *`. That is deliberate: `client/index.ts` does
- * `export type * from './types'`, and `boltdocs/client/router` is a public
- * subpath, so a wildcard off the runtime barrel would quietly publish whatever
- * the runtime grows next through paths that promised something narrower.
+ * The runtime is the browser half of Boltdocs, and it publishes two: the
+ * barrel and a `./router` subpath. The subpath exists so a consumer that
+ * only needs the router does not pull the contexts in with it, and that only
+ * holds if the two stay separate.
  *
- * These assertions are the reason that stays true. A seam that picks up a new
- * name from the runtime fails here instead of reaching a published API.
+ * These assertions are the reason that stays true. A barrel that grows a
+ * wildcard re-export fails here instead of quietly publishing whatever the
+ * package grows next.
  */
-/**
- * Only the seams that still exist in core are pinned here. `utils/path` and
- * `utils/i18n` moved into `@bdocs/theme-neutral` along with everything else, so
- * there is no seam left for them to guard — the theme's own entry point is their
- * surface now.
- */
-import * as configContext from '../src/client/app/config-context'
-import * as routesContext from '../src/client/app/routes-context'
-import * as themeContext from '../src/client/app/theme-context'
-import * as uiContext from '../src/client/app/ui-context'
-import * as router from '../src/client/router'
-import * as viewTransitions from '../src/client/view-transitions'
+import * as router from '../src/router'
+import * as configContext from '../src/config-context'
+import * as routesContext from '../src/routes-context'
+import * as themeContext from '../src/theme-context'
+import * as uiContext from '../src/ui-context'
+import * as viewTransitions from '../src/view-transitions'
 
 /** Runtime exports that exist but are not types, so they show up at runtime. */
 function runtimeExports(mod: Record<string, unknown>): string[] {
   return Object.keys(mod).sort()
 }
 
-describe('runtime seams keep their original surface', () => {
-  it('config-context exports exactly what it exported before the move', () => {
+describe('runtime entry points keep their surface', () => {
+  it('config-context exports exactly its four names', () => {
     expect(runtimeExports(configContext)).toEqual([
       'ConfigContext',
       'ConfigProvider',
@@ -41,7 +34,7 @@ describe('runtime seams keep their original surface', () => {
     ])
   })
 
-  it('theme-context exports exactly its four names', () => {
+  it('theme-context exports exactly its two names', () => {
     expect(runtimeExports(themeContext)).toEqual(['ThemeProvider', 'useTheme'])
   })
 
@@ -66,10 +59,7 @@ describe('runtime seams keep their original surface', () => {
     ])
   })
 
-  it('the router seam does not leak the whole runtime', () => {
-    // The specific regression this file exists for: the seam was written as
-    // `export * from '@bdocs/runtime'`, which made `boltdocs/client/router`
-    // also export themes, the config context and the i18n helpers.
+  it('the router subpath does not leak the rest of the runtime', () => {
     const names = runtimeExports(router)
     expect(names).not.toContain('ThemeProvider')
     expect(names).not.toContain('useConfig')
@@ -81,10 +71,7 @@ describe('runtime seams keep their original surface', () => {
     expect(names).toContain('NavigateContext')
   })
 
-  it('the router seam keeps every name the router used to export', () => {
-    // A cross-package `export *` is also what crashed `rolldown-plugin-dts`,
-    // so this seam is an explicit list. That makes it possible to drop a name by
-    // accident while editing; this is the check that it did not.
+  it('the router subpath keeps every name the router exports', () => {
     const names = runtimeExports(router)
     for (const expected of [
       'Outlet',

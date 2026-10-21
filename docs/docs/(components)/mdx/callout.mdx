@@ -91,10 +91,10 @@ The default callout derives its color from semantic variant tokens (`--color-pri
 
 ### Build a custom Callout from the primitive
 
-Import `Callout` from `boltdocs/primitives` to compose your own themed callout. The primitive owns structure only — it exposes `data-variant` on the root and renders no colors, so every pixel is yours:
+Import `Callout` from `@bdocs/theme-neutral/composition` to compose your own themed callout. The primitive owns structure only — it exposes `data-variant` on the root and renders no colors, so every pixel is yours:
 
 ```tsx
-import { Callout } from 'boltdocs/primitives'
+import { Callout } from '@bdocs/theme-neutral/composition'
 import { cn } from 'your-cn-helper'
 
 const variantStyles = {

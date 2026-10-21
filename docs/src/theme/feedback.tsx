@@ -1,6 +1,6 @@
-import { useFeedback } from 'boltdocs/client'
-import { useConfig } from 'boltdocs/client'
-import { cn } from 'boltdocs/client'
+import { useFeedback } from '@bdocs/theme-neutral'
+import { useConfig } from '@bdocs/theme-neutral'
+import { cn } from '@bdocs/theme-neutral'
 import { Button } from '@/theme/button'
 import { Check, ThumbsUp, ThumbsDown, Minus } from 'lucide-react'
 

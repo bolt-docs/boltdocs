@@ -5,8 +5,8 @@ import {
   ChevronRight,
   ChevronLeft,
 } from 'lucide-react'
-import { Link } from 'boltdocs/primitives'
-import { resolvePublicAssetUrl, useConfig } from 'boltdocs/client'
+import { Link } from '@bdocs/theme-neutral/composition'
+import { resolvePublicAssetUrl, useConfig } from '@bdocs/theme-neutral'
 import { useState, useEffect, useCallback } from 'react'
 import { Github } from '@/theme/icons'
 import { useTranslations } from '@/i18n/index'

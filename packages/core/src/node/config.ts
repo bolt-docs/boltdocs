@@ -6,6 +6,7 @@ import { ValidationError } from './errors'
 import { generateProjectTypes } from './types-generator'
 import { warn } from '@bdocs/dui'
 import { CONFIG_FILES } from './config-files'
+import { DEFAULT_THEME_PACKAGE } from './theme-package'
 import type {
   BoltdocsConfig,
   BoltdocsThemeConfig,
@@ -35,6 +36,8 @@ export type {
 export { defineConfig } from '../shared/config-utils'
 
 export { CONFIG_FILES } from './config-files'
+
+export { DEFAULT_THEME_PACKAGE, resolveThemePackage } from './theme-package'
 
 // In-memory cache: avoids re-loading + re-validating the config when
 // resolveConfig is called multiple times with the same docsDir + root.
@@ -325,6 +328,7 @@ export async function resolveConfig(
 
   const finalConfig: BoltdocsConfig = {
     docsDir: path.resolve(projectRoot, userConfig.docsDir || docsDir),
+    themePackage: userConfig.themePackage || DEFAULT_THEME_PACKAGE,
     theme: {
       ...defaults.theme,
       ...cleanThemeConfig,

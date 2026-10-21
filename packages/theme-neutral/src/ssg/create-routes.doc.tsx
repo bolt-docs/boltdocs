@@ -1,5 +1,5 @@
-import type { RouteRecord } from '../router'
-import type { ComponentRoute, BoltdocsConfig } from '../types'
+import type { RouteRecord } from '@bdocs/runtime'
+import type { ComponentRoute, BoltdocsConfig } from '@bdocs/runtime'
 import {
   EagerMdxElement,
   resolveModuleLoader,
@@ -10,7 +10,7 @@ import {
   resolveModuleKey,
   withBase,
 } from './create-routes.utils'
-import { buildUrl, parseUrlReference } from '../router'
+import { buildUrl, parseUrlReference } from '@bdocs/runtime'
 
 function FallbackWrapper({ children }: { children: React.ReactNode }) {
   return <>{children}</>

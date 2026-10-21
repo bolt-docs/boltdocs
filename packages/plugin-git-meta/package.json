@@ -1,7 +1,7 @@
 {
   "name": "@bdocs/plugin-git-meta",
   "version": "0.1.0",
-  "description": "Git-derived page metadata for Boltdocs — last-updated dates and contributor lists",
+  "description": "Git-derived page metadata for Boltdocs \u2014 last-updated dates and contributor lists",
   "publishConfig": {
     "access": "public"
   },
@@ -28,6 +28,8 @@
   "license": "MIT",
   "type": "module",
   "dependencies": {
+    "@bdocs/primitives": "workspace:*",
+    "@bdocs/runtime": "workspace:*",
     "zod": "^4.3.6"
   },
   "peerDependencies": {

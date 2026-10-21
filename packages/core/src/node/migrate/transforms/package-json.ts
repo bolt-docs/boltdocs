@@ -1,4 +1,8 @@
+import fs from 'node:fs'
+import path from 'node:path'
 import type { MigrationFinding, Transform } from '../types'
+import { findImports } from '../source'
+import { clientImportOwners } from './client-imports'
 
 const DEP_FIELDS = [
   'dependencies',
@@ -9,6 +13,103 @@ const DEP_FIELDS = [
 
 const REMOVED = 'react-aria-components'
 const ADDED = '@bdocs/primitives'
+
+/**
+ * The theme package every 4.0 site needs.
+ *
+ * The engine used to carry the UI layer, so a site got it by installing the
+ * engine. It does not any more: the build imports the theme by name, and the
+ * site declares it. Without the entry the build cannot resolve the theme, and
+ * the error would be a module-not-found from inside a generated file.
+ */
+const THEME = '@bdocs/theme-neutral'
+
+/**
+ * The runtime, for a site that imports one of its names directly.
+ *
+ * Only added when the project actually reaches for it: the theme re-exports
+ * the runtime's API, so most sites never need the second package.
+ */
+const RUNTIME = '@bdocs/runtime'
+
+const IGNORED_DIRS = new Set([
+  'node_modules',
+  '.git',
+  '.boltdocs',
+  'dist',
+  'build',
+  '.next',
+  '.turbo',
+  '.cache',
+  'coverage',
+  '.vercel',
+  '.output',
+])
+
+const SOURCE_EXTENSIONS = new Set([
+  '.ts',
+  '.tsx',
+  '.js',
+  '.jsx',
+  '.mts',
+  '.cts',
+  '.mjs',
+  '.cjs',
+])
+
+/** Whether a dependency block already declares a package. */
+function hasDependency(
+  pkg: Record<string, unknown>,
+  field: string,
+  name: string,
+): boolean {
+  const block = pkg[field]
+  return (
+    !!block &&
+    typeof block === 'object' &&
+    name in (block as Record<string, unknown>)
+  )
+}
+
+/**
+ * Whether the project imports a name the runtime owns.
+ *
+ * Two ways to get there: an import that already names the runtime, or an
+ * import from `boltdocs/client` that names something only the runtime
+ * exports. The second is the interesting one — it is the import the codemod
+ * is about to rewrite, and the manifest has to be ready for the result.
+ */
+function projectNeedsRuntime(root: string): boolean {
+  const stack = [root]
+  while (stack.length > 0) {
+    const dir = stack.pop() as string
+    let entries: fs.Dirent[]
+    try {
+      entries = fs.readdirSync(dir, { withFileTypes: true })
+    } catch {
+      continue
+    }
+    for (const entry of entries) {
+      if (entry.isDirectory()) {
+        if (IGNORED_DIRS.has(entry.name) || entry.name.startsWith('.')) continue
+        stack.push(path.join(dir, entry.name))
+        continue
+      }
+      if (!SOURCE_EXTENSIONS.has(path.extname(entry.name))) continue
+      let source: string
+      try {
+        source = fs.readFileSync(path.join(dir, entry.name), 'utf-8')
+      } catch {
+        continue
+      }
+      for (const hit of findImports(source)) {
+        if (hit.specifier === RUNTIME) return true
+      }
+      if (clientImportOwners(source).includes(RUNTIME)) return true
+    }
+  }
+  return false
+}
 
 /**
  * Dependency entries that 4.0 moved.
@@ -24,7 +125,7 @@ export const packageJsonTransform: Transform = {
 
   appliesTo: (file) => file === 'package.json',
 
-  inspect(_file, source) {
+  inspect(_file, source, ctx) {
     const findings: MigrationFinding[] = []
     let pkg: Record<string, unknown>
     try {
@@ -83,10 +184,44 @@ export const packageJsonTransform: Transform = {
       })
     }
 
+    if (!DEP_FIELDS.some((field) => hasDependency(pkg, field, THEME))) {
+      findings.push({
+        id: 'deps/theme',
+        severity: 'blocking',
+        action: 'fixable',
+        title: `Declare \`${THEME}\``,
+        detail:
+          'The engine used to ship the UI layer, so installing the engine was ' +
+          'enough. It does not any more: the build imports the theme by name, ' +
+          'and a site that does not declare it cannot resolve it.',
+        file: 'package.json',
+        remediation: `Add \`${THEME}\` to dependencies.`,
+      })
+    }
+
+    if (
+      !DEP_FIELDS.some((field) => hasDependency(pkg, field, RUNTIME)) &&
+      projectNeedsRuntime(ctx.root)
+    ) {
+      findings.push({
+        id: 'deps/runtime',
+        severity: 'info',
+        action: 'fixable',
+        title: `Declare \`${RUNTIME}\``,
+        detail:
+          'Some of the names `boltdocs/client` exported belong to the ' +
+          'runtime, and they are rewritten to import it directly. The theme ' +
+          're-exports most of that API, so this is only added when the ' +
+          'project reaches for a name the theme does not carry.',
+        file: 'package.json',
+        remediation: `Add \`${RUNTIME}\` to dependencies.`,
+      })
+    }
+
     return findings
   },
 
-  apply(source) {
+  apply(source, ctx) {
     let pkg: Record<string, unknown>
     try {
       pkg = JSON.parse(source) as Record<string, unknown>
@@ -116,15 +251,27 @@ export const packageJsonTransform: Transform = {
       }
     }
 
-    if (referencedReactAria) {
-      const deps = pkg.dependencies
-      if (!deps || typeof deps !== 'object')
-        return finalize(source, changed, pkg)
-      const entries = deps as Record<string, unknown>
-      if (!(ADDED in entries)) {
-        entries[ADDED] = '^1.0.0'
-        changed = true
-      }
+    const deps = pkg.dependencies
+    const entries =
+      deps && typeof deps === 'object'
+        ? (deps as Record<string, unknown>)
+        : undefined
+
+    if (referencedReactAria && entries && !(ADDED in entries)) {
+      entries[ADDED] = '^1.0.0'
+      changed = true
+    }
+
+    // The theme, always: the build imports it by name.
+    if (entries && !(THEME in entries)) {
+      entries[THEME] = '^1.0.0'
+      changed = true
+    }
+
+    // The runtime, only when the project reaches for one of its names.
+    if (entries && !(RUNTIME in entries) && projectNeedsRuntime(ctx.root)) {
+      entries[RUNTIME] = '^1.0.0'
+      changed = true
     }
 
     return finalize(source, changed, pkg)

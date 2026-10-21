@@ -3,10 +3,6 @@ import type { Alias, AliasOptions } from 'vite'
 
 const RESERVED_ALIASES = new Set([
   'boltdocs/entry',
-  'boltdocs/client',
-  'boltdocs/primitives',
-  'boltdocs/mdx',
-  'boltdocs/client/router',
   'use-sync-external-store/shim/index.js',
   'use-sync-external-store/shim',
   'use-sync-external-store',
@@ -14,7 +10,15 @@ const RESERVED_ALIASES = new Set([
 
 export interface BoltdocsAliasOptions {
   root: string
-  clientSourceRoot?: string
+  /**
+   * The theme package the site asked for, and the file to resolve it to.
+   *
+   * The engine imports the theme by name and lets the bundler resolve it,
+   * because the theme is the site's dependency and not the engine's. During
+   * development in a monorepo the package is aliased to its source, so an edit
+   * to a theme component is picked up without a rebuild of the package.
+   */
+  themeSource?: { package: string; file: string }
   aliases?: AliasOptions
 }
 
@@ -52,7 +56,7 @@ function addAlias(aliases: Alias[], alias: Alias): void {
  */
 export function createBoltdocsAliases({
   root,
-  clientSourceRoot,
+  themeSource,
   aliases,
 }: BoltdocsAliasOptions): Alias[] {
   const frameworkAliases: Alias[] = [
@@ -60,26 +64,6 @@ export function createBoltdocsAliases({
       find: 'boltdocs/entry',
       replacement: path.resolve(root, 'boltdocs-entry.tsx'),
     },
-    {
-      find: 'boltdocs/client',
-      replacement: path.resolve(root, 'boltdocs-client.mjs'),
-    },
-    ...(clientSourceRoot
-      ? [
-          {
-            find: 'boltdocs/primitives',
-            replacement: path.join(clientSourceRoot, 'primitives.ts'),
-          },
-          {
-            find: 'boltdocs/mdx',
-            replacement: path.join(clientSourceRoot, 'mdx.ts'),
-          },
-          {
-            find: 'boltdocs/client/router',
-            replacement: path.join(clientSourceRoot, 'router/index.ts'),
-          },
-        ]
-      : []),
     {
       find: 'use-sync-external-store/shim/index.js',
       replacement: 'react',
@@ -93,6 +77,23 @@ export function createBoltdocsAliases({
       replacement: 'react',
     },
   ]
+
+  // The theme package, aliased to its source when the source is there.
+  //
+  // The match is exact: a string alias would also capture the package's own
+  // subpaths, so `@bdocs/theme-neutral/css` — the stylesheet the site loads —
+  // would resolve to a file inside the source tree. A regular expression
+  // matches the package name and nothing else.
+  if (themeSource) {
+    frameworkAliases.unshift({
+      find: new RegExp(
+        `^${themeSource.package.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`,
+      ),
+      // `String.replace` reads `$` in the replacement as a capture reference,
+      // and a path is allowed to contain one.
+      replacement: themeSource.file.replace(/\$/g, '$$$$'),
+    })
+  }
 
   const result = frameworkAliases.map((alias) => ({
     ...alias,

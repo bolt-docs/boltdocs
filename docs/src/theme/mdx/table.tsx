@@ -1,4 +1,4 @@
-import { cn } from 'boltdocs/client'
+import { cn } from '@bdocs/theme-neutral'
 
 const Table = (props: React.HTMLAttributes<HTMLTableElement>) => (
   <div

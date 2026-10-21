@@ -1,29 +1,28 @@
 import { useEffect, useMemo } from 'react'
-import { Outlet, useLocation } from '../router'
-import { BoltdocsProvider, useBoltdocsContext } from '@bdocs/theme-neutral'
-import { ThemeProvider } from '../app/theme-context'
-import { MdxComponentsProvider } from '../app/mdx-components-context'
-import { ConfigContext } from '../app/config-context'
-import { ScrollHandler } from '@bdocs/theme-neutral'
-import { mdxComponentsDefault } from '@bdocs/theme-neutral'
-import { RoutesProvider } from '../app/routes-context'
+import { Outlet, useLocation } from '@bdocs/runtime'
+import { BoltdocsProvider, useBoltdocsContext } from '../store/boltdocs-context'
+import { ThemeProvider } from '@bdocs/runtime'
+import { MdxComponentsProvider } from '@bdocs/runtime'
+import { ConfigContext } from '@bdocs/runtime'
+import { ScrollHandler } from '../scroll-handler'
+import { mdxComponentsDefault } from '../mdx-component'
+import { RoutesProvider } from '@bdocs/runtime'
 
-import type { ComponentRoute } from '../types'
-import { UIProvider } from '../app/ui-context'
-import { Head } from '@bdocs/theme-neutral'
-import { Helmet } from '@bdocs/theme-neutral'
-import { InternalErrorBoundary as ErrorBoundary } from '@bdocs/theme-neutral'
-import { CollectionsProvider } from '@bdocs/theme-neutral'
-import type { CollectionsData } from '@bdocs/theme-neutral'
-import { cn } from '@bdocs/theme-neutral'
-import { PluginFloatingSlots } from '@bdocs/theme-neutral'
+import type { ComponentRoute } from '@bdocs/runtime'
+import { UIProvider } from '@bdocs/runtime'
+import { Head } from '../head'
+import { Helmet } from '../helmet-compat'
+import { InternalErrorBoundary as ErrorBoundary } from '../components/internal/error-boundary'
+import { CollectionsProvider } from '../collections/collections-context'
+import type { CollectionsData } from '../collections/collections-context'
+import { cn } from '../utils/cn'
+import { PluginFloatingSlots } from '../components/plugin-floating-slots'
 
-// Importing this registers the generated per-site artifacts with the runtime.
-// Imported for its side effect only, so it has to stay above the JSX and cannot
-// be tree-shaken away — see the module for why registration must not be lazy.
-import './register-site-bridge'
-import virtualCustomComponents from 'virtual:boltdocs-mdx-components'
-import { normalizePath } from '@bdocs/theme-neutral'
+// The site's own MDX components reach the theme through the runtime's site
+// bridge, like the icons and the search index: the file is resolved by the
+// build pipeline, and a theme has to be installable on its own. The core
+// registers them before the app renders.
+import { getSiteMdxComponents, normalizePath } from '@bdocs/runtime'
 
 import type { BoltdocsConfig } from '@bdocs/runtime'
 /**
@@ -148,7 +147,7 @@ export function BoltdocsShell({
   const allComponents = useMemo(
     () => ({
       ...mdxComponentsDefault,
-      ...virtualCustomComponents,
+      ...getSiteMdxComponents(),
       ...components,
     }),
     [components],

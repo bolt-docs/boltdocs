@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react'
 import { cn } from '../../utils/cn'
-import { formatDeterministicDate } from '../../utils/date'
+import { formatDeterministicDate } from '@bdocs/runtime'
 import { Check, Info, AlertCircle, AlertTriangle } from '../ui-base/icons'
 
 /**

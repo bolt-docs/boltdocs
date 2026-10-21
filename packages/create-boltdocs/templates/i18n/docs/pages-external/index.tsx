@@ -1,4 +1,4 @@
-import { Navbar } from 'boltdocs/client'
+import { Navbar } from '@bdocs/theme-neutral'
 import { Footer } from '../../src/components/footer'
 import { HomePage } from './home'
 

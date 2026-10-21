@@ -1,4 +1,4 @@
-import { cn } from 'boltdocs/client'
+import { cn } from '@bdocs/theme-neutral'
 
 export const Instagram = ({ className }: { className: string }) => {
   return (

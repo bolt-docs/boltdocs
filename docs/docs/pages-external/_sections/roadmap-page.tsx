@@ -6,7 +6,7 @@ import {
   CheckCircle2,
   LoaderCircle,
 } from 'lucide-react'
-import { cn } from 'boltdocs/client'
+import { cn } from '@bdocs/theme-neutral'
 import { Section } from '@/theme/section'
 
 type RoadmapItem = {

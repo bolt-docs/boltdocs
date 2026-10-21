@@ -33,10 +33,10 @@ Once enabled, `Link`, navbar, sidebar, and the router use the API automatically.
 
 ## Add an explicit transition link
 
-For an external page or a link that should activate independently, use `TransitionLink` from `boltdocs/primitives`:
+For an external page or a link that should activate independently, use `TransitionLink` from `@bdocs/theme-neutral/composition`:
 
 ```tsx
-import { TransitionLink } from 'boltdocs/primitives'
+import { TransitionLink } from '@bdocs/theme-neutral/composition'
 
 export function NextStep() {
   return (
@@ -55,7 +55,7 @@ Use `useViewTransition()` for state changes in external pages or custom controls
 
 ```tsx
 import { useState } from 'react'
-import { useViewTransition } from 'boltdocs/client'
+import { useViewTransition } from '@bdocs/theme-neutral'
 
 export function PreviewToggle() {
   const [preview, setPreview] = useState(false)

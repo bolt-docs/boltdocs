@@ -127,8 +127,20 @@ Nothing to do. Adopt the new features deliberately (viewport prefetch per link, 
 4.0 is an architecture migration, not a bump. Before adopting it:
 
 1. Read the roadmap page (`/roadmap`) and the 4.0 migration section.
-2. Inventory your plugins against `@bdocs/contracts` — the contract layer is the stable seam 4.0 builds on.
-3. Keep third-party plugins pinned to a `boltdocsVersion` range that excludes 4.x until they declare support.
+2. Run `boltdocs migrate --apply`. It rewrites the import paths the engine no longer publishes, and adds the packages the site now needs.
+3. Install the theme: `pnpm add @bdocs/theme-neutral`. The engine no longer ships the UI layer; it resolves the theme by name from the project.
+4. Inventory your plugins against `@bdocs/contracts` — the contract layer is the stable seam 4.0 builds on.
+5. Keep third-party plugins pinned to a `boltdocsVersion` range that excludes 4.x until they declare support.
+
+The import paths that moved:
+
+| 3.x | 4.0 |
+| --- | --- |
+| `boltdocs/client` (components, layout, hooks) | `@bdocs/theme-neutral` |
+| `boltdocs/client` (router, contexts) | `@bdocs/runtime` |
+| `boltdocs/primitives` | `@bdocs/theme-neutral/composition` |
+| `boltdocs/mdx` | `@bdocs/theme-neutral` |
+| `boltdocs/client/router` | `@bdocs/runtime/router` |
 
 ## Upgrade checklist
 

@@ -61,22 +61,37 @@ function createStubMdxPlugin(): Plugin {
   }
 }
 
-/** Minimal stand-in for `boltdocs/client` so the virtual entry loads. */
-function createClientStub(root: string): string {
-  const file = path.join(root, 'client-stub.mjs')
+/**
+ * Minimal stand-ins for the two packages the generated entry imports.
+ *
+ * The entry pulls the route surface from the theme package and the mount
+ * component from the engine's SSG subpath. Neither is available in this
+ * fixture — there is no theme installed in a temporary directory — so both
+ * resolve to a stub.
+ */
+function createClientStubs(root: string): { theme: string; ssg: string } {
+  const themeFile = path.join(root, 'theme-stub.mjs')
   fs.writeFileSync(
-    file,
+    themeFile,
     [
-      'export const ViteReactSSG = () => null',
       'export const createRoutes = () => ({})',
       'export const RouteRenderer = () => null',
       'export const matchRouteBranch = () => null',
       'export const matchRouteBranchWithParams = () => null',
       'export const resolveRouteBranch = () => null',
+      'export const registerSiteBridge = () => {}',
     ].join('\n'),
     'utf-8',
   )
-  return normalizePath(file)
+
+  const ssgFile = path.join(root, 'ssg-stub.mjs')
+  fs.writeFileSync(
+    ssgFile,
+    ['export const ViteReactSSG = () => null'].join('\n'),
+    'utf-8',
+  )
+
+  return { theme: normalizePath(themeFile), ssg: normalizePath(ssgFile) }
 }
 
 async function startDevServer(
@@ -93,7 +108,7 @@ async function startDevServer(
     fs.writeFileSync(target, content, 'utf-8')
   }
 
-  const clientStub = createClientStub(root)
+  const stubs = createClientStubs(root)
   const config = {
     docsDir,
     theme: { title: 'HMR Test' },
@@ -127,7 +142,10 @@ async function startDevServer(
     logLevel: 'silent',
     server: { watch: { ignored: ['**/.boltdocs/**'] } },
     resolve: {
-      alias: [{ find: 'boltdocs/client', replacement: clientStub }],
+      alias: [
+        { find: '@bdocs/theme-neutral', replacement: stubs.theme },
+        { find: 'boltdocs/ssg', replacement: stubs.ssg },
+      ],
     },
     plugins: [createStubMdxPlugin(), vmPlugin, devPlugin],
   })

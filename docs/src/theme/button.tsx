@@ -1,6 +1,6 @@
-import { Button as ButtonPrimitive } from 'boltdocs/primitives'
-import type { ButtonProps as PrimitiveButtonProps } from 'boltdocs/primitives'
-import { cn } from 'boltdocs/client'
+import { Button as ButtonPrimitive } from '@bdocs/theme-neutral/composition'
+import type { ButtonProps as PrimitiveButtonProps } from '@bdocs/theme-neutral/composition'
+import { cn } from '@bdocs/theme-neutral'
 
 export type ButtonVariant =
   | 'primary'

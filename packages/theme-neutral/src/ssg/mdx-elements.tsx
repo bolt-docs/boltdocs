@@ -1,10 +1,10 @@
 /// <reference types="vite/client" />
 import { useEffect, useState } from 'react'
-import type { ComponentRoute } from '../types'
+import type { ComponentRoute } from '@bdocs/runtime'
 import { MdxPage } from './mdx-page'
-import { NotFound } from '@bdocs/theme-neutral'
-import { useMdxComponents } from '../app/mdx-components-context'
-import { matchesMdxUpdatePath } from '../../shared/mdx-path'
+import { NotFound } from '../components/ui-base/not-found'
+import { useMdxComponents } from '@bdocs/runtime'
+import { matchesMdxUpdatePath } from './mdx-path'
 
 const _Loading = () => <div className="text-muted text-sm py-4">Loading...</div>
 

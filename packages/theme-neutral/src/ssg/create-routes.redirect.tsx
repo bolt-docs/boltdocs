@@ -1,6 +1,6 @@
 import { useEffect } from 'react'
-import { useNavigate, type RouteRecord } from '../router'
-import type { BoltdocsConfig, RedirectConfig } from '../types'
+import { useNavigate, type RouteRecord } from '@bdocs/runtime'
+import type { BoltdocsConfig, RedirectConfig } from '@bdocs/runtime'
 
 interface RedirectRouteOptions {
   config: BoltdocsConfig

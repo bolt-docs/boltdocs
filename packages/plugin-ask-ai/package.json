@@ -30,6 +30,7 @@
   "type": "module",
   "dependencies": {
     "@bdocs/dui": "^0.6.0",
+    "@bdocs/runtime": "workspace:*",
     "clsx": "2.1.1",
     "openai": "^4.77.0",
     "streamdown": "^1.0.0",

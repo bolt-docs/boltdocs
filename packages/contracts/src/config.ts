@@ -221,6 +221,14 @@ export interface RedirectConfig {
 
 export interface BoltdocsConfigContract<Plugin = PluginDefinition> {
   theme?: BoltdocsThemeConfig
+  /**
+   * The package that provides the UI layer.
+   *
+   * The engine does not depend on a theme. It resolves this package from the
+   * project at build time and imports the route surface from it, which is what
+   * lets a site swap the theme without the engine knowing what a theme is.
+   */
+  themePackage?: string
   siteUrl?: string
   docsDir?: string
   base?: string

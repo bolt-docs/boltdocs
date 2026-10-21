@@ -1,8 +1,8 @@
-import { useLoaderData } from '../router'
-import { DocPage } from '@bdocs/theme-neutral'
-import { CurrentPostProvider } from '@bdocs/theme-neutral'
-import { useMdxComponents } from '../app/mdx-components-context'
-import type { CollectionPostLoaderData, ComponentRoute } from '../types'
+import { useLoaderData } from '@bdocs/runtime'
+import { DocPage } from '../doc-page'
+import { CurrentPostProvider } from '../collections/collections-context'
+import { useMdxComponents } from '@bdocs/runtime'
+import type { CollectionPostLoaderData, ComponentRoute } from '@bdocs/runtime'
 
 type MdxPageProps = {
   MDXComponent: React.ComponentType<React.PropsWithChildren<unknown>>

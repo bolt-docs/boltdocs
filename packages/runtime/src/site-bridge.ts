@@ -69,6 +69,15 @@ export interface SiteBridge {
    * a key with nothing in it.
    */
   clientSlots: Record<string, SiteSlot[]>
+  /**
+   * The site's own MDX components, from `mdx-components.tsx`.
+   *
+   * They arrive through the bridge for the same reason the icons do: the file
+   * is resolved by the build pipeline, and a theme has to be installable on its
+   * own. Empty when the site wrote no file, which is the default — the theme's
+   * own components are used unchanged in that case.
+   */
+  mdxComponents: Record<string, ComponentType<any>>
 }
 
 /**
@@ -120,6 +129,7 @@ const EMPTY_BRIDGE: SiteBridge = {
     'Search is not available',
   ) as SiteBridge['fetchSearchData'],
   clientSlots: {},
+  mdxComponents: {},
 }
 
 /**
@@ -176,6 +186,17 @@ export function getSiteLayout(): SiteBridge['layout'] {
 /** Plugin-contributed client slots. Empty, never undefined, when there are none. */
 export function getClientSlots(): Record<string, SiteSlot[]> {
   return getSiteBridge().clientSlots
+}
+
+/**
+ * The site's own MDX components, or an empty map.
+ *
+ * A map rather than undefined, so a caller can spread it without a guard:
+ * `{ ...themeDefaults, ...siteComponents }` is the whole merge, and an absent
+ * file is simply an empty contribution.
+ */
+export function getSiteMdxComponents(): Record<string, ComponentType<any>> {
+  return getSiteBridge().mdxComponents
 }
 
 /** Test-only: forgets anything a previous test registered. */

@@ -1,8 +1,8 @@
 import { useState, useEffect, useRef } from 'react'
 import { Copy, Check } from 'lucide-react'
 import { Button } from '@/theme/button'
-import { cn } from 'boltdocs/client'
-import type { ComponentRoute } from 'boltdocs/client'
+import { cn } from '@bdocs/theme-neutral'
+import type { ComponentRoute } from '@bdocs/theme-neutral'
 
 export interface CopyMarkdownProps {
   content?: string

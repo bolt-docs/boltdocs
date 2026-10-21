@@ -18,6 +18,7 @@ import {
   type RouteCacheVariant,
 } from '../routes/cache'
 import type { BoltdocsConfig } from '../config'
+import { resolveThemePackage } from '../theme-package'
 import type { BoltdocsPlugin } from '../../shared/types'
 import type { BoltdocsPluginOptions } from './types'
 import { generateEntryCode } from './entry'
@@ -932,6 +933,46 @@ export default UserLayout;`
         )
       }
 
+      if (name === 'site-bridge') {
+        // The one place where the build pipeline and the UI layer meet.
+        //
+        // Everything here is a `virtual:boltdocs-*` module, and a module
+        // resolved by a Vite plugin cannot exist inside a standalone package.
+        // The theme reads these artifacts back through the runtime's site
+        // bridge and never mentions a virtual module, which is what lets it be
+        // published and installed on its own.
+        //
+        // `registerSiteBridge` comes from the theme package rather than from
+        // the engine: the engine does not depend on a theme, and the theme is
+        // the one that re-exports the runtime's function for exactly this.
+        const themePackage = resolveThemePackage(config)
+        // The site's own layout is optional: the theme renders its default
+        // when there is none. The virtual module that resolves it throws when
+        // the file is missing, so it is only imported when there is one.
+        const hasUserLayout = ['tsx', 'jsx'].some((ext) =>
+          fs.existsSync(path.resolve(docsDir, `layout.${ext}`)),
+        )
+        return [
+          `import virtualIcons from 'virtual:boltdocs-icons'`,
+          `import virtualPageSource from 'virtual:boltdocs-page-source'`,
+          `import virtualSearchData from 'virtual:boltdocs-search'`,
+          ...(hasUserLayout
+            ? [`import virtualLayout from 'virtual:boltdocs-layout'`]
+            : []),
+          `import virtualClientRegistry from 'virtual:boltdocs-client-registry'`,
+          `import virtualMdxComponents from 'virtual:boltdocs-mdx-components'`,
+          `import { registerSiteBridge } from '${themePackage}'`,
+          `registerSiteBridge({`,
+          `  icons: virtualIcons || {},`,
+          `  fetchPageSource: virtualPageSource,`,
+          `  fetchSearchData: virtualSearchData,`,
+          ...(hasUserLayout ? [`  layout: virtualLayout,`] : []),
+          `  clientSlots: virtualClientRegistry || {},`,
+          `  mdxComponents: virtualMdxComponents || {},`,
+          `})`,
+        ].join('\n')
+      }
+
       if (name === 'icons') {
         const extensions = ['tsx', 'jsx', 'ts', 'js']
         let userIconsPath = null
@@ -994,36 +1035,27 @@ export default UserLayout;`
       }
 
       if (name === 'client') {
-        let currentDir = __dirname
-        let clientPath = ''
-
-        while (currentDir && currentDir !== path.parse(currentDir).root) {
-          const srcPath = path.join(currentDir, 'src/client/index.ts')
-          const distPath = path.join(currentDir, 'dist/client/index.mjs')
-          const directPath = path.join(currentDir, 'client/index.ts')
-
-          if (fs.existsSync(srcPath)) {
-            clientPath = normalizePath(srcPath)
-            break
-          }
-          if (fs.existsSync(distPath)) {
-            clientPath = normalizePath(distPath)
-            break
-          }
-          if (fs.existsSync(directPath)) {
-            clientPath = normalizePath(directPath)
-            break
-          }
-          currentDir = path.dirname(currentDir)
-        }
-
-        if (!clientPath) {
-          throw new Error(
-            `[boltdocs] Could not resolve boltdocs/client entry point starting from ${__dirname}`,
-          )
-        }
-
-        return `export * from '${clientPath}';`
+        // `boltdocs/client` was the 3.x way to reach the UI layer. The UI
+        // layer is a package now, and the engine does not re-export it: the
+        // point of the split is that a site opts into a theme rather than
+        // inheriting one from the engine.
+        //
+        // The error says what to do rather than leaving Vite to report a
+        // missing module, because "cannot resolve boltdocs/client" does not
+        // tell a reader where the code moved.
+        throw new Error(
+          [
+            `[boltdocs] \`boltdocs/client\` was removed in 4.0.`,
+            ``,
+            `The UI layer lives in packages now:`,
+            `  - components, layout, MDX components → \`@bdocs/theme-neutral\``,
+            `  - contexts, hooks, router             → \`@bdocs/runtime\``,
+            `  - style-neutral primitives            → \`@bdocs/primitives\``,
+            ``,
+            `Run \`npx boltdocs migrate --apply\` to rewrite the imports, and add`,
+            `the packages it names to your \`package.json\`.`,
+          ].join('\n'),
+        )
       }
     },
   }

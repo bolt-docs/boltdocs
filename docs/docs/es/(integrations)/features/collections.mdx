@@ -63,7 +63,7 @@ Para sobrescribir la apariencia predeterminada de tus colecciones, puedes coloca
 Un componente de publicación personalizado te permite diseñar cómo se renderizan las entradas individuales (como un artículo de blog). Usa `usePost()` para acceder a los datos de la publicación actual — sin necesidad de `useLoaderData`:
 
 ```tsx
-import { usePost, useMergedComponents } from 'boltdocs/client'
+import { usePost, useMergedComponents } from '@bdocs/theme-neutral'
 
 export default function BlogPost({ MDXComponent, mdxComponents }: any) {
   const post = usePost()
@@ -175,7 +175,7 @@ Retornado por los cargadores de React Router para índices de listas de colecci�
 
 ### Hooks
 
-Boltdocs proporciona varios hooks de React bajo `boltdocs/client` para obtener tus colecciones desde cualquier parte de tu aplicación (como barras laterales, pies de página o páginas de inicio personalizadas).
+Boltdocs proporciona varios hooks de React bajo `@bdocs/theme-neutral` para obtener tus colecciones desde cualquier parte de tu aplicación (como barras laterales, pies de página o páginas de inicio personalizadas).
 
 Todos los hooks usan la colección `"blog"` por defecto cuando no se especifica ninguna.
 
@@ -184,7 +184,7 @@ Todos los hooks usan la colección `"blog"` por defecto cuando no se especifica 
 Retorna un arreglo de todas las publicaciones en una colección, filtradas por la locale y versión actuales. Por defecto usa `"blog"`. Usa esto para listas, barras laterales o cualquier componente que necesite publicaciones de colección.
 
 ```tsx
-import { usePosts } from 'boltdocs/client'
+import { usePosts } from '@bdocs/theme-neutral'
 
 // Por defecto usa la colección "blog"
 function BlogSidebar() {
@@ -241,7 +241,7 @@ function PublicBlogList() {
 Retorna los datos de la publicación actual cuando se llama dentro de un componente `post.tsx`. Sin parámetros necesarios — el hook lee desde un contexto interno provisto por el framework.
 
 ```tsx
-import { usePost } from 'boltdocs/client'
+import { usePost } from '@bdocs/theme-neutral'
 
 export default function BlogPost({ MDXComponent, mdxComponents }) {
   const { title, date, author, headings, lastUpdated } = usePost()
@@ -252,7 +252,7 @@ export default function BlogPost({ MDXComponent, mdxComponents }) {
 También puedes llamar `usePost(collection, slug)` con parámetros explícitos para buscar una publicación específica desde cualquier parte de tu aplicación:
 
 ```tsx
-import { usePost } from 'boltdocs/client'
+import { usePost } from '@bdocs/theme-neutral'
 
 function FeaturedPost() {
   const post = usePost('blog', 'boltdocs-2.9.0')
@@ -265,7 +265,7 @@ function FeaturedPost() {
 Retorna las publicaciones más recientes de una colección. Por defecto usa colección `"blog"` y cantidad de 5.
 
 ```tsx
-import { useRecentPosts } from 'boltdocs/client'
+import { useRecentPosts } from '@bdocs/theme-neutral'
 
 // Por defecto "blog", retorna las 3 más recientes
 function RecentUpdates() {
@@ -299,7 +299,7 @@ Crea un archivo `list.tsx` dentro de tu carpeta de colección para sobrescribir 
 
 ```tsx title="docs/docs/[blog]/list.tsx"
 import { useState } from 'react'
-import { usePosts } from 'boltdocs/client'
+import { usePosts } from '@bdocs/theme-neutral'
 
 export default function BlogList() {
   const allPosts = usePosts()
@@ -357,7 +357,7 @@ export default function BlogList() {
 Crea un archivo `layout.tsx` dentro de tu carpeta de colección para envolver todas las rutas (lista y publicaciones) con un diseño personalizado. Esto es útil para agregar navegación específica de colección, barras laterales o encabezados:
 
 ```tsx title="docs/docs/[blog]/layout.tsx"
-import { usePosts } from 'boltdocs/client'
+import { usePosts } from '@bdocs/theme-neutral'
 
 export default function BlogLayout({ children }: { children: React.ReactNode }) {
   const posts = usePosts()

@@ -23,8 +23,8 @@ import {
   Breadcrumbs,
   PageNav,
   ErrorBoundary
-} from 'boltdocs/primitives'
-import { useRoutes } from 'boltdocs/client'
+} from '@bdocs/theme-neutral/composition'
+import { useRoutes } from '@bdocs/theme-neutral'
 
 export default function CustomLayout({ children }) {
   // Query routes and active page details from context
@@ -98,8 +98,8 @@ Below is a complete, production-ready reference implementation demonstrating how
 ```tsx
 // docs/components/ProductionLayout.tsx
 import React from 'react'
-import { DocsLayout } from 'boltdocs/primitives'
-import { useRoutes, useConfig } from 'boltdocs/client'
+import { DocsLayout } from '@bdocs/theme-neutral/composition'
+import { useRoutes, useConfig } from '@bdocs/theme-neutral'
 import ProductionNavbar from './ProductionNavbar'
 import ProductionSidebar from './ProductionSidebar'
 import CustomBreadcrumbs from './CustomBreadcrumbs'

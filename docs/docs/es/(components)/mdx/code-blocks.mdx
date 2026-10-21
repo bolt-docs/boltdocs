@@ -121,11 +121,11 @@ export default {
 
 ### 2. Construyendo un Componente de Bloque de Código Personalizado
 
-Usa el hook `useCodeBlock` de `'boltdocs/client'` para acceder al estado resuelto del bloque de código y envolver la salida en las primitivas de diseño importadas desde `'boltdocs/primitives'`:
+Usa el hook `useCodeBlock` de `'@bdocs/theme-neutral'` para acceder al estado resuelto del bloque de código y envolver la salida en las primitivas de diseño importadas desde `'@bdocs/theme-neutral/composition'`:
 
 ```tsx title="src/components/CustomCodeBlock.tsx"
-import { useCodeBlock } from 'boltdocs/client'
-import { CodeBlock } from 'boltdocs/primitives'
+import { useCodeBlock } from '@bdocs/theme-neutral'
+import { CodeBlock } from '@bdocs/theme-neutral/composition'
 
 export function CustomCodeBlock(props) {
   const {

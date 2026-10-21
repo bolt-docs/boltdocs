@@ -1,4 +1,4 @@
-import { Card, Cards } from 'boltdocs/mdx'
+import { Card, Cards } from '@bdocs/theme-neutral'
 import { Route, FileText, Settings, Sparkles } from '../icons'
 
 const features = [

@@ -1,5 +1,5 @@
 import { OnThisPage } from '@/theme'
-import { useMergedComponents, usePost, formatDate } from 'boltdocs/client'
+import { useMergedComponents, usePost, formatDate } from '@bdocs/theme-neutral'
 import type { ReactNode, ComponentType } from 'react'
 
 interface BlogPostProps {

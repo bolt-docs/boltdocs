@@ -17,8 +17,11 @@
     "@bdocs/plugin-math": "workspace:*",
     "@bdocs/plugin-mermaid": "workspace:*",
     "@bdocs/plugin-rss": "workspace:*",
+    "@bdocs/plugin-search": "workspace:*",
     "@bdocs/plugin-seo": "workspace:*",
     "@bdocs/plugin-tailwindcss": "workspace:*",
+    "@bdocs/runtime": "workspace:*",
+    "@bdocs/theme-neutral": "workspace:*",
     "@bdocs/unist-utils": "workspace:*",
     "chart.js": "^4.5.1",
     "gsap": "^3.15.0",
@@ -31,8 +34,7 @@
     "react-helmet-async": "^2.0.1",
     "react-refresh": "^0.17.0",
     "react-router-dom": "^7.0.0",
-    "three": "^0.185.1",
-    "@bdocs/plugin-search": "workspace:*"
+    "three": "^0.185.1"
   },
   "devDependencies": {
     "@tailwindcss/vite": "^4.3.0",

@@ -134,7 +134,7 @@ For advanced layouts, you can invoke the JSX component directly:
 
 ### Themes do not sync
 The plugin hooks into the site's dark mode provider. If themes are mismatched:
-* Ensure your custom layouts consume the `useTheme()` hook exported by `boltdocs/client` to stay in sync with the global app settings.
+* Ensure your custom layouts consume the `useTheme()` hook exported by `@bdocs/runtime` to stay in sync with the global app settings.
 
 ### Large diagrams are cut off
 By default, Boltdocs surrounds diagrams in a scrollable, responsive container. If you need diagrams to scale to fit the parent container instead, add the following to your custom global CSS stylesheet:

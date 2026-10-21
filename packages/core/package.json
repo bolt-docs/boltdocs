@@ -41,23 +41,11 @@
       "types": "./dist/server/index.d.ts",
       "default": "./dist/server/index.mjs"
     },
-    "./client": {
-      "types": "./dist/client/index.d.ts",
-      "default": "./dist/client/index.js"
+    "./ssg": {
+      "types": "./dist/ssg/index.d.ts",
+      "default": "./dist/ssg/index.js"
     },
-    "./client/router": {
-      "types": "./dist/client/router.d.ts",
-      "default": "./dist/client/router.js"
-    },
-    "./primitives": {
-      "types": "./dist/client/primitives.d.ts",
-      "default": "./dist/client/primitives.js"
-    },
-    "./mdx": {
-      "types": "./dist/client/mdx.d.ts",
-      "default": "./dist/client/mdx.js"
-    },
-    "./theme/reset.css": "./dist/client/theme/reset.css"
+    "./theme/reset.css": "./dist/theme/reset.css"
   },
   "files": [
     "dist",
@@ -91,11 +79,9 @@
     "@bdocs/dui": "^0.6.0",
     "@bdocs/grammars": "workspace:*",
     "@bdocs/parser": "workspace:*",
-    "@bdocs/primitives": "workspace:*",
     "@bdocs/processor-satteri": "workspace:*",
     "@bdocs/runtime": "workspace:*",
     "@bdocs/ssg": "workspace:*",
-    "@bdocs/theme-neutral": "workspace:*",
     "@bdocs/unist-utils": "workspace:*",
     "@shikijs/core": "3.23.0",
     "@shikijs/engine-javascript": "3.23.0",

@@ -1,13 +1,14 @@
-import { useRoutes } from 'boltdocs/client'
+import { useDocRoute } from '@bdocs/runtime'
 import { Contributors } from './contributors'
 
 /**
- * Default `page:footer:start` slot. It reads the current route from the router
- * context, so the same component works in SSR and during hydration.
+ * Default `page:footer:start` slot. It reads the current route from the
+ * document-route context, so the same component works in SSR and during
+ * hydration.
  */
 export function ContributorsSlot() {
-  const { currentRoute } = useRoutes()
-  const contributors = currentRoute?.contributors
+  const route = useDocRoute()
+  const contributors = route?.contributors
   if (!contributors || contributors.length === 0) return null
   return <Contributors contributors={contributors} />
 }

@@ -1,5 +1,5 @@
-import { PageNav as PN } from 'boltdocs/primitives'
-import { usePageNav } from 'boltdocs/client'
+import { PageNav as PN } from '@bdocs/theme-neutral/composition'
+import { usePageNav } from '@bdocs/theme-neutral'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
 
 export function PageNav() {

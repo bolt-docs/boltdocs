@@ -181,7 +181,7 @@ Estos tres son **automáticos** — el layout por defecto los deriva de los meta
 Se exportan como primitivas, así que un layout personalizado puede colocarlas donde quieras:
 
 ```tsx
-import { Breadcrumbs, OnThisPage, PageNav } from 'boltdocs/primitives'
+import { Breadcrumbs, OnThisPage, PageNav } from '@bdocs/theme-neutral/composition'
 
 export function MyLayout() {
   return (
@@ -344,11 +344,11 @@ Consulta [Versionado](/docs/integrations/globalization/versioning) para el layou
 [Saltar a la sección site:](#el-protocolo-site)
 ```
 
-**6. Prefiere `<Link>` sobre `<a>` en componentes.** La primitiva `Link` de `boltdocs/primitives` pasa cada href por el resolvedor y mantiene la navegación client-side rápida. Llama a `useLocalizedTo()` directamente solo cuando necesites el string resuelto (estados activos, analytics, menús):
+**6. Prefiere `<Link>` sobre `<a>` en componentes.** La primitiva `Link` de `@bdocs/theme-neutral/composition` pasa cada href por el resolvedor y mantiene la navegación client-side rápida. Llama a `useLocalizedTo()` directamente solo cuando necesites el string resuelto (estados activos, analytics, menús):
 
 ```tsx
-import { Link } from 'boltdocs/primitives'
-import { useLocalizedTo } from 'boltdocs/client'
+import { Link } from '@bdocs/theme-neutral/composition'
+import { useLocalizedTo } from '@bdocs/theme-neutral'
 
 const resolved = useLocalizedTo('/docs/guides')
 

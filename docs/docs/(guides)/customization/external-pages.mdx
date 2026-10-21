@@ -31,7 +31,7 @@ export const pages = {
 You can also export a `layout` function to wrap all external pages:
 
 ```tsx title="pages-external/index.tsx"
-import { Navbar, Sidebar } from 'boltdocs/client'
+import { Navbar, Sidebar } from '@bdocs/theme-neutral'
 import HomePage from '../../src/pages/home-page'
 
 export const pages = {
@@ -58,7 +58,8 @@ export const layout = ({ children }: { children: React.ReactNode }) => (
 Here's a complete `pages-external/index.tsx` with landing page and custom layout:
 
 ```tsx title="pages-external/index.tsx"
-import { Navbar, Sidebar, SearchDialog } from 'boltdocs/client'
+import { Navbar, Sidebar } from '@bdocs/theme-neutral'
+import { SearchDialog } from '@bdocs/theme-neutral/composition'
 import LandingPage from '../../src/pages/landing-page'
 import PricingPage from '../../src/pages/pricing-page'
 
@@ -80,10 +81,11 @@ export const layout = ({ children }: { children: React.ReactNode }) => (
 
 ## Using Boltdocs Components
 
-External pages can import any component exported from `boltdocs/client`:
+External pages can import any component exported from `@bdocs/theme-neutral`:
 
 ```tsx title="pages-external/index.tsx"
-import { Navbar, Sidebar, SearchDialog, Breadcrumbs } from 'boltdocs/client'
+import { Navbar, Sidebar, Breadcrumbs } from '@bdocs/theme-neutral'
+import { SearchDialog } from '@bdocs/theme-neutral/composition'
 ```
 
 This gives you access to the same UI primitives used in the default docs layout.

@@ -12,7 +12,7 @@ Boltdocs envuelve cada página MDX en un layout. Por defecto, usa `DocsLayout` q
 Para control total, construye tu propio layout desde primitivas:
 
 ```tsx title="docs/layout.tsx"
-import { Navbar, Sidebar, OnThisPage, Breadcrumbs, PageNav } from 'boltdocs/client'
+import { Navbar, Sidebar, OnThisPage, Breadcrumbs, PageNav } from '@bdocs/theme-neutral'
 
 export default function CustomLayout({
   children,
@@ -85,7 +85,8 @@ Boltdocs exporta primitivas de layout que puedes combinar:
 ## Ejemplo de Layout: Estilo Landing Page
 
 ```tsx
-import { Navbar, SearchDialog } from 'boltdocs/client'
+import { Navbar } from '@bdocs/theme-neutral'
+import { SearchDialog } from '@bdocs/theme-neutral/composition'
 
 export default function LandingLayout({
   children,
@@ -112,7 +113,7 @@ Usa frontmatter para seleccionar diferentes layouts:
 
 ```tsx
 // docs/layout.tsx
-import { DocsLayout } from 'boltdocs/client'
+import { DocsLayout } from '@bdocs/theme-neutral'
 
 export default function Layout(props: any) {
   if (props.frontmatter?.layout === 'landing') {
@@ -139,7 +140,7 @@ Las páginas externas (`pages-external/`) tienen su propio export `layout`. Usa 
 
 ```tsx
 // docs/pages-external/index.tsx
-import { Navbar } from 'boltdocs/client'
+import { Navbar } from '@bdocs/theme-neutral'
 import CustomPage from './CustomPage'
 
 export const pages = {

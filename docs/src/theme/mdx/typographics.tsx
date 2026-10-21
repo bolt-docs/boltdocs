@@ -1,6 +1,6 @@
-import { Link } from 'boltdocs/primitives'
-import { cn } from 'boltdocs/client'
-import { Heading as HeadingPrimitive } from 'boltdocs/primitives'
+import { Link } from '@bdocs/theme-neutral/composition'
+import { cn } from '@bdocs/theme-neutral'
+import { Heading as HeadingPrimitive } from '@bdocs/theme-neutral/composition'
 
 const Anchor = ({
   href,

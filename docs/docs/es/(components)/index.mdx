@@ -14,7 +14,7 @@ Boltdocs proporciona tres categorías de componentes:
 
 ## Primitivas de Diseño
 
-Componentes estructurales exportados desde `'boltdocs/primitives'` utilizados para construir diseños personalizados de documentación. Las primitivas aportan estructura, comportamiento y atributos de estado `data-*`; los colores, bordes y tamaños los decide tu tema vía CSS:
+Componentes estructurales exportados desde `'@bdocs/theme-neutral/composition'` utilizados para construir diseños personalizados de documentación. Las primitivas aportan estructura, comportamiento y atributos de estado `data-*`; los colores, bordes y tamaños los decide tu tema vía CSS:
 
 | Componente | Descripción |
 | :--- | :--- |
@@ -31,7 +31,7 @@ Componentes estructurales exportados desde `'boltdocs/primitives'` utilizados pa
 
 ## Primitivas de UI
 
-Componentes de interfaz de usuario accesibles y genéricos exportados desde `'boltdocs/primitives'`:
+Componentes de interfaz de usuario accesibles y genéricos exportados desde `'@bdocs/theme-neutral/composition'`:
 
 | Componente | Descripción |
 | :--- | :--- |
@@ -65,7 +65,7 @@ Componentes de interfaz de usuario accesibles y genéricos exportados desde `'bo
 ### Uso de Primitivas
 
 ```tsx
-import { Navbar, Sidebar, OnThisPage } from 'boltdocs/primitives'
+import { Navbar, Sidebar, OnThisPage } from '@bdocs/theme-neutral/composition'
 
 export function MyLayout({ children, headings }) {
   return (

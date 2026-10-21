@@ -162,7 +162,7 @@ import { TransitionLink, useViewTransition } from 'boltdocs'
 
 ## Layout Primitives & State Contract
 
-The layout primitives (`Sidebar`, `OnThisPage`, `Navbar`, `SearchDialog`, `Breadcrumbs`, `PageNav`, `CodeBlock`, `ErrorBoundary`) live in `'boltdocs/primitives'`. They are **style-neutral**: structure + behavior + `data-*` state attributes come from the primitive; colors/borders/sizes belong to the theme. The styled defaults you see out of the box live in `ui-base/` (e.g. `ui-base/sidebar.tsx`, `ui-base/on-this-page.tsx`) and are fully overridable through `className` slots.
+The layout primitives (`Sidebar`, `OnThisPage`, `Navbar`, `SearchDialog`, `Breadcrumbs`, `PageNav`, `CodeBlock`, `ErrorBoundary`) live in `'@bdocs/theme-neutral/composition'`. They are **style-neutral**: structure + behavior + `data-*` state attributes come from the primitive; colors/borders/sizes belong to the theme. The styled defaults you see out of the box live in `ui-base/` (e.g. `ui-base/sidebar.tsx`, `ui-base/on-this-page.tsx`) and are fully overridable through `className` slots.
 
 State contract (present-when-true attributes):
 

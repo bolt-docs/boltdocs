@@ -1,4 +1,4 @@
-import { formatDeterministicDate } from '../utils/date'
+import { formatDeterministicDate } from '@bdocs/runtime'
 
 /**
  * Formats a date to a human-readable string.

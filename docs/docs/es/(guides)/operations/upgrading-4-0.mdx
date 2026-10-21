@@ -91,6 +91,44 @@ El scope publicado es `@bdocs/*`. El grafo objetivo para 4.0:
 
 `@bdocs/contracts` es chico, neutral al framework y con pocas dependencias. Contiene los tipos públicos de rutas, manifests, plugins, contextos de build y render, identidades de módulo y eventos de invalidación. No importa Node.js, Vite, React, SSG ni integraciones individuales — hay un test que rompe el build si alguna vez lo hace, porque un import type-only de un tipo de bundler compila, no shippea nada, ysolda en silencio la capa de contracts al toolchain que la separación existe para romper.
 
+### El motor ya no shippea la UI
+
+Este es el cambio con el radio de impacto más ancho, y es la razón por la que existe el comando de §1.
+
+Hasta 4.0 el package `boltdocs` cargaba con toda la pila de cliente: el layout, los componentes, los contextos, el router, los componentes MDX. Un sitio se los llevaba todos instalando el motor, y los alcanzaba por `boltdocs/client`, `boltdocs/primitives` y `boltdocs/mdx`.
+
+En 4.0 el motor es el motor. La capa de UI es un package que instala el sitio, y el motor lo resuelve por nombre:
+
+```bash
+pnpm add @bdocs/theme-neutral
+```
+
+| Dónde vivía en 3.x | Dónde vive en 4.0 |
+| --- | --- |
+| `boltdocs/client` (componentes, layout, componentes MDX, hooks) | `@bdocs/theme-neutral` |
+| `boltdocs/client` (router, contextos, contrato de URLs) | `@bdocs/runtime` |
+| `boltdocs/primitives` | `@bdocs/theme-neutral/composition` |
+| `boltdocs/mdx` | `@bdocs/theme-neutral` |
+| `boltdocs/client/router` | `@bdocs/runtime/router` |
+
+El codemod parte un import por nombre: cada símbolo va al package que lo exporta. Un sitio que solo usa la UI se queda con una dependencia; un sitio que usa una primitiva del router termina dependiendo también del runtime, y el codemod del manifiesto lo agrega.
+
+<Callout type="info">
+  **También entra el Markdown.** El codemod reescribe los ejemplos de import de tus páginas `.md` y `.mdx`. Una página de documentación que muestra `from 'boltdocs/client'` enseña a escribir un import que ya no resuelve, y quien lo copia se entera en su propio build y no en tu página.
+</Callout>
+
+El theme se resuelve desde el proyecto, no desde el motor. Un sitio que quiere otra appearance instala otro package y lo nombra:
+
+```ts title="boltdocs.config.ts"
+import { defineConfig } from 'boltdocs'
+
+export default defineConfig({
+  themePackage: '@my-org/boltdocs-theme',
+})
+```
+
+El default es `@bdocs/theme-neutral`. El motor nunca aprende qué es un theme: importa la superficie de rutas del package que nombra la configuración.
+
 ### `boltdocs` es solo ESM
 
 El package ya no shippea un build CommonJS. Cada entry point es `type: module` y resuelve por `default` en vez de `import`/`require`.
@@ -159,7 +197,7 @@ El package exportaba cuatro subpaths que resolvían todos al mismo barrel, y dos
 | `@bdocs/theme-neutral/client` | `@bdocs/theme-neutral` |
 | `@bdocs/theme-neutral/mdx` | `@bdocs/theme-neutral` |
 
-`boltdocs/client/primitives` conserva su nombre de 3.x y re-exporta la capa de composition.
+`boltdocs/client/primitives` se fue con el resto de la superficie de cliente del motor. La capa de composition es `@bdocs/theme-neutral/composition`.
 
 ### El search pasó a ser un plugin
 
@@ -207,7 +245,7 @@ Dos hooks de plugin cambiaron para hacer esto posible:
 - **`build:routes` es nuevo.** Se dispara después de generar las rutas y antes del render de SSG — la única ventana en la que un plugin puede influir en lo que se renderiza, que es lo que el enriquecimiento SEO de rutas necesita para que `canonical` y `og:url` estén en el HTML.
 - **`build:generate` salió del paso de SEO.** Era la cola del paso de escritura de SEO, así que `@bdocs/plugin-rss` dependía de un paso de SEO con el que no tenía nada que ver. Ahora tiene su propio paso y es alcanzable sin SEO.
 
-Las factories de JSON-LD (`createArticleStructuredData` y compañía) se movieron a `@bdocs/contracts` y se siguen re-exportando desde `boltdocs` y `boltdocs/client`. No son parte del plugin: alcanzarlas a través de un plugin opcional implicaría que hace falta el plugin para usarlas.
+Las factories de JSON-LD (`createArticleStructuredData` y compañía) se movieron a `@bdocs/contracts` y se re-exportan desde `boltdocs` y desde `@bdocs/theme-neutral`. No son parte del plugin: alcanzarlas a través de un plugin opcional implicaría que hace falta el plugin para usarlas.
 
 ### La optimización de imágenes es opt-in
 

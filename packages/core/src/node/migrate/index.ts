@@ -6,6 +6,7 @@ import { seoPluginTransform } from './transforms/seo-plugin'
 import { themeSubpathTransform } from './transforms/theme-subpath'
 import { packageJsonTransform } from './transforms/package-json'
 import { searchEngineTransform } from './transforms/search-engine'
+import { clientImportsTransform } from './transforms/client-imports'
 
 export * from './types'
 
@@ -19,6 +20,10 @@ const SCAN_EXTENSIONS = new Set([
   '.mjs',
   '.cjs',
   '.css',
+  // Markdown carries import examples. A page that shows the 3.x path teaches
+  // a reader to write an import that no longer resolves.
+  '.md',
+  '.mdx',
 ])
 
 const IGNORED_DIRS = new Set([
@@ -46,6 +51,7 @@ const TRANSFORMS: Transform[] = [
   searchEngineTransform,
   reactAriaTransform,
   themeSubpathTransform,
+  clientImportsTransform,
 ]
 
 export interface MigrateOptions {

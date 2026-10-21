@@ -14,8 +14,9 @@ Use this section when you know the API surface you need. For task-oriented instr
 | Import | Runtime | Use it for |
 | :--- | :--- | :--- |
 | `boltdocs` | Node / build | `defineConfig`, plugins, config types, JSON-LD factories. |
-| `boltdocs/client` | Browser / SSR | React hooks, structured data, transitions, collections, and client utilities. |
-| `boltdocs/primitives` | Browser / SSR | Style-neutral layout, navigation, link, and interaction components — theme them via `data-*` state attributes. |
+| `@bdocs/theme-neutral` | Browser / SSR | The styled UI: components, layout, MDX components, hooks, structured data, collections. |
+| `@bdocs/theme-neutral/composition` | Browser / SSR | Style-neutral layout, navigation, link, and interaction components — theme them via `data-*` state attributes. |
+| `@bdocs/runtime` | Browser / SSR | The router, the client contexts, and the URL contract. |
 
 <Cards cols={3}>
   <Card title="Configuration" icon={<Server />} href="/docs/guides/getting-started/configuration">

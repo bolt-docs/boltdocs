@@ -2,7 +2,7 @@ import { useEffect, useState, useCallback } from 'react'
 import { createPortal } from 'react-dom'
 import { Toolbar } from './toolbar'
 import { useZoomPan } from './use-zoom-pan'
-import { cn } from 'boltdocs/client'
+import { cn } from '@bdocs/primitives'
 
 interface MermaidFullscreenProps {
   svgStr: string

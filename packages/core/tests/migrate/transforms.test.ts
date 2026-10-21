@@ -424,13 +424,41 @@ describe('packageJsonTransform', () => {
   })
 
   it('does not add primitives when react-aria was never declared', () => {
+    // The theme is a different matter: every site needs one, because the
+    // engine imports the route surface from it. The primitives are only
+    // needed by a site that used react-aria directly.
     const bare = JSON.stringify(
-      { name: 'site', dependencies: { boltdocs: '^4.0.0' } },
+      {
+        name: 'site',
+        dependencies: {
+          boltdocs: '^4.0.0',
+          '@bdocs/theme-neutral': '^1.0.0',
+        },
+      },
       null,
       2,
     )
     expect(packageJsonTransform.inspect('package.json', bare, ctx)).toEqual([])
     expect(packageJsonTransform.apply?.(bare, ctx)).toBe(bare)
+  })
+
+  it('adds the theme package, which every site needs', () => {
+    const bare = JSON.stringify(
+      { name: 'site', dependencies: { boltdocs: '^4.0.0' } },
+      null,
+      2,
+    )
+    const findings = packageJsonTransform.inspect('package.json', bare, ctx)
+    expect(findings.map((finding) => finding.id)).toEqual(['deps/theme'])
+    expect(findings[0].severity).toBe('blocking')
+
+    const applied = packageJsonTransform.apply?.(bare, ctx) ?? bare
+    const pkg = JSON.parse(applied) as {
+      dependencies: Record<string, string>
+    }
+    expect(pkg.dependencies['@bdocs/theme-neutral']).toBeDefined()
+    // The primitives are not added: nothing referenced react-aria.
+    expect(pkg.dependencies['@bdocs/primitives']).toBeUndefined()
   })
 
   it('leaves a manifest it cannot parse untouched', () => {

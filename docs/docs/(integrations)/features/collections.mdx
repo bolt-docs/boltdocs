@@ -63,7 +63,7 @@ To override the default look of your collections, you can place standard React c
 A custom post component lets you design how individual entries render (like a blog article). Use `usePost()` to access the current post's data — no `useLoaderData` needed:
 
 ```tsx
-import { usePost, useMergedComponents } from 'boltdocs/client'
+import { usePost, useMergedComponents } from '@bdocs/theme-neutral'
 
 export default function BlogPost({ MDXComponent, mdxComponents }: any) {
   const post = usePost()
@@ -175,7 +175,7 @@ Returned by React Router loaders for collection list indexes (e.g. `/blog`). Use
 
 ### Hooks
 
-Boltdocs provides several React hooks under `boltdocs/client` to fetch your collections from anywhere in your app (like sidebars, footers, or custom home pages).
+Boltdocs provides several React hooks under `@bdocs/theme-neutral` to fetch your collections from anywhere in your app (like sidebars, footers, or custom home pages).
 
 All hooks default to the `"blog"` collection when none is specified.
 
@@ -184,7 +184,7 @@ All hooks default to the `"blog"` collection when none is specified.
 Returns an array of all posts in a collection, filtered by the current locale and version. Defaults to `"blog"`. Use this for listings, sidebars, or any component needing collection posts.
 
 ```tsx
-import { usePosts } from 'boltdocs/client'
+import { usePosts } from '@bdocs/theme-neutral'
 
 // Defaults to the "blog" collection
 function BlogSidebar() {
@@ -241,7 +241,7 @@ function PublicBlogList() {
 Returns the current post's data when called inside a `post.tsx` component. No parameters needed — the hook reads from an internal context provided by the framework.
 
 ```tsx
-import { usePost } from 'boltdocs/client'
+import { usePost } from '@bdocs/theme-neutral'
 
 export default function BlogPost({ MDXComponent, mdxComponents }) {
   const { title, date, author, headings, lastUpdated } = usePost()
@@ -252,7 +252,7 @@ export default function BlogPost({ MDXComponent, mdxComponents }) {
 You can also call `usePost(collection, slug)` with explicit parameters to fetch a specific post from anywhere in your app:
 
 ```tsx
-import { usePost } from 'boltdocs/client'
+import { usePost } from '@bdocs/theme-neutral'
 
 function FeaturedPost() {
   const post = usePost('blog', 'boltdocs-2.9.0')
@@ -265,7 +265,7 @@ function FeaturedPost() {
 Returns the most recent posts from a collection. Defaults to collection `"blog"` and count of 5.
 
 ```tsx
-import { useRecentPosts } from 'boltdocs/client'
+import { useRecentPosts } from '@bdocs/theme-neutral'
 
 // Defaults to "blog", returns the 3 most recent
 function RecentUpdates() {
@@ -299,7 +299,7 @@ Create a `list.tsx` file inside your collection folder to override the default l
 
 ```tsx title="docs/docs/[blog]/list.tsx"
 import { useState } from 'react'
-import { usePosts } from 'boltdocs/client'
+import { usePosts } from '@bdocs/theme-neutral'
 
 export default function BlogList() {
   const allPosts = usePosts()
@@ -357,7 +357,7 @@ export default function BlogList() {
 Create a `layout.tsx` file inside your collection folder to wrap all routes (list and posts) with a custom layout. This is useful for adding collection-specific navigation, sidebars, or headers:
 
 ```tsx title="docs/docs/[blog]/layout.tsx"
-import { usePosts } from 'boltdocs/client'
+import { usePosts } from '@bdocs/theme-neutral'
 
 export default function BlogLayout({ children }: { children: React.ReactNode }) {
   const posts = usePosts()

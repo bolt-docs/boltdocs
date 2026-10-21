@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { useTheme } from 'boltdocs/client'
+import { useTheme } from '@bdocs/runtime'
 import type { MermaidPluginOptions } from '../shared/types'
 import { defaultTheme } from '../shared/theme-default'
 

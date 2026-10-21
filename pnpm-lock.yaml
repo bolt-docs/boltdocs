@@ -134,6 +134,12 @@ importers:
       '@bdocs/plugin-tailwindcss':
         specifier: workspace:*
         version: link:../packages/plugin-tailwindcss
+      '@bdocs/runtime':
+        specifier: workspace:*
+        version: link:../packages/runtime
+      '@bdocs/theme-neutral':
+        specifier: workspace:*
+        version: link:../packages/theme-neutral
       '@bdocs/unist-utils':
         specifier: workspace:*
         version: link:../packages/unist-utils
@@ -228,9 +234,6 @@ importers:
       '@bdocs/parser':
         specifier: workspace:*
         version: link:../parser
-      '@bdocs/primitives':
-        specifier: workspace:*
-        version: link:../primitives
       '@bdocs/processor-satteri':
         specifier: workspace:*
         version: link:../processor-satteri
@@ -240,9 +243,6 @@ importers:
       '@bdocs/ssg':
         specifier: workspace:*
         version: link:../plugin-ssg
-      '@bdocs/theme-neutral':
-        specifier: workspace:*
-        version: link:../theme-neutral
       '@bdocs/unist-utils':
         specifier: workspace:*
         version: link:../unist-utils
@@ -451,6 +451,9 @@ importers:
       '@bdocs/dui':
         specifier: ^0.6.0
         version: 0.6.0
+      '@bdocs/runtime':
+        specifier: workspace:*
+        version: link:../runtime
       clsx:
         specifier: 2.1.1
         version: 2.1.1
@@ -509,6 +512,12 @@ importers:
 
   packages/plugin-git-meta:
     dependencies:
+      '@bdocs/primitives':
+        specifier: workspace:*
+        version: link:../primitives
+      '@bdocs/runtime':
+        specifier: workspace:*
+        version: link:../runtime
       zod:
         specifier: ^4.3.6
         version: 4.3.6
@@ -650,6 +659,12 @@ importers:
       '@bdocs/dui':
         specifier: ^0.6.0
         version: 0.6.0
+      '@bdocs/primitives':
+        specifier: workspace:*
+        version: link:../primitives
+      '@bdocs/runtime':
+        specifier: workspace:*
+        version: link:../runtime
       mermaid:
         specifier: ^11.12.3
         version: 11.14.0

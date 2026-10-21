@@ -105,12 +105,14 @@ import { Zap, Settings } from 'lucide-react'
 
 ## Componente Icon
 
-También puedes usar el componente `<Icon>` directamente en MDX si está disponible a través de tu plugin o layout:
+También puedes renderizar un icono directamente en MDX con el componente
+`IconRenderer`. Recibe el nombre del icono, lo busca en el registro —el set
+por defecto de Lucide más lo que añada `docs/icons.tsx`— y lo renderiza:
 
 ```mdx
-import { Icon } from 'boltdocs/client'
+import { IconRenderer } from '@bdocs/theme-neutral'
 
-<Icon name="BookOpen" className="w-5 h-5" />
+<IconRenderer icon="BookOpen" className="w-5 h-5" />
 ```
 
 ---

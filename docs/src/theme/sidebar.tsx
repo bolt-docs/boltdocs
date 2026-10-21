@@ -1,12 +1,12 @@
-import { Sidebar as SidebarPrimitive } from 'boltdocs/primitives'
+import { Sidebar as SidebarPrimitive } from '@bdocs/theme-neutral/composition'
 import { X } from 'lucide-react'
-import type { ComponentRoute } from 'boltdocs/client'
-import type { BoltdocsConfig } from 'boltdocs/client'
+import type { ComponentRoute } from '@bdocs/theme-neutral'
+import type { BoltdocsConfig } from '@bdocs/theme-neutral'
 import { I18nSelector } from '@/theme/i18n-selector'
-import { cn, useNavbar } from 'boltdocs/client'
-import { useUI } from 'boltdocs/client'
+import { cn, useNavbar } from '@bdocs/theme-neutral'
+import { useUI } from '@bdocs/theme-neutral'
 import { Button } from '@/theme/button'
-import { resolvePublicAssetUrl } from 'boltdocs/client'
+import { resolvePublicAssetUrl } from '@bdocs/theme-neutral'
 
 interface SidebarProps {
   routes: ComponentRoute[]

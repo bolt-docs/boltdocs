@@ -8,6 +8,7 @@ import fs from 'node:fs'
 import crypto from 'node:crypto'
 import { ssrDirnamePolyfillPlugin } from './plugins/ssr-dirname-polyfill'
 import { createBoltdocsAliases, normalizeAliases } from './aliases'
+import { resolveThemePackage, resolveThemeSourceEntry } from './theme-package'
 export { generateEntryCode } from './plugin/entry'
 
 // In-memory cache keyed by `${root}::${mode}::${optionsHash}` where
@@ -20,46 +21,24 @@ export { generateEntryCode } from './plugin/entry'
 const _createViteConfigCache = new Map<string, { config: InlineConfig }>()
 
 /**
- * Resolves the monorepo `packages/core/src` source root for the core package.
+ * Resolves the theme package's source entry for the dev server.
  *
- * The dev server maps `boltdocs/client` to the checked-out source via the
- * `virtual:boltdocs-client.mjs` module, but the remaining framework sub-path
- * entries (`boltdocs/primitives`, `boltdocs/mdx`, `boltdocs/client/router`)
- * fall through to the built `dist` bundle. The dist bundle carries its own
- * isolated copies of the client contexts (e.g. `ui-context`), so primitives
- * that consume `useUI()` no longer share state with the `UIProvider` mounted
- * by `BoltdocsShell` — causing the mobile sidebar to silently never open.
+ * The engine imports the theme by package name, so the bundler resolves it
+ * the way it resolves any other dependency. In a monorepo that means the
+ * theme's built `dist` — which is fine in production, and wrong in
+ * development: an edit to a theme component would need a rebuild of the
+ * package before the dev server picked it up.
  *
- * To keep every framework client module on a single shared instance during
- * development, alias all the sub-path entries to this source root when it
- * exists. In a published install (no `src/`) this returns `undefined` and the
- * aliases below are skipped, falling back to the normal dist resolution.
+ * When the installed package ships a `src/`, the alias points at it instead.
+ * A published install has no `src/`, and the built entry is the right one.
  */
-function resolveClientSourceRoot(): string | undefined {
-  let currentDir = __dirname
-  while (currentDir && currentDir !== path.parse(currentDir).root) {
-    const pkgPath = path.join(currentDir, 'package.json')
-    if (fs.existsSync(pkgPath)) {
-      let name = ''
-      try {
-        name = JSON.parse(fs.readFileSync(pkgPath, 'utf-8')).name || ''
-      } catch {
-        name = ''
-      }
-      if (name === 'boltdocs') {
-        const src = path.join(currentDir, 'src/client')
-        return fs.existsSync(src) ? src : undefined
-      }
-    }
-    currentDir = path.dirname(currentDir)
-  }
-  return undefined
+function resolveThemeSource(
+  themePackage: string,
+  root: string,
+): { package: string; file: string } | undefined {
+  const file = resolveThemeSourceEntry(themePackage, root)
+  return file ? { package: themePackage, file } : undefined
 }
-
-// Computed once at module load: the monorepo client source root, or undefined
-// in a published install. Used to keep every framework sub-path entry on the
-// same module instance as `boltdocs/client` during development.
-const _clientSourceRoot = resolveClientSourceRoot()
 
 function resolvePublicDir(
   root: string,
@@ -463,7 +442,7 @@ export async function createViteConfig(
       alias: [
         ...createBoltdocsAliases({
           root,
-          clientSourceRoot: _clientSourceRoot,
+          themeSource: resolveThemeSource(resolveThemePackage(config), root),
           aliases: [
             ...normalizeAliases(config.aliases),
             ...normalizeAliases(userViteConfig.resolve?.alias),

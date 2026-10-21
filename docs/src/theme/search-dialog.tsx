@@ -1,9 +1,9 @@
 import { Search, X } from 'lucide-react'
-import { useSearch } from 'boltdocs/client'
-import { SearchDialog as SearchDialogPrimitive } from 'boltdocs/primitives'
-import { Navbar } from 'boltdocs/primitives'
-import { ErrorBoundary } from 'boltdocs/client'
-import type { ComponentRoute } from 'boltdocs/client'
+import { useSearch } from '@bdocs/theme-neutral'
+import { SearchDialog as SearchDialogPrimitive } from '@bdocs/theme-neutral/composition'
+import { Navbar } from '@bdocs/theme-neutral/composition'
+import { ErrorBoundary } from '@bdocs/theme-neutral'
+import type { ComponentRoute } from '@bdocs/theme-neutral'
 
 interface SearchResult {
   id: string

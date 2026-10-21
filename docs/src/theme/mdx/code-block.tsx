@@ -1,4 +1,4 @@
-import { Tooltip } from 'boltdocs/primitives'
+import { Tooltip } from '@bdocs/theme-neutral/composition'
 import { Button } from '@/theme/button'
 import { Copy, Check, ThumbsUp, ThumbsDown } from 'lucide-react'
 import {
@@ -6,8 +6,8 @@ import {
   useCopyButton,
   useExpandable,
   useCodeBlockFeedback,
-} from 'boltdocs/client'
-import * as CodePrimitive from 'boltdocs/primitives'
+} from '@bdocs/theme-neutral'
+import * as CodePrimitive from '@bdocs/theme-neutral/composition'
 
 export interface CodeBlockProps {
   children?: React.ReactNode

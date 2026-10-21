@@ -4,6 +4,7 @@ import type { BoltdocsPluginOptions } from './types'
 import path from 'node:path'
 import fs from 'node:fs'
 import { getExternalFileRoutes } from '../routes/pages-external'
+import { resolveThemePackage } from '../theme-package'
 
 /**
  * Check whether Sätteri produced a complete set of compiled page artifacts.
@@ -73,6 +74,10 @@ export function generateEntryCode(
   config?: BoltdocsConfig,
 ): string {
   const projectRoot = path.resolve(options.root || process.cwd())
+
+  // The theme package the site asked for. The engine imports the route
+  // surface from it and never from itself.
+  const themePackage = resolveThemePackage(config)
 
   // Auto-import index.css if it exists
   const cssPath = path.resolve(projectRoot, 'index.css')
@@ -251,8 +256,16 @@ export function generateEntryCode(
   }
 
   const lines = [
-    `import { ViteReactSSG, createRoutes, RouteRenderer, matchRouteBranch, matchRouteBranchWithParams, resolveRouteBranch } from 'boltdocs/client'`,
+    // The route surface comes from the theme package: the engine does not
+    // depend on a theme, and the theme is the one that knows what a route
+    // element looks like. The site installs it and names it in `themePackage`.
+    `import { createRoutes, RouteRenderer, matchRouteBranch, matchRouteBranchWithParams, resolveRouteBranch } from '${themePackage}'`,
     `export { RouteRenderer, matchRouteBranch, matchRouteBranchWithParams, resolveRouteBranch }`,
+    // Registers the generated per-site artifacts with the runtime before the
+    // app renders. See the module for why this is a side effect at the top of
+    // the entry rather than something a component does.
+    `import 'virtual:boltdocs-site-bridge'`,
+    `import { ViteReactSSG } from 'boltdocs/ssg'`,
     `import _routes from 'virtual:boltdocs-routes.ts'`,
     `import _collections from 'virtual:boltdocs-collections.ts'`,
     `import _config from 'virtual:boltdocs-config.ts'`,

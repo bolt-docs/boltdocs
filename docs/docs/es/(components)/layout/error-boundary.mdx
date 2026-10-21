@@ -14,7 +14,7 @@ Usando la primitiva `ErrorBoundary` y sus props, puedes pasar un componente alte
 ```tsx
 // docs/components/CustomErrorWrapper.tsx
 import React from 'react'
-import { ErrorBoundary, ErrorBoundaryFallback } from 'boltdocs/primitives'
+import { ErrorBoundary, ErrorBoundaryFallback } from '@bdocs/theme-neutral/composition'
 
 // 1. Define un panel de errores interactivo personalizado
 function MyCustomFallback({ error, resetErrorBoundary }: { error: Error; resetErrorBoundary: () => void }) {

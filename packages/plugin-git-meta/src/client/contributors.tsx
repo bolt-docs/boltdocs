@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react'
-import { cn } from 'boltdocs/client'
-import type { RouteContributor } from 'boltdocs/client'
+import { cn } from '@bdocs/primitives'
+import type { RouteContributor } from '@bdocs/runtime'
 
 export interface ContributorsClassNames {
   root?: string

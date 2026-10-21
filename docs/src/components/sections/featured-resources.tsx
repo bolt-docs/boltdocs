@@ -1,10 +1,10 @@
-import { Link } from 'boltdocs/primitives'
+import { Link } from '@bdocs/theme-neutral/composition'
 import {
   resolvePublicAssetUrl,
   useConfig,
   useRecentPosts,
-} from 'boltdocs/client'
-import { formatDate } from 'boltdocs/client'
+} from '@bdocs/theme-neutral'
+import { formatDate } from '@bdocs/theme-neutral'
 import { ArrowRight } from 'lucide-react'
 import { useTranslations } from '@/i18n/index'
 import { Section } from '@/theme/section'

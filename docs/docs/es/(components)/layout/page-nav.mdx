@@ -15,8 +15,8 @@ Usando los subcomponentes primitivos de `PageNav`, puedes componer un pie de pá
 // docs/components/CustomFooterNav.tsx
 import React from 'react'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
-import { PageNav } from 'boltdocs/primitives'
-import { usePageNav } from 'boltdocs/client'
+import { PageNav } from '@bdocs/theme-neutral/composition'
+import { usePageNav } from '@bdocs/theme-neutral'
 
 export default function CustomFooterNav() {
   const { prevPage, nextPage } = usePageNav()

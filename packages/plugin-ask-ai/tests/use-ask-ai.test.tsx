@@ -5,7 +5,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 const useConfigMock = vi.hoisted(() => vi.fn())
 
-vi.mock('boltdocs/client', () => ({
+vi.mock('@bdocs/runtime', () => ({
   useConfig: useConfigMock,
 }))
 

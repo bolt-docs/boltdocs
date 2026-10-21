@@ -14,8 +14,8 @@ Using the `SearchDialog` primitive subcomponents, you can compose a custom searc
 ```tsx
 // docs/components/CustomSearchDialog.tsx
 import React from 'react'
-import { SearchDialog } from 'boltdocs/primitives'
-import { useSearch } from 'boltdocs/client'
+import { SearchDialog } from '@bdocs/theme-neutral/composition'
+import { useSearch } from '@bdocs/theme-neutral'
 
 export default function CustomSearchDialog() {
   const { isOpen, close, query, setQuery, results } = useSearch()

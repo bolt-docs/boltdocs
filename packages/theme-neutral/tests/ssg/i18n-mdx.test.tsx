@@ -1,9 +1,9 @@
 import type * as React from 'react'
 import { describe, it, expect, vi } from 'vitest'
-import { createRoutes } from '../../src/client/ssg/create-routes'
-import { matchRouteBranch, resolveRouteBranch } from '../../src/client/router'
-import { EagerMdxElement } from '../../src/client/ssg/mdx-elements'
-import type { ComponentRoute } from '../../src/client/types'
+import { createRoutes } from '../../src/ssg/create-routes'
+import { matchRouteBranch, resolveRouteBranch } from '@bdocs/runtime'
+import { EagerMdxElement } from '../../src/ssg/mdx-elements'
+import type { ComponentRoute } from '@bdocs/runtime'
 
 vi.mock('virtual:boltdocs-search', () => ({ default: async () => [] }))
 vi.mock('virtual:boltdocs-icons', () => ({ default: {} }))

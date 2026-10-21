@@ -1,8 +1,8 @@
 import {
   Callout as CalloutPrimitive,
   type CalloutVariant,
-} from 'boltdocs/primitives'
-import { cn } from 'boltdocs/client'
+} from '@bdocs/theme-neutral/composition'
+import { cn } from '@bdocs/theme-neutral'
 import { Info, Lightbulb, AlertTriangle, AlertOctagon } from 'lucide-react'
 
 export interface CalloutProps extends React.HTMLAttributes<HTMLDivElement> {

@@ -14,8 +14,8 @@ Usando la primitiva `Navbar` y sus subcomponentes, puedes diseñar una barra de 
 ```tsx
 // docs/components/CustomNavbar.tsx
 import React, { useState } from 'react'
-import { Navbar } from 'boltdocs/primitives'
-import { useNavbar, useTheme, useSearch } from 'boltdocs/client'
+import { Navbar } from '@bdocs/theme-neutral/composition'
+import { useNavbar, useTheme, useSearch } from '@bdocs/theme-neutral'
 
 export default function CustomNavbar() {
   const { links, theme, logo, title } = useNavbar()
@@ -87,17 +87,8 @@ A continuación se muestra una implementación de referencia completa y lista pa
 ```tsx
 // docs/components/ProductionNavbar.tsx
 import React, { useState } from 'react'
-import { Navbar, Menu, Button } from 'boltdocs/primitives'
-import {
-  useNavbar,
-  useTheme,
-  useSearch,
-  useVersion,
-  useI18n,
-  useUI,
-  useLocation,
-  useLocalizedTo
-} from 'boltdocs/client'
+import { Navbar, Menu, Button } from '@bdocs/theme-neutral/composition'
+import { useNavbar, useTheme, useSearch, useVersion, useI18n, useUI, useLocation, useLocalizedTo } from '@bdocs/theme-neutral'
 import { Menu as MenuIcon, X, ChevronDown, Languages } from 'lucide-react'
 
 export default function ProductionNavbar() {

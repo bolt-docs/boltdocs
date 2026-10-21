@@ -1,5 +1,5 @@
 import { useRef, type ElementType } from 'react'
-import { cn } from 'boltdocs/client'
+import { cn } from '@bdocs/theme-neutral'
 
 export interface CardProps
   extends Omit<React.HTMLAttributes<HTMLDivElement>, 'title'> {

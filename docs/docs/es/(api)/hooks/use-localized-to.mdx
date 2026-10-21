@@ -38,7 +38,7 @@ A continuación se muestra un componente de selector de enlaces personalizado qu
 
 ```tsx
 import React from 'react'
-import { useLocalizedTo } from 'boltdocs/client'
+import { useLocalizedTo } from '@bdocs/theme-neutral'
 
 export default function LocalLink({ href, label }: { href: string; label: string }) {
   const targetPath = useLocalizedTo(href)

@@ -1,5 +1,5 @@
-import { cn } from 'boltdocs/client'
-import { formatDeterministicDate } from 'boltdocs/client'
+import { cn } from '@bdocs/primitives'
+import { formatDeterministicDate } from '@bdocs/runtime'
 
 export interface LastUpdatedProps {
   /** Date sourced from git (or any explicit route date). */

@@ -1,5 +1,5 @@
 import type { ComponentType } from 'react'
-import { usePost, useMergedComponents } from 'boltdocs/client'
+import { usePost, useMergedComponents } from '@bdocs/theme-neutral'
 
 export default function BlogPost({
   MDXComponent,

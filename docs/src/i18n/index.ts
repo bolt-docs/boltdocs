@@ -1,4 +1,4 @@
-import { useI18n } from 'boltdocs/client'
+import { useI18n } from '@bdocs/theme-neutral'
 import { translations } from '@/i18n/translations'
 
 export function useTranslations() {

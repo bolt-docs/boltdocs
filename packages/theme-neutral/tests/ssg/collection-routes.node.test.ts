@@ -1,14 +1,15 @@
 import { describe, expect, it, vi } from 'vitest'
 import type { ComponentRoute } from '@bdocs/runtime'
 
-// DocsLayout imports `virtual:boltdocs-layout`, which only resolves inside a
-// Vite build. buildCollectionRoutes only renders it inside route elements, so
-// a stub keeps this pure route-shape test importable.
-vi.mock('../../src/client/app/docs-layout', () => ({
-  DocsLayout: ({ children }: { children: React.ReactNode }) => children,
+// The theme's default layout pulls in the site's `layout.tsx` through a
+// virtual module, which only resolves inside a Vite build.
+// buildCollectionRoutes only renders it inside route elements, so a stub keeps
+// this pure route-shape test importable.
+vi.mock('../../src/components/docs-layout-default', () => ({
+  default: ({ children }: { children: React.ReactNode }) => children,
 }))
 
-import { buildCollectionRoutes } from '../../src/client/ssg/create-routes.collection.tsx'
+import { buildCollectionRoutes } from '../../src/ssg/create-routes.collection.tsx'
 
 function makePost(
   path: string,

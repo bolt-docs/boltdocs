@@ -1,4 +1,4 @@
-import { useI18n } from 'boltdocs/client'
+import { useI18n } from '@bdocs/theme-neutral'
 
 const locale = {
   en: '@2026 BoltDocs. All rights reserved.',

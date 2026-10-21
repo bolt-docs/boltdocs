@@ -597,7 +597,10 @@ export function boltdocsPlugin(
               // cold starts.
               'lucide-react',
             ],
-            exclude: ['boltdocs', 'boltdocs/client'],
+            // The engine and the theme are resolved by the framework's own
+            // aliases; pre-bundling them would produce a second copy of the
+            // contexts.
+            exclude: ['boltdocs', '@bdocs/theme-neutral'],
           },
           resolve: {
             alias: isSsr

@@ -1,5 +1,5 @@
-import { OnThisPage as OTP } from 'boltdocs/primitives'
-import { useRoutes, type OnThisPageProps } from 'boltdocs/client'
+import { OnThisPage as OTP } from '@bdocs/theme-neutral/composition'
+import { useRoutes, type OnThisPageProps } from '@bdocs/theme-neutral'
 import { Pencil, CircleHelp, TextAlignStart } from 'lucide-react'
 import { CopyMarkdown } from '@/theme/copy-markdown'
 

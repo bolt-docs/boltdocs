@@ -1,5 +1,5 @@
 import { cn } from '../../utils/cn'
-import { formatDeterministicDate } from '../../utils/date'
+import { formatDeterministicDate } from '@bdocs/runtime'
 import { PluginSlot } from '../plugin-slot'
 
 interface LastUpdatedProps {

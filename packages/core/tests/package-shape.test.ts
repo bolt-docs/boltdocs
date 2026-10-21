@@ -27,7 +27,28 @@ describe('packages/core/package.json shape', () => {
     expect(deps.dependencies['react-aria-components']).toBeUndefined()
     expect(deps.devDependencies['react-aria-components']).toBeUndefined()
     expect(deps.peerDependencies['@bdocs/primitives']).toBeUndefined()
-    expect(deps.dependencies['@bdocs/primitives']).toBe('workspace:*')
+  })
+
+  it('does not depend on the UI layer', () => {
+    // The core is the engine. The theme and the primitives are packages a
+    // site opts into, and the engine does not depend on either: it resolves
+    // the theme by name from the project and imports the route surface from
+    // it.
+    //
+    // A dependency here would put the whole UI layer back into every
+    // install, and it would also make the engine's own tests depend on a
+    // theme.
+    expect(deps.dependencies['@bdocs/theme-neutral']).toBeUndefined()
+    expect(deps.dependencies['@bdocs/primitives']).toBeUndefined()
+  })
+
+  it('keeps the runtime for its types only', () => {
+    // The `Boltdocs` global namespace has one home, and it is the runtime:
+    // TypeScript rejects two `declare global` blocks for the same namespace.
+    // The engine re-exports those types, so the package has to be resolvable
+    // for a consumer's type-check — but nothing is imported from it at
+    // runtime.
+    expect(deps.dependencies['@bdocs/runtime']).toBe('workspace:*')
   })
 
   it('does not declare ANY optional peer (peerDependenciesMeta is absent)', () => {
@@ -110,11 +131,25 @@ describe('packages/core/package.json shape', () => {
     expect(deps.dependencies['@bdocs/dui']).toBeDefined()
   })
 
-  it('exposes the client subpath exports', () => {
+  it('exposes no client subpath exports', () => {
+    // 4.0 — the engine no longer publishes the UI layer. `./client`,
+    // `./primitives` and `./mdx` were the three names the theme and the
+    // runtime were reachable under; they are the packages' own entry points
+    // now, and the engine publishes only what it owns.
     const exp = (pkg as unknown as { exports: Record<string, unknown> }).exports
-    expect(exp['./client']).toBeDefined()
-    expect(exp['./primitives']).toBeDefined()
-    expect(exp['./mdx']).toBeDefined()
+    expect(exp['./client']).toBeUndefined()
+    expect(exp['./primitives']).toBeUndefined()
+    expect(exp['./mdx']).toBeUndefined()
+    expect(exp['./client/router']).toBeUndefined()
+  })
+
+  it('exposes the engine subpath exports', () => {
+    const exp = (pkg as unknown as { exports: Record<string, unknown> }).exports
     expect(exp['./server']).toBeDefined()
+    expect(exp['./ssg']).toBeDefined()
+    expect(exp['./node/cache']).toBeDefined()
+    expect(exp['./node/highlight']).toBeDefined()
+    expect(exp['./node/search']).toBeDefined()
+    expect(exp['./theme/reset.css']).toBeDefined()
   })
 })

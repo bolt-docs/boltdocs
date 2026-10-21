@@ -1,10 +1,10 @@
 import { useEffect } from 'react'
-import { useTabs as useTabsHook } from 'boltdocs/client'
-import { Tabs as T } from 'boltdocs/primitives'
-import { Link } from 'boltdocs/primitives'
-import type { BoltdocsTab, ComponentRoute } from 'boltdocs/client'
-import { getTranslated } from 'boltdocs/client'
-import { useRoutes } from 'boltdocs/client'
+import { useTabs as useTabsHook } from '@bdocs/theme-neutral'
+import { Tabs as T } from '@bdocs/theme-neutral/composition'
+import { Link } from '@bdocs/theme-neutral/composition'
+import type { BoltdocsTab, ComponentRoute } from '@bdocs/theme-neutral'
+import { getTranslated } from '@bdocs/theme-neutral'
+import { useRoutes } from '@bdocs/theme-neutral'
 
 export function DocsTabs({
   tabs,

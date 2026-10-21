@@ -5,9 +5,9 @@ import {
   useConfig,
   useI18n,
   usePosts,
-} from 'boltdocs/client'
-import type { CollectionPost } from 'boltdocs/client'
-import { Link } from 'boltdocs/primitives'
+} from '@bdocs/theme-neutral'
+import type { CollectionPost } from '@bdocs/theme-neutral'
+import { Link } from '@bdocs/theme-neutral/composition'
 import { Button } from '@/theme/button'
 import { Section } from '@/theme'
 import { ArrowLeft, ArrowRight, ArrowUpRight } from 'lucide-react'

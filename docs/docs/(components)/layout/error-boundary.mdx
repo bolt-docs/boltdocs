@@ -14,7 +14,7 @@ Using the `ErrorBoundary` primitive and its props, you can pass a custom fallbac
 ```tsx
 // docs/components/CustomErrorWrapper.tsx
 import React from 'react'
-import { ErrorBoundary, ErrorBoundaryFallback } from 'boltdocs/primitives'
+import { ErrorBoundary, ErrorBoundaryFallback } from '@bdocs/theme-neutral/composition'
 
 // 1. Define a custom interactive error panel
 function MyCustomFallback({ error, resetErrorBoundary }: { error: Error; resetErrorBoundary: () => void }) {

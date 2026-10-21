@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { useConfig } from 'boltdocs/client'
+import { useConfig } from '@bdocs/runtime'
 import type { ClientController } from './abort'
 import { createClientController } from './abort'
 

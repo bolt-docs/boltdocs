@@ -95,7 +95,40 @@ The migration is executed as an ordered sequence. Each slice is developed on a f
 | 4 | Primitives extraction | `@bdocs/primitives` | Done |
 | 5 | Runtime boundary | `@bdocs/runtime` | Done |
 | 6 | Incremental MDX and SSG | core, Sätteri, SSG | Partially delivered in 3.4.0 |
-| 7 | Migration tooling and 4.0 release gate | repository-wide | Planned |
+| 7 | Migration tooling and 4.0 release gate | repository-wide | In progress |
+
+### Status of the core cleanse
+
+The engine no longer ships the UI layer. That is the change with the widest
+blast radius, and it is what the 4.0 package graph exists for.
+
+- The client code — the route builder, the shell, the MDX page, the collection
+  routes — moved from `packages/core/src/client` to
+  `packages/theme-neutral/src/ssg`. It depends on the theme's components, so
+  the engine could not keep it without depending on a theme.
+- `boltdocs` no longer exports `./client`, `./client/router`, `./primitives`
+  or `./mdx`. What it publishes now is the engine: the CLI, the config, the
+  route generation, the plugin lifecycle, the SSG bridge (`./ssg`) and the
+  engine stylesheet (`./theme/reset.css`).
+- The theme is resolved from the project, not from the engine. `themePackage`
+  in the configuration names the package (default `@bdocs/theme-neutral`), and
+  the engine imports the route surface from it. A second theme is a second
+  package, not a fork of the engine.
+- The generated per-site artifacts — icons, page source, search index, the
+  site's layout, plugin slots, the site's MDX components — reach the theme
+  through the runtime's site bridge, which the engine fills from a generated
+  `virtual:boltdocs-site-bridge` module. The theme still mentions no virtual
+  module, which is what lets it be installed on its own.
+- The `boltdocs migrate` command splits a `boltdocs/client` import by name:
+  every symbol goes to the package that exports it. It rewrites the import
+  examples in Markdown too, and it adds the theme to the manifest.
+- The documentation site, the `create-boltdocs` templates and the official
+  plugins were migrated with that command — 116 files in the docs site alone.
+
+What is still open: the core keeps a type-only dependency on
+`@bdocs/runtime` for the `Boltdocs` global namespace, and the engine's
+`reset.css` still uses Tailwind's `@apply`. Both are recorded rather than
+asserted.
 
 ### Status of slice 3
 
@@ -309,6 +342,10 @@ Reuse safe client and server artifacts, avoid unnecessary SSR imports, and rende
 ### Slice 6 — Migration tooling
 
 Add codemods, compatibility adapters, migration diagnostics, and an upgrade guide for package imports, plugin APIs, configuration, and removed private entry points.
+
+**Status: in progress.** `boltdocs migrate` reports and fixes the 3.x patterns: `react-aria-components` → `@bdocs/primitives`, the theme subpaths, the SEO and search plugins, the manifest, and — with the core cleanse — the client's import paths, split by the package that owns each name. The upgrade guide is [the 4.0 upgrade page](https://boltdocs.com/docs/guides/operations/upgrading-4-0), in English and Spanish.
+
+What is still open: a site that writes its own `boltdocs-entry.tsx` has to import `virtual:boltdocs-site-bridge` itself now that the engine no longer registers the site artifacts as a side effect of importing the client. The generated entry does it; a hand-written one has to.
 
 ## Branch and review workflow
 

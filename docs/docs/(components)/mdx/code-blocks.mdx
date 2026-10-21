@@ -120,11 +120,11 @@ export default {
 
 ### 2. Building a Custom Code Block Component
 
-Use the `useCodeBlock` hook from `'boltdocs/client'` to access the resolved code block state and wrap the output in the layout primitives imported from `'boltdocs/primitives'`:
+Use the `useCodeBlock` hook from `'@bdocs/theme-neutral'` to access the resolved code block state and wrap the output in the layout primitives imported from `'@bdocs/theme-neutral/composition'`:
 
 ```tsx title="src/components/CustomCodeBlock.tsx"
-import { useCodeBlock } from 'boltdocs/client'
-import { CodeBlock } from 'boltdocs/primitives'
+import { useCodeBlock } from '@bdocs/theme-neutral'
+import { CodeBlock } from '@bdocs/theme-neutral/composition'
 
 export function CustomCodeBlock(props) {
   const {

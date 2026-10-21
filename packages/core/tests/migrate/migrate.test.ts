@@ -137,7 +137,13 @@ describe('migrate', () => {
     fs.writeFileSync(
       path.join(root, 'package.json'),
       JSON.stringify(
-        { name: 'site', dependencies: { boltdocs: '^4.0.0' } },
+        {
+          name: 'site',
+          dependencies: {
+            boltdocs: '^4.0.0',
+            '@bdocs/theme-neutral': '^1.0.0',
+          },
+        },
         null,
         2,
       ),
@@ -149,16 +155,26 @@ describe('migrate', () => {
     expect(migrate({ root, apply: false }).findings).toEqual([])
   })
 
-  it('orders blocking findings first', () => {
+  it('orders blocking findings first inside each file', () => {
     const root = fixture()
-    const severities = migrate({ root, apply: false }).findings.map(
-      (f) => f.severity,
-    )
-    const firstInfo = severities.indexOf('info')
-    expect(
-      firstInfo === -1 ||
-        severities.slice(firstInfo).every((s) => s === 'info'),
-    ).toBe(true)
+    const findings = migrate({ root, apply: false }).findings
+
+    // The report is grouped by file — one file, one block, fix it and move on
+    // — and ordered by severity inside each block. The order is therefore
+    // per file, not global: a file whose only finding is a warning can come
+    // before a file with a blocking one.
+    const byFile = new Map<string, string[]>()
+    for (const finding of findings) {
+      const list = byFile.get(finding.file) ?? []
+      list.push(finding.severity)
+      byFile.set(finding.file, list)
+    }
+
+    const rank: Record<string, number> = { blocking: 0, warning: 1, info: 2 }
+    for (const [, severities] of byFile) {
+      const ranks = severities.map((severity) => rank[severity])
+      expect(ranks).toEqual([...ranks].sort((a, b) => a - b))
+    }
   })
 
   it('applies fixes against the root it was given, not the cwd', () => {

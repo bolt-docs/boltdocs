@@ -1,5 +1,5 @@
-import { useI18n } from 'boltdocs/client'
-import { Card, Cards } from 'boltdocs/mdx'
+import { useI18n } from '@bdocs/theme-neutral'
+import { Card, Cards } from '@bdocs/theme-neutral'
 import { Route, FileText, Settings, Sparkles } from '../icons'
 
 const features = [
