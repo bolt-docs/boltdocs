@@ -21,6 +21,11 @@ import fs from 'node:fs'
 import path from 'node:path'
 import process from 'node:process'
 import { fileURLToPath } from 'node:url'
+import {
+  currentMachine,
+  isComparable,
+  type MachineFingerprint,
+} from './machine'
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
@@ -43,6 +48,8 @@ interface ProfileSummary {
 interface BaselineRecord {
   createdAt: string
   medianTotalMs: number
+  /** The machine the baseline was measured on. */
+  machine?: MachineFingerprint
 }
 
 function numberArg(args: string[], flag: string, fallback: number): number {
@@ -99,6 +106,7 @@ function loadBaseline(file: string): BaselineRecord | null {
     return {
       createdAt: typeof record.createdAt === 'string' ? record.createdAt : '',
       medianTotalMs: record.medianTotalMs,
+      machine: record.machine as MachineFingerprint | undefined,
     }
   } catch {
     return null
@@ -110,6 +118,7 @@ function writeBaseline(file: string, medianMs: number): void {
   const record: BaselineRecord = {
     createdAt: new Date().toISOString(),
     medianTotalMs: Math.round(medianMs),
+    machine: currentMachine(),
   }
   fs.writeFileSync(file, `${JSON.stringify(record, null, 2)}\n`)
 }
@@ -136,6 +145,7 @@ function main(): void {
   const currentMs = Math.round(current.medianTotalMs ?? 0)
 
   const baseline = opts.write ? null : loadBaseline(opts.baselinePath)
+  const machine = currentMachine()
 
   if (!baseline) {
     writeBaseline(opts.baselinePath, currentMs)
@@ -145,6 +155,25 @@ function main(): void {
     console.log(`       Saved to ${opts.baselinePath}`)
     console.log(
       '       Review and commit it; subsequent runs enforce the gate.',
+    )
+    return
+  }
+
+  // A comparison across machines measures the machines. The gate says so
+  // rather than failing on hardware, and a reader knows the number it printed
+  // is not the number the baseline holds.
+  if (!isComparable(baseline.machine, machine)) {
+    console.log(`[gate] Current cold build  : ${fmt(currentMs)}`)
+    console.log(
+      `[gate] Baseline (committed): ${fmt(baseline.medianTotalMs)} — measured on ` +
+        `${baseline.machine?.cpu ?? 'an unknown machine'} ` +
+        `(${baseline.machine?.cores ?? '?'} cores), this run is on ` +
+        `${machine.cpu} (${machine.cores} cores)`,
+    )
+    console.log(
+      '\n[gate] NOT COMPARED: the baseline was measured on a different machine.\n' +
+        '       Write a baseline for this machine with `--write`, or run the gate\n' +
+        '       on the machine the baseline came from.',
     )
     return
   }

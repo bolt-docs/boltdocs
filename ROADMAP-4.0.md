@@ -125,11 +125,42 @@ blast radius, and it is what the 4.0 package graph exists for.
 - The documentation site, the `create-boltdocs` templates and the official
   plugins were migrated with that command — 116 files in the docs site alone.
 
-What is still open: the engine's `reset.css` still uses Tailwind's `@apply`
-(17 rules), and the engine still ships that stylesheet at all. Both are
-recorded rather than asserted: the rewrite is plain CSS against the theme's
-tokens, and the only thing that could prove it did not move a pixel is the
-visual harness, which has never been run.
+What is still open: the engine's `reset.css` is still the engine's, and it
+still reads the host's token variables — `--color-bg-main`,
+`--color-text-body` — rather than a theme's own vocabulary. The tokens are a
+contract, and a site that does not publish them gets the same fallbacks it got
+before, but the contract is with the *host*, not with `@bdocs/theme-neutral`.
+Moving the file into the theme would mean rewriting it against that theme's
+tokens, which is a change of values and not of framework — and the only thing
+that could measure it is the visual harness, which has never been run.
+
+### The engine's stylesheet no longer assumes a CSS framework
+
+`reset.css` was written with Tailwind's `@apply`: seventeen rules that only
+compile inside a Tailwind build. That is the one CSS framework assumption
+SPEC §2.1 forbids, and it was in the engine.
+
+The declarations are the same ones Tailwind compiled to, written out by hand —
+`py-2` is half a rem, `text-[12px]` is twelve pixels, `!bg-primary-500/10` is
+`color-mix(in oklab, var(--color-primary-500) 10%, transparent)`. A test now
+fails if a framework directive or a hardcoded colour comes back.
+
+The evidence that nothing moved: the documentation site's compiled stylesheet
+is **byte-identical** before and after the rewrite — 180,067 bytes either way.
+No browser was involved; the comparison is between the two builds' CSS.
+
+### The benchmark gate has a baseline, and knows what it measured
+
+`scripts/benchmarks/baseline.json` did not exist, so the gate in SPEC §2.2
+could never run: it wrote a baseline on the first invocation and had nothing to
+compare against afterwards. There is one now, and it records the machine it
+came from — the CPU model, the core count, the memory and the Node version.
+
+A build time is a property of the machine as much as of the code, so the gate
+compares only what it can compare. On the machine the baseline came from it
+enforces the threshold; on another machine it says the comparison is not
+meaningful and exits without a verdict, rather than failing a build on
+hardware.
 
 ### The engine depends on nothing but the contracts
 

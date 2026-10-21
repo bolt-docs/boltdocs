@@ -1,4 +1,18 @@
 /*
+ * The engine's stylesheet.
+ *
+ * Plain CSS. It used to be written with Tailwind's `@apply`, which made the
+ * engine's stylesheet depend on a CSS framework it does not otherwise know
+ * about — the one assumption SPEC §2.1 forbids. The declarations are the same
+ * ones Tailwind compiled to, written out by hand: `py-2` is half a rem,
+ * `text-[12px]` is twelve pixels, and the colours are the host's own token
+ * variables.
+ *
+ * The tokens are the contract. `--color-bg-main`, `--color-text-body` and the
+ * rest are what a host theme publishes; a site that does not define them gets
+ * the same fallbacks it got before. A theme that prefers its own vocabulary
+ * overrides these.
+ *
  * Layer order is declared up front so the accessibility baseline below can
  * live in a layer ordered after `utilities`. Cascade layers beat specificity,
  * so a rule in `base` cannot outrank the `outline-none` utility no matter how
@@ -25,7 +39,10 @@
   }
 
   body {
-    @apply bg-main text-body antialiased;
+    background-color: var(--color-bg-main);
+    color: var(--color-text-body);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
     font-family: var(--font-sans);
     line-height: 1.7;
   }
@@ -209,7 +226,9 @@
   pre.shiki,
   pre[data-highlighted="true"],
   pre[data-highlighted="false"] {
-    @apply py-2 text-[12px] leading-[1.6];
+    padding-block: 0.5rem;
+    font-size: 12px;
+    line-height: 1.6;
     overflow-x: auto;
     -webkit-overflow-scrolling: touch;
   }
@@ -220,17 +239,21 @@
      theme written against 3.x rendering identically. */
   pre[data-code-state="fallback"],
   pre.shiki-fallback {
-    @apply bg-subtle text-muted;
+    background-color: var(--color-bg-subtle);
+    color: var(--color-text-muted);
   }
 
   pre[data-code-state="fallback"] code,
   pre.shiki-fallback code {
-    @apply text-[12px];
+    font-size: 12px;
   }
 
   pre.shiki span.line,
   pre[data-highlighted] span.line {
-    @apply relative block px-4 py-0;
+    position: relative;
+    display: block;
+    padding-inline: 1rem;
+    padding-block: 0;
     white-space: pre;
     min-height: 1.6em;
   }
@@ -238,12 +261,14 @@
   /* Word Wrap (engine-agnostic `data-word-wrap` + Shiki alias) */
   pre.shiki-word-wrap,
   pre[data-word-wrap="true"] {
-    @apply whitespace-pre-wrap break-words;
+    white-space: pre-wrap;
+    overflow-wrap: break-word;
   }
 
   pre.shiki-word-wrap span.line,
   pre[data-word-wrap="true"] span.line {
-    @apply block w-full;
+    display: block;
+    width: 100%;
   }
 
   /* Line Numbers (engine-agnostic `data-line-numbers` + Shiki alias) */
@@ -255,7 +280,7 @@
 
   pre.shiki-line-numbers .line,
   pre[data-line-numbers="true"] .line {
-    @apply !pl-12;
+    padding-left: 3rem !important;
   }
 
   /* Hide the last line if it is completely empty to avoid extra numbers or spacing */
@@ -274,8 +299,17 @@
   pre[data-line-numbers="true"] .line::before {
     counter-increment: step;
     content: counter(step);
-    @apply absolute left-0 top-0 inline-flex w-10 justify-end pr-3;
-    @apply text-[11px] text-muted opacity-30 select-none;
+    position: absolute;
+    left: 0;
+    top: 0;
+    display: inline-flex;
+    width: 2.5rem;
+    justify-content: flex-end;
+    padding-right: 0.75rem;
+    font-size: 11px;
+    color: var(--color-text-muted);
+    opacity: 0.3;
+    user-select: none;
     line-height: inherit;
     /* Sync with line text */
   }
@@ -283,35 +317,71 @@
   /* Line highlight (engine-agnostic `data-line-highlight` + Shiki alias) */
   pre [data-line-highlight],
   pre span.shiki-line-highlight {
-    @apply relative z-0 inline-block w-full;
+    position: relative;
+    z-index: 0;
+    display: inline-block;
+    width: 100%;
+  }
 
-    &::after {
-      content: "";
-      @apply absolute top-0 left-0 -z-10 h-full w-full border-l-2 border-primary-500 !bg-primary-500/10 opacity-100;
-    }
+  pre [data-line-highlight]::after,
+  pre span.shiki-line-highlight::after {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    z-index: -10;
+    height: 100%;
+    width: 100%;
+    border-left-width: 2px;
+    border-color: var(--color-primary-500);
+    background-color: color-mix(
+      in oklab,
+      var(--color-primary-500) 10%,
+      transparent
+    ) !important;
+    opacity: 1;
   }
 
   /* Shiki Notation Diff */
   pre.has-diff span.line.diff {
-    @apply relative inline-block w-full;
+    position: relative;
+    display: inline-block;
+    width: 100%;
   }
 
   pre.has-diff span.line.diff.add {
-    @apply !bg-emerald-500/10 dark:!bg-emerald-500/10;
+    /* The dark variant was the same value as the light one, so one rule covers
+       both. */
+    background-color: color-mix(
+      in oklab,
+      var(--color-emerald-500) 10%,
+      transparent
+    ) !important;
+  }
 
-    &::before {
-      content: "+";
-      @apply absolute left-2 text-emerald-500 font-bold;
-    }
+  pre.has-diff span.line.diff.add::before {
+    content: "+";
+    position: absolute;
+    left: 0.5rem;
+    color: var(--color-emerald-500);
+    font-weight: 700;
   }
 
   pre.has-diff span.line.diff.remove {
-    @apply !bg-danger-500/10 opacity-70;
+    background-color: color-mix(
+      in oklab,
+      var(--color-danger-500) 10%,
+      transparent
+    ) !important;
+    opacity: 0.7;
+  }
 
-    &::before {
-      content: "-";
-      @apply absolute left-2 text-danger-500 font-bold;
-    }
+  pre.has-diff span.line.diff.remove::before {
+    content: "-";
+    position: absolute;
+    left: 0.5rem;
+    color: var(--color-danger-500);
+    font-weight: 700;
   }
 }
 

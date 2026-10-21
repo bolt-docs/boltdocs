@@ -63,3 +63,34 @@ describe('reset.css: engine-agnostic code-block styling', () => {
     expect(engineOnly).toEqual([])
   })
 })
+
+/**
+ * The engine's stylesheet must not depend on a CSS framework.
+ *
+ * SPEC §2.1: "The core ships zero CSS framework assumptions." The stylesheet
+ * used to be written with Tailwind's `@apply`, which is exactly such an
+ * assumption — a rule that only compiles inside a Tailwind build.
+ *
+ * The declarations are the same ones Tailwind compiled to, so nothing moves a
+ * pixel; the framework is what went away.
+ */
+describe('reset.css: no CSS framework', () => {
+  // The comments talk about the directives by name, so the check reads the
+  // declarations only.
+  const declarations = css.replace(/\/\*[\s\S]*?\*\//g, '')
+
+  it('uses no framework directives', () => {
+    // `@apply` is Tailwind's. `@theme` and `@tailwind` are its entry points.
+    // A `@media`, a `@supports` and a `@layer` are plain CSS and stay.
+    expect(declarations).not.toMatch(/@apply\b/)
+    expect(declarations).not.toMatch(/@theme\b/)
+    expect(declarations).not.toMatch(/@tailwind\b/)
+  })
+
+  it('resolves colours through the host tokens, not through hardcoded values', () => {
+    // The tokens are the contract with the host theme. A hardcoded colour
+    // would be a second source of truth for a value the theme owns.
+    const hexColours = declarations.match(/#[0-9a-f]{3,8}\b/gi) ?? []
+    expect(hexColours).toEqual([])
+  })
+})
