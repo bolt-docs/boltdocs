@@ -3,20 +3,18 @@ import type { HastVisitorContext } from 'satteri'
 import type { Element, Properties } from 'hast'
 import { toHtml } from 'hast-util-to-html'
 import { parseMetaString, type ParsedMeta } from '@bdocs/unist-utils'
-
-/** Engine-agnostic code theme (single name or light/dark pair). */
-export type CodeTheme = string | { light: string; dark: string }
+import type { CodeHighlightConfig, CodeTheme } from '@bdocs/contracts'
 
 /**
  * Engine-agnostic highlighting config consumed by the satteri pipeline and
  * passed to the core's highlighter registry. `engine` accepts a registry id
  * (`'shiki'` by default), an adapter instance, or an adapter factory.
+ *
+ * The type belongs to `@bdocs/contracts`: it is the framework's public
+ * configuration shape, and a second declaration here was free to drift from
+ * the one the engine hands over.
  */
-export interface CodeHighlightConfig {
-  engine?: string | object | ((api: CodeHighlightConfig) => unknown)
-  theme?: CodeTheme
-  options?: Record<string, unknown>
-}
+export type { CodeHighlightConfig, CodeTheme }
 
 /** Legacy alias kept for backward compatibility. */
 export type ShikiCodeTheme = CodeTheme
@@ -93,7 +91,7 @@ function countLines(element: Element | undefined): number {
       return String(typed.value ?? '').split('\n').length
     const childrenOf = (node as { children?: unknown[] })?.children
     if (!Array.isArray(childrenOf)) return 0
-    return childrenOf.reduce((sum, child) => sum + textLines(child), 0)
+    return childrenOf.reduce<number>((sum, child) => sum + textLines(child), 0)
   }
 
   // One line per element child (the engine's own line wrappers), falling back
@@ -316,10 +314,13 @@ export function satteriRehypeCodeHighlightPlugin(config?: CodeHighlightConfig) {
             preElement = cached.preElement
             html = cached.html
           } else {
-            const hast = highlighter.codeToHast(codeText, options)
+            const hast = highlighter.codeToHast(codeText, options) as {
+              type?: string
+              children?: Element[]
+            }
             preElement =
               hast.type === 'root'
-                ? (hast.children[0] as Element)
+                ? (hast.children?.[0] as Element)
                 : (hast as Element)
 
             // Single grammar pass: serialize the already-computed HAST instead

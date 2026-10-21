@@ -6,6 +6,12 @@ import { useExpandable } from './use-expandable'
 import { useCodeBlockFeedback } from './use-code-block-feedback'
 import * as CodePrimitive from '../composition/code-block'
 import { Tooltip } from '../composition/tooltip'
+import {
+  cleanHighlightedHtml,
+  isHighlighted as stateIsHighlighted,
+  readCodeBlockState,
+  readLineCount,
+} from './code-state'
 
 export interface CodeBlockProps {
   children?: React.ReactNode

@@ -233,8 +233,14 @@ export interface SearchIndexEntry {
  * an engine that builds its own index shape (an Algolia record, a Pagefind page)
  * returns `undefined` here and owns its output — declaring that it handles
  * indexing rather than silently leaving `search.json` half-built.
+ *
+ * A type alias rather than an interface, and that is not a style choice: an
+ * interface has no implicit index signature, so it is not assignable to
+ * `Record<string, unknown>`, which is what the hook chain threads its
+ * parameters through. The type alias is, and the hook's own signature — a
+ * generic over the params it receives — accepts it.
  */
-export interface SearchIndexParams {
+export type SearchIndexParams = {
   documents: SearchDocument[]
   routes: RouteMeta[]
   /**

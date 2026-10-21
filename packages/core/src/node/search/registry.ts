@@ -89,7 +89,9 @@ export function hasSearchGenerator(): boolean {
  * and "a search plugin over zero routes" must not be indistinguishable, because
  * only the first is worth warning about.
  */
-export function buildSearchData(routes: RouteMeta[]): SearchDocument[] | null {
+export function buildSearchData(
+  routes: RouteMeta[],
+): SearchResultDocument[] | null {
   // An engine's entries replace the generated ones rather than merging with
   // them: merging would publish records from two different index shapes into one
   // asset, and a client reading `display` or `url` would find some entries

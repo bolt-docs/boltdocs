@@ -5,7 +5,10 @@ import crypto from 'node:crypto'
 import os from 'node:os'
 import type { IPluginLifecycleManager } from '@bdocs/contracts'
 import type { ProcessorConfig } from './processor-config'
-import { normalizeCodeHighlightConfig } from '@bdocs/unist-utils'
+import {
+  normalizeCodeHighlightConfig,
+  normalizeCodeTheme,
+} from '@bdocs/unist-utils'
 import {
   createSatteriProcessorPlugin,
   isPrecompileStarted,
@@ -271,13 +274,13 @@ function writeManifest(
 /** Hash of everything that can change the compiled output aside from file content. */
 function computeGlobalKey(
   compiler: MdxCompiler,
-  config: ProcessorConfig,
+  config: ProcessorConfig | undefined,
   hasTransformSource: boolean,
 ): string {
   // Include everything that can change the compiled output aside from file
   // content. We can't hash plugin functions, so we use names/versions when
   // available and fall back to counts.
-  const pluginSignatures = (config.plugins || [])
+  const pluginSignatures = (config?.plugins || [])
     .map((plugin) => {
       const source = plugin as typeof plugin & { options?: unknown }
       const options = source.options ? JSON.stringify(source.options) : ''
@@ -289,7 +292,7 @@ function computeGlobalKey(
     (compiler as MdxCompiler & { signature?: string }).signature ?? 'compiler',
   )
   const highlighting = normalizeCodeHighlightConfig(
-    config.theme?.codeHighlighting as CodeHighlightConfig | undefined,
+    config?.theme?.codeHighlighting,
   )
   const parts = [
     `v${MANIFEST_VERSION}`,
@@ -297,12 +300,13 @@ function computeGlobalKey(
     MDX_PLUGIN_VERSION,
     process.env.NODE_ENV || 'development',
     hasTransformSource ? 'with-transformSource' : 'no-transformSource',
-    config.base || '',
-    config.siteUrl || '',
+    config?.base || '',
+    config?.siteUrl || '',
     pluginSignatures,
     highlightSignature({
       engine: highlighting?.engine ?? 'shiki',
-      theme: highlighting?.theme ?? (config.theme?.codeTheme as CodeTheme),
+      theme:
+        highlighting?.theme ?? normalizeCodeTheme(config?.theme?.codeTheme),
       options: highlighting?.options,
     }),
   ]
@@ -451,11 +455,12 @@ function filePathToExportName(filePath: string): string {
 function highlightSignature(config?: CodeHighlightConfig): string {
   const engine =
     typeof config?.engine === 'string' ? config.engine : 'engine:custom'
+  const normalizedTheme = normalizeCodeTheme(config?.theme)
   const theme =
-    typeof config?.theme === 'string'
-      ? config.theme
-      : config?.theme
-        ? `${config.theme.light}|${config.theme.dark}`
+    typeof normalizedTheme === 'string'
+      ? normalizedTheme
+      : normalizedTheme
+        ? `${normalizedTheme.light}|${normalizedTheme.dark}`
         : 'default'
   let options = ''
   try {
@@ -472,11 +477,11 @@ export function createSatteriMdxPlugin(
   pluginOptions?: { docsDir?: string },
 ): Plugin {
   const highlighting = normalizeCodeHighlightConfig(
-    config?.theme?.codeHighlighting as CodeHighlightConfig | undefined,
+    config?.theme?.codeHighlighting,
   )
   const codeHighlighting: CodeHighlightConfig = {
     engine: highlighting?.engine ?? 'shiki',
-    theme: highlighting?.theme ?? (config?.theme?.codeTheme as CodeTheme),
+    theme: highlighting?.theme ?? normalizeCodeTheme(config?.theme?.codeTheme),
     options: highlighting?.options,
   }
   const processor = createSatteriProcessorPlugin(codeHighlighting)

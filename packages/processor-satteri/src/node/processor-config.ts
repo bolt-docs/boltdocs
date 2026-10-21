@@ -1,3 +1,5 @@
+import type { CodeHighlightConfig, CodeTheme } from '@bdocs/contracts'
+
 /**
  * The slice of a plugin the processor reads.
  *
@@ -24,20 +26,14 @@ export interface ProcessorPlugin {
  * entire contract here would make the two incompatible over a difference
  * neither of them cares about. A narrow, structural type says what the
  * processor actually reads.
- *
- * The two theme fields are `unknown` because the highlighting configuration
- * has three shapes in this repository — the contract's, the pipeline's and the
- * processor's own — and they disagree about how wide a theme may be. The
- * processor normalizes what it is given, which is what
- * `normalizeCodeHighlightConfig` is for; the type of the raw value is not the
- * processor's to decide.
  */
 export interface ProcessorConfig {
   base?: string
   siteUrl?: string
   theme?: {
-    codeTheme?: unknown
-    codeHighlighting?: unknown
+    codeTheme?: CodeTheme
+    /** The string shorthand (`'shiki'`) is part of the configuration. */
+    codeHighlighting?: CodeHighlightConfig | string
   }
   plugins?: ProcessorPlugin[]
 }

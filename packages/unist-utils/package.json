@@ -42,6 +42,7 @@
   "author": "Jesus Alcala",
   "license": "MIT",
   "dependencies": {
+    "@bdocs/contracts": "workspace:*",
     "unist-util-visit": "^5.0.0"
   },
   "devDependencies": {

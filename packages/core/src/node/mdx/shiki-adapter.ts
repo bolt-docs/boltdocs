@@ -1,6 +1,7 @@
 import { error as logError } from '@bdocs/dui'
 import {
   normalizeCodeHighlightConfig,
+  normalizeCodeTheme,
   parseMetaString,
   type ParsedMeta,
 } from '@bdocs/unist-utils'
@@ -19,6 +20,7 @@ import type {
   CodeHighlightConfig,
   CodeTheme,
 } from '../../shared/types'
+import type { CodeTheme as NormalizedCodeTheme } from '@bdocs/unist-utils'
 import type { CodeToHastOptions } from '@shikijs/core'
 import { DEFAULT_THEMES, DEFAULTS, SHIKI_CLASSES } from './constants'
 
@@ -47,7 +49,8 @@ export class ShikiAdapter implements CodeHighlighterAdapter {
   name = 'shiki'
   version = '3.23.0'
 
-  private theme: CodeTheme
+  /** The theme Shiki understands: a name, or a light/dark pair. */
+  private theme: NormalizedCodeTheme
   private regexEngine: RegexEngineKind
   /** Shiki `colorReplacements`: theme token colors overridden per site. */
   private colorReplacements: Record<string, string> | null = null
@@ -56,12 +59,15 @@ export class ShikiAdapter implements CodeHighlighterAdapter {
     const highlighting = normalizeCodeHighlightConfig(
       config?.theme?.codeHighlighting,
     )
-    this.theme = (highlighting?.theme ??
-      config?.theme?.codeTheme ??
-      ({
+    // The public theme type is open — an engine with its own colour model
+    // cannot be enumerated — and Shiki is not that engine. A theme Shiki
+    // cannot use is dropped here, and the default takes its place, rather
+    // than reaching Shiki as a pair of `undefined`s.
+    this.theme = normalizeCodeTheme(highlighting?.theme) ??
+      normalizeCodeTheme(config?.theme?.codeTheme) ?? {
         light: DEFAULT_THEMES.LIGHT,
         dark: DEFAULT_THEMES.DARK,
-      } satisfies CodeTheme)) as CodeTheme
+      }
     this.regexEngine =
       String(highlighting?.options?.regexEngine) === 'oniguruma'
         ? 'oniguruma'

@@ -1228,6 +1228,9 @@ importers:
 
   packages/unist-utils:
     dependencies:
+      '@bdocs/contracts':
+        specifier: workspace:*
+        version: link:../contracts
       unist-util-visit:
         specifier: ^5.0.0
         version: 5.1.0
