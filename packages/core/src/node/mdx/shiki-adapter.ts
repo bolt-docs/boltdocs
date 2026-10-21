@@ -69,9 +69,9 @@ export class ShikiAdapter implements CodeHighlighterAdapter {
         dark: DEFAULT_THEMES.DARK,
       }
     this.regexEngine =
-      String(highlighting?.options?.regexEngine) === 'oniguruma'
-        ? 'oniguruma'
-        : 'javascript'
+      String(highlighting?.options?.regexEngine) === 'javascript'
+        ? 'javascript'
+        : 'oniguruma'
     const replacements = highlighting?.options?.colorReplacements
     if (
       replacements &&
@@ -270,10 +270,10 @@ export function getShikiAdapter(config?: ShikiAdapterConfig): ShikiAdapter {
 
 /**
  * Starts building the highlighter in the background. The highlighter build
- * is ~2.5s of synchronous CPU (TextMate grammar parsing), so it must never
- * run on the critical path of Vite's server setup. The underlying
- * `highlight()` promise is module-level, so callers that need the
- * highlighter later share the same in-flight build.
+ * is a few hundred milliseconds of synchronous CPU (TextMate grammar
+ * parsing), so it must never run on the critical path of Vite's server setup.
+ * The underlying `highlight()` promise is module-level, so callers that need
+ * the highlighter later share the same in-flight build.
  */
 export function prewarmShiki(config?: ShikiAdapterConfig): void {
   getShikiAdapter(config).prewarm()

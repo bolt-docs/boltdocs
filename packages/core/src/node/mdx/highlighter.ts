@@ -17,9 +17,10 @@ import type { ShikiTheme } from '../../shared/types'
 export type RegexEngineKind = 'oniguruma' | 'javascript'
 
 /**
- * Per-engine highlighter promises. `createHighlighterCore` is heavy (~2.5s of
- * synchronous CPU) so each engine variant builds at most once per process and
- * every caller sharing the same `regexEngine` reuses the same in-flight build.
+ * Per-engine highlighter promises. `createHighlighterCore` is a few hundred
+ * milliseconds of synchronous CPU so each engine variant builds at most once
+ * per process and every caller sharing the same `regexEngine` reuses the same
+ * in-flight build.
  */
 const highlighterPromises = new Map<RegexEngineKind, Promise<HighlighterCore>>()
 
@@ -49,7 +50,16 @@ async function getJsEngineImpl(): Promise<RegexEngine> {
 }
 
 async function resolveEngine(kind: RegexEngineKind): Promise<RegexEngine> {
-  return kind === 'javascript' ? getJsEngineImpl() : getOnigEngineImpl()
+  if (kind === 'javascript') return getJsEngineImpl()
+  try {
+    return await getOnigEngineImpl()
+  } catch {
+    // The Oniguruma engine ships its binary inlined; a host that cannot
+    // instantiate it still needs a highlighter. The JavaScript engine is pure
+    // JavaScript and always available, so it is the fallback rather than a
+    // failure.
+    return getJsEngineImpl()
+  }
 }
 
 /**
@@ -62,17 +72,31 @@ async function resolveEngine(kind: RegexEngineKind): Promise<RegexEngine> {
  * Sätteri compile worker and the pool contends for the same cores. See the note
  * on `COMMON_LANGS` in `@bdocs/grammars` before changing it.
  *
- * The JavaScript regex engine is the default: it swaps the Oniguruma WASM
- * engine for a native JS implementation, cutting startup from ~2.5s to
- * ~200ms — a difference multiplied by every worker in the Sätteri compile
- * pool. Pass `regexEngine: 'oniguruma'` for bit-exact TextMate regex
- * fidelity on exotic grammars.
+ * The Oniguruma WASM engine is the default. **That choice was measured, not
+ * assumed.** Highlighting is the bulk of an MDX compile — on the
+ * documentation site's 971 code blocks it is 96% of the compile — so the
+ * per-block cost decides the build, not the startup:
+ *
+ * | | Oniguruma | JavaScript |
+ * | --- | --- | --- |
+ * | Engine startup | 548 ms | 357 ms |
+ * | One code block | 2.8 ms | 9.9 ms |
+ * | 654 unique blocks | 1.8 s | 6.4 s |
+ *
+ * Oniguruma costs 191 ms more at startup and returns 4.6 s on the blocks —
+ * a site's build pays the startup once and the blocks once per language, so
+ * the blocks decide. It is also the faithful engine: the JavaScript one
+ * degrades unsupported grammar regexes to approximate matches, while Oniguruma
+ * matches TextMate exactly.
+ *
+ * Pass `regexEngine: 'javascript'` to trade that fidelity for the smaller
+ * startup — the right choice for a site with few code blocks.
  */
 const highlight = async (options?: {
   regexEngine?: RegexEngineKind
 }): Promise<HighlighterCore> => {
   const kind: RegexEngineKind =
-    options?.regexEngine === 'oniguruma' ? 'oniguruma' : 'javascript'
+    options?.regexEngine === 'javascript' ? 'javascript' : 'oniguruma'
   const cached = highlighterPromises.get(kind)
   if (cached) return cached
 
@@ -113,6 +137,10 @@ const pendingLangLoads = new Map<string, Promise<boolean>>()
  */
 export async function ensureLanguage(
   rawLang: string | undefined,
+  // The same default as `highlight()`. The two used to disagree — this one
+  // asked for Oniguruma while the highlighter was built with the JavaScript
+  // engine — so a caller that loaded a language lazily ended up building a
+  // *second* highlighter with a different engine.
   regexEngine: RegexEngineKind = 'oniguruma',
 ): Promise<boolean> {
   const lang = normalizeLanguage(rawLang)

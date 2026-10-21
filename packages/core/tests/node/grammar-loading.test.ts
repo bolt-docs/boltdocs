@@ -103,3 +103,53 @@ describe('grammar loading after the @bdocs/grammars split', () => {
     expect(await ensureLanguage('not-a-language', 'javascript')).toBe(false)
   })
 })
+
+/**
+ * The regex engine's default.
+ *
+ * The default was JavaScript on the strength of its startup cost — the comment
+ * claimed it cut the engine build from ~2.5 s to ~200 ms. Measured on this
+ * machine that claim no longer held: the engines cost 548 ms and 357 ms to
+ * build, and highlighting — not startup — is what a build pays for, over 971
+ * code blocks on the documentation site.
+ *
+ * The two functions that pick the engine have to agree. They used to disagree
+ * — `highlight()` chose JavaScript while `ensureLanguage()` chose Oniguruma —
+ * so a caller that loaded a grammar lazily ended up building a *second*
+ * highlighter with the other engine. The test below pins both halves.
+ */
+describe('the default regex engine', () => {
+  it('builds the same engine as the one ensureLanguage asks for', async () => {
+    // Both default to Oniguruma. If they drift apart, `ensureLanguage` builds
+    // a second highlighter with the other engine and every lazy language
+    // pays for it twice.
+    const h = await highlight()
+    const before = h.getLoadedLanguages().length
+
+    expect(await ensureLanguage('ruby')).toBe(true)
+
+    // The language landed in the *same* highlighter — a second one would
+    // leave this instance untouched. (`ruby` pulls in its own siblings, so
+    // the count jumps by more than one; what matters is that it moved.)
+    expect(h.getLoadedLanguages().length).toBeGreaterThan(before)
+    expect(h.getLoadedLanguages()).toContain('ruby')
+  }, 30_000)
+
+  it('is a different engine than an explicitly requested javascript one', async () => {
+    // The default and `javascript` are separate highlighters, each with its
+    // own grammar set. If the default ever became JavaScript, the two would
+    // collapse into one and the default would silently change engine.
+    const byDefault = await highlight()
+    const byRequest = await highlight({ regexEngine: 'javascript' })
+
+    expect(await ensureLanguage('ruby')).toBe(true)
+
+    expect(byDefault.getLoadedLanguages()).toContain('ruby')
+    expect(byRequest.getLoadedLanguages()).not.toContain('ruby')
+  }, 30_000)
+
+  it('still honours an explicit javascript engine', async () => {
+    const h = await highlight({ regexEngine: 'javascript' })
+    expect(h.getLoadedLanguages()).toContain('ts')
+  }, 30_000)
+})
