@@ -237,9 +237,6 @@ importers:
       '@bdocs/processor-satteri':
         specifier: workspace:*
         version: link:../processor-satteri
-      '@bdocs/runtime':
-        specifier: workspace:*
-        version: link:../runtime
       '@bdocs/ssg':
         specifier: workspace:*
         version: link:../plugin-ssg
@@ -291,12 +288,6 @@ importers:
       picomatch:
         specifier: ^4.0.4
         version: 4.0.4
-      react:
-        specifier: 19.2.5
-        version: 19.2.5
-      react-dom:
-        specifier: 19.2.5
-        version: 19.2.5(react@19.2.5)
       react-helmet-async:
         specifier: ^2.0.1
         version: 2.0.5(react@19.2.5)
@@ -352,6 +343,12 @@ importers:
       jsdom:
         specifier: ^24.1.0
         version: 24.1.3
+      react:
+        specifier: 19.2.5
+        version: 19.2.5
+      react-dom:
+        specifier: 19.2.5
+        version: 19.2.5(react@19.2.5)
       react-router-dom:
         specifier: ^7.0.0
         version: 7.14.1(react-dom@19.2.5(react@19.2.5))(react@19.2.5)
@@ -512,6 +509,9 @@ importers:
 
   packages/plugin-git-meta:
     dependencies:
+      '@bdocs/contracts':
+        specifier: workspace:*
+        version: link:../contracts
       '@bdocs/primitives':
         specifier: workspace:*
         version: link:../primitives
@@ -591,6 +591,9 @@ importers:
 
   packages/plugin-llms-text:
     dependencies:
+      '@bdocs/contracts':
+        specifier: workspace:*
+        version: link:../contracts
       zod:
         specifier: ^4.3.6
         version: 4.3.6
@@ -717,6 +720,9 @@ importers:
 
   packages/plugin-rss:
     dependencies:
+      '@bdocs/contracts':
+        specifier: workspace:*
+        version: link:../contracts
       zod:
         specifier: ^4.3.6
         version: 4.3.6

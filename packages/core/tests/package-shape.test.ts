@@ -12,9 +12,14 @@ type PkgShape = {
 const deps = pkg as unknown as PkgShape
 
 describe('packages/core/package.json shape', () => {
-  it('declares React as a peer dependency', () => {
-    expect(deps.peerDependencies.react).toBe('19.0.0')
-    expect(deps.peerDependencies['react-dom']).toBe('19.0.0')
+  it('declares no peer dependency at all', () => {
+    // The engine renders nothing. React, React DOM and the router are the
+    // browser half's business, and the browser half is a package the site
+    // installs. Leaving them declared here made every site install React "for
+    // the engine", which is how a package that ships no React code ends up
+    // requiring React.
+    expect(deps.peerDependencies).toEqual({})
+    expect(deps.peerDependenciesMeta).toBeUndefined()
   })
 
   it('does not require react-aria-components from the host app', () => {
@@ -42,19 +47,21 @@ describe('packages/core/package.json shape', () => {
     expect(deps.dependencies['@bdocs/primitives']).toBeUndefined()
   })
 
-  it('keeps the runtime for its types only', () => {
-    // The `Boltdocs` global namespace has one home, and it is the runtime:
-    // TypeScript rejects two `declare global` blocks for the same namespace.
-    // The engine re-exports those types, so the package has to be resolvable
-    // for a consumer's type-check — but nothing is imported from it at
-    // runtime.
-    expect(deps.dependencies['@bdocs/runtime']).toBe('workspace:*')
+  it('depends on nothing from the browser half', () => {
+    // The `Boltdocs` global namespace has one home, and it is the contract
+    // layer: TypeScript rejects two `declare global` blocks for the same
+    // namespace, and both the engine and the browser need it. The engine used
+    // to reach the runtime for those types, which was a dependency on the
+    // browser half that compiled, shipped nothing, and was therefore invisible.
+    expect(deps.dependencies['@bdocs/runtime']).toBeUndefined()
+    expect(deps.dependencies['@bdocs/contracts']).toBe('workspace:*')
   })
 
   it('does not declare ANY optional peer (peerDependenciesMeta is absent)', () => {
-    // The contract for 3.2.0 is "all peers are required". Any future PR that
-    // adds `peerDependenciesMeta.<x>.optional: true` slips past the per-peer
-    // check above; this fail-fast assertion catches it.
+    // The contract for 3.2.0 was "all peers are required". The engine declares
+    // no peers at all now, and this fail-fast assertion keeps it that way: a
+    // future PR that adds `peerDependenciesMeta.<x>.optional: true` slips past
+    // the per-peer check above without it.
     expect(deps.peerDependenciesMeta).toBeUndefined()
   })
 

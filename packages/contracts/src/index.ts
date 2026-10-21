@@ -1,5 +1,6 @@
 export * from './build'
 export * from './config'
+export * from './global'
 export * from './highlighting'
 export * from './plugins'
 export * from './routes'

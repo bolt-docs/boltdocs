@@ -1,6 +1,7 @@
 import path from 'node:path'
 import { createPlugin, type BoltdocsPlugin } from 'boltdocs'
-import type { BoltdocsConfig, RouteMeta } from 'boltdocs'
+import type { BoltdocsConfig } from 'boltdocs'
+import type { RouteMeta } from '@bdocs/contracts'
 import { RssPluginOptionsSchema, type RssPluginOptions } from './feed-schema'
 import {
   generateRssXml,

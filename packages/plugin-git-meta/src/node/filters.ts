@@ -1,5 +1,5 @@
 import path from 'node:path'
-import type { RouteMeta } from 'boltdocs'
+import type { RouteMeta } from '@bdocs/contracts'
 
 export interface PathFilterOptions {
   /** Only process routes whose path starts with one of these prefixes. */

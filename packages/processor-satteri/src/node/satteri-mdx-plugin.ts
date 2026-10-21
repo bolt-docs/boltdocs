@@ -3,8 +3,8 @@ import fs from 'node:fs'
 import path from 'node:path'
 import crypto from 'node:crypto'
 import os from 'node:os'
-import type { BoltdocsConfig } from 'boltdocs'
 import type { IPluginLifecycleManager } from '@bdocs/contracts'
+import type { ProcessorConfig } from './processor-config'
 import { normalizeCodeHighlightConfig } from '@bdocs/unist-utils'
 import {
   createSatteriProcessorPlugin,
@@ -271,7 +271,7 @@ function writeManifest(
 /** Hash of everything that can change the compiled output aside from file content. */
 function computeGlobalKey(
   compiler: MdxCompiler,
-  config: BoltdocsConfig,
+  config: ProcessorConfig,
   hasTransformSource: boolean,
 ): string {
   // Include everything that can change the compiled output aside from file
@@ -289,7 +289,7 @@ function computeGlobalKey(
     (compiler as MdxCompiler & { signature?: string }).signature ?? 'compiler',
   )
   const highlighting = normalizeCodeHighlightConfig(
-    config.theme?.codeHighlighting,
+    config.theme?.codeHighlighting as CodeHighlightConfig | undefined,
   )
   const parts = [
     `v${MANIFEST_VERSION}`,
@@ -302,7 +302,7 @@ function computeGlobalKey(
     pluginSignatures,
     highlightSignature({
       engine: highlighting?.engine ?? 'shiki',
-      theme: highlighting?.theme ?? config.theme?.codeTheme,
+      theme: highlighting?.theme ?? (config.theme?.codeTheme as CodeTheme),
       options: highlighting?.options,
     }),
   ]
@@ -467,16 +467,16 @@ function highlightSignature(config?: CodeHighlightConfig): string {
 }
 
 export function createSatteriMdxPlugin(
-  config: BoltdocsConfig | undefined,
+  config: ProcessorConfig | undefined,
   getLifecycle: () => IPluginLifecycleManager | undefined,
   pluginOptions?: { docsDir?: string },
 ): Plugin {
   const highlighting = normalizeCodeHighlightConfig(
-    config?.theme?.codeHighlighting,
+    config?.theme?.codeHighlighting as CodeHighlightConfig | undefined,
   )
   const codeHighlighting: CodeHighlightConfig = {
     engine: highlighting?.engine ?? 'shiki',
-    theme: highlighting?.theme ?? config?.theme?.codeTheme,
+    theme: highlighting?.theme ?? (config?.theme?.codeTheme as CodeTheme),
     options: highlighting?.options,
   }
   const processor = createSatteriProcessorPlugin(codeHighlighting)

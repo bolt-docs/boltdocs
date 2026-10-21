@@ -7,11 +7,11 @@
  * plugin interfaces describe the build, not the browser, so the core's own
  * `BoltdocsConfig` extends this one rather than the other way round.
  *
- * The `Boltdocs` global namespace is declared here and only here. It is
- * augmented by generated route types that a site's `boltdocs-env.d.ts` picks up
- * through `boltdocs/client`, and TypeScript rejects two `declare global` blocks
- * with the same namespace — so it has to have exactly one home, and the package
- * a consumer imports the augmented types through is the natural place for it.
+ * The `Boltdocs` global namespace is declared in the contract layer too. It
+ * used to be declared here, and that put the engine in a type-only dependency
+ * on the browser half: the engine re-exported these types, so it needed the
+ * runtime installed to type-check, and the dependency was invisible because a
+ * type-only import ships nothing.
  */
 import type { ComponentType } from 'react'
 import type { BoltdocsConfigContract } from '@bdocs/contracts'
@@ -19,79 +19,36 @@ import type { BoltdocsConfigContract } from '@bdocs/contracts'
 export type {
   BadgeValue,
   BoltdocsCollectionsConfig,
+  BoltdocsLocale,
+  BoltdocsRoutePath,
+  BoltdocsRoutePathWithFallback,
   BoltdocsSocialLink,
   BoltdocsThemeConfig,
   BoltdocsI18nConfig,
+  BoltdocsTypes,
+  BoltdocsVersion,
   BoltdocsVersionsConfig,
   BoltdocsViewTransitionsConfig,
+  ExternalRouteReference,
   RedirectConfig,
   RedirectStatus,
   RouteContributor,
+  TransformMdxComponents,
+  UnpackMdxComponents,
 } from '@bdocs/contracts'
 
 /**
- * Global namespace for Boltdocs types that can be augmented by generated code.
- * This allows for strictly typed locales and versions based on the project
- * configuration.
+ * The MDX component map, with React's component type.
+ *
+ * The contract layer owns the shape and cannot name React, so the browser
+ * half instantiates its generic with the component type it actually renders.
  */
-declare global {
-  namespace Boltdocs {
-    interface Types {}
-
-    /**
-     * Marker interface augmented by generated code to provide strict route path
-     * typing. When no types have been generated (e.g. before the first dev
-     * server start), `keyof` is `never` and the route-path aliases fall back to
-     * `string`.
-     */
-    interface RoutePaths {}
-  }
-}
-
-export type BoltdocsTypes = Boltdocs.Types
-
-export type BoltdocsRoutePath = keyof Boltdocs.RoutePaths
-
-export type ExternalRouteReference =
-  | `/${string}`
-  | `#${string}`
-  | `?${string}`
-  | `site:/${string}`
-  | `site:${string}`
-  | `http://${string}`
-  | `https://${string}`
-  | `//${string}`
-
-export type BoltdocsRoutePathWithFallback =
-  | BoltdocsRoutePath
-  | ExternalRouteReference
-  | string
-
-export type BoltdocsLocale = Boltdocs.Types extends { Locale: infer L }
-  ? L
-  : string
-
-export type BoltdocsVersion = Boltdocs.Types extends { Version: infer V }
-  ? V
-  : string
-
-export type UnpackMdxComponents<T> = T extends { default: infer D } ? D : T
-
-export type TransformMdxComponents<T> = {
-  [K in keyof T as K extends `Frontmatter_${string}` ? never : K]: T[K]
-} & {
-  Frontmatter: {
-    [K in keyof T as K extends `Frontmatter_${infer Name}` ? Name : never]: T[K]
-  }
-}
-
-export type BoltdocsMdxComponents = Boltdocs.Types extends {
-  MdxComponents: infer M
-}
-  ? TransformMdxComponents<UnpackMdxComponents<M>>
-  : Omit<Record<string, ComponentType<unknown>>, 'Frontmatter'> & {
+export type BoltdocsMdxComponents =
+  import('@bdocs/contracts').BoltdocsMdxComponents<
+    Omit<Record<string, ComponentType<unknown>>, 'Frontmatter'> & {
       Frontmatter: Record<string, ComponentType<unknown>>
     }
+  >
 
 /**
  * The configuration as the browser sees it.

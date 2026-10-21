@@ -1,5 +1,5 @@
-import type { BoltdocsPlugin, PluginContext, RouteMeta } from 'boltdocs'
-import type { BoltdocsConfigContract } from '@bdocs/contracts'
+import type { BoltdocsPlugin, PluginContext } from 'boltdocs'
+import type { BoltdocsConfigContract, RouteMeta } from '@bdocs/contracts'
 import { generateSitemap } from './sitemap'
 import { generateRobotsTxt } from './robots'
 import { enrichRouteSeo } from './enrich'

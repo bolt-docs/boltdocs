@@ -1,7 +1,7 @@
 {
   "name": "@bdocs/plugin-llms-text",
   "version": "0.2.0",
-  "description": "llms.txt generator plugin for Boltdocs — provides AI-optimized documentation indexes for LLMs and AI agents",
+  "description": "llms.txt generator plugin for Boltdocs \u2014 provides AI-optimized documentation indexes for LLMs and AI agents",
   "publishConfig": {
     "access": "public"
   },
@@ -24,6 +24,7 @@
   "license": "MIT",
   "type": "module",
   "dependencies": {
+    "@bdocs/contracts": "workspace:*",
     "zod": "^4.3.6"
   },
   "peerDependencies": {

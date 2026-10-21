@@ -1,9 +1,6 @@
 import { z } from 'zod'
-import {
-  createPlugin,
-  type BoltdocsPlugin,
-  type RouteContributor,
-} from 'boltdocs'
+import { createPlugin, type BoltdocsPlugin } from 'boltdocs'
+import type { RouteContributor } from '@bdocs/contracts'
 import { getGitHistory, type GitContributor } from './git'
 import { matchesRoutePath, routeFilePath } from './filters'
 

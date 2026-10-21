@@ -1,4 +1,4 @@
-import type { RouteMeta } from 'boltdocs'
+import type { RouteMeta } from '@bdocs/contracts'
 
 export interface FeedConfig {
   title: string

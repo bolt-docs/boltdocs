@@ -1,5 +1,6 @@
 import { createHash } from 'node:crypto'
-import type { BoltdocsPlugin, SearchIndexParams } from 'boltdocs'
+import type { BoltdocsPlugin } from 'boltdocs'
+import type { SearchIndexParams } from '@bdocs/contracts'
 import {
   generateAlgoliaRecords,
   algoliaIndexSettings,

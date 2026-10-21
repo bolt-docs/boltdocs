@@ -1,6 +1,7 @@
 import fs from 'node:fs/promises'
 import { z } from 'zod'
-import { createPlugin, type BoltdocsPlugin, type RouteMeta } from 'boltdocs'
+import { createPlugin, type BoltdocsPlugin } from 'boltdocs'
+import type { RouteMeta } from '@bdocs/contracts'
 import { getGitHistory } from './git'
 import { matchesRoutePath, routeFilePath } from './filters'
 

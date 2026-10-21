@@ -1,4 +1,4 @@
-import type { RouteMeta } from 'boltdocs'
+import type { RouteMeta } from '@bdocs/contracts'
 import type { LlmsTextSection } from './schema'
 import fs from 'node:fs'
 import path from 'node:path'

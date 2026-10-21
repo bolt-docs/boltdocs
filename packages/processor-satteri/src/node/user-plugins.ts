@@ -1,4 +1,4 @@
-import type { BoltdocsConfig, BoltdocsPlugin } from 'boltdocs'
+import type { ProcessorConfig, ProcessorPlugin } from './processor-config'
 import type { MdastPluginDefinition, HastPluginDefinition } from 'satteri'
 import {
   wrapRemarkPlugin,
@@ -31,7 +31,7 @@ function stableOptions(value: unknown): string {
  */
 function annotateUserPlugin<T>(
   plugin: T,
-  owner: BoltdocsPlugin,
+  owner: ProcessorPlugin,
   options?: unknown,
 ): T {
   if (!plugin || typeof plugin !== 'object') return plugin
@@ -57,13 +57,13 @@ function annotateUserPlugin<T>(
  * and wraps them into Sätteri-compatible plugin definitions.
  */
 export function collectUserPlugins(
-  config: BoltdocsConfig | undefined,
+  config: ProcessorConfig | undefined,
 ): UserPluginCollection {
   const remarkPlugins: MdastPluginDefinition[] = []
   const rehypePlugins: HastPluginDefinition[] = []
 
   for (const plugin of config?.plugins ?? []) {
-    const p = plugin as BoltdocsPlugin
+    const p = plugin as ProcessorPlugin
     if (p.remarkPlugins) {
       for (const entry of p.remarkPlugins) {
         if (Array.isArray(entry)) {

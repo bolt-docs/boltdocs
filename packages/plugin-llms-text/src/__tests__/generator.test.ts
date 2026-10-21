@@ -7,7 +7,7 @@ import {
 } from '../node/generator'
 import type { LlmsTextConfig } from '../node/generator'
 import type { LlmsTextSection } from '../node/schema'
-import type { RouteMeta } from 'boltdocs'
+import type { RouteMeta } from '@bdocs/contracts'
 import fs from 'node:fs'
 import path from 'node:path'
 

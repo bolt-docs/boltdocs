@@ -125,10 +125,52 @@ blast radius, and it is what the 4.0 package graph exists for.
 - The documentation site, the `create-boltdocs` templates and the official
   plugins were migrated with that command — 116 files in the docs site alone.
 
-What is still open: the core keeps a type-only dependency on
-`@bdocs/runtime` for the `Boltdocs` global namespace, and the engine's
-`reset.css` still uses Tailwind's `@apply`. Both are recorded rather than
-asserted.
+What is still open: the engine's `reset.css` still uses Tailwind's `@apply`
+(17 rules), and the engine still ships that stylesheet at all. Both are
+recorded rather than asserted: the rewrite is plain CSS against the theme's
+tokens, and the only thing that could prove it did not move a pixel is the
+visual harness, which has never been run.
+
+### The engine depends on nothing but the contracts
+
+The package graph after the cleanse, measured from the manifests:
+
+```text
+@bdocs/contracts   (no dependencies)
+@bdocs/primitives  (no dependencies)
+@bdocs/runtime     → @bdocs/contracts
+@bdocs/theme-neutral → @bdocs/contracts, @bdocs/primitives, @bdocs/runtime
+@bdocs/ssg         → @bdocs/contracts
+boltdocs (engine)  → @bdocs/contracts, @bdocs/processor-satteri, @bdocs/ssg
+```
+
+Three things closed the last gaps:
+
+- **The `Boltdocs` global namespace moved to `@bdocs/contracts`.** It is
+  augmented by the generated route types, and TypeScript rejects two
+  `declare global` blocks for the same namespace, so it has exactly one home.
+  It lived in `@bdocs/runtime`, which made the engine's re-export a type-only
+  dependency on the browser half — one that compiles, ships nothing, and was
+  therefore invisible in every install-size measurement. The contract layer
+  cannot name React, so the MDX component map became a generic the runtime
+  instantiates with `ComponentType`.
+- **The engine declares no peer dependency at all.** It renders nothing:
+  React, React DOM and the router are the browser half's business, and the
+  browser half is a package the site installs. The engine's own tests need
+  React, and it is now a dev dependency like any other.
+- **The plugins read the contract types from the contracts.** `RouteMeta`,
+  `SearchIndexParams` and `RouteContributor` come from `@bdocs/contracts`
+  rather than from the engine. The engine-bound types — `PluginContext` and
+  `BoltdocsPlugin`, which are the contracts' generics bound to the engine's
+  config and to Node's request and response types — still come from the
+  engine, because that binding is the value the plugin gets from it.
+
+One coupling is deliberate and declared: `@bdocs/processor-satteri` reaches
+the engine's runtime registries — the transform cache and the highlighter —
+from the worker thread as well as the main one. The engine owns both, and the
+worker resolves them from the engine it runs inside, so the processor declares
+the engine as a peer. The undeclared-import audit fails without that
+declaration, which is the point of the audit.
 
 ### Status of slice 3
 

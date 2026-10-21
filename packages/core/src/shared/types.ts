@@ -173,10 +173,12 @@ export interface BoltdocsConfig extends BoltdocsConfigContract<BoltdocsPlugin> {
 /**
  * The `Boltdocs` global namespace and the aliases derived from it.
  *
- * The declaration itself moved to `@bdocs/runtime`, and it had to: TypeScript
- * rejects two `declare global` blocks for the same namespace, and this file plus
- * the runtime both need `Boltdocs.Types` and `Boltdocs.RoutePaths`. One home, and
- * it is the package a consumer imports the augmented types through.
+ * The declaration lives in `@bdocs/contracts`, and it has to: TypeScript
+ * rejects two `declare global` blocks for the same namespace, and the contract
+ * layer is the only one both the engine and the browser can depend on. It used
+ * to live in `@bdocs/runtime`, which made this re-export a type-only
+ * dependency on the browser half — one that compiles, ships nothing, and
+ * quietly welds the engine to the browser anyway.
  */
 export type {
   BoltdocsLocale,
@@ -188,4 +190,4 @@ export type {
   ExternalRouteReference,
   TransformMdxComponents,
   UnpackMdxComponents,
-} from '@bdocs/runtime'
+} from '@bdocs/contracts'
