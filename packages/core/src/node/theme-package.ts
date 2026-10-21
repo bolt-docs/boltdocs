@@ -82,19 +82,59 @@ export function isThemePackageInstalled(
 }
 
 /**
- * The theme's source entry, when the installed package ships one.
+ * Where a package's entries live in source.
  *
- * A theme installed from the registry has no `src/`, and the built entry is
- * the right one. A theme checked out next to the project — a workspace link in
- * a monorepo — has one, and using it means an edit to a theme component is
- * picked up without rebuilding the package first.
+ * A theme declares the mapping in its `package.json`:
+ *
+ * ```json
+ * { "boltdocs": { "source": { ".": "./src/index.ts" } } }
+ * ```
+ *
+ * The dev server and the build alias the package's *source* rather than its
+ * built copy, so an edit to a theme is picked up without rebuilding the
+ * package. Without the mapping the subpaths would resolve to a built file that
+ * may be minutes behind the source it was built from.
  */
-export function resolveThemeSourceEntry(
+export function packageSourceEntries(
+  packageRoot: string,
+): Record<string, string> {
+  try {
+    const manifest = JSON.parse(
+      fs.readFileSync(path.join(packageRoot, 'package.json'), 'utf-8'),
+    ) as { boltdocs?: { source?: Record<string, string> } }
+    const source = manifest.boltdocs?.source
+    if (!source) return {}
+    const out: Record<string, string> = {}
+    for (const [entry, file] of Object.entries(source)) {
+      const resolved = path.join(packageRoot, file)
+      if (fs.existsSync(resolved)) out[entry] = resolved
+    }
+    return out
+  } catch {
+    return {}
+  }
+}
+
+/**
+ * The theme's source entries, keyed by the specifier a consumer writes.
+ *
+ * `{'@bdocs/theme-neutral': '.../src/index.ts'}` and
+ * `{'@bdocs/theme-neutral/ssg': '.../src/ssg/entry.ts'}`.
+ */
+export function themeSourceAliases(
   packageName: string,
   root: string,
-): string | undefined {
+): Record<string, string> {
   const packageRoot = findInstalledThemeRoot(packageName, root)
-  if (!packageRoot) return undefined
-  const source = path.join(packageRoot, 'src', 'index.ts')
-  return fs.existsSync(source) ? source : undefined
+  if (!packageRoot) return {}
+  const entries = packageSourceEntries(packageRoot)
+  const out: Record<string, string> = {}
+  for (const [entry, file] of Object.entries(entries)) {
+    const specifier =
+      entry === '.'
+        ? packageName
+        : `${packageName}/${entry.replace(/^\.\//, '')}`
+    out[specifier] = file
+  }
+  return out
 }

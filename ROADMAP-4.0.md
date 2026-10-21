@@ -170,6 +170,40 @@ The evidence that nothing moved: the documentation site's compiled stylesheet
 is **byte-identical** before and after the rewrite — 180,067 bytes either way.
 No browser was involved; the comparison is between the two builds' CSS.
 
+### What the performance work found
+
+Three changes, all measured on the documentation site (234 pages):
+
+| | Before | After |
+| --- | --- | --- |
+| The theme's published main entry | 69,666 B | **4,277 B** |
+| The app chunk | 653,989 B | **491,923 B** |
+| The eager set, raw / gzip | 966.2 / 236.7 kB | **901.7 / 218.9 kB** |
+| The whole client bundle | 5.586 MB | **5.524 MB** |
+| The cold build | 27.4 s | **26.1 s** |
+
+The route builder and the shell moved to their own entry
+(`@bdocs/theme-neutral/ssg`): they are what the *build* drives, and every site
+that imported one component was downloading them with it.
+
+Two findings that are not fixed yet, recorded because they are the size of the
+opportunity:
+
+**The MDX precompile is single-threaded for most sites.** It is 9.8 s of a
+26 s build. The compile pool is skipped whenever the site registers a
+remark or rehype plugin — which is most sites — because the workers cannot
+run the user's plugins: they are functions, and a function does not cross a
+worker boundary. The site cannot have a parallel precompile until the plugin
+API can describe an MDX hook in a way a worker can rebuild. The documentation
+site is in exactly that case (the Mermaid plugin transforms code blocks), and
+its precompile runs on one core while seven sit idle.
+
+**The search dialog is in the eager set.** 110 kB — 12% of the first visit —
+for a feature most readers never open. Vite preloads the entry chunk's dynamic
+imports, and the search dialog is one: the navbar loads it with `lazy()`, but
+the preload fetches it anyway. Not preloading it costs the reader a wait on
+the first click, which is a trade-off and not a bug.
+
 ### The benchmark gate has a baseline, and knows what it measured
 
 `scripts/benchmarks/baseline.json` did not exist, so the gate in SPEC §2.2

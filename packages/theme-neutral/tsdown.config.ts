@@ -18,6 +18,9 @@ export default defineConfig(
     entry: {
       index: 'src/index.ts',
       composition: 'src/components/composition/index.ts',
+      // The build-time surface, kept apart so a reader's first visit does
+      // not download the route builder.
+      ssg: 'src/ssg/entry.ts',
     },
     format: ['esm'],
     dts: true,

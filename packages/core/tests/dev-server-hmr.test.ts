@@ -91,7 +91,26 @@ function createClientStubs(root: string): { theme: string; ssg: string } {
     'utf-8',
   )
 
-  return { theme: normalizePath(themeFile), ssg: normalizePath(ssgFile) }
+  // The theme's build surface is its own entry, and the generated entry
+  // imports it from there.
+  const themeSsgFile = path.join(root, 'theme-ssg-stub.mjs')
+  fs.writeFileSync(
+    themeSsgFile,
+    [
+      'export const createRoutes = () => ({})',
+      'export const RouteRenderer = () => null',
+      'export const matchRouteBranch = () => null',
+      'export const matchRouteBranchWithParams = () => null',
+      'export const resolveRouteBranch = () => null',
+    ].join('\n'),
+    'utf-8',
+  )
+
+  return {
+    theme: normalizePath(themeFile),
+    ssg: normalizePath(ssgFile),
+    themeSsg: normalizePath(themeSsgFile),
+  }
 }
 
 async function startDevServer(
@@ -143,6 +162,7 @@ async function startDevServer(
     server: { watch: { ignored: ['**/.boltdocs/**'] } },
     resolve: {
       alias: [
+        { find: '@bdocs/theme-neutral/ssg', replacement: stubs.themeSsg },
         { find: '@bdocs/theme-neutral', replacement: stubs.theme },
         { find: 'boltdocs/ssg', replacement: stubs.ssg },
       ],

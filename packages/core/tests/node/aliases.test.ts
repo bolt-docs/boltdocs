@@ -30,8 +30,10 @@ describe('createBoltdocsAliases', () => {
     const aliases = createBoltdocsAliases({
       root: '/project',
       themeSource: {
-        package: '@bdocs/theme-neutral',
-        file: '/workspace/packages/theme-neutral/src/index.ts',
+        '@bdocs/theme-neutral':
+          '/workspace/packages/theme-neutral/src/index.ts',
+        '@bdocs/theme-neutral/ssg':
+          '/workspace/packages/theme-neutral/src/ssg/entry.ts',
       },
     })
 
@@ -45,27 +47,45 @@ describe('createBoltdocsAliases', () => {
     expect(theme?.replacement).toBe(
       '/workspace/packages/theme-neutral/src/index.ts',
     )
+
+    // The subpaths are aliased too: a theme that resolved them to its built
+    // copy would serve a build that may be minutes behind the source.
+    const ssg = aliases.find((alias) =>
+      alias.find instanceof RegExp
+        ? alias.find.test('@bdocs/theme-neutral/ssg')
+        : alias.find === '@bdocs/theme-neutral/ssg',
+    )
+    expect(ssg?.replacement).toBe(
+      '/workspace/packages/theme-neutral/src/ssg/entry.ts',
+    )
   })
 
   it('matches the theme package exactly, so its subpaths still resolve', () => {
     const aliases = createBoltdocsAliases({
       root: '/project',
       themeSource: {
-        package: '@bdocs/theme-neutral',
-        file: '/workspace/packages/theme-neutral/src/index.ts',
+        '@bdocs/theme-neutral':
+          '/workspace/packages/theme-neutral/src/index.ts',
+        '@bdocs/theme-neutral/css':
+          '/workspace/packages/theme-neutral/src/styles/index.css',
       },
     })
-
-    const theme = aliases.find((alias) => alias.find instanceof RegExp) as {
-      find: RegExp
-    }
 
     // The stylesheet is a subpath of the same package. A prefix match would
     // rewrite it to a file inside the source tree, and the site would load no
     // CSS at all.
-    expect(theme.find.test('@bdocs/theme-neutral')).toBe(true)
-    expect(theme.find.test('@bdocs/theme-neutral/css')).toBe(false)
-    expect(theme.find.test('@bdocs/theme-neutral/composition')).toBe(false)
+    const packageAlias = aliases.find(
+      (alias) =>
+        alias.find instanceof RegExp &&
+        alias.find.test('@bdocs/theme-neutral') &&
+        !alias.find.test('@bdocs/theme-neutral/css'),
+    ) as { find: RegExp }
+
+    expect(packageAlias.find.test('@bdocs/theme-neutral')).toBe(true)
+    expect(packageAlias.find.test('@bdocs/theme-neutral/css')).toBe(false)
+    expect(packageAlias.find.test('@bdocs/theme-neutral/composition')).toBe(
+      false,
+    )
   })
 
   it('includes framework aliases and custom aliases', () => {

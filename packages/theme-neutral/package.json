@@ -12,6 +12,10 @@
       "types": "./dist/composition.d.mts",
       "import": "./dist/composition.mjs"
     },
+    "./ssg": {
+      "types": "./dist/ssg.d.mts",
+      "import": "./dist/ssg.mjs"
+    },
     "./css": "./dist/styles/index.css",
     "./reset": {
       "default": "./dist/styles/reset.css"
@@ -58,5 +62,12 @@
     "tsdown-config": "workspace:*",
     "typescript": "^5.9.3",
     "vitest": "^3.0.0"
+  },
+  "boltdocs": {
+    "source": {
+      ".": "./src/index.ts",
+      "./composition": "./src/components/composition/index.ts",
+      "./ssg": "./src/ssg/entry.ts"
+    }
   }
 }

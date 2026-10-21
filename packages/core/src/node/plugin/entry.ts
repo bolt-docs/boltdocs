@@ -259,7 +259,10 @@ export function generateEntryCode(
     // The route surface comes from the theme package: the engine does not
     // depend on a theme, and the theme is the one that knows what a route
     // element looks like. The site installs it and names it in `themePackage`.
-    `import { createRoutes, RouteRenderer, matchRouteBranch, matchRouteBranchWithParams, resolveRouteBranch } from '${themePackage}'`,
+    //
+    // The build surface is its own entry: a reader's first visit downloads the
+    // theme's components, not the route builder that only the build needs.
+    `import { createRoutes, RouteRenderer, matchRouteBranch, matchRouteBranchWithParams, resolveRouteBranch } from '${themePackage}/ssg'`,
     `export { RouteRenderer, matchRouteBranch, matchRouteBranchWithParams, resolveRouteBranch }`,
     // Registers the generated per-site artifacts with the runtime before the
     // app renders. See the module for why this is a side effect at the top of

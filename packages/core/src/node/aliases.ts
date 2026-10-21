@@ -11,14 +11,14 @@ const RESERVED_ALIASES = new Set([
 export interface BoltdocsAliasOptions {
   root: string
   /**
-   * The theme package the site asked for, and the file to resolve it to.
+   * The theme's source entries, keyed by the specifier a consumer writes.
    *
    * The engine imports the theme by name and lets the bundler resolve it,
    * because the theme is the site's dependency and not the engine's. During
    * development in a monorepo the package is aliased to its source, so an edit
    * to a theme component is picked up without a rebuild of the package.
    */
-  themeSource?: { package: string; file: string }
+  themeSource?: Record<string, string>
   aliases?: AliasOptions
 }
 
@@ -78,20 +78,18 @@ export function createBoltdocsAliases({
     },
   ]
 
-  // The theme package, aliased to its source when the source is there.
+  // The theme's entries, aliased to their source files.
   //
   // The match is exact: a string alias would also capture the package's own
   // subpaths, so `@bdocs/theme-neutral/css` — the stylesheet the site loads —
   // would resolve to a file inside the source tree. A regular expression
-  // matches the package name and nothing else.
-  if (themeSource) {
+  // matches the specifier and nothing else.
+  for (const [specifier, file] of Object.entries(themeSource ?? {})) {
     frameworkAliases.unshift({
-      find: new RegExp(
-        `^${themeSource.package.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`,
-      ),
+      find: new RegExp(`^${specifier.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`),
       // `String.replace` reads `$` in the replacement as a capture reference,
       // and a path is allowed to contain one.
-      replacement: themeSource.file.replace(/\$/g, '$$$$'),
+      replacement: file.replace(/\$/g, '$$$$'),
     })
   }
 

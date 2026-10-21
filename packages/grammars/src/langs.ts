@@ -128,6 +128,7 @@ export const LAZY_LANG_IMPORTS: Record<string, LangImporter> = {
   apache: () => import('./grammars/apache.mjs'),
   dockerfile: () => import('./grammars/dockerfile.mjs'),
   docker: () => import('./grammars/docker.mjs'),
+  diff: () => import('./grammars/diff.mjs'),
   java: () => import('./grammars/java.mjs'),
   php: () => import('./grammars/php.mjs'),
   sql: () => import('./grammars/sql.mjs'),
@@ -195,6 +196,7 @@ export type Languages =
   | 'apache'
   | 'dockerfile'
   | 'docker'
+  | 'diff'
   | 'python'
   | 'go'
   | 'java'

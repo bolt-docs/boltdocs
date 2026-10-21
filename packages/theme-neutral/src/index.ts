@@ -129,28 +129,13 @@ export { getBaseFilePath } from './utils/get-base-file-path'
 export { clearHighlights, highlightTerms } from './hooks/use-search-highlight'
 
 /**
- * The routing and rendering surface.
+ * The routing and rendering surface lives in its own entry.
  *
- * `createRoutes` and the shell live here, not in the engine: every route
- * element they produce is a theme component. The build pipeline imports them
- * from this package, which is why a theme has to be installed by the site —
- * the engine never depends on one.
+ * `createRoutes` and the shell are what the build drives, not what a reader
+ * imports: a site that imports one component — `cn`, a `Link`, a hook — should
+ * not download the route builder with it. They are published as
+ * `@bdocs/theme-neutral/ssg`, and the engine imports them from there.
  */
-export { createRoutes, BoltdocsShell, MdxPage } from './ssg'
-export type { CreateRoutesOptions } from './ssg'
-
-/**
- * The router primitives the build pipeline drives.
- *
- * They belong to the runtime, and a theme re-exports the ones its own entry
- * point needs so a build only has to resolve one package for the client half.
- */
-export {
-  RouteRenderer,
-  matchRouteBranch,
-  matchRouteBranchWithParams,
-  resolveRouteBranch,
-} from '@bdocs/runtime'
 
 export {
   StructuredData,
