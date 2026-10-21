@@ -106,4 +106,15 @@ describe('client-imports codemod', () => {
     expect(findings.map((finding) => finding.id)).toEqual(['client/subpath'])
     expect(findings[0].action).toBe('fixable')
   })
+
+  it('moves the engine stylesheet to the theme', () => {
+    // The engine used to publish the reset. The theme owns the look now, so
+    // the stylesheet moved with it — and a site's own stylesheet has to follow.
+    const source = '@import "boltdocs/theme/reset.css";\n'
+    const findings = clientImportsTransform.inspect('index.css', source, ctx)
+
+    expect(findings.map((finding) => finding.id)).toEqual(['client/subpath'])
+    expect(findings[0].action).toBe('fixable')
+    expect(apply(source)).toBe('@import "@bdocs/theme-neutral/reset";\n')
+  })
 })

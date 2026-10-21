@@ -203,6 +203,33 @@ The package exported four subpaths that all resolved to the same barrel, and two
 
 `boltdocs/client/primitives` is gone with the rest of the engine's client surface. The composition layer is `@bdocs/theme-neutral/composition`.
 
+### The engine's stylesheet moved to the theme
+
+`boltdocs/theme/reset.css` was the engine's stylesheet: the page reset, the
+code-block rules and the accessibility baseline. The engine does not have a look
+any more — the theme does — so the stylesheet moved with it:
+
+```diff
+- @import "boltdocs/theme/reset.css";
++ @import "@bdocs/theme-neutral/reset";
+```
+
+The values did not change. The reset now reads the theme's own tokens
+(`--bdocs-canvas`, `--bdocs-ink`, `--bdocs-primary`) where it used to read the
+host's (`--color-main`, `--color-body`, `--color-primary-500`), and a site that
+overrode those tokens overrides them in one place.
+
+`boltdocs migrate` rewrites the import for you, in your stylesheets as well as
+your code.
+
+<Callout type="info">
+  **Two rules that the build was dropping now apply.** The line highlight's
+  coloured bar and the line-number gutter were compiled to rules the browser
+  discarded — a pseudo-class where a pseudo-element was meant, and a duplicated
+  selector where the framework's own compiler kept only the last one. They were
+  written out by hand with the move, and they render.
+</Callout>
+
 ### Search moved to a plugin
 
 Until 4.0 the core generated `search.json` itself, so every site had one and the built-in search dialog worked. The generator now lives in `@bdocs/plugin-search`:

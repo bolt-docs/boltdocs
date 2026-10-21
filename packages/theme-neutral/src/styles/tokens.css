@@ -264,6 +264,24 @@
   --bdocs-info: #22c2f7;
 
   /*
+   * The diff's addition colour.
+   *
+   * A diff addition is not a success badge: it is a different green, and it
+   * was a different green before the reset moved here — the engine's
+   * stylesheet used Tailwind's `emerald-500` for it while the theme's success
+   * is its own `#3cdd77`. Two greens that meant two things.
+   *
+   * It is a token now so the value has one home, and so a site that wants the
+   * diff to read as the success colour can say so in one line.
+   */
+  --bdocs-diff-add: #00bb7f;
+  --bdocs-diff-add-soft: color-mix(
+    in oklab,
+    var(--bdocs-diff-add) 10%,
+    transparent
+  );
+
+  /*
    * Brand *text*, as distinct from brand *fill*.
    *
    * The original timeline badge wrote `text-primary-600 dark:text-primary-400` —
@@ -320,6 +338,17 @@
     "Courier New", monospace;
 
   --bdocs-font-size: 1rem;
+
+  /*
+   * The document's font, and the document's code font.
+   *
+   * The components carry their own font — `--bdocs-font-family` — and the
+   * reset sets the font of the *page* around them. Two different things, so
+   * two tokens: a site that wants one typeface for the whole document says
+   * so here, without touching what the components use.
+   */
+  --bdocs-page-font: var(--bdocs-font-family);
+  --bdocs-code-font: var(--bdocs-font-mono);
   /* 1.7, not the 1.65 that reads better in isolation. The root line-height is
      multiplied by every text size on the page; 1.65 shifted every line of prose
      by half a pixel and showed up in the pixel harness. */

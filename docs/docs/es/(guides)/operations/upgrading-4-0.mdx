@@ -204,6 +204,35 @@ El package exportaba cuatro subpaths que resolvían todos al mismo barrel, y dos
 
 `boltdocs/client/primitives` se fue con el resto de la superficie de cliente del motor. La capa de composition es `@bdocs/theme-neutral/composition`.
 
+### La hoja de estilos del motor pasó al theme
+
+`boltdocs/theme/reset.css` era la hoja de estilos del motor: el reset de la
+página, las reglas de los bloques de código y la base de accesibilidad. El
+motor ya no tiene una apariencia —la tiene el theme— así que la hoja de estilos
+se mudó con ella:
+
+```diff
+- @import "boltdocs/theme/reset.css";
++ @import "@bdocs/theme-neutral/reset";
+```
+
+Los valores no cambiaron. El reset ahora lee los tokens del propio theme
+(`--bdocs-canvas`, `--bdocs-ink`, `--bdocs-primary`) donde antes leía los del
+host (`--color-main`, `--color-body`, `--color-primary-500`), y un sitio que
+sobrescribía esos tokens los sobrescribe en un solo lugar.
+
+`boltdocs migrate` reescribe el import por ti, en tus hojas de estilos tanto
+como en tu código.
+
+<Callout type="info">
+  **Dos reglas que el build estaba descartando ahora se aplican.** La barra de
+  color de la línea resaltada y el margen de los números de línea se
+  compilaban a reglas que el navegador descartaba — un pseudo-clase donde debía
+  ir un pseudo-elemento, y un selector duplicado donde el compilador del
+  framework solo conservaba el último. Se escribieron a mano con la mudanza, y
+  se ven.
+</Callout>
+
 ### El search pasó a ser un plugin
 
 Hasta 4.0 el core generaba `search.json` él mismo, así que todos los sitios tenían uno y el SearchDialog del theme funcionaba. El generador ahora vive en `@bdocs/plugin-search`:

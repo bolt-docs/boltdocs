@@ -39,7 +39,7 @@ interface CodeHighlighterResponse {
  *
  * Named after the state, not the engine. The previous `shiki-fallback` told a
  * theme what had produced the block, which made every non-Shiki engine a
- * guest in someone else's stylesheet — and the core reset.css keys 28 rules off
+ * guest in someone else's stylesheet — and the theme's reset keys 28 rules off
  * `.shiki`. A theme styles `data-code-state`, and the engine name stays where
  * it belongs: in `data-code-engine`.
  */

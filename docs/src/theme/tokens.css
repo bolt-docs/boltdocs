@@ -162,6 +162,19 @@
   color-scheme: dark;
 }
 
+/*
+ * The page's font.
+ *
+ * The theme's components carry their own typeface; the reset sets the font of
+ * the document around them. This site uses Geist for the document, so the
+ * theme's page-level tokens are pointed at the same stack the site's own
+ * components use. Two tokens, one override: the components keep what they had.
+ */
+:root {
+  --bdocs-page-font: var(--font-sans);
+  --bdocs-code-font: var(--font-mono);
+}
+
 /* Headings use the Figma line-height (1.25) */
 h1,
 h2,

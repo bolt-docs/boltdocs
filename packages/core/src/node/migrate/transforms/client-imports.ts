@@ -22,6 +22,9 @@ const SUBPATH_TARGETS: Record<string, string> = {
   'boltdocs/primitives': `${THEME}/composition`,
   'boltdocs/mdx': THEME,
   'boltdocs/client/router': `${RUNTIME}/router`,
+  // The engine's stylesheet. It became the theme's in 4.0, because the engine
+  // no longer ships a look.
+  'boltdocs/theme/reset.css': `${THEME}/reset`,
 }
 
 const themeNames = new Set(THEME_NAMES)
@@ -186,7 +189,7 @@ export const clientImportsTransform: Transform = {
   id: 'client-imports',
 
   appliesTo: (file) =>
-    /\.(tsx?|jsx?|mts|cts|mjs|cjs|mdx)$/.test(file) &&
+    /\.(tsx?|jsx?|mts|cts|mjs|cjs|mdx|css)$/.test(file) &&
     !file.includes('/node_modules/') &&
     !file.endsWith('.d.ts'),
 

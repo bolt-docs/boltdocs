@@ -1,5 +1,3 @@
-import fs from 'node:fs'
-import path from 'node:path'
 import { defineConfig, packageConfig } from 'tsdown-config'
 
 const banner = `/**
@@ -50,21 +48,6 @@ export default defineConfig([
         'virtual:boltdocs-search',
         'virtual:boltdocs-search.ts',
       ],
-    },
-    async onSuccess() {
-      // `reset.css` stays in the core. Everything else a theme needs moved
-      // to the theme package, which ships it from `@bdocs/theme-neutral/css`.
-      // Copying a theme stylesheet from here would mean the core and the theme
-      // both claimed to own it, and a second theme would have nowhere to put its
-      // own.
-      const resetSrc = path.resolve(__dirname, 'src/theme/reset.css')
-      const destDir = path.resolve(__dirname, 'dist/theme')
-      if (!fs.existsSync(destDir)) {
-        fs.mkdirSync(destDir, { recursive: true })
-      }
-
-      fs.copyFileSync(resetSrc, path.resolve(destDir, 'reset.css'))
-      console.log('✓ Theme reset.css copied to dist')
     },
   }),
   // The SSG bridge.

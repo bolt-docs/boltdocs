@@ -2,7 +2,8 @@
 @import url("https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css");
 
 @import "tailwindcss";
-@import "boltdocs/theme/reset.css";
+/* The theme owns the reset. The engine ships no stylesheet. */
+@import "@bdocs/theme-neutral/reset";
 
 /* Docs theme — dark-only design tokens (replaces boltdocs/theme/neutral.css) */
 @import "./src/theme/tokens.css";

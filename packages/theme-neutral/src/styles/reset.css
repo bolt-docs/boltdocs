@@ -1,17 +1,15 @@
 /*
- * The engine's stylesheet.
+ * The theme's reset.
  *
- * Plain CSS. It used to be written with Tailwind's `@apply`, which made the
- * engine's stylesheet depend on a CSS framework it does not otherwise know
- * about — the one assumption SPEC §2.1 forbids. The declarations are the same
- * ones Tailwind compiled to, written out by hand: `py-2` is half a rem,
- * `text-[12px]` is twelve pixels, and the colours are the host's own token
- * variables.
+ * Plain CSS, and the theme's own tokens. It used to live in the engine and
+ * read the *host's* token vocabulary — `--color-main`, `--color-body` — which
+ * meant the engine shipped a stylesheet that only made sense inside somebody
+ * else's design system. A theme owns its own reset: the same rules, the same
+ * values, and the vocabulary that goes with them.
  *
- * The tokens are the contract. `--color-bg-main`, `--color-text-body` and the
- * rest are what a host theme publishes; a site that does not define them gets
- * the same fallbacks it got before. A theme that prefers its own vocabulary
- * overrides these.
+ * The values are the ones the components already rendered. `--bdocs-canvas` is
+ * what `--color-main` was, `--bdocs-ink` is what `--color-body` was, and so on:
+ * moving the file moved *where* a value is defined, not what it is.
  *
  * Layer order is declared up front so the accessibility baseline below can
  * live in a layer ordered after `utilities`. Cascade layers beat specificity,
@@ -39,11 +37,11 @@
   }
 
   body {
-    background-color: var(--color-bg-main);
-    color: var(--color-text-body);
+    background-color: var(--bdocs-canvas);
+    color: var(--bdocs-ink);
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
-    font-family: var(--font-sans);
+    font-family: var(--bdocs-page-font);
     line-height: 1.7;
   }
 
@@ -100,12 +98,12 @@
   }
 
   ::-webkit-scrollbar-thumb {
-    background-color: var(--color-strong);
+    background-color: var(--bdocs-line-strong);
     border-radius: 9999px;
   }
 
   ::-webkit-scrollbar-thumb:hover {
-    background-color: var(--color-muted);
+    background-color: var(--bdocs-ink-muted);
   }
 
   /* ═══ Content Area ═══ */
@@ -164,8 +162,6 @@
     display: none;
   }
 
-  /* Shiki Styles are defined below */
-
   /* ═══ Shiki Styles ═══ */
 
   /* Boltdocs Code Block — Shiki/plain pre normalization.
@@ -196,7 +192,7 @@
      `codeTheme: 'github-dark'`) keeps its highlighting in every mode. */
   :root .shiki,
   :root .shiki span {
-    font-family: var(--font-mono);
+    font-family: var(--bdocs-code-font);
     font-size: 12px !important;
     background-color: transparent !important;
   }
@@ -226,7 +222,7 @@
   pre.shiki,
   pre[data-highlighted="true"],
   pre[data-highlighted="false"] {
-    padding-block: 0.5rem;
+    padding-block: var(--bdocs-space-2);
     font-size: 12px;
     line-height: 1.6;
     overflow-x: auto;
@@ -239,8 +235,8 @@
      theme written against 3.x rendering identically. */
   pre[data-code-state="fallback"],
   pre.shiki-fallback {
-    background-color: var(--color-bg-subtle);
-    color: var(--color-text-muted);
+    background-color: var(--bdocs-line);
+    color: var(--bdocs-ink-muted);
   }
 
   pre[data-code-state="fallback"] code,
@@ -252,7 +248,7 @@
   pre[data-highlighted] span.line {
     position: relative;
     display: block;
-    padding-inline: 1rem;
+    padding-inline: var(--bdocs-space-4);
     padding-block: 0;
     white-space: pre;
     min-height: 1.6em;
@@ -280,7 +276,8 @@
 
   pre.shiki-line-numbers .line,
   pre[data-line-numbers="true"] .line {
-    padding-left: 3rem !important;
+    display: block;
+    width: 100%;
   }
 
   /* Hide the last line if it is completely empty to avoid extra numbers or spacing */
@@ -303,11 +300,11 @@
     left: 0;
     top: 0;
     display: inline-flex;
-    width: 2.5rem;
+    width: var(--bdocs-space-10);
     justify-content: flex-end;
-    padding-right: 0.75rem;
+    padding-right: var(--bdocs-space-3);
     font-size: 11px;
-    color: var(--color-text-muted);
+    color: var(--bdocs-ink-muted);
     opacity: 0.3;
     user-select: none;
     line-height: inherit;
@@ -333,12 +330,12 @@
     height: 100%;
     width: 100%;
     border-left-width: 2px;
-    border-color: var(--color-primary-500);
+    border-color: var(--bdocs-primary);
     background-color: color-mix(
       in oklab,
-      var(--color-primary-500) 10%,
+      var(--bdocs-primary) 10%,
       transparent
-    ) !important;
+    );
     opacity: 1;
   }
 
@@ -350,37 +347,31 @@
   }
 
   pre.has-diff span.line.diff.add {
-    /* The dark variant was the same value as the light one, so one rule covers
-       both. */
     background-color: color-mix(
       in oklab,
-      var(--color-emerald-500) 10%,
+      var(--bdocs-diff-add) 10%,
       transparent
-    ) !important;
+    );
   }
 
   pre.has-diff span.line.diff.add::before {
     content: "+";
     position: absolute;
-    left: 0.5rem;
-    color: var(--color-emerald-500);
+    left: var(--bdocs-space-2);
+    color: var(--bdocs-diff-add);
     font-weight: 700;
   }
 
   pre.has-diff span.line.diff.remove {
-    background-color: color-mix(
-      in oklab,
-      var(--color-danger-500) 10%,
-      transparent
-    ) !important;
+    background-color: color-mix(in oklab, var(--bdocs-danger) 10%, transparent);
     opacity: 0.7;
   }
 
   pre.has-diff span.line.diff.remove::before {
     content: "-";
     position: absolute;
-    left: 0.5rem;
-    color: var(--color-danger-500);
+    left: var(--bdocs-space-2);
+    color: var(--bdocs-danger);
     font-weight: 700;
   }
 }
@@ -409,7 +400,7 @@
   textarea:focus-visible,
   summary:focus-visible,
   [tabindex]:focus-visible {
-    outline: 2px solid var(--color-primary-500);
+    outline: 2px solid var(--bdocs-primary);
     outline-offset: 2px;
   }
 }

@@ -157,6 +157,8 @@ describe('packages/core/package.json shape', () => {
     expect(exp['./node/cache']).toBeDefined()
     expect(exp['./node/highlight']).toBeDefined()
     expect(exp['./node/search']).toBeDefined()
-    expect(exp['./theme/reset.css']).toBeDefined()
+    // The engine ships no stylesheet: the reset belongs to the theme, which
+    // is the package that owns the look.
+    expect(exp['./theme/reset.css']).toBeUndefined()
   })
 })

@@ -44,8 +44,7 @@
     "./ssg": {
       "types": "./dist/ssg/index.d.ts",
       "default": "./dist/ssg/index.js"
-    },
-    "./theme/reset.css": "./dist/theme/reset.css"
+    }
   },
   "files": [
     "dist",

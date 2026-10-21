@@ -136,14 +136,24 @@ blast radius, and it is what the 4.0 package graph exists for.
 - The documentation site, the `create-boltdocs` templates and the official
   plugins were migrated with that command — 116 files in the docs site alone.
 
-What is still open: the engine's `reset.css` is still the engine's, and it
-still reads the host's token variables — `--color-bg-main`,
-`--color-text-body` — rather than a theme's own vocabulary. The tokens are a
-contract, and a site that does not publish them gets the same fallbacks it got
-before, but the contract is with the *host*, not with `@bdocs/theme-neutral`.
-Moving the file into the theme would mean rewriting it against that theme's
-tokens, which is a change of values and not of framework — and the only thing
-that could measure it is the visual harness, which has never been run.
+The reset moved to the theme, and the engine ships no stylesheet at all.
+`boltdocs/theme/reset.css` is now `@bdocs/theme-neutral/reset`, it reads the
+theme's own tokens, and `boltdocs migrate` rewrites the import in a site's
+stylesheets as well as in its code.
+
+The evidence is a comparison of the two builds' stylesheets by their *resolved*
+declarations — `scripts/benchmarks/compare-stylesheets.ts`, which reads two
+built CSS files, resolves every custom property in both and compares what
+results. A textual diff cannot answer "did it move a pixel": the same colour
+is `var(--color-main)` in one file and `var(--bdocs-canvas)` in the other.
+
+Ten differences remain, and nine are the same value written two ways. The tenth
+is two rules the framework's own compiler was discarding: the line highlight's
+coloured bar was compiled to `:after` — a pseudo-class, where the source said
+`::after` — and the browser discards a rule with an invalid pseudo-class, so
+the bar never rendered; and the line-number gutter lost its `display` and
+`width` because two rules shared a selector and the compiler kept only the
+last one's declarations. Both render now.
 
 ### The engine's stylesheet no longer assumes a CSS framework
 

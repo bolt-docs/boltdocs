@@ -13,6 +13,9 @@
       "import": "./dist/composition.mjs"
     },
     "./css": "./dist/styles/index.css",
+    "./reset": {
+      "default": "./dist/styles/reset.css"
+    },
     "./package.json": "./package.json"
   },
   "files": [

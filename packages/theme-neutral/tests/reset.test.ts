@@ -4,12 +4,12 @@ import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 const HERE = dirname(fileURLToPath(import.meta.url))
-const RESET = resolve(HERE, '../../src/theme/reset.css')
+const RESET = resolve(HERE, '../src/styles/reset.css')
 
 const css = readFileSync(RESET, 'utf8')
 
 /**
- * The core stylesheet must style a code block by *state*, not by which engine
+ * The theme's reset must style a code block by *state*, not by which engine
  * produced it.
  *
  * This is the CSS half of the engine-agnostic change. The pipeline now emits
@@ -65,13 +65,11 @@ describe('reset.css: engine-agnostic code-block styling', () => {
 })
 
 /**
- * The engine's stylesheet must not depend on a CSS framework.
+ * The reset must not depend on a CSS framework.
  *
- * SPEC §2.1: "The core ships zero CSS framework assumptions." The stylesheet
- * used to be written with Tailwind's `@apply`, which is exactly such an
- * assumption — a rule that only compiles inside a Tailwind build.
- *
- * The declarations are the same ones Tailwind compiled to, so nothing moves a
+ * The stylesheet used to be written with Tailwind's `@apply`, which is exactly
+ * such an assumption — a rule that only compiles inside a Tailwind build. The
+ * declarations are the same ones Tailwind compiled to, so nothing moves a
  * pixel; the framework is what went away.
  */
 describe('reset.css: no CSS framework', () => {
@@ -87,9 +85,9 @@ describe('reset.css: no CSS framework', () => {
     expect(declarations).not.toMatch(/@tailwind\b/)
   })
 
-  it('resolves colours through the host tokens, not through hardcoded values', () => {
-    // The tokens are the contract with the host theme. A hardcoded colour
-    // would be a second source of truth for a value the theme owns.
+  it('resolves colours through the theme tokens, not through hardcoded values', () => {
+    // The tokens are the contract. A hardcoded colour would be a second
+    // source of truth for a value the theme owns.
     const hexColours = declarations.match(/#[0-9a-f]{3,8}\b/gi) ?? []
     expect(hexColours).toEqual([])
   })
