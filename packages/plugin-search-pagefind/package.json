@@ -28,7 +28,7 @@
     "boltdocs": "workspace:^"
   },
   "devDependencies": {
-    "@types/node": "22.0.0",
+    "@types/node": "22.12.0",
     "boltdocs": "workspace:^",
     "tsdown": "^0.21.7",
     "tsdown-config": "workspace:*",

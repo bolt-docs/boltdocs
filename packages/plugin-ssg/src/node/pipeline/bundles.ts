@@ -2,7 +2,7 @@ import { createHash } from 'node:crypto'
 import { dirname, isAbsolute, join, relative, resolve, sep } from 'node:path'
 import fs from 'fs-extra'
 import type { InlineConfig, LogOptions, Plugin, PluginOption } from 'vite'
-import { build as viteBuild, mergeConfig, version as viteVersion } from 'vite'
+import { build as viteBuild, mergeConfig } from 'vite'
 import {
   SSR_BUNDLED_PACKAGE_PATTERNS,
   SSR_EXTERNAL_PACKAGE_NAMES,
@@ -82,12 +82,18 @@ export interface ServerBundleOutput {
   readonly durationMs: number
 }
 
+/**
+ * The bundler options, under the name Vite 8 gives them.
+ *
+ * Vite 8 is Rolldown, and it reads the bundler's own options from
+ * `build.rolldownOptions`. Earlier versions read them from
+ * `build.rollupOptions`, and the two names are not interchangeable — the
+ * options moved with the bundler, not with the options.
+ */
 function buildBundlerOptions<T extends Record<string, unknown>>(
   options: T,
-): { rolldownOptions: T } | { rollupOptions: T } {
-  return Number.parseInt(viteVersion, 10) >= 8
-    ? { rolldownOptions: options }
-    : { rollupOptions: options }
+): { rolldownOptions: T } {
+  return { rolldownOptions: options }
 }
 
 function createSsrCssSkipPlugin(): PluginOption {

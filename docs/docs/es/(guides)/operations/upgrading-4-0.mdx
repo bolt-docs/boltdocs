@@ -156,6 +156,20 @@ Si necesitás un puente, la forma `import()` funciona hoy desde CommonJS:
 const { defineConfig } = await import('boltdocs')
 ```
 
+### Vite 8.3 es el único Vite
+
+4.0 construye sobre Vite 8.3.5 y lo requiere. El rango de peer dependency pasó de `^8.1.0` a `^8.3.0`, así que un sitio en Vite 8.1 u 8.2 tiene que actualizar antes de poder instalar el nuevo Boltdocs.
+
+```bash
+pnpm add -D vite@^8.3.0
+```
+
+El build lee sus opciones del bundler desde `build.rolldownOptions`, que es donde Vite 8 las lee desde que se volvió Rolldown. Las versiones anteriores las leían de `build.rollupOptions`, y los dos nombres no son intercambiables — las opciones se movieron con el bundler, no con las opciones. Un sitio que haya puesto `build.rollupOptions` para sus propios plugins tiene que moverlas.
+
+<Callout type="info">
+  La salida no cambia. Las 260 páginas del sitio de documentación son byte a byte idénticas entre Vite 8.1.5 y 8.3.5.
+</Callout>
+
 ## 3. Qué cambió realmente
 
 ### `react-aria-components` → `@bdocs/primitives`

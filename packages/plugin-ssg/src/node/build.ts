@@ -14,7 +14,7 @@ import { createRequire } from 'node:module'
 import os from 'node:os'
 import { basename, dirname, isAbsolute, join, relative } from 'node:path'
 import fs from 'fs-extra'
-import { createLogger, resolveConfig, version as viteVersion } from 'vite'
+import { createLogger, resolveConfig } from 'vite'
 import { withLeadingSlash } from '../utils/path'
 import { createAssetCollector } from './assets'
 import type { AssetCollector } from './assets'
@@ -88,7 +88,10 @@ import { createRenderPlans, getRenderPlan } from './pipeline/render-plan'
 import type { RenderPlan } from './pipeline/render-plan'
 import { executeRenderSchedule } from './pipeline/render-executor'
 
-const dotVitedir = Number.parseInt(viteVersion, 10) >= 5 ? ['.vite'] : []
+// Vite writes its cache under `.vite` in the output directory. Before Vite 5
+// there was no such directory, and the build looked for the manifests in the
+// output root instead.
+const dotVitedir = ['.vite']
 
 // The manifest and page-cache shapes belong to `@bdocs/contracts`. Declaring
 // them here as well meant two copies inside one package, which had already
