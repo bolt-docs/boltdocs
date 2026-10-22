@@ -109,4 +109,35 @@ describe('collectOutputBreakdown', () => {
       fs.rmSync(root, { recursive: true, force: true })
     }
   })
+
+  it('does not let the build date of a feed change the digest', () => {
+    const root = fs.mkdtempSync(path.join(os.tmpdir(), 'boltdocs-output-feed-'))
+    try {
+      fs.mkdirSync(path.join(root, 'rss'), { recursive: true })
+      fs.writeFileSync(path.join(root, 'index.html'), 'page')
+      fs.writeFileSync(
+        path.join(root, 'rss', 'rss-en.xml'),
+        '<rss><pubDate>Thu, 22 Oct 2026 14:15:44 GMT</pubDate></rss>',
+      )
+
+      const first = collectOutputBreakdown(root)
+
+      fs.writeFileSync(
+        path.join(root, 'rss', 'rss-en.xml'),
+        '<rss><pubDate>Thu, 22 Oct 2026 14:16:05 GMT</pubDate></rss>',
+      )
+      const second = collectOutputBreakdown(root)
+
+      // The feed changed, and it is still part of the output.
+      expect(first.other.files).toBe(1)
+      expect(second.other.files).toBe(1)
+      expect(
+        fs.readFileSync(path.join(root, 'rss', 'rss-en.xml'), 'utf-8'),
+      ).toContain('14:16:05')
+      // Two builds of the same site have to look the same to the gate.
+      expect(second.contentDigest).toBe(first.contentDigest)
+    } finally {
+      fs.rmSync(root, { recursive: true, force: true })
+    }
+  })
 })

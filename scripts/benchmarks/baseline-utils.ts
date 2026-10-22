@@ -143,6 +143,12 @@ function addFile(target: OutputCategory, bytes: number): void {
   target.files++
 }
 
+function isFeedFile(relativePath: string): boolean {
+  // The RSS plugin writes the feeds next to the site and next to the docs,
+  // as `rss-en.xml`, `rss-es.xml` and so on.
+  return /(^|\/)rss[^/]*\.xml$/.test(relativePath)
+}
+
 function extensionCategory(
   filePath: string,
 ): keyof Pick<
@@ -230,6 +236,12 @@ export function collectOutputBreakdown(rootDir: string): OutputBreakdown {
   const digest = crypto.createHash('sha256')
   const orderedContents: Buffer[] = []
   for (const file of files) {
+    // A feed carries the moment it was built: the RSS plugin writes the
+    // current time into `pubDate`. Two builds of the same site therefore
+    // differ in the feed, by design, and comparing the bytes would report a
+    // difference that is not one. The feed's size and file count are still
+    // part of the breakdown.
+    if (isFeedFile(file.relativePath)) continue
     digest.update(file.relativePath)
     digest.update('\0')
     digest.update(file.bytes)
