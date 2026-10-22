@@ -16,7 +16,18 @@ import {
   CompilePool,
 } from './index'
 import type { CodeHighlightConfig } from './satteri-plugins/rehype-shiki-plugin'
-import { collectUserPlugins } from './user-plugins'
+import { collectUserPlugins, collectWorkerHooks } from './user-plugins'
+
+/**
+ * The most workers the compile pool uses.
+ *
+ * Every worker loads the site's grammars for itself, so the pool is worth
+ * less the more of them there are. Measured on the documentation site with
+ * 234 pages: four workers compile them in 5.9 s and eight in 8.4 s, while a
+ * single thread takes 6.8 s. Past four the duplicated warm-up costs more
+ * than the parallelism buys.
+ */
+const MAX_COMPILE_WORKERS = 4
 import { MdxCompiler, MDX_PLUGIN_VERSION } from './compiler'
 import type { PoolMetrics } from './compile-pool'
 
@@ -486,7 +497,7 @@ function highlightSignature(config?: CodeHighlightConfig): string {
 export function createSatteriMdxPlugin(
   config: ProcessorConfig | undefined,
   getLifecycle: () => IPluginLifecycleManager | undefined,
-  pluginOptions?: { docsDir?: string },
+  pluginOptions?: { docsDir?: string; root?: string },
 ): Plugin {
   const highlighting = normalizeCodeHighlightConfig(
     config?.theme?.codeHighlighting,
@@ -503,9 +514,15 @@ export function createSatteriMdxPlugin(
   // P2-22: Check if user plugins are present.  When false, we can use the
   // compile pool (workers have built-in plugins only).  When true, we must
   // compile on the main thread with the compiler instance.
+  //
+  // A user plugin that describes its hook for a worker does not block the
+  // pool: the worker rebuilds the plugin and produces the same output.
   const userPlugins = collectUserPlugins(config)
+  const workerHooks = collectWorkerHooks(config)
   const hasUserPlugins =
     userPlugins.remarkPlugins.length > 0 || userPlugins.rehypePlugins.length > 0
+  // The pool is usable when every user plugin is reproducible in a worker.
+  const poolHasUserPlugins = hasUserPlugins && !workerHooks.complete
 
   // A non-string engine (adapter instance/factory) is not serializable into
   // worker threads, so the compile pool must be skipped for that config.
@@ -665,14 +682,27 @@ export function createSatteriMdxPlugin(
       ? mdxFiles.length
       : mdxFiles.filter((file) => !isManifestEntryFresh(file, manifest[file]))
           .length
-    if (!hasUserPlugins && poolSafeEngine && estimatedMisses > 2) {
+    if (!poolHasUserPlugins && poolSafeEngine && estimatedMisses > 2) {
+      // The workers each load the site's grammars for themselves, so the
+      // pool is worth less the more of them there are. Measured on the
+      // documentation site: four workers compile the 234 pages in 5.9 s and
+      // eight in 8.4 s, while one thread takes 6.8 s. Beyond four the
+      // duplicated warm-up costs more than the parallelism buys.
       const optimalWorkers = Math.min(
         os.cpus().length || 4,
         Math.max(2, Math.ceil(estimatedMisses / 25)),
+        MAX_COMPILE_WORKERS,
+        Number.parseInt(process.env.BOLTDOCS_COMPILE_WORKERS || '', 10) || 99,
       )
-      compilePool = new CompilePool(optimalWorkers, codeHighlighting)
-      compilePool.start().catch(() => {
-        compilePool = null
+      const pool = new CompilePool(optimalWorkers, codeHighlighting, {
+        remark: workerHooks.remark,
+        rehype: workerHooks.rehype,
+        projectRoot:
+          pluginOptions?.root ?? viteResolvedConfig?.root ?? process.cwd(),
+      })
+      compilePool = pool
+      pool.start().catch(() => {
+        if (compilePool === pool) compilePool = null
       })
     }
 

@@ -75,7 +75,15 @@ const CONFIG_ATTR_NAME = 'config'
 const SVG_LIGHT_ATTR = 'svgLight'
 const SVG_DARK_ATTR = 'svgDark'
 
-function remarkMermaid(config: {
+/**
+ * The remark plugin that turns Mermaid code blocks into components.
+ *
+ * Exported so a build worker can rebuild it: a plugin hook is a function, and
+ * a function cannot cross a worker boundary. The worker imports this module
+ * and calls this export with the same options the main thread would have
+ * used, and both produce the same tree.
+ */
+export function remarkMermaid(config: {
   themes: { light: MermaidThemeVariables; dark: MermaidThemeVariables }
   preRender: boolean
 }) {
@@ -159,18 +167,30 @@ export default function mermaidPlugin(
   const darkTheme = { ...defaultTheme.dark, ...themes.dark }
   const mergedConfig = { themes: { light: lightTheme, dark: darkTheme } }
 
+  const remarkOptions = {
+    themes: mergedConfig.themes,
+    preRender: options.preRender,
+  }
+
   return {
     name: 'boltdocs-plugin-mermaid',
     version: '0.1.0',
-    remarkPlugins: [
-      [
-        remarkMermaid,
+    remarkPlugins: [[remarkMermaid, remarkOptions]],
+    // The same hook, described for a build worker. Without it a site with the
+    // Mermaid plugin compiles its MDX on the main thread, one page at a time,
+    // while the rest of the machine waits.
+    workerHooks: {
+      remark: [
         {
-          themes: mergedConfig.themes,
-          preRender: options.preRender,
+          module: '@bdocs/plugin-mermaid',
+          export: 'remarkMermaid',
+          options: remarkOptions,
+          kind: 'code',
+          language: 'mermaid',
+          component: COMPONENT_NAME,
         },
       ],
-    ],
+    },
     components: {
       [COMPONENT_NAME]: '@bdocs/plugin-mermaid/client',
     },

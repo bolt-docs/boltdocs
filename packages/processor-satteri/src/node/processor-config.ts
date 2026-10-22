@@ -16,6 +16,33 @@ export interface ProcessorPlugin {
   options?: unknown
   remarkPlugins?: unknown[]
   rehypePlugins?: unknown[]
+  /**
+   * The same hooks, described so a build worker can rebuild them.
+   *
+   * A remark or rehype plugin is a function, and a function cannot cross a
+   * worker boundary. Naming the module and the export instead lets the
+   * worker obtain the same plugin, and the site keeps its parallel MDX
+   * compile.
+   */
+  workerHooks?: {
+    remark?: ProcessorWorkerHook[]
+    rehype?: ProcessorWorkerHook[]
+  }
+}
+
+/**
+ * A plugin hook described so a build worker can rebuild it.
+ *
+ * Mirrors `WorkerHook` in `@bdocs/contracts`, kept narrow so the processor
+ * does not depend on the engine's configuration shape.
+ */
+export interface ProcessorWorkerHook {
+  module: string
+  export: string
+  options?: Record<string, unknown>
+  kind?: 'transformer' | 'code'
+  language?: string
+  component?: string
 }
 
 /**

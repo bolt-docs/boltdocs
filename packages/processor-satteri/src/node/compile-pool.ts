@@ -3,6 +3,7 @@ import os from 'node:os'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import type { CodeHighlightConfig } from './satteri-plugins/rehype-shiki-plugin'
+import type { WorkerHookDescriptor } from './compile-worker'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 
@@ -27,6 +28,14 @@ export interface PoolMetrics {
   healthyWorkers: number
 }
 
+/** The user plugin hooks the workers rebuild for themselves. */
+export interface CompilePoolHooks {
+  remark?: WorkerHookDescriptor[]
+  rehype?: WorkerHookDescriptor[]
+  /** The project root the hook modules are resolved from. */
+  projectRoot?: string
+}
+
 export class CompilePool {
   private piscina: Piscina
   private totalWorkers: number
@@ -35,7 +44,11 @@ export class CompilePool {
   private startTime = 0
   private _terminated = false
 
-  constructor(numWorkers?: number, config?: CodeHighlightConfig) {
+  constructor(
+    numWorkers?: number,
+    config?: CodeHighlightConfig,
+    hooks?: CompilePoolHooks,
+  ) {
     this.totalWorkers = numWorkers ?? Math.max(2, (os.cpus().length || 2) - 1)
     const workerFile = join(__dirname, 'compile-worker.mjs')
     this.startTime = performance.now()
@@ -45,7 +58,12 @@ export class CompilePool {
       maxThreads: this.totalWorkers,
       minThreads: this.totalWorkers,
       idleTimeout: 30000,
-      workerData: { codeHighlighting: config },
+      workerData: {
+        codeHighlighting: config,
+        remarkHooks: hooks?.remark ?? [],
+        rehypeHooks: hooks?.rehype ?? [],
+        projectRoot: hooks?.projectRoot,
+      },
     })
   }
 

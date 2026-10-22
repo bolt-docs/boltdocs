@@ -32,6 +32,13 @@ vi.mock('../node/user-plugins', () => ({
       },
     ],
   }),
+  collectWorkerHooks: () => ({
+    remark: [],
+    rehype: [],
+    // The mocked user plugin has an in-process hook and no worker hook, so
+    // the pool cannot reproduce it and the compile stays on the main thread.
+    complete: false,
+  }),
 }))
 
 vi.mock('../node/compiler', () => ({

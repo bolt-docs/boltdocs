@@ -186,8 +186,9 @@ The route builder and the shell moved to their own entry
 (`@bdocs/theme-neutral/ssg`): they are what the *build* drives, and every site
 that imported one component was downloading them with it.
 
-Two findings that are not fixed yet, recorded because they are the size of the
-opportunity:
+Two more findings, and what was done about them. The cold build of the
+documentation site is now **19.7 s**, measured against the 27.4 s of the
+table above.
 
 ### The critical-CSS extractor parses the stylesheet once
 
@@ -244,6 +245,19 @@ API can describe an MDX hook in a way a worker can rebuild. The documentation
 site is in exactly that case (the Mermaid plugin transforms code blocks), and
 its precompile runs on one core while seven sit idle.
 
+**The plugin API can describe a hook for a worker to rebuild, and does.** A
+plugin declares the module, the export and the options of its remark or
+rehype hook, and the worker imports the module from the project — the way
+the site's own code resolves it — and calls the export to obtain the same
+plugin. The pool is used only when every user plugin that has an in-process
+hook also declares a worker hook; a plugin that does not stays on the main
+thread, because a worker that could not reproduce it would compile pages
+differently from the main thread.
+
+The compiled pages are byte for byte identical either way: the same 253
+pages, compared file by file. Getting there took a fix in the highlight
+cache, which is described below.
+
 **The compile pool is a pessimisation on a small machine, and the reason is
 the warm-up.** Measured on the documentation site: one core compiles the 234
 pages in 9.8 s; a pool of eight workers takes 15.6 s. Each worker loads the
@@ -252,13 +266,23 @@ spends 70 s of CPU where the single thread spends 10 s. The pool only pays
 for itself on a site with few languages, or with pages big enough that the
 warm-up is amortised over them.
 
-Enabling the pool for sites *with* user plugins was measured and it did not
-help: the precompile went from 6.6 s to 7.7 s, and the build did not move.
-The plugin API can describe a hook for a worker to rebuild — the module, the
-export and the options — and the machinery was built and measured, but on
-this machine it bought nothing, so it was not kept. The description of a
-rebuildable hook is the piece the API still needs; the fact that the pool
-does not pay for itself on four cores is the piece that has to change first.
+The pool is therefore capped at four workers. Past four the duplicated
+warm-up costs more than the parallelism buys: four workers compile the 234
+pages in 5.4 s and eight in 8.4 s, while a single thread takes 6.4 s.
+
+**The highlight cache could not tell two blocks apart.** It is keyed by the
+language, the resolved options and the code. The resolved options carry the
+fence meta — the title, the line numbers, the word wrap — but the meta's
+properties are defined as non-enumerable, so `JSON.stringify` dropped them.
+Two blocks with the same code and a different title shared one entry, and the
+first one to be compiled lent its title to the other.
+
+Which title a page showed therefore depended on the order the pages were
+compiled in. The documentation site compiled the same page in two ways — on
+the main thread and in a build worker — and the two disagreed about six code
+blocks out of three thousand. The output was not wrong, but it was not the
+same output either, and a build that is not reproducible is a build nobody
+can cache. The cache key carries the fence meta now.
 
 **The search dialog is in the eager set.** 110 kB — 12% of the first visit —
 for a feature most readers never open. Vite preloads the entry chunk's dynamic

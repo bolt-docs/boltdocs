@@ -16,6 +16,21 @@ export const MdxConfigSchema = z.object({
 })
 
 /**
+ * Zod schema for a plugin hook a build worker can rebuild.
+ *
+ * The module and the export are what the worker needs; the options travel
+ * with it so the worker builds the same plugin the main thread would have.
+ */
+export const WorkerHookSchema = z.object({
+  module: z.string(),
+  export: z.string(),
+  options: z.record(z.string(), z.any()).optional(),
+  kind: z.enum(['transformer', 'code']).optional(),
+  language: z.string().optional(),
+  component: z.string().optional(),
+})
+
+/**
  * Zod schema for a Boltdocs plugin.
  */
 export const BoltdocsPluginSchema = z.object({
@@ -26,6 +41,15 @@ export const BoltdocsPluginSchema = z.object({
   clientEntry: z.string().optional(),
   remarkPlugins: z.array(z.unknown()).optional(),
   rehypePlugins: z.array(z.unknown()).optional(),
+  // The hooks a build worker rebuilds for itself. The schema is strict, so a
+  // field it does not declare is dropped — and a plugin that declared them
+  // would silently lose them here.
+  workerHooks: z
+    .object({
+      remark: z.array(WorkerHookSchema).optional(),
+      rehype: z.array(WorkerHookSchema).optional(),
+    })
+    .optional(),
   vitePlugins: z.array(z.unknown()).optional(),
   components: z.record(z.string(), z.string()).optional(),
   client: z

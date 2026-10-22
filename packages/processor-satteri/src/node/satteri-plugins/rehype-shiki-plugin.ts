@@ -46,6 +46,18 @@ interface CodeHighlighterResponse {
 const FALLBACK_CLASS = 'bd-code-fallback'
 
 /**
+ * The grammars a language needs to highlight itself.
+ *
+ * A TextMate grammar can include another one, and the included grammar has
+ * to be loaded for the inclusion to resolve. The Markdown grammar includes
+ * the YAML grammar to highlight a leading `---` block as front matter.
+ */
+const EMBEDDED_GRAMMAR: Record<string, string[]> = {
+  markdown: ['yaml'],
+  md: ['yaml'],
+}
+
+/**
  * Merge class arrays from two property sets.
  * Original node may use `className` (React convention) while the highlighter
  * output may use `class` (HAST convention). We normalize and merge.
@@ -194,10 +206,20 @@ function cacheKeyFor(
   lang: string,
   options: Record<string, unknown>,
   code: string,
+  meta?: string,
 ): string {
   // Options contain functions (transformers) — their identity is stable per
   // plugin instance, which is what the cache lifetime is bound to anyway.
-  return `${lang}\u0000${JSON.stringify(options, replacerForCacheKey)}\u0000${code}`
+  //
+  // The fence meta is the exception. It decides what the rendered `<pre>`
+  // looks like — the title, the line numbers, the word wrap — and the
+  // rendered HTML is what the cache stores. The meta's properties are
+  // defined as non-enumerable, so `JSON.stringify` drops them and two blocks
+  // with the same code and a different fence title shared one entry. The
+  // first one to be compiled then lent its title to the other, and which one
+  // won depended on the order the pages were compiled in — so the same page
+  // rendered differently depending on which worker compiled it.
+  return `${lang}\u0000${meta ?? ''}\u0000${JSON.stringify(options, replacerForCacheKey)}\u0000${code}`
 }
 
 /** JSON replacer that renders functions as a stable tag instead of dropping them. */
@@ -282,9 +304,15 @@ export function satteriRehypeCodeHighlightPlugin(config?: CodeHighlightConfig) {
 
         if (lang === 'mermaid') return
 
+        // The fence meta is read from `data.meta`, which Sätteri fills in
+        // itself. The `hProperties.metastring` the remark-meta plugin adds is
+        // a second copy of the same string, and it is the copy that loses:
+        // several `code` visitors run against the same node, so whichever
+        // writes `data` last decides what survives. The native one does not
+        // compete, so it is the one to read.
         const metaStr: string =
-          (codeNode.properties?.metastring as string | undefined) ??
           (codeNode.data as { meta?: string } | undefined)?.meta ??
+          (codeNode.properties?.metastring as string | undefined) ??
           ''
 
         const parsedMeta = parseMetaString(metaStr)
@@ -295,6 +323,17 @@ export function satteriRehypeCodeHighlightPlugin(config?: CodeHighlightConfig) {
         // failures keep the existing plaintext/fallback paths below.
         if (lang !== 'text') {
           await adapter?.ensureLanguage?.(lang)
+          // A grammar can include another one, and the inclusion only
+          // resolves if the included grammar is loaded. The Markdown grammar
+          // includes the YAML grammar to highlight a leading `---` block as
+          // front matter. Whether that inclusion resolves used to depend on
+          // whether some other page happened to use YAML first — which made
+          // the output depend on the order the pages were compiled in, and on
+          // which worker compiled them. Loading the dependency here makes it
+          // the same everywhere.
+          for (const embedded of EMBEDDED_GRAMMAR[lang] ?? []) {
+            await adapter?.ensureLanguage?.(embedded)
+          }
         }
 
         const codeText =
@@ -302,7 +341,7 @@ export function satteriRehypeCodeHighlightPlugin(config?: CodeHighlightConfig) {
           ''
 
         try {
-          const cacheKey = cacheKeyFor(lang, options, codeText)
+          const cacheKey = cacheKeyFor(lang, options, codeText, metaStr)
           let preElement: Element
           let html: string | undefined
 

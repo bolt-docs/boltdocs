@@ -444,6 +444,45 @@ export interface PluginCssDefinition {
   preprocessorOptions?: Record<string, unknown>
 }
 
+/**
+ * A plugin hook described so that a build worker can rebuild it.
+ *
+ * A remark or rehype plugin is a function, and a function cannot cross a
+ * worker boundary. A site with such a plugin therefore compiles its MDX on
+ * the main thread, one page at a time, while the rest of the machine waits.
+ *
+ * A `WorkerHook` names the module and the export instead, so a worker can
+ * import the module and call the export to obtain the very same plugin. The
+ * module is resolved from the project, so it has to be a dependency of the
+ * site — which a published plugin is.
+ *
+ * `options` must survive the trip: it is structured-cloned to the worker, so
+ * it holds data, not functions.
+ */
+export interface WorkerHook {
+  /** The module to import, resolved from the project root. */
+  module: string
+  /** The export to read from that module. */
+  export: string
+  /** Data passed to the export when it is called. */
+  options?: Record<string, unknown>
+  /**
+   * How the export becomes a plugin.
+   *
+   * `transformer` — the export is a remark or rehype transformer, or a
+   * factory that returns one. The default.
+   *
+   * `code` — the export transforms the code blocks of one language into a
+   * component, and the worker needs to know which language and which
+   * component to build the replacement with.
+   */
+  kind?: 'transformer' | 'code'
+  /** The language the `code` hook transforms. */
+  language?: string
+  /** The component the `code` hook produces. */
+  component?: string
+}
+
 export interface PluginDefinition<
   Config = Record<string, unknown>,
   Request = unknown,
@@ -455,6 +494,18 @@ export interface PluginDefinition<
   boltdocsVersion?: string
   remarkPlugins?: unknown[]
   rehypePlugins?: unknown[]
+  /**
+   * The same hooks, described so a build worker can rebuild them.
+   *
+   * When both are present, the worker hook is what the worker uses and the
+   * function is what the main thread uses. They must produce the same
+   * result: the worker compiles the pages, the main thread compiles whatever
+   * the worker did not.
+   */
+  workerHooks?: {
+    remark?: WorkerHook[]
+    rehype?: WorkerHook[]
+  }
   components?: Record<string, string>
   client?: PluginClientConfig
   metadata?: Record<string, unknown>

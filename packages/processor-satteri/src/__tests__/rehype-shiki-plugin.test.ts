@@ -645,6 +645,97 @@ describe('satteriRehypeCodeHighlightPlugin', () => {
       ],
     })
 
+    // A fence with a meta string, the way Sätteri hands it over.
+    const makeTitledPreNode = (code: string, meta: string) => ({
+      type: 'element' as const,
+      tagName: 'pre',
+      properties: {} as Record<string, unknown>,
+      children: [
+        {
+          type: 'element' as const,
+          tagName: 'code',
+          properties: { className: ['language-javascript'] },
+          data: { lang: 'javascript', meta },
+          children: [{ type: 'text' as const, value: code }],
+        },
+      ],
+    })
+
+    it('keeps the fence title of two blocks that share the same code', async () => {
+      // The real adapter defines the parsed meta as non-enumerable, so
+      // `JSON.stringify` of the options cannot tell two fences apart. The
+      // rendered HTML is what the cache stores, and it carries the title, so
+      // the key has to carry the fence meta itself. Without it the second
+      // block was served the first one's HTML — and which title a page
+      // showed depended on the order the pages were compiled in.
+      mockAdapter.getOptions.mockImplementation(
+        (lang: string, meta: unknown) => {
+          const options: Record<string, unknown> = {
+            lang,
+            meta: { __raw: '' },
+          }
+          const target = options.meta as Record<string, unknown>
+          for (const [key, value] of Object.entries(
+            (meta ?? {}) as Record<string, unknown>,
+          )) {
+            Object.defineProperty(target, key, {
+              value,
+              enumerable: false,
+              configurable: true,
+              writable: true,
+            })
+          }
+          return options
+        },
+      )
+      mockHighlighter.codeToHast.mockImplementation(
+        (code: string, options: Record<string, unknown>) => {
+          const meta = options.meta as { title?: string }
+          return {
+            type: 'root',
+            children: [
+              {
+                type: 'element',
+                tagName: 'pre',
+                properties: {
+                  className: ['shiki'],
+                  ...(meta.title ? { 'data-title': meta.title } : {}),
+                },
+                children: [
+                  {
+                    type: 'element',
+                    tagName: 'code',
+                    properties: { className: ['language-javascript'] },
+                    children: [{ type: 'text', value: code }],
+                  },
+                ],
+              },
+            ],
+          }
+        },
+      )
+
+      const visit = async (meta: string) => {
+        const plugin = satteriRehypeCodeHighlightPlugin() as {
+          element: { visit: (...args: unknown[]) => unknown }
+        }
+        return (await plugin.element.visit(
+          makeTitledPreNode('const shared = 1', meta),
+          makeCtx(),
+        )) as { properties: Record<string, unknown> }
+      }
+
+      const first = await visit('title="first.ts"')
+      const second = await visit('title="second.ts"')
+
+      expect(first.properties['data-title']).toBe('first.ts')
+      expect(second.properties['data-title']).toBe('second.ts')
+      expect(second.properties['data-highlighted-html']).toContain('second.ts')
+      expect(second.properties['data-highlighted-html']).not.toContain(
+        'first.ts',
+      )
+    })
+
     it('serializes data-highlighted-html from a single grammar pass', async () => {
       mockHighlighter.codeToHast.mockReturnValue({
         type: 'root',
