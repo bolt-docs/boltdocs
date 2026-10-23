@@ -21,7 +21,7 @@ export interface BoltdocsStaticSsgOptions {
   htmlEntry: string
   dirStyle: 'flat'
   includeAllRoutes: true
-  mock: true
+  mock: boolean
   script: 'async'
   beastiesOptions: false
   criticalCss: 'zig-critters' | 'beasties' | false
@@ -44,14 +44,20 @@ function resolveCriticalCss(
 
 export function createStaticSsgOptions(
   config?: BoltdocsConfig,
+  options: { mock?: boolean } = {},
 ): BoltdocsStaticSsgOptions {
   return {
     entry: 'boltdocs/entry',
     htmlEntry: 'index.html',
     dirStyle: 'flat',
     includeAllRoutes: true,
-    // SSR renders React on the server, so the dev server needs a DOM shim.
-    mock: true,
+    // The dev server renders in-process, so a page that touches `window` while
+    // it loads needs a DOM there. A production build renders inside its worker
+    // pool instead, and none of those workers ever installed the shim: the only
+    // DOM was on the main thread, which merely imports the SSR bundle. Importing
+    // and constructing jsdom costs ~1 s of every build, so it is opt-in through
+    // `ssg.mock` for the rare site whose modules read `document` at import time.
+    mock: options.mock ?? config?.ssg?.mock ?? false,
     script: 'async',
     beastiesOptions: false,
     criticalCss: resolveCriticalCss(config?.ssg?.criticalCss),

@@ -83,7 +83,7 @@ export async function devAction(
     // project does not have, and every page render fails to resolve a module.
     server = await createServer(viteConfig, {
       skipResolveConfig: true,
-      ...createStaticSsgOptions(config),
+      ...createStaticSsgOptions(config, { mock: true }),
     })
     if (debugTimings) {
       console.log(

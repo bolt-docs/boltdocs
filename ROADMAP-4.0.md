@@ -242,6 +242,35 @@ In the build, the critical-CSS extraction went from 111 ms to 69 ms at the
 median and the finalise queue from 113 ms to 78 ms. The cold build went from
 18.1 s to 17.3 s.
 
+### The build installs no browser it does not render in
+
+Every build imported jsdom and constructed a document before it started. The
+import alone costs 705 ms on this machine, and the window it installs was a
+liability: with `window` defined, react-helmet believed it was running in a
+browser and skipped the server branch of its state, which is why the theme
+carries a flag that forces `canUseDOM` back to false for the duration of an
+SSG render.
+
+Nothing was using it. A production build renders its pages inside the SSG
+worker pool, and those workers never installed a shim — the only jsdom lived
+on the main thread, which imports the SSR bundle and hands the work over. The
+documentation site renders all 260 pages without it, and the output is
+byte-identical to the build that had a browser in memory.
+
+| Cold build, config resolved → first bundle | jsdom | no jsdom |
+| --- | --- | --- |
+| The documentation site | 1589 ms | **486 ms** |
+
+That segment is single-threaded, which is why it is the one quoted: the rest
+of the build competes for the same four cores, and on a machine that was
+carrying three other processes during these runs the whole-build medians
+stayed inside their own spread. The 936 ms is real regardless of whether the
+total is quiet enough to show it.
+
+A project whose modules read `document` or `window` while they are imported
+can ask for the shim back with `ssg.mock: true`. The dev server renders
+in-process, so it keeps the shim unconditionally.
+
 ### The highlighter's engine is Oniguruma
 
 Highlighting is 96% of an MDX compile — on the documentation site's 971 code

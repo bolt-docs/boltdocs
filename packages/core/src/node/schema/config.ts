@@ -442,6 +442,16 @@ export const SsgConfigSchema = z.object({
    */
   criticalCss: z.enum(['zig-critters', 'beasties', 'none']).optional(),
   /**
+   * Install a jsdom DOM shim on the main thread for the production build.
+   *
+   * Off by default: pages render inside the SSG worker pool, which never had
+   * the shim, and importing jsdom costs ~1 s of every build. Enable it only if
+   * a module in the project reads `document` or `window` while it is imported.
+   * The dev server always installs the shim.
+   * @default false
+   */
+  mock: z.boolean().optional(),
+  /**
    * Per-page budget (bytes) for inlined critical CSS. Pages whose critical CSS
    * exceeds the budget have it skipped (with a build warning). Default: 24576.
    */

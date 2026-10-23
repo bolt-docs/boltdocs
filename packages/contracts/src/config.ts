@@ -199,6 +199,11 @@ export interface BoltdocsIntegrationsConfig {
 export interface BoltdocsSsgConfig {
   criticalCss?: 'zig-critters' | 'beasties' | 'none'
   criticalCssMaxSize?: number
+  /**
+   * Install a jsdom DOM shim for the production build. Off by default; the
+   * dev server always installs one.
+   */
+  mock?: boolean
 }
 
 export interface BoltdocsDraftsConfig {
