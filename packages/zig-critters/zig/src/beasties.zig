@@ -69,6 +69,7 @@ fn selectorMatchesAnyElements(
     selector_elements: []const selector.Element,
     selector_tokens_cache: *std.StringHashMap(?[]selector.SelectorToken),
     allocator: Allocator,
+    page_filter: *const selector.TokenFilter,
 ) bool {
     if (isAlwaysInclude(sel_str)) return true;
     // Layout selectors (navbar, sidebar, nav…) were excluded from the critical
@@ -96,6 +97,10 @@ fn selectorMatchesAnyElements(
     }
 
     if (isTooComplex(tokens, 2)) return false;
+
+    // The page can answer for most of the rules on its own: a rule whose
+    // last compound asks for a name the page does not have cannot match.
+    if (!selector.mayMatchPage(tokens, page_filter)) return false;
 
     return selector.selectorMatches(tokens, selector_elements);
 }
@@ -187,11 +192,25 @@ pub fn extractCriticalCssWith(
     const stylesheet_allocator = stylesheet.arena.allocator();
     const selector_cache = &stylesheet.selector_cache;
 
+    // The names this page has. A rule that asks for a name the page does not
+    // have cannot match, and the filter answers that without touching the
+    // elements — which is where the matching spends its time.
+    var page_filter = try selector.TokenFilter.init(allocator);
+    for (selector_elements) |elem| {
+        page_filter.add(.tag, elem.tag);
+        for (elem.classes) |class_name| {
+            page_filter.add(.class, class_name);
+        }
+        if (elem.id) |id| {
+            page_filter.add(.id, id);
+        }
+    }
+
     var critical_keyframe_names = std.StringHashMap(void).init(allocator);
     defer critical_keyframe_names.deinit();
 
     resetMarks(stylesheet.rules);
-    markUnusedRules(stylesheet.rules, selector_elements, selector_cache, stylesheet_allocator, &critical_keyframe_names, options);
+    markUnusedRules(stylesheet.rules, selector_elements, selector_cache, stylesheet_allocator, &critical_keyframe_names, options, &page_filter);
 
     // The parser is used here only for its allocator, and the scratch arena
     // must not accumulate the output of every page.
@@ -241,7 +260,19 @@ pub fn extractCriticalCss(
     var critical_keyframe_names = std.StringHashMap(void).init(allocator);
     defer critical_keyframe_names.deinit();
 
-    markUnusedRules(rules, selector_elements, &selector_cache, allocator, &critical_keyframe_names, options);
+    // The names this page has — see the note in extractCriticalCssWith.
+    var page_filter = try selector.TokenFilter.init(allocator);
+    for (selector_elements) |elem| {
+        page_filter.add(.tag, elem.tag);
+        for (elem.classes) |class_name| {
+            page_filter.add(.class, class_name);
+        }
+        if (elem.id) |id| {
+            page_filter.add(.id, id);
+        }
+    }
+
+    markUnusedRules(rules, selector_elements, &selector_cache, allocator, &critical_keyframe_names, options, &page_filter);
 
     const critical_css = try css_parser.serializeStyleSheet(rules, options.compress);
 
@@ -263,6 +294,7 @@ fn markUnusedRules(
     allocator: Allocator,
     critical_keyframe_names: *std.StringHashMap(void),
     options: BeastiesOptions,
+    page_filter: *const selector.TokenFilter,
 ) void {
     var include_next = false;
     var exclude_next = false;
@@ -316,7 +348,7 @@ fn markUnusedRules(
                         }
                     }
 
-                    const matches = selectorMatchesAnyElements(sel, selector_elements, selector_cache, allocator);
+                    const matches = selectorMatchesAnyElements(sel, selector_elements, selector_cache, allocator, page_filter);
 
                     if (!matches) {
                         rule.marked_for_removal = true;
@@ -369,7 +401,7 @@ fn markUnusedRules(
                         }
                     },
                     .media, .supports, .layer => {
-                        markUnusedRules(rule.children, selector_elements, selector_cache, allocator, critical_keyframe_names, options);
+                        markUnusedRules(rule.children, selector_elements, selector_cache, allocator, critical_keyframe_names, options, page_filter);
 
                         var all_removed = true;
                         for (rule.children) |child| {

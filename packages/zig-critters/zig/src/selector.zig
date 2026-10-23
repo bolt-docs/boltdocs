@@ -25,6 +25,121 @@ pub const AttrOp = enum {
     substring,
 };
 
+/// The kinds of name a page can have. A tag, a class and an id are kept
+/// apart: `div` as a tag and `div` as a class are different names, and a
+/// filter that mixed them would let a rule through that cannot match — or
+/// drop one that can.
+pub const TokenKind = enum(u8) {
+    tag = 1,
+    class = 2,
+    id = 3,
+};
+
+/// The names a page has, as a bitmap of hashes.
+///
+/// Matching a rule means trying it against every element of the page, and
+/// that is where the time of an extraction goes: the stylesheet of the
+/// documentation site has fifteen hundred rules and a page has a thousand
+/// elements, so a page costs fifteen hundred thousand attempts to answer a
+/// question most of the time is "no".
+///
+/// Almost all of those attempts are hopeless before they start. A rule whose
+/// last compound asks for a class the page does not have cannot match, and
+/// the page can say so in one lookup. This filter answers that: it holds a
+/// hash of every tag, class and id of the page, and a rule whose required
+/// name is not in it is dropped without touching the elements.
+///
+/// It is a filter, not a set: a name that is not in the page can still be
+/// reported as possibly present, because two names can hash to the same
+/// place. That only costs time — the rule is then matched as before. A name
+/// that IS in the page is never reported as absent, so no rule that could
+/// match is ever dropped.
+pub const TokenFilter = struct {
+    words: []u64,
+    mask: usize,
+
+    /// The filter holds 2^18 bits — 32 kB. A page with a few thousand names
+    /// fills about two percent of them, so a name that is not in the page
+    /// passes the filter two times in a hundred.
+    pub fn init(allocator: Allocator) !TokenFilter {
+        const words = try allocator.alloc(u64, 4096);
+        @memset(words, 0);
+        return .{ .words = words, .mask = 4095 };
+    }
+
+    fn hash(kind: TokenKind, name: []const u8) u64 {
+        var h: u64 = 0xcbf29ce484222325;
+        h = (h ^ @intFromEnum(kind)) *% 0x100000001b3;
+        for (name) |c| {
+            h = (h ^ c) *% 0x100000001b3;
+        }
+        h ^= h >> 33;
+        h *%= 0xff51afd7ed558ccd;
+        h ^= h >> 33;
+        return h;
+    }
+
+    pub fn add(self: *TokenFilter, kind: TokenKind, name: []const u8) void {
+        if (name.len == 0) return;
+        const h = hash(kind, name);
+        const bit: u6 = @truncate(h);
+        const index = self.indexOf(h);
+        self.words[index] |= @as(u64, 1) << bit;
+    }
+
+    /// Whether the name may be in the page. False means it is not.
+    pub fn mayContain(self: *const TokenFilter, kind: TokenKind, name: []const u8) bool {
+        if (name.len == 0) return true;
+        const h = hash(kind, name);
+        const bit: u6 = @truncate(h);
+        const index = self.indexOf(h);
+        return (self.words[index] & (@as(u64, 1) << bit)) != 0;
+    }
+
+    fn indexOf(self: *const TokenFilter, h: u64) usize {
+        return @as(usize, @truncate(h >> 6)) & self.mask;
+    }
+};
+
+/// Whether the selector could match an element of a page with these names.
+///
+/// Every name of a selector has to be somewhere in the page for the selector
+/// to match: the subject compound names the element, and every other
+/// compound names one of its ancestors — all of them elements of the page.
+/// So a rule that asks for a class the page does not have cannot match, and
+/// neither can a rule that asks for a tag the page does not have.
+///
+/// A selector with groups (a comma) matches when any of its groups matches,
+/// so the groups are checked one by one.
+pub fn mayMatchPage(
+    tokens: []const SelectorToken,
+    filter: *const TokenFilter,
+) bool {
+    var group_start: usize = 0;
+    var index: usize = 0;
+    while (index <= tokens.len) : (index += 1) {
+        if (index != tokens.len and tokens[index] != .group_end) continue;
+        const group = tokens[group_start..index];
+        group_start = index + 1;
+        if (group.len == 0) continue;
+        if (groupMayMatch(group, filter)) return true;
+    }
+    return false;
+}
+
+/// Whether every name of the group may be in the page.
+fn groupMayMatch(group: []const SelectorToken, filter: *const TokenFilter) bool {
+    for (group) |token| {
+        switch (token) {
+            .tag => |name| if (!filter.mayContain(.tag, name)) return false,
+            .class => |name| if (!filter.mayContain(.class, name)) return false,
+            .id => |name| if (!filter.mayContain(.id, name)) return false,
+            else => {},
+        }
+    }
+    return true;
+}
+
 pub const SelectorToken = union(SelectorTokenType) {
     tag: []const u8,
     class: []const u8,
@@ -365,8 +480,6 @@ fn attrValueStartsWith(haystack: []const u8, prefix: []const u8) bool {
     return mem.startsWith(u8, haystack, prefix);
 }
 
-
-
 fn matchAttr(elem: Element, attr: AttrSelector) bool {
     if (attr.op == .exists) {
         for (elem.attrs) |a| {
@@ -599,4 +712,63 @@ test "match class" {
     const elem = Element{ .tag = "div", .classes = &.{"foo"}, .id = null, .attrs = &.{} };
     const tokens = [_]SelectorToken{.{ .class = "foo" }};
     try std.testing.expect(selectorMatches(&tokens, &.{elem}));
+}
+
+test "the filter holds the names of the page" {
+    const allocator = std.testing.allocator;
+    var filter = try TokenFilter.init(allocator);
+    defer allocator.free(filter.words);
+
+    filter.add(.tag, "div");
+    filter.add(.class, "prose");
+    filter.add(.id, "main");
+
+    try std.testing.expect(filter.mayContain(.tag, "div"));
+    try std.testing.expect(filter.mayContain(.class, "prose"));
+    try std.testing.expect(filter.mayContain(.id, "main"));
+
+    // A name of another kind is a different name.
+    try std.testing.expect(!filter.mayContain(.class, "div"));
+    try std.testing.expect(!filter.mayContain(.tag, "span"));
+}
+
+test "a selector whose names the page lacks cannot match" {
+    const allocator = std.testing.allocator;
+    var filter = try TokenFilter.init(allocator);
+    defer allocator.free(filter.words);
+
+    filter.add(.tag, "div");
+    filter.add(.class, "prose");
+
+    // The page has no <p> and no <span>, so neither rule can match.
+    const missing_tag = try parseSelector(allocator, ".prose p");
+    defer freeSelectorTokens(allocator, missing_tag);
+    try std.testing.expect(!mayMatchPage(missing_tag, &filter));
+
+    const missing_class = try parseSelector(allocator, ".absent div");
+    defer freeSelectorTokens(allocator, missing_class);
+    try std.testing.expect(!mayMatchPage(missing_class, &filter));
+
+    // Both of its names are in the page, so the rule has to be tried.
+    const possible = try parseSelector(allocator, ".prose div");
+    defer freeSelectorTokens(allocator, possible);
+    try std.testing.expect(mayMatchPage(possible, &filter));
+}
+
+test "a selector with groups needs only one group to be possible" {
+    const allocator = std.testing.allocator;
+    var filter = try TokenFilter.init(allocator);
+    defer allocator.free(filter.words);
+
+    filter.add(.tag, "div");
+
+    // The first group asks for a name the page does not have, the second
+    // for one it has: the selector can still match.
+    const tokens = try parseSelector(allocator, ".missing, div");
+    defer freeSelectorTokens(allocator, tokens);
+    try std.testing.expect(mayMatchPage(tokens, &filter));
+
+    const none = try parseSelector(allocator, ".missing, .also-missing");
+    defer freeSelectorTokens(allocator, none);
+    try std.testing.expect(!mayMatchPage(none, &filter));
 }

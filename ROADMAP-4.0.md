@@ -187,7 +187,7 @@ The route builder and the shell moved to their own entry
 that imported one component was downloading them with it.
 
 Two more findings, and what was done about them. The cold build of the
-documentation site is now **19.7 s**, measured against the 27.4 s of the
+documentation site is now **17.3 s**, measured against the 27.4 s of the
 table above.
 
 ### The critical-CSS extractor parses the stylesheet once
@@ -211,6 +211,36 @@ The change is in the Zig extractor (`packages/zig-critters`), which is
 recompiled to WebAssembly as part of the build. The toolchain needs
 `wasm-ld` on the path — on this machine it lives in `/usr/lib/llvm21/bin` —
 and without it the WASM build fails and the previous binary is used.
+
+### The extractor asks the page before it walks the elements
+
+What is left of an extraction after the parse is the matching, and the
+matching is a search: fifteen hundred rules tried against a thousand elements,
+a million and a half attempts to answer a question that is almost always "no".
+Almost all of them are hopeless before they start. A rule whose subject asks
+for a class the page does not have cannot match, and the page knows it without
+being asked element by element.
+
+The extractor now builds a filter of the names the page has — every tag, class
+and id, each kind kept apart — and a rule whose name is not in it is dropped
+without touching the elements. The filter is a bitmap of hashes, not a set:
+2^18 bits, 32 kB, filled by a page with a few thousand names to about two
+percent. An absent name can still be reported as possibly present, which costs
+the match it would have cost before; a present name is never reported as
+absent, so no rule that could match is ever dropped.
+
+| One extraction, 185 kB stylesheet | Before | After |
+| --- | --- | --- |
+| The documentation page | 53 ms | **12 ms** |
+| The home page | 52 ms | **18 ms** |
+
+The output is **byte-identical**: all 260 pages of the documentation site,
+against the stylesheet the build actually produces, extracted through both
+binaries and compared by hash.
+
+In the build, the critical-CSS extraction went from 111 ms to 69 ms at the
+median and the finalise queue from 113 ms to 78 ms. The cold build went from
+18.1 s to 17.3 s.
 
 ### The highlighter's engine is Oniguruma
 
