@@ -271,6 +271,33 @@ A project whose modules read `document` or `window` while they are imported
 can ask for the shim back with `ssg.mock: true`. The dev server renders
 in-process, so it keeps the shim unconditionally.
 
+### Where the sixteen seconds are
+
+The cold build of the documentation site, on a quiet machine, adds up like
+this. The phases overlap where they can, which is why the numbers are a map
+and not a sum.
+
+| Phase | ms | Bound by |
+| --- | --- | --- |
+| Process start, config, plugin modules | ~1500 | modules loaded once per build |
+| Vite config resolution inside the SSG | ~330 | every plugin's `config` hooks |
+| MDX precompile, four workers | ~5900 | satteri: 15 s of CPU for 234 pages |
+| Client and server bundle, in parallel | ~1400 | two Rolldown graphs |
+| SSR bundle import on the main thread | ~600 | a 7 MB entry module |
+| Render and critical CSS drain | ~3900 | React: 33 ms of SSR per page |
+| Search index, redirects, outputs | ~1300 | — |
+
+Two of those phases are worker-bound and account for ten of the sixteen
+seconds: the precompile waits on MDX compilation, and the drain waits on
+React rendering every page again. Neither has a configuration knob left —
+four compile workers already lose to their own warm-up past that count, and
+the render pool was swept against the critical-CSS pool. They move only if
+the work per page gets cheaper.
+
+The fixed overhead is smaller but matters more for a small site: ~2.4 s that
+a hundred-page project pays in full. A ten-second build of a hundred pages
+needs the precompile and the drain to shrink together, not the startup alone.
+
 ### The highlighter's engine is Oniguruma
 
 Highlighting is 96% of an MDX compile — on the documentation site's 971 code
