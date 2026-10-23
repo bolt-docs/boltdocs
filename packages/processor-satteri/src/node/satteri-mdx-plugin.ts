@@ -692,7 +692,6 @@ export function createSatteriMdxPlugin(
         os.cpus().length || 4,
         Math.max(2, Math.ceil(estimatedMisses / 25)),
         MAX_COMPILE_WORKERS,
-        Number.parseInt(process.env.BOLTDOCS_COMPILE_WORKERS || '', 10) || 99,
       )
       const pool = new CompilePool(optimalWorkers, codeHighlighting, {
         remark: workerHooks.remark,
