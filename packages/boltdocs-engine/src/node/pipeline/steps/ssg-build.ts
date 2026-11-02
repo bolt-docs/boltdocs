@@ -30,6 +30,9 @@ export class SSGBuildStep implements PipelineStep<BuildContext> {
         cacheDir: path.resolve(ctx.root, '.boltdocs/build'),
         onStep: (step) => {
           ssgSubSteps.push(step)
+          console.log(
+            `[boltdocs] [SSG sub-step: ${step.name}] ${step.duration}ms${step.details ? ` · ${step.details}` : ''}`,
+          )
         },
       },
       ctx.viteConfig,

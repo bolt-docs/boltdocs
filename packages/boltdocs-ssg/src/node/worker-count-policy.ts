@@ -26,16 +26,16 @@ export function resolveSsgWorkerCount({
 }: WorkerCountPolicyInput): number {
   const cores = Math.max(1, cpuCount || 4)
   const cpuWorkers = Math.max(1, cores - 1)
-  const maxCap = totalMemoryGB >= 4 ? Math.min(cpuWorkers, 12) : 4
+  const maxCap = totalMemoryGB >= 4 ? Math.min(cpuWorkers, 16) : 4
   const budgetWorkers = Math.max(2, Math.floor((totalMemoryGB * 0.35) / 0.256))
   const freeWorkers = Math.max(2, Math.floor(freeMemoryGB / 0.3))
   const ramWorkers = Math.min(budgetWorkers, freeWorkers)
   const parsedEnvWorkers = Number.parseInt(envWorkers || '', 10)
-  // Default: leave one core for the orchestrator, then use the rest of the
-  // CPU headroom. RAM gates (0.256GB/worker budget, 0.3GB free floor) still
-  // cap this well before memory pressure on small machines — e.g. 8 cores /
-  // 7.6GB → 6 workers, 4 cores / 8GB → 3.
-  const defaultWorkers = Math.max(2, Math.min(cores - 1, 6))
+  // Default: use all but one core for rendering. More workers = more pages
+  // rendered in parallel, directly reducing the render-pages phase which is
+  // the largest SSG cost on documentation sites (e.g. 10.5s for 260 pages).
+  // RAM gates still cap this well before memory pressure.
+  const defaultWorkers = Math.max(2, Math.min(cpuWorkers, 8))
   const selectedWorkers =
     requestedWorkers ??
     (Number.isFinite(parsedEnvWorkers) && parsedEnvWorkers > 0
