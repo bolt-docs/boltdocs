@@ -26,7 +26,14 @@ export async function runBuildPipelineSuite(
     const docsDir = path.join(fixtureDir, 'docs')
 
     const { generateRoutes, invalidateRouteCache } = await import(
-      path.join(WORKSPACE_ROOT, 'packages', 'core', 'dist', 'node', 'index.mjs')
+      path.join(
+        WORKSPACE_ROOT,
+        'packages',
+        'boltdocs-engine',
+        'dist',
+        'node',
+        'index.mjs',
+      )
     )
 
     const bench = new Bench({

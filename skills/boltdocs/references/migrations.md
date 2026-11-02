@@ -142,6 +142,22 @@ The import paths that moved:
 | `boltdocs/mdx` | `@bdocs/theme-neutral` |
 | `boltdocs/client/router` | `@bdocs/runtime/router` |
 
+Ownership is **per name**, not per file, because `boltdocs/client` re-exported
+three packages at once. The codemod resolves each imported symbol against the
+three public barrels and points it at the one that exports it:
+
+1. `@bdocs/theme-neutral` — the styled surface (`DocsLayout`, `Navbar`,
+   `CodeBlock`, `Callout`, `useCodeBlock`, `surface`, …).
+2. `@bdocs/theme-neutral/composition` — the composition layer
+   (`SidebarItem`, `CodeBlockContent`, `SearchDialog`, `Button`, …).
+3. `@bdocs/runtime` — navigation state and router (`useSearch`, `usePrefetch`,
+   `useLocalizedTo`, `createRoutes`, `registerSiteBridge`, …).
+
+A component primitive that the theme composition builds on (`Button`, `Dialog`,
+`Menu`, `Popover`, `Tooltip`) can also be imported directly from
+`@bdocs/primitives` — that is the style-neutral layer, with no visuals of its
+own. The theme re-exports the ones it styles, so a site rarely needs it.
+
 ## Upgrade checklist
 
 - Read the release page for every version you cross, not just the target.

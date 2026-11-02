@@ -231,4 +231,4 @@ docs/
 - Default position: 999
 - Ties broken alphabetically by title
 
-Sorter file: `packages/core/src/node/routes/sorter.ts`
+Sorter file: `packages/boltdocs-engine/src/node/routes/sorter.ts`

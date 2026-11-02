@@ -7,7 +7,7 @@ import fs from 'node:fs'
  * at: the theme's styled surface, the theme's style-neutral composition
  * layer, and the runtime. Regenerating it after a package changes its public
  * surface is a matter of running this and pasting the lists back into
- * `packages/core/src/node/migrate/transforms/client-import-owners.ts`.
+ * `packages/boltdocs-engine/src/node/migrate/transforms/client-import-owners.ts`.
  */
 
 function exportedNames(file) {
@@ -28,11 +28,11 @@ function exportedNames(file) {
   return names
 }
 
-const theme = exportedNames('packages/theme-neutral/dist/index.d.mts')
+const theme = exportedNames('packages/boltdocs-theme-neutral/dist/index.d.mts')
 const composition = exportedNames(
-  'packages/theme-neutral/dist/composition.d.mts',
+  'packages/boltdocs-theme-neutral/dist/composition.d.mts',
 )
-const runtime = exportedNames('packages/runtime/dist/index.d.mts')
+const runtime = exportedNames('packages/boltdocs-runtime/dist/index.d.mts')
 
 const styled = [...theme].sort()
 const slots = [...composition].filter((name) => !theme.has(name)).sort()
@@ -77,7 +77,7 @@ export const RUNTIME_NAMES = ${list(browser)}
 `
 
 fs.writeFileSync(
-  'packages/core/src/node/migrate/transforms/client-import-owners.ts',
+  'packages/boltdocs-engine/src/node/migrate/transforms/client-import-owners.ts',
   output,
 )
 console.log('written', styled.length, slots.length, browser.length)

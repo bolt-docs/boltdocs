@@ -75,7 +75,7 @@ positioned with `className`, and `MenuItem` reports activation through
 
 ### Other fixes in this change
 
-- `packages/core` type-checks clean. The 46 errors it carried were all
+- `packages/boltdocs-engine` type-checks clean. The 46 errors it carried were all
   `TS7016` implicit-`any` imports of the vendored Shiki grammars and themes,
   introduced when those assets were vendored; each vendored `.mjs` now has a
   sibling `.d.mts`.

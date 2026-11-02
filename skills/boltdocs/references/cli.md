@@ -94,6 +94,19 @@ pnpm docs:audit || exit 1
 
 ---
 
+### `boltdocs migrate [root]`
+
+Reports 3.x patterns that 4.0 no longer publishes, and rewrites the safe ones. This is the command behind the import path migration — run it before upgrading.
+
+```bash
+boltdocs migrate                     # Dry run: report only
+boltdocs migrate --apply             # Write the safe fixes
+```
+
+It runs against a project that does not build yet, so it renders its own minimal output and needs no working Vite pipeline. See [Upgrading to 4.0](migrations.md#upgrading-to-40).
+
+---
+
 ### `boltdocs generate-changelog <file>`
 
 Generate changelog documentation pages from a `CHANGELOG.md` file.

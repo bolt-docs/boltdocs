@@ -73,10 +73,10 @@ function packLocalBoltdocs(): string {
 
   // Pack core + ssg + processor-satteri + unist-utils
   const packages = [
-    { dir: 'packages/core', name: 'boltdocs' },
-    { dir: 'packages/plugin-ssg', name: '@bdocs-ssg' },
-    { dir: 'packages/processor-satteri', name: '@bdocs-processor-satteri' },
-    { dir: 'packages/unist-utils', name: '@bdocs-unist-utils' },
+    { dir: 'packages/boltdocs-engine', name: 'boltdocs' },
+    { dir: 'packages/boltdocs-ssg', name: '@bdocs-ssg' },
+    { dir: 'packages/boltdocs-processor-satteri', name: '@bdocs-processor-satteri' },
+    { dir: 'packages/boltdocs-unist-utils', name: '@bdocs-unist-utils' },
   ]
 
   let boltdocsTgz = ''
@@ -471,14 +471,14 @@ function writeConfigs() {
 
   // Pack ALL workspace dependencies that boltdocs core needs
   const allWorkspaceDeps = [
-    { dir: 'packages/core', name: 'boltdocs' },
-    { dir: 'packages/plugin-ssg', name: '@bdocs/ssg' },
-    { dir: 'packages/parser', name: '@bdocs/parser' },
-    { dir: 'packages/unist-utils', name: '@bdocs/unist-utils' },
-    { dir: 'packages/zig-critters', name: '@bdocs/zig-critters' },
-    { dir: 'packages/processor-satteri', name: '@bdocs/processor-satteri' },
+    { dir: 'packages/boltdocs-engine', name: 'boltdocs' },
+    { dir: 'packages/boltdocs-ssg', name: '@bdocs/ssg' },
+    { dir: 'packages/boltdocs-parser', name: '@bdocs/parser' },
+    { dir: 'packages/boltdocs-unist-utils', name: '@bdocs/unist-utils' },
+    { dir: 'packages/boltdocs-zig-critters', name: '@bdocs/zig-critters' },
+    { dir: 'packages/boltdocs-processor-satteri', name: '@bdocs/processor-satteri' },
     {
-      dir: 'packages/plugin-image-optimizer',
+      dir: 'packages/boltdocs-plugin-image-optimizer',
       name: '@bdocs/plugin-image-optimizer',
     },
   ]

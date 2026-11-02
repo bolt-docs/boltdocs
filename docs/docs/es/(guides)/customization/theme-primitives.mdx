@@ -60,7 +60,7 @@ a[data-open] svg { transform: rotate(90deg); }
 
 ## Los Defaults Viven en `ui-base`
 
-El aspecto que obtienes de fábrica — el sidebar de `DocsLayout`, la TOC de la columna derecha, el navbar sticky — está implementado **sobre las primitivas** en `packages/core/src/client/components/ui-base/`. Cada clase ahí es solo el tema del propio framework y es **totalmente sobreescribible**: las primitivas aceptan slots `className` (o `itemClassName` / `linkClassName` / `indicatorClassName` / `fadeClassName` cuando el slot se repite por elemento) que se fusionan con, y ganan sobre, los defaults.
+El aspecto que obtienes de fábrica — el sidebar de `DocsLayout`, la TOC de la columna derecha, el navbar sticky — está implementado **sobre las primitivas** en `packages/boltdocs-engine/src/client/components/ui-base/`. Cada clase ahí es solo el tema del propio framework y es **totalmente sobreescribible**: las primitivas aceptan slots `className` (o `itemClassName` / `linkClassName` / `indicatorClassName` / `fadeClassName` cuando el slot se repite por elemento) que se fusionan con, y ganan sobre, los defaults.
 
 ```tsx
 // ui-base/sidebar.tsx — el look default del framework (el tuyo será distinto)

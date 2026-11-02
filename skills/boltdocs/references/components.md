@@ -155,14 +155,20 @@ The sidebar and navbar top-level items opt into `'viewport'` so scrolling warms 
 When enabled, `TransitionLink` and the `useViewTransition()` / `startViewTransition` exports animate router changes. Transitions carry a direction type (`forward` / `back`) and are skipped entirely when the visitor prefers reduced motion.
 
 ```tsx
-import { TransitionLink, useViewTransition } from 'boltdocs'
+import { TransitionLink } from '@bdocs/theme-neutral/composition'
+import { useViewTransition } from '@bdocs/runtime'
 ```
 
 ---
 
 ## Layout Primitives & State Contract
 
-The layout primitives (`Sidebar`, `OnThisPage`, `Navbar`, `SearchDialog`, `Breadcrumbs`, `PageNav`, `CodeBlock`, `ErrorBoundary`) live in `'@bdocs/theme-neutral/composition'`. They are **style-neutral**: structure + behavior + `data-*` state attributes come from the primitive; colors/borders/sizes belong to the theme. The styled defaults you see out of the box live in `ui-base/` (e.g. `ui-base/sidebar.tsx`, `ui-base/on-this-page.tsx`) and are fully overridable through `className` slots.
+Since 4.0 there are two layers, and the difference matters when you restyle them:
+
+- **`@bdocs/primitives`** — the style-neutral atoms (`Button`, `Dialog`, `Modal`, `Menu`, `Popover`, `Tooltip`, `Separator`, `ListBox`, `Autocomplete`, …). Structure, behavior and `data-*` state only: no colors, borders or sizes. A primitive that shipped a visual could not be themed.
+- **`@bdocs/theme-neutral/composition`** — the layout compositions built on those atoms (`Sidebar`, `OnThisPage`, `Navbar`, `SearchDialog`, `Breadcrumbs`, `PageNav`, `CodeBlock`, `Heading`, `ErrorBoundary`, `Callout`, `Tabs`). They keep the same style-neutral contract and expose `className` slots for every styled element.
+
+The styled defaults you see out of the box live in `ui-base/` in the theme (`ui-base/sidebar.tsx`, `ui-base/on-this-page.tsx`) and are fully overridable through those slots. The stylesheet is native CSS shipped as `@bdocs/theme-neutral/css` — not Tailwind utilities — so overriding a rule never requires matching a utility class.
 
 State contract (present-when-true attributes):
 

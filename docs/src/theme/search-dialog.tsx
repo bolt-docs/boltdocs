@@ -1,9 +1,10 @@
 import { Search, X } from 'lucide-react'
-import { useSearch } from '@bdocs/theme-neutral'
+
 import { SearchDialog as SearchDialogPrimitive } from '@bdocs/theme-neutral/composition'
 import { Navbar } from '@bdocs/theme-neutral/composition'
 import { ErrorBoundary } from '@bdocs/theme-neutral'
-import type { ComponentRoute } from '@bdocs/theme-neutral'
+import { useSearch } from '@bdocs/runtime'
+import type { ComponentRoute } from '@bdocs/runtime'
 
 interface SearchResult {
   id: string

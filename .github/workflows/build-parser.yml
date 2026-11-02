@@ -31,7 +31,7 @@ jobs:
 
       - name: Build N-API shared library
         run: |
-          cd packages/parser && \
+          cd packages/boltdocs-parser && \
           zig build-lib src/napi.zig \
             -dynamic -fPIC \
             --name bdocs_parser_napi \
@@ -39,10 +39,10 @@ jobs:
             -OReleaseFast -lc
 
       - name: Run Zig tests
-        run: cd packages/parser && zig build test
+        run: cd packages/boltdocs-parser && zig build test
 
       - name: Run N-API binding tests
-        run: cd packages/parser && pnpm exec tsx tests/run-napi-tests.ts
+        run: cd packages/boltdocs-parser && pnpm exec tsx tests/run-napi-tests.ts
 
   build:
     strategy:
@@ -81,7 +81,7 @@ jobs:
 
       - name: Build N-API shared library
         run: |
-          cd packages/parser && \
+          cd packages/boltdocs-parser && \
           zig build-lib src/napi.zig \
             -dynamic ${{ contains(matrix.target, 'windows') && '' || '-fPIC' }} \
             --name bdocs_parser_napi \
@@ -99,7 +99,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: napi-${{ matrix.binary }}
-          path: packages/parser/${{ matrix.napi_lib }}
+          path: packages/boltdocs-parser/${{ matrix.napi_lib }}
 
   release:
     needs: [build, test-napi]

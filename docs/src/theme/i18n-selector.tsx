@@ -1,8 +1,8 @@
-import { useI18n } from '@bdocs/theme-neutral'
 import { Button } from '@/theme/button'
 import { Menu } from '@bdocs/theme-neutral/composition'
 import { ChevronDown, Languages } from 'lucide-react'
 import { cn } from '@bdocs/theme-neutral'
+import { useI18n } from '@bdocs/runtime'
 
 export function I18nSelector({ className }: { className?: string }) {
   const { currentLocale, availableLocales, handleLocaleChange } = useI18n()
@@ -32,7 +32,7 @@ export function I18nSelector({ className }: { className?: string }) {
           {(locale) => (
             <Menu.Item
               key={locale.value}
-              onPress={() => handleLocaleChange(locale.value as 'en' | 'es')}
+              onAction={() => handleLocaleChange(locale.value as 'en' | 'es')}
               className="flex items-center gap-2 px-3 py-2 rounded-md text-xs font-medium text-body hover:bg-surface/50 transition-colors cursor-pointer select-none outline-none group data-selected:text-primary-500 data-selected:bg-primary-500/10"
             >
               <span>{locale.label}</span>

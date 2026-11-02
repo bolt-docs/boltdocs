@@ -202,7 +202,7 @@ function findCli(source: string): string {
   const workspaceBin = path.join(
     WORKSPACE_ROOT,
     'packages',
-    'core',
+    'boltdocs-engine',
     'bin',
     'boltdocs.js',
   )

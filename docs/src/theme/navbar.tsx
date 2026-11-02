@@ -1,21 +1,24 @@
 import { useState } from 'react'
 import { cn } from '@bdocs/theme-neutral'
-import { useNavbar } from '@bdocs/theme-neutral'
-import { useRoutes } from '@bdocs/theme-neutral'
 import { Navbar as NavbarPrimitive } from '@bdocs/theme-neutral/composition'
 import { Button } from '@/theme/button'
 import { ChevronDown, Menu as MenuIcon, X } from 'lucide-react'
 import { Github } from '@/theme/icons'
-import { useLocation } from '@bdocs/theme-neutral'
-import { useLocalizedTo } from '@bdocs/theme-neutral'
-import { useUI } from '@bdocs/theme-neutral'
 import { SearchDialog } from '@/theme/search-dialog'
 import { I18nSelector } from '@/theme/i18n-selector'
 import { DocsTabs } from '@/theme/tabs'
 import type { NavbarLink as NavbarLinkType } from '@bdocs/theme-neutral'
+import {
+  useLocation,
+  useLocalizedTo,
+  useNavbar,
+  useRoutes,
+  useUI,
+} from '@bdocs/runtime'
 
 export function Navbar() {
-  const { links, title, logo, logoProps, github, config } = useNavbar()
+  const { links, title, logo, logoProps, social, config } = useNavbar()
+  const github = social?.find((link) => link.icon === 'github')?.link
   const { routes, allRoutes, currentRoute, isCollectionPage, currentLocale } =
     useRoutes()
   const { isSidebarOpen, toggleSidebar } = useUI()

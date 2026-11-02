@@ -1,6 +1,33 @@
 # Styling & Theme Customization
 
-Boltdocs is **100% CSS-Framework Agnostic** by design. You can use:
+## The default theme is plain CSS
+
+Since 4.0 the UI lives in a theme package, and `@bdocs/theme-neutral` ships its
+stylesheet as native CSS — no Tailwind directives, no utility classes:
+
+```tsx title="boltdocs-entry.tsx"
+import '@bdocs/theme-neutral/css'
+```
+
+Everything visual resolves through a public token layer, so retheming is a block
+of overrides rather than a fight with utility specificity:
+
+```css
+:root {
+  --bdocs-primary: #7c3aed;
+  --bdocs-radius: 0.5rem;
+}
+```
+
+`--bdocs-*` are public (safe to override, renamed only on a major); `--_bdocs-*`
+are private to the theme's own rules and may change in any release. A custom
+theme replaces the package, not the tokens — see
+[`themePackage`](configuration.md#theme-package-themepackage).
+
+---
+
+Boltdocs is **100% CSS-Framework Agnostic** by design. For your own pages and
+components you can use:
 
 - **Vanilla CSS** and **CSS Modules** (zero-config core support)
 - **Tailwind CSS v4** via `@bdocs/plugin-tailwindcss`

@@ -1,6 +1,7 @@
 import { OnThisPage } from '@/theme'
-import { useMergedComponents, usePost, formatDate } from '@bdocs/theme-neutral'
+
 import type { ReactNode, ComponentType } from 'react'
+import { useMergedComponents, usePost, formatDate } from '@bdocs/runtime'
 
 interface BlogPostProps {
   MDXComponent: (props: {

@@ -1,0 +1,71 @@
+{
+  "name": "@bdocs/theme-neutral",
+  "version": "1.0.0",
+  "type": "module",
+  "description": "The neutral Boltdocs theme: the full UI-base component set, the MDX components, and their hooks. Depends on @bdocs/runtime and @bdocs/primitives; installable on its own.",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.mts",
+      "import": "./dist/index.mjs"
+    },
+    "./composition": {
+      "types": "./dist/composition.d.mts",
+      "import": "./dist/composition.mjs"
+    },
+    "./surface": {
+      "types": "./dist/surface.d.mts",
+      "import": "./dist/surface.mjs"
+    },
+    "./css": "./dist/styles/index.css",
+    "./reset": {
+      "default": "./dist/styles/reset.css"
+    },
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "dist",
+    "test"
+  ],
+  "scripts": {
+    "build": "tsdown --config-loader unrun",
+    "dev": "tsdown --watch --config-loader unrun",
+    "test": "vitest run",
+    "verify:styles": "node test/browser/verify-styles.cjs"
+  },
+  "dependencies": {
+    "@bdocs/contracts": "workspace:*",
+    "@bdocs/primitives": "workspace:*",
+    "@bdocs/runtime": "workspace:*",
+    "clsx": "2.1.1",
+    "dompurify": "^3.3.3",
+    "scroll-into-view-if-needed": "3.1.0",
+    "tailwind-merge": "3.5.0"
+  },
+  "peerDependencies": {
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0"
+  },
+  "devDependencies": {
+    "@testing-library/dom": "^10.4.0",
+    "@testing-library/jest-dom": "^6.6.0",
+    "@testing-library/react": "^16.0.0",
+    "@testing-library/user-event": "^14.6.1",
+    "@types/node": "22.12.0",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "jsdom": "^24.1.0",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "tsdown": "^0.21.7",
+    "tsdown-config": "workspace:*",
+    "typescript": "^5.9.3",
+    "vitest": "^3.0.0"
+  },
+  "boltdocs": {
+    "source": {
+      ".": "./src/index.ts",
+      "./composition": "./src/components/composition/index.ts",
+      "./surface": "./src/surface.ts"
+    }
+  }
+}

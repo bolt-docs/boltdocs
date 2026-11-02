@@ -29,7 +29,7 @@ async function loadCore(): Promise<void> {
   const corePath = path.join(
     WORKSPACE_ROOT,
     'packages',
-    'core',
+    'boltdocs-engine',
     'dist',
     'node',
     'index.mjs',

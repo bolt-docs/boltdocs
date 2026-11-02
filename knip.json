@@ -5,9 +5,9 @@
     "**/.boltdocs/**",
     "**/templates/**",
     "docs/dist/**",
-    "packages/parser/**",
-    "packages/zig-critters/**",
-    "packages/tsdown-config/**"
+    "packages/boltdocs-parser/**",
+    "packages/boltdocs-zig-critters/**",
+    "packages/boltdocs-tsdown-config/**"
   ],
   "ignoreDependencies": [
     "@bdocs/dui",
@@ -38,7 +38,7 @@
         "vitest.config.ts"
       ]
     },
-    "packages/core": {
+    "packages/boltdocs-engine": {
       "entry": [
         "src/node/cli-entry.ts!",
         "src/node/index.ts!",
@@ -51,7 +51,7 @@
       ],
       "project": ["src/**/*.{ts,tsx}", "tests/**/*.{ts,tsx}"]
     },
-    "packages/plugin-ssg": {
+    "packages/boltdocs-ssg": {
       "entry": [
         "src/index.ts!",
         "src/node.ts!",
@@ -64,11 +64,11 @@
       ],
       "project": ["src/**/*.{ts,tsx}", "tests/**/*.ts"]
     },
-    "packages/create-boltdocs": {
+    "packages/boltdocs-create": {
       "entry": ["src/index.ts!", "bin.js", "tests/**/*.ts", "tsdown.config.ts"],
       "project": ["src/**/*.ts", "tests/**/*.ts"]
     },
-    "packages/plugin-ask-ai": {
+    "packages/boltdocs-plugin-ask-ai": {
       "entry": [
         "src/node/index.ts!",
         "src/client/index.ts!",
@@ -78,11 +78,11 @@
       ],
       "project": ["src/**/*.{ts,tsx}", "tests/**/*.ts"]
     },
-    "packages/plugin-image-optimizer": {
+    "packages/boltdocs-plugin-image-optimizer": {
       "entry": ["src/index.ts!", "tsdown.config.ts"],
       "project": ["src/**/*.ts"]
     },
-    "packages/plugin-math": {
+    "packages/boltdocs-plugin-math": {
       "entry": [
         "src/node/index.ts!",
         "src/client/index.ts!",
@@ -91,7 +91,7 @@
       ],
       "project": ["src/**/*.{ts,tsx}", "tests/**/*.ts"]
     },
-    "packages/plugin-mermaid": {
+    "packages/boltdocs-plugin-mermaid": {
       "entry": [
         "src/node/index.ts!",
         "src/client/index.ts!",
@@ -101,11 +101,11 @@
       ],
       "project": ["src/**/*.{ts,tsx}", "tests/**/*.ts"]
     },
-    "packages/plugin-rss": {
+    "packages/boltdocs-plugin-rss": {
       "entry": ["src/node/index.ts!", "tsdown.config.ts"],
       "project": ["src/**/*.ts"]
     },
-    "packages/processor-satteri": {
+    "packages/boltdocs-processor-satteri": {
       "entry": [
         "src/node/index.ts!",
         "src/**/index.ts!",
@@ -114,7 +114,7 @@
       ],
       "project": ["src/**/*.ts"]
     },
-    "packages/unist-utils": {
+    "packages/boltdocs-unist-utils": {
       "entry": [
         "src/index.ts!",
         "tests/**/*.ts",

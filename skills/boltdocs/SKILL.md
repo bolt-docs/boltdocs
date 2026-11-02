@@ -1,11 +1,11 @@
 ---
 name: boltdocs
-description: Guidelines for developers using the Boltdocs documentation framework (3.4.0). Covers configuration, migration and upgrades, plugin API, MDX content, routing, collections, styling, and CLI usage.
+description: Guidelines for developers using the Boltdocs documentation framework (4.0). Covers configuration, migration and upgrades, plugin API, MDX content, routing, collections, styling, and CLI usage.
 ---
 
 # Boltdocs Agent Guidelines
 
-This directory is the working knowledge base for anyone creating, extending, or maintaining a documentation project built on top of the **Boltdocs** framework. It targets **Boltdocs 3.4.0** — the React 19 + Vite 8.1 + Tailwind CSS v4 line, powered by the Sätteri Rust-based MDX processor.
+This directory is the working knowledge base for anyone creating, extending, or maintaining a documentation project built on top of the **Boltdocs** framework. It targets **Boltdocs 4.0** — the React 19 + Vite 8 line, powered by the Sätteri Rust-based MDX processor, split into a Node engine, a browser runtime and a separate theme package.
 
 Everything here is written so an AI pair-programmer can act without guessing: read the [reference guides](#reference-guides), then the page-relevant file.
 
@@ -29,6 +29,7 @@ Boltdocs is a **React/Vite documentation framework with a first-class static sit
 
 | Release | Highlights that change how you work |
 | --- | --- |
+| **4.0** | The UI layer leaves the engine. `boltdocs` is Node-only; components, layout and styles live in **`@bdocs/theme-neutral`** (native CSS, shipped as `@bdocs/theme-neutral/css`), browser state and routing in **`@bdocs/runtime`**, and style-neutral atoms in **`@bdocs/primitives`**. A site installs its theme and is resolved by name through `themePackage` (default `@bdocs/theme-neutral`). Grammars move to `@bdocs/grammars`. Import paths are rewritten by `boltdocs migrate` — see [Upgrading & Migration](references/migrations.md). |
 | **3.4.0** | New `@bdocs/contracts` package (framework-neutral contracts for routes, plugins, lifecycle, highlighting, search, config); `boltdocs` re-exports it, so the 3.x public API is unchanged. Content-addressed SSG page cache — a single page edit no longer re-renders the whole site. **Viewport-triggered prefetch**: `Link` accepts `prefetch="viewport"` (sidebar/navbar links opt in). View Transitions track direction (`forward`/`back`) and honor `prefers-reduced-motion`. File routing gains dynamic segments (`[slug]`, `[...parts]`). |
 | **3.3.x** | Entry-bundle diet: KaTeX is baked at build time and FlexSearch loads on demand. Lazy `pages-external` loaders. Vite 8.1 toolchain alignment. axe-clean accessibility pass (tabs, OnThisPage, navbar, search). Shiki `colorHighlighting.options.colorReplacements`. |
 | **3.2.0** | Nitro Phase 1 (5× faster warm builds, WASM highlighting, pipeline timing). `react-aria-components` became an explicit dependency — see [migrations](references/migrations.md). |
@@ -70,7 +71,7 @@ Boltdocs is semver-minor friendly, but install-time peer changes and structural 
 - **3.2.0** — declare `react-aria-components` yourself to clear the peer warning (it stopped being transitive). CI-strict setups have a scoped `.npmrc` fix.
 - **3.3.x** — drop-in; benefits are automatic (build-time KaTeX, on-demand FlexSearch, lazy external pages).
 - **3.4.0** — no code changes: `@bdocs/contracts` is a new published package and `boltdocs` re-exports it for backwards compatibility. New features are opt-in (`prefetch="viewport"`, `experimental.*`, `redirects`).
-- **4.0** — see the docs roadmap (`/roadmap`) for the architecture migration plan before you adopt 4.x-only APIs.
+- **4.0** — install `@bdocs/theme-neutral` and let `boltdocs migrate` rewrite `boltdocs/client` imports to the package that now owns each name (theme, theme composition, or runtime). The engine no longer ships React components. See [references/migrations.md](references/migrations.md) and the docs roadmap (`/roadmap`).
 
 ## Content conventions (`.mdx` pages)
 
@@ -86,23 +87,27 @@ These keep the rendered site consistent and are enforced by the project's a11y a
 
 | Package | npm name | Path | Purpose |
 | --------- | ---------- | ------ | --------- |
-| Core | `boltdocs` | `packages/core` | Engine: CLI, MDX pipeline, Vite plugins, routing, config, client UI |
-| Contracts | `@bdocs/contracts` | `packages/contracts` | Framework-neutral contracts (routes, plugins, lifecycle, highlighting, search, config); re-exported by `boltdocs` |
-| SSG | `@bdocs/ssg` | `packages/plugin-ssg` | Static Site Generator: client/server Vite builds, HTML rendering, content-addressed page cache |
-| Parser | `@bdocs/parser` | `packages/parser` | Zig/WASM markdown parser with cross-platform native binaries |
-| Processor (Sätteri) | `@bdocs/processor-satteri` | `packages/processor-satteri` | Rust-based MDX compiler (default processor) |
-| Unist-utils | `@bdocs/unist-utils` | `packages/unist-utils` | Strictly-typed AST utilities for unist/mdast/hast |
-| zig-critters | `@bdocs/zig-critters` | `packages/zig-critters` | WASM critical-CSS extractor used by the default `ssg.criticalCss` |
-| Mermaid | `@bdocs/plugin-mermaid` | `packages/plugin-mermaid` | Remark plugin + React container for Mermaid diagrams |
-| Math | `@bdocs/plugin-math` | `packages/plugin-math` | KaTeX math, baked at build time |
-| Image Optimizer | `@bdocs/plugin-image-optimizer` | `packages/plugin-image-optimizer` | Sharp/SVGO image optimization |
-| Ask AI | `@bdocs/plugin-ask-ai` | `packages/plugin-ask-ai` | Context-aware AI assistant |
-| RSS | `@bdocs/plugin-rss` | `packages/plugin-rss` | RSS and Atom feeds |
-| LLMs Text | `@bdocs/plugin-llms-text` | `packages/plugin-llms-text` | `llms.txt` generation |
-| Tailwind CSS | `@bdocs/plugin-tailwindcss` | `packages/plugin-tailwindcss` | Tailwind CSS v4 via `@tailwindcss/vite` |
-| SASS/SCSS | `@bdocs/plugin-sass` | `packages/plugin-sass` | SASS/SCSS preprocessor |
-| UnoCSS | `@bdocs/plugin-unocss` | `packages/plugin-unocss` | UnoCSS via `@unocss/vite` |
-| Scaffolder | `create-boltdocs` | `packages/create-boltdocs` | `create-boltdocs` project scaffolder |
+| Engine | `boltdocs` | `packages/boltdocs-engine` | Node-only engine: CLI, MDX pipeline, Vite plugins, routing, config, dev server |
+| Theme | `@bdocs/theme-neutral` | `packages/boltdocs-theme-neutral` | Default theme: components, native CSS (`/css`), and the `surface` the engine renders with |
+| Runtime | `@bdocs/runtime` | `packages/boltdocs-runtime` | Browser-facing React: contexts, hooks, router entry, `createRoutes`, site bridge |
+| Primitives | `@bdocs/primitives` | `packages/boltdocs-primitives` | Style-neutral atoms (Button, Dialog, Menu, Popover, …): structure + `data-*` state, no visuals |
+| Contracts | `@bdocs/contracts` | `packages/boltdocs-contracts` | Framework-neutral contracts (routes, plugins, lifecycle, highlighting, search, config); re-exported by `boltdocs` |
+| Grammars | `@bdocs/grammars` | `packages/boltdocs-grammars` | TextMate grammars and themes for the Shiki engine |
+| SSG | `@bdocs/ssg` | `packages/boltdocs-ssg` | Static Site Generator: client/server Vite builds, HTML rendering, content-addressed page cache |
+| Parser | `@bdocs/parser` | `packages/boltdocs-parser` | Zig/WASM markdown parser with cross-platform native binaries |
+| Processor (Sätteri) | `@bdocs/processor-satteri` | `packages/boltdocs-processor-satteri` | Rust-based MDX compiler (default processor) |
+| Unist-utils | `@bdocs/unist-utils` | `packages/boltdocs-unist-utils` | Strictly-typed AST utilities for unist/mdast/hast |
+| zig-critters | `@bdocs/zig-critters` | `packages/boltdocs-zig-critters` | WASM critical-CSS extractor used by the default `ssg.criticalCss` |
+| Mermaid | `@bdocs/plugin-mermaid` | `packages/boltdocs-plugin-mermaid` | Remark plugin + React container for Mermaid diagrams |
+| Math | `@bdocs/plugin-math` | `packages/boltdocs-plugin-math` | KaTeX math, baked at build time |
+| Image Optimizer | `@bdocs/plugin-image-optimizer` | `packages/boltdocs-plugin-image-optimizer` | Sharp/SVGO image optimization |
+| Ask AI | `@bdocs/plugin-ask-ai` | `packages/boltdocs-plugin-ask-ai` | Context-aware AI assistant |
+| RSS | `@bdocs/plugin-rss` | `packages/boltdocs-plugin-rss` | RSS and Atom feeds |
+| LLMs Text | `@bdocs/plugin-llms-text` | `packages/boltdocs-plugin-llms-text` | `llms.txt` generation |
+| Tailwind CSS | `@bdocs/plugin-tailwindcss` | `packages/boltdocs-plugin-tailwindcss` | Tailwind CSS v4 via `@tailwindcss/vite` |
+| SASS/SCSS | `@bdocs/plugin-sass` | `packages/boltdocs-plugin-sass` | SASS/SCSS preprocessor |
+| UnoCSS | `@bdocs/plugin-unocss` | `packages/boltdocs-plugin-unocss` | UnoCSS via `@unocss/vite` |
+| Scaffolder | `create-boltdocs` | `packages/boltdocs-create` | `create-boltdocs` project scaffolder |
 
 ## Common patterns
 

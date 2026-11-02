@@ -11,8 +11,8 @@
   "overrides": [
     {
       "includes": [
-        "**/packages/grammars/src/grammars/**",
-        "**/packages/grammars/src/themes/**"
+        "**/packages/boltdocs-grammars/src/grammars/**",
+        "**/packages/boltdocs-grammars/src/themes/**"
       ],
       "linter": {
         "enabled": false

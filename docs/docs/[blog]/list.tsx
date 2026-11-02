@@ -1,16 +1,17 @@
 import { useMemo, useState } from 'react'
+
+import { Link } from '@bdocs/theme-neutral/composition'
+import { Button } from '@/theme/button'
+import { Section } from '@/theme'
+import { ArrowLeft, ArrowRight, ArrowUpRight } from 'lucide-react'
 import {
   formatDate,
   resolvePublicAssetUrl,
   useConfig,
   useI18n,
   usePosts,
-} from '@bdocs/theme-neutral'
-import type { CollectionPost } from '@bdocs/theme-neutral'
-import { Link } from '@bdocs/theme-neutral/composition'
-import { Button } from '@/theme/button'
-import { Section } from '@/theme'
-import { ArrowLeft, ArrowRight, ArrowUpRight } from 'lucide-react'
+} from '@bdocs/runtime'
+import type { CollectionPost } from '@bdocs/runtime'
 
 const translations = {
   es: {

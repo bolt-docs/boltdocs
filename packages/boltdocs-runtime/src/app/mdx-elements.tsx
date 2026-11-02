@@ -1,0 +1,180 @@
+/// <reference types="vite/client" />
+import { useEffect, useState } from 'react'
+import type { ComponentRoute } from '../types'
+import { MdxPage } from './mdx-page'
+import { useMdxComponents } from '../mdx-components-context'
+import { matchesMdxUpdatePath } from './mdx-path'
+import type { BoltdocsTheme } from './theme'
+
+const _Loading = () => <div className="text-muted text-sm py-4">Loading...</div>
+
+export interface MdxModule {
+  default: React.ComponentType<any>
+  [key: string]: any
+}
+
+export type MdxModuleLoader =
+  | (() => Promise<MdxModule>)
+  | Promise<MdxModule>
+  | MdxModule
+
+async function resolveModuleLoader(
+  loader: MdxModuleLoader,
+): Promise<MdxModule> {
+  if (typeof loader !== 'function') {
+    return Promise.resolve(loader as MdxModule)
+  }
+  try {
+    // biome-ignore lint/complexity/noBannedTypes: the loader returns whatever the route module's default export is, and this file only forwards it
+    const res = (loader as Function)()
+    if (res && typeof res.then === 'function') {
+      return await res
+    }
+    return { default: loader as unknown as React.ComponentType<any> }
+  } catch {
+    return { default: loader as unknown as React.ComponentType<any> }
+  }
+}
+
+function extractMdxComponent(
+  mod: MdxModule | undefined,
+  moduleKey: string | undefined,
+  pathKey: string,
+): React.ComponentType<{ children?: React.ReactNode }> | null {
+  if (!mod) return null
+
+  let target: any = mod
+
+  // If the module has a default export, prefer it.
+  if (mod.default !== undefined) {
+    target = mod.default
+  }
+
+  // Case 1: the resolved module is already a component (function or string).
+  if (typeof target === 'function' || typeof target === 'string') {
+    return target as React.ComponentType<{ children?: React.ReactNode }>
+  }
+
+  // Case 2: a combined/pages object keyed by moduleKey / pathKey.
+  if (target && typeof target === 'object') {
+    const possibleKeys = [moduleKey, pathKey].filter(Boolean) as string[]
+    for (const key of possibleKeys) {
+      const value = (target as Record<string, any>)[key]
+      if (value) {
+        if (typeof value === 'function' || typeof value === 'string') {
+          return value as React.ComponentType<{ children?: React.ReactNode }>
+        }
+        if (typeof value === 'object' && value.default) {
+          return value.default as React.ComponentType<{
+            children?: React.ReactNode
+          }>
+        }
+      }
+    }
+
+    // Fall back to a default export inside the object.
+    if (target.default !== undefined) {
+      return extractMdxComponent(
+        { default: target.default } as MdxModule,
+        moduleKey,
+        pathKey,
+      )
+    }
+  }
+
+  return null
+}
+
+const EagerMdxElement = ({
+  theme,
+  moduleLoader,
+  moduleKey,
+  route,
+  components,
+  collectionPostComponent,
+}: {
+  theme: BoltdocsTheme
+  moduleLoader: MdxModule
+  moduleKey: string | undefined
+  route: ComponentRoute
+  components: Record<
+    string,
+    React.ComponentType<{ children?: React.ReactNode }>
+  >
+  collectionPostComponent?: React.ComponentType<{ children?: React.ReactNode }>
+}) => {
+  const [mod, setMod] = useState<MdxModule>(moduleLoader)
+
+  useEffect(() => {
+    setMod(moduleLoader)
+  }, [moduleLoader])
+
+  useEffect(() => {
+    if (!import.meta.hot || !moduleKey) return
+    const handler = (data: { relPath: string }) => {
+      if (!matchesMdxUpdatePath(route.filePath, data.relPath)) return
+      // `moduleKey` is the root-relative import.meta.glob key (e.g.
+      // `/docs/foo.mdx`), but the module is served under the configured base
+      // (`/docs` in the docs site → `/docs/docs/foo.mdx`). Fetching the bare
+      // key returns the SPA fallback HTML instead of the module, so the
+      // cache-busted re-import must be built from BASE_URL + key.
+      const base = import.meta.env.BASE_URL.replace(/\/$/, '')
+      const cacheBustUrl = `${base}${moduleKey}?t=${Date.now()}`
+      import(/* @vite-ignore */ cacheBustUrl).then((m) => {
+        setMod(m as unknown as MdxModule)
+      })
+    }
+    const hot = import.meta.hot
+    hot.on('boltdocs:mdx-update', handler)
+    return () => hot.off?.('boltdocs:mdx-update', handler)
+  }, [moduleKey, route.filePath])
+
+  const pathKey = route.path || '/'
+  const MDXComponent = extractMdxComponent(mod, moduleKey, pathKey)
+
+  if (!MDXComponent) {
+    return (
+      <div className="prose dark:prose-invert py-8">
+        <h1>{route.title}</h1>
+        {route.description && <p>{route.description}</p>}
+      </div>
+    )
+  }
+  return (
+    <MdxPage
+      theme={theme}
+      MDXComponent={MDXComponent}
+      mdxComponents={
+        (components ?? {}) as unknown as Record<
+          string,
+          React.ComponentType<HTMLElement>
+        >
+      }
+      collectionPostComponent={collectionPostComponent}
+      /**
+       * Route metadata is available synchronously, unlike loader data, so the
+       * layout is decided from it. Deciding from the loader left the first
+       * client render without collection data, which made the page render the
+       * documentation layout over the collection layout the server had sent.
+       */
+      collection={route.collection}
+      route={route}
+    />
+  )
+}
+
+const NotFoundWrapper = ({
+  notFound: DefaultNotFound,
+}: {
+  /** The theme's 404 page, used when the site's MDX map has no override. */
+  notFound: React.ComponentType
+}) => {
+  const components = useMdxComponents()
+  const ActiveNotFound =
+    (components.NotFound as React.ComponentType | undefined) ||
+    (components['404'] as React.ComponentType | undefined) ||
+    DefaultNotFound
+  return <ActiveNotFound />
+}
+
+export { EagerMdxElement, NotFoundWrapper, resolveModuleLoader }

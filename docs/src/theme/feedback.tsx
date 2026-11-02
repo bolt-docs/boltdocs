@@ -1,8 +1,9 @@
 import { useFeedback } from '@bdocs/theme-neutral'
-import { useConfig } from '@bdocs/theme-neutral'
+
 import { cn } from '@bdocs/theme-neutral'
 import { Button } from '@/theme/button'
 import { Check, ThumbsUp, ThumbsDown, Minus } from 'lucide-react'
+import { useConfig } from '@bdocs/runtime'
 
 export interface FeedbackProps {
   className?: string

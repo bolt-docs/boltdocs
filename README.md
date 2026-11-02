@@ -113,7 +113,7 @@ boltdocs doctor --check-external  # Verify external links too
 - **Broken internal link detection** — finds links pointing to non-existent files
 - **Missing metadata warnings** — flags pages without titles in frontmatter
 - **Orphaned translation detection** — identifies missing locale counterparts
-- **Performance budgets** — upcoming: set thresholds for build time and bundle size
+- **Performance budgets** — upcoming: no bloquean el build: se fijan umbrales de tiempo de compilación y tamaño de bundle
 
 ### 🔌 Plugin System
 
@@ -137,9 +137,8 @@ export default defineConfig({
 ```
 
 Available plugins:
-- **[`@bdocs/plugin-mermaid`](https://www.npmjs.com/package/@bdocs/plugin-mermaid)** — transforms \`\`\`mermaid code blocks into interactive, theme-aware diagrams
 
-### ⚙️ Rich Configuration
+- **[`@bdocs/plugin-mermaid`](https://www.npmjs.com/package/@bdocs/plugin-mermaid)** — transforms ` ```mermaid ` code blocks into interactive, theme-aware diagramsguration
 
 Every aspect of your docs site is configurable via `boltdocs.config.ts`:
 
@@ -169,7 +168,7 @@ export default defineConfig({
 ## CLI Commands
 
 | Command | Description |
-|---------|-------------|
+| --- | --- |
 | `boltdocs dev` | Start the development server with HMR |
 | `boltdocs build` | Production build (SSG) |
 | `boltdocs preview` | Preview the production build locally |

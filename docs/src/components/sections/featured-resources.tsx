@@ -1,13 +1,14 @@
 import { Link } from '@bdocs/theme-neutral/composition'
+
+import { ArrowRight } from 'lucide-react'
+import { useTranslations } from '@/i18n/index'
+import { Section } from '@/theme/section'
 import {
   resolvePublicAssetUrl,
   useConfig,
   useRecentPosts,
-} from '@bdocs/theme-neutral'
-import { formatDate } from '@bdocs/theme-neutral'
-import { ArrowRight } from 'lucide-react'
-import { useTranslations } from '@/i18n/index'
-import { Section } from '@/theme/section'
+  formatDate,
+} from '@bdocs/runtime'
 
 function PostCard({
   post,

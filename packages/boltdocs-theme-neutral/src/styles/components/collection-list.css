@@ -1,0 +1,99 @@
+/*
+ * Collection index: the list of posts a collection renders when the site did not
+ * write its own `list.tsx`.
+ *
+ * This was the last component still written in utilities — `py-8 max-w-2xl
+ * mx-auto px-4`, `text-3xl font-bold`, `space-y-6` — and that made the one page a
+ * blog always has, the only page of a Tailwind-free install that rendered
+ * unstyled. Every value below is transcribed from the utilities it replaced, so
+ * the conversion moves where the style is written, not what it looks like.
+ */
+
+:where(.bdocs-collection) {
+  /* `max-w-2xl`: a post list reads as a column, not as the full width of a
+     wide viewport. */
+  max-width: 42rem;
+  margin-inline: auto;
+  padding-block: var(--bdocs-space-8);
+  padding-inline: var(--bdocs-space-4);
+}
+
+:where(.bdocs-collection__title) {
+  margin-block: 0 var(--bdocs-space-6);
+  /* `text-3xl`. */
+  font-size: 1.875rem;
+  font-weight: 700;
+  line-height: 1.2;
+  color: var(--_bdocs-ink);
+  /* The collection name comes from the directory, lowercase, and reads as a
+     title once capitalised. */
+  text-transform: capitalize;
+}
+
+/* `space-y-6`: the gap between entries, on the container rather than as a
+   margin on each one, so an entry that renders nothing leaves no gap. */
+:where(.bdocs-collection__posts) {
+  display: flex;
+  flex-direction: column;
+  gap: var(--bdocs-space-6);
+}
+
+:where(.bdocs-collection__post) {
+  padding-block-end: var(--bdocs-space-4);
+  border-block-end: var(--bdocs-border-width) solid var(--_bdocs-line);
+}
+
+:where(.bdocs-collection__post-title) {
+  margin-block: 0 var(--bdocs-space-2);
+  /* `text-xl` */
+  font-size: 1.25rem;
+  font-weight: 600;
+  line-height: 1.3;
+  color: var(--_bdocs-ink);
+}
+
+/* The post's own link, and the pagination's. Both are navigation, so they take
+   the brand colour and underline on hover — the same pair the rest of the theme
+   uses for a link in text. */
+:where(.bdocs-collection__link) {
+  font-weight: 500;
+  color: var(--bdocs-primary);
+  text-decoration: none;
+  transition: color var(--bdocs-duration) var(--bdocs-easing);
+}
+
+:where(.bdocs-collection__link):hover {
+  color: var(--bdocs-primary-hover);
+  text-decoration: underline;
+  text-underline-offset: 0.15em;
+}
+
+:where(.bdocs-collection__date) {
+  display: block;
+  margin-block-end: var(--bdocs-space-2);
+  /* `text-xs`, with the muted ink a date is: information, not navigation. */
+  font-size: var(--bdocs-text-caption-s);
+  line-height: var(--bdocs-text-caption-s-line);
+  color: var(--_bdocs-ink-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+:where(.bdocs-collection__excerpt) {
+  margin-block: 0;
+  font-size: 0.875rem;
+  line-height: 1.6;
+  color: var(--_bdocs-ink-body);
+}
+
+:where(.bdocs-collection__pagination) {
+  display: flex;
+  align-items: baseline;
+  gap: var(--bdocs-space-4);
+  margin-block-start: var(--bdocs-space-8);
+  font-size: 0.875rem;
+}
+
+/* "Page 2 of 7" is a label between two links, not a third link. */
+:where(.bdocs-collection__pages) {
+  color: var(--_bdocs-ink-muted);
+}

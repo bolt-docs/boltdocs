@@ -1,0 +1,232 @@
+import { Fragment, useEffect, useMemo } from 'react'
+import { Outlet, useLocation } from '../router'
+import { BoltdocsProvider, useBoltdocsContext } from '../boltdocs-context'
+import { ThemeProvider } from '../theme-context'
+import { MdxComponentsProvider } from '../mdx-components-context'
+import { ConfigContext } from '../config-context'
+import { ScrollHandler } from './scroll-handler'
+import { RoutesProvider } from '../routes-context'
+
+import type { ComponentRoute } from '../types'
+import { UIProvider } from '../ui-context'
+import { Head } from './head'
+import { Helmet } from './helmet-compat'
+import { CollectionsProvider } from '../collections/collections-context'
+import type { CollectionsData } from '../collections/collections-context'
+
+// The site's own MDX components reach the theme through the runtime's site
+// bridge, like the icons and the search index: the file is resolved by the
+// build pipeline, and a theme has to be installable on its own. The core
+// registers them before the app renders.
+import { getSiteMdxComponents } from '../site-bridge'
+import { normalizePath } from '../path'
+
+import type { BoltdocsConfig } from '../types'
+import type { BoltdocsTheme } from './theme'
+/**
+ * Updates the HTML lang and dir attributes based on the current locale configuration.
+ */
+function I18nUpdater({ config }: { config: BoltdocsConfig }) {
+  const { currentLocale } = useBoltdocsContext()
+  const locale = currentLocale || config.i18n?.defaultLocale || 'en'
+  const localeConfig = config.i18n?.localeConfigs?.[locale]
+  const htmlLang = localeConfig?.htmlLang || locale
+  const direction = localeConfig?.direction || 'ltr'
+
+  useEffect(() => {
+    if (!config.i18n || typeof document === 'undefined') return
+    document.documentElement.lang = htmlLang
+    document.documentElement.dir = direction
+  }, [config.i18n, direction, htmlLang])
+
+  return <Helmet htmlAttributes={{ lang: htmlLang, dir: direction }} />
+}
+
+/**
+ * Removes the per-page critical-CSS inline blocks once the app is hydrated.
+ *
+ * The critters pass inlines one `<style data-zig-critters>` per rendered page.
+ * On a full page load the block belongs to the current page and is redundant:
+ * the external stylesheet ships in the initial HTML and is loaded before
+ * hydration. After a client-side navigation, however, the block left by the
+ * *first* page stays in `<head>` and — emitted after the external stylesheet
+ * — wins the cascade for every utility it contains, breaking pages reached
+ * via SPA that rely on utilities the first page never used (e.g. `xl:flex`
+ * hiding the OnThisPage rail for the rest of the session).
+ */
+function CrittersStyleCleanup() {
+  useEffect(() => {
+    if (typeof document === 'undefined') return
+    document.querySelectorAll('style[data-zig-critters]').forEach((el) => {
+      el.remove()
+    })
+  }, [])
+  return null
+}
+
+// synchronizes store with current URL pathname
+function StoreSync({
+  config,
+  routeMap,
+}: {
+  config: BoltdocsConfig
+  routeMap: Map<string, ComponentRoute>
+}) {
+  const location = useLocation()
+  const { currentLocale, currentVersion, setLocale, setVersion } =
+    useBoltdocsContext()
+
+  useEffect(() => {
+    // Match against the live browser URL, not the (deferred) React location:
+    // navigate() pushes history immediately but setLocation lands on a later
+    // task. Comparing `location.pathname` here reverts an optimistic store
+    // write from a locale/version selector mid-navigation (URL already
+    // updated, React location stale) and desynchronizes the selector.
+    const currentPath = normalizePath(
+      typeof window !== 'undefined'
+        ? window.location.pathname
+        : location.pathname,
+    )
+    const matchedRoute = routeMap.get(currentPath)
+
+    // Selector handlers (use-i18n / use-version) write the store optimistically
+    // BEFORE navigating — the router's locale-preserving navigation reads it
+    // synchronously. Because this effect matches the live browser URL (which
+    // navigate() updates immediately), the optimistic write is never reverted
+    // mid-navigation; the preference converges when the navigation lands.
+    if (matchedRoute) {
+      if (config.i18n) {
+        const targetLocale = matchedRoute.locale || config.i18n.defaultLocale
+        if (targetLocale !== currentLocale) setLocale(targetLocale)
+      }
+      if (config.versions) {
+        const targetVersion =
+          matchedRoute.version || config.versions.defaultVersion
+        if (targetVersion !== currentVersion) setVersion(targetVersion)
+      }
+    } else if (
+      config.versions &&
+      currentVersion !== config.versions.defaultVersion
+    ) {
+      // Reset an invalid persisted version preference only once when entering
+      // an unmatched route (e.g. the 404 splat); avoid a redundant
+      // localStorage write on every render. Locale is intentionally left
+      // untouched: the last known preference is the best guess for localizing
+      // external/404 pages where no route metadata exists.
+      setVersion(config.versions.defaultVersion)
+    }
+  }, [
+    location.pathname,
+    config,
+    routeMap,
+    currentLocale,
+    currentVersion,
+    setLocale,
+    setVersion,
+  ])
+
+  return null
+}
+
+export function BoltdocsShell({
+  theme,
+  config,
+  routes,
+  components = {},
+  collectionsData,
+}: {
+  theme: BoltdocsTheme
+  config: BoltdocsConfig
+  routes: ComponentRoute[]
+  components?: Record<string, React.ComponentType>
+  collectionsData?: CollectionsData
+}) {
+  const allComponents = useMemo(
+    () => ({
+      ...theme.MdxComponents,
+      ...getSiteMdxComponents(),
+      ...components,
+    }),
+    [components, theme.MdxComponents],
+  )
+
+  const ErrorBoundary = theme.ErrorBoundary ?? Fragment
+  const PluginSlots = theme.PluginSlots
+
+  const { pathname } = useLocation()
+
+  const currentPath = useMemo(() => normalizePath(pathname || '/'), [pathname])
+
+  const routeMap = useMemo(() => {
+    const map = new Map<string, ComponentRoute>()
+    for (const r of routes) {
+      const key = normalizePath(r.path === '' ? '/' : r.path)
+      map.set(key, r)
+    }
+    return map
+  }, [routes])
+
+  const initialData = useMemo(() => {
+    const matched = routeMap.get(currentPath)
+
+    let initLocale: string | undefined
+    let initVersion: string | undefined
+
+    if (matched) {
+      if (config.i18n) {
+        initLocale = matched.locale || config.i18n.defaultLocale
+      }
+      if (config.versions) {
+        initVersion = matched.version || config.versions.defaultVersion
+      }
+    }
+
+    return { initLocale, initVersion }
+  }, [currentPath, config, routeMap])
+
+  // This used to be wrapped in react-aria's SSRProvider, for a real reason: React
+  // Aria derives element ids from a module-level counter that does not start at
+  // the same value on the server and in the browser. React 19 tolerates a
+  // differing `id` alone, but not when the id feeds an `aria-*` relationship that
+  // also appears in a hoisted preload or a `for`/`aria-labelledby` pair — the tree
+  // is then rejected and re-rendered on the client. Measured: 16 docs pages
+  // failed hydration with error #418 without that layer.
+  //
+  // `@bdocs/primitives` uses React's `useId` instead, which produces the same
+  // value on both sides by construction, so there is nothing to reconcile and no
+  // provider to mount. The failure mode is removed rather than patched.
+  return (
+    <RoutesProvider routes={routes}>
+      <ThemeProvider>
+        <UIProvider>
+          <MdxComponentsProvider components={allComponents}>
+            <ConfigContext.Provider value={config}>
+              <CollectionsProvider collectionsData={collectionsData || {}}>
+                <ScrollHandler />
+                <CrittersStyleCleanup />
+                <BoltdocsProvider
+                  initialLocale={initialData.initLocale}
+                  initialVersion={initialData.initVersion}
+                >
+                  <StoreSync config={config} routeMap={routeMap} />
+                  <I18nUpdater config={config} />
+                  <Head
+                    siteTitle={config.theme?.title}
+                    siteDescription={config.theme?.description}
+                    routes={routes}
+                  />
+                  <ErrorBoundary>
+                    <theme.ShellFrame>
+                      <Outlet />
+                      {PluginSlots ? <PluginSlots /> : null}
+                    </theme.ShellFrame>
+                  </ErrorBoundary>
+                </BoltdocsProvider>
+              </CollectionsProvider>
+            </ConfigContext.Provider>
+          </MdxComponentsProvider>
+        </UIProvider>
+      </ThemeProvider>
+    </RoutesProvider>
+  )
+}

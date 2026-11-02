@@ -166,6 +166,28 @@ const TARGETS = [
   { name: 'prose pre', selector: 'main pre' },
   { name: 'prose figure', selector: 'main figure' },
   { name: 'prose figcaption', selector: 'main figcaption' },
+
+  // The collection index and the external route.
+  //
+  // These two are rendered by the theme's surface and the docs site does not
+  // override them, so they are the only pages where the theme's own layout shows
+  // — and they were the two the harness did not measure, which is how the last
+  // components written in utilities stayed in utilities: nothing here could see
+  // them. The selectors are structural because the conversion replaced every
+  // class on the page.
+  { name: 'collection title', selector: 'h1' },
+  { name: 'collection posts', selector: 'h1 + div' },
+  { name: 'collection post', selector: 'article' },
+  { name: 'collection post title', selector: 'article h2' },
+  { name: 'collection post link', selector: 'article h2 a' },
+  { name: 'collection date', selector: 'article time' },
+  { name: 'collection excerpt', selector: 'article p' },
+
+  { name: 'external root', selector: 'main' },
+  { name: 'external content', selector: 'main > div' },
+  { name: 'external column', selector: 'main > div > div' },
+  { name: 'external title', selector: 'main h1' },
+  { name: 'external prose', selector: 'main h1 + div' },
 ]
 
 const PAGES = [
@@ -175,6 +197,10 @@ const PAGES = [
   'docs/es/guides/getting-started/installation.html',
   'docs/components/mdx/code-blocks.html',
   'index.html',
+  // The default collection index and an external route: the two pages the
+  // theme's surface renders without the docs layout in the way.
+  'docs/blog.html',
+  'showcase.html',
 ]
 
 const MIME = {
@@ -228,7 +254,7 @@ async function capture(label) {
   })
   await new Promise((done) => server.listen(port, done))
 
-  const browser = await chromium.launch()
+  const browser = await chromium.launch(process.env.PW_EXECUTABLE ? { executablePath: process.env.PW_EXECUTABLE } : process.env.PW_CHANNEL ? { channel: process.env.PW_CHANNEL } : undefined)
   const context = await browser.newContext({
     viewport: { width: 1440, height: 900 },
     reducedMotion: 'reduce',

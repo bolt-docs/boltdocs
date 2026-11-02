@@ -61,11 +61,11 @@ The primitives stay style-neutral by contract — they own structure, behaviour 
 
 **1 of 46 components is converted** (`PageNav`). The rest still use Tailwind utility classes, and until they are converted the theme still needs a Tailwind build. Reporting that plainly rather than implying the port is done.
 
-`packages/theme-neutral/tests/native-styles.test.ts` holds the line in the meantime: a converted component that grows a utility class again fails the suite instead of quietly reintroducing the dependency. The converted list is explicit — globbing would pass on day one and mean nothing while every file still has classes in it.
+`packages/boltdocs-theme-neutral/tests/native-styles.test.ts` holds the line in the meantime: a converted component that grows a utility class again fails the suite instead of quietly reintroducing the dependency. The converted list is explicit — globbing would pass on day one and mean nothing while every file still has classes in it.
 
 ## Removed
 
 - `boltdocs/theme/neutral.css` — core exported this path, but the file was never built and never existed in `dist`. A consumer importing it got a resolve failure against a subpath the package advertised. The `./theme/neutral.css` export is gone; `./theme/reset.css` is unchanged, since the reset is a common base rather than a theme opinion.
-- `packages/core/src/client/base-theme.css` — 78 lines of `--bdocs-*` tokens that nothing imported. Its content now lives in `styles/tokens.css` and is actually shipped.
+- `packages/boltdocs-engine/src/client/base-theme.css` — 78 lines of `--bdocs-*` tokens that nothing imported. Its content now lives in `styles/tokens.css` and is actually shipped.
 
 The docs page on vanilla CSS claimed Boltdocs ships these variables in `base-theme.css`. It now points at `@bdocs/theme-neutral/css`, which is true.

@@ -19,7 +19,7 @@ import crypto from 'node:crypto'
 import fs from 'node:fs'
 import { join, relative } from 'node:path'
 import { gzipSync } from 'node:zlib'
-import { getFileMtime } from '../../packages/core/src/node/utils'
+import { getFileMtime } from '../../packages/boltdocs-engine/src/node/utils'
 
 const SAMPLE_TS = `
 import { useState, useEffect } from 'react'
@@ -392,11 +392,11 @@ describe('Client Hash: Sync vs Async', () => {
 describe('Mtime Cache: stat on every call vs cached', () => {
   it('statSync per call (old) vs getFileMtime cached (new)', () => {
     const testFiles = [
-      join(process.cwd(), 'packages/core/src/node/cache.ts'),
-      join(process.cwd(), 'packages/core/src/node/utils.ts'),
-      join(process.cwd(), 'packages/core/src/node/routes/index.ts'),
-      join(process.cwd(), 'packages/plugin-ssg/src/node/build.ts'),
-      join(process.cwd(), 'packages/core/src/node/mdx/index.ts'),
+      join(process.cwd(), 'packages/boltdocs-engine/src/node/cache.ts'),
+      join(process.cwd(), 'packages/boltdocs-engine/src/node/utils.ts'),
+      join(process.cwd(), 'packages/boltdocs-engine/src/node/routes/index.ts'),
+      join(process.cwd(), 'packages/boltdocs-ssg/src/node/build.ts'),
+      join(process.cwd(), 'packages/boltdocs-engine/src/node/mdx/index.ts'),
     ]
 
     // Old: raw statSync per call

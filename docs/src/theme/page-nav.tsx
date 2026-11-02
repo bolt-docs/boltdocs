@@ -1,6 +1,7 @@
 import { PageNav as PN } from '@bdocs/theme-neutral/composition'
-import { usePageNav } from '@bdocs/theme-neutral'
+
 import { ChevronLeft, ChevronRight } from 'lucide-react'
+import { usePageNav } from '@bdocs/runtime'
 
 export function PageNav() {
   const { prevPage, nextPage } = usePageNav()

@@ -362,7 +362,7 @@ async function capture(label) {
   const misses = []
   const port = 5291
   const server = await serve(port, (url) => misses.push(url))
-  const browser = await chromium.launch()
+  const browser = await chromium.launch(process.env.PW_EXECUTABLE ? { executablePath: process.env.PW_EXECUTABLE } : process.env.PW_CHANNEL ? { channel: process.env.PW_CHANNEL } : undefined)
 
   try {
     for (const viewport of VIEWPORTS) {

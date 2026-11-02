@@ -1,7 +1,7 @@
 # Integration independence audit
 
 Measurement taken on `4.0` at `2768b75b`, removing every optional integration
-from the documentation project and from `packages/core` to see what the "4.0
+from the documentation project and from `packages/boltdocs-engine` to see what the "4.0
 definition of done" requires:
 
 > optional integrations can be removed without breaking the core
@@ -11,7 +11,7 @@ definition of done" requires:
 From the project configuration: `@bdocs/plugin-mermaid`, `@bdocs/plugin-math`,
 `@bdocs/plugin-llms-text`, `@bdocs/plugin-rss`, `@bdocs/plugin-ask-ai`.
 
-From `packages/core` dependencies: `@bdocs/plugin-image-optimizer`.
+From `packages/boltdocs-engine` dependencies: `@bdocs/plugin-image-optimizer`.
 
 ## Result
 
@@ -59,7 +59,7 @@ In the browser the situation is already good, and it is worth recording why:
 
 ## What is genuinely wrong
 
-`packages/core/src/node/plugin/index.ts` imports `ViteImageOptimizer` directly
+`packages/boltdocs-engine/src/node/plugin/index.ts` imports `ViteImageOptimizer` directly
 and injects it unconditionally:
 
 ```ts

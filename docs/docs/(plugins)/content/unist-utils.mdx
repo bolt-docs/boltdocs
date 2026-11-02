@@ -31,7 +31,7 @@ Three reasons:
 
 1. **Single source of truth.** Before, `visitNodes`, `createMdxElement`,
    `setNodeProperty`, `parseMetaString` etc. were duplicated between
-   `packages/core/src/node/plugins/plugin-utils.ts` and the Sätteri
+   `packages/boltdocs-engine/src/node/plugins/plugin-utils.ts` and the Sätteri
    plugin's adapters. Now they live in one place, with one signature.
 2. **Public surface for plugin authors.** External plugins were forced
    to either reach into `boltdocs`'s internal barrel or write their own

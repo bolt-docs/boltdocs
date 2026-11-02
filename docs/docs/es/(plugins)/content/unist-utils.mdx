@@ -31,7 +31,7 @@ Tres razones:
 
 1. **Única fuente de verdad.** Antes, `visitNodes`, `createMdxElement`,
    `setNodeProperty`, `parseMetaString`, etc. estaban duplicados
-   entre `packages/core/src/node/plugins/plugin-utils.ts` y los
+   entre `packages/boltdocs-engine/src/node/plugins/plugin-utils.ts` y los
    adaptadores del plugin Sätteri. Ahora viven en un sitio, con una
    firma.
 2. **Superficie pública para autores de plugins.** Los plugins

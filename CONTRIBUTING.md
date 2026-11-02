@@ -34,7 +34,7 @@ We use a hybrid approach to ensure maximum performance:
 - **Production**: A custom SSG (Static Site Generation) process renders your documents into optimized HTML/JS bundles.
 
 ### 3. Component Architecture
-The UI is composed of atomic primitives (`packages/core/src/client/components/primitives`) and base blocks like `Navbar`, `Sidebar`, and `OnThisPage`. This modularity allows users to override individual parts without forking the entire framework.
+The UI is composed of atomic primitives (`packages/boltdocs-engine/src/client/components/primitives`) and base blocks like `Navbar`, `Sidebar`, and `OnThisPage`. This modularity allows users to override individual parts without forking the entire framework.
 
 ---
 

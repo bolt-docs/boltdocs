@@ -209,6 +209,104 @@ pnpm add @bdocs/plugin-ask-ai
 
 ---
 
+## `@bdocs/plugin-seo`
+
+**Purpose**: Resolves `canonical`, `og:url` and `og:image` on every route, then writes `sitemap.xml` and `robots.txt`. **Until 4.0 the core did this itself and needed no configuration** — a 4.0 site that installs nothing loses its sitemap and its canonical tags.
+
+```bash
+pnpm add @bdocs/plugin-seo
+```
+
+```ts title="boltdocs.config.ts"
+import seo from '@bdocs/plugin-seo'
+
+export default defineConfig({
+  siteUrl: 'https://example.com',
+  plugins: [seo()],
+})
+```
+
+Two hooks, because SEO has two jobs at different points in the build: route metadata runs before the SSG render (the client `Head` reads it), while `sitemap.xml` and `robots.txt` need the output directory to exist.
+
+---
+
+## `@bdocs/plugin-search`
+
+**Purpose**: Builds `search.json` — the offline index the default search dialog reads. Registered through the core's search registry on `build:routes`, so `virtual:boltdocs-search` has data before it is resolved.
+
+```bash
+pnpm add @bdocs/plugin-search
+```
+
+```ts title="boltdocs.config.ts"
+import search from '@bdocs/plugin-search'
+
+export default defineConfig({
+  plugins: [search()],
+})
+```
+
+`{ enabled: false }` keeps the plugin configured but skips generation — for a site that builds the index in a separate step.
+
+---
+
+## `@bdocs/plugin-search-algolia`
+
+**Purpose**: Pushes the same search records to an Algolia index at build time.
+
+```bash
+pnpm add @bdocs/plugin-search-algolia
+```
+
+| Option | Meaning |
+| --- | --- |
+| `appId`, `indexName` | Algolia application and target index |
+| `adminApiKey` | **Write** key. Build-time only — read it from the environment |
+| `dryRun` | Report what would be sent without uploading; the only mode that runs without credentials |
+| `snippetLength` | Highlight width in results (default `content:20`) |
+| `incremental` | Upload only records whose fingerprint changed (in-memory, so useless for a one-shot build) |
+
+The **admin** key stays at build time; the **search-only** key belongs in `integrations.search.algolia.apiKey`, which is what the client uses.
+
+---
+
+## `@bdocs/plugin-search-pagefind`
+
+**Purpose**: Indexes the static output with Pagefind after the build.
+
+```bash
+pnpm add @bdocs/plugin-search-pagefind
+```
+
+Pagefind ships its indexer as a platform binary (an optional peer), so only the binary for the build machine is installed. Options include `root` (narrow what gets indexed), `excludeSelectors`, `excludePatterns`, `siteKey` and `binaryPath`.
+
+---
+
+## `@bdocs/plugin-git-meta`
+
+**Purpose**: Derives page metadata from git history instead of frontmatter. Two independent plugins share one cached `git log` scan:
+
+| Plugin | Adds |
+| --- | --- |
+| `lastUpdatedPlugin()` | `route.lastUpdated` — last non-merge commit touching the page |
+| `contributorsPlugin()` | `route.contributors` — authors of every non-merge commit touching the page |
+
+```bash
+pnpm add @bdocs/plugin-git-meta
+```
+
+```ts title="boltdocs.config.ts"
+import { contributorsPlugin, lastUpdatedPlugin } from '@bdocs/plugin-git-meta'
+
+export default defineConfig({
+  plugins: [lastUpdatedPlugin(), contributorsPlugin()],
+})
+```
+
+Both run on `routes:resolved`, so the data reaches the SSG route table as well as the client route module. Contributor emails are never sent to the client unless you opt in.
+
+---
+
 ## `@bdocs/unist-utils`
 
 **Purpose**: Strictly-typed AST utilities for unist/mdast/hast used by Boltdocs core and every official plugin. Exports visitors, AST builders, h-properties helpers, class-list mutation, and meta string parsing helpers.

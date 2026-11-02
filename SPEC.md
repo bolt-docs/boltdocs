@@ -139,7 +139,7 @@ following are true:
 - Biome formatting with `formatWithErrors` is enforced — single quotes, no
   semicolons, 2-space indent.
 - TypeScript strict mode, `import type` for types, and the `@` alias for
-  `packages/core/src`.
+  `packages/boltdocs-engine/src`.
 - Every non-trivial change ships with tests, and the full suite must pass
   before release.
 

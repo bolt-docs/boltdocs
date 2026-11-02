@@ -44,6 +44,7 @@ export default defineConfig({
 | `base` | `string` | `'/'` | Sub-path where the website is served (e.g. `'/docs'`). Vite applies it to public URLs; never hand-write it into `favicon`/`logo` (see [favicon](#theme-configuration-theme)) |
 | `docsDir` | `string` | `'./docs'` | Relative path to the folder containing Markdown/MDX content |
 | `aliases` | `AliasOptions` | — | Vite resolve aliases, e.g. `{ '@': path.resolve(import.meta.dirname, 'src') }` |
+| `themePackage` | `string` | `'@bdocs/theme-neutral'` | Module name of the theme the engine renders with. Resolved from the project, so a theme is a package the site installs — not something the engine ships |
 | `plugins` | `BoltdocsPlugin[]` | `[]` | Array of active plugins |
 | `redirects` | `Redirect[]` | `[]` | Declarative redirects (see [Redirects](#redirects)) |
 | `drafts` | `object` | — | `{ visible?: boolean, environments?: string[] }` — reveal draft pages |
@@ -51,6 +52,31 @@ export default defineConfig({
 | `experimental` | `object` | — | Opt-in APIs (see [Experimental](#experimental)) |
 | `featureFlags` | `Record<string, boolean \| string>` | — | Flags consumed by `frontmatter.featureFlags` for conditional pages |
 | `vite` | `UserConfig` | — | Deliberate Vite overrides |
+
+---
+
+## Theme Package (`themePackage`)
+
+The engine ships no components. It resolves a theme from the project and
+imports that theme's `surface` (components + layout) at build time, so a
+replacement theme is a second package rather than a fork.
+
+```ts
+export default defineConfig({
+  themePackage: '@acme/boltdocs-theme', // omit to use @bdocs/theme-neutral
+})
+```
+
+The package must be installed in the project. It can declare where its sources
+live, which the dev server and build use so a theme edit is picked up without
+rebuilding the package:
+
+```json title="package.json"
+{ "boltdocs": { "source": { ".": "./src/index.ts" } } }
+```
+
+A missing theme is reported as a missing dependency, not as an obscure
+module-not-found from inside a generated module.
 
 ---
 

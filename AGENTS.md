@@ -5,8 +5,9 @@
 1. **Package manager**: `pnpm` only. Never use `npm` or `yarn`.
 2. **Code style**: Biome — single quotes, no semicolons, 2-space indent, `formatWithErrors: true`.
 3. **TypeScript**: Strict mode. Use `import type` for type-only imports.
-4. **Path alias**: `@` resolves to `packages/core/src` (configured in `vitest.config.ts:13` and `packages/core/src/node/index.ts:150-154`).
-5. **Before committing**: Run `pnpm run format` to auto-format with Biome.
+4. **Directories vs package names**: every package lives in `packages/boltdocs-<name>/`, but the **published names are unchanged** (`boltdocs`, `@bdocs/*`, `create-boltdocs`). A path change is free; a name change breaks every site.
+5. **Path alias**: `@` resolves to the `src` of the package whose `vitest.config.ts` declares it — in the engine that is `packages/boltdocs-engine/src`.
+6. **Before committing**: Run `pnpm run format` to auto-format with Biome.
 
 ## Monorepo Structure
 
@@ -14,38 +15,61 @@ Boltdocs is a React/Vite documentation framework. Monorepo managed by Turborepo 
 
 ### Packages
 
-| Package | npm name | Path | Purpose |
-| --------- | ---------- | ------ | --------- |
-| Core | `boltdocs` | `packages/core` | Main engine: CLI, MDX pipeline, Vite plugins, routing, config |
-| SSG | `@bdocs/ssg` | `packages/plugin-ssg` | Static Site Generator: client/server Vite builds, HTML rendering |
-| Mermaid | `@bdocs/plugin-mermaid` | `packages/plugin-mermaid` | Remark plugin + React container for Mermaid.js diagrams |
-| Math | `@bdocs/plugin-math` | `packages/plugin-math` | KaTeX math parsing with remark/preprocessing |
-| Image Optimizer | `@bdocs/plugin-image-optimizer` | `packages/plugin-image-optimizer` | Sharp/SVGO image optimization Vite plugin |
-| Ask AI | `@bdocs/plugin-ask-ai` | `packages/plugin-ask-ai` | Context-aware AI assistant querying plugin |
-| Create | `create-boltdocs` | `packages/create-boltdocs` | Scaffolder CLI for new projects |
-| Parser | `@bdocs/parser` | `packages/parser` | Zig/WASM markdown parser with cross-platform native binaries |
+| Layer | npm name | Path | Purpose |
+| --- | --- | --- | --- |
+| Contracts | `@bdocs/contracts` | `packages/boltdocs-contracts` | Framework-neutral types: routes, plugins, lifecycle, highlighting, search, config |
+| Primitives | `@bdocs/primitives` | `packages/boltdocs-primitives` | Style-neutral UI primitives: structure, behavior, `data-*` state. No visuals |
+| Runtime | `@bdocs/runtime` | `packages/boltdocs-runtime` | Browser-facing React: contexts, hooks, router entry, `createRoutes`, `BoltdocsShell` |
+| Theme | `@bdocs/theme-neutral` | `packages/boltdocs-theme-neutral` | The default theme: components, native CSS, and the `surface` object the engine renders with |
+| Engine | `boltdocs` | `packages/boltdocs-engine` | Node-only: CLI, config, routes, plugin lifecycle, build pipeline, dev server, Vite plugins |
+| SSG | `@bdocs/ssg` | `packages/boltdocs-ssg` | Client/server Vite builds, HTML rendering, content-addressed page cache |
+| Processor | `@bdocs/processor-satteri` | `packages/boltdocs-processor-satteri` | MDX compile pipeline (Sätteri) and its rehype/remark plugins |
+| Grammars | `@bdocs/grammars` | `packages/boltdocs-grammars` | Vendored TextMate grammars + themes for the Shiki engine |
+| Unist utils | `@bdocs/unist-utils` | `packages/boltdocs-unist-utils` | AST helpers, fence-meta parsing, highlight config normalization |
+| Parser | `@bdocs/parser` | `packages/boltdocs-parser` | Zig/WASM markdown parser with cross-platform native binaries |
+| Critical CSS | `@bdocs/zig-critters` | `packages/boltdocs-zig-critters` | WASM critical-CSS extractor used by `ssg.criticalCss` |
+| Scaffolder | `create-boltdocs` | `packages/boltdocs-create` | Project scaffolder CLI |
+| Build config | `tsdown-config` | `packages/boltdocs-tsdown-config` | Shared `tsdown` preset |
+| Plugins | `@bdocs/plugin-*` | `packages/boltdocs-plugin-*` | Optional integrations — see the table below |
+
+Plugins: `ask-ai`, `git-meta`, `image-optimizer`, `llms-text`, `math`, `mermaid`, `rss`, `sass`, `search`, `search-algolia`, `search-pagefind`, `seo`, `tailwindcss`, `unocss`.
 
 ### Workspace Dependencies
 
+Measured from the manifests:
+
 ```text
-boltdocs (core)
-  ├── @bdocs/ssg
-  ├── @bdocs/parser (workspace:*)
-  └── @bdocs/plugin-image-optimizer (workspace:*)
+@bdocs/contracts        (no workspace dependencies)
+
+@bdocs/runtime          → @bdocs/contracts
+@bdocs/unist-utils      → @bdocs/contracts
+@bdocs/processor-satteri → @bdocs/contracts, @bdocs/unist-utils
+@bdocs/ssg              → @bdocs/contracts, @bdocs/zig-critters
+@bdocs/theme-neutral    → @bdocs/contracts, @bdocs/primitives, @bdocs/runtime
+
+boltdocs (engine)       → @bdocs/contracts, @bdocs/grammars, @bdocs/parser,
+                          @bdocs/processor-satteri, @bdocs/ssg, @bdocs/unist-utils
 ```
 
-Plugins (`plugin-mermaid`, `plugin-math`, `plugin-ask-ai`) depend on `boltdocs` as a devDependency.
+The engine does **not** import the UI layer: no React components, no theme, no
+`@bdocs/runtime`. A theme is resolved by name (`themePackage`, default
+`@bdocs/theme-neutral`) and imported at build time. Plugins that ship client UI
+depend on `@bdocs/runtime` and/or `@bdocs/primitives` themselves.
 
 ### Other Directories
 
-- `docs/` — User-facing documentation site source (`boltdocs.config.ts`)
-- `tests/` — Integration and unit tests
-- `scripts/` — Build-time helper scripts (e.g., `generate-doctor-schema.ts`)
-- `assets/` — Static assets for the repository
+- `docs/` — the documentation site (`boltdocs.config.ts`), which is also the integration test bed
+- `tests/` — repo-level Playwright a11y tests, benchmark fixtures, changelog fixtures
+- `scripts/` — build helpers and benchmarks (`scripts/benchmarks/`, `scripts/visual/`)
+- `skills/boltdocs/` — the agent skill installed by `install-ai-agents.sh`
+- `assets/` — repository static assets
+
+`packages/tests/` is **not** a package: it holds changelog fixtures, which is why
+it carries no `boltdocs-` prefix.
 
 ## Code Style & Conventions
 
-**Config**: `biome.json` (Biome 2.4.9)
+**Config**: `biome.json`
 
 ### Formatting Rules
 
@@ -69,9 +93,11 @@ Plugins (`plugin-mermaid`, `plugin-math`, `plugin-ask-ai`) depend on `boltdocs` 
 ### Commands
 
 ```bash
-pnpm run format              # Format entire repo
-pnpm run format:core         # Format packages/core/src only
-pnpm exec biome check --write  # Lint + format packages/core
+pnpm run format                # Format entire repo
+pnpm run format:core           # Format packages/boltdocs-engine/src only
+pnpm exec biome check --write  # Lint + format packages/boltdocs-engine
+pnpm run lint:md               # markdownlint on every .md/.mdx
+pnpm run check:boundaries      # Undeclared-import audit
 ```
 
 ## Documentation Content Conventions
@@ -80,29 +106,25 @@ These rules apply to every `.mdx` page under `docs/`. They keep the rendered sit
 
 ### One H1 per page — never repeat the frontmatter title
 
-The default layout already renders the page title as an `<h1>` (`<h1>{currentRoute.title}</h1>`) and the `description` under it, both sourced from frontmatter. **Do not add a `# Title` heading (or a description paragraph) to the content** — it renders as a duplicated heading with a link icon right below the theme's own title, and it is an accessibility failure. Content should start directly with prose or the first `##` section:
-
-```markdown
----
-title: Navigation
-description: The complete navigation model.
----
-
-# ❌ WRONG — the theme already renders this H1
-
-✅ Correct: start with prose or `## First Section` directly.
-```
+The default layout already renders the page title as an `<h1>` and the
+`description` under it, both sourced from frontmatter. **Do not add a `# Title`
+heading (or a description paragraph) to the content** — it renders as a
+duplicated heading with a link icon right below the theme's own title, and it is
+an accessibility failure. Content should start directly with prose or the first
+`##` section.
 
 ### Unique headings per page
 
-The OnThisPage right-rail TOC lists every `h2`–`h4` on the page. Duplicate heading text (`### Search` twice) produces duplicate TOC entries. Keep heading text unique per page; there is a Playwright regression test (`tests/a11y/on-this-page.spec.ts`) that fails on duplicates.
+The OnThisPage right-rail TOC lists every `h2`–`h4` on the page. Duplicate
+heading text produces duplicate TOC entries. There is a Playwright regression
+test (`tests/a11y/on-this-page.spec.ts`) that fails on duplicates.
 
 ### Canonical hrefs — never hand-write locale/version prefixes
 
 Every link (navbar, sidebar, cards, MDX) goes through `useLocalizedTo()`, which prepends the active locale and version automatically. Write **canonical, unlocalized paths**:
 
 | Href | Kind | Notes |
-| ------ | ------ | ------- |
+| --- | --- | --- |
 | `/docs/guides` | Docs page | Localized automatically — never write `/es/docs/guides` or `/v2/docs/guides` |
 | `/showcase` | External page (`pages-external/`) | Kept as-is by the resolver |
 | `https://example.com` | External URL | Passed through untouched — no `to: 'external'` flag exists in config |
@@ -121,7 +143,7 @@ The docs site (`docs/boltdocs.config.ts`) keeps `experimental.viewTransitions.en
 
 ## TypeScript Conventions
 
-**Config**: `tsconfig.json` (root), per-package `tsconfig.json`
+**Config**: `tsconfig.base.json` (root), `tsconfig.json` (project references, `docs` + engine), per-package `tsconfig.json`
 
 ### Compiler Options
 
@@ -159,10 +181,17 @@ const fs = require('fs')
 
 ### Path Aliases
 
-- `@` → `packages/core/src` (used in vitest and dev server)
+- `@` → the `src` of the package that declares it in its own `vitest.config.ts`
 - `boltdocs/entry` → `boltdocs-entry.tsx` (user project root)
 - `boltdocs/client` → `boltdocs-client.mjs` (user project root)
 - `virtual:boltdocs-*` → Virtual modules (resolved by plugin)
+
+The engine's `vitest.config.ts` also aliases **workspace packages to their
+source** (`@bdocs/theme-neutral`, `@bdocs/runtime`, `@bdocs/primitives`,
+`@bdocs/contracts`, `@bdocs/plugin-search`). Those aliases are absolute paths
+built with `path.resolve(__dirname, '../boltdocs-…/src')` — if a package
+directory is renamed, they break **silently at collect time**, and the failure
+looks like a missing dependency rather than a stale path.
 
 ### File Extensions
 
@@ -170,86 +199,59 @@ const fs = require('fs')
 - Output: `.mjs` (ESM), `.cjs` (CJS), `.d.ts` / `.d.mts` (types)
 - Build tool: `tsdown` with `--config-loader unrun`
 
-## Component Architecture
+## Architecture
 
-**Path**: `packages/core/src/client/components/`
+### Contracts (`@bdocs/contracts`)
 
-### Primitive Contract (style-neutral)
+Public, framework-neutral types. No Node, Vite, React or SSG imports. Everything
+else may import it; it imports nothing from the workspace.
 
-`primitives/` components are **style-neutral**: they own structure, behavior, and state. **No colors, borders, or sizes** are baked into primitives. State is exposed via `data-*` attributes that are **present only when true** (e.g. `data-active`, `data-open`, `data-selected`, `data-level`, `data-collapsible`, `data-badge`). Themes style states via CSS (`[data-active]`) or Tailwind v4 variants (`data-active:...`). The framework's default look lives in `ui-base/` on top of the primitives; `ui-base/` accepts `className` slots that merge with and win over defaults. Do not add baked-in visuals to a primitive — pass a `className` slot or emit a `data-*` attribute instead.
+### Primitives (`@bdocs/primitives`)
 
-Enforcement rules (from the no-barriers refactor):
+Structure, behavior and state only. **No colors, borders or sizes** are baked
+into a primitive. State is exposed via `data-*` attributes that are present only
+when true (`data-active`, `data-open`, `data-selected`, `data-level`,
+`data-collapsible`, `data-badge`). A theme styles those states; a primitive that
+ships a visual cannot be themed.
 
-- **Every styled element must be reachable**: any JSX node with baked-in classes needs a `className` slot (`cn(defaults, className)`), or an explicit slot prop (`contentClassName`, `wrapperClassName`, `dialogClassName`, etc.) for nested wrappers.
-- **No `!important` utilities in components** — override rules that beat third-party styles (e.g. Shiki's `pre`) live as scoped CSS in `client/theme/reset.css` keyed off hooks like `.boltdocs-code-block`.
-- **Layout primitives carry no spacing**: `DocsLayout.ContentMdx` renders only `boltdocs-page w-full`; the reading column inner wrapper exposes `contentClassName`/`contentStyle`. The default padding (`pt-4 pb-20 px-4 sm:px-8`) lives in `docs-layout-default.tsx`, so custom themes pass their own `className` without fighting responsive defaults.
-- **No string-inspection hacks**: behavior must not key off `className.includes(...)`; expose a typed prop (e.g. `ButtonGroup` `radius`) instead.
-- Hardcoded colors use theme tokens (`danger-500`, `success-500`, ...), never raw palettes (`rose-*`, `slate-*`).
+### Runtime (`@bdocs/runtime`)
 
-### Directory Structure
+The browser half: contexts (`theme-context`, `ui-context`, `routes-context`,
+`config-context`, …), the routing entry (`create-routes*.tsx`, `router/`), the
+shell (`BoltdocsShell` in `src/app/shell.tsx`), localized hrefs, view
+transitions, and the site bridge (`registerSiteBridge`) through which
+`virtual:boltdocs-*` artifacts reach the theme. No filesystem, no Vite, no
+Piscina, no Sharp.
 
-```text
-components/
-├── ui-base/           # Reusable UI primitives (exported)
-│   ├── navbar.tsx
-│   ├── sidebar.tsx
-│   ├── breadcrumbs.tsx
-│   ├── on-this-page.tsx
-│   ├── page-nav.tsx
-│   ├── error-boundary.tsx
-│   ├── copy-markdown.tsx
-│   ├── search-dialog.tsx
-│   ├── not-found.tsx
-│   ├── banner.tsx
-│   ├── feedback.tsx
-│   ├── giscus.tsx
-│   ├── theme-toggle.tsx
-│   ├── i18n-selector.tsx
-│   ├── version-selector.tsx
-│   ├── tabs.tsx
-│   └── index.ts       # Barrel file
-├── primitives/         # Low-level layout components
-│   └── docs-layout.tsx
-├── internal/           # Internal components (not exported to users)
-│   └── error-boundary.tsx
-├── mdx/                # MDX-specific components
-│   └── use-code-block.tsx
-├── icons-prod.tsx      # Eager-bundled social/nav icons (Github, Discord, XSocial, Bluesky) — used by navbar/sidebar. Re-exports `IconProps`.
-│   └── (used by components/primitives/navbar.tsx + components/ui-base/{navbar,github-stars}.tsx)
-│
-└── mdx/lang-icons.tsx  # Lazy-loaded language icons for MDX code blocks (TypeScript, JavaScript, React, JSON, CSS, HTML, Markdown, Shell, YAML, Rust, TOML, CSV).
-    └── Imported via `const langIconsPromise = import('./lang-icons')` in `mdx/use-code-block.ts` and stored in `useState<map | null>(null)`. Falls back to the generic `File` icon during SSR and the brief hydration window before the dynamic import resolves. Pages without code blocks ship zero bytes of these icons.
-└── docs-layout-default.tsx  # Default layout composition
-```
+### Theme (`@bdocs/theme-neutral`)
 
-### Component Patterns
+Components + stylesheet + `surface` (the object the engine renders with). The
+stylesheet is native CSS — `import '@bdocs/theme-neutral/css'` — not Tailwind
+utilities: every rule is a real class in `src/styles/`, so a custom theme can
+override it without matching utility classes. `src/components/` splits into:
 
-- **Context providers**: `app/` directory contains context providers (`config-context.tsx`, `theme-context.tsx`, `ui-context.tsx`, `routes-context.tsx`, `mdx-components-context.tsx`)
-- **Hooks**: `hooks/` directory — 17 hooks prefixed with `use-` (e.g., `use-routes.ts`, `use-sidebar.ts`, `use-search.ts`)
-- **Shell**: `BoltdocsShell` in `ssg/boltdocs-shell.tsx` wraps the entire app with providers
-- **Layout**: `DocsLayout` in `components/docs-layout-default.tsx` composes navbar, sidebar, content, and on-this-page
+- `ui-base/` — reusable UI (navbar, sidebar, on-this-page, search-dialog, tabs, …)
+- `composition/` — layout compositions (docs-layout, heading, callout, code-block, …)
+- `mdx/` — MDX-specific components and their hooks
+- `internal/` — not exported to users
 
-### Exported Components (from `client/index.ts`)
+### Engine (`boltdocs`)
 
-```typescript
-export { DocsLayout } from './components/docs-layout-default'
-export { Navbar } from './components/ui-base/navbar'
-export { Sidebar } from './components/ui-base/sidebar'
-export { OnThisPage } from './components/ui-base/on-this-page'
-export { Breadcrumbs } from './components/ui-base/breadcrumbs'
-export { PageNav } from './components/ui-base/page-nav'
-export { ErrorBoundary } from './components/ui-base/error-boundary'
-export { CopyMarkdown } from './components/ui-base/copy-markdown'
-export { SearchDialog } from './components/ui-base/search-dialog'
-export { NotFound } from './components/ui-base/not-found'
-export { Banner } from './components/ui-base/banner'
-```
+Node only: config resolution, route generation, frontmatter validation, plugin
+lifecycle, build orchestration, dev-server state, invalidation, and the Vite
+plugins. It exports the client-facing pieces indirectly through
+`@bdocs/theme-neutral`/`@bdocs/runtime`, never by shipping components itself.
+
+### SSG (`@bdocs/ssg`)
+
+Consumes contracts: client build, server build, page rendering, critical CSS,
+output materialization and page-cache policy.
 
 ## Plugin System
 
 ### Plugin Interface
 
-**File**: `packages/core/src/node/plugins/plugin-types.ts`
+**File**: `packages/boltdocs-engine/src/node/plugins/plugin-types.ts`
 
 ```typescript
 interface SecureBoltdocsPlugin {
@@ -267,7 +269,7 @@ interface SecureBoltdocsPlugin {
 
 ### Lifecycle Hooks
 
-**File**: `packages/core/src/node/plugins/plugin-types.ts:32-50`
+**File**: `packages/boltdocs-engine/src/shared/types.ts:115`
 
 ```typescript
 interface PluginLifecycleHooks {
@@ -289,7 +291,7 @@ interface PluginLifecycleHooks {
 
 ### Plugin Context
 
-**File**: `packages/core/src/node/plugins/plugin-types.ts:4-12`
+**File**: `packages/boltdocs-engine/src/shared/types.ts:108`
 
 ```typescript
 interface PluginContext {
@@ -328,7 +330,7 @@ export default createPlugin({
 
 ### Plugin Validation
 
-**File**: `packages/core/src/node/plugins/plugin-validator.ts`
+**File**: `packages/boltdocs-engine/src/node/plugins/plugin-validator.ts`
 
 - Plugins validated against `SecurePluginSchema` (Zod)
 - Duplicate plugin names rejected
@@ -338,7 +340,7 @@ export default createPlugin({
 
 ### Plugin Lifecycle Execution
 
-**File**: `packages/core/src/node/plugins/plugin-lifecycle.ts`
+**File**: `packages/boltdocs-engine/src/node/plugins/plugin-lifecycle.ts` (`PluginLifecycleManager`, line 73)
 
 - `runHook()`: Runs hook on all plugins in order (parallel-safe via Pipeline)
 - `runChain()`: Runs transform hooks sequentially, piping `params` through each plugin
@@ -346,34 +348,27 @@ export default createPlugin({
 
 ## Virtual Modules System
 
-**File**: `packages/core/src/node/plugin/virtual-modules.ts`
+**File**: `packages/boltdocs-engine/src/node/plugin/virtual-modules.ts`
 
 All `virtual:boltdocs-*` modules are resolved by the `vite-plugin-boltdocs-virtual-modules` plugin.
 
-### Available Virtual Modules
+| Module | Purpose |
+| --- | --- |
+| `virtual:boltdocs-entry` | App entry point |
+| `virtual:boltdocs-client` | Client package re-export |
+| `virtual:boltdocs-client-registry` | Plugin client slots/providers |
+| `virtual:boltdocs-search` | Search index data |
+| `virtual:boltdocs-page-source` | Raw page source for the source view |
+| `virtual:boltdocs-mdx-components` | User MDX components (`mdx-components.{tsx,ts,jsx,js}`) |
+| `virtual:boltdocs-layout` | User layout (`layout.{tsx,jsx}`) |
+| `virtual:boltdocs-icons` | User icon registry (`icons.{tsx,jsx,ts,js}`) |
 
-| Module | Purpose | Invalidation |
-| -------- | --------- | -------------- |
-| `virtual:boltdocs-routes.ts` | Route tree (JSON) | File add/unlink/change |
-| `virtual:boltdocs-config.ts` | Client config + directory meta | File add/unlink |
-| `virtual:boltdocs-search.ts` | Search index data | File add/unlink/change |
-| `virtual:boltdocs-collections.ts` | Collection data | File add/unlink |
-| `virtual:boltdocs-entry.tsx` | App entry point | Config change |
-| `virtual:boltdocs-mdx-components.tsx` | User MDX components | `mdx-components.{tsx,ts,jsx,js}` change |
-| `virtual:boltdocs-layout.tsx` | User layout | `layout.{tsx,jsx}` change |
-| `virtual:boltdocs-icons.tsx` | User icons | `icons.{tsx,jsx,ts,js}` change |
-| `virtual:boltdocs-client` | Client package re-export | — |
+**The theme cannot read these.** They only resolve inside the engine's Vite
+pipeline, so the generated artifacts reach the theme through
+`registerSiteBridge()` from `@bdocs/runtime`.
 
-### Invalidation Pattern
-
-```typescript
-function invalidateVirtualModule(server: ViteDevServer, name: string): void {
-  const mod = server.moduleGraph.getModuleById(`\0virtual:boltdocs-${name}.ts`)
-  if (mod) server.moduleGraph.invalidateModule(mod)
-}
-```
-
-**Caching**: Virtual module results are cached in module-level variables (`_routesCache`, `_searchDataCache`, etc.). Cache is cleared by `invalidateDirectoryMetaCache()` on file add/unlink events.
+**Caching**: results are cached in module-level variables and invalidated on
+file add/unlink (not on content changes).
 
 ## Build System
 
@@ -392,29 +387,13 @@ All packages use `tsdown` (Rolldown-based bundler) with `--config-loader unrun`:
 
 ### Turborepo Pipeline
 
-**File**: `turbo.json`
-
-```json
-{
-  "tasks": {
-    "build": {
-      "dependsOn": ["^build"],
-      "outputs": ["dist/**", ".next/**", "!.next/cache/**"]
-    },
-    "dev": { "cache": false, "persistent": true },
-    "lint": { "dependsOn": ["^lint"] },
-    "typecheck": { "dependsOn": ["^typecheck"] },
-    "test": { "dependsOn": ["^test"] }
-  }
-}
-```
-
-- `build` depends on `^build` (all upstream packages must build first)
-- `dev` is not cached and runs persistently
+**File**: `turbo.json` — `build` depends on `^build` and declares `dist/**`;
+`dev` is uncached and persistent; `lint`, `typecheck` and `test` depend on their
+upstream counterparts.
 
 ### Build Pipeline (Production)
 
-**File**: `packages/core/src/node/pipeline/build-pipeline.ts`
+**File**: `packages/boltdocs-engine/src/node/pipeline/build-pipeline.ts`
 
 ```text
 ConfigResolve → RouteGenerate → SEOValidate → TypeGenerate → SSGBuild → SEOWrite
@@ -424,7 +403,7 @@ Each step is a `PipelineStep<BuildContext>` with `execute()` and optional `rollb
 
 ### SSG Build: Two Vite Builds
 
-**File**: `packages/plugin-ssg/src/node/build.ts:311-410`
+**File**: `packages/boltdocs-ssg/src/node/build.ts`
 
 1. **Client build** (`viteBuild` with `manifest: true, ssrManifest: true`)
    - Produces client bundle + SSR manifest
@@ -435,16 +414,17 @@ Each step is a `PipelineStep<BuildContext>` with `execute()` and optional `rollb
 
 ### Client Code Hash
 
-**File**: `packages/plugin-ssg/src/node/build.ts:112-152`
+**File**: `packages/boltdocs-ssg/src/node/client-hash.ts:217`
 
-`computeClientCodeHash()` recursively scans ALL files in the project root AND workspace packages directory (`packages/`). Uses `mtime` + `size` for each file. This is expensive in monorepos.
+`computeClientCodeHash()` recursively scans the project root **and the workspace
+packages directory** (`packages/`), using `mtime` + `size` per file. That is
+expensive in a monorepo, and it is what decides whether the client build is
+skipped.
 
 ### Cache System
 
-**File**: `packages/core/src/node/cache.ts`
+**File**: `packages/boltdocs-engine/src/node/cache.ts` (`FileCache` line 91, `TransformCache` line 320)
 
-- `FileCache<T>`: Generic file-based cache with LRU eviction
-- `AssetCache`: Per-asset cache with shards (for MDX transforms)
 - MDX results are gzipped in production (`compress: true`)
 - Cache directory: `.boltdocs/` (gitignored)
 - Configurable via `BOLTDOCS_CACHE_DIR`, `BOLTDOCS_NO_CACHE`, `BOLTDOCS_CACHE_COMPRESS` env vars
@@ -453,7 +433,7 @@ Each step is a `PipelineStep<BuildContext>` with `execute()` and optional `rollb
 
 ```bash
 pnpm run build           # Full Turborepo build (all packages)
-pnpm run build:core      # Build core package only (pnpm --filter boltdocs build)
+pnpm run build:core      # Engine only (pnpm --filter boltdocs build)
 pnpm run release         # Build + changeset publish
 ```
 
@@ -461,57 +441,54 @@ pnpm run release         # Build + changeset publish
 
 ### Dev Server Setup
 
-**File**: `packages/core/src/node/cli/dev.ts`
+**File**: `packages/boltdocs-engine/src/node/cli/dev.ts`
 
 1. `resolveConfig()` loads `boltdocs.config.{js,mjs,ts}`
-2. `createViteConfig()` builds full Vite `InlineConfig` with all plugins
-3. `createServer()` from `@bdocs/ssg/node` starts Vite dev server
+2. `createViteConfig()` builds the full Vite `InlineConfig` with all plugins
+3. `createServer()` from `@bdocs/ssg/node` starts the dev server
 4. `server.listen()` starts listening
 
 ### Dev Server Plugin
 
-**File**: `packages/core/src/node/dev-server/index.ts`
+**File**: `packages/boltdocs-engine/src/node/dev-server/index.ts` (`createDevServerPlugin`, line 34)
 
-The `vite-plugin-boltdocs-dev-server` plugin runs on `apply: 'serve'`:
-
-1. Runs `beforeDev` lifecycle hook
-2. Generates link tree (background)
-3. Sets up prewarming, middlewares, watcher, HMR
-4. Runs `afterDev` lifecycle hook
+Runs on `apply: 'serve'`: `beforeDev` hook, link-tree generation, prewarming,
+middlewares, watcher and HMR setup, then `afterDev`.
 
 ### Prewarming
 
-**File**: `packages/core/src/node/dev-server/prewarm.ts`
+**File**: `packages/boltdocs-engine/src/node/dev-server/prewarm.ts` (`setupPrewarming`, line 130)
 
-After server start, batches of 32 files are pre-transformed via `server.transformRequest()` to warm the Vite module graph.
+After server start, batches of 32 files are pre-transformed via
+`server.transformRequest()` to warm the Vite module graph.
 
 ### HMR Handler
 
-**File**: `packages/core/src/node/dev-server/hmr-handler.ts`
+**File**: `packages/boltdocs-engine/src/node/dev-server/hmr-handler.ts` (`setupHmr`, line 109)
 
-File events (`add`, `unlink`, `change`) are handled with debouncing (150ms):
+File events (`add`, `unlink`, `change`) are debounced (150 ms):
 
 | Event | Action |
-| ------- | -------- |
+| --- | --- |
 | Config file change | `server.restart()` |
-| `mdx-components.{ext}` change | Invalidate `mdx-components.tsx`, full reload |
-| `icons.{ext}` change | Invalidate `icons.tsx`, full reload |
-| `layout.{ext}` change | Invalidate `layout.tsx`, full reload |
+| `mdx-components.{ext}` change | Invalidate `mdx-components`, full reload |
+| `icons.{ext}` change | Invalidate `icons`, full reload |
+| `layout.{ext}` change | Invalidate `layout`, full reload |
 | File in `pages-external/` | Invalidate `entry`, full reload |
-| File add/unlink (in docs/) | Invalidate routes + config + search + collections, full reload |
+| File add/unlink (in docs/) | Invalidate routes, config, search and collections, full reload |
 | `meta.json` change | Same as add/unlink |
 | Content change (`.md`/`.mdx`) | Frontmatter hash check → if changed: invalidate routes; else: HMR via module invalidation |
 
 ### HMR for Content Changes
 
-1. Compute frontmatter hash of changed file
-2. Compare with previous hash
-3. If hash changed (frontmatter metadata changed): invalidate routes, full reload
-4. If hash same (only body changed): invalidate specific Vite modules, send `boltdocs:mdx-update` event
+1. Compute the frontmatter hash of the changed file
+2. Compare with the previous hash
+3. If it changed: invalidate routes, full reload
+4. If it did not: invalidate the specific Vite modules, send `boltdocs:mdx-update`
 
 ## Route Generation
 
-**File**: `packages/core/src/node/routes/index.ts`
+**File**: `packages/boltdocs-engine/src/node/routes/index.ts` (`generateRoutes`, line 404)
 
 ### File Crawling
 
@@ -521,7 +498,7 @@ File events (`add`, `unlink`, `change`) are handled with debouncing (150ms):
 
 ### Route Sorting
 
-**File**: `packages/core/src/node/routes/sorter.ts`
+**File**: `packages/boltdocs-engine/src/node/routes/sorter.ts` (`sortRoutes`, line 11)
 
 - Ungrouped items come first
 - Items sorted by `sidebarPosition` (or `groupPosition` for groups)
@@ -530,14 +507,14 @@ File events (`add`, `unlink`, `change`) are handled with debouncing (150ms):
 
 ### Route Metadata
 
-**File**: `packages/core/src/node/routes/types.ts`
+**File**: `packages/boltdocs-engine/src/node/routes/types.ts`
 
 Key fields: `path`, `componentPath`, `title`, `filePath`, `group`, `groupTitle`, `locale`, `version`, `badge`, `icon`, `tab`, `collection`, `tags`, `author`, `draft`, `excerpt`, `coverImage`, `frontmatter`
 
 ### Collection Directories
 
 - Directories named `[collection-name]/` create collection routes
-- Posts within have `collection`, `date`, `tags`, `author`, `coverImage` metadata
+- Posts within carry `collection`, `date`, `tags`, `author`, `coverImage`
 
 ### i18n & Versioning
 
@@ -549,64 +526,51 @@ Key fields: `path`, `componentPath`, `title`, `filePath`, `group`, `groupTitle`,
 
 ```typescript
 invalidateRouteCache()  // Clears file list, localized path cache, native docs cache
-invalidateFile(path)    // Removes specific file from native docs cache
+invalidateFile(path)    // Removes a specific file from the native docs cache
 ```
 
 ## Testing
 
-### Framework
+### Per-package, not root
 
-- **Vitest** with `globals: true` (no need to import `describe`/`it`/`expect`)
-- **Coverage**: V8 provider
-- **Environment**: `node`
+There is no repo-wide test config that collects packages. Each package owns a
+`vitest.config.ts`; the root `vitest.config.ts` collects **only**
+`scripts/**/*.test.ts`. Running `vitest` from the root will not run package
+tests — use the scripts below.
 
-### Configuration
-
-**File**: `vitest.config.ts`
-
-```typescript
-{
-  test: {
-    globals: true,
-    environment: 'node',
-    include: ['**/*.test.ts'],
-    exclude: ['**/node_modules/**', '**/dist/**', '**/tests/a11y/**'],
-  },
-  resolve: {
-    alias: { '@': path.resolve(__dirname, './packages/core/src') },
-  },
-  coverage: {
-    provider: 'v8',
-    include: ['packages/core/src/**/*.ts', 'packages/ssg/src/**/*.ts'],
-    exclude: ['**/*.test.ts', '**/node_modules/**', '**/dist/**', '**/*.d.ts'],
-  },
-}
-```
-
-### Test Commands
+### Commands
 
 ```bash
-pnpm run test              # Run core tests (pnpm --filter boltdocs test)
-pnpm run test:core         # Same as above
-pnpm run test:ssg          # SSG tests (pnpm --filter @bdocs/ssg test)
-pnpm run test:all          # All package tests
-pnpm run test:coverage     # With V8 coverage
+pnpm test                  # = test:all
+pnpm run test:core         # Engine (pnpm --filter boltdocs test)
+pnpm run test:ssg          # SSG
+pnpm run test:ui           # Primitives, runtime and theme-neutral (258 tests)
+pnpm run test:plugins      # Every plugin package
+pnpm run test:grammars     # @bdocs/grammars
+pnpm run test:search       # @bdocs/plugin-search
+pnpm run test:processors   # Satteri, unist-utils, create-boltdocs, parser
+pnpm run test:scripts      # Root vitest (scripts only)
 pnpm run test:a11y         # Playwright accessibility tests
+pnpm run test:coverage     # V8 coverage across packages/*/src
 ```
+
+`@bdocs/theme-neutral`, `@bdocs/runtime` and `@bdocs/primitives` each have their
+own suite and are covered by `test:ui`. `@bdocs/contracts` is types-only and has
+no tests and no `vitest.config.ts`, so it must not be added to `test:all` — with
+the root config it finds no files and exits non-zero.
 
 ### Test Patterns
 
-- Test files: `**/*.test.ts` (colocated with source or in `tests/`)
-- Integration tests: `tests/integration/`
-- Use `@` alias for imports in tests
-- `@testing-library/react` for component tests
-- `@testing-library/jest-dom` for DOM matchers
+- Test files: `**/*.test.ts` / `**/*.test.tsx` inside each package's `tests/`
+- Vitest with `globals: true`; the engine uses `environment: 'jsdom'`
+- `@testing-library/react` + `@testing-library/jest-dom` for components
+- `@` alias for `src` imports, plus source aliases for workspace packages
 
 ## Security Model
 
 ### Error Hierarchy
 
-**File**: `packages/core/src/node/errors.ts`
+**File**: `packages/boltdocs-engine/src/node/errors.ts`
 
 ```text
 SecurityViolationError (base)
@@ -617,7 +581,7 @@ SecurityViolationError (base)
 
 ### Security Constants
 
-**File**: `packages/core/src/node/security/constants/index.ts`
+**File**: `packages/boltdocs-engine/src/node/security/constants/index.ts`
 
 ```typescript
 MAX_PATH_LENGTH = 260
@@ -627,7 +591,7 @@ MAX_FRONTMATTER_SIZE = 10 * 1024  // 10KB
 
 ### Frontmatter Validation
 
-**File**: `packages/core/src/node/schema/frontmatter.ts`
+**File**: `packages/boltdocs-engine/src/node/schema/frontmatter.ts`
 
 Uses `z.looseObject()` — validates known fields, passes through unknown fields.
 
@@ -635,9 +599,10 @@ Known fields: `title`, `description`, `sidebarPosition`, `sidebarLabel`, `sideba
 
 ### Config Validation
 
-**File**: `packages/core/src/node/schema/config.ts`
+**File**: `packages/boltdocs-engine/src/node/schema/config.ts`
 
-Full Zod schema for `BoltdocsConfig` including theme, i18n, versions, plugins, security, robots, social links, and integrations.
+Full Zod schema for `BoltdocsConfig` including theme, `themePackage`, i18n,
+versions, plugins, security, robots, social links and integrations.
 
 ### Path Security
 
@@ -648,63 +613,80 @@ Full Zod schema for `BoltdocsConfig` including theme, i18n, versions, plugins, s
 ## Key File Reference
 
 | File | Key Functions/Lines |
-| ------ | ------------------- |
-| `packages/core/src/node/index.ts` | `boltdocs()` (7), `createViteConfig()` (43) |
-| `packages/core/src/node/config.ts` | `resolveConfig()` (62), `CONFIG_FILES` (37) |
-| `packages/core/src/node/routes/index.ts` | `generateRoutes()` (57), `invalidateRouteCache()` (39) |
-| `packages/core/src/node/routes/sorter.ts` | `sortRoutes()` (11) |
-| `packages/core/src/node/plugin/index.ts` | `boltdocsPlugin()` (45), plugin array (86-283) |
-| `packages/core/src/node/plugin/virtual-modules.ts` | `createVirtualModulesPlugin()` (33) |
-| `packages/core/src/node/dev-server/index.ts` | `createDevServerPlugin()` (11) |
-| `packages/core/src/node/dev-server/hmr-handler.ts` | `setupHmr()` (25), `handleFileEvent()` (34) |
-| `packages/core/src/node/dev-server/prewarm.ts` | `setupPrewarming()` (8) |
-| `packages/core/src/node/mdx/highlighter.ts` | `highlight()` (24), `RegexEngineKind` |
-| `packages/core/src/node/mdx/shiki-adapter.ts` | `ShikiAdapter` (implements `CodeHighlighterAdapter`), `getShikiAdapter()` (registry factory) |
-| `packages/core/src/node/highlight/registry.ts` | Code highlighter SPI: `getCodeHighlighterAdapter()`, `registerHighlighter()`, `registerPluginHighlighter()`, `prewarmHighlighter()` |
-| `packages/core/src/node/mdx/index.ts` | `boltdocsMdxPlugin()` (17) |
-| `packages/core/src/node/cache.ts` | `FileCache` (53), `AssetCache` |
-| `packages/core/src/node/pipeline/index.ts` | `Pipeline` class (14) |
-| `packages/core/src/node/pipeline/build-pipeline.ts` | `createBuildPipeline()` (13) |
-| `packages/core/src/node/plugins/plugin-types.ts` | `SecureBoltdocsPlugin` (52), `PluginLifecycleHooks` (32) |
-| `packages/core/src/node/plugins/plugin-lifecycle.ts` | `PluginLifecycleManager` (13) |
-| `packages/core/src/node/plugins/plugin-validator.ts` | `validatePlugins()` (28) |
-| `packages/core/src/node/errors.ts` | Error classes (1-44) |
-| `packages/core/src/node/schema/config.ts` | `BoltdocsConfigSchema` |
-| `packages/core/src/node/schema/frontmatter.ts` | `FrontmatterSchema` (6) |
-| `packages/core/src/node/cli-entry.ts` | CLI commands (25-115) |
-| `packages/core/src/node/cli/dev.ts` | `devAction()` (18) |
-| `packages/core/src/node/cli/build.ts` | `buildAction()` (9) |
-| `packages/core/src/client/ssg/create-routes.tsx` | `createRoutes()` (29) |
-| `packages/core/src/client/ssg/boltdocs-shell.tsx` | `BoltdocsShell` (70) |
-| `packages/core/src/client/index.ts` | All client exports (1-38) |
-| `packages/plugin-ssg/src/node/build.ts` | `build()` function, `computeClientCodeHash()` (112) |
+| --- | --- |
+| `packages/boltdocs-engine/src/node/index.ts` | `createViteConfig()` (172) |
+| `packages/boltdocs-engine/src/node/config.ts` | `resolveConfig()` (188), `DEFAULT_THEME_PACKAGE` re-export (40) |
+| `packages/boltdocs-engine/src/node/theme-package.ts` | `DEFAULT_THEME_PACKAGE` (14), `resolveThemePackage()` |
+| `packages/boltdocs-engine/src/node/routes/index.ts` | `generateRoutes()` (404) |
+| `packages/boltdocs-engine/src/node/routes/sorter.ts` | `sortRoutes()` (11) |
+| `packages/boltdocs-engine/src/node/plugin/index.ts` | `boltdocsPlugin()` (263), Sätteri MDX wiring (909) |
+| `packages/boltdocs-engine/src/node/plugin/virtual-modules.ts` | `createVirtualModulesPlugin()` (595) |
+| `packages/boltdocs-engine/src/node/dev-server/index.ts` | `createDevServerPlugin()` (34) |
+| `packages/boltdocs-engine/src/node/dev-server/hmr-handler.ts` | `setupHmr()` (109) |
+| `packages/boltdocs-engine/src/node/dev-server/prewarm.ts` | `setupPrewarming()` (130) |
+| `packages/boltdocs-engine/src/node/mdx/highlighter.ts` | `highlight()`, `ensureLanguage()`, `RegexEngineKind` |
+| `packages/boltdocs-engine/src/node/mdx/shiki-adapter.ts` | `ShikiAdapter`, `getShikiAdapter()` |
+| `packages/boltdocs-engine/src/node/highlight/registry.ts` | Highlighter SPI: `getCodeHighlighterAdapter()`, `registerHighlighter()`, `registerPluginHighlighter()`, `prewarmHighlighter()` |
+| `packages/boltdocs-processor-satteri/src/node/satteri-plugins/rehype-shiki-plugin.ts` | `satteriRehypeCodeHighlightPlugin()`, per-worker highlight cache |
+| `packages/boltdocs-engine/src/node/cache.ts` | `FileCache` (91), `TransformCache` (320) |
+| `packages/boltdocs-engine/src/node/pipeline/index.ts` | `Pipeline` class |
+| `packages/boltdocs-engine/src/node/pipeline/build-pipeline.ts` | `createBuildPipeline()` (37) |
+| `packages/boltdocs-engine/src/node/plugins/plugin-types.ts` | `SecureBoltdocsPlugin` |
+| `packages/boltdocs-engine/src/shared/types.ts` | `PluginContext` (108), `PluginLifecycleHooks` (115) |
+| `packages/boltdocs-engine/src/node/plugins/plugin-lifecycle.ts` | `PluginLifecycleManager` (73) |
+| `packages/boltdocs-engine/src/node/plugins/plugin-validator.ts` | `validatePlugins()` (70) |
+| `packages/boltdocs-engine/src/node/cli-entry.ts` | CLI commands |
+| `packages/boltdocs-engine/src/node/cli/dev.ts` | `devAction()` |
+| `packages/boltdocs-engine/src/node/cli/build.ts` | `buildAction()` |
+| `packages/boltdocs-ssg/src/node/build.ts` | `build()` |
+| `packages/boltdocs-ssg/src/node/client-hash.ts` | `computeClientCodeHash()` (217) |
+| `packages/boltdocs-runtime/src/app/create-routes.tsx` | `createRoutes()` (64) |
+| `packages/boltdocs-runtime/src/app/shell.tsx` | `BoltdocsShell` (131) |
+| `packages/boltdocs-theme-neutral/src/index.ts` | Theme exports (`DocsLayout`, `DocPage`, `surface`, primitives re-exports) |
+| `packages/boltdocs-theme-neutral/src/surface.ts` | `surface` — what the engine renders the theme with |
 
 ## Common Gotchas
 
 1. **Never use `npm` or `yarn`** — This is a pnpm workspace. `npm install` will break dependencies.
 
-2. **`.` in React Router** means "match parent's URL path" — NOT a literal segment. When generating SSG paths, `path="."` must be resolved to the parent path (e.g., `/docs`), not `prefix + "/."`.
+2. **A renamed package directory does not rename the package.** The published
+   names are load-bearing (`boltdocs`, `@bdocs/*`); the directory is not. The
+   reverse is also true: renaming a directory requires updating every absolute
+   path built from it — `vitest.config.ts` aliases, `join(ROOT, 'packages', …)`
+   segments, `.gitignore` entries and CI path filters. A stale alias fails at
+   *collect* time and reads like a missing dependency.
 
-3. **Redirect routes reuse elements** — Fallback routes for `/docs` reuse the first matched route's `element` and `loader` instead of `<Navigate>` or `redirect()`. This avoids hydration mismatches.
+3. **`.` in React Router** means "match parent's URL path" — NOT a literal segment. When generating SSG paths, `path="."` must be resolved to the parent path (e.g., `/docs`), not `prefix + "/."`.
 
-4. **MDX cache is gzipped in production** — The `FileCache` compresses with gzip when `NODE_ENV=production`. In dev, compression is off by default.
+4. **Redirect routes reuse elements** — Fallback routes for `/docs` reuse the first matched route's `element` and `loader` instead of `<Navigate>` or `redirect()`. This avoids hydration mismatches.
 
-5. **`computeClientCodeHash` scans the entire monorepo** — It recursively hashes all files in project root + `packages/`. This is expensive. The hash determines whether the SSG client build is skipped.
+5. **MDX cache is gzipped in production** — The cache compresses with gzip when `NODE_ENV=production`. In dev, compression is off by default.
 
-6. **Virtual modules have module-level caches** — `_routesCache`, `_searchDataCache`, `_collectionsCache`, `_directoryMetaCache` are only invalidated on file add/unlink events, NOT on content changes.
+6. **`computeClientCodeHash` scans the entire monorepo** — It recursively hashes all files in the project root + `packages/`. This is expensive, and it decides whether the SSG client build is skipped.
 
-7. **Frontmatter hash check for HMR** — Content changes (body only) don't trigger route invalidation. Only frontmatter changes (detected via hash comparison) trigger full reload.
+7. **Virtual modules have module-level caches** — only invalidated on file add/unlink, NOT on content changes.
 
-8. **Config files trigger full restart** — Changing `boltdocs.config.{js,mjs,ts}` calls `server.restart()`, not HMR.
+8. **Frontmatter hash check for HMR** — Content changes (body only) don't trigger route invalidation. Only frontmatter changes trigger a full reload.
 
-9. **Plugin validation is strict** — Duplicate plugin names, invalid component paths (with `..`), and version mismatches throw `PluginValidationError` or `PluginCompatibilityError`.
+9. **Config files trigger full restart** — Changing `boltdocs.config.{js,mjs,ts}` calls `server.restart()`, not HMR.
 
-10. **Route generation has coalescing** — Multiple concurrent calls to `generateRoutes()` share a single promise (`activeGenerationPromise`). Don't call it redundantly.
+10. **Plugin validation is strict** — Duplicate plugin names, invalid component paths (with `..`), and version mismatches throw `PluginValidationError` or `PluginCompatibilityError`.
 
-11. **`@` alias** resolves to `packages/core/src` in vitest and dev server, but NOT in production builds. Use relative imports in published code.
+11. **Route generation has coalescing** — Concurrent calls share a single promise (`activeGenerationPromise`). Don't call it redundantly.
 
-12. **SSG uses two sequential Vite builds** — Client build must complete before server build (server needs client manifest). This is the main production build bottleneck.
+12. **`@` alias** resolves to a package's `src` in vitest and the dev server, but NOT in production builds. Use relative imports in published code.
 
-13. **`turbo.json` has irrelevant `.next/**` output pattern** — This is a Vite project, not Next.js. The pattern should be removed but currently exists.
+13. **SSG uses two sequential Vite builds** — The client build must finish before the server build (the server needs the client manifest).
 
-14. **pnpm overrides are pinned** — React 19.2.5, react-router-dom ^7.0.0, etc. are overridden in root `package.json`. Don't change these without checking compatibility.
+14. **pnpm overrides are pinned** — React 19.2.5, `react-router-dom` ^7, Vite 8.3.5, etc. are overridden in the root `package.json`. Don't change them without checking compatibility.
+
+15. **The theme is native CSS, not Tailwind.** `@bdocs/theme-neutral` has no
+    Tailwind dependency; its rules live in `src/styles/` and are shipped as
+    `@bdocs/theme-neutral/css`. Utilities in theme components would be invisible
+    to a project that does not install Tailwind.
+
+16. **The highlighter is a compile-time cost, not a runtime one.** Shiki never
+    ships to the browser; `data-highlighted-html` carries the rendered markup.
+    A light/dark theme pair runs the TextMate grammar **twice** (once per
+    theme) — measured at 18.1 ms against 9.7 ms on a 39-line block. Single-theme
+    sites halve the highlighting cost by construction.

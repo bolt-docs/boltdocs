@@ -6,10 +6,10 @@ import { ErrorBoundary } from '@bdocs/theme-neutral'
 import { CopyMarkdown } from '@/theme/copy-markdown'
 import { OnThisPage } from '@/theme/on-this-page'
 import { Feedback } from '@/theme/feedback'
-import { useRoutes } from '@bdocs/theme-neutral'
-import { useConfig } from '@bdocs/theme-neutral'
+
 import { Outlet } from '@bdocs/runtime'
 import { PageNav } from '@/theme/page-nav'
+import { useRoutes, useConfig } from '@bdocs/runtime'
 
 function DocsThemeLayout({ children }: { children?: ReactNode }) {
   const { routes: filteredRoutes, currentRoute, isCollectionPage } = useRoutes()

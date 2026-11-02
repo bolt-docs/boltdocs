@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import { Copy, Check } from 'lucide-react'
 import { Button } from '@/theme/button'
 import { cn } from '@bdocs/theme-neutral'
-import type { ComponentRoute } from '@bdocs/theme-neutral'
+import type { ComponentRoute } from '@bdocs/runtime'
 
 export interface CopyMarkdownProps {
   content?: string

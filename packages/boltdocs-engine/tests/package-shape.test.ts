@@ -1,0 +1,164 @@
+import { describe, it, expect } from 'vitest'
+import pkg from '../package.json' with { type: 'json' }
+
+type PkgShape = {
+  dependencies: Record<string, string>
+  peerDependencies: Record<string, string>
+  peerDependenciesMeta?: Record<string, { optional?: boolean }>
+  optionalDependencies?: Record<string, string>
+  devDependencies: Record<string, string>
+}
+
+const deps = pkg as unknown as PkgShape
+
+describe('packages/boltdocs-engine/package.json shape', () => {
+  it('declares no peer dependency at all', () => {
+    // The engine renders nothing. React, React DOM and the router are the
+    // browser half's business, and the browser half is a package the site
+    // installs. Leaving them declared here made every site install React "for
+    // the engine", which is how a package that ships no React code ends up
+    // requiring React.
+    expect(deps.peerDependencies).toEqual({})
+    expect(deps.peerDependenciesMeta).toBeUndefined()
+  })
+
+  it('does not require react-aria-components from the host app', () => {
+    // 4.0 — the client primitives moved to `@bdocs/primitives`. react-aria was
+    // a *required* peer, so leaving it declared would force every site to keep
+    // installing a 23 MB / 113-package tree for code the framework no longer
+    // imports. This assertion exists so a future import of it is a deliberate
+    // edit here rather than a silent 23 MB install regression.
+    expect(deps.peerDependencies['react-aria-components']).toBeUndefined()
+    expect(deps.dependencies['react-aria-components']).toBeUndefined()
+    expect(deps.devDependencies['react-aria-components']).toBeUndefined()
+    expect(deps.peerDependencies['@bdocs/primitives']).toBeUndefined()
+  })
+
+  it('does not depend on the UI layer', () => {
+    // The core is the engine. The theme and the primitives are packages a
+    // site opts into, and the engine does not depend on either: it resolves
+    // the theme by name from the project and imports the route surface from
+    // it.
+    //
+    // A dependency here would put the whole UI layer back into every
+    // install, and it would also make the engine's own tests depend on a
+    // theme.
+    expect(deps.dependencies['@bdocs/theme-neutral']).toBeUndefined()
+    expect(deps.dependencies['@bdocs/primitives']).toBeUndefined()
+  })
+
+  it('depends on nothing from the browser half', () => {
+    // The `Boltdocs` global namespace has one home, and it is the contract
+    // layer: TypeScript rejects two `declare global` blocks for the same
+    // namespace, and both the engine and the browser need it. The engine used
+    // to reach the runtime for those types, which was a dependency on the
+    // browser half that compiled, shipped nothing, and was therefore invisible.
+    expect(deps.dependencies['@bdocs/runtime']).toBeUndefined()
+    expect(deps.dependencies['@bdocs/contracts']).toBe('workspace:*')
+  })
+
+  it('does not declare ANY optional peer (peerDependenciesMeta is absent)', () => {
+    // The contract for 3.2.0 was "all peers are required". The engine declares
+    // no peers at all now, and this fail-fast assertion keeps it that way: a
+    // future PR that adds `peerDependenciesMeta.<x>.optional: true` slips past
+    // the per-peer check above without it.
+    expect(deps.peerDependenciesMeta).toBeUndefined()
+  })
+
+  it('keeps build-time deps in dependencies (CLI unconditionally imports them)', () => {
+    // These are imported by src/node/cli-entry.ts when `npx boltdocs build` runs.
+    //
+    // The highlighter imports `@shikijs/core`, not `shiki`. The full `shiki`
+    // package pulls in `@shikijs/langs` (9.9 MB, 347 grammars) and
+    // `@shikijs/themes` (1.8 MB) as ordinary dependencies, and this project
+    // imports neither: the reachable grammar set is vendored in
+    // `@bdocs/grammars` and the seven themes alongside it.
+    // Depending on `shiki` would reinstall 11.7 MB of unreachable payload on
+    // every consumer. `@bdocs/grammars` guards the grammar side from its own
+    // suite.
+    expect(deps.dependencies.shiki).toBeUndefined()
+    expect(deps.dependencies['@shikijs/langs']).toBeUndefined()
+    expect(deps.dependencies['@bdocs/grammars']).toBe('workspace:*')
+    expect(deps.dependencies['@shikijs/core']).toBe('3.23.0')
+    expect(deps.dependencies['@shikijs/types']).toBe('3.23.0')
+    expect(deps.dependencies['@shikijs/engine-oniguruma']).toBe('3.23.0')
+    expect(deps.dependencies['@shikijs/engine-javascript']).toBe('3.23.0')
+    // @mdx-js/rollup was replaced by the Sätteri processor in 3.2.x
+    expect(deps.dependencies['@bdocs/processor-satteri']).toBe('workspace:*')
+  })
+
+  it('does NOT depend on a search engine or on the search plugin', () => {
+    // Search moved to `@bdocs/plugin-search`, which registers a generator
+    // through `boltdocs/node/search` rather than the core importing it. Both
+    // directions were tried: a `dependencies` entry is a workspace cycle
+    // (the plugin needs `boltdocs` for its config types), and keeping the
+    // generator inline would make search mandatory for every site — the exact
+    // coupling the 4.0 roadmap set out to remove.
+    expect(deps.dependencies['@bdocs/plugin-search']).toBeUndefined()
+
+    // `flexsearch` was declared here and imported nowhere in the core's source.
+    // It is the *query* engine, and it belongs to whoever reads the index —
+    // `@bdocs/theme-neutral` for the built-in dialog — not to the process that
+    // writes `search.json`.
+    expect(deps.dependencies.flexsearch).toBeUndefined()
+  })
+
+  it('does NOT ship sharp/svgo from core (they belong to plugin-image-optimizer)', () => {
+    // These are direct dependencies of @bdocs/plugin-image-optimizer, not core.
+    // Core never `import "sharp"` directly — listing them here force-downloads a
+    // 35 MB native binary on every consumer install.
+    expect(deps.dependencies.sharp).toBeUndefined()
+    expect(deps.dependencies.svgo).toBeUndefined()
+    // optionalDependencies was removed entirely in 3.2.0 to avoid signalling.
+    expect(deps.optionalDependencies).toBeUndefined()
+  })
+
+  it('uses the browser dompurify build, never isomorphic-dompurify', () => {
+    // `isomorphic-dompurify` exists to shim a DOM for Node, which means it
+    // depends on jsdom: 9.2 MB and 63 packages. Boltdocs used it in two places
+    // and needed neither.
+    //
+    // In the client, sanitizing icon markup is a real sink and the browser
+    // already has a DOM, so `dompurify` alone is correct and correct-sized.
+    //
+    // At build time, the values being sanitized were frontmatter title,
+    // description, badge and excerpt — plain text that React escapes. Running
+    // them through an HTML sanitizer double-escaped them: a title of `A < B`
+    // rendered as the literal `A &lt; B`. They are now reduced to plain text
+    // by `stripTags`, which needs no DOM at all.
+    expect(deps.dependencies['isomorphic-dompurify']).toBeUndefined()
+    expect(deps.dependencies.dompurify).toBeDefined()
+  })
+
+  it('keeps zod and the workspace packages as runtime deps', () => {
+    expect(deps.dependencies.zod).toBeDefined()
+    expect(deps.dependencies['@bdocs/ssg']).toBe('workspace:*')
+    expect(deps.dependencies['@bdocs/parser']).toBe('workspace:*')
+    expect(deps.dependencies['@bdocs/unist-utils']).toBe('workspace:*')
+    expect(deps.dependencies['@bdocs/dui']).toBeDefined()
+  })
+
+  it('exposes no client subpath exports', () => {
+    // 4.0 — the engine no longer publishes the UI layer. `./client`,
+    // `./primitives` and `./mdx` were the three names the theme and the
+    // runtime were reachable under; they are the packages' own entry points
+    // now, and the engine publishes only what it owns.
+    const exp = (pkg as unknown as { exports: Record<string, unknown> }).exports
+    expect(exp['./client']).toBeUndefined()
+    expect(exp['./primitives']).toBeUndefined()
+    expect(exp['./mdx']).toBeUndefined()
+    expect(exp['./client/router']).toBeUndefined()
+  })
+
+  it('exposes the engine subpath exports', () => {
+    const exp = (pkg as unknown as { exports: Record<string, unknown> }).exports
+    expect(exp['./server']).toBeDefined()
+    expect(exp['./ssg']).toBeDefined()
+    expect(exp['./node/cache']).toBeDefined()
+    expect(exp['./node/highlight']).toBeDefined()
+    expect(exp['./node/search']).toBeDefined()
+    // The engine ships no stylesheet: the reset belongs to the theme, which
+    // is the package that owns the look.
+    expect(exp['./theme/reset.css']).toBeUndefined()
+  })
+})

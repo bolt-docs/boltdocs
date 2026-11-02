@@ -1,0 +1,53 @@
+{
+  "name": "@bdocs/runtime",
+  "version": "1.0.0",
+  "type": "module",
+  "description": "Browser-facing React runtime for Boltdocs: routing, navigation, hydration, and client contexts. Framework-neutral \u2014 no filesystem, Vite, or server-only code.",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.mts",
+      "import": "./dist/index.mjs"
+    },
+    "./router": {
+      "types": "./dist/router.d.mts",
+      "import": "./dist/router.mjs"
+    },
+    "./app": {
+      "types": "./dist/app.d.mts",
+      "import": "./dist/app.mjs"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsdown --config-loader unrun",
+    "dev": "tsdown --watch --config-loader unrun",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@bdocs/contracts": "workspace:*",
+    "flexsearch": "0.8.212",
+    "react-helmet-async": "^2.0.1"
+  },
+  "peerDependencies": {
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0"
+  },
+  "devDependencies": {
+    "@testing-library/dom": "^10.4.0",
+    "@testing-library/jest-dom": "^6.6.0",
+    "@testing-library/react": "^16.0.0",
+    "@testing-library/user-event": "^14.6.1",
+    "@types/node": "22.12.0",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "jsdom": "^24.1.0",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "tsdown": "^0.21.7",
+    "tsdown-config": "workspace:*",
+    "typescript": "^5.9.3",
+    "vitest": "^3.0.0"
+  }
+}

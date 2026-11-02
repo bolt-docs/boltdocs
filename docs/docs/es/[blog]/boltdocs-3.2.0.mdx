@@ -334,7 +334,7 @@ Esta release cae cómodamente en el bin **semver-minor** porque los contratos de
 
 4. **Iconos sociales/nav** — `Github`, `Discord`, `XSocial`, `Bluesky` se movieron a un nuevo archivo `icons-prod.tsx` que se bundlea eager con el navbar. Están tipados aparte (`IconProps`) y se exportan de su propio entry para que layouts custom puedan sobreescribirlos sin tocar el set de lenguajes.
 
-5. **Shape test** — un nuevo `packages/core/tests/package-shape.test.ts` fija el contrato de dependencias: aserta que `react-aria-components` es peer duro, `shiki`/`@shikijs/engine-oniguruma`/`@mdx-js/rollup` permanecen en `dependencies`, `sharp`/`svgo` no están en core, y `peerDependenciesMeta` está ausente por completo. Esto significa que cualquier PR futuro que re-infle el bundle falla CI antes de review.
+5. **Shape test** — un nuevo `packages/boltdocs-engine/tests/package-shape.test.ts` fija el contrato de dependencias: aserta que `react-aria-components` es peer duro, `shiki`/`@shikijs/engine-oniguruma`/`@mdx-js/rollup` permanecen en `dependencies`, `sharp`/`svgo` no están en core, y `peerDependenciesMeta` está ausente por completo. Esto significa que cualquier PR futuro que re-infle el bundle falla CI antes de review.
 
 6. **Subpath exports del cliente preservados** — `'boltdocs/client'`, `'boltdocs/primitives'`, `'boltdocs/mdx'`, `'boltdocs/server'` siguen separados para que las apps puedan importar selectivamente sin sobre-bundlear.
 

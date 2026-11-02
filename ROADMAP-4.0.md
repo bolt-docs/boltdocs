@@ -52,6 +52,48 @@ one that shipped.
 boltdocs (engine)  → @bdocs/contracts, @bdocs/processor-satteri, @bdocs/ssg
 ```
 
+#### Directories carry the `boltdocs-` prefix, package names do not
+
+The two are separate namespaces and they answer different questions. The
+directory answers "which project is this?" in a file tree, a CI path filter, a
+`pnpm --filter` glob and a terminal. The package name answers "what do I
+import?" and it is published — changing it breaks every site that already
+depends on it. A directory can be renamed for free; a package cannot, which is
+why the published scope stays `@bdocs/*` and the engine stays `boltdocs` while
+their directories say what they are.
+
+| Directory | Package name |
+| --- | --- |
+| `packages/boltdocs-engine` | `boltdocs` |
+| `packages/boltdocs-contracts` | `@bdocs/contracts` |
+| `packages/boltdocs-primitives` | `@bdocs/primitives` |
+| `packages/boltdocs-runtime` | `@bdocs/runtime` |
+| `packages/boltdocs-theme-neutral` | `@bdocs/theme-neutral` |
+| `packages/boltdocs-ssg` | `@bdocs/ssg` |
+| `packages/boltdocs-processor-satteri` | `@bdocs/processor-satteri` |
+| `packages/boltdocs-grammars` | `@bdocs/grammars` |
+| `packages/boltdocs-plugin-*` | `@bdocs/plugin-*` |
+| `packages/boltdocs-create` | `create-boltdocs` |
+| `packages/boltdocs-tsdown-config` | `tsdown-config` |
+
+Before this, `packages/` held three different naming schemes at once — `core`,
+`ssg`, `plugin-mermaid` next to `theme-neutral` — and `core` was the worst of
+them: the folder named the layer, the package named the product, and neither
+said the other. Reading a stack trace meant knowing both.
+
+Two things a rename has to get right, and both are code, not `mv`:
+
+- **Path lookups in TypeScript.** `join(ROOT, 'packages', 'primitives')` builds
+the same string as `'packages/primitives/…'` and survives a text replacement
+  that only knows the second form. Every hard-coded `packages/<name>` segment was
+  hunted down, including the ones split across arguments.
+- **Workspace links.** `pnpm install` re-links `node_modules` from the glob, so
+  the tree is verified by resolving a `workspace:*` dependency afterwards rather
+  than by trusting the rename.
+
+`packages/tests` is deliberately untouched: it holds changelog fixtures, not a
+package, and the prefix would claim it was one.
+
 ### Contracts
 
 `@bdocs/contracts` will be small, framework-neutral, and dependency-light. It will define public types and interfaces for routes, manifests, plugins, build contexts, render contexts, module identities, and invalidation events.
@@ -102,7 +144,7 @@ The migration is executed as an ordered sequence. Each slice is developed on a f
 | --- | --- | --- | --- |
 | 1 | Shared contracts | `@bdocs/contracts` | Done |
 | 2 | SEO extraction | `@bdocs/plugin-seo` | Done |
-| 3 | UI extraction | `@bdocs/theme-neutral` | In progress |
+| 3 | UI extraction | `@bdocs/theme-neutral` | Done |
 | 4 | Primitives extraction | `@bdocs/primitives` | Done |
 | 5 | Runtime boundary | `@bdocs/runtime` | Done |
 | 6 | Incremental MDX and SSG | core, Sätteri, SSG | Partially delivered in 3.4.0 |
@@ -114,8 +156,8 @@ The engine no longer ships the UI layer. That is the change with the widest
 blast radius, and it is what the 4.0 package graph exists for.
 
 - The client code — the route builder, the shell, the MDX page, the collection
-  routes — moved from `packages/core/src/client` to
-  `packages/theme-neutral/src/ssg`. It depends on the theme's components, so
+  routes — moved from `packages/boltdocs-engine/src/client` to
+  `packages/boltdocs-theme-neutral/src/ssg`. It depends on the theme's components, so
   the engine could not keep it without depending on a theme.
 - `boltdocs` no longer exports `./client`, `./client/router`, `./primitives`
   or `./mdx`. What it publishes now is the engine: the CLI, the config, the
@@ -207,7 +249,7 @@ extracting the same page through both paths and comparing.
 The cold build of the documentation site went from 24.7 s to 22.1 s, measured
 back to back on the same machine with three runs each.
 
-The change is in the Zig extractor (`packages/zig-critters`), which is
+The change is in the Zig extractor (`packages/boltdocs-zig-critters`), which is
 recompiled to WebAssembly as part of the build. The toolchain needs
 `wasm-ld` on the path — on this machine it lives in `/usr/lib/llvm21/bin` —
 and without it the WASM build fails and the previous binary is used.
@@ -321,6 +363,61 @@ grammar regexes to approximate matches, while Oniguruma matches TextMate
 exactly. The two produce byte-identical output on the documentation site's
 code blocks, and where they differ it is Oniguruma resolving a Markdown
 front matter block as YAML, which is what it is.
+
+### The highlighter's per-block preamble is gone
+
+If highlighting is 96% of an MDX compile, then everything the highlighter does
+*around* the grammar is paid 971 times to produce something that never changes.
+It was rebuilding all of it per code fence:
+
+| work per block | before | after | change |
+| --- | --- | --- | --- |
+| options (`getOptions`) | 1.8 µs | 0.5 µs | −74% |
+| cache key | 10.2 µs | 0.1 µs | −99% |
+| fence meta | 0.1 µs | 0.1 µs | −11% |
+| runtime object | 0.3 µs | 0.8 µs | +185% |
+| **preamble per block** | **12.5 µs** | **1.5 µs** | **−88%** |
+
+The four transformers, the theme options, the runtime object and the meta
+objects are now built once per adapter. The cache key stopped serializing the
+resolved options — a `JSON.stringify` with a replacer that walked four
+transformer objects and then concatenated the entire code block — because those
+options are a function of a configuration that cannot change while the plugin
+instance lives. The one line that got slower is the runtime object, which is
+now one allocation per adapter instead of one per block; it is measured inside
+a loop that calls it as if it were per block, which is the shape that got
+slower and the shape that no longer happens.
+
+`scripts/benchmarks/highlight-overhead.mjs` keeps the replaced implementation
+verbatim and runs both under the same loop, against the built package rather
+than a copy of it.
+
+That is the end of the preamble, and measuring past it says where the floor is.
+On a 39-line TypeScript block, `scripts/benchmarks/highlight-breakdown.mjs`:
+
+```text
+tokenizar            17.60 ms
++ árbol HAST         −0.88 ms   (bajo el ruido)
++ serializar HTML     2.52 ms
+total                19.24 ms
+```
+
+**A light/dark theme pair doubles the tokenising**, and it is Shiki's design,
+not a choice made here: `codeToTokensWithThemes` calls `codeToTokensBase` once
+per theme, so the TextMate grammar runs twice for the same text.
+
+| | tema único | par claro/oscuro |
+| --- | --- | --- |
+| Oniguruma | 9.7 ms | 18.1 ms |
+| JavaScript | 10.0 ms | 21.4 ms |
+
+The pair produces identical token boundaries from an identical grammar, so the
+second run only needs colours. Collapsing the two means resolving that theme's
+colours from every token's scope stack by hand — a reimplementation of TextMate
+selector matching and its precedence rules, drifting with each Shiki upgrade, to
+save 9 ms a block. Not done. A site that does not need two themes configures
+one; the documentation site does, which is why its own numbers were always
+single-theme.
 
 **The MDX precompile is single-threaded for most sites.** It is 6.6 s of a
 21.6 s build. The compile pool is skipped whenever the site registers a
@@ -446,28 +543,87 @@ Conversion progress, measured against the build it replaces rather than asserted
 
 | Components | State |
 | --- | --- |
-| Converted, both layers | 41 of 57 |
+| Converted, both layers | 46 of 57 |
 | Still on utility classes | **0 of 57** |
+| Tailwind Typography (`prose`) allowances | **0**, was 5 |
 | Token dangling at computed-value time | 3 found, 0 left |
-| Visual difference against the original | **not measured** — see below |
+| Visual difference against the original | **not measurable on this site** — see below |
+| Observable on the docs site | **0 of the 4** surfaces converted last |
 
 The denominator is the 57 files that actually carry a `class`/`className`
 attribute, not every `.tsx` in the package. Counting the latter mixed in hooks,
 contexts and utilities — files that never had a class — and reported 63 where the
 real number was 23, which is what the guard itself says it was written to fix.
+The remaining eleven carry no class attribute at all.
 
-### What is still open in slice 3
+The `prose` allowance is gone too, and that is the part that mattered. Tailwind
+Typography's `prose`, `prose-neutral`, `dark:prose-invert`, `max-w-none` and
+`not-prose` sat in four components — the default layout, `external-content`, the
+callout and the timeline — and in the guard's allowlist, where a written reason
+made them look considered. They meant the theme's *typography* still compiled
+only inside a Tailwind build: the same framework assumption `reset.css` had
+already had removed, three files away, in the layer a reader actually reads.
 
-Two things, both recorded rather than asserted:
+`prose.css` owns the rhythm now, under `.bdocs-prose`: element defaults for the
+parts no MDX component renders (`em`, `del`, `kbd`, `figcaption`, `dl`, `dt`,
+`dd`, `details`, `sub`/`sup`), and a tighter paragraph rhythm inside a callout
+body, where the page's 20px margins are too tall for a 24px-padded panel. The
+element rules sit before the class rules in the file and both are at zero
+specificity, so `bdocs-prose-p` wins over `p` by source order and nothing needs
+`!important`.
 
-**The visual harness has never been run on this conversion.** It is the only
-thing that can prove the CSS did not move a pixel, and the machines this ran on
-could not render it: `scripts/visual/` resolves `playwright` and `sharp` from the
-root `package.json`, and neither was a dependency there. Both are now
-dependencies (`playwright@1.59.1`, `sharp@0.34.5`), which is a real fix, and
-`sharp` additionally needed its native build skipped to install at all. So the
-comparison a conversion deserves has not happened, and the honest claim is
-*nothing about the rendered pixels*.
+Four components were converted as part of closing this: `collection-list`
+(`py-8 max-w-2xl mx-auto px-4`, `text-3xl font-bold`, `space-y-6`),
+`external-content`, `external-page` and `shell-frame` — the collection index and
+the external-page frame are the two screens a Tailwind-free install rendered
+unstyled. `HEADING_CLASSES` in `mdx/typographics.tsx` was a dead utility map
+(`Heading` never read it) and is deleted; heading sizes and rhythm belong to
+`heading.css`, keyed on the primitive's `data-level`.
+
+### What the measurement found
+
+The harness was run against the built site (2026-11-01), and both halves ran
+further than they ever had:
+
+- **`styles.mjs` measured 120 selectors across 8 pages** in Chromium and wrote
+  `.visual/after.styles.json`. One fix was needed to get there: this machine
+  resolves a Playwright whose browser build (1217) is not the one in the cache
+  (1248), so both scripts now accept `PW_EXECUTABLE` and `PW_CHANNEL` and
+  otherwise launch the bundle exactly as before. Same class of problem as the
+  missing `playwright` dependency, one layer down.
+- **`snapshot.mjs` refuses to run, and correctly.** It aborts when a page's
+  rendered `h1` is not the one it expects, because a screenshot of the wrong
+  document is worse than no screenshot. The page it trips on is `index.html`,
+  which hydrates to "Page Not Found" when served without the site's base path.
+  That is a harness/deployment mismatch, not a styling one.
+
+The larger finding is what those pages contain. **The docs site has replaced
+every component this slice converted with its own**, so the premise the slice was
+verified against — "the docs site is the only thing that renders the theme" — is
+no longer true:
+
+| Converted component | Who renders it on the docs site | Observable there |
+| --- | --- | --- |
+| `CollectionList` | `docs/docs/[blog]/list.tsx` | no — 0 `article`, 0 `bdocs-collection` |
+| `ExternalPage`, `ExternalContent` | `pages-external/_sections/showcase-page.tsx` | no — the harness's `external column` target measures a 38px badge |
+| `DocsLayout` (default) | `docs/src/theme/layout.tsx` | no |
+| `Callout`, MDX typography | `docs/src/theme/mdx/*` | no |
+
+Measured, not assumed: on `docs/blog.html` every collection selector in the
+harness returns `null`, and on `showcase.html` the `external column` target
+measures `rgb(102, 162, 255)` at 10px — a badge — instead of the 64rem reading
+column. So these four conversions cannot be certified by this site at all, which
+is also how they stayed in utilities while the guard reported progress: nothing
+on the site could see them.
+
+The honest claim is therefore narrower than "no pixel moved" and better founded
+than it: **the conversion is verified by test and by compilation, not by pixels**
+— 0 utility classes in 57 files, 14 guard tests, an empty allowlist, `tsc` clean,
+a package build, and a browser run that proves the site renders. A pixel diff for
+these four surfaces needs a page that renders them, and this repository does not
+have one yet.
+
+The second item recorded here, rather than asserted:
 
 **Three tokens were declared, consumed, and never defined.**
 `--_bdocs-brand-banner`, `--_bdocs-brand-ink` and `--_bdocs-brand-line` pointed
@@ -510,7 +666,7 @@ preexisting.
 - The docs' Tailwind `@source` covers `node_modules/boltdocs/dist` and the theme
   now lives in a workspace package outside it, so utilities used only inside the
   theme are never emitted. **Fixed** — `docs/index.css` adds
-  `@source "../packages/theme-neutral/src"` and `../packages/primitives/src`.
+  `@source "../packages/boltdocs-theme-neutral/src"` and `../packages/boltdocs-primitives/src`.
   It changes the UI on roughly 900 screenshots, and the harness is the thing that
   would have measured it, so "fixed" here means "the source is declared", not
   "the result is verified".
@@ -543,7 +699,7 @@ Not every change to `4.0` belongs to a numbered slice. Two rounds of dependency 
 | `scripts/visual/` — pixel and computed-style harness | none | Verification | Found 4 defects in its own first conversion, including one that made it report zero differences over the wrong page |
 | **Every bare import declared by its package** | 2, 3, 5 | Install, correctness | 15 undeclared imports across 5 packages, now 0 |
 | `@bdocs/plugin-ssg` typecheck repaired | 5 | Correctness | `tsc --noEmit` on the package went from 10 errors to 0 |
-| `packages/core` typecheck repaired | 2 | Correctness | `tsc --noEmit` on the core went from 1 error to 0 |
+| `packages/boltdocs-engine` typecheck repaired | 2 | Correctness | `tsc --noEmit` on the core went from 1 error to 0 |
 | **Audit test fixtures committed** | none | Correctness | 6 tests were failing on a tree with no local changes |
 | `PluginLifecycleManager` no longer loads the build pipeline | 2 | Dev startup, correctness | The `node/pipeline` barrel re-exported `createBuildPipeline`, so importing the step runner pulled in every build step, Vite and the SSG package. Module init for the plugin lifecycle: 3248 → 852 ms; the `routes:resolved` hook test file went from timing out on a loaded machine to 716 ms; core suite 1024/1024 |
 | **Core `tsc --noEmit` regressed** | 2 | Correctness | The row above claims the core typecheck went from 1 error to 0. It is now 9 errors on a clean tree — `mdx/shiki-adapter.ts` (4), `plugins/search-contract.ts` (2), `search/registry.ts`, `plugin/index.ts`, `dev-server/index.ts`. The claim above is stale, and the drift is the same contracts/unist-utils type split the errors describe |
@@ -590,9 +746,9 @@ declares is reported, because an exception outliving its reason is a hole.
 
 ### The audit fixtures that were never committed
 
-Six tests in `packages/core/tests/audit/` were failing on a clean tree with no
+Six tests in `packages/boltdocs-engine/tests/audit/` were failing on a clean tree with no
 local changes, on both this branch and `4.0`. Not a flake and not a regression:
-`packages/core/.gitignore` ignores `node_modules/`, which is right for every real
+`packages/boltdocs-engine/.gitignore` ignores `node_modules/`, which is right for every real
 dependency and wrong for these four packages — `evil-plugin`, `clean-plugin`,
 `sneaky-plugin` and the marker files they must never write are test inputs. The
 fixture directory was empty, so the audit had nothing to read and reported every
@@ -620,8 +776,8 @@ Extract shared types without changing runtime behavior. Add compatibility re-exp
 
 Two properties are enforced by tests rather than by review, because both fail silently:
 
-- `packages/contracts/tests/boundary.test.ts` fails if the package imports Node builtins, React, Vite, bundlers, worker pools, Sharp, sanitizers, optional integrations, or any other `@bdocs` package. A type-only import of a bundler type compiles and ships nothing while quietly welding the contract layer to the toolchain the separation exists to break. The test also asserts the package declares no runtime dependency at all.
-- `packages/contracts/tests/contracts.test.ts` characterizes each contract shape, so a later slice that changes one is a deliberate diff rather than an accident.
+- `packages/boltdocs-contracts/tests/boundary.test.ts` fails if the package imports Node builtins, React, Vite, bundlers, worker pools, Sharp, sanitizers, optional integrations, or any other `@bdocs` package. A type-only import of a bundler type compiles and ships nothing while quietly welding the contract layer to the toolchain the separation exists to break. The test also asserts the package declares no runtime dependency at all.
+- `packages/boltdocs-contracts/tests/contracts.test.ts` characterizes each contract shape, so a later slice that changes one is a deliberate diff rather than an accident.
 
 ### Slice 2 — Node and browser boundaries
 

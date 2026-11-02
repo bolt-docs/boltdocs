@@ -1,0 +1,66 @@
+/*
+ * External pages: the routes that live outside the documentation tree.
+ *
+ * They render at the root of the router rather than inside `DocsLayout`, so they
+ * inherit none of its layout and have to carry their own scroll container and
+ * their own reading column. Two components, three classes, and no dependency on
+ * the docs chrome — which is also why these are not in `docs-layout.css`.
+ */
+
+/*
+ * The scroll container.
+ *
+ * `h-screen` on the frame and the scroll on the page, not the other way round:
+ * an external page is a whole document, and its own scrollbar is what keeps the
+ * navbar out of the scrolling area even when the page is long.
+ */
+:where(.bdocs-external) {
+  height: 100vh;
+  overflow-y: auto;
+}
+
+/* `pt-4 pb-20 px-4 sm:px-8`, from the utilities this replaced. */
+:where(.bdocs-external__content) {
+  width: 100%;
+  padding-block: var(--bdocs-space-4) var(--bdocs-space-20);
+  padding-inline: var(--bdocs-space-4);
+}
+
+@media (min-width: 40rem) {
+  :where(.bdocs-external__content) {
+    padding-inline: var(--bdocs-space-8);
+  }
+}
+
+/*
+ * The reading column: 48rem, then 56, then 64 at the same breakpoints the
+ * documentation column uses. A landing page that renders at 64rem next to docs
+ * that render at 48 reads as two different sites.
+ */
+:where(.bdocs-external__column) {
+  width: 100%;
+  max-width: 48rem;
+  margin-inline: auto;
+}
+
+@media (min-width: 40rem) {
+  :where(.bdocs-external__column) {
+    max-width: 56rem;
+  }
+}
+
+@media (min-width: 64rem) {
+  :where(.bdocs-external__column) {
+    max-width: 64rem;
+  }
+}
+
+/* `text-4xl font-bold tracking-tight`, the same title the docs header uses. */
+:where(.bdocs-external__title) {
+  margin-block: 0 var(--bdocs-space-3);
+  font-size: 2.25rem;
+  font-weight: 700;
+  line-height: 1.25;
+  letter-spacing: -0.025em;
+  color: var(--_bdocs-ink);
+}

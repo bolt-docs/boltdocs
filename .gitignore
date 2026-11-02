@@ -66,10 +66,10 @@ env/
 
 .qwen/
 test-results/
-packages/plugin-tailwindcss/.tmp-tailwind-*
+packages/boltdocs-plugin-tailwindcss/.tmp-tailwind-*
 
 # staged copy of the built stylesheet for the browser check
-packages/theme-neutral/test/browser/styles/
+packages/boltdocs-theme-neutral/test/browser/styles/
 
 # visual regression baselines
 .visual/

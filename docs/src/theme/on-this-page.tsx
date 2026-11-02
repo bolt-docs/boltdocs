@@ -1,7 +1,8 @@
 import { OnThisPage as OTP } from '@bdocs/theme-neutral/composition'
-import { useRoutes, type OnThisPageProps } from '@bdocs/theme-neutral'
+import type { OnThisPageProps } from '@bdocs/theme-neutral'
 import { Pencil, CircleHelp, TextAlignStart } from 'lucide-react'
 import { CopyMarkdown } from '@/theme/copy-markdown'
+import { useRoutes } from '@bdocs/runtime'
 
 export function OnThisPage({
   headings = [],
