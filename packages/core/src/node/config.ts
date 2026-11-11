@@ -251,41 +251,44 @@ export async function resolveConfig(
   // bundler. Fall back to Vite's loadConfigFromFile when jiti is unavailable.
   for (const filename of CONFIG_FILES) {
     const configPath = path.resolve(projectRoot, filename)
-    if (fs.existsSync(configPath)) {
+    if (!fs.existsSync(configPath)) continue
+
+    try {
+      let loadedConfig: RawUserConfig | undefined
       try {
-        let loadedConfig: RawUserConfig | undefined
-        try {
-          loadedConfig = await loadConfigWithJiti(configPath, projectRoot)
-        } catch (jitiError) {
-          // jiti may not handle every edge case (e.g. exotic transpiler
-          // plugins). Fall back to Vite's loader so users don't break.
-          if (process.env.BOLTDOCS_DEBUG === 'true') {
-            console.warn(
-              `[boltdocs] jiti config load failed for ${filename}, falling back to Vite: ${jitiError instanceof Error ? jitiError.message : String(jitiError)}`,
-            )
-          }
-          const { loadConfigFromFile } = await import('vite')
-          const loaded = await loadConfigFromFile(
-            { command: command as 'build' | 'serve', mode },
-            configPath,
-            projectRoot,
+        loadedConfig = await loadConfigWithJiti(configPath, projectRoot)
+      } catch (jitiError) {
+        // jiti may not handle every edge case (e.g. exotic transpiler
+        // plugins). Fall back to Vite's loader so users don't break.
+        if (process.env.BOLTDOCS_DEBUG === 'true') {
+          console.warn(
+            `[boltdocs] jiti config load failed for ${filename}, falling back to Vite: ${jitiError instanceof Error ? jitiError.message : String(jitiError)}`,
           )
-          loadedConfig = loaded?.config as RawUserConfig | undefined
         }
-        if (loadedConfig) {
-          userConfig = loadedConfig
-          const stat = fs.statSync(configPath)
-          configFileUsed = { filename, mtimeMs: stat.mtimeMs, size: stat.size }
-          break
-        }
-      } catch (e) {
-        if (e instanceof Error) {
-          console.error(
-            `\x1b[31m[boltdocs] ✖ Failed to load config from ${filename}: ${e.message}\x1b[0m`,
-          )
-          warn(`Failed to load config from ${filename}: ${e.message}`)
-        }
+        const { loadConfigFromFile } = await import('vite')
+        const loaded = await loadConfigFromFile(
+          { command: command as 'build' | 'serve', mode },
+          configPath,
+          projectRoot,
+        )
+        loadedConfig = loaded?.config as RawUserConfig | undefined
       }
+
+      if (loadedConfig) {
+        userConfig = loadedConfig
+        const stat = fs.statSync(configPath)
+        configFileUsed = { filename, mtimeMs: stat.mtimeMs, size: stat.size }
+      }
+      break
+    } catch (e) {
+      const message = e instanceof Error ? e.message : String(e)
+      console.error(
+        `\x1b[31m[boltdocs] ✖ Failed to load config from ${filename}: ${message}\x1b[0m`,
+      )
+      warn(`Failed to load config from ${filename}: ${message}`)
+      throw e instanceof Error
+        ? e
+        : new Error(`Failed to load config from ${filename}: ${message}`)
     }
   }
 
