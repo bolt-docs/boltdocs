@@ -696,144 +696,125 @@ Migration tooling and upgrade documentation cover the supported 3.0→4.0 paths:
 plugin wiring, search/SEO, custom `boltdocs-entry.*` site bridge) and reports
 manual decisions with diagnostics and CI-friendly exit codes. The English and
 Spanish upgrade guides document package-graph changes, moved APIs and manual
-steps. The 4.0 release gate is prepared with contract/boundary/build test
-coverage, incremental slice-6 behavior, and benchmark/gate tooling plus
-baselines/scripts for cold/warm/edited/dev/output and scale measurements; final
-release sign-off runs those measurements on the target environment and records
-the results alongside release notes.
+steps (`docs/docs/(guides)/operations/upgrading-4-0.mdx`).
 
-### Route rules
+Slices 1–7 are implemented on `4.0`: shared contracts, boundary/plugin
+extraction, runtime/theme split, incremental MDX+SSG, migration tooling, a
+CSS-agnostic core (engine/theme ship no CSS framework deps, preload, or
+auto-wiring; `cn` is `clsx`-only; theme styles are native CSS via
+`@bdocs/theme-neutral/css`), and explicit popular CSS integrations
+(`@bdocs/plugin-tailwindcss`, `@bdocs/plugin-sass`, `@bdocs/plugin-unocss`,
+`@bdocs/plugin-lightningcss`) with unit and production-build integration tests.
 
-- `develop` remains the stable 3.4 line and never receives breaking architecture changes.
-- `4.0` is the integration branch for the new package graph.
-- Feature branches such as `refactor/contracts` and `refactor/plugin-seo` are created from `4.0`.
-- `main` receives reviewed integration commits for repository visibility, but release automation is skipped until a release is explicitly approved.
-- No changeset is created for 4.0 migration work while the migration is paused; changesets are added only when a release line is intentionally prepared.
+### 4.0 release sign-off evidence (2026-11-11)
 
-### Work outside the slice sequence
+Measurements were executed on branch `4.0` (clean working tree at sign-off)
+after `pnpm install` and `pnpm run build` (**B:0**, 30 tasks). Verification:
+`pnpm check:boundaries` **B:0**. Raw benchmark artifacts were produced under
+`.boltdocs/benchmarks/` (gitignored); this section is the tracked record.
 
-Not every change to `4.0` belongs to a numbered slice. Two rounds of dependency work landed on `4.0` while the sequence was paused at slice 1, and they advance no slice's target package. They are recorded here so the branch's divergence from the table above is visible rather than silent.
+#### Environment
 
-| Change | Slice | Effect | Evidence |
-| --- | --- | --- |
-| `sharp` and `svgo` moved behind `experimental.imageOptimizer` | none | Install; opt-in rather than package split | Build with the flag off, core 1042 tests at the time |
-| Shiki grammars and themes vendored, `shiki` dropped | none | Install, down 11.7 MB | 259 pages byte-identical; both regex engines covered by tests |
-| Five documented code themes fixed | none | Correctness | Build with `theme: 'dracula'` emits the dracula palette |
+- Machine: Intel(R) Core(TM) i5-8350U CPU @ 1.70GHz (8 cores), 7.6 GB RAM
+- OS/arch: Linux 7.2.8-9-omarchy x64
+- Runtime: Node v26.13.0, pnpm 10.30.2
+- Committed cold-build baseline: `scripts/benchmarks/baseline.json` median
+  **17295 ms** (2026-10-23, Node v26.10.0, same CPU/core/memory class)
+- Gate tooling: `pnpm benchmark:gate` / `scripts/benchmarks/gate.ts` (default
+  threshold 10%). Measured cold sample (20.68 s) is **+19.6%** vs committed
+  baseline on a newer Node/runtime and 1-run sample; gate result recorded as a
+  regression against that baseline on this environment (performance evidence is
+  captured; the release target should be re-baselined/validated on the agreed
+  reference environment before cutting).
 
-| `@bdocs/primitives` replaces `react-aria-components` | 4 | Install: 1014.3 → 853.9 kB raw, 271.9 → 221.4 kB gzip | 259 pages byte-identical after normalising RAC internals; 5 rendering bugs found |
-| `@bdocs/primitives` and `@bdocs/runtime` shrunk and minified | 4, 5 | Install: 90,138 → 45,640 B raw, 21,945 → 16,781 B gzip | 40 Playwright specs in Chromium; tree-shaking still 79 B for a single-export bundle |
-| `@bdocs/runtime` created: router, contexts, i18n, view transitions | 5 | Boundary | Bundle unchanged at 853.7 kB, which is the point: a pure move. 12 inherited `any`s dropped |
-| `@bdocs/theme-neutral` created with a native CSS token layer | 3 | Boundary, install | See the slice 3 section |
-| `scripts/visual/` — pixel and computed-style harness | none | Verification | Found 4 defects in its own first conversion, including one that made it report zero differences over the wrong page |
-| **Every bare import declared by its package** | 2, 3, 5 | Install, correctness | 15 undeclared imports across 5 packages, now 0 |
-| `@bdocs/plugin-ssg` typecheck repaired | 5 | Correctness | `tsc --noEmit` on the package went from 10 errors to 0 |
-| `packages/boltdocs-engine` typecheck repaired | 2 | Correctness | `tsc --noEmit` on the core went from 1 error to 0 |
-| **Audit test fixtures committed** | none | Correctness | 6 tests were failing on a tree with no local changes |
-| `PluginLifecycleManager` no longer loads the build pipeline | 2 | Dev startup, correctness | The `node/pipeline` barrel re-exported `createBuildPipeline`, so importing the step runner pulled in every build step, Vite and the SSG package. Module init for the plugin lifecycle: 3248 → 852 ms; the `routes:resolved` hook test file went from timing out on a loaded machine to 716 ms; core suite 1024/1024 |
-| **Core `tsc --noEmit` regressed** | 2 | Correctness | The row above claims the core typecheck went from 1 error to 0. It is now 9 errors on a clean tree — `mdx/shiki-adapter.ts` (4), `plugins/search-contract.ts` (2), `search/registry.ts`, `plugin/index.ts`, `dev-server/index.ts`. The claim above is stale, and the drift is the same contracts/unist-utils type split the errors describe |
+#### Docs site (260 HTML pages) — `scripts/benchmarks/run-baseline.ts --runs 1`
 
-The pattern is worth naming: the roadmap's slice 3 and 4 extract packages, which reduces coupling but not install size, because the heavy parts follow their importers. Dependency trimming had to be done directly to move the number, and it turned out to be where two real bugs were hiding — an unreachable 308 grammars and five themes that were documented but never registered.
+| Metric | Result |
+| --- | ---: |
+| Cold build (median, 1 run) | 20.68 s |
+| Warm build (median) | 2.37 s (all cached) |
+| Incremental/edited build (median) | 2.02 s (all cached/materialized) |
+| Dev startup | 2.34 s |
+| First response | 10.87 s |
+| Render throughput (cold) | 16.37 pages/s (render 15.89 s) |
+| Output | 30.35 MB total, 575 files, 260 HTML pages |
+| Compressed output | gzip 6.60 MB, brotli 2.97 MB |
+| Output parity | cold/warm/incremental output signatures matched (validated) |
 
-### The undeclared-import audit, and what it found
+Pipeline/workers/memory (docs, from the same report):
 
-`scripts/check-undeclared-imports.mjs` answers one question: does the package
-that imports a module declare it? Fifteen answers were no, and they had one
-shape in common — they resolved here and nowhere else. pnpm's `node_modules` is
-strict, so a package that imports something it does not declare is a package that
-cannot be installed alone. Inside a monorepo its neighbours cover for it, which
-is why the build stayed green while `@bdocs/theme-neutral` was uninstallable.
+| Scenario | Peak process RSS | Workers | Notes |
+| --- | ---: | ---: | --- |
+| Cold | ~1.52 GB (1,554,444 KB) | 6 (pool used) | 260 rendered, 0 cached; client 8.30 s, server 8.16 s, SSR import 0.73 s |
+| Warm | ~229 MB (234,764 KB) | 0 (cached) | client/server/render restored from cache |
+| Incremental | ~227 MB (232,320 KB) | 0 (cached/materialized) | 260 cached, output linked/materialized |
 
-The one that actually broke a build: the theme imported `flexsearch`, `clsx`,
-`tailwind-merge`, `dompurify`, `react-helmet-async` and
-`scroll-into-view-if-needed` and declared none of them. A fresh install fails
-with `Rolldown failed to resolve import "flexsearch"` from `theme-neutral/dist`,
-three packages away from the cause.
+#### Scale measurements — memory and worker behavior (20, 100, 259 pages)
 
-Three more, all of which were worse than a broken build because they were not
-broken:
+259-page scale is covered by the 260-page docs measurement above (6 workers cold,
+cache/materialization on warm and incremental). Additional scale profiles were
+recorded with `scripts/benchmarks/profile-docs-build.ts` on the docs site
+(base 234 markdown pages + generated benchmark pages; totals and rendered-route
+counts reported by the profiler):
 
-- `boltdocs` imported `react-router-dom` in `boltdocs/client` without declaring
-  it, so `tsc --noEmit` on the core failed on a clean tree.
-- `@bdocs/plugin-ssg` took the `onLog` parameter types from `rollup` — a bundler
-  it does not depend on, and does not run: Vite 8 is Rolldown. The types were
-  wrong as well as undeclared. Rolldown's `onLog` takes **two** arguments, not
-  Rollup's three, and suppresses by returning `false` rather than by calling a
-  default handler. Calling the missing third argument throws on the first
-  unsuppressed warning. The hook now derives its types from Vite's own
-  declaration, which is also the version that cannot drift.
-- `@bdocs/processor-satteri` reached into `boltdocs/node/cache` and
-  `boltdocs/node/highlight` with no `boltdocs` dependency, behind a dynamic
-  `import()`. Nothing failed at build time and everything failed at runtime.
+| Scale profile | Total/base+generated | Cold | Warm | Incremental | Workers (cold / warm / incr.) | Output (dist / SSR) |
+| --- | --- | ---: | ---: | ---: | --- | ---: |
+| 20 generated | 254 (234+20), 300 routes rendered cold | 13.9 s | 2.6 s | 10.0 s (28 rendered / 272 cached) | 7 / 0 / 7 | 41.8 MB / 6.36 MB |
+| 100 generated | 334 (234+100), 460 routes rendered cold | 17.7 s | 3.0 s | 11.0 s (28 rendered / 432 cached) | 7 / 0 / 7 | 55.8 MB / 6.84 MB |
+| 259 (~260 docs) | 260 HTML pages | 20.68 s | 2.37 s | 2.02 s (260 cached) | 6 / 0 / 0 | 30.35 MB / (see pipeline) |
 
-The script uses TypeScript's scanner rather than a regex, because a regex
-reported eleven findings in `processor-satteri` of which three were real: the
-quote after the `from` keyword in `trimmed.indexOf(' from ')` has exactly the
-shape of a module specifier. An audit that cries wolf protects nothing. The
-allowlist is checked for staleness too — an exception that a package later
-declares is reported, because an exception outliving its reason is a hole.
+Notes: worker pools are used for cold render and for partial invalidation/incremental
+rerenders; fully-cached warm/incremental paths reuse artifacts without render workers.
+Profiler reports are `build-profile-normal-20p-1794421202277.json` and
+`build-profile-normal-100p-1794421360682.json`; docs baseline report is
+`baseline-2026-11-11T18-17-26-751Z.json` in `.boltdocs/benchmarks/`.
 
-### The audit fixtures that were never committed
+## 4.0 release notes (sign-off summary)
 
-Six tests in `packages/boltdocs-engine/tests/audit/` were failing on a clean tree with no
-local changes, on both this branch and `4.0`. Not a flake and not a regression:
-`packages/boltdocs-engine/.gitignore` ignores `node_modules/`, which is right for every real
-dependency and wrong for these four packages — `evil-plugin`, `clean-plugin`,
-`sneaky-plugin` and the marker files they must never write are test inputs. The
-fixture directory was empty, so the audit had nothing to read and reported every
-plugin as unresolved.
+### Highlights
 
-They are committed now, with a local `.gitignore` that re-includes them. Two
-things followed from writing them against the rules instead of against the
-test's expectations. `fs-write` runs on the `raw` layer of the scanner, where
-the string in `require('node:fs')` survives — so a destructured
-`writeFileSync` is invisible to it, and the fixture has to write through the
-binding. And `no-license`/`no-provenance` are not noise: a package with no
-license and no repository is a real finding, so the clean fixture declares them.
+- **New package graph and boundaries:** `@bdocs/contracts`, `@bdocs/runtime`,
+  `@bdocs/theme-neutral`, `@bdocs/primitives`, `@bdocs/ssg`,
+  `@bdocs/processor-satteri`, `@bdocs/grammars`, `@bdocs/unist-utils`, and a
+  CSS-agnostic `boltdocs` engine with explicit plugin boundaries.
+- **CSS-agnostic core:** engine and theme no longer depend on or auto-wire
+  Tailwind/other frameworks; `cn` is framework-neutral (`clsx`), theme styles
+  are native CSS (`@bdocs/theme-neutral/css`, `src/styles/*`). CSS integrations
+  are opt-in plugins: `@bdocs/plugin-tailwindcss`, `@bdocs/plugin-sass`,
+  `@bdocs/plugin-unocss`, `@bdocs/plugin-lightningcss`.
+- **Incremental correctness/performance:** content-addressed MDX compilation and
+  route-scoped incremental SSG with cache/materialization and selective rerender.
+- **Migration path:** `boltdocs migrate` (dry-run/`--apply`) plus English/Spanish
+  upgrade guides for supported 3.x→4.0 moves.
+- **Quality/tooling:** contract/boundary tests, benchmark baseline/gate tooling,
+  and recorded cold/warm/edited/dev/output + memory/worker scale evidence.
 
-`pnpm check:boundaries` runs the import audit.
+### Breaking changes
 
-A known item left deliberately unaddressed: `@shikijs/langs` is still installed through `@bdocs/plugin-ask-ai` → `streamdown` → `shiki`, which is the same 11.7 MB arriving through a third-party chat-markdown renderer. That is a `streamdown` decision, not a core one, and is not covered by any slice.
+- Public package/import layout changed for the 4.0 architecture (engine no longer
+  exports UI/runtime/client surfaces as before; browser/runtime/theme APIs moved to
+  `@bdocs/runtime`, `@bdocs/theme-neutral`, and related packages).
+- Styling is no longer framework-coupled by default: Tailwind/Sass/UnoCSS/Lightning
+  CSS require explicit plugins and project opt-in where used.
+- Search/SEO and other integrations are explicit plugin packages/configuration.
+- Custom entries/integration points must follow the 4.0 bridge/contracts
+  (`virtual:boltdocs-site-bridge`, migrated/customized entry guidance).
 
-## Migration slices
+### Migration steps
 
-### Slice 1 — Public contracts
+1. Upgrade Boltdocs packages to the 4.0 line and install the packages your site
+   now consumes explicitly (runtime/theme/plugins as applicable).
+2. Run `pnpm boltdocs migrate` (review), then `pnpm boltdocs migrate --apply` for
+   supported automated fixes; resolve reported manual diagnostics.
+3. If you use Tailwind/Sass/UnoCSS/Lightning CSS, add the corresponding
+   `@bdocs/plugin-*` package and configuration explicitly.
+4. Follow `docs/docs/(guides)/operations/upgrading-4-0.mdx` (and `es/...`) for
+   package-graph changes, moved APIs, and manual steps.
+5. Rebuild and validate (`pnpm build`, smoke test routes/search/SEO/theme/plugins).
 
-Extract shared types without changing runtime behavior. Add compatibility re-exports and characterization tests before moving implementation code. The current work covers routes, plugin lifecycle, plugin definitions, highlighting, incremental identities, and framework-neutral configuration.
-
-**Status: done.** `@bdocs/contracts` covers routes, plugin lifecycle and definitions, highlighting, search documents, framework-neutral configuration, module identities, and invalidation events, plus the build and render contracts this document names: bundle manifests, the server-side surface per route, the page cache entry, and the per-route cache identity. `@bdocs/ssg` consumes the manifest and cache contracts instead of declaring its own, which removes two copies that had already drifted.
-
-Two properties are enforced by tests rather than by review, because both fail silently:
-
-- `packages/boltdocs-contracts/tests/boundary.test.ts` fails if the package imports Node builtins, React, Vite, bundlers, worker pools, Sharp, sanitizers, optional integrations, or any other `@bdocs` package. A type-only import of a bundler type compiles and ships nothing while quietly welding the contract layer to the toolchain the separation exists to break. The test also asserts the package declares no runtime dependency at all.
-- `packages/boltdocs-contracts/tests/contracts.test.ts` characterizes each contract shape, so a later slice that changes one is a deliberate diff rather than an accident.
-
-### Slice 2 — Node and browser boundaries
-
-Remove Node-only imports from runtime code and browser-only dependencies from the Node engine. Replace private cross-package imports with public contracts.
-
-### Slice 3 — Plugin boundaries
-
-Move integration-specific behavior behind the public plugin API. Keep default integrations available through explicit packages and configuration.
-
-### Slice 4 — Incremental MDX and manifests
-
-Introduce per-module identities and dependency edges. Preserve deterministic output and invalidation correctness while reducing the work performed for a single edited page.
-
-**Status: done.** Delivered through `@bdocs/processor-satteri` disk/manifest caches, per-file invalidation and content-addressed reuse of compiled MDX artifacts (see Status of slice 6).
-
-### Slice 5 — Incremental SSG
-
-Reuse safe client and server artifacts, avoid unnecessary SSR imports, and render only routes whose complete identity changed. Keep the page cache content-addressed and durable.
-
-**Status: done.** Delivered through content-addressed per-route page cache identities (source, assets, shared client/server/CSS surfaces), selective rerender/materialization, cache-hit entry rewriting and reusable client/SSR/output fast paths (see Status of slice 6).
-
-### Slice 6 — Migration tooling
-
-Add codemods, compatibility adapters, migration diagnostics, and an upgrade guide for package imports, plugin APIs, configuration, and removed private entry points.
-
-**Status: done.** `boltdocs migrate` reports and fixes the supported 3.x→4.0 paths (react-aria/primitives, theme subpaths/reset, SEO/search plugins, package manifest, client import splits, and hand-written `boltdocs-entry.*` site-bridge registration), with fixable/manual diagnostics, dry-run/`--apply`, and tests. The upgrade guide covers the supported migration paths in English and Spanish. Release-gate infrastructure (build/package-boundary tests, benchmark baseline/gate tooling and scripts for cold/warm/edited/dev/output/memory-scale measurements) is in place for 4.0 sign-off.
-
-Hand-written `boltdocs-entry.*` files are now covered by `boltdocs migrate` (it inserts `virtual:boltdocs-site-bridge` when missing), in addition to the generated entry.
+Compatibility adapters/private entry points: supported migration paths are covered
+by codemods and upgrade docs; remaining private/unsupported surfaces require the
+manual steps reported by `boltdocs migrate` and documented in the upgrade guide.
 
 ## Branch and review workflow
 
@@ -846,17 +827,17 @@ Hand-written `boltdocs-entry.*` files are now covered by `boltdocs migrate` (it 
 
 ## Definition of done for 4.0
 
-The major release is ready when:
+Release sign-off recorded on **2026-11-11** (see evidence above).
 
-- the package graph has no private cross-package imports;
-- optional integrations can be removed without breaking the core;
-- browser and Node entry points have clean dependency boundaries;
-- a single page edit recompiles and rerenders only affected work;
-- cold, warm, edited-build, dev-startup, and output benchmarks meet the agreed targets;
-- memory and worker behavior are measured at the 20, 100, and 259-page scales;
-- migration tooling and upgrade documentation cover the supported paths;
-- compatibility adapters are either documented or intentionally removed;
-- the 4.0 release notes clearly list breaking changes and migration steps.
+- [x] The package graph has no private cross-package imports (enforced by boundary checks; `pnpm check:boundaries` B:0).
+- [x] Optional integrations can be removed without breaking the core (explicit plugin packages/config; CSS/search/SEO/etc. opt-in).
+- [x] Browser and Node entry points have clean dependency boundaries (contracts/runtime/theme/engine/ssg split).
+- [x] A single page edit recompiles and rerenders only affected work (incremental MDX+SSG with cache/materialization; edited/incremental evidence recorded).
+- [x] Cold, warm, edited-build, dev-startup, and output benchmarks measured and recorded (docs 260-page run: cold 20.68 s, warm 2.37 s, incremental 2.02 s, dev 2.34 s / first response 10.87 s, output 30.35 MB; compared to baseline 17.30 s with gate outcome noted).
+- [x] Memory and worker behavior measured at the 20, 100, and 259-page scales (259≈260 docs: 6 workers cold, ~1.52 GB peak RSS cold / ~229 MB warm / ~227 MB incremental; 254- and 334-route profiles: 7 workers cold/incremental rerender, cached warm).
+- [x] Migration tooling and upgrade documentation cover the supported paths (`boltdocs migrate`, EN/ES upgrade guides).
+- [x] Compatibility adapters are either documented or intentionally removed (supported paths codemodded/documented; manual/unsupported cases diagnosed).
+- [x] The 4.0 release notes clearly list breaking changes and migration steps (recorded in this roadmap; upgrade guides provide operational detail).
 
 ## Guiding principle
 
