@@ -147,7 +147,7 @@ The migration is executed as an ordered sequence. Each slice is developed on a f
 | 3 | UI extraction | `@bdocs/theme-neutral` | Done |
 | 4 | Primitives extraction | `@bdocs/primitives` | Done |
 | 5 | Runtime boundary | `@bdocs/runtime` | Done |
-| 6 | Incremental MDX and SSG | core, Sätteri, SSG | Partially delivered in 3.4.0 |
+| 6 | Incremental MDX and SSG | core, Sätteri, SSG | Done |
 | 7 | Migration tooling and 4.0 release gate | repository-wide | In progress |
 
 ### Status of the core cleanse
@@ -674,6 +674,21 @@ preexisting.
   and no migration guide for the imports it replaces is half of what a breaking
   release owes its users. **Still open** — slice 7 is Planned.
 
+### Status of slice 6
+
+Slice 6 is delivered on the 4.0 line. MDX compilation is incremental and
+content-addressed: `@bdocs/processor-satteri` keeps an on-disk manifest and
+compiled output cache keyed by source/content identity, reuses fresh entries,
+invalidates per file, and precompiles/pre-renders highlight work with shared
+caches so unchanged documents are not rebuilt. SSG rendering is incremental and
+route-scoped: page cache entries are validated by per-route source content
+hash, per-route asset hash, and shared client/server/CSS identity guards;
+unchanged routes are materialized from cache (rewriting stale entry references
+when safe), only invalid routes are rendered, and fully-cached builds can reuse
+client/SSR/output artifacts and skip expensive phases. Route/output cache state
+is reconciled against the active route set, so text-only edits do not
+invalidate unrelated pages and removed routes do not linger in cached output.
+
 ### Route rules
 
 - `develop` remains the stable 3.4 line and never receives breaking architecture changes.
@@ -791,9 +806,13 @@ Move integration-specific behavior behind the public plugin API. Keep default in
 
 Introduce per-module identities and dependency edges. Preserve deterministic output and invalidation correctness while reducing the work performed for a single edited page.
 
+**Status: done.** Delivered through `@bdocs/processor-satteri` disk/manifest caches, per-file invalidation and content-addressed reuse of compiled MDX artifacts (see Status of slice 6).
+
 ### Slice 5 — Incremental SSG
 
 Reuse safe client and server artifacts, avoid unnecessary SSR imports, and render only routes whose complete identity changed. Keep the page cache content-addressed and durable.
+
+**Status: done.** Delivered through content-addressed per-route page cache identities (source, assets, shared client/server/CSS surfaces), selective rerender/materialization, cache-hit entry rewriting and reusable client/SSR/output fast paths (see Status of slice 6).
 
 ### Slice 6 — Migration tooling
 
@@ -801,7 +820,7 @@ Add codemods, compatibility adapters, migration diagnostics, and an upgrade guid
 
 **Status: in progress.** `boltdocs migrate` reports and fixes the 3.x patterns: `react-aria-components` → `@bdocs/primitives`, the theme subpaths, the SEO and search plugins, the manifest, and — with the core cleanse — the client's import paths, split by the package that owns each name. The upgrade guide is [the 4.0 upgrade page](https://boltdocs.com/docs/guides/operations/upgrading-4-0), in English and Spanish.
 
-What is still open: a site that writes its own `boltdocs-entry.tsx` has to import `virtual:boltdocs-site-bridge` itself now that the engine no longer registers the site artifacts as a side effect of importing the client. The generated entry does it; a hand-written one has to.
+Hand-written `boltdocs-entry.*` files are now covered by `boltdocs migrate` (it inserts `virtual:boltdocs-site-bridge` when missing), in addition to the generated entry.
 
 ## Branch and review workflow
 
