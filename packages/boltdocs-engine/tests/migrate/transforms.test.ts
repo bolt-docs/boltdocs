@@ -6,6 +6,7 @@ import {
   stripComments,
 } from '../../src/node/migrate/transforms/seo-plugin'
 import { packageJsonTransform } from '../../src/node/migrate/transforms/package-json'
+import { entrySiteBridgeTransform } from '../../src/node/migrate/transforms/entry-site-bridge'
 import { findImports, findJsxAttributes } from '../../src/node/migrate/source'
 
 const ctx = { root: '/project' }
@@ -473,5 +474,38 @@ describe('packageJsonTransform', () => {
       [],
     )
     expect(packageJsonTransform.apply?.(broken, ctx)).toBe(broken)
+  })
+})
+
+describe('entrySiteBridgeTransform', () => {
+  it('flags a custom boltdocs-entry missing the site bridge', () => {
+    const source =
+      "import { ViteReactSSG } from 'boltdocs/ssg'\nexport default 1\n"
+    const findings = entrySiteBridgeTransform.inspect(
+      'boltdocs-entry.tsx',
+      source,
+      ctx,
+    )
+    expect(findings).toHaveLength(1)
+    expect(findings[0].id).toBe('entry/site-bridge')
+    expect(findings[0].action).toBe('fixable')
+  })
+
+  it('inserts the bridge import after imports', () => {
+    const source = "import a from 'a'\nimport b from 'b'\n\nconst x = 1\n"
+    const out = entrySiteBridgeTransform.apply?.(source, ctx) ?? ''
+    expect(out).toContain("import 'virtual:boltdocs-site-bridge'")
+    expect(out.indexOf('virtual:boltdocs-site-bridge')).toBeGreaterThan(
+      out.indexOf('import b'),
+    )
+  })
+
+  it('is a no-op when the bridge is already imported', () => {
+    const source = "import 'virtual:boltdocs-site-bridge'\nimport a from 'a'\n"
+    const out = entrySiteBridgeTransform.apply?.(source, ctx) ?? ''
+    expect(out).toBe(source)
+    expect(
+      entrySiteBridgeTransform.inspect('boltdocs-entry.tsx', source, ctx),
+    ).toEqual([])
   })
 })

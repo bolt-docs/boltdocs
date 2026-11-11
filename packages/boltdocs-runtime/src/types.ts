@@ -10,7 +10,7 @@ import type {
   RouteContributor,
 } from './contract-types'
 
-// Re-export so consumers can `import { BoltdocsConfig } from 'boltdocs/client'`.
+// Re-exported for consumers of @bdocs/runtime.
 export type {
   BoltdocsConfig,
   BoltdocsRoutePath,

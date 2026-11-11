@@ -7,6 +7,7 @@ import { themeSubpathTransform } from './transforms/theme-subpath'
 import { packageJsonTransform } from './transforms/package-json'
 import { searchEngineTransform } from './transforms/search-engine'
 import { clientImportsTransform } from './transforms/client-imports'
+import { entrySiteBridgeTransform } from './transforms/entry-site-bridge'
 
 export * from './types'
 
@@ -52,6 +53,7 @@ const TRANSFORMS: Transform[] = [
   reactAriaTransform,
   themeSubpathTransform,
   clientImportsTransform,
+  entrySiteBridgeTransform,
 ]
 
 export interface MigrateOptions {
