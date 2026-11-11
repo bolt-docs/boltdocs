@@ -13,7 +13,7 @@ export { generateEntryCode } from './plugin/entry'
 
 // In-memory cache keyed by `${root}::${mode}::${optionsHash}` where
 // optionsHash is derived from routes + flags.  This prevents the heavy
-// module imports (react plugin, tailwind, boltdocsPlugin) from being
+// module imports (React plugin, boltdocsPlugin) from being
 // repeated when createViteConfig is called multiple times with the
 // same configuration — which happens because the pipeline ConfigResolveStep
 // calls createViteConfig once, and the build process can call it again

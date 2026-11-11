@@ -57,14 +57,14 @@ describe('cn - classnames utility', () => {
     expect(result).toBe('foo bar baz qux quuz')
   })
 
-  it('should handle tailwind-merge conflicts', () => {
+  it('should preserve all class names without framework-specific merging', () => {
     const result = cn('px-2 py-1', 'py-2')
-    expect(result).toBe('px-2 py-2')
+    expect(result).toBe('px-2 py-1 py-2')
   })
 
-  it('should handle multiple tailwind conflicts', () => {
+  it('should preserve multiple repeated utility-like classes', () => {
     const result = cn('text-lg font-bold', 'text-sm', 'font-normal')
-    expect(result).toBe('text-sm font-normal')
+    expect(result).toBe('text-lg font-bold text-sm font-normal')
   })
 
   it('should handle empty input', () => {

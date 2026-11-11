@@ -1,6 +1,8 @@
 import { defineConfig } from 'boltdocs'
+import tailwindcssPlugin from '@bdocs/plugin-tailwindcss'
 
 export default defineConfig({
+  plugins: [tailwindcssPlugin()],
   siteUrl: 'https://my-docs.com/',
   i18n: {
     locales: ['en', 'es'],

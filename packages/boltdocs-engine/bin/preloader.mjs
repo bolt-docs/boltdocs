@@ -23,6 +23,3 @@ import('vite').catch(() => {})
 // React / ReactDOM are imported by boltdocsPlugin and the dev server.
 import('react').catch(() => {})
 import('react-dom/client').catch(() => {})
-
-// Tailwind CSS Vite plugin — loaded by createViteConfig.
-import('@tailwindcss/vite').catch(() => {})

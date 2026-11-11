@@ -23,7 +23,8 @@
     "@vercel/node": "^3.2.0",
     "boltdocs": "latest",
     "tailwindcss": "^4.3.0",
-    "typescript": "^5.0.0"
+    "typescript": "^5.0.0",
+    "@bdocs/plugin-tailwindcss": "^1.0.0"
   },
   "pnpm": {
     "onlyBuiltDependencies": [

@@ -4,6 +4,6 @@
 
 /* The theme owns the reset. The engine ships no stylesheet. */
 @import "@bdocs/theme-neutral/reset";
-@import "boltdocs/theme/neutral.css";
+@import "@bdocs/theme-neutral/css";
 
 @source "./node_modules/boltdocs/dist";
