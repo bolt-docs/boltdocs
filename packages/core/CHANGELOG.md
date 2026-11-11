@@ -1,5 +1,11 @@
 # boltdocs
 
+## 3.4.3
+
+### Patch Changes
+
+- [`80864bd`](https://github.com/bolt-docs/boltdocs/commit/80864bd93af8f0191eb3da01a9618e66d96dc30e) Thanks [@jesusalcaladev](https://github.com/jesusalcaladev)! - Fail fast when a discovered Boltdocs config file cannot be loaded, so dev/build stops with a clear error instead of silently falling back to defaults.
+
 ## 3.4.2
 
 ### Patch Changes
