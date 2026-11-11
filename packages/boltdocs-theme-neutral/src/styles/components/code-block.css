@@ -244,3 +244,80 @@
   inset-inline: 0;
   width: 100%;
 }
+
+/* ── Light highlighter token colours ──────────────────────────────────────
+ * The `light` engine emits `bd-token-{name}` spans and never inline colours.
+ * Colours resolve through the public `--bdocs-code-*` tokens so a site
+ * re-tunes one role in `tokens.css` overrides without touching this file. */
+
+:where(.bd-token-keyword) {
+  color: var(--bdocs-code-keyword);
+}
+:where(.bd-token-builtin) {
+  color: var(--bdocs-code-builtin);
+}
+:where(.bd-token-type) {
+  color: var(--bdocs-code-type);
+}
+:where(.bd-token-string) {
+  color: var(--bdocs-code-string);
+}
+:where(.bd-token-number) {
+  color: var(--bdocs-code-number);
+}
+:where(.bd-token-comment) {
+  color: var(--bdocs-code-comment);
+}
+:where(.bd-token-function) {
+  color: var(--bdocs-code-function);
+}
+:where(.bd-token-operator) {
+  color: var(--bdocs-code-operator);
+}
+:where(.bd-token-punctuation) {
+  color: var(--bdocs-code-punctuation);
+}
+:where(.bd-token-boolean) {
+  color: var(--bdocs-code-boolean);
+}
+:where(.bd-token-null) {
+  color: var(--bdocs-code-null);
+}
+:where(.bd-token-regex) {
+  color: var(--bdocs-code-regex);
+}
+:where(.bd-token-attribute) {
+  color: var(--bdocs-code-attribute);
+}
+:where(.bd-token-tag) {
+  color: var(--bdocs-code-tag);
+}
+:where(.bd-token-doctype) {
+  color: var(--bdocs-code-doctype);
+}
+:where(.bd-token-entity) {
+  color: var(--bdocs-code-entity);
+}
+:where(.bd-token-directive) {
+  color: var(--bdocs-code-directive);
+}
+:where(.bd-token-interpolation) {
+  color: var(--bdocs-code-interpolation);
+}
+:where(.bd-token-label) {
+  color: var(--bdocs-code-label);
+}
+:where(.bd-token-meta) {
+  color: var(--bdocs-code-meta);
+}
+:where(.bd-token-decorator) {
+  color: var(--bdocs-code-decorator);
+}
+:where(.bd-token-annotation) {
+  color: var(--bdocs-code-annotation);
+}
+
+/* Plaintext blocks emitted by the light engine. */
+:where(.bd-code-plaintext) {
+  color: var(--bdocs-code-text);
+}

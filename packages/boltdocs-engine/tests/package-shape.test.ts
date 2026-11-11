@@ -12,13 +12,14 @@ type PkgShape = {
 const deps = pkg as unknown as PkgShape
 
 describe('packages/boltdocs-engine/package.json shape', () => {
-  it('declares no peer dependency at all', () => {
-    // The engine renders nothing. React, React DOM and the router are the
-    // browser half's business, and the browser half is a package the site
-    // installs. Leaving them declared here made every site install React "for
-    // the engine", which is how a package that ships no React code ends up
-    // requiring React.
-    expect(deps.peerDependencies).toEqual({})
+  it('declares Shiki as optional peer deps only (light highlighter is built-in)', () => {
+    // Shiki is optional: sites that use the built-in `@bdocs/highlight`
+    // engine never install it. Only users who opt into `engine: 'shiki'` need
+    // the `@shikijs/*` packages.
+    expect(deps.peerDependencies['@shikijs/core']).toBeDefined()
+    expect(deps.peerDependencies['@shikijs/engine-javascript']).toBeDefined()
+    expect(deps.peerDependencies['@shikijs/engine-oniguruma']).toBeDefined()
+    expect(deps.peerDependencies['@shikijs/types']).toBeDefined()
     expect(deps.peerDependenciesMeta).toBeUndefined()
   })
 
@@ -68,21 +69,15 @@ describe('packages/boltdocs-engine/package.json shape', () => {
   it('keeps build-time deps in dependencies (CLI unconditionally imports them)', () => {
     // These are imported by src/node/cli-entry.ts when `npx boltdocs build` runs.
     //
-    // The highlighter imports `@shikijs/core`, not `shiki`. The full `shiki`
-    // package pulls in `@shikijs/langs` (9.9 MB, 347 grammars) and
-    // `@shikijs/themes` (1.8 MB) as ordinary dependencies, and this project
-    // imports neither: the reachable grammar set is vendored in
-    // `@bdocs/grammars` and the seven themes alongside it.
-    // Depending on `shiki` would reinstall 11.7 MB of unreachable payload on
-    // every consumer. `@bdocs/grammars` guards the grammar side from its own
-    // suite.
+    // The built-in highlighter is `@bdocs/highlight`, a dependency-free
+    // regex tokenizer. Shiki (`@shikijs/*`) is an optional peer — only needed
+    // when a site opts into `engine: 'shiki'`. Neither is a hard dependency
+    // of the engine, so every install stays small.
     expect(deps.dependencies.shiki).toBeUndefined()
+    expect(deps.dependencies['@shikijs/core']).toBeUndefined()
+    expect(deps.dependencies['@bdocs/highlight']).toBe('workspace:*')
     expect(deps.dependencies['@shikijs/langs']).toBeUndefined()
     expect(deps.dependencies['@bdocs/grammars']).toBe('workspace:*')
-    expect(deps.dependencies['@shikijs/core']).toBe('3.23.0')
-    expect(deps.dependencies['@shikijs/types']).toBe('3.23.0')
-    expect(deps.dependencies['@shikijs/engine-oniguruma']).toBe('3.23.0')
-    expect(deps.dependencies['@shikijs/engine-javascript']).toBe('3.23.0')
     // @mdx-js/rollup was replaced by the Sätteri processor in 3.2.x
     expect(deps.dependencies['@bdocs/processor-satteri']).toBe('workspace:*')
   })
@@ -134,6 +129,7 @@ describe('packages/boltdocs-engine/package.json shape', () => {
     expect(deps.dependencies.zod).toBeDefined()
     expect(deps.dependencies['@bdocs/ssg']).toBe('workspace:*')
     expect(deps.dependencies['@bdocs/parser']).toBe('workspace:*')
+    expect(deps.dependencies['@bdocs/highlight']).toBe('workspace:*')
     expect(deps.dependencies['@bdocs/unist-utils']).toBe('workspace:*')
     expect(deps.dependencies['@bdocs/dui']).toBeDefined()
   })

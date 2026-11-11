@@ -14,7 +14,6 @@ export default defineConfig([
       'node/cli-entry': 'src/node/cli-entry.ts',
       'node/cache': 'src/node/cache.ts',
       'node/highlight': 'src/node/highlight/index.ts',
-      'node/mdx/shiki-adapter': 'src/node/mdx/shiki-adapter.ts',
       // Search is a registry, not an implementation: `@bdocs/plugin-search`
       // registers its generator here rather than the core depending on it,
       // which would be a cycle and would make search mandatory.

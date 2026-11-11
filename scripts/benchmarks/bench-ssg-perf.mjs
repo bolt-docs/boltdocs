@@ -23,7 +23,7 @@ import { performance } from 'node:perf_hooks'
 
 // Coste simulado de resaltar un bloque de código (gramática + HTML), medido
 // en un benchmark con Shiki en el repo. 12 ms es el valor alto de esa métrica.
-const COST_BLOCK_MS = 12
+const _COST_BLOCK_MS = 12
 
 function bench(totalPages, blocksPerPage, sharedBlocks = 0, repeat = 1) {
   const start = performance.now()
@@ -31,7 +31,7 @@ function bench(totalPages, blocksPerPage, sharedBlocks = 0, repeat = 1) {
     for (let i = 0; i < totalPages; i++) {
       for (let j = 0; j < blocksPerPage; j++) {
         // share = si j < sharedBlocks el bloque es idéntico al anterior
-        const code = `code:${sharedBlocks > j ? i : i}-${j}`
+        const _code = `code:${sharedBlocks > j ? i : i}-${j}`
         // Aqui iría el benchmark real del resaltado:
         // await highlight(code, lang)
       }
@@ -43,4 +43,6 @@ function bench(totalPages, blocksPerPage, sharedBlocks = 0, repeat = 1) {
 console.log('Benchmark del coste por página (simulación: 1 bloque × 12 ms)')
 const A = bench(100, 1)
 const B = bench(100, 1)
-console.log(`A: ${A.toFixed(2)} ms/page  B: ${B.toFixed(2)} ms/page  (B/A = ${B/A.toFixed(2)})`)
+console.log(
+  `A: ${A.toFixed(2)} ms/page  B: ${B.toFixed(2)} ms/page  (B/A = ${B / A.toFixed(2)})`,
+)

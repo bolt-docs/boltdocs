@@ -254,7 +254,13 @@ async function capture(label) {
   })
   await new Promise((done) => server.listen(port, done))
 
-  const browser = await chromium.launch(process.env.PW_EXECUTABLE ? { executablePath: process.env.PW_EXECUTABLE } : process.env.PW_CHANNEL ? { channel: process.env.PW_CHANNEL } : undefined)
+  const browser = await chromium.launch(
+    process.env.PW_EXECUTABLE
+      ? { executablePath: process.env.PW_EXECUTABLE }
+      : process.env.PW_CHANNEL
+        ? { channel: process.env.PW_CHANNEL }
+        : undefined,
+  )
   const context = await browser.newContext({
     viewport: { width: 1440, height: 900 },
     reducedMotion: 'reduce',

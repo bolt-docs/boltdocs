@@ -27,6 +27,7 @@
   "dependencies": {
     "@bdocs/contracts": "workspace:*",
     "@bdocs/unist-utils": "workspace:*",
+    "@bdocs/highlight": "workspace:*",
     "esbuild": "^0.25.0",
     "hast-util-to-html": "^9.0.5",
     "piscina": "^5.3.0",

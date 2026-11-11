@@ -176,7 +176,7 @@ export const ThemeConfigSchema = z.object({
     .optional(),
   codeHighlighting: z
     .union([
-      // String shorthand: a highlighter registry id (`'shiki'` by default).
+      // String shorthand: a highlighter registry id (`'highlight'` by default).
       // Equivalent to `{ engine: <string> }` — resolved by
       // `normalizeCodeHighlightConfig()` at every read site.
       z.string(),

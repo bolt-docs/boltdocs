@@ -8,15 +8,11 @@
  * token styling and Mermaid text alignment.
  */
 
-/* ═══ Shiki (dark-only, Geist Mono) ═══════════════════════════════
-   The theme's reset ships 12px shiki text and .shiki-themes CSS vars.
-   With codeTheme set to a single dark theme, shiki emits inline colors,
-   so only the font family/size need to be realigned to the theme. These
-   are unlayered + !important to beat the reset's unlayered rules. */
-:root .shiki,
-:root .shiki span,
-:root [data-code-engine="shiki"],
-:root [data-code-engine="shiki"] span {
+/* ═══ Code highlighting (Prism engine, Geist Mono) ═════════════════════
+   Normalize font metrics for highlighted blocks. Tokens are styled via
+   bd-token-* classes and --bdocs-code-* variables from the theme. */
+:root [data-code-engine="highlight"] code,
+:root [data-code-engine="highlight"] span {
   font-family: var(--font-mono) !important;
   font-size: 0.8125rem !important; /* 13px */
   line-height: 1.7 !important;
@@ -24,10 +20,8 @@
 }
 
 /* Code token selection: primary-tinted like the rest of the theme */
-.shiki code::selection,
-.shiki span::selection,
-[data-code-engine="shiki"] code::selection,
-[data-code-engine="shiki"] span::selection {
+[data-code-engine="highlight"] code::selection,
+[data-code-engine="highlight"] span::selection {
   background: color-mix(in srgb, var(--color-primary-500) 22%, transparent);
 }
 

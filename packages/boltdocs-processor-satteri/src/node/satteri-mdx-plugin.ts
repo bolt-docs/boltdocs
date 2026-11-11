@@ -171,7 +171,11 @@ function readMdxDiskCache(root: string, contentHash: string): string | null {
 }
 
 /** Write a pre-compiled MDX result to disk, keyed by content hash. */
-function writeMdxDiskCache(root: string, contentHash: string, compiledCode: string): void {
+function _writeMdxDiskCache(
+  root: string,
+  contentHash: string,
+  compiledCode: string,
+): void {
   try {
     const cacheDir = getMdxDiskCacheDir(root)
     fs.mkdirSync(cacheDir, { recursive: true })
@@ -366,7 +370,7 @@ function computeGlobalKey(
     config?.siteUrl || '',
     pluginSignatures,
     highlightSignature({
-      engine: highlighting?.engine ?? 'shiki',
+      engine: highlighting?.engine ?? 'highlight',
       theme:
         highlighting?.theme ?? normalizeCodeTheme(config?.theme?.codeTheme),
       options: highlighting?.options,
@@ -542,7 +546,7 @@ export function createSatteriMdxPlugin(
     config?.theme?.codeHighlighting,
   )
   const codeHighlighting: CodeHighlightConfig = {
-    engine: highlighting?.engine ?? 'shiki',
+    engine: highlighting?.engine ?? 'highlight',
     theme: highlighting?.theme ?? normalizeCodeTheme(config?.theme?.codeTheme),
     options: highlighting?.options,
   }
@@ -734,9 +738,7 @@ export function createSatteriMdxPlugin(
 
     if (estimatedMisses > 2) {
       try {
-        const { ShikiAdapter, ensureLanguage } = await import(
-          'boltdocs/node/mdx/shiki-adapter'
-        )
+        const { HighlightAdapter } = await import('@bdocs/highlight')
 
         // Collect unique code blocks from all miss files
         const blockSignature = (lang: string, code: string) =>
@@ -746,51 +748,67 @@ export function createSatteriMdxPlugin(
         const missFiles = hasTransformSource
           ? mdxFiles
           : mdxFiles.filter(
-              (file) => !isManifestEntryFresh(file, manifest[file])
+              (file) => !isManifestEntryFresh(file, manifest[file]),
             )
 
         for (const file of missFiles) {
           try {
             const rawCode = fs.readFileSync(file, 'utf-8')
             const fenceRegex = /```(\w*)\n([\s\S]*?)\n```/g
-            let match: RegExpExecArray | null
-            while ((match = fenceRegex.exec(rawCode)) !== null) {
+            let match = fenceRegex.exec(rawCode)
+            while (match !== null) {
               const lang = (match[1] || 'text').toLowerCase()
               const code = match[2]
               const sig = blockSignature(lang, code)
               if (!uniqueBlocks.has(sig)) {
                 uniqueBlocks.set(sig, { lang, code })
               }
+              match = fenceRegex.exec(rawCode)
             }
           } catch {
             // Skip unreadable files
           }
         }
 
-        const adapter = new ShikiAdapter({
+        const adapter = new HighlightAdapter({
           theme: { codeHighlighting },
         })
-        await adapter.initialize()
+        const runtime = await adapter.initialize()
 
         // Preload common languages to avoid lazy-load stalls in workers
         const COMMON_LANGS = [
-          'ts', 'tsx', 'js', 'jsx', 'javascript', 'typescript',
-          'bash', 'shell', 'sh', 'zsh',
-          'json', 'jsonc',
-          'css', 'scss',
-          'html', 'xml',
-          'md', 'markdown',
-          'yaml', 'yml',
-          'text', 'plaintext',
+          'ts',
+          'tsx',
+          'js',
+          'jsx',
+          'javascript',
+          'typescript',
+          'bash',
+          'shell',
+          'sh',
+          'zsh',
+          'json',
+          'jsonc',
+          'css',
+          'scss',
+          'html',
+          'xml',
+          'md',
+          'markdown',
+          'yaml',
+          'yml',
+          'text',
+          'plaintext',
         ]
         for (const lang of COMMON_LANGS) {
-          await ensureLanguage(lang).catch(() => {})
+          await adapter.ensureLanguage(lang).catch(() => {})
         }
 
         sharedCodeCache = new Map()
         for (const [sig, { lang, code }] of uniqueBlocks) {
           try {
-            const html = await adapter.render(code, lang, {})
+            const options = adapter.getOptions(lang, {})
+            const html = await runtime.codeToHtml(code, options)
             const lineCount = code.split('\n').length
             sharedCodeCache.set(sig, { html, lineCount })
           } catch {
@@ -801,7 +819,7 @@ export function createSatteriMdxPlugin(
         // eslint-disable-next-line no-console
         console.log(
           `[satteri-mdx] Pre-rendered ${sharedCodeCache.size} unique code blocks ` +
-            `for shared highlight cache`
+            `for shared highlight cache`,
         )
       } catch {
         // Shiki not available or pre-render failed — workers fall back
@@ -830,7 +848,7 @@ export function createSatteriMdxPlugin(
           projectRoot:
             pluginOptions?.root ?? viteResolvedConfig?.root ?? process.cwd(),
         },
-        sharedCodeCache
+        sharedCodeCache,
       )
       compilePool = pool
       pool.start().catch(() => {
@@ -903,7 +921,6 @@ export function createSatteriMdxPlugin(
             hitCount++
             continue
           }
-
 
           const cachedEntry = manifest[file]
 

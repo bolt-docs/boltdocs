@@ -119,7 +119,7 @@ export function CodeBlock(props: CodeBlockProps) {
     lang: langProp,
     'data-lang': dataLang,
     plain = false,
-    className: shikiClassName,
+    className: preClassNameProp,
     lineNumbers,
     showLineNumbers,
     wordWrap,
@@ -131,7 +131,7 @@ export function CodeBlock(props: CodeBlockProps) {
   const lang = langProp || dataLang || ''
   const isHighlighted =
     dataHighlighted === 'true' ||
-    (typeof shikiClassName === 'string' && shikiClassName.includes('shiki'))
+    Boolean(highlightedHtml || dataHighlightedHtml)
 
   const rawHighlightedHtml = highlightedHtml || dataHighlightedHtml
   const effectiveHighlightedHtml =
@@ -169,7 +169,7 @@ export function CodeBlock(props: CodeBlockProps) {
     '[&>code]:border-none!',
     isHighlighted && '[&>code]:pt-1!',
     'border-none!',
-    shikiClassName,
+    preClassNameProp,
   )
 
   return (

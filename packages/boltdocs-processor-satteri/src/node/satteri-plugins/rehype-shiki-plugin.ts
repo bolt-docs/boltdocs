@@ -350,7 +350,7 @@ export function satteriRehypeCodeHighlightPlugin(
     codeToHast(code: string, options: Record<string, unknown>): unknown
     codeToHtml(code: string, options: Record<string, unknown>): Promise<string>
   } | null = null
-  let engineName = 'shiki'
+  let engineName = 'highlight'
 
   async function ensureHighlighter(): Promise<NonNullable<typeof runtime>> {
     if (adapter && runtime) return runtime
@@ -360,8 +360,8 @@ export function satteriRehypeCodeHighlightPlugin(
     )) as CodeHighlighterResponse
     engineName =
       adapter.name ||
-      (typeof config?.engine === 'string' ? config.engine : 'shiki') ||
-      'shiki'
+      (typeof config?.engine === 'string' ? config.engine : 'highlight') ||
+      'highlight'
     runtime = await adapter.initialize()
     return runtime
   }
@@ -417,7 +417,12 @@ export function satteriRehypeCodeHighlightPlugin(
 
         try {
           const cacheKey = cacheKeyFor(configKey, lang, codeText, metaStr)
-          let preElement: Element = { type: 'element', tagName: 'pre', properties: {}, children: [] } as unknown as Element
+          let preElement: Element = {
+            type: 'element',
+            tagName: 'pre',
+            properties: {},
+            children: [],
+          } as unknown as Element
           let html: string | undefined
           let lineCount: number = 0
 
@@ -446,7 +451,12 @@ export function satteriRehypeCodeHighlightPlugin(
               lineCount = sharedHit.lineCount
               // No preElement available from shared cache — children stay empty
               // since html carries the full rendered output.
-              preElement = { type: 'element', tagName: 'pre', properties: {}, children: [] } as unknown as Element
+              preElement = {
+                type: 'element',
+                tagName: 'pre',
+                properties: {},
+                children: [],
+              } as unknown as Element
             } else {
               highlightCacheMisses++
             }

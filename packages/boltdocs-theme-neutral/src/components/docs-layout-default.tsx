@@ -63,9 +63,7 @@ function DocsLayoutComponent({ children }: DocsLayoutThemeProps) {
             )}
 
             <ErrorBoundary>
-              <div className="bdocs-prose">
-                {children ?? <Outlet />}
-              </div>
+              <div className="bdocs-prose">{children ?? <Outlet />}</div>
             </ErrorBoundary>
 
             {!isCollectionPage && <Giscus />}

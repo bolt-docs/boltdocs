@@ -65,7 +65,10 @@ const DEFAULT_MDAST_PLUGINS = [satteriRemarkMetaPlugin()]
 const DEFAULT_HAST_PLUGINS = [
   satteriRehypeSlugPlugin(),
   satteriRehypeTableWhitespacePlugin(),
-  satteriRehypeCodeHighlightPlugin(workerCodeHighlighting, workerPreRenderedCache),
+  satteriRehypeCodeHighlightPlugin(
+    workerCodeHighlighting,
+    workerPreRenderedCache,
+  ),
 ]
 
 /**

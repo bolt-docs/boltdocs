@@ -158,7 +158,9 @@ function classLiterals(source: string): string[] {
     // Identifiers inside the expression (`className`, `cn`, commas) are
     // JavaScript, not classes, and flagging them would train the guard to be
     // ignored, so only string literals are collected.
-    for (const literal of (m[2] ?? '').matchAll(/'([^']*)'|"([^"]*)"|`([^`]*)`/g)) {
+    for (const literal of (m[2] ?? '').matchAll(
+      /'([^']*)'|"([^"]*)"|`([^`]*)`/g,
+    )) {
       const raw = literal[1] ?? literal[2] ?? literal[3] ?? ''
       if (raw.trim()) out.push(raw)
     }
@@ -212,7 +214,7 @@ describe('the scan', () => {
     ])
   })
 
-  it('leaves the theme\'s own classes alone', () => {
+  it("leaves the theme's own classes alone", () => {
     expect(
       utilitiesIn('<div className="bdocs-prose bdocs-page__padded" />'),
     ).toEqual([])

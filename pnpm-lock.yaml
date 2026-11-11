@@ -269,6 +269,9 @@ importers:
       '@bdocs/grammars':
         specifier: workspace:*
         version: link:../boltdocs-grammars
+      '@bdocs/highlight':
+        specifier: workspace:*
+        version: link:../boltdocs-highlight
       '@bdocs/parser':
         specifier: workspace:*
         version: link:../boltdocs-parser
@@ -418,6 +421,34 @@ importers:
       '@shikijs/engine-javascript':
         specifier: 3.23.0
         version: 3.23.0
+      '@types/node':
+        specifier: 22.12.0
+        version: 22.12.0
+      tsdown:
+        specifier: ^0.21.7
+        version: 0.21.10(oxc-resolver@11.24.2)(synckit@0.11.12)(typescript@5.9.3)
+      tsdown-config:
+        specifier: workspace:*
+        version: link:../boltdocs-tsdown-config
+      typescript:
+        specifier: ^5.9.3
+        version: 5.9.3
+      vitest:
+        specifier: ^3.2.4
+        version: 3.2.4(@edge-runtime/vm@3.2.0)(@types/debug@4.1.13)(@types/node@22.12.0)(@vitest/ui@3.2.4)(esbuild@0.25.12)(jiti@2.7.0)(jsdom@29.0.2)(sass-embedded@1.100.0)(sass@1.100.0)(terser@5.46.1)(tsx@4.21.0)(yaml@2.8.3)
+
+  packages/boltdocs-highlight:
+    dependencies:
+      '@bdocs/contracts':
+        specifier: workspace:*
+        version: link:../boltdocs-contracts
+      '@bdocs/unist-utils':
+        specifier: workspace:*
+        version: link:../boltdocs-unist-utils
+      prismjs:
+        specifier: ^1.30.0
+        version: 1.30.0
+    devDependencies:
       '@types/node':
         specifier: 22.12.0
         version: 22.12.0
@@ -989,6 +1020,9 @@ importers:
       '@bdocs/contracts':
         specifier: workspace:*
         version: link:../boltdocs-contracts
+      '@bdocs/highlight':
+        specifier: workspace:*
+        version: link:../boltdocs-highlight
       '@bdocs/unist-utils':
         specifier: workspace:*
         version: link:../boltdocs-unist-utils
@@ -6402,6 +6436,10 @@ packages:
   pretty-ms@7.0.1:
     resolution: {integrity: sha512-973driJZvxiGOQ5ONsFhOF/DtzPMOMtgC11kCpUrPGMTgqp2q/1gwzCquocrN33is0VZ5GFHXZYMM9l6h67v2Q==}
     engines: {node: '>=10'}
+
+  prismjs@1.30.0:
+    resolution: {integrity: sha512-DEvV2ZF2r2/63V+tK8hQvrR2ZGn10srHbXviTlcv7Kpzw8jWiNTqbVgjO3IY8RxrrOUF8VPMQQFysYYYv0YZxw==}
+    engines: {node: '>=6'}
 
   prompts@2.4.2:
     resolution: {integrity: sha512-NxNv/kLguCA7p3jE8oL2aEBsrJWgAakBpgmgK6lpPWV+WuOmY6r2/zbAVnP+T8bQlA0nzHXSJSJW0Hq7ylaD2Q==}
@@ -12973,6 +13011,8 @@ snapshots:
   pretty-ms@7.0.1:
     dependencies:
       parse-ms: 2.1.0
+
+  prismjs@1.30.0: {}
 
   prompts@2.4.2:
     dependencies:

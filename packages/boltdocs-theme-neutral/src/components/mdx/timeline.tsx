@@ -262,12 +262,7 @@ function TimelineItem({
 
       {/* Body (Markdown inside MDX) */}
       {children && (
-        <div
-          className={cn(
-            'bdocs-timeline__body bdocs-prose',
-            bodyClassName,
-          )}
-        >
+        <div className={cn('bdocs-timeline__body bdocs-prose', bodyClassName)}>
           {children}
         </div>
       )}

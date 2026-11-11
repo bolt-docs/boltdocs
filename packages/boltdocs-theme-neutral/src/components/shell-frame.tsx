@@ -15,9 +15,5 @@ export function ShellFrame({
   children?: ReactNode
   className?: string
 }) {
-  return (
-    <div className={cn('bdocs-shell', className)}>
-      {children}
-    </div>
-  )
+  return <div className={cn('bdocs-shell', className)}>{children}</div>
 }

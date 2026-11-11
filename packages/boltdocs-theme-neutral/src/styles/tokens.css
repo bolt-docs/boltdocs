@@ -105,6 +105,30 @@
      the other. */
   --bdocs-code-bg: var(--_bdocs-gray-900);
   --bdocs-code-text: var(--_bdocs-gray-100);
+  /* Syntax token colours for the light highlighter (`bd-token-*` spans).
+     A site re-tunes one role with one override; components never hardcode. */
+  --bdocs-code-keyword: #c792ea;
+  --bdocs-code-builtin: #82aaff;
+  --bdocs-code-type: #ffcb6b;
+  --bdocs-code-string: #c3e88d;
+  --bdocs-code-number: #f78c6c;
+  --bdocs-code-comment: #546e7a;
+  --bdocs-code-function: #82aaff;
+  --bdocs-code-operator: #89ddff;
+  --bdocs-code-punctuation: #a8a8a8;
+  --bdocs-code-boolean: #f78c6c;
+  --bdocs-code-null: #f78c6c;
+  --bdocs-code-regex: #f78c6c;
+  --bdocs-code-attribute: #addb67;
+  --bdocs-code-tag: #7fdbca;
+  --bdocs-code-doctype: #546e7a;
+  --bdocs-code-entity: #f78c6c;
+  --bdocs-code-directive: #c792ea;
+  --bdocs-code-interpolation: #ffcb6b;
+  --bdocs-code-label: #ffcb6b;
+  --bdocs-code-meta: #89ddff;
+  --bdocs-code-decorator: #c792ea;
+  --bdocs-code-annotation: #c792ea;
 }
 
 /* ------------------------------------------------------------------ *

@@ -13,7 +13,7 @@ export type HighlighterFactory = (
   api: CodeHighlightConfig,
 ) => CodeHighlighterAdapter | Promise<CodeHighlighterAdapter>
 
-export const DEFAULT_HIGHLIGHTER = 'shiki'
+export const DEFAULT_HIGHLIGHTER = 'highlight'
 
 export const BUILTIN_HIGHLIGHTERS = [DEFAULT_HIGHLIGHTER] as const
 
@@ -21,23 +21,22 @@ export const BUILTIN_HIGHLIGHTERS = [DEFAULT_HIGHLIGHTER] as const
  * Registry of highlight engines. Registers only factories — engine modules
  * are imported lazily on first resolution, so unused engines never load.
  *
- * The built-in `'shiki'` engine is registered at module load but its module
- * (shiki + oniguruma + grammars) is only imported when actually resolved.
+ * The built-in `'highlight'` engine is registered at module load but its module
+ * (@bdocs/highlight) is only imported when actually resolved.
  */
 const registry = new Map<string, HighlighterFactory>()
 
 registry.set(DEFAULT_HIGHLIGHTER, async (api) => {
-  const mod = await import('../mdx/shiki-adapter')
-  return mod.getShikiAdapter({
-    theme: {
-      codeHighlighting: {
-        engine: DEFAULT_HIGHLIGHTER,
-        theme: api?.theme,
-        options: api?.options,
-      },
-    },
+  const mod = await import('@bdocs/highlight')
+  const factory = mod.createHighlightAdapter ?? mod.default
+  return factory({
+    engine: DEFAULT_HIGHLIGHTER,
+    theme: api?.theme,
+    options: api?.options,
   })
 })
+// Compatibility alias: the engine was briefly called 'light'.
+registry.set('light', registry.get(DEFAULT_HIGHLIGHTER)!)
 
 /**
  * Register (or replace) a highlight engine by id. Plugins use this to expose
@@ -98,7 +97,7 @@ function assertAdapter(
  * Resolution order:
  * 1. `engine` is a factory → call it with the resolved config
  * 2. `engine` is an adapter instance → validate and return it
- * 3. `engine` is a string → look up the registry (defaults to `'shiki'`);
+ * 3. `engine` is a string → look up the registry (defaults to `'highlight'`);
  *    unknown ids warn and fall back to the built-in engine
  */
 export async function getCodeHighlighterAdapter(

@@ -33,10 +33,6 @@
       "types": "./dist/node/search/registry.d.ts",
       "default": "./dist/node/search/registry.mjs"
     },
-    "./node/mdx/shiki-adapter": {
-      "types": "./dist/node/mdx/shiki-adapter.d.ts",
-      "default": "./dist/node/mdx/shiki-adapter.mjs"
-    },
     "./server": {
       "types": "./dist/server/index.d.ts",
       "default": "./dist/server/index.mjs"
@@ -81,10 +77,7 @@
     "@bdocs/processor-satteri": "workspace:*",
     "@bdocs/ssg": "workspace:*",
     "@bdocs/unist-utils": "workspace:*",
-    "@shikijs/core": "3.23.0",
-    "@shikijs/engine-javascript": "3.23.0",
-    "@shikijs/engine-oniguruma": "3.23.0",
-    "@shikijs/types": "3.23.0",
+    "@bdocs/highlight": "workspace:*",
     "@tailwindcss/vite": "4.3.0",
     "@vitejs/plugin-react": "6.0.1",
     "cac": "7.0.0",
@@ -104,7 +97,12 @@
     "vite": "8.3.5",
     "zod": "4.3.6"
   },
-  "peerDependencies": {},
+  "peerDependencies": {
+    "@shikijs/core": "3.23.0",
+    "@shikijs/engine-javascript": "3.23.0",
+    "@shikijs/engine-oniguruma": "3.23.0",
+    "@shikijs/types": "3.23.0"
+  },
   "packageManager": "pnpm@10.30.2",
   "devDependencies": {
     "@netlify/functions": "^5.3.0",

@@ -41,10 +41,10 @@ export const DATA_ATTRIBUTES = {
   HIGHLIGHTED_HTML: 'data-highlighted-html',
 }
 
-export const SHIKI_CLASSES = {
-  LINE_NUMBERS: 'shiki-line-numbers',
-  WORD_WRAP: 'shiki-word-wrap',
-  FALLBACK: 'shiki-fallback',
+export const CODE_CLASSES = {
+  LINE_NUMBERS: 'bd-code-line-numbers',
+  WORD_WRAP: 'bd-code-word-wrap',
+  FALLBACK: 'bd-code-fallback',
 }
 
 export const DEFAULT_THEMES = {

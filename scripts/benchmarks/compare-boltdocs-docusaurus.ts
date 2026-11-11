@@ -75,7 +75,10 @@ function packLocalBoltdocs(): string {
   const packages = [
     { dir: 'packages/boltdocs-engine', name: 'boltdocs' },
     { dir: 'packages/boltdocs-ssg', name: '@bdocs-ssg' },
-    { dir: 'packages/boltdocs-processor-satteri', name: '@bdocs-processor-satteri' },
+    {
+      dir: 'packages/boltdocs-processor-satteri',
+      name: '@bdocs-processor-satteri',
+    },
     { dir: 'packages/boltdocs-unist-utils', name: '@bdocs-unist-utils' },
   ]
 
@@ -476,7 +479,10 @@ function writeConfigs() {
     { dir: 'packages/boltdocs-parser', name: '@bdocs/parser' },
     { dir: 'packages/boltdocs-unist-utils', name: '@bdocs/unist-utils' },
     { dir: 'packages/boltdocs-zig-critters', name: '@bdocs/zig-critters' },
-    { dir: 'packages/boltdocs-processor-satteri', name: '@bdocs/processor-satteri' },
+    {
+      dir: 'packages/boltdocs-processor-satteri',
+      name: '@bdocs/processor-satteri',
+    },
     {
       dir: 'packages/boltdocs-plugin-image-optimizer',
       name: '@bdocs/plugin-image-optimizer',

@@ -16,27 +16,56 @@ const ROOT = path.resolve(import.meta.dirname, '../..')
 const DOCS_DIR = path.join(ROOT, 'docs/docs')
 
 const COMMON_LANGS = new Set([
-  'ts', 'tsx', 'js', 'jsx', 'javascript', 'typescript',
-  'bash', 'shell', 'sh', 'zsh',
-  'json', 'jsonc',
-  'css', 'scss', 'less',
-  'html', 'xml', 'svg',
-  'md', 'markdown',
-  'yaml', 'yml',
-  'diff', 'git',
-  'python', 'py',
-  'java', 'c', 'cpp', 'cs', 'go', 'rs', 'rb', 'php',
-  'sql', 'graphql',
-  'dockerfile', 'docker',
-  'toml', 'ini', 'cfg',
-  'text', 'plaintext',
+  'ts',
+  'tsx',
+  'js',
+  'jsx',
+  'javascript',
+  'typescript',
+  'bash',
+  'shell',
+  'sh',
+  'zsh',
+  'json',
+  'jsonc',
+  'css',
+  'scss',
+  'less',
+  'html',
+  'xml',
+  'svg',
+  'md',
+  'markdown',
+  'yaml',
+  'yml',
+  'diff',
+  'git',
+  'python',
+  'py',
+  'java',
+  'c',
+  'cpp',
+  'cs',
+  'go',
+  'rs',
+  'rb',
+  'php',
+  'sql',
+  'graphql',
+  'dockerfile',
+  'docker',
+  'toml',
+  'ini',
+  'cfg',
+  'text',
+  'plaintext',
 ])
 
 function extractCodeBlocks(content) {
   const blocks = []
   const fenceRegex = /```(\w*)\n([\s\S]*?)\n```/g
-  let match
-  while ((match = fenceRegex.exec(content)) !== null) {
+  const match = fenceRegex.exec(content)
+  while (match !== null) {
     const lang = (match[1] || 'text').toLowerCase()
     const code = match[2]
     blocks.push({ lang, code })
@@ -66,13 +95,13 @@ for (const file of files) {
   try {
     const content = fs.readFileSync(file, 'utf-8')
     const blocks = extractCodeBlocks(content)
-    allBlocks.push(...blocks.map(b => ({ ...b, file })))
+    allBlocks.push(...blocks.map((b) => ({ ...b, file })))
   } catch {}
 }
 
 console.log(`Total bloques: ${allBlocks.length}`)
 
-const supportedBlocks = allBlocks.filter(b => COMMON_LANGS.has(b.lang))
+const supportedBlocks = allBlocks.filter((b) => COMMON_LANGS.has(b.lang))
 console.log(`Bloques con lenguaje soportado: ${supportedBlocks.length}`)
 
 const blockSignature = (b) => `${b.lang}\0${b.code}`
@@ -90,7 +119,9 @@ for (const block of supportedBlocks) {
 
 console.log(`Bloques únicos: ${uniqueBlocks.size}`)
 console.log(`Bloques repetidos (2+): ${repeatedBlocks.length}`)
-console.log(`% repetido: ${((repeatedBlocks.length / supportedBlocks.length) * 100).toFixed(1)}%`)
+console.log(
+  `% repetido: ${((repeatedBlocks.length / supportedBlocks.length) * 100).toFixed(1)}%`,
+)
 
 const counts = new Map()
 for (const block of supportedBlocks) {
@@ -120,7 +151,7 @@ for (const lang of COMMON_LANGS) {
 }
 console.log('\nLenguajes comunes precargados.')
 
-async function measure(label, fn) {
+async function measure(_label, fn) {
   const start = performance.now()
   await fn()
   return performance.now() - start
@@ -133,8 +164,12 @@ const noCacheTime = await measure('no-cache', async () => {
     await adapter.render(block.code, block.lang, undefined)
   }
 })
-console.log(`Tiempo sin caché: ${noCacheTime.toFixed(1)} ms (${supportedBlocks.length} bloques)`)
-console.log(`Promedio por bloque: ${(noCacheTime / supportedBlocks.length).toFixed(2)} ms`)
+console.log(
+  `Tiempo sin caché: ${noCacheTime.toFixed(1)} ms (${supportedBlocks.length} bloques)`,
+)
+console.log(
+  `Promedio por bloque: ${(noCacheTime / supportedBlocks.length).toFixed(2)} ms`,
+)
 
 // Test 2: Con caché
 console.log('\n--- Test: CON caché (bloques únicos resaltados una vez) ---')
@@ -148,8 +183,12 @@ const withCacheTime = await measure('with-cache', async () => {
     }
   }
 })
-console.log(`Tiempo con caché: ${withCacheTime.toFixed(1)} ms (${supportedBlocks.length} bloques, ${uniqueBlocks.size} únicos)`)
-console.log(`Promedio por bloque único: ${(withCacheTime / uniqueBlocks.size).toFixed(2)} ms`)
+console.log(
+  `Tiempo con caché: ${withCacheTime.toFixed(1)} ms (${supportedBlocks.length} bloques, ${uniqueBlocks.size} únicos)`,
+)
+console.log(
+  `Promedio por bloque único: ${(withCacheTime / uniqueBlocks.size).toFixed(2)} ms`,
+)
 
 const ahorro = noCacheTime - withCacheTime
 const pctAhorro = ((ahorro / noCacheTime) * 100).toFixed(1)
@@ -157,7 +196,9 @@ console.log('\n=== RESULTADO ===')
 console.log(`Tiempo sin caché:  ${noCacheTime.toFixed(1)} ms`)
 console.log(`Tiempo con caché:  ${withCacheTime.toFixed(1)} ms`)
 console.log(`Ahorro:            ${ahorro.toFixed(1)} ms (${pctAhorro}%)`)
-console.log(`Bloques ahorrados: ${repeatedBlocks.length} de ${supportedBlocks.length}`)
+console.log(
+  `Bloques ahorrados: ${repeatedBlocks.length} de ${supportedBlocks.length}`,
+)
 
 // Test 3: Simulación 4 workers (caché por worker, como Piscina pool)
 console.log('\n--- Test: Simulación 4 workers (caché por worker) ---')
@@ -182,5 +223,6 @@ for (let w = 0; w < WORKERS; w++) {
 }
 console.log(`Tiempo simulado 4 workers: ${workerSimTime.toFixed(1)} ms`)
 const ahorroWorker = noCacheTime - workerSimTime
-console.log(`Ahorro vs sin caché: ${ahorroWorker.toFixed(1)} ms (${((ahorroWorker / noCacheTime) * 100).toFixed(1)}%)`)
-
+console.log(
+  `Ahorro vs sin caché: ${ahorroWorker.toFixed(1)} ms (${((ahorroWorker / noCacheTime) * 100).toFixed(1)}%)`,
+)

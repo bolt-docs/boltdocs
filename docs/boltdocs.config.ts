@@ -114,16 +114,11 @@ export default defineConfig({
       en: 'Building documentation for your project has never been easier. Create beautiful, highly customizable, and extremely fast sites out of the box.',
       es: 'Crear documentación para tu proyecto nunca ha sido tan fácil. Genera sitios hermosos, altamente personalizables y extremadamente rápidos desde el primer momento.',
     },
+    // Prism-based highlighting (default engine). Colors are controlled by the
+    // theme's --bdocs-code-* tokens in code-block styles, so sites can retheme
+    // without changing the highlighter.
     codeHighlighting: {
-      engine: 'shiki',
-      theme: 'github-dark',
-      options: {
-        // github-dark comments (#6A737D) fail WCAG AA (4.5:1) on our code
-        // background; lift them to the theme's fg.subtle tone.
-        colorReplacements: {
-          '#6A737D': '#8b949e',
-        },
-      },
+      engine: 'highlight',
     },
     favicon: '/light.svg',
     logo: {

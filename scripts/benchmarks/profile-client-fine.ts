@@ -33,7 +33,7 @@ function mark(name: string, detail?: string) {
   marks.push({ name, t, detail })
   const abs = marks[0] ? t - marks[0].t : 0
   console.log(
-    `[prof +${abs.toFixed(0).padStart(5)}ms Δ${(t - prev).toFixed(0).padStart(5)}ms] ${name}${detail ? ' — ' + detail : ''}`,
+    `[prof +${abs.toFixed(0).padStart(5)}ms Δ${(t - prev).toFixed(0).padStart(5)}ms] ${name}${detail ? ` — ${detail}` : ''}`,
   )
 }
 
@@ -64,12 +64,14 @@ async function main() {
 
   // Import from source via tsx
   const configMod = await import(
-    pathToFileURL(path.join(WORKSPACE, 'packages/boltdocs-engine/src/node/config.ts')).href
+    pathToFileURL(
+      path.join(WORKSPACE, 'packages/boltdocs-engine/src/node/config.ts'),
+    ).href
   )
   mark('import-config-module')
 
   // --- resolveConfig internals ---
-  const tRc = performance.now()
+  const _tRc = performance.now()
   // Manual breakdown mirroring resolveConfig
   const { loadConfigFromFile } = await import(
     pathToFileURL(path.join(root, 'node_modules/vite/dist/node/index.js')).href
@@ -86,7 +88,7 @@ async function main() {
     'boltdocs.config.mjs',
     'boltdocs.config.ts',
   ]
-  let userConfig: any = {}
+  let _userConfig: any = {}
   let configFileUsed = ''
   for (const filename of CONFIG_FILES) {
     const configPath = path.resolve(root, filename)
@@ -102,7 +104,7 @@ async function main() {
       `${filename} ${(performance.now() - tLoad).toFixed(0)}ms`,
     )
     if (loaded) {
-      userConfig = loaded.config
+      _userConfig = loaded.config
       configFileUsed = filename
       break
     }
@@ -126,7 +128,10 @@ async function main() {
   try {
     const { inspectPluginsSecurity } = await import(
       pathToFileURL(
-        path.join(WORKSPACE, 'packages/boltdocs-engine/src/node/security/inspect.ts'),
+        path.join(
+          WORKSPACE,
+          'packages/boltdocs-engine/src/node/security/inspect.ts',
+        ),
       ).href
     )
     inspectPluginsSecurity(config, root)
@@ -138,29 +143,40 @@ async function main() {
   // createViteConfig breakdown
   const tCvcImport = performance.now()
   const indexMod = await import(
-    pathToFileURL(path.join(WORKSPACE, 'packages/boltdocs-engine/src/node/index.ts')).href
+    pathToFileURL(
+      path.join(WORKSPACE, 'packages/boltdocs-engine/src/node/index.ts'),
+    ).href
   )
   mark('import-index', `${(performance.now() - tCvcImport).toFixed(0)}ms`)
 
   // Time the dynamic imports inside createViteConfig by calling pieces
   const tParallel = performance.now()
-  const [reactMod, tailwindcssMod, pluginMod, routesMod, typesMod] =
+  const [_reactMod, _tailwindcssMod, pluginMod, routesMod, typesMod] =
     await Promise.all([
       import('@vitejs/plugin-react'),
       import('@tailwindcss/vite'),
       import(
         pathToFileURL(
-          path.join(WORKSPACE, 'packages/boltdocs-engine/src/node/plugin/index.ts'),
+          path.join(
+            WORKSPACE,
+            'packages/boltdocs-engine/src/node/plugin/index.ts',
+          ),
         ).href
       ),
       import(
         pathToFileURL(
-          path.join(WORKSPACE, 'packages/boltdocs-engine/src/node/routes/index.ts'),
+          path.join(
+            WORKSPACE,
+            'packages/boltdocs-engine/src/node/routes/index.ts',
+          ),
         ).href
       ),
       import(
         pathToFileURL(
-          path.join(WORKSPACE, 'packages/boltdocs-engine/src/node/types-generator.ts'),
+          path.join(
+            WORKSPACE,
+            'packages/boltdocs-engine/src/node/types-generator.ts',
+          ),
         ).href
       ),
     ])
@@ -377,7 +393,7 @@ async function main() {
     const abs = Math.round(m.t - marks[0].t)
     const delta = i === 0 ? 0 : Math.round(m.t - marks[i - 1].t)
     console.log(
-      `  ${String(abs).padStart(6)}ms  Δ${String(delta).padStart(5)}ms  ${m.name}${m.detail ? ' — ' + m.detail : ''}`,
+      `  ${String(abs).padStart(6)}ms  Δ${String(delta).padStart(5)}ms  ${m.name}${m.detail ? ` — ${m.detail}` : ''}`,
     )
   }
 

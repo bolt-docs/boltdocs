@@ -8,9 +8,5 @@ import type { ReactNode } from 'react'
  * viewport to scroll in.
  */
 export function ExternalPage({ children }: { children?: ReactNode }) {
-  return (
-    <main className="bdocs-external">
-      {children}
-    </main>
-  )
+  return <main className="bdocs-external">{children}</main>
 }

@@ -7,7 +7,7 @@ const { fakeAdapter } = vi.hoisted(() => {
   }
   return {
     fakeAdapter: {
-      name: 'shiki',
+      name: 'highlight',
       getOptions: vi.fn(() => ({ lang: 'javascript' })),
       initialize: vi.fn().mockResolvedValue(runtime),
       ensureLanguage: vi.fn().mockResolvedValue(true),
@@ -16,10 +16,10 @@ const { fakeAdapter } = vi.hoisted(() => {
   }
 })
 
-// The built-in shiki factory lazily imports this module — stub it so the
-// registry tests never pay the ~2.5s highlighter build.
-vi.mock('../../src/node/mdx/shiki-adapter', () => ({
-  getShikiAdapter: () => fakeAdapter,
+// The built-in light factory lazily imports @bdocs/highlight — stub it so
+// the registry tests never pay the cost of loading the adapter.
+vi.mock('@bdocs/highlight', () => ({
+  createHighlightAdapter: () => fakeAdapter,
 }))
 
 import {
@@ -37,13 +37,14 @@ describe('highlight registry', () => {
     vi.clearAllMocks()
   })
 
-  it('defaults to the built-in shiki engine', () => {
-    expect(DEFAULT_HIGHLIGHTER).toBe('shiki')
+  it('defaults to the built-in highlight engine', () => {
+    expect(DEFAULT_HIGHLIGHTER).toBe('highlight')
     expect(isHighlighterRegistered(DEFAULT_HIGHLIGHTER)).toBe(true)
-    expect(getHighlighterNames()).toContain('shiki')
+    expect(getHighlighterNames()).toContain('highlight')
+    expect(getHighlighterNames()).toContain('light')
   })
 
-  it('resolves the shiki engine by default when no engine is specified', async () => {
+  it('resolves the light engine by default when no engine is specified', async () => {
     const adapter = await getCodeHighlighterAdapter()
     expect(adapter).toBe(fakeAdapter)
     expect(fakeAdapter.getOptions).not.toHaveBeenCalled()
