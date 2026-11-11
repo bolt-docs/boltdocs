@@ -47,6 +47,31 @@ const ROADMAP: RoadmapItem[] = [
       'Last-updated dates and contributor lists derived from git history, with a customizable footer.',
     status: 'shipped',
   },
+  // Shipped on 4.0 branch
+  {
+    title: '4.0 migration slices 1–7',
+    description:
+      'Contracts, SEO/UI/primitives/runtime boundaries, incremental MDX/SSG, and migration tooling/upgrade docs delivered on the 4.0 line.',
+    status: 'shipped',
+  },
+  {
+    title: 'Core completely CSS-agnostic',
+    description:
+      'Engine and neutral theme ship no CSS framework deps or auto-wiring; framework-neutral `cn`, plain CSS theme output, and scaffolds opt into CSS via plugins (SPEC §2.1).',
+    status: 'shipped',
+  },
+  {
+    title: 'CSS plugins: Tailwind, Sass, UnoCSS, Lightning CSS',
+    description:
+      'Popular CSS integrations as explicit plugins, including Lightning CSS, with unit and Vite production-build tests verifying transforms.',
+    status: 'shipped',
+  },
+  {
+    title: 'Boltdocs migrate (3.x → 4.0)',
+    description:
+      'Codemods and diagnostics for supported 3.x→4.0 paths (imports/subpaths/reset, manifest/plugins, search/SEO, custom entry site bridge) with EN/ES upgrade docs.',
+    status: 'shipped',
+  },
   // In Progress
   {
     title: 'Boltdocs migrate MVP — VitePress first',
@@ -307,8 +332,10 @@ export default function RoadmapPage() {
           </h1>
           <p className="mx-auto mt-3 text-sm text-paragraph md:text-base">
             Boltdocs 3.4 is the stable line: redirects, incremental builds,
-            accessible View Transitions, and the shared contract layer. The 4.0
-            architecture migration continues in parallel on a dedicated branch.
+            accessible View Transitions, and the shared contract layer. On the
+            4.0 branch, migration slices 1–7, a completely CSS-agnostic core,
+            and popular CSS plugins (Tailwind, Sass, UnoCSS, Lightning CSS) are
+            complete, with release-gate sign-off measurements still pending.
           </p>
           <div className="mt-5 flex flex-wrap items-center justify-center gap-x-5 gap-y-2 text-xs text-paragraph">
             <span className="inline-flex items-center gap-1.5">
