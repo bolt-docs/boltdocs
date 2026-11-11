@@ -74,12 +74,12 @@ function packLocalBoltdocs(): string {
   // Pack core + ssg + processor-satteri + unist-utils
   const packages = [
     { dir: 'packages/boltdocs-engine', name: 'boltdocs' },
-    { dir: 'packages/boltdocs-ssg', name: '@bdocs-ssg' },
+    { dir: 'packages/boltdocs-ssg', name: '@bdocs/ssg' },
     {
       dir: 'packages/boltdocs-processor-satteri',
-      name: '@bdocs-processor-satteri',
+      name: '@bdocs/processor-satteri',
     },
-    { dir: 'packages/boltdocs-unist-utils', name: '@bdocs-unist-utils' },
+    { dir: 'packages/boltdocs-unist-utils', name: '@bdocs/unist-utils' },
   ]
 
   let boltdocsTgz = ''
@@ -121,6 +121,53 @@ function packLocalBoltdocs(): string {
   }
 
   return boltdocsTgz
+}
+
+function rewriteWorkspaceProtocols(
+  tgzPath: string,
+  replacements: Record<string, string>,
+): void {
+  const tmp = fs.mkdtempSync(path.join(path.dirname(tgzPath), 'patch-'))
+  try {
+    child_process.execSync(`tar -xzf "${tgzPath}" -C "${tmp}"`, {
+      stdio: 'ignore',
+    })
+    const pkgPath = path.join(tmp, 'package', 'package.json')
+    const pkg = JSON.parse(fs.readFileSync(pkgPath, 'utf8')) as Record<
+      string,
+      unknown
+    >
+    for (const field of [
+      'dependencies',
+      'optionalDependencies',
+      'peerDependencies',
+    ] as const) {
+      const deps = pkg[field] as Record<string, string> | undefined
+      if (!deps) continue
+      for (const [name, spec] of Object.entries(deps)) {
+        if (typeof spec === 'string' && replacements[name]) {
+          // pnpm pack resolves workspace:* to concrete versions, but those
+          // versions are not published to npm; force local file tarballs.
+          if (
+            spec.startsWith('workspace:') ||
+            spec === replacements[name].slice('file:'.length)
+          ) {
+            deps[name] = replacements[name]
+          } else if (name in replacements) {
+            deps[name] = replacements[name]
+          }
+        }
+      }
+    }
+    fs.writeFileSync(pkgPath, `${JSON.stringify(pkg, null, 2)}\n`)
+    child_process.execSync(`tar -czf "${tgzPath}" -C "${tmp}" package`, {
+      stdio: 'ignore',
+    })
+  } catch {
+    // Best effort: leave original tarball if patching fails.
+  } finally {
+    fs.rmSync(tmp, { recursive: true, force: true })
+  }
 }
 
 // Helper to calculate directory size recursively in bytes
@@ -464,7 +511,7 @@ function writeConfigs() {
     path.join(BOLTDOCS_DIR, 'boltdocs.config.ts'),
     boltdocsConfig,
   )
-  fs.writeFileSync(path.join(BOLTDOCS_DIR, 'index.css'), '') // empty stylesheet
+  // stylesheet written later with theme imports
 
   // Pack local boltdocs and write sandbox package.json
   const boltdocsTgz = packLocalBoltdocs()
@@ -487,6 +534,12 @@ function writeConfigs() {
       dir: 'packages/boltdocs-plugin-image-optimizer',
       name: '@bdocs/plugin-image-optimizer',
     },
+    { dir: 'packages/boltdocs-highlight', name: '@bdocs/highlight' },
+    { dir: 'packages/boltdocs-grammars', name: '@bdocs/grammars' },
+    { dir: 'packages/boltdocs-contracts', name: '@bdocs/contracts' },
+    { dir: 'packages/boltdocs-runtime', name: '@bdocs/runtime' },
+    { dir: 'packages/boltdocs-theme-neutral', name: '@bdocs/theme-neutral' },
+    { dir: 'packages/boltdocs-primitives', name: '@bdocs/primitives' },
   ]
 
   const packDir = path.join(TEMP_ROOT, 'local-pack')
@@ -556,9 +609,6 @@ function writeConfigs() {
     boltdocsPkg.dependencies as Record<string, string>,
     localWorkspacePackages,
   )
-  if (Object.keys(depOverrides).length > 0) {
-    boltdocsPkg.pnpm = { overrides: depOverrides }
-  }
 
   // Fallback: if we couldn't pack boltdocs, use npm
   if (!(boltdocsPkg.dependencies as Record<string, string>).boltdocs) {
@@ -566,10 +616,36 @@ function writeConfigs() {
     console.log('  Using npm version 3.1.0 as fallback')
   }
 
+  // Tarballs may contain workspace:* ranges; rewrite them to local file refs
+  // so installs work outside the monorepo workspace.
+  const localFileMap: Record<string, string> = {}
+  for (const [name, target] of Object.entries({
+    ...(boltdocsPkg.dependencies as Record<string, string>),
+    ...localWorkspacePackages,
+  })) {
+    if (typeof target === 'string' && target.startsWith('file:')) {
+      localFileMap[name] = target
+    }
+  }
+  for (const target of Object.values(localFileMap)) {
+    const tgzPath = target.slice('file:'.length)
+    if (fs.existsSync(tgzPath)) rewriteWorkspaceProtocols(tgzPath, localFileMap)
+  }
+
   fs.writeFileSync(
     path.join(BOLTDOCS_DIR, 'package.json'),
     JSON.stringify(boltdocsPkg, null, 2),
   )
+
+  if (Object.keys(depOverrides).length > 0) {
+    const overrideLines = Object.entries(depOverrides)
+      .map(([name, target]) => `  '${name}': '${target}'`)
+      .join('\n')
+    fs.writeFileSync(
+      path.join(BOLTDOCS_DIR, 'pnpm-workspace.yaml'),
+      `packages: []\noverrides:\n${overrideLines}\n`,
+    )
+  }
 
   // Boltdocs index.html (Required by Vite/SSG)
   const boltdocsHtml = `<!doctype html>
@@ -585,9 +661,13 @@ function writeConfigs() {
 </html>`
   fs.writeFileSync(path.join(BOLTDOCS_DIR, 'index.html'), boltdocsHtml)
 
-  // Boltdocs layout.tsx (Mandatory for Boltdocs setup)
-  const boltdocsLayout = `import { DocsLayout } from 'boltdocs/client'
-import React from 'react'
+  const boltdocsCss = `@import "@bdocs/theme-neutral/reset";
+@import "@bdocs/theme-neutral/css";
+`
+  fs.writeFileSync(path.join(BOLTDOCS_DIR, 'index.css'), boltdocsCss)
+
+  // Boltdocs layout.tsx (4.0: theme provides DocsLayout)
+  const boltdocsLayout = `import { DocsLayout } from '@bdocs/theme-neutral'
 
 export default function Layout({ children }: { children: React.ReactNode }) {
   return <DocsLayout>{children}</DocsLayout>
@@ -713,7 +793,7 @@ function runInstallation() {
   console.log('Installing dependencies for Docusaurus benchmark...')
   try {
     child_process.execSync(
-      'pnpm install --ignore-workspace --no-frozen-lockfile',
+      'pnpm install --ignore-workspace --no-frozen-lockfile --config.dangerouslyAllowAllBuilds=true',
       {
         cwd: DOCUSAURUS_DIR,
         stdio: 'inherit',
@@ -728,7 +808,7 @@ function runInstallation() {
   console.log('Installing dependencies for Boltdocs benchmark...')
   try {
     child_process.execSync(
-      'pnpm install --ignore-workspace --no-frozen-lockfile',
+      'pnpm install --ignore-workspace --no-frozen-lockfile --config.dangerouslyAllowAllBuilds=true',
       {
         cwd: BOLTDOCS_DIR,
         stdio: 'inherit',
