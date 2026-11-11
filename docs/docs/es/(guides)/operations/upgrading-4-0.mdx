@@ -68,6 +68,7 @@ La distinción no es una limitación de la implementación. Un codemod que renom
 | `seo/plugin-missing` | fixable | Agrega `@bdocs/plugin-seo` a tu config |
 | `deps/react-aria` | fixable | Elimina la entrada obsoleta `react-aria-components` |
 | `deps/primitives` | fixable | Declara `@bdocs/primitives` si referenciabas react-aria |
+| `entry/site-bridge` | fixable | Agrega `virtual:boltdocs-site-bridge` a un `boltdocs-entry.*` personalizado |
 | `react-aria/on-press` | **manual** | Reporta la prop y nombra su reemplazo |
 | `react-aria/is-selected` | **manual** | Reporta la prop y nombra su reemplazo |
 | `react-aria/ssr-provider` | **manual** | Reporta `<SSRProvider>`, que fue removido directamente |
@@ -120,6 +121,10 @@ El codemod parte un import por nombre: cada símbolo va al package que lo export
 
 <Callout type="info">
   **También entra el Markdown.** El codemod reescribe los ejemplos de import de tus páginas `.md` y `.mdx`. Una página de documentación que muestra `from 'boltdocs/client'` enseña a escribir un import que ya no resuelve, y quien lo copia se entera en su propio build y no en tu página.
+</Callout>
+
+<Callout type="info">
+  **Entradas personalizadas.** Si tu proyecto tiene un `boltdocs-entry.*` escrito a mano, `boltdocs migrate --apply` agrega `import 'virtual:boltdocs-site-bridge'` para que los artefactos generados del sitio (íconos, layout, búsqueda, page source y client slots) se registren en runtime.
 </Callout>
 
 El theme se resuelve desde el proyecto, no desde el motor. Un sitio que quiere otra appearance instala otro package y lo nombra:

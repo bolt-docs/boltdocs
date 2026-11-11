@@ -67,6 +67,7 @@ The distinction is not a limitation of the implementation. A codemod that rename
 | `seo/plugin-missing` | fixable | Adds `@bdocs/plugin-seo` to your config |
 | `deps/react-aria` | fixable | Removes the stale `react-aria-components` entry |
 | `deps/primitives` | fixable | Declares `@bdocs/primitives` if you referenced react-aria |
+| `entry/site-bridge` | fixable | Adds `virtual:boltdocs-site-bridge` to a custom `boltdocs-entry.*` |
 | `react-aria/on-press` | **manual** | Reports the prop, names its replacement |
 | `react-aria/is-selected` | **manual** | Reports the prop, names its replacement |
 | `react-aria/ssr-provider` | **manual** | Reports `<SSRProvider>`, which was removed outright |
@@ -119,6 +120,10 @@ The codemod splits an import by name: every symbol goes to the package that expo
 
 <Callout type="info">
   **Markdown is included.** The codemod rewrites the import examples in your `.md` and `.mdx` pages too. A documentation page that shows `from 'boltdocs/client'` teaches a reader to write an import that no longer resolves, and a reader who copies it finds out at their own build time rather than at your page.
+</Callout>
+
+<Callout type="info">
+  **Custom entries.** If your project has a hand-written `boltdocs-entry.*`, `boltdocs migrate --apply` adds `import 'virtual:boltdocs-site-bridge'` so generated site artifacts (icons, layout, search, page source, client slots) are registered at runtime.
 </Callout>
 
 The theme is resolved from the project, not from the engine. A site that wants a different look installs a different package and names it:

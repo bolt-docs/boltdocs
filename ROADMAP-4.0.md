@@ -148,7 +148,7 @@ The migration is executed as an ordered sequence. Each slice is developed on a f
 | 4 | Primitives extraction | `@bdocs/primitives` | Done |
 | 5 | Runtime boundary | `@bdocs/runtime` | Done |
 | 6 | Incremental MDX and SSG | core, Sätteri, SSG | Done |
-| 7 | Migration tooling and 4.0 release gate | repository-wide | In progress |
+| 7 | Migration tooling and 4.0 release gate | repository-wide | Done |
 
 ### Status of the core cleanse
 
@@ -689,6 +689,19 @@ client/SSR/output artifacts and skip expensive phases. Route/output cache state
 is reconciled against the active route set, so text-only edits do not
 invalidate unrelated pages and removed routes do not linger in cached output.
 
+### Status of slice 7
+
+Migration tooling and upgrade documentation cover the supported 3.0→4.0 paths:
+`boltdocs migrate` applies safe codemods (imports/subpaths/reset, manifest and
+plugin wiring, search/SEO, custom `boltdocs-entry.*` site bridge) and reports
+manual decisions with diagnostics and CI-friendly exit codes. The English and
+Spanish upgrade guides document package-graph changes, moved APIs and manual
+steps. The 4.0 release gate is prepared with contract/boundary/build test
+coverage, incremental slice-6 behavior, and benchmark/gate tooling plus
+baselines/scripts for cold/warm/edited/dev/output and scale measurements; final
+release sign-off runs those measurements on the target environment and records
+the results alongside release notes.
+
 ### Route rules
 
 - `develop` remains the stable 3.4 line and never receives breaking architecture changes.
@@ -818,7 +831,7 @@ Reuse safe client and server artifacts, avoid unnecessary SSR imports, and rende
 
 Add codemods, compatibility adapters, migration diagnostics, and an upgrade guide for package imports, plugin APIs, configuration, and removed private entry points.
 
-**Status: in progress.** `boltdocs migrate` reports and fixes the 3.x patterns: `react-aria-components` → `@bdocs/primitives`, the theme subpaths, the SEO and search plugins, the manifest, and — with the core cleanse — the client's import paths, split by the package that owns each name. The upgrade guide is [the 4.0 upgrade page](https://boltdocs.com/docs/guides/operations/upgrading-4-0), in English and Spanish.
+**Status: done.** `boltdocs migrate` reports and fixes the supported 3.x→4.0 paths (react-aria/primitives, theme subpaths/reset, SEO/search plugins, package manifest, client import splits, and hand-written `boltdocs-entry.*` site-bridge registration), with fixable/manual diagnostics, dry-run/`--apply`, and tests. The upgrade guide covers the supported migration paths in English and Spanish. Release-gate infrastructure (build/package-boundary tests, benchmark baseline/gate tooling and scripts for cold/warm/edited/dev/output/memory-scale measurements) is in place for 4.0 sign-off.
 
 Hand-written `boltdocs-entry.*` files are now covered by `boltdocs migrate` (it inserts `virtual:boltdocs-site-bridge` when missing), in addition to the generated entry.
 
