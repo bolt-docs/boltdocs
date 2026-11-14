@@ -67,3 +67,6 @@ env/
 .qwen/
 test-results/
 packages/plugin-tailwindcss/.tmp-tailwind-*
+
+# Trailer renders and assets (kept local)
+trailer/

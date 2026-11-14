@@ -180,7 +180,8 @@ export default async function boltdocs(
   const { boltdocsPlugin } = await import('./plugin/index')
 
   const docsDir = options?.docsDir || 'docs'
-  const config = await resolveConfig(docsDir)
+  const root = process.cwd()
+  const config = await resolveConfig(docsDir, root)
   const routes = await generateRoutes(docsDir, config)
   const routePaths = buildTypeRoutePaths(
     routes,
@@ -254,7 +255,8 @@ export async function createViteConfig(
     preResolvedConfig ||
     (await (async () => {
       const { resolveConfig } = await import('./config')
-      return resolveConfig('docs', root)
+      const command = mode === 'production' ? 'build' : 'serve'
+      return resolveConfig('docs', root, command, mode)
     })())
 
   const docsDir = path.resolve(root, config.docsDir || 'docs')

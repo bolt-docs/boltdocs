@@ -57,15 +57,16 @@ describe('config', () => {
       expect(config.docsDir).toBe(path.join(tempProjectDir, 'content'))
     })
 
-    it('should handle errors during config import gracefully', async () => {
+    it('should fail fast when config import throws', async () => {
       const configPath = path.resolve(tempProjectDir, 'boltdocs.config.js')
       fs.writeFileSync(configPath, 'throw new Error("Config Error");')
 
-      const warnSpy = vi.spyOn(console, 'log').mockImplementation(() => {})
-      const config = await resolveConfig(tempProjectDir, tempProjectDir)
-
-      expect(config.theme?.title).toBe('Boltdocs')
-      expect(warnSpy).toHaveBeenCalled()
+      const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
+      await expect(
+        resolveConfig(tempProjectDir, tempProjectDir),
+      ).rejects.toThrow('Config Error')
+      expect(errorSpy).toHaveBeenCalled()
+      errorSpy.mockRestore()
     })
   })
 
