@@ -1,9 +1,10 @@
 import { migrate } from '../migrate'
-import type { MigrationFinding } from '../migrate'
+import type { MigrationFinding, MigrationSource } from '../migrate'
 import { setProjectRoot } from '../security/fs-patch'
 
 /**
- * `boltdocs migrate` — upgrade a 3.x project to the 4.0 package graph.
+ * `boltdocs migrate` — upgrade a Boltdocs 3.x project to 4.0, or migrate a
+ * Docusaurus/Starlight documentation site into Boltdocs.
  *
  * Deliberately dui-free, like `audit`. A migration command runs against
  * projects that may not build, and paying to load a UI module graph to print a
@@ -57,15 +58,31 @@ function location(finding: MigrationFinding): string {
   return finding.line ? `${file}:${finding.line}` : file
 }
 
-export interface MigrateOptions {
+export interface MigrateCliOptions {
   apply?: boolean
+  from?: string
 }
 
 export async function migrateAction(
   root: string = process.cwd(),
-  options: MigrateOptions = {},
+  options: MigrateCliOptions = {},
 ): Promise<void> {
   const apply = options.apply === true
+  const from = (options.from ?? 'auto') as MigrationSource | 'auto'
+
+  const allowedSources: ReadonlySet<string> = new Set([
+    'auto',
+    'boltdocs',
+    'docusaurus',
+    'starlight',
+  ])
+  if (!allowedSources.has(from)) {
+    error(
+      `Unknown migration source '${from}'. Expected one of: ${[...allowedSources].join(', ')}.`,
+    )
+    process.exitCode = 1
+    return
+  }
 
   // The filesystem guard resolves paths against a project root captured from
   // `process.cwd()` when the patch was installed. `boltdocs migrate ./other-site`
@@ -76,13 +93,13 @@ export async function migrateAction(
 
   info(
     apply
-      ? 'Scanning for 3.x patterns and applying safe fixes...'
-      : 'Scanning for 3.x patterns... (dry run — nothing will be written)',
+      ? `Scanning project (${from}) and applying safe fixes...`
+      : `Scanning project (${from})... (dry run — nothing will be written)`,
   )
 
   let plan: ReturnType<typeof migrate>
   try {
-    plan = migrate({ root, apply })
+    plan = migrate({ root, apply, from })
   } catch (err) {
     error(
       `Migration scan failed: ${err instanceof Error ? err.message : String(err)}`,
@@ -95,7 +112,7 @@ export async function migrateAction(
 
   if (findings.length === 0) {
     success(
-      '\n✓ Nothing to migrate. This project already matches the 4.0 package graph.',
+      '\n✓ Nothing to migrate. No supported migration changes were detected.',
     )
     return
   }
@@ -130,8 +147,13 @@ export async function migrateAction(
     }
   }
 
-  const blocking = findings.filter((f) => f.severity === 'blocking')
-  const manual = findings.filter((f) => f.action === 'manual')
+  // Findings that `--apply` already resolved must not fail the command: the
+  // report lists what was found, but the exit code reflects what remains.
+  const remaining = apply
+    ? findings.filter((f) => !applied.includes(f))
+    : findings
+  const blocking = remaining.filter((f) => f.severity === 'blocking')
+  const manual = remaining.filter((f) => f.action === 'manual')
 
   console.log('')
   if (apply) {

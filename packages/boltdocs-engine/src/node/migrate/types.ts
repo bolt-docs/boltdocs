@@ -48,6 +48,14 @@ export interface MigrationPlan {
   applied: MigrationFinding[]
 }
 
+export type MigrationSource = 'auto' | 'boltdocs' | 'docusaurus' | 'starlight'
+
+export interface MigrateOptions {
+  root: string
+  apply: boolean
+  from?: MigrationSource
+}
+
 /** A codemod: inspects one file, returns what it would change. */
 export interface Transform {
   id: string

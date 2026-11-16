@@ -1,4 +1,4 @@
-import type { MigrationFinding, Transform } from '../types'
+import type { Transform } from '../types'
 
 const BRIDGE_IMPORT = "import 'virtual:boltdocs-site-bridge'"
 
@@ -55,13 +55,12 @@ export const entrySiteBridgeTransform: Transform = {
           lastImport = i
           inImport = false
         }
-      } else if (inImport) {
-        if (t.includes(' from ') || /['"]\s*;?\s*$/.test(t)) {
-          lastImport = i
-          inImport = false
-        }
-      } else if (lastImport !== -1 && t !== '') {
-        // stop after first non-import, non-empty line past imports
+      } else if (
+        inImport &&
+        (t.includes(' from ') || /['"]\s*;?\s*$/.test(t))
+      ) {
+        lastImport = i
+        inImport = false
       }
     }
     if (lastImport >= 0) {

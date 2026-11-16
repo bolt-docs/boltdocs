@@ -1,6 +1,11 @@
 import fs from 'node:fs'
 import path from 'node:path'
-import type { MigrationFinding, MigrationPlan, Transform } from './types'
+import type {
+  MigrationFinding,
+  MigrationPlan,
+  MigrateOptions,
+  Transform,
+} from './types'
 import { reactAriaTransform } from './transforms/react-aria'
 import { seoPluginTransform } from './transforms/seo-plugin'
 import { themeSubpathTransform } from './transforms/theme-subpath'
@@ -8,8 +13,12 @@ import { packageJsonTransform } from './transforms/package-json'
 import { searchEngineTransform } from './transforms/search-engine'
 import { clientImportsTransform } from './transforms/client-imports'
 import { entrySiteBridgeTransform } from './transforms/entry-site-bridge'
+import { detectMigrationSource } from './detect'
+import { migrateDocusaurus } from './from-docusaurus'
+import { migrateStarlight } from './from-starlight'
 
 export * from './types'
+export { detectMigrationSource } from './detect'
 
 const SCAN_EXTENSIONS = new Set([
   '.ts',
@@ -56,19 +65,29 @@ const TRANSFORMS: Transform[] = [
   entrySiteBridgeTransform,
 ]
 
-export interface MigrateOptions {
-  root: string
-  apply: boolean
-}
-
 /**
- * Walks the project and reports every 3.x pattern that 4.0 changed.
+ * Migrates a project to Boltdocs 4.0.
  *
- * `apply: false` is the default and touches nothing. The two modes run the same
- * inspection, so a dry run is a faithful preview rather than a separate code
- * path that can disagree with what `--apply` does.
+ * - `boltdocs`/auto with Boltdocs 3.x patterns: rewrites 3.x -> 4.0.
+ * - `docusaurus`: converts a Docusaurus site into a Boltdocs project.
+ * - `starlight`: converts a Starlight (Astro) site into a Boltdocs project.
+ *
+ * `apply: false` is the default and touches nothing. The same analysis drives
+ * dry-run and apply so the report is a faithful preview.
  */
-export function migrate({ root, apply }: MigrateOptions): MigrationPlan {
+export function migrate({
+  root,
+  apply,
+  from = 'auto',
+}: MigrateOptions): MigrationPlan {
+  const detected = detectMigrationSource(root, from)
+  if (detected === 'docusaurus') {
+    return migrateDocusaurus(root, apply)
+  }
+  if (detected === 'starlight') {
+    return migrateStarlight(root, apply)
+  }
+
   const files = collectFiles(root)
   const findings: MigrationFinding[] = []
   const applied: MigrationFinding[] = []

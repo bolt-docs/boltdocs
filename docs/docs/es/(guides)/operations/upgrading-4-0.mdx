@@ -403,6 +403,34 @@ pnpm install
 
 Como el comando solo escribe cambios mecánicos, revertir su diff restaura un sitio 3.x funcionando exactamente. Por eso el default es dry run y por eso los hallazgos manuales nunca se auto-aplican — el diff automatizado es lo bastante chico como para leerlo y tirarlo.
 
+## 7. Importar desde Docusaurus o Starlight
+
+El mismo comando puede importar un sitio de documentación que no esté en Boltdocs. Detecta el origen a partir de archivos de config y dependencias, o podés forzarlo:
+
+```bash
+npx boltdocs migrate --from docusaurus          # dry run
+npx boltdocs migrate --from starlight --apply   # escribe los cambios seguros
+```
+
+<Callout type="info">
+  La importación es una migración inicial de mejor esfuerzo, no un conversor sin pérdidas. El reporte es el contrato: cada cambio se lista con su severidad y los hallazgos `manual` nunca se aplican en silencio. Revisá el diff y después ejecutá `pnpm install && pnpm docs:dev`.
+</Callout>
+
+| Área | Docusaurus | Starlight (Astro) |
+| --- | --- | --- |
+| Config | Genera `boltdocs.config.ts` con `title`, `tagline`, `baseUrl`, `favicon`, `organizationName`/`projectName` → `githubRepo`, `editUrl` → `editLink`, links del navbar, una ruta docs personalizada → `docsDir` y `siteUrl` (como TODO para `@bdocs/plugin-seo`) | Genera config con `title`, `description`, `base`, `favicon`, `social`, `editLink.baseUrl` → `editLink` y `locales` |
+| Contenido | Reescribe `docs/**/*.{md,mdx}` in place: `sidebar_position`/`sidebar_label`, `authors`/`image` de blog y admoniciones `:::note` → `<Callout>` | Copia `src/content/docs/` a `docs/`: `sidebar.order`/`label`/`hidden`/`badge` y `<Aside>` → `<Callout>` |
+| Navegación | Se parsea `sidebars.js/ts` y se reconstruye con carpetas + `sidebarPosition`/`sidebarLabel` + `meta.json` (categorías con `label`/`position`/`collapsed`, categorías anidadas, ids de frontmatter, secciones autogeneradas); spreads, llamadas y links externos se reportan como manuales. `_category_.json` → `meta.json` también | Las definiciones de sidebar y los esquemas de content collections siguen manuales |
+| i18n | `i18n/<locale>/docusaurus-plugin-content-docs/current/` → `docs/<locale>/` y una config `i18n` | Las carpetas de locale ya viven bajo `docs/`; se genera una config `i18n` |
+| Versionado | `versioned_docs/version-*/` → `docs/<version>/` y una config `versions` | No aplica |
+| Assets y manifest | `static/` → `public/`; elimina deps `@docusaurus/*` y setea scripts de Boltdocs | Mantiene `public/`; elimina deps `astro`/`@astrojs/*` y setea scripts de Boltdocs |
+
+Los links versionados de Docusaurus (`/docs/next/...`, `/docs/<version>/...`) se reescriben a links canónicos `/docs/...` en Markdown y MDX; los links externos, anclas y assets no se tocan. Los links de Starlight que omiten la base de docs se reportan para revisión porque la base correcta depende de la config destino.
+
+Los valores de config asignados a constantes string simples se resuelven en la config generada. Los valores que requieren ejecutar la config (variables de entorno, expresiones miembro, llamadas a funciones) se reportan como hallazgos `manual` con archivo, línea y la expresión exacta, para que nunca se pierdan en silencio.
+
+Lo que sigue manual: sidebars por versión, entradas con spreads/llamadas a funciones/links externos, valores de config no literales, páginas React custom, swizzling de tema y componentes propios (`@theme/*`, `Tabs`/`TabItem`, `DocCardList`); componentes/páginas `.astro` de Starlight, overrides de componentes, esquemas de content collections, frontmatter splash/hero y componentes propios (`Steps`, `CardGrid`, `LinkCard`, `Tabs`). La config generada deja el `siteUrl` de SEO como TODO a propósito, en vez de inventar un valor.
+
 ## Ver también
 
 - [Actualizar a Boltdocs 3.2.0](/docs/es/guides/operations/upgrading-3-2) — el upgrade breaking anterior, sigue siendo relevante si venís de 3.1

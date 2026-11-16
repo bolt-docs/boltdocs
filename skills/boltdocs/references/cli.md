@@ -96,12 +96,16 @@ pnpm docs:audit || exit 1
 
 ### `boltdocs migrate [root]`
 
-Reports 3.x patterns that 4.0 no longer publishes, and rewrites the safe ones. This is the command behind the import path migration — run it before upgrading.
+Reports patterns that 4.0 no longer publishes (or patterns from another docs framework), and rewrites the safe ones. This is the command behind the import path migration — run it before upgrading.
 
 ```bash
-boltdocs migrate                     # Dry run: report only
-boltdocs migrate --apply             # Write the safe fixes
+boltdocs migrate                          # Dry run: report only
+boltdocs migrate --apply                  # Write the safe fixes
+boltdocs migrate --from docusaurus        # Import a Docusaurus site
+boltdocs migrate --from starlight --apply # Import a Starlight (Astro) site
 ```
+
+`--from` accepts `auto` (default), `boltdocs`, `docusaurus` or `starlight`. For external frameworks the command generates a starter config, converts common frontmatter/admonitions, copies content/assets, rewrites deps/scripts and migrates categories, sidebars, locales and versions where the mapping is provable; ambiguous changes are reported as `manual`. Config values assigned to simple string constants are resolved; values requiring execution (env vars, member expressions, function calls) are reported with file, line and the exact expression.
 
 It runs against a project that does not build yet, so it renders its own minimal output and needs no working Vite pipeline. See [Upgrading to 4.0](migrations.md#upgrading-to-40).
 

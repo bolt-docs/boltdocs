@@ -100,10 +100,14 @@ cli
 cli
   .command(
     'migrate [root]',
-    'Report (and optionally fix) 3.x patterns before 4.0',
+    'Migrate a Boltdocs 3.x, Docusaurus, or Starlight project to Boltdocs 4.0',
   )
   .option('--apply', 'Write the safe fixes. Omit for a dry run')
-  .action(async (root: string, options: { apply?: boolean }) => {
+  .option(
+    '--from <source>',
+    'Source framework: auto, boltdocs, docusaurus, starlight',
+  )
+  .action(async (root: string, options: { apply?: boolean; from?: string }) => {
     // No ensureDui(): this command must run against a project that does not
     // build yet, and it renders its own minimal output by design.
     const { migrateAction } = await import('./cli/migrate')

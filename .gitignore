@@ -73,3 +73,6 @@ packages/boltdocs-theme-neutral/test/browser/styles/
 
 # visual regression baselines
 .visual/
+
+# Trailer renders and assets (kept local)
+trailer/

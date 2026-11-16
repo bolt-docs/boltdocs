@@ -90,19 +90,28 @@ If the audit returns `1`, your CI job fails — exactly when you want a human to
 
 ---
 
-## `migrate` — 4.0 upgrade helper
+## `migrate` — upgrade and framework import helper
 
-Reports the 3.x patterns that 4.0 changed, and optionally fixes the mechanical ones. Use it before upgrading.
+Reports patterns that 4.0 changed (or patterns from another documentation framework) and optionally fixes the mechanical ones. It detects the source automatically and also works on a Boltdocs 3.x project.
 
 * **Usage:** `boltdocs migrate [root]`
-* **Options:** `--apply` writes the safe fixes
+* **Options:**
+  * `--apply` writes the safe fixes
+  * `--from <source>` forces the source: `auto` (default), `boltdocs`, `docusaurus`, or `starlight`
 
 It is a **dry run by default** — nothing is written and the report is grouped by file:
 
 ```bash
+# Boltdocs 3.x -> 4.0 (autodetected)
 npx boltdocs migrate
 npx boltdocs migrate --apply
+
+# Import a Docusaurus or Starlight (Astro) site
+npx boltdocs migrate --from docusaurus
+npx boltdocs migrate ./my-docs-site --from starlight --apply
 ```
+
+For external frameworks the command generates a starter `boltdocs.config.ts`, converts common frontmatter and admonitions (`:::note` / `<Aside>` → `<Callout>`), copies assets, rewrites dependencies/scripts, and migrates category files, locales and versioned content when it can prove the mapping. Anything ambiguous is reported as `manual` — see the [4.0 upgrade guide](/docs/guides/operations/upgrading-4-0) for details.
 
 ### Exit codes (CI contract)
 
