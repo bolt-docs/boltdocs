@@ -193,3 +193,19 @@ describe('ToggleButton handlers', () => {
     )
   })
 })
+
+describe('Button press state', () => {
+  it('clears press state and reports the change on pointer up', async () => {
+    const onPressChange = vi.fn()
+    const user = userEvent.setup()
+    render(<Button onPressChange={onPressChange}>Save</Button>)
+    const button = screen.getByRole('button')
+
+    await user.pointer({ keys: '[MouseLeft>]', target: button })
+    expect(onPressChange).toHaveBeenLastCalledWith(true)
+
+    await user.pointer({ keys: '[/MouseLeft]', target: button })
+    expect(onPressChange).toHaveBeenLastCalledWith(false)
+    expect(onPressChange).toHaveBeenCalledTimes(2)
+  })
+})

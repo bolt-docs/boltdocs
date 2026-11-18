@@ -34,8 +34,32 @@ export default defineConfig({
 })
 ```
 
-El core mantiene configurados automáticamente aliases como `boltdocs/client`, `boltdocs/entry` y `use-sync-external-store`. La opción `aliases` acepta los mismos formatos de objeto o array que Vite. Las configuraciones avanzadas de Vite todavía pueden definirse mediante `vite`; `vite.resolve.alias` se fusiona con `aliases` en lugar de reemplazar los aliases del framework. Los aliases del framework tienen prioridad si el mismo alias se declara dos veces.
-  
+El core mantiene configurados automáticamente los aliases del framework para `boltdocs/entry`, los módulos virtuales y `use-sync-external-store`. La opción `aliases` acepta los mismos formatos de objeto o array que Vite. Las configuraciones avanzadas de Vite todavía pueden definirse mediante `vite`; `vite.resolve.alias` se fusiona con `aliases` en lugar de reemplazar los aliases del framework. Los aliases del framework tienen prioridad si el mismo alias se declara dos veces.
+
+## Paquetes de la capa UI
+
+El engine resuelve la capa UI por nombre, así que nunca importa React ni un theme directamente:
+
+```ts title="boltdocs.config.ts"
+export default defineConfig({
+  themePackage: '@bdocs/theme-neutral',     // valor por defecto
+  uiBindingPackage: '@bdocs/react-binding', // valor por defecto
+})
+```
+
+`themePackage` aporta el `surface` con el que renderiza el engine. `uiBindingPackage` aporta la raíz del cliente y el wiring de React/Vite; hoy el binding por defecto es el único soportado.
+
+Los findings de severidad `warning` o `high` de la auditoría de plugins bloquean `boltdocs build` y `boltdocs dev`. Si revisaste un finding, aceptalo explícitamente:
+
+```ts title="boltdocs.config.ts"
+export default defineConfig({
+  security: {
+    auditAllowWarnings: ['@example/plugin-revisado'],
+  },
+})
+```
+
+Los findings `low` (metadatos) solo avisan.
 
 ## `ThemeConfig`
 

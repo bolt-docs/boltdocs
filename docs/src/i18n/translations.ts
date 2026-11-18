@@ -60,7 +60,7 @@ export const translations = {
 
     // Banner
     bannerNewVersion:
-      'Boltdocs 3.4.0 is out — Declarative redirects, incremental builds, 22% less JavaScript and more',
+      'Boltdocs 4.0 is out — a leaner ESM-only core, the UI in @bdocs/theme-neutral, @bdocs/runtime and @bdocs/primitives, search and SEO as plugins, boltdocs migrate for 3.x sites, and much smaller Zig binaries',
     bannerReadPost: 'Read post',
   },
   es: {
@@ -125,7 +125,7 @@ export const translations = {
 
     // Banner
     bannerNewVersion:
-      '¡Boltdocs 3.4.0 ya está aquí — Redirecciones declarativas, builds incrementales, 22% menos de JavaScript y más!',
+      '¡Boltdocs 4.0 ya está aquí — un núcleo ESM más ligero, la UI en @bdocs/theme-neutral, @bdocs/runtime y @bdocs/primitives, búsqueda y SEO como plugins, boltdocs migrate para sitios 3.x y binarios Zig mucho más pequeños!',
     bannerReadPost: 'Leer publicación',
   },
 } as const

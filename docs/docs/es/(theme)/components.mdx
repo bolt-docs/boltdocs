@@ -1,0 +1,41 @@
+---
+title: Componentes
+sidebarPosition: 3
+description: Los componentes de layout, los componentes MDX y las primitivas de UI que incluye el tema por defecto de Boltdocs.
+---
+
+`@bdocs/theme-neutral` ofrece tres grupos de componentes. Los componentes de layout ensamblan una página de documentación, los componentes MDX están disponibles dentro del contenido `.mdx` y las primitivas de UI son los bloques neutros de estilo de `@bdocs/primitives`.
+
+## Componentes de layout
+
+- **DocsLayout** — el shell de la página por defecto que conecta navbar, sidebar, contenido y tabla de contenidos. Para un layout personalizado, componé `DocsLayout.Root`, `.Body`, `.Content` y `.Header` desde `@bdocs/ui-base/composition`.
+- **Navbar** — la cabecera superior para marca, enlaces de navegación, disparador de búsqueda y controles de tema, con regiones izquierda, centro y derecha componibles.
+- **Sidebar** — el árbol de navegación izquierdo con secciones agrupadas y colapsables y estado `data-*` para el elemento activo.
+- **SearchDialog** — la paleta de comandos Cmd+K que busca páginas y headings, con overlay, input y lista de resultados componibles.
+- **OnThisPage** — la tabla de contenidos del rail derecho que lista los headings `h2`–`h4` de la página y resalta la sección visible.
+- **Breadcrumbs** — la ruta jerárquica que se muestra sobre el título de la página.
+- **PageNav** — los enlaces anterior/siguiente al final del contenido, siguiendo el orden del sidebar.
+- **CodeBlock** — el contenedor de cada bloque de código resaltado, con etiqueta de lenguaje, botón de copia y controles de expandir/contraer. Se inyecta automáticamente vía MDX.
+- **ErrorBoundary** — captura errores de renderizado en sus descendientes y muestra un fallback en lugar de tumbar la página.
+
+## Componentes MDX
+
+- **Callout** — resalta apartados importantes con variantes para notas, consejos, advertencias y cambios rupturistas.
+- **Card / Cards** — agrupa enlaces o funciones relacionados en tarjetas responsive y clicables.
+- **Field** — documenta una propiedad, clave de configuración o parámetro de API con su tipo e indicador de obligatorio.
+- **Image** — renderiza una imagen responsive y adaptable al tema; las imágenes Markdown normales también reciben estilos automáticamente.
+- **Code Blocks** — bloques cercados resaltados en tiempo de build (Shiki por defecto), con títulos, números de línea, ajuste de línea y botón de copia.
+
+## Primitivas de UI
+
+Estos controles neutros de estilo provienen de `@bdocs/primitives`: aportan estructura, comportamiento y estado `data-*`, mientras que los colores y tamaños los decide tu tema.
+
+- **Button** — disparador de pulsación accesible con semántica de teclado, foco y presión.
+- **ButtonGroup** — agrupa botones adyacentes en una única unidad horizontal o vertical.
+- **Tabs** — selector de paneles navegable con teclado.
+- **Disclosure** — región expandible con `aria-expanded` y `aria-controls` conectados.
+- **Popover** — overlay contextual flotante anclado a un disparador.
+- **Tooltip** — popup al hover/foco para etiquetas de ayuda.
+- **Link** — enlace de router SPA localizado que funciona con `useLocalizedTo`.
+- **Heading** — renderiza encabezados HTML con enlaces de anclaje opcionales.
+- **Menu** — menú desplegable con secciones, submenús anidados y casillas de selección.

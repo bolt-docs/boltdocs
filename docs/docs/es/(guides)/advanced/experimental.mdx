@@ -24,6 +24,19 @@ export default defineConfig({
 })
 ```
 
+## Graduación a estable
+
+Una función experimental pasa a estable solo cuando **todas** estas condiciones son ciertas:
+
+1. Se envió en al menos **dos versiones minor consecutivas** sin cambiosruptivos.
+2. Al menos **tres proyectos reales** la adoptaron y no reportaron bugs críticos.
+3. Existen **datos de benchmark** que muestran que no hay regresión en cold build, arranque de dev ni navegación.
+4. Existe **guía de adopción documentada** y un camino de migración desde el comportamiento estable anterior, si lo hubiera.
+
+Un proyecto real está fuera del monorepo de Boltdocs, usa Boltdocs en producción, es observable públicamente (o tiene un mantenedor con evidencia verificable) y ejercita la función en un camino real. El sitio de documentación, los fixtures y los scaffolds de demo/template no cuentan. La elegibilidad la valida el equipo de Boltdocs, no se autodeclara.
+
+La graduación se registra en las notas de release con la evidencia de cada criterio. Hasta entonces, todas estas flags siguen siendo opt-in y conservan un fallback para los proyectos que no las activaron.
+
 ## En esta sección
 
 La superficie experimental está dividida en tres áreas de funcionalidad, cada una documentada en su propia página:

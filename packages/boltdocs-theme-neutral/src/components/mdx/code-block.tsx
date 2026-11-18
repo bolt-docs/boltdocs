@@ -1,11 +1,11 @@
-import { Button } from '@bdocs/primitives'
-import { Copy, Check } from '../ui-base/icons'
-import { cn } from '../../utils/cn'
-import { useCopyButton } from './use-copy-button'
+import { Button, ToggleButton } from '@bdocs/primitives'
+import { Copy, Check } from '@bdocs/ui-base'
+import { cn } from '@bdocs/ui-base'
+import { useCopyButton } from '@bdocs/ui-base'
 import { useExpandable } from './use-expandable'
 import { useCodeBlockFeedback } from './use-code-block-feedback'
-import * as CodePrimitive from '../composition/code-block'
-import { Tooltip } from '../composition/tooltip'
+import * as CodePrimitive from '@bdocs/ui-base/composition'
+import { Tooltip } from '@bdocs/ui-base/composition'
 import {
   cleanHighlightedHtml,
   isHighlighted as stateIsHighlighted,
@@ -83,8 +83,9 @@ const CodeBlockFeedback = ({
   return (
     <div className={cn('bdocs-code__rating', className)}>
       <Tooltip content={rated === 'up' ? 'Helpful!' : 'This code is helpful'}>
-        <Button
-          onPress={() => onRate('up')}
+        <ToggleButton
+          isSelected={rated === 'up'}
+          onChange={() => onRate('up')}
           isDisabled={rated !== null}
           className={cn(
             'bdocs-code__action',
@@ -111,14 +112,15 @@ const CodeBlockFeedback = ({
           >
             <path d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3zM7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3" />
           </svg>
-        </Button>
+        </ToggleButton>
       </Tooltip>
 
       <Tooltip
         content={rated === 'down' ? 'Unhelpful' : 'This code is unhelpful'}
       >
-        <Button
-          onPress={() => onRate('down')}
+        <ToggleButton
+          isSelected={rated === 'down'}
+          onChange={() => onRate('down')}
           isDisabled={rated !== null}
           className={cn(
             'bdocs-code__action',
@@ -145,7 +147,7 @@ const CodeBlockFeedback = ({
           >
             <path d="M10 15v4a3 3 0 0 0 3 3l4-9V2H5.72a2 2 0 0 0-2 1.7l-1.38 9a2 2 0 0 0 2 2.3zm7-13h3a2 2 0 0 1 2 2v7a2 2 0 0 1-2 2h-3" />
           </svg>
-        </Button>
+        </ToggleButton>
       </Tooltip>
     </div>
   )

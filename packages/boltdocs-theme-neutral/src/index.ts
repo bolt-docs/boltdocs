@@ -25,34 +25,10 @@ export { ExternalPage } from './components/external-page'
 export { ExternalContent } from './components/external-content'
 export { CollectionList } from './components/collection-list'
 
-export * from './hooks/index'
-
-// `Link` is the one layout primitive exported from here as well. Everything else
-// in `components/composition` stays behind `@bdocs/theme-neutral/composition`,
-// because that barrel reaches the search dialog and re-exporting it from `index`
-// is what turned the search chunk from lazy into part of the first visit.
-export { Link } from './components/composition/link'
-
-// The icon resolver, because a custom layout that renders an icon by name needs
-// the same lookup the theme uses — and needs to read the site's registry rather
-// than reaching into `virtual:boltdocs-icons`, which it cannot resolve.
-export {
-  getIconRegistry,
-  normalizeIconExports,
-  resolveIcon,
-  IconRenderer,
-} from './components/ui-base/icon-renderer'
-export { SearchHighlight } from './components/ui-base/search-highlight'
-export { Giscus } from './components/ui-base/giscus'
-export { Navbar } from './components/ui-base/navbar'
-export { Sidebar } from './components/ui-base/sidebar'
-export { OnThisPage } from './components/ui-base/on-this-page'
-export { Breadcrumbs } from './components/ui-base/breadcrumbs'
-export { PageNav } from './components/ui-base/page-nav'
-export { ErrorBoundary } from './components/ui-base/error-boundary'
-export { CopyMarkdown } from './components/ui-base/copy-markdown'
-export { NotFound } from './components/ui-base/not-found'
-export { Banner } from './components/ui-base/banner'
+// The reusable UI layer (composition wrappers, assembled components, icon
+// resolver and utilities) now lives in @bdocs/ui-base and is re-exported here
+// so existing `@bdocs/theme-neutral` imports keep working.
+export * from '@bdocs/ui-base'
 
 // MDX components. `./mdx` is also the `boltdocs/mdx` subpath a site's
 // `mdx-components.tsx` resolves against, so the two cannot drift.
@@ -60,15 +36,6 @@ export * from './mdx'
 // The default MDX component map. A site that writes `mdx-components.tsx`
 // merges its own components over this one, so it has to be importable.
 export { mdxComponentsDefault } from './mdx-component'
-
-export { cn } from './utils/cn'
-export { reactToText } from './utils/react-to-text'
-export { copyToClipboard } from './utils/copy-clipboard'
-export {
-  sanitizeSvgMarkup,
-  clearSvgSanitizeCache,
-} from './utils/sanitize-svg'
-export { clearHighlights, highlightTerms } from './hooks/use-search-highlight'
 
 // The document metadata helpers. The component itself lives in the runtime now
 // that the engine renders the head; the re-export keeps the API a site already
@@ -90,7 +57,6 @@ export type {
 } from '@bdocs/runtime'
 
 export { useCodeBlock } from './components/mdx/use-code-block'
-export { useCopyButton } from './components/mdx/use-copy-button'
 export { useExpandable } from './components/mdx/use-expandable'
 export type { UseExpandableOptions } from './components/mdx/use-expandable'
 export { useCodeBlockFeedback } from './components/mdx/use-code-block-feedback'

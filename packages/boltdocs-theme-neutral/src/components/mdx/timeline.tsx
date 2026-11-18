@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react'
-import { cn } from '../../utils/cn'
+import { cn } from '@bdocs/ui-base'
 import { formatDeterministicDate } from '@bdocs/runtime'
-import { Check, Info, AlertCircle, AlertTriangle } from '../ui-base/icons'
+import { Check, Info, AlertCircle, AlertTriangle } from '@bdocs/ui-base'
 
 /**
  * Variants for both dots and badges.

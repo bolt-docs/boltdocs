@@ -19,6 +19,7 @@ import type { CollectionsData } from '../collections/collections-context'
 // build pipeline, and a theme has to be installable on its own. The core
 // registers them before the app renders.
 import { getSiteMdxComponents } from '../site-bridge'
+import { FloatingSlots } from '../slot-host'
 import { normalizePath } from '../path'
 
 import type { BoltdocsConfig } from '../types'
@@ -151,7 +152,9 @@ export function BoltdocsShell({
   )
 
   const ErrorBoundary = theme.ErrorBoundary ?? Fragment
-  const PluginSlots = theme.PluginSlots
+  // The runtime owns the mounting mechanics; a theme may override the host if
+  // it needs different placement, but it no longer has to provide one.
+  const PluginSlots = theme.PluginSlots ?? FloatingSlots
 
   const { pathname } = useLocation()
 

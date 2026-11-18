@@ -1,5 +1,5 @@
 import { Button } from '@/theme/button'
-import { Menu } from '@bdocs/theme-neutral/composition'
+import { Menu } from '@bdocs/ui-base/composition'
 import { ChevronDown, Languages } from 'lucide-react'
 import { cn } from '@bdocs/theme-neutral'
 import { useI18n } from '@bdocs/runtime'

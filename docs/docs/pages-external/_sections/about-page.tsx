@@ -1,4 +1,4 @@
-import { Link } from '@bdocs/theme-neutral/composition'
+import { Link } from '@bdocs/ui-base/composition'
 import { Github } from '@/theme/icons'
 import { HeartHandshake } from 'lucide-react'
 import { useTranslations } from '@/i18n/index'

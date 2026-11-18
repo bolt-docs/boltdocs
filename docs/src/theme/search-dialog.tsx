@@ -1,7 +1,7 @@
 import { Search, X } from 'lucide-react'
 
-import { SearchDialog as SearchDialogPrimitive } from '@bdocs/theme-neutral/composition'
-import { Navbar } from '@bdocs/theme-neutral/composition'
+import { SearchDialog as SearchDialogPrimitive } from '@bdocs/ui-base/composition'
+import { Navbar } from '@bdocs/ui-base/composition'
 import { ErrorBoundary } from '@bdocs/theme-neutral'
 import { useSearch } from '@bdocs/runtime'
 import type { ComponentRoute } from '@bdocs/runtime'

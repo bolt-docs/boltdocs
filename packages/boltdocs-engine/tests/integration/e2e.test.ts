@@ -197,8 +197,9 @@ describe('plugin entry code generation with externalPages', () => {
     expect(code).toContain(
       'export { RouteRenderer, matchRouteBranch, matchRouteBranchWithParams, resolveRouteBranch }',
     )
+    // The helpers are attached to the root by the UI binding, not by the core.
     expect(code).toContain(
-      'createRoot.matchRouteBranchWithParams = matchRouteBranchWithParams;',
+      "import { createRoot as __createRoot } from '@bdocs/react-binding'",
     )
   })
 })

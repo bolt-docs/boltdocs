@@ -1,5 +1,5 @@
 import { useRef, type ElementType } from 'react'
-import { cn } from '../../utils/cn'
+import { cn } from '@bdocs/ui-base'
 
 export interface CardProps
   extends Omit<React.HTMLAttributes<HTMLDivElement>, 'title'> {

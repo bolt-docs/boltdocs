@@ -53,7 +53,7 @@ pub fn main(init: std.process.Init) !void {
         const path = try std.fmt.bufPrint(&path_buf, "test-files/page-{d}.html", .{file_count});
 
         const html_file = dir.openFile(io, path, .{}) catch |err| {
-            const err_msg = try std.fmt.bufPrint(&path_buf, "Error abriendo {s}: {}\n", .{path, err});
+            const err_msg = try std.fmt.bufPrint(&path_buf, "Error abriendo {s}: {}\n", .{ path, err });
             try stdout.writeStreamingAll(io, err_msg);
             continue;
         };

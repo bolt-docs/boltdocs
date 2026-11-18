@@ -25,6 +25,7 @@ export function lightningcssPlugin(
   return createPlugin({
     name: 'plugin-lightningcss',
     version: '1.0.0',
+    boltdocsVersion: '>=3.4.0',
     vitePlugins: [lightningCssVitePlugin(options)],
   })
 }

@@ -27,7 +27,7 @@ Agrega la configuración y cada página obtiene un widget de pulgar arriba/abajo
 - **Desarrollo/Vista previa**: un middleware de Vite intercepta las solicitudes POST a `/api/feedback` — cero configuración
 - **Producción**: despliega una función serverless usando la exportación `handleFeedbackRequest` (o Netlify, Cloudflare, AWS, Vercel)
 
-El hook [`useFeedback`](/docs/integrations/features/feedback) te da `rating`, `comment`, `submit` y todo el manejo de estado. Los bloques de código pueden tener su propio feedback por fragmento — revisa `showCodeBlockFeedback` en el hook [`useCodeBlock`](/docs/components/mdx/code-blocks).
+El hook [`useFeedback`](/docs/integrations/features/feedback) te da `rating`, `comment`, `submit` y todo el manejo de estado. Los bloques de código pueden tener su propio feedback por fragmento — revisa `showCodeBlockFeedback` en el hook [`useCodeBlock`](/docs/theme/components#mdx-components).
 
 Visita la [documentación de feedback](/docs/integrations/features/feedback) para la configuración completa.
 

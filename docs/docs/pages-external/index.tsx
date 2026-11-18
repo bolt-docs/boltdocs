@@ -2,7 +2,7 @@ import { Banner } from '@bdocs/theme-neutral'
 import { Footer } from '@/components/sections/footer'
 import { ArrowRight } from 'lucide-react'
 import { useTranslations } from '@/i18n/index'
-import { Link } from '@bdocs/theme-neutral/composition'
+import { Link } from '@bdocs/ui-base/composition'
 import { Navbar } from '@/theme/navbar'
 
 // Lazy loaders keep each external page in its own client chunk. Static

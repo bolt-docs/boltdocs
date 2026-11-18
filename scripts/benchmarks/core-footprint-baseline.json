@@ -1,0 +1,7 @@
+{
+  "createdAt": "2026-11-18T19:41:34.648Z",
+  "entryGzipBytes": 866,
+  "totalGzipBytes": 104067,
+  "runtimeImports": ["@bdocs/unist-utils"],
+  "files": 39
+}

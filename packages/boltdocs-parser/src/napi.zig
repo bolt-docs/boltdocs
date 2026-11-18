@@ -23,7 +23,8 @@ fn shouldExcludePath(rel_path: []const u8) bool {
     while (it.next()) |segment| {
         if (std.mem.startsWith(u8, segment, "_")) {
             if (!std.mem.eql(u8, segment, "_index.md") and
-                !std.mem.eql(u8, segment, "_index.mdx")) {
+                !std.mem.eql(u8, segment, "_index.mdx"))
+            {
                 return true;
             }
         }
@@ -808,7 +809,7 @@ test "napi - debug simple input" {
 test "napi - error handling for bad content" {
     const testing = std.testing;
     // Very long content shouldn't crash
-    const long_content = "# " ++ ("x" ** 1000);
+    const long_content = "# " ++ @as([1000]u8, @splat('x'));
     const json_input = "{\"files\":{\"/big.md\":\"" ++ long_content ++ "\"}}";
 
     const result = try parseDocsJsonInner(json_input);

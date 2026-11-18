@@ -88,7 +88,9 @@ These keep the rendered site consistent and are enforced by the project's a11y a
 | Package | npm name | Path | Purpose |
 | --------- | ---------- | ------ | --------- |
 | Engine | `boltdocs` | `packages/boltdocs-engine` | Node-only engine: CLI, MDX pipeline, Vite plugins, routing, config, dev server |
-| Theme | `@bdocs/theme-neutral` | `packages/boltdocs-theme-neutral` | Default theme: components, native CSS (`/css`), and the `surface` the engine renders with |
+| Theme | `@bdocs/theme-neutral` | `packages/boltdocs-theme-neutral` | Default theme: assembled layout, MDX components and the `surface` the engine renders with |
+| UI base | `@bdocs/ui-base` | `packages/boltdocs-ui-base` | Reusable composition wrappers + assembled UI with native CSS (`/css`, `/composition`) |
+| React binding | `@bdocs/react-binding` | `packages/boltdocs-react-binding` | React client root and Fast Refresh wiring; resolved by name, not imported by the engine |
 | Runtime | `@bdocs/runtime` | `packages/boltdocs-runtime` | Browser-facing React: contexts, hooks, router entry, `createRoutes`, site bridge |
 | Primitives | `@bdocs/primitives` | `packages/boltdocs-primitives` | Style-neutral atoms (Button, Dialog, Menu, Popover, …): structure + `data-*` state, no visuals |
 | Contracts | `@bdocs/contracts` | `packages/boltdocs-contracts` | Framework-neutral contracts (routes, plugins, lifecycle, highlighting, search, config); re-exported by `boltdocs` |

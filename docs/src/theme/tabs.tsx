@@ -1,7 +1,7 @@
 import { useEffect } from 'react'
 import { useTabs as useTabsHook } from '@bdocs/theme-neutral'
-import { Tabs as T } from '@bdocs/theme-neutral/composition'
-import { Link } from '@bdocs/theme-neutral/composition'
+import { Tabs as T } from '@bdocs/ui-base/composition'
+import { Link } from '@bdocs/ui-base/composition'
 import type { BoltdocsTab, ComponentRoute } from '@bdocs/runtime'
 import { getTranslated, useRoutes } from '@bdocs/runtime'
 

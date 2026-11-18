@@ -1,7 +1,7 @@
 import {
   Callout as CalloutPrimitive,
   type CalloutVariant,
-} from '@bdocs/theme-neutral/composition'
+} from '@bdocs/ui-base/composition'
 import { cn } from '@bdocs/theme-neutral'
 import { Info, Lightbulb, AlertTriangle, AlertOctagon } from 'lucide-react'
 

@@ -183,6 +183,7 @@ export default function algoliaSearchPlugin(
   return {
     name: 'plugin-search-algolia',
     version: '1.0.0',
+    boltdocsVersion: '>=3.4.0',
     hooks: {
       async 'search:index'(
         ctx: {

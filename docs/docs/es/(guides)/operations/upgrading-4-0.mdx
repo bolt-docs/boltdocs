@@ -30,9 +30,9 @@ src/nav.tsx
   blocking src/nav.tsx:1  Import from `react-aria-components` moved to `@bdocs/primitives`
             → react-aria-components
             Rewrite the specifier to `@bdocs/primitives`.
-  warning  src/nav.tsx:2  `@bdocs/theme-neutral/components/primitives` is now `@bdocs/theme-neutral/composition`
+  warning  src/nav.tsx:2  `@bdocs/theme-neutral/components/primitives` is now `@bdocs/ui-base/composition`
             → @bdocs/theme-neutral/components/primitives
-            Rewrite the specifier to `@bdocs/theme-neutral/composition`.
+            Rewrite the specifier to `@bdocs/ui-base/composition`.
 ```
 
 Cuando estés conforme con el reporte:
@@ -113,14 +113,14 @@ pnpm add @bdocs/theme-neutral
 | --- | --- |
 | `boltdocs/client` (componentes, layout, componentes MDX, hooks) | `@bdocs/theme-neutral` |
 | `boltdocs/client` (router, contextos, contrato de URLs) | `@bdocs/runtime` |
-| `boltdocs/primitives` | `@bdocs/theme-neutral/composition` |
+| `boltdocs/primitives` | `@bdocs/primitives` (behavior), `@bdocs/ui-base/composition` (styled wrappers) |
 | `boltdocs/mdx` | `@bdocs/theme-neutral` |
 | `boltdocs/client/router` | `@bdocs/runtime/router` |
 
 El codemod parte un import por nombre: cada símbolo va al package que lo exporta. Un sitio que solo usa la UI se queda con una dependencia; un sitio que usa una primitiva del router termina dependiendo también del runtime, y el codemod del manifiesto lo agrega.
 
 <Callout type="info">
-  **También entra el Markdown.** El codemod reescribe los ejemplos de import de tus páginas `.md` y `.mdx`. Una página de documentación que muestra `from 'boltdocs/client'` enseña a escribir un import que ya no resuelve, y quien lo copia se entera en su propio build y no en tu página.
+  **También entra el Markdown.** El codemod reescribe los ejemplos de import de tus páginas `.md` y `.mdx`. Una página de documentación que muestra `from '@bdocs/runtime'` enseña a escribir un import que ya no resuelve, y quien lo copia se entera en su propio build y no en tu página.
 </Callout>
 
 <Callout type="info">
@@ -217,11 +217,11 @@ El package exportaba cuatro subpaths que resolvían todos al mismo barrel, y dos
 
 | Antes | Después |
 | --- | --- |
-| `@bdocs/theme-neutral/components/primitives` | `@bdocs/theme-neutral/composition` |
+| `@bdocs/theme-neutral/components/primitives` | `@bdocs/ui-base/composition` |
 | `@bdocs/theme-neutral/client` | `@bdocs/theme-neutral` |
 | `@bdocs/theme-neutral/mdx` | `@bdocs/theme-neutral` |
 
-`boltdocs/client/primitives` se fue con el resto de la superficie de cliente del motor. La capa de composition es `@bdocs/theme-neutral/composition`.
+`boltdocs/client/primitives` se fue con el resto de la superficie de cliente del motor. La capa de composition es `@bdocs/ui-base/composition`.
 
 ### La hoja de estilos del motor pasó al theme
 

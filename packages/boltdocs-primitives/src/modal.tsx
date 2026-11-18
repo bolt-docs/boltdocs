@@ -1,4 +1,5 @@
 import * as React from 'react'
+import { createPortal } from 'react-dom'
 import { cn } from './utils'
 import {
   focusFirstIn,
@@ -24,6 +25,13 @@ export interface ModalOverlayProps
    * honest: a primitive that guessed would be a second theme nobody chose.
    */
   overlayClassName?: string
+  /**
+   * Where the overlay is mounted. Defaults to `document.body`: a modal left in
+   * the component tree has only its local siblings hidden, so the rest of the
+   * page stays reachable to a screen reader and to an ancestor's stacking
+   * context. Pass a node to scope it (e.g. a shadow root host).
+   */
+  portalContainer?: HTMLElement | null
   children?: React.ReactNode
 }
 
@@ -45,6 +53,7 @@ export function ModalOverlay(
     isDismissable = true,
     className,
     overlayClassName,
+    portalContainer,
     children,
     onClick,
     ...rest
@@ -133,22 +142,17 @@ export function ModalOverlay(
     target?.focus()
   }, [isOpen])
 
-  if (!isOpen) return null
+  // No `document` on the server; modals are closed during SSR in Boltdocs.
+  if (!isOpen || typeof document === 'undefined') return null
 
-  return (
+  const overlay = (
     <div
       ref={ref}
       data-bdocs-modal-overlay=""
-      className={cn(
-        // Position and layout are the primitive's; the overlay colour is the
-        // theme's. `bg-black/50` here would be the one hard-coded colour in the
-        // package — a modal scrim that cannot be themed, on a component whose
-        // entire contract is that it ships no appearance. `separator.tsx`
-        // documents why it dropped its `bg-border` for the same reason.
-        'fixed inset-0 z-50 flex items-center justify-center',
-        overlayClassName,
-        className,
-      )}
+      // Positioning and colour are both the theme's now. The overlay slot is
+      // where a theme puts `position: fixed`, `inset: 0` and its scrim colour;
+      // this primitive contributes behaviour only.
+      className={cn(overlayClassName, className)}
       {...rest}
       onClick={(e) => {
         onClick?.(e)
@@ -160,6 +164,8 @@ export function ModalOverlay(
       {children}
     </div>
   )
+
+  return createPortal(overlay, portalContainer ?? document.body)
 }
 
 ModalOverlay.displayName = 'ModalOverlay'
@@ -173,15 +179,20 @@ export interface ModalProps extends React.HTMLAttributes<HTMLDivElement> {
 
 /** The modal surface. Renders nothing when closed. */
 export function Modal(props: ModalProps): React.ReactElement | null {
-  const { isOpen = false, children, className, ...rest } = props
+  const {
+    isOpen = false,
+    // Overlay concerns, not attributes of this surface. Left in `rest` they
+    // reached the DOM as unknown props and warned on every modal.
+    isDismissable: _isDismissable,
+    onOpenChange: _onOpenChange,
+    children,
+    className,
+    ...rest
+  } = props
   if (!isOpen) return null
 
   return (
-    <div
-      data-bdocs-modal=""
-      className={cn('relative z-50', className)}
-      {...rest}
-    >
+    <div data-bdocs-modal="" className={className} {...rest}>
       {children}
     </div>
   )

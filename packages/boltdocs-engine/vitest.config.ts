@@ -25,6 +25,10 @@ export default defineConfig({
         '../boltdocs-theme-neutral/src',
       ),
       '@bdocs/runtime': path.resolve(__dirname, '../boltdocs-runtime/src'),
+      '@bdocs/react-binding': path.resolve(
+        __dirname,
+        '../boltdocs-react-binding/src',
+      ),
       '@bdocs/primitives': path.resolve(
         __dirname,
         '../boltdocs-primitives/src',

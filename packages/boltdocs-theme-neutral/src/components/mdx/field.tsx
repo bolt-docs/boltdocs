@@ -1,4 +1,4 @@
-import { cn } from '../../utils/cn'
+import { cn } from '@bdocs/ui-base'
 
 export interface FieldProps {
   children?: React.ReactNode

@@ -1,4 +1,4 @@
-import { Link } from '@bdocs/theme-neutral/composition'
+import { Link } from '@bdocs/ui-base/composition'
 import { Github, Instagram, Twitter } from '@/theme/icons'
 import { useTranslations } from '@/i18n/index'
 import { Section } from '@/theme/section'

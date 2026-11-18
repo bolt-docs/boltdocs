@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import { formatDeterministicDate } from '../src/date'
-import { formatDate } from '../src/collections/utils'
+import { formatCollectionDate, formatDate } from '../src/collections/utils'
 
 /**
  * The point of these is that the output cannot depend on the runtime. A
@@ -67,5 +67,19 @@ describe('formatDate', () => {
     expect(formatDate('2026-09-07', { month: 'short', day: '2-digit' })).toBe(
       'Sep 07, 2026',
     )
+  })
+})
+
+describe('formatCollectionDate', () => {
+  it('uses the configured token format', () => {
+    expect(formatCollectionDate('2026-09-07')).toBe('September 07, 2026')
+    expect(formatCollectionDate('2026-09-07', 'MMM d, yy')).toBe('Sep 7, 26')
+    expect(formatCollectionDate('2026-09-07', 'yyyy/MM/dd')).toBe('2026/09/07')
+    expect(formatCollectionDate('2026-09-07', 'MMMM dd')).toBe('September 07')
+  })
+
+  it('stays deterministic and empty for invalid dates', () => {
+    expect(formatCollectionDate('not-a-date', 'MMM d')).toBe('')
+    expect(formatCollectionDate(undefined)).toBe('')
   })
 })

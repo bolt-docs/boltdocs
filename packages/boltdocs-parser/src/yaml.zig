@@ -199,8 +199,8 @@ const YamlParser = struct {
                 // Don't treat URLs (e.g., "https://...") as inline objects.
                 // URLs have `:` followed by `//`, e.g., "https://..."
                 !(colon_pos.? + 2 < item_content.len and
-                  item_content[colon_pos.? + 1] == '/' and
-                  item_content[colon_pos.? + 2] == '/'))
+                    item_content[colon_pos.? + 1] == '/' and
+                    item_content[colon_pos.? + 2] == '/'))
             {
                 // Inline object item: "key: value, key2: value2"
                 const obj = try self.parseInlineObject(item_content);

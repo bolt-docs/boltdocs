@@ -69,7 +69,7 @@ export default defineConfig({
 Opciones de display relacionadas: `theme.githubRepo` añade automáticamente el icono de GitHub, y `theme.socialLinks` añade iconos de Discord/X/Bluesky.
 
 <Callout variant="note" title="¿Construyendo un navbar personalizado?">
-El navbar por defecto es un componente — consulta el [componente Navbar](/docs/components/layout/navbar) para componer el tuyo con búsqueda, toggle de tema y drawer móvil.
+El navbar por defecto es un componente — consulta el [componente Navbar](/docs/es/theme/components#layout-components) para componer el tuyo con búsqueda, toggle de tema y drawer móvil.
 </Callout>
 
 ---
@@ -172,16 +172,16 @@ Consulta la [guía de Routing](/docs/guides/getting-started/routing) para las re
 
 Estos tres son **automáticos** — el layout por defecto los deriva de los metadatos de ruta. No los configuras, pero debes saber qué hacen y cómo sustituirlos:
 
-- **Breadcrumbs** — una ruta de migas sobre el título (p. ej. `Guías → Navegación`), construida desde la cadena de grupos de la ruta y localizada automáticamente. Referencia: [Breadcrumbs](/docs/components/layout/breadcrumbs).
-- **OnThisPage** — el TOC del rail derecho que lista los headings `h2`–`h4` de la página. Referencia: [OnThisPage](/docs/components/layout/on-this-page).
-- **PageNav** — enlaces "Anterior / Siguiente" al final, siguiendo el orden del sidebar. Referencia: [PageNav](/docs/components/layout/page-nav).
+- **Breadcrumbs** — una ruta de migas sobre el título (p. ej. `Guías → Navegación`), construida desde la cadena de grupos de la ruta y localizada automáticamente. Referencia: [Breadcrumbs](/docs/es/theme/components#layout-components).
+- **OnThisPage** — el TOC del rail derecho que lista los headings `h2`–`h4` de la página. Referencia: [OnThisPage](/docs/es/theme/components#layout-components).
+- **PageNav** — enlaces "Anterior / Siguiente" al final, siguiendo el orden del sidebar. Referencia: [PageNav](/docs/es/theme/components#layout-components).
 
 ### Usarlos en un layout personalizado
 
 Se exportan como primitivas, así que un layout personalizado puede colocarlas donde quieras:
 
 ```tsx
-import { Breadcrumbs, OnThisPage, PageNav } from '@bdocs/theme-neutral/composition'
+import { Breadcrumbs, OnThisPage, PageNav } from '@bdocs/ui-base/composition'
 
 export function MyLayout() {
   return (
@@ -236,7 +236,7 @@ Cuando el resolvedor ve un href, aplica estas reglas en orden:
 ```mdx
 - [Home](site:/)
 - [Roadmap](site:/roadmap)
-- [Último release](site:/blog/boltdocs-3.3.0)
+- [Actualizar a 4.0](site:/docs/guides/operations/upgrading-4-0)
 ```
 
 ```ts title="boltdocs.config.ts"
@@ -344,11 +344,11 @@ Consulta [Versionado](/docs/integrations/globalization/versioning) para el layou
 [Saltar a la sección site:](#el-protocolo-site)
 ```
 
-**6. Prefiere `<Link>` sobre `<a>` en componentes.** La primitiva `Link` de `@bdocs/theme-neutral/composition` pasa cada href por el resolvedor y mantiene la navegación client-side rápida. Llama a `useLocalizedTo()` directamente solo cuando necesites el string resuelto (estados activos, analytics, menús):
+**6. Prefiere `<Link>` sobre `<a>` en componentes.** La primitiva `Link` de `@bdocs/ui-base/composition` pasa cada href por el resolvedor y mantiene la navegación client-side rápida. Llama a `useLocalizedTo()` directamente solo cuando necesites el string resuelto (estados activos, analytics, menús):
 
 ```tsx
-import { Link } from '@bdocs/theme-neutral/composition'
-import { useLocalizedTo } from '@bdocs/theme-neutral'
+import { Link } from '@bdocs/ui-base/composition'
+import { useLocalizedTo } from '@bdocs/runtime'
 
 const resolved = useLocalizedTo('/docs/guides')
 
@@ -378,4 +378,4 @@ Hardcodear `/es/docs/guides` o `/v2/docs/guides` rompe la localización — el r
 - [Internacionalización](/docs/integrations/globalization/i18n) — carpetas de locale y rutas de respaldo.
 - [Versionado](/docs/integrations/globalization/versioning) — prefijos de versión y estructura de URLs.
 - [Layout personalizado](/docs/guides/customization/layout) — compón el shell completo de la página tú mismo.
-- [Referencia de DocsLayout](/docs/components/layout/docs-layout) — cada región que el layout por defecto conecta.
+- [Referencia de DocsLayout](/docs/es/theme/components#layout-components) — cada región que el layout por defecto conecta.

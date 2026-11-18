@@ -28,7 +28,7 @@ Drop the config in and every page gets a thumbs up/down widget. It works in two 
 - **Dev/Preview**: a Vite middleware intercepts POST requests to `/api/feedback` — zero setup
 - **Production**: deploy a serverless function using the `handleFeedbackRequest` export (or Netlify, Cloudflare, AWS, Vercel)
 
-The [`useFeedback`](/docs/integrations/features/feedback) hook gives you `rating`, `comment`, `submit`, and all the state management. Code blocks can have their own per-snippet feedback too — check out `showCodeBlockFeedback` on the [`useCodeBlock`](/docs/components/mdx/code-blocks) hook.
+The [`useFeedback`](/docs/integrations/features/feedback) hook gives you `rating`, `comment`, `submit`, and all the state management. Code blocks can have their own per-snippet feedback too — check out `showCodeBlockFeedback` on the [`useCodeBlock`](/docs/theme/components#mdx-components) hook.
 
 Head to the [feedback docs](/docs/integrations/features/feedback) for the full setup.
 

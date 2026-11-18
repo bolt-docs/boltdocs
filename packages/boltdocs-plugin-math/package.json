@@ -1,6 +1,6 @@
 {
   "name": "@bdocs/plugin-math",
-  "version": "4.0.4",
+  "version": "5.0.0",
   "description": "KaTeX math plugin for Boltdocs",
   "publishConfig": {
     "access": "public"

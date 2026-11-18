@@ -69,6 +69,7 @@ Display a vertical timeline of events:
 
 ```mdx
 <Timeline items={[
+  { title: 'v4.0', date: '2026-11', description: 'Core cleanse: opt-in UI packages' },
   { title: 'v3.0', date: '2026-06', description: 'Major release' },
   { title: 'v2.0', date: '2025-12', description: 'Stable release' },
 ]} />
@@ -155,7 +156,7 @@ The sidebar and navbar top-level items opt into `'viewport'` so scrolling warms 
 When enabled, `TransitionLink` and the `useViewTransition()` / `startViewTransition` exports animate router changes. Transitions carry a direction type (`forward` / `back`) and are skipped entirely when the visitor prefers reduced motion.
 
 ```tsx
-import { TransitionLink } from '@bdocs/theme-neutral/composition'
+import { TransitionLink } from '@bdocs/ui-base/composition'
 import { useViewTransition } from '@bdocs/runtime'
 ```
 
@@ -166,9 +167,9 @@ import { useViewTransition } from '@bdocs/runtime'
 Since 4.0 there are two layers, and the difference matters when you restyle them:
 
 - **`@bdocs/primitives`** — the style-neutral atoms (`Button`, `Dialog`, `Modal`, `Menu`, `Popover`, `Tooltip`, `Separator`, `ListBox`, `Autocomplete`, …). Structure, behavior and `data-*` state only: no colors, borders or sizes. A primitive that shipped a visual could not be themed.
-- **`@bdocs/theme-neutral/composition`** — the layout compositions built on those atoms (`Sidebar`, `OnThisPage`, `Navbar`, `SearchDialog`, `Breadcrumbs`, `PageNav`, `CodeBlock`, `Heading`, `ErrorBoundary`, `Callout`, `Tabs`). They keep the same style-neutral contract and expose `className` slots for every styled element.
+- **`@bdocs/ui-base/composition`** — the layout compositions built on those atoms (`Sidebar`, `OnThisPage`, `Navbar`, `SearchDialog`, `Breadcrumbs`, `PageNav`, `CodeBlock`, `Heading`, `ErrorBoundary`, `Callout`, `Tabs`). They keep the same style-neutral contract and expose `className` slots for every styled element.
 
-The styled defaults you see out of the box live in `ui-base/` in the theme (`ui-base/sidebar.tsx`, `ui-base/on-this-page.tsx`) and are fully overridable through those slots. The stylesheet is native CSS shipped as `@bdocs/theme-neutral/css` — not Tailwind utilities — so overriding a rule never requires matching a utility class.
+The styled defaults you see out of the box live in `@bdocs/ui-base` (`src/ui-base/sidebar.tsx`, `src/ui-base/on-this-page.tsx`) and are fully overridable through those slots. The stylesheet is native CSS shipped as `@bdocs/ui-base/css` (re-exported by `@bdocs/theme-neutral/css`) — not Tailwind utilities — so overriding a rule never requires matching a utility class.
 
 State contract (present-when-true attributes):
 

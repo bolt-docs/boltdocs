@@ -47,6 +47,7 @@ export default function searchPlugin(
   return {
     name: 'plugin-search',
     version: '1.0.0',
+    boltdocsVersion: '>=3.4.0',
     hooks: {
       /**
        * Registration happens here rather than through a static import of

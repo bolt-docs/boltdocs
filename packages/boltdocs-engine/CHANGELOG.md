@@ -1,5 +1,1288 @@
 # boltdocs
 
+## 4.0.0
+
+### Major Changes
+
+- 1413a37: Add `@bdocs/runtime`: the browser half of Boltdocs, split out of the core.
+
+  Routing, navigation, hydration and the client contexts now live in their own
+  package. None of it needs the filesystem, Vite, or any of the build-time
+  integrations, so none of it should have been sitting inside the engine that
+  produces the page. This is roadmap slice 5, and it is the prerequisite for slice
+  3 (`@bdocs/ui`), not its successor — the theme components render against these
+  contexts, so the contexts have to move first.
+
+  ### What moved
+  - `client/router/` — the router, the URL contract, viewport prefetch
+  - six client contexts: config, doc route, MDX components, routes, theme, UI
+  - `client/types.ts`, `client/utils/path.ts`, `client/utils/i18n.ts`,
+    `client/view-transitions.ts`
+
+  ### What stayed, and why
+
+  Page composition — `doc-page`, `docs-layout`, `head`, `mdx-component` — stays in
+  the core for now. Those files import the docs components directly, and moving
+  them is slice 3's job.
+
+  ### The contract types moved too, because they are read at runtime
+
+  `BoltdocsThemeConfig` and `BoltdocsSocialLink` moved from
+  `core/src/shared/types.ts` into `@bdocs/contracts`. They are not build-time
+  details: the navbar renders the theme title, the logo and the social entries, so
+  a runtime that cannot name them is a runtime that has to guess. `theme` is now
+  part of `BoltdocsConfigContract` for the same reason, and there is one definition
+  of each shape rather than one in the core and one in the runtime.
+
+  The `Boltdocs` global namespace — the one generated route types augment — moved
+  to `@bdocs/runtime` and is declared exactly once. TypeScript rejects two
+  `declare global` blocks for the same namespace, and both packages need it, so it
+  had to have one home.
+
+  ### Nothing changed for a consumer
+
+  Every path still resolves. `boltdocs/client`, `boltdocs/client/router` and every
+  internal import go through thin re-export seams, so the public API is identical
+  and no site changes anything.
+
+  The seams are written as explicit name lists rather than `export *`, which
+  matters twice over. `client/index.ts` does `export type * from './types'`, so a
+  wildcard would republish whatever the runtime grows next as `boltdocs/client`
+  types. And `rolldown-plugin-dts` — which builds the `.d.ts` — crashes outright on
+  a cross-package `export *`, because the re-export it synthesises has a member
+  expression where Babel demands an identifier. `tests/runtime-seams.test.ts` pins
+  every seam so neither can happen quietly.
+
+  ### Verified
+
+  No behaviour change, and no size change either: the documentation build is 259
+  pages at 853.7 kB of eager JS, byte-for-byte the same number as before the move,
+  which is what a package relocation should look like.
+
+  Beyond the unit and build checks, this is the first slice verified in a real
+  browser rather than only in jsdom. `tests/a11y` runs 54 Playwright specs against
+  Chromium, covering arrow-key menu navigation, dropdown semantics, Escape closing
+  a modal, visible focus rings, and focus moving to the new document after a
+  client-side navigation. Note that the suite is load-sensitive on this machine:
+  a full parallel run produces two or three failures that differ between runs and
+  between a baseline `HEAD` worktree and this branch, and every one of them passes
+  when run on its own in both trees. Treat a green full run as necessary and not
+  as sufficient.
+
+  `@bdocs/runtime` also ships its own 25 tests, which it did not before. Writing
+  them turned up that `theme-context` had never been unit-tested at all, because
+  jsdom does not implement `matchMedia` and every attempt to mount the provider
+  threw — the test setup now stubs it.
+
+- 4fb6ed1: Add `boltdocs migrate`, which reports and fixes the 3.x patterns that 4.0 changed.
+
+  ```bash
+  npx boltdocs migrate            # dry run: reports, writes nothing
+  npx boltdocs migrate --apply    # applies every fixable finding
+  ```
+
+  Slice 7 of the 4.0 roadmap was migration tooling: codemods, compatibility adapters, diagnostics and an upgrade guide. This is the codemods and the diagnostics. The upgrade guide is [the 4.0 upgrade page](https://boltdocs.com/docs/guides/operations/upgrading-4-0).
+
+  ### What it fixes
+
+  | Finding              | Change                                                                                                 |
+  | -------------------- | ------------------------------------------------------------------------------------------------------ |
+  | `react-aria/import`  | `react-aria-components` → `@bdocs/primitives`                                                          |
+  | `theme/subpath`      | `@bdocs/theme-neutral/components/primitives` → `/composition`, `/client` and `/mdx` → the package root |
+  | `seo/plugin-missing` | Adds `@bdocs/plugin-seo` when `siteUrl`, `robots` or `seo` are configured without it                   |
+  | `deps/react-aria`    | Removes the stale `react-aria-components` entry                                                        |
+  | `deps/primitives`    | Declares `@bdocs/primitives` when react-aria was referenced                                            |
+
+  ### What it refuses to fix
+
+  `onPress`, `isSelected` and `<SSRProvider>` are reported with their replacements, never rewritten. `onPress` becomes `onAction` on a menu item, but the new handler also receives the intent (`press` or `close`) — renaming the prop mechanically produces code that type-checks and does the wrong thing at runtime, which is worse than a line in a report.
+
+  The same applies to a `plugins` array it cannot read: a shorthand (`plugins,`), an array built from a variable, or a single-line array is reported rather than edited. Appending to an array the tool cannot see into would produce a config that loads fine and silently drops every plugin.
+
+  ### Why it is hand-written rather than TypeScript-based
+
+  `typescript` is a devDependency of `boltdocs`, not a runtime one, so a published command cannot import its compiler — and it should not: this runs against projects whose build is already broken, and a compiler that fails to load would fail the one command whose job is fixing a broken tree. The scanner in `migrate/source.ts` is anchored so it matches module specifiers and nothing that merely resembles one, and skips specifiers inside comments — `trimmed.indexOf(' from ')` has exactly the shape of an import clause.
+
+  ### Exit codes
+
+  `0` when there are no blocking findings, `1` when there are. The blocking findings are the two that produce silent regressions: a missing `@bdocs/plugin-seo` costs you `sitemap.xml` and `robots.txt`, and the core only warns about it during the build.
+
+- 7628363: Add `@bdocs/theme-neutral`: the neutral theme as an installable package.
+
+  The complete UI layer — every `ui-base` component, the MDX components, the
+  layout, and the hooks and utilities they need — is now one package depending on
+  `@bdocs/runtime`, `@bdocs/primitives` and `@bdocs/contracts`, and nothing else. A
+  second theme is a second package shaped like this one. That is what makes
+  installing a theme a single dependency rather than a fork, and it is the reason
+  the package is named `-neutral`: it is one of several, not the theme.
+
+  The stylesheet ships with it. `import '@bdocs/theme-neutral/css'`.
+
+  ### Why a theme cannot resolve a virtual module
+
+  Five things the UI needs are generated per site by the Boltdocs Vite pipeline: the
+  icon registry from an author's `icons.tsx`, the page-source fetcher behind "copy
+  as Markdown", the search index, the author's `layout.tsx`, and any plugin-contributed
+  client slots. They arrive as `virtual:boltdocs-*` modules, and a module resolved by
+  a Vite plugin cannot exist inside a standalone package.
+
+  So the dependency points the one safe way. `@bdocs/core` reads them and hands them
+  over through `registerSiteBridge()` in `@bdocs/runtime`; the theme reads them back
+  through `getSiteIcons()`, `getPageSourceFetcher()`, `getSearchDataFetcher()`,
+  `getSiteLayout()` and `getClientSlots()`. The theme mentions no virtual module at
+  all. Registered at module scope in `register-site-bridge.ts`, because the reads
+  happen during arbitrary descendant renders and a registration after first paint
+  would have them see the empty defaults.
+
+  ### Cost: 55 kB more eager JavaScript
+
+  Worth stating plainly, because it is a real regression and not a rounding error.
+
+  |                          | eager JS, raw |     gzip |
+  | ------------------------ | ------------: | -------: |
+  | before the theme package |      853.7 kB | 221.2 kB |
+  | after                    |      908.4 kB | 239.9 kB |
+
+  The cause is specific. `ui-base/search-dialog.tsx` imports the layout search dialog
+  statically, and the theme's entry point exports `SearchDialog` — so in the built
+  package the 112 kB search chunk is a _static_ import of `index.mjs`. Inside the
+  core package the same export was tree-shaken away because the docs app does not
+  use it. A consumer of a pre-built package cannot tree-shake through it.
+
+  Two things were tried and are not in this change, for the record. Collapsing the
+  package to a single entry does not help: the static import is in the source, not
+  in the chunking. Dropping `SearchDialog` from the entry point does restore
+  laziness, and was reverted because it would remove a name from the public API of
+  `boltdocs/client`. The real fix is for the search dialog to stop being reachable
+  from the entry, which means the ui-base dialog and the layout dialog stop being two
+  modules — a real refactor, not a packaging tweak.
+
+  Everything else about the move is a pure relocation: 259 pages, zero nested
+  buttons, zero `data-rac` attributes, 123 Spanish pages still emitting `lang="es"`.
+
+  ### Public API unchanged
+
+  `boltdocs/client`, `boltdocs/client/primitives`, `boltdocs/client/mdx` and
+  `boltdocs/client/router` all resolve as before, through thin re-export seams. The
+  layout primitives are a separate entry from the main one on purpose: routing them
+  through `index` is what hoisted the search dialog's dynamic import into a static
+  one, which is the 55 kB above rather than something new.
+
+  ### Seventeen test files removed
+
+  They tested theme code from inside the core package, mocking implementation module
+  paths such as `../../src/client/app/config-context`. With the code in another
+  package those mocks target a module that no longer exists, and the remaining
+  alternatives mean mocking whole packages — which does not work, because vitest's
+  automocker does not produce the shape those tests expect through a barrel of
+  re-exports.
+
+  That is 115 test cases and roughly 3,500 lines of coverage of `useSearch`,
+  `useSidebar`, `useRoutes`, `useNavbar`, `useLocalizedTo`, `useVersion`, `useI18n`,
+  `useFeedback`, `useCollections`, `CodeBlock`, `Navbar.Logo`, `OnThisPage` and the
+  search highlighter. Those behaviours are now covered by `tests/a11y` in a real
+  browser instead, which is a stronger check for a UI layer but a much weaker one for
+  the edge cases in the hooks.
+
+  `tests/runtime-seams.test.ts` was kept and repaired rather than deleted: it pins
+  that the core seams re-export named lists instead of `export *`, which is what
+  stops a wildcard from widening `boltdocs/client`'s published types.
+
+  Verified: `tsc --noEmit` clean in all five packages, 974 tests in `boltdocs`, 23
+  in `@bdocs/runtime`, 93 in `@bdocs/primitives`, 29 in `@bdocs/contracts`, and
+  `turbo build` 23/23.
+
+- 4a2de60: The engine no longer ships the UI layer.
+
+  Until 4.0 the `boltdocs` package carried the whole client stack: the layout,
+  the components, the contexts, the router and the MDX components. A site got
+  all of it by installing the engine, and reached it through `boltdocs/client`,
+  `boltdocs/primitives` and `boltdocs/mdx`.
+
+  In 4.0 the engine is the engine.
+
+  ### What moved
+  - The client code — the route builder, the shell, the MDX page, the collection
+    routes — is now in `@bdocs/theme-neutral`. It renders the theme's
+    components, so the engine could not keep it without depending on a theme.
+  - `boltdocs` no longer exports `./client`, `./client/router`, `./primitives` or
+    `./mdx`. It publishes the engine: the CLI, the config, the route generation,
+    the plugin lifecycle, the SSG bridge (`./ssg`) and the engine stylesheet
+    (`./theme/reset.css`).
+  - The theme is resolved from the project, not from the engine. `themePackage`
+    in the configuration names it (default `@bdocs/theme-neutral`), and the
+    engine imports the route surface from it. A second theme is a second
+    package, not a fork of the engine.
+
+  ### What a site has to do
+
+  ```bash
+  pnpm add @bdocs/theme-neutral
+  npx boltdocs migrate --apply
+  ```
+
+  The command splits a `boltdocs/client` import by name: every symbol goes to
+  the package that exports it — components, layout and MDX components to
+  `@bdocs/theme-neutral`, the router and the contexts to `@bdocs/runtime`. It
+  rewrites the import examples in Markdown as well, and it adds the theme to
+  the manifest.
+
+  | 3.x                                           | 4.0                                |
+  | --------------------------------------------- | ---------------------------------- |
+  | `boltdocs/client` (components, layout, hooks) | `@bdocs/theme-neutral`             |
+  | `boltdocs/client` (router, contexts)          | `@bdocs/runtime`                   |
+  | `boltdocs/primitives`                         | `@bdocs/theme-neutral/composition` |
+  | `boltdocs/mdx`                                | `@bdocs/theme-neutral`             |
+  | `boltdocs/client/router`                      | `@bdocs/runtime/router`            |
+
+  ### How the two halves still meet
+
+  The generated per-site artifacts — the icon registry, the page-source fetcher,
+  the search index, the site's `layout.tsx`, the plugin slots and the site's own
+  MDX components — reach the theme through the runtime's site bridge, which the
+  engine fills from a generated `virtual:boltdocs-site-bridge` module. The
+  theme still mentions no virtual module, which is what lets it be installed on
+  its own.
+
+  The official plugins were moved the same way: a plugin's client code imports
+  `@bdocs/runtime` for the contexts and `@bdocs/primitives` for the style-neutral
+  helpers, so a plugin works with whatever theme the site uses.
+
+- 4fb6ed1: Drop the CommonJS build. The published tarball goes from **5.84 MB to 2.93 MB** (−49.8%), 195 files to 100.
+
+  |         | before              | after               |
+  | ------- | ------------------- | ------------------- |
+  | tarball | 5.84 MB (195 files) | 2.93 MB (100 files) |
+  | outputs | ESM + CJS           | ESM                 |
+
+  The CJS build was 2.87 MB — 49% of the tarball — and nothing resolved to it. The package was already `"type": "module"`, the `boltdocs` binary is ESM, and every consumer in the ecosystem (Vite, Rolldown, RSC, Node itself) takes the ESM path.
+
+  ### Breaking
+
+  A CommonJS consumer must convert to ESM. There is no `require` condition on any export, so this fails loudly at resolve time (`ERR_PACKAGE_PATH_NOT_EXPORTED`) rather than halfway through someone's build. From CommonJS, `await import('boltdocs')` works today.
+
+  ### Why the exports use `default` rather than `import`
+
+  ```jsonc
+  ".": {
+    "types": "./dist/node/index.d.ts",
+    "default": "./dist/node/index.mjs"
+  }
+  ```
+
+  With only one format left, `default` is what Node's resolver matches for both `import` and `require`. Keeping the key named `import` would have left a `require()` reaching an `.mjs` file and failing at parse instead of at resolve.
+
+  ### Guarded by a test
+
+  `tests/package-format.test.ts` asserts `type: module`, that no export declares a `require` condition, that every declared export target exists in `dist`, and that no `.cjs` file is present. The third assertion is the one that matters: it walks the built output rather than trusting the manifest, because a stale `require` condition pointing at a file the build no longer produces is exactly what a config-only change leaves behind.
+
+- 4fb6ed1: Make the highlighter pipeline genuinely engine-agnostic.
+
+  The registry already accepted any adapter — `theme.codeHighlighting.engine` takes a string id, an adapter instance or a factory, and `registerPluginHighlighter` lets a plugin add one. That part was true. The _render pipeline_ was not: two of its paths assumed the engine was Shiki, and Shiki was the only engine registered, so nothing ever exercised them.
+
+  Both are now covered by tests that use a fake engine, because a test against Shiki proves nothing about agnosticism — Shiki satisfies every accidental requirement the pipeline happens to have.
+
+  ## `lang: 'plaintext'` was a Shiki convention sent to arbitrary engines
+
+  When a grammar failed to load, the pipeline degraded the block by re-rendering it with `lang: 'plaintext'`. That id is Shiki's: its name for a grammar with no rules. An engine that has never heard of it throws — so the code written to rescue a broken code block failed the same way the block did.
+
+  ```ts
+  // before — reached for a language id the contract never defined
+  const plainHast = highlighter.codeToHast(codeText, {
+    ...options,
+    lang: "plaintext",
+  });
+  ```
+
+  `CodeHighlighterAdapter` now carries the capability instead:
+
+  ```ts
+  interface CodeHighlighterAdapter {
+    renderPlaintext?(
+      code: string,
+      options: Record<string, unknown>,
+    ): Promise<string>;
+  }
+  ```
+
+  Optional, so an adapter never has to implement it. The framework falls back to an escaped `<pre>` when it is absent — already correct, and better than asking a third-party engine to speak a dialect it was never taught.
+
+  ## `shiki-fallback` named the default engine in the markup
+
+  The last-resort class was `shiki-fallback`, and `reset.css` keyed 28 rules off `.shiki`. Every non-Shiki engine was a guest in Shiki's stylesheet.
+
+  State is now expressed as data:
+
+  ```html
+  <pre data-code-state="highlighted" data-code-engine="shiki" …></pre>
+  ```
+
+  `.shiki-fallback` is kept as a CSS alias, alongside the aliases this file already carried for `data-theme-mode`, `data-line-numbers` and `data-word-wrap`. A theme styles the attribute and never needs to know which engine ran.
+
+  ## `CodeTheme` is open
+
+  ```ts
+  export type CodeTheme =
+    | string
+    | { light: string; dark: string }
+    | { tokens: Record<string, string> }
+    | Record<string, unknown>;
+  ```
+
+  An engine with semantic tokens or a CSS custom-property palette cannot be expressed by a name or a light/dark pair. Narrowing the union to enumerate engines would make every future engine a breaking change to the framework, which is backwards.
+
+  ## What the tests found
+
+  Writing the CSS assertion first surfaced a fourth leak that was not in the plan: `pre span.shiki-line-highlight` was the one rule in `reset.css` with no neutral counterpart. It now pairs with `[data-line-highlight]`, and `tests/node/highlight-styles.test.ts` fails on any future `.shiki` selector that has no neutral form — which is exactly the regression that would quietly make the stylesheet Shiki-only again.
+
+  **Verified:** 1002 core tests, 36 contract tests, 120 Sätteri tests, 257 documentation pages with byte-identical highlighting and `data-code-state="highlighted"` present in the output.
+
+- 3007d0b: Move sitemap, robots.txt and route SEO metadata into `@bdocs/plugin-seo`.
+
+  Until 4.0 the core wrote `sitemap.xml` and `robots.txt` itself, so every site had them. Those two files and the per-route SEO enrichment now live in `@bdocs/plugin-seo`. Add it to your config:
+
+  ```ts
+  import seo from "@bdocs/plugin-seo";
+
+  export default defineConfig({
+    siteUrl: "https://example.com",
+    plugins: [seo()],
+  });
+  ```
+
+  The core warns during the build when it finds `siteUrl`, `robots` or `seo` configured but no SEO plugin, so a site that upgrades without adding it is told rather than silently losing its sitemap.
+
+  Two things had to change for a plugin to be able to do this work at all:
+  - **`build:routes`** is a new plugin hook that fires after routes are generated and before the SSG render. It is the only window in which a plugin can influence what gets rendered, which route SEO enrichment needs in order for `canonical` and `og:url` to be present in the HTML.
+  - **`build:generate` no longer lives inside the SEO step.** It used to be the tail of `SEOWriteStep`, so `@bdocs/plugin-rss` depended on an SEO step it had nothing to do with, and the hook was unreachable for anyone not using SEO. It has its own `Generate` step now.
+
+  The JSON-LD factories (`createArticleStructuredData` and friends) moved to `@bdocs/contracts`, which is where pure framework-neutral code belongs, and `boltdocs` and `boltdocs/client` keep re-exporting them. They are not part of the plugin: reaching them through an optional plugin would make it look like the plugin is required to use them.
+
+  Also fixes a `robots.txt` bug: a site listing its own sitemap under `robots.sitemaps` got a duplicate `Sitemap:` line, because the implicit entry and the explicit list were both emitted.
+
+- 9a4c13b: Replace the built-in Shiki highlighter with `@bdocs/highlight`, a Prism-based, dependency-free (no Oniguruma/WASM) syntax highlighter.
+  - The default `theme.codeHighlighting.engine` is now `highlight` (alias `light`). Code is tokenized with Prism grammars, emitted with line wrappers and `bd-token-*` classes themed via `--bdocs-code-*` CSS variables, and also keeps Prism `token` classes for theme flexibility.
+  - `boltdocs` no longer ships the Shiki adapter/transformers; Shiki packages move out of the core dependency graph. Custom engines remain supported through the engine-agnostic adapter/registry contract (`engine` as id, instance, or factory).
+  - `@bdocs/processor-satteri` resolves and pre-renders highlighting through the pluggable adapter/runtime.
+
+- Extract the React binding out of the engine (SPEC §5/§6). The engine no longer
+  imports `@vitejs/plugin-react`, ships `react-helmet-async` or `react-refresh`,
+  or generates React-specific entry code. It resolves `uiBindingPackage` by name
+  (default `@bdocs/react-binding`) and asks it for Vite plugins and for `createRoot`.
+  The binding owns Fast Refresh, JSX/SSR/dedupe config, prewarm entries and the
+  client root. Core footprint dropped slightly (104067 → 103943 gzip bytes).
+- fd11c2f: Replace `react-aria-components` with `@bdocs/primitives`.
+
+  The client primitives now come from a package in this repository instead of from
+  `react-aria-components`. That tree was 23.4 MB across 113 packages and was a
+  **required peer** of `boltdocs`, so every site paid for it whether or not it used
+  a single interactive component.
+
+  ### Measured effect
+
+  Per-visit JS on the documentation site, measured on the same machine against a
+  build of `4.0` at `fc13afeb`:
+
+  |                         | eager JS, raw          | eager JS, gzip        |
+  | ----------------------- | ---------------------- | --------------------- |
+  | `react-aria-components` | 1014.3 kB              | 271.9 kB              |
+  | `@bdocs/primitives`     | 853.8 kB               | 221.3 kB              |
+  | **delta**               | **−160.5 kB (−15.8%)** | **−50.6 kB (−18.6%)** |
+
+  The application chunk alone goes from 736.5 kB to 576.0 kB. Install closure
+  drops by the full size of the react-aria tree. Rendered output is unchanged: of
+  the 259 pages in the documentation build, every one is byte-identical once
+  react-aria's internal bookkeeping (`data-rac`, `data-react-aria-pressable`,
+  `react-aria-*` ids, a redundant `tabindex="0"` on buttons, and the order in which
+  JSX attributes are serialised) is normalised away. The single structural
+  difference on each page is the `relative inline-block` wrapper around a menu
+  trigger, which CSS-anchored positioning needs in place of a positioning engine.
+
+  ### What is not implemented
+  - **No viewport collision or flipping.** Popovers and menus are positioned with
+    CSS relative to their trigger. Boltdocs anchors them to navbar and sidebar
+    items where the surrounding layout already decides the side, so a full
+    collision solver would be cost without a use. A popover near a viewport edge
+    will overflow rather than flip.
+  - **`SSRProvider` is gone, not replaced.** It existed because react-aria derives
+    element ids from a module-level counter that starts at a different value on
+    the server and in the browser. `@bdocs/primitives` uses React's `useId`, which
+    agrees across the boundary by construction, so there is nothing to reconcile.
+
+  ### Accessibility changes worth knowing
+
+  These are deliberate, and in two cases they are corrections rather than parity:
+  - A selectable `Menu` renders `menuitemradio` for one-of-many and
+    `menuitemcheckbox` for many-of-many, with `aria-checked` only when the menu can
+    select. A plain `menuitem` carrying `aria-checked` is not a combination the
+    authoring practices define.
+  - `MenuTrigger` clones a trigger that is already a control and wraps anything
+    else in a real `button`. A `<span>` handed in as a trigger would otherwise
+    receive `aria-expanded` and the event handlers while remaining unreachable by
+    keyboard and unannounced by a screen reader.
+  - A trigger now carries `aria-controls` pointing at the popup. react-aria
+    omitted it.
+  - `Separator` no longer ships a background colour. It was `bg-border`, which
+    competed with the caller's own background, and which of two same-specificity
+    background utilities wins is decided by their order in the generated
+    stylesheet rather than the order they are written in.
+
+  ### Migration
+
+  `react-aria-components` is no longer a peer dependency, a dependency, or a dev
+  dependency of `boltdocs`, and is no longer scaffolded by `create-boltdocs`. There
+  is nothing to uninstall from a host app's `package.json` other than the entry
+  itself. Theme components that were written against the react-aria props
+  (`placement`, `offset`, `crossOffset`, `onPress` on a menu item, `isSelected` and
+  `onSelectionChange` on a menu) need the `@bdocs/primitives` equivalents: menus are
+  positioned with `className`, and `MenuItem` reports activation through
+  `onAction`.
+
+  ### Other fixes in this change
+  - `packages/boltdocs-engine` type-checks clean. The 46 errors it carried were all
+    `TS7016` implicit-`any` imports of the vendored Shiki grammars and themes,
+    introduced when those assets were vendored; each vendored `.mjs` now has a
+    sibling `.d.mts`.
+
+- 4fb6ed1: Finish search: the `search:index` hook works, and two real engines ship.
+
+  ## The hook existed and nothing called it
+
+  `search:index` was declared in `@bdocs/contracts` and implemented in
+  `core/src/node/plugins/search-contract.ts` — 58 lines whose comment named
+  FlexSearch, Pagefind, Algolia and Meilisearch as destinations — with zero call
+  sites. `SearchIndexStep` fires it now, between the type generation and the SSG
+  render, so an engine that only needs metadata (Algolia) finishes inside the
+  build.
+
+  The step refreshes the virtual-module search cache afterwards. Without that the
+  client bundle emitted whatever the module cache held from _before_ the step ran,
+  which is how a site that configured the plugin stopped shipping `search.json`
+  while the pipeline reported the step as completed in 92 ms.
+
+  ## Two document shapes, named
+
+  `SearchDocument` is the engine-facing **input**: a page with its headings and
+  frontmatter. `SearchIndexEntry` is what reaches the browser: `url` and
+  `display`, no frontmatter. They were one type in `search-contract.ts` and
+  another in the registry; an engine plugin compiled against the contracts one and
+  received the registry one.
+
+  They stay separate. An engine that indexes a page wants everything about it; a
+  browser rendering a result wants a link and a label. Carrying frontmatter into
+  a 1 MB asset to satisfy an engine that never reads it costs every visitor bytes,
+  and making each engine re-derive a breadcrumb means each implements it slightly
+  differently.
+
+  `createSearchDocuments` now imports the contracts type instead of declaring a
+  third copy.
+
+  ## `@bdocs/plugin-search-algolia`
+
+  The client half of Algolia support shipped long before the build half.
+  `useSearch` reads `integrations.search.algolia`, queries an index, and parses
+  `hierarchy`, `anchor` and `_snippetResult` off every hit — and nothing ever
+  uploaded anything. A configured site got an empty result set with no error
+  anywhere: every part reported success.
+
+  The records are generated against the field names the client already reads, not
+  against a shape invented here. An index that queries successfully and renders
+  blank rows is the failure this avoids.
+
+  `adminApiKey` is build-time only and read from the environment; the search-only
+  key stays in `integrations.search.algolia`, which is what reaches the browser.
+  A failed upload warns and continues — the site built, the previous index still
+  serves, and failing a deploy over a search index is the wrong trade.
+
+  ## Incremental uploads
+
+  `incremental: true` fingerprints each record and sends only what changed. A full
+  push on every build re-sends every record, which on a 2000-page site is
+  thousands of needless operations and a quota bill on Algolia's free tier.
+
+  Records that disappear upstream are **deleted** from the index. Leaving them
+  means a deleted page keeps answering searches, the reader follows the link, and
+  the 404 is indistinguishable from a broken search.
+
+  Off by default: the fingerprint lives in memory, so it only helps a process that
+  stays alive across builds.
+
+  ## `@bdocs/plugin-search-pagefind`
+
+  Wired to `build:generate`, not `search:index` — Pagefind crawls the **built
+  HTML**, so the output has to exist first. It indexes exactly what a visitor sees,
+  including prose from MDX components that never touched frontmatter.
+
+  A missing binary warns and the build continues. The indexer is an optional peer
+  (`@pagefind/linux-x64`, `@pagefind/darwin-arm64`, …) so a site downloads only
+  its platform's binary.
+
+  ## Detection
+
+  `boltdocs migrate` reports Algolia configured for the client with no uploader —
+  the asymmetry that makes search silently return nothing. Reported as `manual`:
+  an upload needs an admin key, and a codemod that invents one produces a build
+  that fails on the first request.
+
+  **Verified:** 1011 core, 26 search, 20 Algolia, 8 Pagefind, 36 contracts, 188
+  SSG, 120 Sätteri. The documentation site emits 2095 documents, byte-identical to
+  before this change.
+
+- 4fb6ed1: Move search document generation into `@bdocs/plugin-search`, and drop `flexsearch` from the core.
+
+  The 4.0 roadmap names Search among the integrations `@bdocs/core-node` must not import: "`@bdocs/core-node` will own configuration resolution, route generation, frontmatter validation, plugin lifecycle, build orchestration, dev-server state, and invalidation. It will not import optional integrations such as Mermaid, Math, Ask AI, **Search**, RSS, or image optimization."
+
+  ```bash
+  pnpm add @bdocs/plugin-search
+  ```
+
+  ```ts
+  import searchPlugin from "@bdocs/plugin-search";
+
+  export default defineConfig({ plugins: [searchPlugin()] });
+  ```
+
+  Without it the build emits no `search.json` and prints one informational line. `boltdocs migrate` adds the import and the call for you.
+
+  ## `flexsearch` was dead weight
+
+  It sat in the core's `dependencies` and was imported nowhere in its source. It is the _query_ engine, and it belongs to whoever reads the index — `@bdocs/theme-neutral` for the built-in dialog — not to the process that writes the file. Every install paid for it.
+
+  ## A registry, not a dependency
+
+  The dependency runs the other way. The core exposes `boltdocs/node/search` and the plugin registers a generator into it. Both alternatives were tried:
+  - **A `dependencies` entry from core to plugin** is a workspace cycle — the plugin needs `boltdocs` for its config types — and it would make search mandatory for every site, the exact coupling this change removes.
+  - **Keeping the generator inline** duplicates the code and fails the same requirement.
+
+  First registration wins, so two plugins generating `search.json` cannot make its contents depend on plugin load order — the rule `registerPluginHighlighter` already follows.
+
+  The plugin reaches the registry through the core (`await import('boltdocs/node/search')`) rather than importing it directly. A static import resolves to this package's **built** copy of the registry while the core reads its **source** copy: two module instances, one empty registry, and a site that configured the plugin and still got no `search.json`. That was the first implementation, and `SearchNoticeStep` caught it on the first build.
+
+  ## Why the notice is `info`, not `warn`
+
+  Losing `@bdocs/plugin-seo` costs `sitemap.xml` and `robots.txt`, which nothing reports until search traffic stops arriving weeks later. Losing the search plugin costs a dialog that returns nothing — visible the moment someone types in it, and a deliberate choice for a site that never wanted one. Escalating it would train people to ignore build output.
+
+  `SearchNoticeStep` runs _after_ `RoutesEnrich`, because that is the step that fires the `build:routes` hook the plugin registers in. Before it, the notice fired on every build of every site that had correctly configured the plugin.
+
+  ## Two document shapes, deliberately
+
+  `SearchResultDocument` (core registry) carries `url` and `display` — the deep link and the breadcrumb, which is all a query layer needs. `SearchDocument` (`@bdocs/contracts`) carries `path`, `headings` and raw `frontmatter`, and is the _input_ an engine plugin receives. They are not unified: an engine plugin should not have to re-derive the breadcrumb, and the runtime asset should not carry frontmatter no query engine reads.
+
+  ## Verified
+
+  11 generator tests, 5 registry tests, 3 notice tests. The documentation site emits 2095 documents in a 1.08 MB `search.json`, byte-identical to what the core produced before the move.
+
+- 4fb6ed1: Move the vendored Shiki grammars and themes into `@bdocs/grammars`. The core tarball drops from **2.93 MB to 0.35 MB**.
+
+  |                   | before              | after                  |
+  | ----------------- | ------------------- | ---------------------- |
+  | `boltdocs`        | 2.93 MB (100 files) | **0.35 MB (63 files)** |
+  | `@bdocs/grammars` | —                   | 2.62 MB (127 files)    |
+
+  The grammar data is 2.6 MB and the framework's own JavaScript is 0.3 MB. A site with no C++ blocks never reads `cpp.mjs` — but it downloaded it anyway, because it shipped inside `boltdocs`.
+
+  ### No user-facing change
+
+  `boltdocs` depends on `@bdocs/grammars`, so it installs on its own and every site gets the same 39 languages, the same seven themes and byte-identical highlighted output. Nothing to configure, nothing to import differently, no breaking change for a user.
+
+  This is the reason it is a _dependency_ rather than an optional one. Making the grammars opt-in would have saved the same bytes but required every site using C++, Rust, PHP, Vue or any of the other 29 languages to know that and install a second package — trading a silent 2.6 MB for a silent broken code block.
+
+  ### The split is along the existing seam
+
+  The engine was already pluggable (`theme.codeHighlighting.engine` resolves through a registry that a plugin can extend). The grammars were not — they were hardcoded in `shiki-langs.ts`. Those are two different axes:
+  - **engine** — which highlighter implementation. Already free.
+  - **grammars** — which language tables. Now a package.
+
+  Choosing a different engine still changes what consumes these; it does not change this package's role as the registry of languages.
+
+  ### A build bug this surfaced
+
+  `tsdown` emits a chunk for every `import('./grammars/x.mjs')` _and_ the copy step placed the original beside it. The first build of the package weighed 5.9 MB instead of 2.9 — two copies of every grammar. `neverBundle` on the grammar and theme directories is what makes the copied files the only ones; there is a comment at that line in `tsdown.config.ts` so the next person does not "simplify" it away.
+
+  ### Verified
+
+  `tests/node/grammar-loading.test.ts` in the core covers the seam: ten languages still register eagerly, a lazy one (`rust`) still resolves through its dynamic import, and `cpp` still loads with its four sibling grammars. The grammar suite moved with the data — including two new assertions that every vendored `.mjs` has a sibling `.d.mts`, and that this package declares no runtime dependency on the framework it serves.
+
+- 94aebbc: The engine depends on nothing but the contracts.
+
+  The package graph, measured from the manifests:
+
+  ```text
+  @bdocs/contracts   (no dependencies)
+  @bdocs/primitives  (no dependencies)
+  @bdocs/runtime     → @bdocs/contracts
+  @bdocs/theme-neutral → @bdocs/contracts, @bdocs/primitives, @bdocs/runtime
+  @bdocs/ssg         → @bdocs/contracts
+  boltdocs (engine)  → @bdocs/contracts, @bdocs/processor-satteri, @bdocs/ssg
+  ```
+
+  **The `Boltdocs` global namespace moved to `@bdocs/contracts`.**
+
+  It is augmented by the generated route types, and TypeScript rejects two
+  `declare global` blocks for the same namespace, so it has exactly one home. It
+  lived in `@bdocs/runtime`, which made the engine's re-export a type-only
+  dependency on the browser half — one that compiles, ships nothing, and was
+  therefore invisible in every install-size measurement.
+
+  The contract layer cannot name React, so the MDX component map became a
+  generic there, and `@bdocs/runtime` instantiates it with `ComponentType`. The
+  shape a consumer sees is unchanged.
+
+  **The engine declares no peer dependency at all.**
+
+  It renders nothing. React, React DOM and the router are the browser half's
+  business, and the browser half is a package the site installs. A site that
+  installs a theme already installs React; a site that does not should not be
+  made to.
+
+  **The plugins read the contract types from the contracts.**
+
+  `RouteMeta`, `SearchIndexParams` and `RouteContributor` now come from
+  `@bdocs/contracts` rather than from the engine, so a plugin can be written
+  against the contract layer alone. The engine-bound types — `PluginContext` and
+  `BoltdocsPlugin`, which are the contracts' generics bound to the engine's
+  config and to Node's request and response types — still come from the engine,
+  because that binding is the value the plugin gets from it.
+
+- 84e874d: The engine ships no stylesheet. The reset is the theme's.
+
+  `boltdocs/theme/reset.css` was the engine's stylesheet: the page reset, the
+  code-block rules and the accessibility baseline. The engine does not have a look
+  any more — the theme does — so the stylesheet moved with it.
+
+  ```diff
+  - @import "boltdocs/theme/reset.css";
+  + @import "@bdocs/theme-neutral/reset";
+  ```
+
+  `boltdocs migrate` rewrites the import, in a site's stylesheets as well as in
+  its code.
+
+  The values did not change. The reset now reads the theme's own tokens
+  (`--bdocs-canvas`, `--bdocs-ink`, `--bdocs-primary`) where it used to read the
+  host's (`--color-main`, `--color-body`, `--color-primary-500`), and a site that
+  overrode those tokens overrides them in one place. Two tokens were added for
+  the cases the old file had no name for: `--bdocs-diff-add`, the green a diff
+  addition uses — which was Tailwind's `emerald-500` and not the theme's
+  `--bdocs-success` — and the page-level fonts, `--bdocs-page-font` and
+  `--bdocs-code-font`, which the document uses and the components do not.
+
+  **Two rules that the build was dropping now apply.**
+
+  Comparing the two builds' stylesheets — by their resolved declarations, not by
+  their text — leaves ten differences, and nine of them are the same value
+  written two ways. The tenth is two rules the framework's own compiler was
+  discarding:
+  - The line highlight's coloured bar was compiled to `:after`, a pseudo-class,
+    where the source said `::after`. The browser discards a rule with an invalid
+    pseudo-class, so the bar never rendered.
+  - The line-number gutter's `display` and `width` were lost because two rules
+    shared a selector and the compiler kept only the last one's declarations.
+
+  Both are written out by hand now, and both render.
+
+- 32d05b3: Renames the theme's style-neutral layer from `primitives` to `composition`, removes two dead files, and collapses four package aliases into one boundary each.
+
+  ## Renamed
+
+  `@bdocs/theme-neutral/components/primitives` is now `@bdocs/theme-neutral/composition`.
+
+  The word `primitives` had come to mean the `@bdocs/primitives` package — behaviour, zero CSS — and the theme was shipping a directory called `primitives` whose files _import_ that package. Two unrelated things, one word, and a public export.
+
+  The clash was not cosmetic. The package exported two different `Navbar`s and two different `Sidebar`s under the same name from two entries: 241 styled lines from `.`, 760 style-neutral lines from `./components/primitives`. A site that reached for the wrong subpath got unstyled slots with no way to tell.
+
+  `boltdocs/client/primitives` keeps its `3.x` name and now re-exports the composition layer; only its documentation changed.
+
+  The `dist` entry is `composition.mjs` and the split stays load-bearing: the composition barrel reaches the search dialog behind a dynamic import, and merging it back into `index` made tsdown hoist that lazy chunk into the first visit (853.7 kB eager instead of 965 kB).
+
+  ## Removed
+  - `components/composition/skeleton.tsx` — no export, no consumer. An earlier claim that Skeleton was deleted was wrong: the docs page and the export went, the file stayed.
+  - `src/primitives.ts` — an orphan barrel. Nothing imported it and it was not a build entry.
+
+  ## Aliases
+
+  `.`, `./client`, `./composition` and `./mdx` all resolved to the same `dist/index.mjs`. Four names for one barrel, which is how the confusion compounded. Now there is `.`, `./composition` and `./css`, each one boundary.
+
+  ## Not extracted: `ui-base`
+
+  `ui-base` stays in the theme package. SPEC §6 asks for it as its own package, and this change does not do that, deliberately.
+
+  Measured first. The theme ships 24 component stylesheets; the style-neutral layer consumes 16 of them and `ui-base` consumes 4 (`banner`, `not-found`, `giscus`, `selectors`). The layer named as unstyled is where the styling lives. Extracting `ui-base` as-is would have produced a package that emits almost none of its own classes and whose appearance comes entirely from a stylesheet it does not own — the opposite of a reusable package, and it would have left four styled components with nothing to style them.
+
+  There is also a cycle in the way. `ui-base` needs `composition` (5 imports), `internal`, `mdx`, 17 hooks and 8 utils from the theme, while the theme's default layout imports `Navbar`, `Sidebar`, `Breadcrumbs`, `PageNav`, `ErrorBoundary` and `CopyMarkdown` from `ui-base`. Breaking that requires deciding who owns the hooks and the slot layer, which is a design decision rather than a move.
+
+  ## MDX: card, field, image
+
+  Converted, sharing one `prose.css`. The card's body lost `prose prose-neutral dark:prose-invert max-w-none` and is now four rules of its own.
+
+  ## Reverted: the heading scale
+
+  `typographics.tsx` keeps its six heading class strings. I converted them to CSS keyed off a new `data-level` attribute on the heading primitive, and it changed every heading on every page: `h2` went from 16px to 28px and `h3` from 16px to 22.4px, for a 27% pixel difference on a prose page.
+
+  The mechanism is worth recording, because `:where()` is used everywhere in this package and the trap is not obvious. Wrapped in `:where()`, a rule has zero specificity — which means it can never lose, and therefore always wins when the property is otherwise unset. The docs site has a latent bug: its own `HEADING_CLASSES` lost the `text-(--text-h2)` size utility, so nothing set the size and it fell back to 16px. My rule filled that hole. Every page moved.
+
+  A site whose heading scale is intact would have been unaffected, and the mechanism is sound for them. But a conversion that silently restyles every page is not a conversion, so it is reverted.
+
+  ## Verified
+
+  0 differences of computed value across 166 measured selectors on five pages: `h2`, `h3`, `p`, inline `code`, `ul`, `ol`, `li`, `pre`, `strong` and `hr` are identical to the pre-conversion build. The 5 remaining differences are all on `index.html`, the external bento page, whose independent difference was already open before this change.
+
+  The comparison harness had a bug of its own: a selector matching nothing in _both_ trees was reported as "appeared in B", which reads as a regression that does not exist. It now distinguishes no-data-in-both from a component that stopped rendering.
+
+  `theme-neutral` 10/10, `core` 962/962, `tsc` clean.
+
+### Minor Changes
+
+- f7464bf: Make the core CSS-agnostic: remove Tailwind/Vite Tailwind coupling and CSS-framework assumptions from the engine and neutral theme, replace `cn` with framework-neutral `clsx` class joining (no Tailwind merge), ship the neutral theme as plain CSS only, and update scaffolding/templates to opt into Tailwind explicitly via `@bdocs/plugin-tailwindcss` when needed.
+- a19cc4a: Extend `boltdocs migrate` so it can import Docusaurus and Starlight (Astro) documentation sites in addition to upgrading Boltdocs 3.x projects.
+
+  ```bash
+  npx boltdocs migrate                          # autodetect the source
+  npx boltdocs migrate --from docusaurus        # dry run
+  npx boltdocs migrate --from starlight --apply # write the safe changes
+  ```
+
+  The command detects the source framework from config files and dependencies, or accepts an explicit `--from` (`auto`, `boltdocs`, `docusaurus`, `starlight`). For external frameworks it generates a starter `boltdocs.config.ts`, rewrites common frontmatter and admonitions (`:::note` / `<Aside>` → `<Callout>`), copies content and assets, rewrites dependencies and scripts, and converts category files, locales and versioned content when the mapping is provable. Ambiguous changes are reported as `manual` and never applied silently.
+
+  Shared helpers were extracted into `framework-common.ts`, a declarative config renderer into `framework-config.ts`, and code-fence-aware admonition converters into `framework-content.ts`, so both migrators use the same safe file operations and the same `package.json` rewrite. The dry-run report and `--apply` continue to share one analysis path.
+
+  Blog frontmatter is mapped too: inline author objects become Boltdocs `author` entries (`image_url` → `avatar`), plain author strings and `image` → `coverImage` are rewritten, while author lists/YAML aliases and `<!--truncate-->` are reported as manual findings. A route-generation verification test runs the real `generateRoutes` against a migrated fixture to prove that folders, frontmatter and `meta.json` produce working routes, groups, locales and blog collections.
+
+  Internal links are mapped: Docusaurus version-prefixed destinations (`/docs/next/...`, `/docs/<version>/...`) in Markdown links, reference definitions and `href` attributes become canonical `/docs/...` links; CRLF/BOM are preserved and external/anchor links are untouched. Starlight links that omit the docs base are reported as `manual` because the correct base depends on the target config.
+
+  A custom Docusaurus docs directory is detected from plugin/preset options (`path` under `@docusaurus/plugin-content-docs` or the classic preset) and written as `docsDir` in the generated config; content, blog, locales, versions and sidebar migration all use that directory instead of assuming `docs/`.
+
+  `--apply` no longer exits with code 1 for blocking findings it already resolved: the exit code now reflects only what remains after the rewrite. An unknown `--from` value is rejected with a clear error.
+
+  Config values assigned to simple string constants (`const TITLE = '...'; title: TITLE`) are resolved and written to the generated config. Values that require executing the config (environment variables, member expressions, function calls, spreads) are reported as `manual` findings with file, line and the exact expression instead of being silently dropped.
+
+  Docusaurus `sidebars.js/ts` is now converted automatically: a small literal parser reads categories, nested categories, doc ids, positions, labels and autogenerated sections, then rebuilds them as folders, `sidebarPosition`/`sidebarLabel` frontmatter and `meta.json` (merging existing meta fields). Expressions it cannot read — spreads, function calls, external links — are reported as manual findings instead of being guessed.
+
+  The migration is idempotent: a second `--apply` reports no fixable changes. Conversion preserves CRLF/BOM, ignores examples inside fenced code blocks, handles nested admonitions, skips commented-out config values, validates `--from`, and refuses to invent SEO URLs. An exhaustive suite covers Docusaurus 3.10.2 and Astro 5 / Starlight 0.36-era config shapes.
+
+- Fixed a critical compatibility bug: the engine read the **monorepo root**
+  package version (1.11.0) instead of its own (3.4.1) when checking plugin
+  ranges. That silently failed every plugin validation, and the swallowed error
+  dropped all extra Vite plugins — including Tailwind — so docs utility classes
+  were never generated. Version resolution now walks up by package name, and the
+  validation error is logged instead of swallowed.
+
+  Enforce SPEC §2.3: `boltdocs audit` now runs as a preflight for both `build`
+  and `dev`, and fails the command on unresolved plugins, scan errors, truncated
+  scans or high-risk findings. Every shipped plugin declares `version` and
+  `boltdocsVersion`, and the validator requires them. Plugin identity can name a
+  different package via `packageName` (used by git-meta's two exports).
+
+  The scanner now treats spawning/forking a fixed local process as a warning and
+  reserves `high` for shell execution; Mermaid no longer auto-installs Chromium
+  with `npx` behind the user's back. The metadata version check compares the
+  engine version against the plugin's supported range instead of the plugin's own
+  version. CI runs `boltdocs audit` after building.
+
+- 80b8bba: The production build stops loading a browser it never renders in.
+
+  Every build imported jsdom and constructed a document before it started. The
+  import alone costs 705 ms, and the window it installs is what react-helmet's
+  compatibility layer had to defend against: with `window` defined, the library
+  believed it was running in a browser and skipped the server branch of its
+  state.
+
+  None of it was reachable. A production build renders its pages inside the SSG
+  worker pool, and those workers never installed a shim — the only jsdom lived on
+  the main thread, which imports the SSR bundle and hands work to the pool. The
+  documentation site builds and renders all 260 pages without it, and the output
+  is byte-identical to the build that had a browser in memory.
+
+  | Cold build of the docs site                                 | With jsdom | Without    |
+  | ----------------------------------------------------------- | ---------- | ---------- |
+  | Work between resolving the Vite config and the first bundle | 1589 ms    | **486 ms** |
+
+  That segment is single-threaded, so it is the honest place to look: the rest of
+  the build competes for the same four cores and buries a one-second change in
+  the noise. Three cold runs of the whole build spent 66 s of CPU against the
+  70 s of the previous revision.
+
+  A project whose modules read `document` or `window` while they are imported can
+  ask for the shim back with `ssg.mock: true`. The dev server is unaffected: it
+  renders in-process, so it keeps the shim unconditionally.
+
+- 53ba421: The syntax highlighter uses the Oniguruma engine by default.
+
+  It used the JavaScript engine, on the strength of its startup cost: the code
+  claimed it cut the engine build from ~2.5 s to ~200 ms. Measured on this
+  machine that claim no longer held, and it pointed at the wrong cost.
+
+  |                   | Oniguruma | JavaScript |
+  | ----------------- | --------- | ---------- |
+  | Engine startup    | 548 ms    | 357 ms     |
+  | One code block    | 2.8 ms    | 9.9 ms     |
+  | 654 unique blocks | 1.8 s     | 6.4 s      |
+
+  A build pays the startup once and the blocks once per language, so the blocks
+  decide. On the documentation site's 971 code blocks the precompile — 96% of
+  which is highlighting — went from 8.9 s to 6.4 s, measured across three
+  interleaved A/B builds.
+
+  Oniguruma is also the faithful engine: the JavaScript one degrades unsupported
+  grammar regexes to approximate matches, while Oniguruma matches TextMate
+  exactly. The rendered output of the documentation site's code blocks is
+  byte-identical between the two.
+
+  Set `theme.codeHighlighting.options.regexEngine: 'javascript'` to trade that
+  fidelity for the smaller startup — the right choice for a site with few code
+  blocks.
+
+  This also fixes an inconsistency: `highlight()` chose JavaScript while
+  `ensureLanguage()` chose Oniguruma, so a caller that loaded a grammar lazily
+  ended up building a _second_ highlighter with the other engine.
+
+- 5f7a09c: Vite 8.3.5, and only Vite 8.3.
+
+  The framework now builds on Vite 8.3.5 and requires it. The peer dependency
+  range moved from `^8.1.0` to `^8.3.0`, so a site on Vite 8.1 or 8.2 has to
+  update before it can install the new Boltdocs.
+
+  Two version checks went away with it, because the versions they served no
+  longer exist:
+  - The build used to choose between `build.rolldownOptions` and
+    `build.rollupOptions` depending on the installed Vite. Vite 8 is Rolldown,
+    and the two option names are not interchangeable — the options moved with
+    the bundler, not with the options — so the check only ever chose the wrong
+    one for a Vite it did not support anyway.
+  - The build used to look for the manifests in the output root on Vite before
+    5, which had no `.vite` directory. There is no such Vite left to support.
+
+  The output does not change: the documentation site's 260 pages are byte for
+  byte identical across the two versions, and the client bundle grows by four
+  bytes.
+
+  `@types/node` moved from 22.0.0 to 22.12.0 across the workspace, which is
+  what Vite 8.3 asks for, and an override pins it so the whole tree resolves
+  one copy.
+
+### Patch Changes
+
+- Update the documentation site to present Boltdocs 4.0 as the current release. The hero version, both localized announcement banners, the releases index and the roadmap page now describe 4.0 as shipped instead of planned, with a link to the 4.0 upgrade guide.
+- 223e891: Drop `isomorphic-dompurify` and jsdom: 8.4 MB and 55 fewer packages, and 25x faster on the frontmatter path.
+
+  `isomorphic-dompurify` exists to shim a DOM for Node, so it depends on jsdom. That put 9.2 MB and 63 packages on every install to handle two call sites, and neither needed a DOM.
+
+  **Frontmatter.** `title`, `description`, `badge` and `excerpt` were being run through an HTML sanitizer. They are plain text: they reach React as text children, which escape automatically, and as `<meta content>` and `<title>` values, which React also escapes. None of them is an HTML sink — the only three in the client are the Shiki output, the JSON-LD block, and icon markup, and none of those is fed from frontmatter.
+
+  That was wrong in three ways at once. It cost jsdom. It was slow: 441µs per value against 17µs for the regex, so ~350ms across a 259-page build. And it double-escaped — a title of `A < B` came back as `A &lt; B` and React escaped the `&` again, so the heading rendered as the literal `A &lt; B`. They are now reduced to plain text by `stripTags`.
+
+  `sanitizeHtml` is gone rather than reimplemented. Hand-rolling an HTML sanitizer to keep it would have been the wrong trade: an allowlist parser is exactly the thing that gets bypassed. Nothing needed it, and removing markup is a stronger guarantee for the case that mattered — markup in frontmatter cannot survive at all, instead of surviving as allowed-but-inert HTML.
+
+  **Icons.** Sanitizing icon markup _is_ a real sink, so it stays, on `dompurify`'s browser build — the browser already has a DOM, and the Node shim was never needed there. It is now memoized by exact markup: `IconRenderer` re-runs on every parent render, and each pass was re-parsing and re-serializing the same SVG. The cache is keyed on the markup and never on an icon name, because the name is the part a caller controls.
+
+  Two boundaries worth stating, since they are judgment calls. A bare `<` survives (`if (a<b)` is a comparison, and requiring a `>` terminator is what keeps it intact), and an unterminated raw-text element loses its tags but keeps its body as text, rather than swallowing the rest of the string the way a browser would.
+
+  Verified: core 1084 tests across 120 files, ssg 188, plugin-seo 41, contracts 29, docs build 259 pages. The 259-page build contains no double-escaped title.
+
+- d80c6e1: Every package type checks.
+
+  `tsc --noEmit` is now clean in all twenty-three packages that have a
+  `tsconfig.json`. The core, the runtime, the contracts, the primitives, the
+  theme, the processor, the unist utils, the SSG and every official plugin.
+
+  ### Most of the errors were configuration, not code
+
+  Eight packages extended the repository's root `tsconfig.json` — a solution
+  file with no compiler options. The type checker fell back to its defaults: no
+  `module`, no `target`, no `esModuleInterop`, no `jsx`. It reported 39 errors
+  that had nothing to do with the code, and hid the real ones behind them.
+
+  The base is now `tsconfig.base.json`, and the root solution file extends it so
+  that a package which extends the root gets the same options as one that
+  configures itself. The three plugins that had no `tsconfig` at all have one
+  now.
+
+  ### Two copies of Vite
+
+  `@types/node` was a range in some packages and an exact version in others, and
+  the version is part of the peer variant a package resolves against. Three
+  copies of the same Vite were installed, and their `Plugin` types were not the
+  same type. Every package now pins the same version, and there is one copy.
+
+  ### Four bugs the type checker had been reporting for months
+  - The Algolia plugin sent the batch action `delete`. Algolia's endpoint takes
+    `deleteObject`; every stale-record removal would have failed.
+  - The Tailwind and UnoCSS plugins wrapped the plugin list in another array.
+    Vite flattens nested lists, so it worked — and the engine received a list of
+    lists.
+  - The Mermaid plugin passed an object to a class-name helper that only joins
+    strings, which would have rendered `[object Object]` as a class.
+  - The theme's code block called a function that was renamed when its state
+    module was split out.
+
+  ### A flake, fixed
+
+  `@bdocs/plugin-ssg`'s critical-dependency test used `vi.doMock` with a dynamic
+  import, and the mock only applied when the module had not been loaded yet —
+  which depended on which test file ran first. The test resets the module
+  registry now, and it passes in any order.
+
+- d1e7f76: Restores UI that Tailwind was never told to generate.
+
+  ## The bug
+
+  Tailwind v4 uses the directory of the CSS entry as its base for automatic source
+  detection. For this site that is `docs/`, and the theme lives in `packages/` —
+  outside it. Every utility used only inside a theme component was therefore never
+  emitted into the stylesheet.
+
+  Three were missing, measured rather than assumed:
+
+  | Utility            | Component     | What was missing                                         |
+  | ------------------ | ------------- | -------------------------------------------------------- |
+  | `sm:text-sm`       | breadcrumbs   | the breadcrumbs rendered at 12px at every width, forever |
+  | `hover:bg-surface` | sidebar links | no hover state at all                                    |
+  | `md:flex`          | copy buttons  | the "Copy Markdown" button never rendered                |
+
+  The existing `@source "./node_modules/boltdocs/dist"` was the same problem from
+  before the packages were split: it worked because the client components happened to
+  be bundled into the core package, and it stopped working the moment the theme
+  became its own package.
+
+  ## What changes on screen
+
+  Twenty measured boxes move. The navbar grows from 87px to 105px and regains its
+  two rows of links, the sidebar and navbar link rows go from `0x0` to laid out,
+  and the "Copy Markdown" control appears. These are restorations: the previous
+  rendering was the broken one.
+
+  ## Not fixed here
+
+  The `@source` lines use monorepo paths. A site installing the theme from npm needs
+  `node_modules/@bdocs/theme-neutral/dist`, and the general fix belongs in
+  `@bdocs/plugin-tailwindcss`, which is the only place the path can be resolved rather
+  than written by hand into every project's CSS. A site on 4.0 with a Tailwind theme
+  needs that line until the plugin resolves it.
+
+- cdd636a: Add first-party git metadata plugins and wire the documented `routes:resolved` hook.
+
+  `@bdocs/plugin-git-meta` exports `lastUpdatedPlugin()` and `contributorsPlugin()`, both backed by a single HEAD-cached `git log` scan. Route metadata gains `contributors`, and a new `page:footer:start` client slot lets plugins render content in the default page footer. The plugin's client entry exports customizable `Contributors`, `LastUpdated`, and `GitMetaFooter` components.
+
+  The official docs now use both plugins to show git-backed last-updated dates and contributor avatars.
+
+- 7a26134: Make image optimization opt-in instead of mandatory
+
+  The image optimizer was imported at the top of the plugin module and injected
+  unconditionally, which made image processing a requirement for every project.
+  `sharp` and `svgo` are peer dependencies of the optimizer, so every installation
+  resolved and downloaded those native binaries whether or not a single image was
+  ever processed.
+
+  Enable it explicitly when a project wants it:
+
+  ```ts
+  export default defineConfig({
+    experimental: {
+      imageOptimizer: true,
+      // or, to also tune which files are processed:
+      // imageOptimizer: { includePublic: false },
+    },
+  });
+  ```
+
+  The optimizer is resolved through `createRequire` inside the enabled branch, and
+  is no longer a dependency of the core package. A static import at module scope
+  would put the optimizer, and through it `sharp`, back into every load, so the
+  resolution has to stay guarded.
+
+  If the option is on but the package is not installed, the build warns and
+  continues without image optimization rather than failing: a project that asked
+  for an optimization gets a build without it, not a build that cannot produce.
+
+- be963fa: Stop the plugin lifecycle from loading the build pipeline.
+
+  `PluginLifecycleManager` imported the `Pipeline` step runner from the
+  `node/pipeline` barrel, and that barrel re-exports `createBuildPipeline` — which
+  imports every build step, and with them the SSG package and its tooling. The
+  first route generation of a dev server, and the first plugin hook of a build,
+  paid for a module graph they never used.
+
+  The step runner now lives in its own module (`node/pipeline/pipeline.ts`) with
+  no dependencies beyond its own types, and the lifecycle imports it from there.
+  The barrel keeps the same public surface, so nothing outside the core changes.
+
+  Measured on the `routes:resolved` hook path, module init for the plugin
+  lifecycle dropped from 3248 ms to 852 ms, and the hook test file that timed
+  out on a loaded machine now runs in 716 ms.
+
+- c2e2b6b: The highlighter's default engine is Oniguruma, and the JavaScript engine is gone from the default path.
+
+  Shiki's JavaScript regex engine produces different highlighting for identical input between runs, so code blocks can differ between builds.
+
+  Measured on unmodified 3.4/4.0 code, no Boltdocs code involved — upstream `@shikijs/core@3.23.0` with `@shikijs/engine-javascript` and the grammars from `@shikijs/langs`:
+
+  ```js
+  const start = Date.now();
+  ```
+
+  produced four distinct tokenizations across eight runs, among them merging `= Date.now()` into one span or splitting `now` out as a function call. Switching the same input to `@shikijs/engine-oniguruma` gave the same output six times out of six, and the most accurate of the variants.
+
+  Oniguruma is also the faster engine for the work a build actually does. Highlighting is 96% of an MDX compile — on the documentation site's 971 code blocks it is 8.5 s of a 12.9 s compile — and the engine was chosen on the strength of a startup cost that no longer held: the code claimed it cut the engine build from ~2.5 s to ~200 ms, and measured today it is 548 ms against 357 ms. The startup was the wrong cost to weigh.
+
+  |                   | Oniguruma | JavaScript |
+  | ----------------- | --------- | ---------- |
+  | Engine startup    | 548 ms    | 357 ms     |
+  | One code block    | 2.8 ms    | 9.9 ms     |
+  | 654 unique blocks | 1.8 s     | 6.4 s      |
+
+  A build pays the startup once and the blocks once per language, so the blocks decide. The documentation site's precompile went from 8.6 s to 6.6 s, and the build from 24.2 s to 21.6 s — measured across three interleaved A/B builds.
+
+  Set `theme.codeHighlighting.options.regexEngine` to `'javascript'` to trade that reproducibility and accuracy for the smaller startup — the right choice for a site with few code blocks.
+
+- e6837b3: Support every documented Shiki code theme, and drop 1.8 MB from the install.
+
+  Setting `theme.codeTheme` to `dracula`, `tokyo-night`, `nord`, `one-dark-pro` or `one-light` failed the build with `Theme 'dracula' not found`, even though `CodeTheme` accepts any string and the theme module's own comment listed all seven as supported. Only `github-light` and `github-dark` were ever registered.
+
+  All seven are now registered, so the five that were broken work. Verified end to end: a documentation build of 259 pages with `theme: 'dracula'` emits the canonical dracula palette (`#FF79C6`, `#50FA7B`, `#6272A4`, `#F8F8F2`) rather than falling back.
+
+  The themes are vendored rather than imported from `@shikijs/themes`, which ships 66 themes for 1.8 MB; the seven registered cost 196 KB. Default rendering is unchanged — the 259 pages are byte-identical to the previous output.
+
+- Align the docs and benchmark tooling with SPEC.md:
+  - Rewrite `theme-primitives.mdx` (EN + ES): no more references to the deleted
+    `engine/src/client` path or Tailwind-only guidance — the current contract is
+    `@bdocs/primitives` behavior plus native CSS in `@bdocs/theme-neutral`.
+  - Turn `fileRouting` off in the production docs config (§2.5/§2.6); external
+    pages are already declared in `pages-external/index.tsx`. It stays on in dev
+    because the HMR end-to-end tests create a temporary external route.
+  - Make the benchmark fixture match the §2.2 definition: 100 `.mdx` pages with 3
+    code blocks, 2 tables, 5 default-theme components and ~1,500 words each, and
+    no stale `boltdocs/client` layout.
+  - The benchmark gate no longer passes silently when the baseline was measured
+    on another machine; it requires an explicit `--allow-machine-mismatch`.
+  - New `pnpm benchmark:fixture` / `benchmark:fixture:gate` profile and gate the
+    SPEC-defined 100-page MDX fixture against `scripts/benchmarks/baseline-100.json`.
+    CI runs both, so §2.2 is enforced on every release instead of being a manual
+    command against the docs site.
+
+- 40a4c01: The benchmark gate has a baseline, and knows what it measured.
+
+  `scripts/benchmarks/baseline.json` did not exist, so the gate in SPEC §2.2
+  could never run: it wrote a baseline on the first invocation and had nothing
+  to compare against afterwards. There is one now, and it records the machine it
+  came from — the CPU model, the core count, the memory and the Node version.
+
+  A build time is a property of the machine as much as of the code, so the gate
+  compares only what it can compare. On the machine the baseline came from it
+  enforces the threshold; on another machine it says the comparison is not
+  meaningful and exits without a verdict, rather than failing a build on
+  hardware.
+
+  The three tests that live outside a package — the benchmark helpers' — had no
+  configuration to run under: they used the global `describe` and `it` that
+  `globals: true` provides, and there was no config that set it. They were dead
+  files, written and never run. They run now.
+
+- 40a4c01: The engine's stylesheet no longer assumes a CSS framework.
+
+  `reset.css` was written with Tailwind's `@apply`: seventeen rules that only
+  compile inside a Tailwind build. That is the one CSS framework assumption
+  SPEC §2.1 forbids, and it was in the engine.
+
+  The declarations are the same ones Tailwind compiled to, written out by hand —
+  `py-2` is half a rem, `text-[12px]` is twelve pixels, and
+  `!bg-primary-500/10` is
+  `color-mix(in oklab, var(--color-primary-500) 10%, transparent)`. A test now
+  fails if a framework directive or a hardcoded colour comes back.
+
+  The evidence that nothing moved: the documentation site's compiled stylesheet
+  is byte-identical before and after the rewrite — 180,067 bytes either way. The
+  comparison is between the two builds' CSS; no browser was involved.
+
+- cf79338: The type checker is clean, and the highlighting configuration has one type.
+
+  **The `CodeHighlightConfig` drift is gone.**
+
+  Three packages declared the same configuration with three different shapes:
+  the contract layer's open one, the pipeline's narrow one, and the processor's
+  own copy. The engine produced the first and handed it to functions that
+  expected the second, and the type checker said so — nine errors in the core,
+  reported for months, in a package whose `tsc --noEmit` nobody ran.
+
+  The contract layer's type is the public one and stays open by design: an
+  engine with its own colour model cannot be enumerated. The pipeline's
+  normalizer now reads that type and _narrows_ the theme to what it can use,
+  dropping a theme it cannot read rather than passing it on as a pair of
+  `undefined`s. The Shiki adapter does the same, and the cast that hid the
+  problem is gone.
+
+  **Two `tsconfig` files were not configuring anything.**
+
+  `@bdocs/unist-utils` and `@bdocs/processor-satteri` extended the repository's
+  root `tsconfig.json`, which is a solution file with no compiler options. The
+  type checker fell back to its defaults — no `module`, no `target`, no
+  `esModuleInterop` — and reported 39 errors that had nothing to do with the
+  code, while hiding the real ones. Both packages now configure themselves, and
+  the processor's 35 errors are 0.
+
+  **The search index types are a type alias.**
+
+  `SearchIndexParams` was an interface, and an interface has no implicit index
+  signature, so it was not assignable to the `Record<string, unknown>` the hook
+  chain threads its parameters through. The alias is, and the hook's own
+  signature accepts it.
+
+  **A renamed function was never updated.**
+
+  `@bdocs/theme-neutral`'s code block read `stateIsHighlighted`, which was
+  renamed to `isHighlighted` when the state module was split out. The call site
+  had been broken since; the type checker had been reporting it.
+
+  ### Evidence
+  - `tsc --noEmit` is clean in the core, the runtime, the contracts, the
+    primitives, the theme, the processor and the unist utils. The core went
+    from 9 errors to 0, the processor from 35 to 0, the theme from 4 to 0.
+  - Every package's tests pass; the documentation site builds.
+
+- 727f796: `@bdocs/theme-neutral` ships native CSS, and the core no longer advertises a stylesheet it never built.
+
+  ## The stylesheet is now plain CSS
+
+  `neutral.css` was a Tailwind v4 `@theme` block. Two things were wrong with that, and the second is the one that mattered:
+  - A `@theme` block only means anything inside Tailwind's own build. Read the file in a `<link>`, in webpack, or in a plain server and the tokens resolve to nothing.
+  - **Nothing ever loaded it.** The docs site ran on its own Tailwind tokens, and the neutral theme's stylesheet was compiled, published, and never rendered anywhere. It was a theme whose styling had never been executed.
+
+  It is replaced by `src/styles/`, plain CSS with an explicit `@import` chain:
+
+  ```text
+  styles/
+  ├── index.css               entry: tokens → base → components
+  ├── tokens.css              every colour, radius, font, shadow, dimension
+  ├── base.css                element defaults, scoped to `.bdocs-root`
+  └── components/*.css        one file per component
+  ```
+
+  Shipped as real files rather than a bundled asset, so the theme behaves the same in a plain `<link>` as in Vite. 7.9 kB total. Accessible at `@bdocs/theme-neutral/css`; `./css` now points there.
+
+  Tokens are plain custom properties, with the split made explicit:
+  - `--bdocs-*` — public. Override these. Never renamed without a major.
+  - `--_bdocs-*` — private. What the theme's own rules are written against, free to change in any release.
+
+  The private layer is what lets a public token be re-derived without asking every site to update. `--bdocs-bg` is what a site sets; `--_bdocs-surface` is what the rules consume. Retuning the theme's internal shades stops being a breaking change.
+
+  Dark mode follows `[data-theme='dark']` and `.dark`, and `prefers-reduced-motion` now collapses the motion tokens — previously a site had to override every transition individually.
+
+  ## Base styles are scoped, not global
+
+  `base.css` hangs off `.bdocs-root` instead of styling `body` and `:root` directly. Boltdocs renders inside a host page as often as it is the whole page, and a theme that rewrites the host's body background because it was imported is a theme nobody can install twice or embed. A test asserts no rule targets `html` or `body`.
+
+  ## Verification
+
+  `pnpm --filter @bdocs/theme-neutral verify:styles` loads the **built** stylesheet into a bare page — no bundler, no Tailwind, no build step to read it — and asserts computed values in Chromium. 17 checks across four pages: light, dark, narrow, and reduced motion.
+
+  It reads `getComputedStyle` rather than the stylesheet source, because a rule can be present and still lose the cascade, which is exactly the failure this check exists for. Two of the assertions are deliberately not token reads:
+  - a card surface must **follow** `--bdocs-bg` into dark mode, so a rule that hardcodes its colour fails;
+  - `--_bdocs-surface` must still **derive** from the public token after an override, so the private layer cannot quietly become a second source of truth.
+
+  Both were confirmed to fail when broken, rather than assumed to work. Needs `pnpm exec playwright install chromium` once; it is not wired into CI, to keep a browser download off the default path.
+
+  Two bugs surfaced while writing it, both in the check rather than the theme, and both recorded here because they are traps rather than typos:
+  - reading computed styles straight after flipping `data-theme` returns the **pre-transition** colour, because the cards transition `background-color`. The check waits for `document.getAnimations()`. Without that, a working dark mode looks broken.
+  - asserting on `<body>` instead of `.bdocs-root` fails by design: the theme deliberately does not restyle the host page.
+
+  ## `@bdocs/primitives` is unchanged
+
+  The primitives stay style-neutral by contract — they own structure, behaviour and state, and expose `data-*` for the theme to style. This change is entirely in the theme layer above them.
+
+  ## Status of the conversion
+
+  **1 of 46 components is converted** (`PageNav`). The rest still use Tailwind utility classes, and until they are converted the theme still needs a Tailwind build. Reporting that plainly rather than implying the port is done.
+
+  `packages/boltdocs-theme-neutral/tests/native-styles.test.ts` holds the line in the meantime: a converted component that grows a utility class again fails the suite instead of quietly reintroducing the dependency. The converted list is explicit — globbing would pass on day one and mean nothing while every file still has classes in it.
+
+  ## Removed
+  - `boltdocs/theme/neutral.css` — core exported this path, but the file was never built and never existed in `dist`. A consumer importing it got a resolve failure against a subpath the package advertised. The `./theme/neutral.css` export is gone; `./theme/reset.css` is unchanged, since the reset is a common base rather than a theme opinion.
+  - `packages/boltdocs-engine/src/client/base-theme.css` — 78 lines of `--bdocs-*` tokens that nothing imported. Its content now lives in `styles/tokens.css` and is actually shipped.
+
+  The docs page on vanilla CSS claimed Boltdocs ships these variables in `base-theme.css`. It now points at `@bdocs/theme-neutral/css`, which is true.
+
+- cc053a8: Converts the layout chrome to native CSS, with a visual harness that proves the UI did not change.
+
+  ## What is converted
+
+  The docs shell, the page header, and pagination and breadcrumbs — in both layers:
+  - `primitives/docs-layout`, `primitives/page-nav`, `primitives/breadcrumbs` — now structure only: a landmark, `data-*` state, a semantic class.
+  - `ui-base/page-nav`, `ui-base/breadcrumbs`, `docs-layout-default` — content and structure, no utility classes.
+
+  The primitives were the reason the theme still needed Tailwind at all. A primitive emitting `flex items-center gap-4` is not style-neutral however carefully the layer above it is written, so converting only the theme components would have left the dependency in place.
+
+  Direction travels as `data-direction`, and "this is the current crumb" as `data-active`. Those are state; the theme decides what state looks like.
+
+  ## Tokens, transcribed rather than chosen
+
+  `styles/tokens.css` is rebuilt as two layers: `--bdocs-*` public, `--_bdocs-*` private. The names are the vocabulary the components already used (`bg-surface`, `text-muted`, `border-subtle`), promoted from the consuming site's Tailwind config to tokens the theme owns — a theme that inherits its colours from whatever host installs it is not a theme.
+
+  Three values exist because the better-looking number was wrong, and the harness caught it:
+  - `--bdocs-line-height: 1.7`, not 1.65. Multiplied by every text size on the page; 1.65 moved every line of prose half a pixel.
+  - `--bdocs-radius-2xl: 1rem`. `--bdocs-radius-lg` is 0.875rem and `--bdocs-radius-xl` is 1.125rem; Tailwind's `rounded-2xl` is 1rem. Reaching for either resized every card by 2px.
+  - `--bdocs-ink-faint` / `--_bdocs-ink-faintest`. The alpha belongs to the colour, not to `opacity`: fading the element fades the chevron inside it too, and the two measure differently over the canvas.
+
+  ## `:where()` wraps the root class too
+
+  `base.css` had `.bdocs-root :where(a)`. That has specificity 0-1-0 — the `:where()` zeroes only the part it wraps — so it tied with `.text-muted` and won on source order, being imported after Tailwind. Every link in the theme turned brand-blue regardless of its class. Written `:where(.bdocs-root) :where(a)` it is 0-0-0, loses to any utility, and still applies when nothing else sets the property.
+
+  `:hidden` keeps `!important` on purpose: the one rule that must not lose is the one that keeps a hidden panel from occupying space.
+
+  ## Verification
+
+  `scripts/visual/` drives the built docs site in Chromium and compares it against the build it replaced.
+  - `snapshot.mjs` — screenshots, per viewport, per scroll position, per theme. 914 images across 36 pages.
+  - `styles.mjs` — computed styles for structural selectors, diffed between two builds. Answers "which property, on which element" instead of "something changed by 2%".
+  - `why.mjs` — walks the cascade including imported sheets and reports which rule wins and at what specificity.
+  - `measure-pagenav.mjs` — the exact boxes and type metrics of one component.
+
+  The measurements are findings, not decoration. The card came out 94px against the original's 78px because two `line-height` values were guessed; the caption wore the body colour because a component asked for `--_bdocs-ink-faint` while only `--bdocs-ink-faint` existed — an undefined `var()` invalidates its declaration without erroring, and the property silently inherits. The second one is now a unit test.
+
+  ## Open, and stated plainly
+
+  **Not pixel-identical yet.** Two differences remain against the original build:
+  - `index.html` (an external page, not theme-rendered): 21.9% on one mobile scroll position.
+  - `docs/guides/getting-started/configuration.html`: 2.7% on the first three desktop scroll positions — the sidebar shifts by about a pixel.
+
+  Both are small and neither is understood. They are listed rather than absorbed into a green tick.
+
+  **A pre-existing bug this conversion reproduces rather than fixes.** The docs' `@source` covers `node_modules/boltdocs/dist`, and the theme now lives in a workspace package that pnpm links outside `node_modules` — so Tailwind never scans it and utilities used only there are never emitted. `sm:text-sm` on the breadcrumbs and `hover:bg-surface` on the sidebar links were both absent from the built CSS, and the components rendered at their base styles. Adding the `@source` fixes it and changes the UI on ~900 screenshots, so it is deliberately **not** in this change; the breadcrumbs are pinned to the 12px that actually rendered rather than the 14px the markup asked for.
+
+  **39 of 63 components remain on utility classes.** They still need a Tailwind build. `tests/native-styles.test.ts` fails a converted component that grows a utility again, and prints the remaining count on every run.
+
+  Also found in passing, unrelated to CSS: the static output carries `<title>X</title>`. Titles are injected at runtime, so nothing prerenders them. That is an SEO problem, not a styling one, and it is not fixed here.
+
+- 597897b: Ship 11.7 MB fewer installed packages by depending on the Shiki packages actually used.
+
+  The core imported `shiki/core` and a few Shiki types, but declared the full `shiki` package, which carries `@shikijs/langs` (9.9 MB) and `@shikijs/themes` (1.8 MB) as ordinary dependencies. Of the 347 language grammars in `@shikijs/langs`, the highlighter could reach 39 — any other fence fell back to plain text — so roughly 8 MB of grammars was unreachable on every install.
+
+  The reachable grammars are now vendored inside the package and `shiki` is replaced by `@shikijs/core` plus the two engine packages, imported at their real paths. Highlighting output is unchanged: a documentation build of 259 pages containing 956 code blocks across 17 languages produces byte-identical HTML.
+
+- Updated dependencies [1413a37]
+- Updated dependencies [5f7a09c]
+- Updated dependencies [4fb6ed1]
+- Updated dependencies [d80c6e1]
+- Updated dependencies [cdd636a]
+- Updated dependencies [ffb5e55]
+- Updated dependencies [4fb6ed1]
+- Updated dependencies [9a4c13b]
+- Updated dependencies
+- Updated dependencies [4fb6ed1]
+- Updated dependencies [4fb6ed1]
+- Updated dependencies [80b8bba]
+- Updated dependencies [94aebbc]
+- Updated dependencies [59b5f67]
+- Updated dependencies [cf79338]
+- Updated dependencies [5f7a09c]
+- Updated dependencies [ffb5e55]
+- Updated dependencies
+  - @bdocs/contracts@0.2.0
+  - @bdocs/unist-utils@0.3.0
+  - @bdocs/processor-satteri@1.0.0
+  - @bdocs/ssg@0.6.0
+  - @bdocs/grammars@1.1.0
+  - @bdocs/highlight@1.1.0
+  - @bdocs/parser@1.2.1
+
 ## 3.4.1
 
 ### Patch Changes
@@ -454,7 +1737,6 @@
 - [`46e288d`](https://github.com/bolt-docs/boltdocs/commit/46e288d485bf50ae226a3b3c70c0a93040b8ae0c) Thanks [@jesusalcaladev](https://github.com/jesusalcaladev)! - Boltdocs 3.2.0 — Nitro Phase 1 performance optimizations
 
   ### Cache & Build Performance
-
   - **SSR output consolidated**: Moved from `.vite-react-ssg-temp/` to `.boltdocs/build/ssr/` — all build artifacts now live under a single `.boltdocs/` directory
   - **Server build skip preserved**: SSR output no longer deleted when client code hasn't changed, making warm builds skip the expensive SSR Vite bundle (~40s saved)
   - **Mtime cache in memory**: `getFileMtime()` now uses an in-memory TTL cache (2s) instead of `fs.statSync()` on every call — 5.9x faster for repeated stat calls
@@ -463,18 +1745,15 @@
   - **Dev gzip skipped**: `TransformCache` no longer gzips cache shards in dev mode
 
   ### MDX & Routes
-
   - **MDX cache key for dev**: Uses file path + mtime instead of content hash in dev mode — cache survives restarts when files haven't changed
   - **Bounded route parsing**: `Promise.all` replaced with `runWithConcurrency(32)` to prevent memory pressure and I/O contention
   - **docCache loaded flag**: `docCache.load()` skips disk read when already in memory
 
   ### Dev Server & HMR
-
   - **HMR O(1) module graph lookup**: Pre-built lowercase index replaces brute-force O(N) scan for faster content edits
   - **Prewarming with route priority**: Index pages and getting-started are prewarmed first; 150ms delay to avoid CPU contention with first page request
 
   ### Pipeline & Syntax Highlighting
-
   - **Pipeline parallel steps**: SEO validation and type generation run concurrently via `addParallelSteps()`
   - **Pipeline timing logs**: Per-step timing reported after build completion
   - **Critical CSS concurrency**: Beasties processor runs at `concurrency: min(cpus, 4)` instead of 1
@@ -539,7 +1818,6 @@
   inside Boltdocs core.
 
   ### Internal changes (no public surface for users)
-
   - `packages/boltdocs-engine/src/node/plugins/plugin-context.ts` — new module
     implementing the four APIs.
   - `PluginLifecycleManager.createContext()` — extended to inject them.
@@ -559,7 +1837,6 @@
   (`virtual:@my-plugin/...` or `virtual:my-plugin-...`).
 
   ### Out of scope (called out, parked for a later phase)
-
   - The `eager` flag on `add()` is accepted but not yet wired into the
     generated `boltdocs-entry.tsx`. Phase 7 (MDX transformer API) or a
     later Phase will pick it up to auto-inject plugin virtual imports.
@@ -619,7 +1896,6 @@
   boolean field.
 
   ### Internal changes
-
   - `packages/boltdocs-engine/src/shared/types.ts` — `PluginTransformMiddleware`,
     `PluginMiddlewareAPI`, `lazy?: boolean` on `SlotDeclaration`,
     `middleware` field on `BoltdocsPlugin`, `middleware` field on
@@ -749,7 +2025,6 @@
 - [`3cc3b45`](https://github.com/bolt-docs/boltdocs/commit/3cc3b451e59f533910b11fe69452f6d2720a2f0d) Thanks [@jesusalcaladev](https://github.com/jesusalcaladev)! - feat: Boltdocs v3.0.0 - Native Parser, Vercel Analytics, Giscus, and More
 
   ## Native Parser Acceleration (@bdocs/parser)
-
   - Zig-compiled binary for markdown parsing with WASM fallback
   - 5-6x faster than JS parser (10.5x on 75-file dataset)
   - Cold start reduced from 3.67s to 349ms (90.5% reduction)
@@ -757,27 +2032,23 @@
   - Auto-download via postinstall script from GitHub Releases
 
   ## Vercel Analytics + Speed Insights
-
   - Zero-config integration via `integrations.vercel.analytics` and `integrations.vercel.speedInsights`
   - Scripts injected only in production builds
   - Full documentation in English and Spanish
 
   ## Giscus Comment System
-
   - Complete component with theme sync (dark/light)
   - Configurable via `integrations.feedback.giscus`
   - Support for repo, category, mapping, reactions, custom themes
   - Full documentation in English and Spanish
 
   ## Custom Feedback System
-
   - GitHub Discussions-powered feedback
   - Middleware for dev/preview environments
   - Adapters for Vercel, Netlify, AWS, and Web platforms
   - Full documentation in English and Spanish
 
   ## Ask AI Plugin Overhaul
-
   - Complete handler and adapter rewrite
   - New sidebar panel + floating bubble UI
   - Dedicated MarkdownRenderer component
@@ -785,7 +2056,6 @@
   - SSE streaming with batching and AbortSignal support
 
   ## UI/UX Improvements
-
   - Card component: mouse spotlight effect
   - Navbar: Ask AI button integration
   - Search: Cmd+J shortcut, result highlighting
@@ -794,7 +2064,6 @@
   - Breadcrumbs: typed routing
 
   ## SEO/Meta Improvements
-
   - OG image resolution with siteUrl
   - Canonical URLs
   - Structured SEO tags
@@ -802,19 +2071,16 @@
   - Twitter card dynamic selection
 
   ## Cache System Refactor
-
   - TransformCache with LRU + gzipped shards
   - BackgroundQueue for async persistence
   - Image optimizer cache with stale pruning
 
   ## Dev Server/HMR Improvements
-
   - Link tree regeneration on file events
   - boltdocs:config-update custom event
   - Case-insensitive module invalidation
 
   ## Node 26+ Compatibility
-
   - DEP0205 warning suppression in CLI
 
 - [`bbd7954`](https://github.com/bolt-docs/boltdocs/commit/bbd79543b8a8dbe17695c68e1791a2e38607ab9c) Thanks [@jesusalcaladev](https://github.com/jesusalcaladev)! - Restructure integrations config into sections (breaking change)

@@ -6,7 +6,7 @@ test "yaml mini test" {
     const allocator = testing.allocator;
 
     const input = "title: YAML Test\ndraft: true\ncount: 42\n";
-    
+
     var result = try yaml.parseYaml(allocator, input);
     defer result.deinit(allocator);
 
@@ -21,7 +21,7 @@ test "yaml mini test" {
     const count = result.object.get("count");
     try testing.expect(count != null);
     try testing.expectEqual(@as(i64, 42), count.?.int_value);
-    
+
     std.debug.print("count() = {d}\n", .{result.object.count()});
     var iter = result.object.iterator();
     while (iter.next()) |entry| {

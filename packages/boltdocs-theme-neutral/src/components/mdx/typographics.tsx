@@ -1,6 +1,6 @@
-import { Link } from '../composition/link'
-import { cn } from '../../utils/cn'
-import { Heading as HeadingPrimitive } from '../composition/heading'
+import { Link } from '@bdocs/ui-base/composition'
+import { cn } from '@bdocs/ui-base'
+import { Heading as HeadingPrimitive } from '@bdocs/ui-base/composition'
 
 const Anchor = ({
   href,

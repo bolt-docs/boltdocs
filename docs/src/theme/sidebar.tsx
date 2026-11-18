@@ -1,4 +1,4 @@
-import { Sidebar as SidebarPrimitive } from '@bdocs/theme-neutral/composition'
+import { Sidebar as SidebarPrimitive } from '@bdocs/ui-base/composition'
 import { X } from 'lucide-react'
 
 import { I18nSelector } from '@/theme/i18n-selector'

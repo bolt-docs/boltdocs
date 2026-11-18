@@ -1,0 +1,43 @@
+---
+title: Theme neutral
+sidebarPosition: 2
+description: El tema por defecto de Boltdocs — cómo instalarlo, qué exporta y cómo lo resuelve el motor.
+---
+
+`@bdocs/theme-neutral` es el tema por defecto en Boltdocs 4.0. Aporta el `surface` del tema, el layout de documentación ensamblado, los componentes MDX y los valores visuales por defecto. La capa de UI reutilizable vive en su propio paquete, `@bdocs/ui-base`, y el comportamiento accesible en `@bdocs/primitives`; el tema re-exporta su API pública para que los imports existentes sigan funcionando.
+
+## Instalación
+
+```bash
+pnpm add @bdocs/theme-neutral @bdocs/runtime @bdocs/ui-base @bdocs/primitives @bdocs/react-binding
+```
+
+El scaffold [create-boltdocs](https://www.npmjs.com/package/create-boltdocs) instala este conjunto por vos.
+
+## El tema por defecto y por qué es obligatorio
+
+El motor resuelve el paquete del tema desde tu configuración `themePackage`. Si no lo defines, el valor por defecto es `'@bdocs/theme-neutral'`. Un tema no es opcional: el entry generado importa `surface` desde `${themePackage}/surface` y lo pasa a `createRoutes`, así que un sitio sin un tema instalado falla con una dependencia faltante.
+
+```ts
+// boltdocs.config.ts
+import { defineConfig } from 'boltdocs'
+
+export default defineConfig({
+  themePackage: '@bdocs/theme-neutral',
+})
+```
+
+## Exports del paquete
+
+| Subruta | Contenido |
+| --- | --- |
+| `.` | `surface`, `DocsLayout`, `DocPage`, componentes MDX y una re-exportación de toda la API de `@bdocs/ui-base`. |
+| `./composition` | Re-exportación retrocompatible de `@bdocs/ui-base/composition`. El código nuevo debe importar desde ese paquete. |
+| `./surface` | El objeto `surface` con el que renderiza el motor. |
+| `./css` | La hoja de estilos de los componentes del tema (CSS nativo). |
+| `./reset` | El reset de página y la base de accesibilidad. |
+| `./package.json` | El manifiesto del paquete. |
+
+## CSS nativo, no Tailwind
+
+El tema incluye CSS nativo, no utilidades de Tailwind. Cada regla es una clase real en su directorio `src/styles/`, de modo que un tema personalizado puede sobrescribirla sin reproducir un nombre de clase utilitaria generada. Consulta [Estilos](/docs/es/theme/styling) para los imports y los tokens.

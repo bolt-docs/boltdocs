@@ -1,5 +1,5 @@
-import { Button as ButtonPrimitive } from '@bdocs/theme-neutral/composition'
-import type { ButtonProps as PrimitiveButtonProps } from '@bdocs/theme-neutral/composition'
+import { Button as ButtonPrimitive } from '@bdocs/ui-base/composition'
+import type { ButtonProps as PrimitiveButtonProps } from '@bdocs/ui-base/composition'
 import { cn } from '@bdocs/theme-neutral'
 
 export type ButtonVariant =

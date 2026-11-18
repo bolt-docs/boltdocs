@@ -5,6 +5,7 @@ export default function mathPlugin(): BoltdocsPlugin {
   return {
     name: 'boltdocs-plugin-math',
     version: '0.1.0',
+    boltdocsVersion: '>=3.4.0',
     hooks: {
       transformSource,
     },

@@ -1,0 +1,28 @@
+---
+title: Support and EOL
+sidebarPosition: 7
+description: How Boltdocs versions majors, migrates breaking changes, and supports the previous major during its end-of-life security window.
+---
+
+Boltdocs follows semver: breaking changes ship only in a major version, with a migration guide. Public API stays stable within a major.
+
+## Major upgrades are all-or-nothing
+
+You either stay on your current major or migrate to the next one. A new major does **not** carry a `legacy/` facade for the one before it — that mechanism existed only for `3.x → 4.0.0`, and it is removed now that 4.0 has shipped. There is never a permanently maintained compatibility layer keeping two majors alive in parallel, and a major never accumulates the deprecations of earlier ones.
+
+Every major ships with a complete migration guide (see [Upgrading to 4.0](/docs/guides/operations/upgrading-4-0)) with `before → after` examples. Teams are expected to land within one version window.
+
+## End-of-life security window
+
+Teams that cannot migrate within a single cycle are not abandoned. The previous stable major keeps an **end-of-life security window**:
+
+- Only **critical security fixes** are backported.
+- No new features, no new API surface, no resurrected removed APIs.
+- The previous major's surface never grows the current major.
+- The window ends at a published EOL date, announced with the major that supersedes it.
+
+This is a security obligation, not a second feature track. It does not reintroduce compatibility shims or keep two majors under active development.
+
+## Reporting a security issue
+
+Report vulnerabilities privately to the maintainers rather than opening a public issue. Include the affected major, the exact version, and a reproduction. Fixes are released for the current major and, while its EOL window is open, for the previous stable major as well.

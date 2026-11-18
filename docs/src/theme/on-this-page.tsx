@@ -1,4 +1,4 @@
-import { OnThisPage as OTP } from '@bdocs/theme-neutral/composition'
+import { OnThisPage as OTP } from '@bdocs/ui-base/composition'
 import type { OnThisPageProps } from '@bdocs/theme-neutral'
 import { Pencil, CircleHelp, TextAlignStart } from 'lucide-react'
 import { CopyMarkdown } from '@/theme/copy-markdown'

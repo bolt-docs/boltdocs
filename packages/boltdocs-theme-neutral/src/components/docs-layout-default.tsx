@@ -1,16 +1,16 @@
 import type { ReactNode } from 'react'
-import { DocsLayout as DocsLayoutPrimitive } from './composition/docs-layout'
-import { Navbar } from './ui-base/navbar'
-import { Sidebar } from './ui-base/sidebar'
-import { Breadcrumbs } from './ui-base/breadcrumbs'
-import { PageNav } from './ui-base/page-nav'
-import { ErrorBoundary } from './ui-base/error-boundary'
-import { CopyMarkdown } from './ui-base/copy-markdown'
-import { OnThisPage } from './ui-base/on-this-page'
-import { useRoutes } from '@bdocs/runtime'
+import { DocsLayout as DocsLayoutPrimitive } from '@bdocs/ui-base/composition'
+import { Navbar } from '@bdocs/ui-base'
+import { Sidebar } from '@bdocs/ui-base'
+import { Breadcrumbs } from '@bdocs/ui-base'
+import { PageNav } from '@bdocs/ui-base'
+import { ErrorBoundary } from '@bdocs/ui-base'
+import { CopyMarkdown } from '@bdocs/ui-base'
+import { OnThisPage } from '@bdocs/ui-base'
+import { useRoutes, PluginSlot } from '@bdocs/runtime'
 import { useConfig } from '@bdocs/runtime'
 import { Outlet } from '@bdocs/runtime'
-import { Giscus } from './ui-base/index'
+import { Giscus } from '@bdocs/ui-base'
 import type { ComponentRoute } from '@bdocs/runtime'
 
 interface DocsLayoutThemeProps {
@@ -18,12 +18,11 @@ interface DocsLayoutThemeProps {
 }
 
 /**
- * Default docs layout — composes the visual primitives and delegates
- * sub-area routing to them. Slot rendering (plugin injections at
- * `navbar:end`, `sidebar:bottom`, `docs-content:top`, etc.) is handled
- * internally by each primitive so the layout itself does no slot "magic".
+ * Default docs layout — composes the visual primitives and places the two
+ * page-level plugin slots around the content. The other slots live in the
+ * navbar, sidebar and search dialog, next to what they decorate.
  *
- * A custom layout can reuse any primitive and the slot wiring just works.
+ * A custom layout can reuse any primitive and place the same slot hosts.
  *
  * Styling is in `styles/components/docs-layout.css` and
  * `styles/components/page-header.css`. Nothing here is a utility class.
@@ -62,9 +61,13 @@ function DocsLayoutComponent({ children }: DocsLayoutThemeProps) {
               </DocsLayoutPrimitive.Header>
             )}
 
+            <PluginSlot name="page:before" />
+
             <ErrorBoundary>
               <div className="bdocs-prose">{children ?? <Outlet />}</div>
             </ErrorBoundary>
+
+            <PluginSlot name="page:after" />
 
             {!isCollectionPage && <Giscus />}
 

@@ -83,6 +83,18 @@ export default defineConfig({
     }),
   ],
   siteUrl: 'https://boltdocs.vercel.app/',
+  security: {
+    // Reviewed local child-process use, all from trusted first-party plugins:
+    //  - mermaid spawns the current Node binary with its own render worker.
+    //  - git-meta uses execFile("git") to read local history for contributor
+    //    and last-updated metadata.
+    // Every other audit finding still blocks build and dev.
+    auditAllowWarnings: [
+      'boltdocs-plugin-mermaid',
+      'boltdocs-plugin-contributors',
+      'boltdocs-plugin-last-updated',
+    ],
+  },
   experimental: {
     // View Transitions are kept off for the official docs — the default layout
     // and navigation should behave identically for every visitor.
@@ -90,10 +102,10 @@ export default defineConfig({
       enabled: false,
       types: ['page'],
     },
-    // File routing maps literal files in pages-external/ to external routes
-    // (e.g. roadmap.mdx → /roadmap). Auxiliary components live in the
-    // underscore-prefixed _sections/ folder so they are not treated as routes.
-    fileRouting: true,
+    // SPEC §2.5/§2.6: experimental flags stay off in the production docs so
+    // every visitor gets the same behavior. The dev server keeps it on because
+    // the HMR end-to-end tests create a temporary route under pages-external/.
+    fileRouting: process.env.NODE_ENV !== 'production',
   },
   seo: {
     indexing: 'all',
@@ -131,7 +143,7 @@ export default defineConfig({
       { id: 'integrations', text: { en: 'Integrations', es: 'Integraciones' } },
       { id: 'api', text: 'API' },
       { id: 'plugins', text: { en: 'Plugins', es: 'Plugins' } },
-      { id: 'components', text: { en: 'Components', es: 'Componentes' } },
+      { id: 'theme', text: { en: 'Theme', es: 'Tema' } },
       { id: 'releases', text: { en: 'Releases', es: 'Lanzamientos' } },
     ],
     navbar: [

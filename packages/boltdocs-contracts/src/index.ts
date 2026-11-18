@@ -4,6 +4,7 @@ export * from './global'
 export * from './highlighting'
 export * from './plugins'
 export * from './routes'
+export * from './sorting'
 export * from './structured-data'
 
 export const CONTRACTS_API_VERSION = 1 as const

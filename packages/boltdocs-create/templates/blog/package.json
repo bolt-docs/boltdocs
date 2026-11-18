@@ -10,8 +10,9 @@
     "doctor": "boltdocs doctor"
   },
   "dependencies": {
-    "@bdocs/theme-neutral": "^1.0.0",
-    "@bdocs/runtime": "^1.0.0",
+    "@bdocs/theme-neutral": "^2.0.0",
+    "@bdocs/runtime": "^1.1.0",
+    "@bdocs/react-binding": "^1.1.0",
     "react": "^19.2.5",
     "react-dom": "^19.2.5",
     "{{iconLibraryPackage}}": "{{iconLibraryVersion}}"
@@ -29,7 +30,9 @@
   "pnpm": {
     "onlyBuiltDependencies": [
       "@swc/core",
-      "esbuild"
+      "esbuild",
+      "@bdocs/parser",
+      "koffi"
     ]
   }
 }

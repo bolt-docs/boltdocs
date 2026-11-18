@@ -15,7 +15,7 @@
  */
 
 export { cn, composeRenderProps, filterDOMProps } from './utils'
-export type { PrimitiveTag, PropsOf, RenderProps } from './utils'
+export type { ClassValue, PrimitiveTag, PropsOf, RenderProps } from './utils'
 
 export {
   FOCUSABLE_SELECTOR,
@@ -23,6 +23,7 @@ export {
   getFocusableElements,
   hideSiblings,
   lockScroll,
+  stopPropagationIn,
   trapTab,
 } from './focus'
 
@@ -68,9 +69,16 @@ export type {
   SubmenuTriggerProps,
 } from './menu'
 
-export { ListBox, ListBoxItem } from './collection'
+export {
+  getListBoxOptionId,
+  ListBox,
+  ListBoxContext,
+  ListBoxItem,
+  useListBox,
+} from './collection'
 export type {
   ListBoxItemProps,
+  ListBoxItemRenderProps,
   ListBoxProps,
   ListBoxRenderProps,
 } from './collection'
@@ -94,3 +102,43 @@ export type {
   BreadcrumbsProps,
   BreadcrumbsSeparatorProps,
 } from './breadcrumbs'
+
+export { Disclosure, DisclosurePanel, DisclosureTrigger } from './disclosure'
+export type {
+  DisclosureProps,
+  DisclosureRenderProps,
+  DisclosureTriggerProps,
+  DisclosurePanelProps,
+} from './disclosure'
+
+export { Group } from './group'
+export type { GroupProps } from './group'
+
+export { ErrorBoundary } from './error-boundary'
+export type { ErrorBoundaryProps, FallbackProps } from './error-boundary'
+
+export {
+  getItemId,
+  ScrollSpyProvider,
+  useActiveAnchor,
+  useActiveAnchors,
+  useActiveIndicator,
+  useAnchorNavigation,
+  useAnchorScroll,
+  useScrollSpyItems,
+} from './scroll-spy'
+export type {
+  ScrollSpyInfo,
+  ScrollSpyItem,
+  ScrollSpyProps,
+} from './scroll-spy'
+
+export { Tab, TabList, TabPanel, Tabs } from './tabs'
+export type {
+  TabListProps,
+  TabPanelProps,
+  TabProps,
+  TabsProps,
+  TabRenderProps,
+  TabsRenderProps,
+} from './tabs'

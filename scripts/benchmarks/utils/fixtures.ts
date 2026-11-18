@@ -3,6 +3,8 @@ import path from 'node:path'
 import os from 'node:os'
 
 export interface FixtureOptions {
+  /** Where to create the temp directory. Defaults to the OS temp dir. */
+  baseDir?: string
   fileCount: number
   contentComplexity: 'simple' | 'medium' | 'complex'
   includeCodeBlocks: boolean
@@ -11,36 +13,36 @@ export interface FixtureOptions {
   includeMdxComponents: boolean
 }
 
+/**
+ * SPEC §2.2 benchmark definition: 100 MDX pages, ~5 custom components, 3 code
+ * blocks, 2 tables and ~1,500 words each, with the default theme and no
+ * external plugins. Keep this in sync with the spec before changing baselines.
+ */
 const DEFAULT_OPTIONS: FixtureOptions = {
   fileCount: 100,
   contentComplexity: 'medium',
   includeCodeBlocks: true,
   includeTables: true,
   includeHtml: true,
-  includeMdxComponents: false,
+  includeMdxComponents: true,
 }
 
 export function createFixtureDir(
   options: Partial<FixtureOptions> = {},
 ): string {
   const opts = { ...DEFAULT_OPTIONS, ...options }
-  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'boltdocs-bench-'))
-
-  for (let i = 1; i <= opts.fileCount; i++) {
-    const content = generateMarkdown(i, opts)
-    fs.writeFileSync(path.join(dir, `page-${i}.md`), content)
-  }
-
-  const layoutDir = path.join(dir, 'docs')
-  fs.mkdirSync(layoutDir, { recursive: true })
-  fs.writeFileSync(
-    path.join(layoutDir, 'layout.tsx'),
-    `import { DocsLayout } from 'boltdocs/client'
-export default function Layout({ children }: { children: React.ReactNode }) {
-  return <DocsLayout>{children}</DocsLayout>
-}`,
+  const dir = fs.mkdtempSync(
+    path.join(opts.baseDir ?? os.tmpdir(), 'boltdocs-bench-'),
   )
 
+  const extension = opts.includeMdxComponents ? 'mdx' : 'md'
+  for (let i = 1; i <= opts.fileCount; i++) {
+    const content = generateMarkdown(i, opts)
+    fs.writeFileSync(path.join(dir, `page-${i}.${extension}`), content)
+  }
+
+  // The default theme supplies the layout. No `docs/layout.tsx` and no
+  // `boltdocs/client` import: that entry point no longer exists.
   return dir
 }
 
@@ -63,6 +65,12 @@ export function cleanupFixtureDir(dir: string): void {
 
 function generateMarkdown(index: number, opts: FixtureOptions): string {
   const parts: string[] = []
+  // ~1,500 words per page as required by the SPEC §2.2 benchmark definition.
+  const filler = Array.from(
+    { length: 12 },
+    (_, paragraph) =>
+      `Paragraph ${paragraph + 1} of benchmark page ${index} explains how documentation authors use MDX to compose headings, prose, code examples, tables and reusable components. The quick brown fox jumps over the lazy dog while the benchmark measures how quickly the pipeline turns this content into a static site. Consistency matters more than variety here: every generated page carries the same structure so a regression in the cold build is attributable to the framework, not to the fixture.`,
+  ).join('\n\n')
 
   parts.push(`---
 title: Benchmark Page ${index}
@@ -76,7 +84,7 @@ This is benchmark page ${index} with ${opts.contentComplexity} complexity.
 
 ## Section A
 
-Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.
+${filler}
 
 - Item one with **bold text**
 - Item two with *italic text*
@@ -133,7 +141,15 @@ export default result
 | Feature B | Pending | Medium | Generated |
 | Feature C | Draft | Low | Benchmark |
 | Feature D | Active | High | Test data |
-| Feature E | Active | Medium | Page ${index} |`)
+| Feature E | Active | Medium | Page ${index} |
+
+### Metrics Table
+
+| Metric | Value | Target |
+| :--- | ---: | ---: |
+| Cold build | ${index} ms | 1000 ms |
+| Warm build | ${index / 2} ms | 100 ms |
+| Pages | ${index} | 100 |`)
   }
 
   if (opts.includeHtml) {
@@ -149,6 +165,23 @@ export default result
   <summary>Expand for details</summary>
   <p>Hidden content for page ${index} with additional information.</p>
 </details>`)
+  }
+
+  if (opts.includeMdxComponents) {
+    // Five custom component usages from the default MDX component map.
+    parts.push(`
+### Components
+
+<Callout variant="info" title="Benchmark note">
+  This callout is one of five custom component usages on page ${index}.
+</Callout>
+
+<Cards>
+  <Card title="First ${index}">A generated card with a short body.</Card>
+  <Card title="Second ${index}">Another generated card.</Card>
+</Cards>
+
+<Field name="page" type="number" description="The generated page index." />`)
   }
 
   parts.push(`

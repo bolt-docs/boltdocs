@@ -1,0 +1,27 @@
+---
+title: Theme
+sidebarPosition: 1
+description: The theme is the UI layer of Boltdocs 4.0; @bdocs/theme-neutral is the default theme the engine renders with.
+---
+
+A Boltdocs theme is the visual and component layer of a site. The engine builds the route table and mounts the providers; the theme draws the result. Boltdocs 4.0 ships **@bdocs/theme-neutral** as the default theme, but a theme is just an npm package — you can install a different one or build your own.
+
+## What a theme owns
+
+A theme is responsible for four things:
+
+- **Layout** — the page shell: navbar, sidebar, content column, and the right-rail table of contents.
+- **MDX components** — the components authors use inside `.mdx` files, such as callouts, cards, fields, and code blocks.
+- **Styling** — the stylesheet and the design tokens. The theme owns both the component CSS and the reset; the engine ships no CSS in 4.0.
+- **The `surface` object** — the set of components the engine renders with, exported from `<theme-package>/surface`.
+
+## How it relates to the runtime and primitives
+
+The theme does not reimplement framework behavior. Navigation state, locales, routing, and the client contexts live in `@bdocs/runtime`; accessible, style-neutral building blocks live in `@bdocs/primitives`. A theme composes those and adds the visuals. It never bundles a router of its own, and it never reads a `virtual:boltdocs-*` module — the per-site artifacts those modules carry arrive through `registerSiteBridge()` in `@bdocs/runtime`.
+
+## In this section
+
+- [Theme neutral](/docs/theme/theme-neutral) — the default theme, its exports, and how the engine resolves it.
+- [Components](/docs/theme/components) — the layout components, MDX components, and UI primitives the theme provides.
+- [Styling](/docs/theme/styling) — the stylesheet, the reset, and the design tokens.
+- [Custom theme](/docs/theme/custom-theme) — build and configure a second theme package.

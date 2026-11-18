@@ -48,6 +48,25 @@ describe('SearchField', () => {
     expect(onClear).toHaveBeenCalledTimes(1)
   })
 
+  it('clears an uncontrolled value when the clear button is pressed', async () => {
+    const onChange = vi.fn()
+    const user = userEvent.setup()
+    render(
+      <SearchField
+        aria-label="Search"
+        onClear={() => {}}
+        onChange={onChange}
+      />,
+    )
+    const input = screen.getByRole('searchbox', { name: 'Search' })
+    await user.type(input, 'abc')
+    await user.click(screen.getByRole('button', { name: 'Clear search' }))
+
+    expect(input).toHaveValue('')
+    expect(onChange).toHaveBeenLastCalledWith('')
+    expect(screen.queryByRole('button', { name: 'Clear search' })).toBeNull()
+  })
+
   it('announces the result count politely', () => {
     render(
       <SearchField
@@ -56,7 +75,11 @@ describe('SearchField', () => {
         resultMessage={(n) => `${n} results`}
       />,
     )
-    expect(screen.getByRole('status')).toHaveTextContent('7 results')
+    const status = screen.getByRole('status')
+    expect(status).toHaveTextContent('7 results')
+    // Announced but never painted, without depending on a Tailwind `sr-only`
+    // class that a native-CSS theme does not ship.
+    expect(status).toHaveStyle({ position: 'absolute', width: '1px' })
   })
 })
 
@@ -260,5 +283,86 @@ describe('ListBox action without selection', () => {
       </ListBox>,
     )
     expect(screen.getAllByRole('option')).toHaveLength(3)
+  })
+
+  it('marks only the active option as focused', () => {
+    render(
+      <ListBox items={['a', 'b', 'c'] as string[]} activeIndex={1}>
+        {(item) => (
+          <ListBoxItem data-key={item}>
+            {({ isFocused }) => (
+              <span data-focused={isFocused || undefined}>{item}</span>
+            )}
+          </ListBoxItem>
+        )}
+      </ListBox>,
+    )
+    const focused = screen
+      .getAllByRole('option')
+      .filter((option) => option.querySelector('[data-focused]'))
+    expect(focused).toHaveLength(1)
+    expect(focused[0]).toHaveTextContent('b')
+  })
+
+  it('supports an explicit index on hand-written options', () => {
+    render(
+      <ListBox activeIndex={1}>
+        <ListBoxItem index={0}>a</ListBoxItem>
+        <ListBoxItem index={1}>
+          {({ isFocused }) => (
+            <span data-focused={isFocused || undefined}>b</span>
+          )}
+        </ListBoxItem>
+      </ListBox>,
+    )
+    const options = screen.getAllByRole('option')
+    expect(options[0]).not.toHaveAttribute('data-focused')
+    expect(options[1].querySelector('[data-focused]')).not.toBeNull()
+    expect(options[1]).toHaveAttribute(
+      'id',
+      `${screen.getByRole('listbox').id}-option-1`,
+    )
+  })
+
+  it('derives option ids so aria-activedescendant needs no manual wiring', () => {
+    render(
+      <ListBox id="results" items={['a', 'b'] as string[]} activeIndex={1}>
+        {(item) => <ListBoxItem data-key={item}>{item}</ListBoxItem>}
+      </ListBox>,
+    )
+    expect(screen.getAllByRole('option')[1]).toHaveAttribute(
+      'id',
+      'results-option-1',
+    )
+  })
+
+  it('derives the combobox active descendant from listBoxId and activeIndex', () => {
+    render(
+      <Autocomplete
+        aria-label="Search"
+        listBoxId="results"
+        activeIndex={2}
+        isOpen
+      />,
+    )
+    expect(screen.getByRole('combobox')).toHaveAttribute(
+      'aria-activedescendant',
+      'results-option-2',
+    )
+  })
+
+  it('keeps its own aria wiring when a caller passes conflicting props', () => {
+    render(
+      <Autocomplete
+        aria-label="Search"
+        {...({ role: 'textbox', 'aria-expanded': false } as Record<
+          string,
+          unknown
+        >)}
+        isOpen
+      />,
+    )
+    const input = screen.getByRole('combobox')
+    expect(input).toHaveAttribute('aria-expanded', 'true')
   })
 })

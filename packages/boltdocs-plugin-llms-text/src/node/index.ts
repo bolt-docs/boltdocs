@@ -110,6 +110,7 @@ export default function llmsTextPlugin(
   return createPlugin({
     name: 'boltdocs-plugin-llms-text',
     version: '0.1.0',
+    boltdocsVersion: '>=3.4.0',
     hooks: {
       // `build:generate` receives the absolute output directory from the
       // core pipeline after SSG has finalized it. Using `ctx.outDir` from a

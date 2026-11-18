@@ -5,6 +5,9 @@
       "dependsOn": ["^build"],
       "outputs": ["dist/**"]
     },
+    "fixture-site#build": {
+      "outputs": []
+    },
     "dev": {
       "cache": false,
       "persistent": true

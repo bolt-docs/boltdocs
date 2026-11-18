@@ -1,0 +1,32 @@
+---
+title: Tema personalizado
+sidebarPosition: 5
+description: Cómo crear y configurar un segundo paquete de tema para Boltdocs.
+---
+
+Un tema es un paquete npm corriente, no un fork del motor. Para usar el tuyo, indícalo en `themePackage` y dale la misma forma que `@bdocs/theme-neutral`.
+
+## Configura el paquete del tema
+
+```ts
+// boltdocs.config.ts
+import { defineConfig } from 'boltdocs'
+
+export default defineConfig({
+  themePackage: '@my-org/boltdocs-theme',
+})
+```
+
+El motor resuelve este paquete desde tu proyecto e importa su surface de rutas desde `<pkg>/surface`. Ese import es obligatorio: el entry generado hace `import { surface } from '<pkg>/surface'` y pasa el objeto a `createRoutes`.
+
+## Qué debe exportar el paquete
+
+- Exporta un objeto `surface` desde la subruta `/surface`. Aporta los componentes que dibuja el motor —el layout, el shell frame, la página del documento, el mapa de componentes MDX, el límite de errores y la lista de colecciones— siguiendo la forma del surface del tema por defecto. Los slots de plugins **no** son una entrada del surface: montalos con `PluginSlot` de `@bdocs/runtime`.
+- Expón una subruta `./css` para la hoja de estilos y `./reset` si incluyes un reset.
+- Depende de `@bdocs/runtime`, `@bdocs/primitives`, `@bdocs/ui-base`, `@bdocs/react-binding` y `@bdocs/contracts`. Juntos aportan el router y los contextos, el comportamiento accesible, la UI reutilizable con CSS nativo, la raíz del cliente React y los tipos compartidos; reimplementarlos supondría copiar el framework.
+
+## Módulos virtuales y el site bridge
+
+Un tema no puede importar un módulo `virtual:boltdocs-*`. Esos módulos los resuelve el pipeline Vite de Boltdocs, al que solo puede acceder el motor; un paquete independiente no tiene forma de resolverlos.
+
+Los artefactos por sitio que contienen —el registro de iconos, el fetcher de código fuente de página, el índice de búsqueda, el `layout.tsx` del sitio y los slots de cliente de plugins— los registra el motor mediante `registerSiteBridge()` en `@bdocs/runtime`. Léelos de vuelta en el tema con `getSiteIcons()`, `getPageSourceFetcher()`, `getSearchDataFetcher()`, `getSiteLayout()` y `getClientSlots()`. Nunca referencies un módulo virtual por su nombre dentro de un tema.

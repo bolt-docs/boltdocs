@@ -1,0 +1,58 @@
+---
+title: Benchmarks y gates de regresión
+sidebarPosition: 5
+description: Cómo Boltdocs mide el rendimiento de build y dev, y los gates de CI que evitan regresiones.
+---
+
+El rendimiento es un contrato, no una impresión. Boltdocs mide tres caminos distintos en cada release y rechaza regresiones contra baselines commiteadas.
+
+## Los tres modos
+
+| Modo | Qué mide | Script | Baseline |
+| --- | --- | --- | --- |
+| **Cold** | Un build de producción completo desde cero | `pnpm benchmark` | `scripts/benchmarks/baseline.json` |
+| **Warm** | El arranque del servidor de dev con caché caliente | `pnpm benchmark:dev` | `scripts/benchmarks/baseline-warm.json` |
+| **Incremental** | Un rebuild después de tocar un archivo de contenido | `pnpm benchmark:incremental` | `scripts/benchmarks/baseline-incremental.json` |
+
+Cada corrida imprime los tiempos por fase y escribe un reporte JSON en `.boltdocs/benchmarks/`. El gate compara el reporte más reciente contra su baseline:
+
+```bash
+pnpm benchmark:gate              # cold
+pnpm benchmark:dev:gate          # warm
+pnpm benchmark:incremental:gate  # incremental
+```
+
+Un build más de un 10% más lento que la baseline se rechaza. Las mejoras siempre se aceptan y no bajan la vara silenciosamente: actualizá una baseline de forma deliberada, en su propio commit, cuando un cambio realmente desplaza el piso de rendimiento.
+
+## El fixture de 100 páginas
+
+Las mediciones cold usan un fixture generado de 100 páginas MDX en vez del sitio de documentación, para que los resultados no dependan del contenido de la docs:
+
+```bash
+pnpm benchmark:fixture         # generar + perfilar
+pnpm benchmark:fixture:gate    # exigir contra baseline-100.json
+```
+
+El fixture incluye frontmatter realista, bloques de código con título, headings anidados y callouts — las mismas formas que el pipeline MDX compila en la práctica.
+
+## Huella del core
+
+Un cuarto gate, de tamaño, protege la huella de producción del código de runtime del framework:
+
+```bash
+pnpm benchmark:core
+```
+
+Falla si el core publicado crece más allá de la `core-footprint-baseline.json` commiteada. Es lo que mantiene el engine libre de código de UI o de frameworks CSS que cada sitio tendría que pagar.
+
+## En CI
+
+`.github/workflows/release.yml` ejecuta todos los perfiles y gates, más los del fixture y la huella del core. Una regresión bloquea el release. Las baselines incluyen una huella de la máquina; CI pasa `--allow-machine-mismatch` para que el hardware del runner no produzca un falso fallo, pero los números absolutos siempre se imprimen para revisión.
+
+## Cómo interpretar los resultados
+
+- **Cold build** está dominado por la compilación MDX y el resaltado de Shiki. Aquí importan más los cachés y el paralelismo de workers.
+- **Warm build** mide el tiempo que tarda el servidor de dev en estar listo. Dominan la resolución de configuración y el prewarming.
+- **Incremental** mide el camino que un desarrollador usa en cada guardado: hash del frontmatter, invalidación puntual de módulos y HMR.
+
+Los números son relativos a la baseline en la misma clase de máquina. No son una promesa sobre tu proyecto: el volumen de contenido, los plugins y los themes cambian el costo absoluto. Los gates garantizan que Boltdocs en sí no se vuelva más lento entre releases.

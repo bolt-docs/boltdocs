@@ -6,6 +6,8 @@ const REMOTE_DEP_RE = /^(?:git(?:\+[a-z]+)?|https?|file|link|ssh|github):/i
 interface MetadataContext {
   name: string
   boltdocsVersion?: string
+  /** Version of the running engine, compared against the plugin's range. */
+  engineVersion?: string
 }
 
 /**
@@ -99,14 +101,14 @@ export function auditPackageMetadata(
     })
   }
 
-  if (context.boltdocsVersion && typeof pkg.version === 'string') {
+  if (context.boltdocsVersion && context.engineVersion) {
     try {
-      if (!semver.satisfies(pkg.version, context.boltdocsVersion)) {
+      if (!semver.satisfies(context.engineVersion, context.boltdocsVersion)) {
         findings.push({
           ruleId: 'version-mismatch',
           category: 'metadata',
           severity: 'low',
-          message: `Installed version ${pkg.version} does not satisfy the declared boltdocsVersion range ${context.boltdocsVersion}`,
+          message: `Boltdocs ${context.engineVersion} does not satisfy the plugin's supported range ${context.boltdocsVersion}`,
           file: 'package.json',
           line: 0,
           snippet: `boltdocsVersion: ${context.boltdocsVersion}`,

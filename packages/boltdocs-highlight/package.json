@@ -1,6 +1,6 @@
 {
   "name": "@bdocs/highlight",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Prism-based syntax highlighter for Boltdocs (engine-agnostic adapter)",
   "type": "module",
   "publishConfig": {
@@ -29,6 +29,7 @@
   },
   "devDependencies": {
     "@types/node": "22.12.0",
+    "@types/prismjs": "^1.26.6",
     "tsdown": "^0.21.7",
     "tsdown-config": "workspace:*",
     "typescript": "^5.9.3",

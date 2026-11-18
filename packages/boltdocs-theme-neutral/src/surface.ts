@@ -1,14 +1,12 @@
-import type { BoltdocsTheme } from '@bdocs/runtime/app'
+import { type BoltdocsTheme, FrameworkErrorBoundary } from '@bdocs/runtime/app'
 import DocsLayout from './components/docs-layout-default'
 import { ShellFrame } from './components/shell-frame'
 import { DocPage } from './doc-page'
 import { CollectionList } from './components/collection-list'
 import { ExternalPage } from './components/external-page'
 import { ExternalContent } from './components/external-content'
-import { NotFound } from './components/ui-base/not-found'
+import { NotFound } from '@bdocs/ui-base'
 import { mdxComponentsDefault } from './mdx-component'
-import { PluginFloatingSlots } from './components/plugin-floating-slots'
-import { InternalErrorBoundary } from './components/internal/error-boundary'
 
 /**
  * What the engine renders this theme with.
@@ -31,8 +29,7 @@ export const surface: BoltdocsTheme = {
   ExternalContent,
   NotFound,
   MdxComponents: mdxComponentsDefault,
-  PluginSlots: PluginFloatingSlots,
-  ErrorBoundary: InternalErrorBoundary,
+  ErrorBoundary: FrameworkErrorBoundary,
 }
 
 export default surface

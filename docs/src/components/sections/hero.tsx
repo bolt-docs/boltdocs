@@ -1,4 +1,4 @@
-import { Link } from '@bdocs/theme-neutral/composition'
+import { Link } from '@bdocs/ui-base/composition'
 import { Button } from '@/theme/button'
 import { ArrowRight, Copy, Check } from 'lucide-react'
 import { getVersion } from '@/data/version'

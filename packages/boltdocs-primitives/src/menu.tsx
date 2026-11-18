@@ -5,11 +5,7 @@ import {
   filterDOMProps,
   type RenderProps,
 } from './utils'
-import {
-  Separator,
-  type SeparatorProps,
-  type SeparatorRenderProps,
-} from './separator'
+import { Separator, type SeparatorProps } from './separator'
 
 /**
  * The menu button pattern from the WAI-ARIA authoring practices.
@@ -47,6 +43,13 @@ function useMenuContext(component: string): MenuContextValue {
   if (!ctx) throw new Error(`<${component}> must be rendered inside a <Menu>.`)
   return ctx
 }
+
+/** Every role an item can carry, so opening a selecting menu still moves focus. */
+const MENU_ITEM_ROLES = [
+  '[role="menuitem"]',
+  '[role="menuitemradio"]',
+  '[role="menuitemcheckbox"]',
+].join(',')
 
 /** Document order, so a nested submenu's items do not join the parent list. */
 function inDocumentOrder(a: HTMLElement, b: HTMLElement): number {
@@ -115,6 +118,15 @@ export function Menu(props: MenuProps): React.ReactElement {
     autoFocus,
     ...rest
   } = props
+
+  // A Menu rendered inside a MenuTrigger should close on Escape without the
+  // caller wiring `onClose` back into the trigger by hand. The context was
+  // already provided; nothing consumed it, so the trigger stayed open.
+  const menuTrigger = React.useContext(MenuTriggerContext)
+  const closeMenu = React.useCallback(() => {
+    onClose?.()
+    menuTrigger.onClose()
+  }, [onClose, menuTrigger])
 
   const registry = React.useRef(new Set<MenuItemEntry>())
   const typeahead = React.useRef<{
@@ -233,7 +245,7 @@ export function Menu(props: MenuProps): React.ReactElement {
       case 'Escape':
         event.preventDefault()
         event.stopPropagation()
-        onClose?.()
+        closeMenu()
         return
       default:
         break
@@ -265,9 +277,9 @@ export function Menu(props: MenuProps): React.ReactElement {
       onAction: (el, intent) => {
         const key = el.dataset.bdocsMenuKey
         if (key) onAction?.(key)
-        if (intent === 'close') onClose?.()
+        if (intent === 'close') closeMenu()
       },
-      onClose: () => onClose?.(),
+      onClose: closeMenu,
     }),
     [
       register,
@@ -276,7 +288,7 @@ export function Menu(props: MenuProps): React.ReactElement {
       selected,
       onSelectionChange,
       onAction,
-      onClose,
+      closeMenu,
     ],
   )
 
@@ -299,7 +311,7 @@ export function Menu(props: MenuProps): React.ReactElement {
         role="menu"
         tabIndex={-1}
         data-bdocs-menu=""
-        className={cn('outline-none overflow-auto', resolved.className)}
+        className={resolved.className}
         style={resolved.style}
         onKeyDown={onKeyDown}
         {...domProps}
@@ -454,11 +466,7 @@ export function MenuItem(props: MenuItemProps): React.ReactElement {
             'data-selected': isSelected || isSelectedInMenu ? true : undefined,
           })}
       {...domProps}
-      className={cn(
-        'group relative flex flex-row items-center cursor-default outline-none',
-        isDisabled && 'opacity-50',
-        resolved.className,
-      )}
+      className={resolved.className}
       style={resolved.style}
       onClick={(e) => {
         onClick?.(e)
@@ -505,7 +513,7 @@ export function Header({
   ...rest
 }: HeaderProps): React.ReactElement {
   return (
-    <div className={cn('select-none', className)} {...rest}>
+    <div className={className} {...rest}>
       {children}
     </div>
   )
@@ -537,23 +545,16 @@ export function MenuSection(props: MenuSectionProps): React.ReactElement {
           {title}
         </Header>
       )}
-      <div className={cn('flex flex-col', className)}>{children}</div>
+      <div className={className}>{children}</div>
     </div>
   )
 }
 
 MenuSection.displayName = 'MenuSection'
 
-/** A divider between groups of items. */
+/** A divider between groups of items. Appearance belongs to the theme. */
 export function MenuSeparator(props: SeparatorProps): React.ReactElement {
-  // `className` here may be a render function, which `cn` cannot take. The
-  // separator resolves it, so the border class is merged on the way in.
-  const { className, ...rest } = props
-  const resolved =
-    typeof className === 'function'
-      ? (values: SeparatorRenderProps) => cn('border-t', className(values))
-      : cn('border-t', className)
-  return <Separator {...rest} className={resolved} />
+  return <Separator {...props} />
 }
 
 MenuSeparator.displayName = 'MenuSeparator'
@@ -613,6 +614,7 @@ export function MenuTrigger(props: MenuTriggerProps): React.ReactElement {
   )
 
   const triggerRef = React.useRef<HTMLButtonElement>(null)
+  const wrapperRef = React.useRef<HTMLDivElement>(null)
   const menuId = useMenuId('menu-trigger')
   const shouldFocusLast = React.useRef(false)
 
@@ -625,21 +627,38 @@ export function MenuTrigger(props: MenuTriggerProps): React.ReactElement {
     }
   }
 
-  const close = () => {
+  const close = (restoreFocus = true) => {
     setOpen(false)
-    // Focus returns to the trigger. Without this a keyboard user is dropped at
-    // the top of the document after closing a menu.
-    requestAnimationFrame(() => triggerRef.current?.focus())
+    // Focus returns to the trigger for keyboard dismissal. An outside pointer
+    // press must NOT pull focus back — the user clicked something else.
+    if (restoreFocus) {
+      requestAnimationFrame(() => triggerRef.current?.focus())
+    }
   }
 
   React.useEffect(() => {
     if (!isOpen) return
     const menuEl = document.getElementById(menuId)
     if (!menuEl) return
-    const items = menuEl.querySelectorAll<HTMLElement>('[role="menuitem"]')
+    const items = menuEl.querySelectorAll<HTMLElement>(MENU_ITEM_ROLES)
     const target = shouldFocusLast.current ? items[items.length - 1] : items[0]
     ;(target ?? menuEl).focus()
   }, [isOpen, menuId])
+
+  // A menu that only closes on Escape traps a mouse user: clicking anywhere
+  // else leaves it open over the page. This used to be inherited from the
+  // Popover the theme wrapped around the menu; it belongs to the trigger.
+  React.useEffect(() => {
+    if (!isOpen) return
+    const onPointerDown = (event: PointerEvent) => {
+      const target = event.target as Node
+      if (wrapperRef.current?.contains(target)) return
+      close(false)
+    }
+    document.addEventListener('pointerdown', onPointerDown, true)
+    return () =>
+      document.removeEventListener('pointerdown', onPointerDown, true)
+  })
 
   // The trigger is *cloned*, not wrapped. An earlier version rendered its own
   // `<button>` around the child, which produced `<button><button>…</button></button>`
@@ -687,7 +706,7 @@ export function MenuTrigger(props: MenuTriggerProps): React.ReactElement {
       )
 
   return (
-    <div className={cn('relative inline-block', className)}>
+    <div ref={wrapperRef} data-bdocs-menu-trigger="" className={className}>
       <MenuTriggerContext.Provider value={{ onClose: close }}>
         {trigger}
         <div id={menuId} hidden={!isOpen}>
@@ -720,6 +739,23 @@ export function SubmenuTrigger(props: SubmenuTriggerProps): React.ReactElement {
   const [open, setOpen] = React.useState(false)
   const submenuId = useMenuId('submenu')
   const ref = React.useRef<HTMLDivElement>(null)
+  const submenuRef = React.useRef<HTMLDivElement>(null)
+
+  const openSubmenu = () => {
+    setOpen(true)
+    requestAnimationFrame(() => {
+      const first =
+        submenuRef.current?.querySelector<HTMLElement>(MENU_ITEM_ROLES)
+      first?.focus()
+    })
+  }
+
+  const closeSubmenu = () => {
+    setOpen(false)
+    // Return focus to the parent item; otherwise the user lands at the document
+    // root after closing a submenu with Escape or ArrowLeft.
+    ref.current?.focus()
+  }
 
   // Registers with the parent menu so arrow keys reach it. Without this it was
   // a `role="menuitem"` the parent's registry had never heard of, so ArrowDown
@@ -742,20 +778,57 @@ export function SubmenuTrigger(props: SubmenuTriggerProps): React.ReactElement {
       aria-haspopup="true"
       aria-expanded={open}
       aria-controls={submenuId}
-      className={cn('relative flex items-center outline-none', className)}
+      data-bdocs-submenu-trigger=""
+      className={className}
       onKeyDown={(e) => {
+        // Stop here: the parent Menu's keydown handler is on an ancestor and
+        // would otherwise move focus again with its own item registry.
         if (e.key === 'ArrowRight') {
           e.preventDefault()
-          setOpen(true)
-        } else if (e.key === 'ArrowLeft') {
+          e.stopPropagation()
+          openSubmenu()
+        } else if (e.key === 'ArrowLeft' && open) {
           e.preventDefault()
-          setOpen(false)
+          e.stopPropagation()
+          closeSubmenu()
+        } else if (e.key === 'Escape' && open) {
+          e.preventDefault()
+          e.stopPropagation()
+          closeSubmenu()
+        } else if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault()
+          e.stopPropagation()
+          openSubmenu()
         }
       }}
-      onClick={() => setOpen((v) => !v)}
+      onClick={() => (open ? closeSubmenu() : openSubmenu())}
     >
       {label}
-      <div id={submenuId} hidden={!open} role="menu">
+      <div
+        ref={submenuRef}
+        id={submenuId}
+        hidden={!open}
+        role="menu"
+        onKeyDown={(e) => {
+          // Same reason as above: keys pressed inside the submenu must not be
+          // re-handled by the parent menu's roving tabindex. ArrowLeft still
+          // closes and returns focus, since focus is now on an inner item.
+          if (e.key === 'ArrowLeft') {
+            e.preventDefault()
+            e.stopPropagation()
+            closeSubmenu()
+            return
+          }
+          if (
+            e.key.startsWith('Arrow') ||
+            e.key === 'Home' ||
+            e.key === 'End' ||
+            e.key === 'Escape'
+          ) {
+            e.stopPropagation()
+          }
+        }}
+      >
         {submenu}
       </div>
     </div>

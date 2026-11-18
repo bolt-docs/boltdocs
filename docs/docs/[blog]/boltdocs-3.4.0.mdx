@@ -193,7 +193,7 @@ Prefetching already ran on hover and keyboard focus, which misses how documentat
 `Link` now accepts `prefetch="viewport"`, which keeps hover behaviour and additionally warms the destination as the link approaches the viewport:
 
 ```tsx title="app/my-link.tsx"
-import { Link } from "boltdocs/client";
+import { Link } from "@bdocs/runtime";
 
 export function DocsLink() {
   return (
@@ -263,6 +263,6 @@ export default defineConfig({
 
 ## What comes next
 
-3.4.0 is the stable line. The 4.0 architecture continues on a dedicated branch: SEO extraction into a plugin, `ui-base` and primitives moving into their own packages, a browser runtime split from the Node engine, and fully incremental client and server builds.
+3.4.0 was the last release on the 3.x line. The 4.0 architecture described here has since shipped: SEO extraction into a plugin, primitives/`ui-base`/the theme/the React binding in their own packages, a browser runtime split from the Node engine, and fully incremental client and server builds. See [Upgrading to 4.0](/docs/guides/operations/upgrading-4-0).
 
 The public roadmap lives on the [roadmap page](/roadmap), and the internal migration plan is tracked in the repository.

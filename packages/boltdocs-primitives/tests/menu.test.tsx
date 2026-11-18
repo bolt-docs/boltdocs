@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest'
 import { useState } from 'react'
-import { render, screen, within } from '@testing-library/react'
+import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import {
   Menu,
@@ -471,5 +471,72 @@ describe('MenuTrigger trigger element', () => {
     expect(controlled).not.toBeNull()
     expect(controlled).not.toBe(trigger)
     expect(controlled?.querySelector('[role="menu"]')).not.toBeNull()
+  })
+
+  it('closes its MenuTrigger on Escape without extra wiring', async () => {
+    const user = userEvent.setup()
+    render(
+      <MenuTrigger>
+        <span>Actions</span>
+        <Menu aria-label="Actions">
+          <MenuItem data-key="one">One</MenuItem>
+        </Menu>
+      </MenuTrigger>,
+    )
+
+    const trigger = screen.getByRole('button', { name: 'Actions' })
+    await user.click(trigger)
+    expect(trigger).toHaveAttribute('aria-expanded', 'true')
+
+    const menu = screen.getByRole('menu')
+    // Menu owns the Escape handler; it must reach the trigger through context.
+    menu.dispatchEvent(
+      new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }),
+    )
+    await waitFor(() =>
+      expect(trigger).toHaveAttribute('aria-expanded', 'false'),
+    )
+  })
+
+  it('focuses the first item when a selecting menu opens', async () => {
+    const user = userEvent.setup()
+    render(
+      <MenuTrigger>
+        <span>Actions</span>
+        <Menu aria-label="Actions" selectionMode="single">
+          <MenuItem data-key="one" isSelected>
+            One
+          </MenuItem>
+          <MenuItem data-key="two">Two</MenuItem>
+        </Menu>
+      </MenuTrigger>,
+    )
+
+    await user.click(screen.getByRole('button', { name: 'Actions' }))
+    // These carry role="menuitemradio"; querying only [role="menuitem"] left
+    // focus outside the open menu.
+    expect(screen.getByRole('menuitemradio', { name: 'One' })).toHaveFocus()
+  })
+
+  it('closes on a pointer press outside the trigger and menu', async () => {
+    const user = userEvent.setup()
+    render(
+      <>
+        <button type="button">Elsewhere</button>
+        <MenuTrigger>
+          <span>Actions</span>
+          <Menu aria-label="Actions" autoFocus={false}>
+            <MenuItem data-key="one">One</MenuItem>
+          </Menu>
+        </MenuTrigger>
+      </>,
+    )
+
+    const trigger = screen.getByRole('button', { name: 'Actions' })
+    await user.click(trigger)
+    expect(trigger).toHaveAttribute('aria-expanded', 'true')
+
+    await user.click(screen.getByRole('button', { name: 'Elsewhere' }))
+    expect(trigger).toHaveAttribute('aria-expanded', 'false')
   })
 })

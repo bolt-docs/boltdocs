@@ -1,6 +1,7 @@
 import { createRequire } from 'node:module'
 import fs from 'node:fs'
 import path from 'node:path'
+import { fileURLToPath } from 'node:url'
 import type { BoltdocsConfig } from '../shared/types'
 
 /**
@@ -12,6 +13,17 @@ import type { BoltdocsConfig } from '../shared/types'
  * learns what a theme looks like.
  */
 export const DEFAULT_THEME_PACKAGE = '@bdocs/theme-neutral'
+
+/**
+ * The UI-framework binding the site asked for. Like the theme, it is resolved
+ * from the project at build time — the engine has no static React dependency.
+ */
+export function resolveUiBindingPackage(
+  config?: Pick<BoltdocsConfig, 'uiBindingPackage'>,
+): string {
+  const requested = config?.uiBindingPackage?.trim()
+  return requested || '@bdocs/react-binding'
+}
 
 /**
  * The theme package the project asked for.
@@ -125,7 +137,20 @@ export function themeSourceAliases(
   packageName: string,
   root: string,
 ): Record<string, string> {
-  const packageRoot = findInstalledThemeRoot(packageName, root)
+  return namedPackageSourceAliases(packageName, root)
+}
+
+/** Source aliases for any package that declares `boltdocs.source`. */
+export function namedPackageSourceAliases(
+  packageName: string,
+  root: string,
+): Record<string, string> {
+  // A test project has no installed binding; fall back to the workspace the
+  // engine itself lives in so the source alias still resolves.
+  const engineDir = path.dirname(fileURLToPath(import.meta.url))
+  const packageRoot =
+    findInstalledThemeRoot(packageName, root) ??
+    findInstalledThemeRoot(packageName, engineDir)
   if (!packageRoot) return {}
   const entries = packageSourceEntries(packageRoot)
   const out: Record<string, string> = {}

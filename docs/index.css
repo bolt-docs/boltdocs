@@ -28,6 +28,9 @@
   @source directive tells Tailwind to scan Boltdocs client components 
   inside node_modules for class usage and generate the necessary CSS.
 */
+/* Explicit project source: with Vite 8 automatic detection no longer picks up
+   the docs' own TSX, so utilities used here were silently omitted. */
+@source "./src";
 @source "./node_modules/boltdocs/dist";
 /*
   The theme package.

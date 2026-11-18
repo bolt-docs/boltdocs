@@ -138,7 +138,7 @@ The import paths that moved:
 | --- | --- |
 | `boltdocs/client` (components, layout, hooks) | `@bdocs/theme-neutral` |
 | `boltdocs/client` (router, contexts) | `@bdocs/runtime` |
-| `boltdocs/primitives` | `@bdocs/theme-neutral/composition` |
+| `boltdocs/primitives` | `@bdocs/ui-base/composition` |
 | `boltdocs/mdx` | `@bdocs/theme-neutral` |
 | `boltdocs/client/router` | `@bdocs/runtime/router` |
 
@@ -148,7 +148,7 @@ three public barrels and points it at the one that exports it:
 
 1. `@bdocs/theme-neutral` — the styled surface (`DocsLayout`, `Navbar`,
    `CodeBlock`, `Callout`, `useCodeBlock`, `surface`, …).
-2. `@bdocs/theme-neutral/composition` — the composition layer
+2. `@bdocs/ui-base/composition` — the composition layer
    (`SidebarItem`, `CodeBlockContent`, `SearchDialog`, `Button`, …).
 3. `@bdocs/runtime` — navigation state and router (`useSearch`, `usePrefetch`,
    `useLocalizedTo`, `createRoutes`, `registerSiteBridge`, …).

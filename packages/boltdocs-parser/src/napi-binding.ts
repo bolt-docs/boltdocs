@@ -32,11 +32,13 @@ function getLibraryPath(): string | null {
 
   // Paths to search for the shared library
   const searchPaths = [
+    // Package-local cache written by postinstall
+    path.resolve(__dirname, '..', '.cache', libName),
     // Next to bundled dist
     path.resolve(__dirname, libName),
     // Package root (development)
     path.resolve(__dirname, '..', libName),
-    // zig-out/lib (build output)
+    // Build output
     path.resolve(__dirname, '..', 'zig-out', 'lib', libName),
   ]
 

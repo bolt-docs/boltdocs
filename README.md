@@ -5,7 +5,7 @@
 <h1 align="center">Boltdocs</h1>
 
 <p align="center">
-  <strong>A modern documentation framework built with React, Vite, and MDX.</strong>
+  <strong>Write MDX like you mean it, ship a site that feels instant, and never fight the tool for control.</strong>
 </p>
 
 <p align="center">
@@ -13,10 +13,7 @@
   <a href="https://boltdocs.vercel.app"><img src="https://img.shields.io/badge/Live_Demo-purple?style=flat-square" alt="Live Demo" /></a>
   <br />
   <a href="https://www.npmjs.com/package/boltdocs"><img src="https://img.shields.io/npm/v/boltdocs?style=flat-square" alt="npm version" /></a>
-  <a href="https://www.npmjs.com/package/boltdocs"><img src="https://img.shields.io/npm/dm/boltdocs?style=flat-square" alt="npm downloads" /></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-yellow.svg?style=flat-square" alt="License" /></a>
-  <a href="https://github.com/bolt-docs/boltdocs"><img src="https://img.shields.io/github/stars/bolt-docs/boltdocs?style=flat-square" alt="GitHub stars" /></a>
-  <a href="https://github.com/bolt-docs/boltdocs/pulls"><img src="https://img.shields.io/badge/PRs-welcome-blue.svg?style=flat-square" alt="PRs Welcome" /></a>
 </p>
 
 ---
@@ -29,177 +26,80 @@ cd my-docs
 pnpm dev
 ```
 
-> **pnpm 10+ users:** The template includes `pnpm.onlyBuiltDependencies` so `pnpm install` works out of the box. If adding Boltdocs to an existing project, add `esbuild`, `sharp`, and `@swc/core` to your `pnpm.onlyBuiltDependencies` in `package.json`.
-
-Or add to an existing project:
+The scaffold installs a working theme, so you get a styled site without configuration. Or add Boltdocs to an existing project:
 
 ```bash
-pnpm add boltdocs
+pnpm add boltdocs @bdocs/theme-neutral @bdocs/runtime @bdocs/ui-base @bdocs/react-binding
 mkdir docs && echo "# Hello World" > docs/index.md
 ```
 
+> pnpm is the only supported package manager.
+
 ---
 
-## Why Boltdocs?
+## 4.0 architecture
 
-**Zero config, instant docs.** A single command sets up a full documentation site with Tailwind CSS v4, TypeScript, MDX support, and a production-ready layout — zero boilerplate.
+The core is a documentation **engine**. It ships only routing + SSG, the MDX pipeline, config + validation, and virtual modules. Everything else is an opt-in package or a plugin:
 
-**Built-in, not bolt-on.** i18n, versioning, full-text search, SEO, analytics (GA4/GTM), syntax highlighting (Shiki), image optimization, CSP headers, and a changelog generator — all ship as part of the framework, not as third-party plugins.
+| Package | Purpose |
+| --- | --- |
+| `boltdocs` | Node-only engine: CLI, config, routes, plugins, Vite pipeline |
+| `@bdocs/runtime` | Browser runtime: contexts, hooks, router, `BoltdocsShell` |
+| `@bdocs/primitives` | Accessible, style-neutral UI behavior (no visuals, no CSS framework) |
+| `@bdocs/ui-base` | Reusable composition wrappers and assembled UI with native CSS |
+| `@bdocs/theme-neutral` | The default theme and the `surface` object the engine renders with |
+| `@bdocs/react-binding` | The React binding (Fast Refresh, client root); resolved by name, not imported by the core |
+| `@bdocs/ssg` | Client/server Vite builds, rendering, page cache |
 
-**React 19 + Vite 8 + Tailwind v4.** Built on the latest ecosystem versions. No legacy abstractions, no stale dependencies — just the modern React stack.
+CSS frameworks (Tailwind, SASS, UnoCSS, Lightning CSS), search, SEO, RSS, Mermaid, math and the rest are **plugins** — never hard dependencies of the core. See [SPEC.md](SPEC.md) for the contract.
+
+Legacy `boltdocs/client`, `boltdocs/primitives` and `boltdocs/entry` specifiers were removed in 4.0; see the [upgrade guide](docs/docs/(guides)/operations/upgrading-4-0.mdx).
 
 ---
 
 ## Features
 
-### ⚡ Performance
+- **MDX is the source of truth** — frontmatter drives metadata, routes, collections and SEO; the Sätteri parser keeps code blocks, HTML, tables and custom components intact.
+- **Fast by construction** — build-time Shiki highlighting, content-addressed caches, incremental rebuilds, and a gated 100-page benchmark.
+- **i18n and versioning** — locale fallbacks, RTL, version URL prefixes and generated TypeScript types.
+- **Accessibility without visuals** — primitives own focus traps, roving tabindex, typeahead and dismissal; the theme owns the CSS.
+- **Opt-in everything** — experimental flags (`viewTransitions`, `fileRouting`) are off by default and off in the production docs.
 
-- **Vite-powered dev server** with instant HMR — edit MDX files and see changes in under 100ms
-- **Static Site Generation (SSG)** via `@bdocs/ssg` — pre-renders every page at build time with React Router's `createStaticHandler`
-- **Shiki syntax highlighting at build time** — zero client-side cost for code blocks. 7 themes: `github-dark`, `github-light`, `tokyo-night`, `dracula`, `nord`, `one-dark-pro`, `one-light`
-- **Image optimization** — automatic compression via `sharp` and `svgo` during the build
-- **Incremental builds** — only re-build pages that changed (Turborepo-powered caching)
-
-### 🧩 MDX Components
-
-15+ built-in components, importable from `boltdocs/mdx`:
+MDX components come from the theme (`@bdocs/theme-neutral`); framework hooks come from `@bdocs/runtime`:
 
 ```mdx
-import { Callout, Card, Cards, CodeBlock } from 'boltdocs/mdx'
+import { Callout, Card, Cards } from '@bdocs/theme-neutral'
 
-<Callout type="tip" title="Pro tip">
-  This is a tip callout with an icon and a custom title.
+<Callout variant="info" title="Pro tip">
+  This callout is styled by the theme.
 </Callout>
-
-<Cards>
-  <Card title="Getting Started" href="/docs/guides" icon="rocket" />
-  <Card title="API Reference" href="/docs/api" icon="code" />
-  <Card title="Components" href="/docs/components" icon="puzzle" />
-</Cards>
-```
-
-Includes: `Callout`, `Card`, `Cards`, `CodeBlock`, `Field`, `Table`, `Image`, and enhanced typography components.
-
-### 🌍 Internationalization & Versioning
-
-- **Multi-locale** — define locales with labels, RTL direction, custom HTML lang, and calendar settings
-- **Fallback logic** — automatically falls back to the default locale for untranslated pages
-- **Versioned docs** — support for multiple documentation versions with URL prefixes (e.g., `/docs/v2.0/`)
-- **Generated TypeScript types** — strict locale and version type safety
-
-### 🔍 Search & SEO
-
-- **Full-text search** — client-side via FlexSearch with debounced UI, keyboard shortcut (`Cmd+K`), and result highlighting
-- **Auto-generated sitemap.xml and robots.txt** — configurable rules and multiple sitemap support
-- **OpenGraph thumbnails** — automatic OG image generation
-- **Meta tag injection** — configurable SEO meta tags per page or globally
-- **Canonical URL management** — automatic canonical URL handling for versioned and localized routes
-
-### 🔒 Security & Analytics
-
-- **Content-Security-Policy** — CSP header generation with configurable directives
-- **Custom security headers** — fine-grained HTTP header control
-- **Google Analytics 4** — built-in GA4 integration with auto-tracking for page views, search, downloads, and external links
-- **Google Tag Manager** — GTM support with data layer pushes
-
-### 🩺 Documentation Health (Doctor)
-
-```bash
-boltdocs doctor          # Check for broken links, missing metadata, orphaned translations
-boltdocs doctor --fix    # Auto-fix broken internal links
-boltdocs doctor --check-external  # Verify external links too
-```
-
-- **Broken internal link detection** — finds links pointing to non-existent files
-- **Missing metadata warnings** — flags pages without titles in frontmatter
-- **Orphaned translation detection** — identifies missing locale counterparts
-- **Performance budgets** — upcoming: no bloquean el build: se fijan umbrales de tiempo de compilación y tamaño de bundle
-
-### 🔌 Plugin System
-
-Extend Boltdocs with plugins that hook into remark, rehype, Vite, and component registration:
-
-```bash
-pnpm add @bdocs/plugin-mermaid
-```
-
-```ts
-// boltdocs.config.ts
-import mermaidPlugin from '@bdocs/plugin-mermaid'
-
-export default defineConfig({
-  plugins: [
-    mermaidPlugin({
-      themes: { light: { ... }, dark: { ... } },
-    }),
-  ],
-})
-```
-
-Available plugins:
-
-- **[`@bdocs/plugin-mermaid`](https://www.npmjs.com/package/@bdocs/plugin-mermaid)** — transforms ` ```mermaid ` code blocks into interactive, theme-aware diagramsguration
-
-Every aspect of your docs site is configurable via `boltdocs.config.ts`:
-
-```ts
-export default defineConfig({
-  siteUrl: 'https://docs.example.com',
-  theme: {
-    title: 'My Docs',
-    logo: { light: '/logo-light.svg', dark: '/logo-dark.svg' },
-    navbar: [{ label: 'Docs', href: '/docs' }],
-    sidebar: { groups: [...] },
-    social: { github: '...', discord: '...', x: '...' },
-    tabs: [{ id: 'guides', text: 'Guides' }],
-    codeTheme: { light: 'github-light', dark: 'github-dark' },
-  },
-  i18n: { defaultLocale: 'en', locales: { es: { label: 'Español' } } },
-  versions: { defaultVersion: 'latest', versions: [{ path: 'v2.0', label: '2.0' }] },
-  seo: { indexing: 'all', thumbnails: { background: '/og-image.webp' } },
-  security: { csp: { directives: { ... } } },
-  integrations: { ga4: { measurementId: 'G-XXXXXXXXXX' } },
-  robots: { rules: [{ userAgent: '*', allow: '/' }], sitemaps: [...] },
-})
 ```
 
 ---
 
-## CLI Commands
+## CLI
 
 | Command | Description |
 | --- | --- |
-| `boltdocs dev` | Start the development server with HMR |
-| `boltdocs build` | Production build (SSG) |
-| `boltdocs preview` | Preview the production build locally |
-| `boltdocs doctor` | Run health checks on your documentation |
-| `boltdocs doctor --fix` | Auto-fix broken internal links |
-| `boltdocs doctor --check-external` | Verify external links too |
-| `boltdocs doctor --budget` | Check performance budgets |
-| `boltdocs audit` | Run plugins health checks |
-| `boltdocs changelog <file>` | Generate versioned changelog pages from CHANGELOG.md |
+| `boltdocs dev` | Development server with HMR |
+| `boltdocs build` | Production SSG build (runs the plugin security audit first) |
+| `boltdocs preview` | Preview the production build |
+| `boltdocs audit` | Static plugin security scan (fails on risky or unreviewed calls) |
+| `boltdocs doctor` | Health checks for links, metadata and translations |
+| `boltdocs migrate` | Import 3.x, Docusaurus or Starlight projects |
+| `boltdocs changelog <file>` | Generate versioned changelog pages |
 
 ---
 
 ## Contributing
 
-We welcome contributions! Check out the [Contributing Guide](CONTRIBUTING.md) to get started.
+Read [SPEC.md](SPEC.md) before writing code or opening a PR. Every change is measured against it: performance is benchmarked, the core stays opinion-free, and legacy code is temporary.
 
-> **Before writing code or opening a PR, read the [Boltdocs Spec — The Unbreakable Contract](SPEC.md).** Every change is measured against it: performance is benchmarked, the core stays opinion-free, and legacy code is temporary — never permanent.
-
-- **Branch naming**: `feat/`, `fix/`, `chore/` prefixes
-- **Commits**: Conventional Commits
-- **Tests**: Vitest — run `pnpm test`
-- **Formatting**: Biome — run `pnpm format`
+- **Package manager**: pnpm only
+- **Tests**: `pnpm test`
+- **Format**: `pnpm run format`
+- **Benchmarks**: `pnpm benchmark:fixture`, `pnpm benchmark:fixture:gate`, `pnpm benchmark:core`
 
 ## License
 
 MIT — see [LICENSE](LICENSE).
-
----
-
-<p align="center">
-  Built with ❤️ for the documentation community.
-  <br />
-  <a href="https://boltdocs.vercel.app">boltdocs.vercel.app</a>
-</p>

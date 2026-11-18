@@ -99,6 +99,7 @@ export default function pagefindSearchPlugin(
   return {
     name: 'plugin-search-pagefind',
     version: '1.0.0',
+    boltdocsVersion: '>=3.4.0',
     hooks: {
       /**
        * Runs after the static render, when `dist/` holds the HTML to crawl.

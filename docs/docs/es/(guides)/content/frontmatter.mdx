@@ -147,7 +147,8 @@ export default {
 En tu layout o componentes personalizados, puedes llamar al hook `useMdxComponents` para obtener tu registro de frontmatter. Boltdocs elimina automáticamente el prefijo `Frontmatter_` y coloca estos componentes en un namespace anidado `Frontmatter`:
 
 ```tsx title="docs/layout.tsx"
-import { useMdxComponents, useRoutes } from '@bdocs/theme-neutral'
+import { useRoutes } from '@bdocs/runtime'
+import { useMdxComponents } from '@bdocs/runtime'
 
 export default function CustomLayout({ children }) {
   const { currentRoute } = useRoutes()

@@ -41,14 +41,16 @@ Measured from the manifests:
 ```text
 @bdocs/contracts        (no workspace dependencies)
 
-@bdocs/runtime          → @bdocs/contracts
+@bdocs/runtime          → @bdocs/contracts, @bdocs/primitives
 @bdocs/unist-utils      → @bdocs/contracts
 @bdocs/processor-satteri → @bdocs/contracts, @bdocs/unist-utils
 @bdocs/ssg              → @bdocs/contracts, @bdocs/zig-critters
-@bdocs/theme-neutral    → @bdocs/contracts, @bdocs/primitives, @bdocs/runtime
+@bdocs/ui-base          → @bdocs/primitives, @bdocs/runtime
+@bdocs/theme-neutral    → @bdocs/contracts, @bdocs/primitives, @bdocs/runtime, @bdocs/ui-base
 
 boltdocs (engine)       → @bdocs/contracts, @bdocs/grammars, @bdocs/parser,
                           @bdocs/processor-satteri, @bdocs/ssg, @bdocs/unist-utils
+@bdocs/react-binding    → @bdocs/runtime, @bdocs/ssg (resolved by name, not imported by the engine)
 ```
 
 The engine does **not** import the UI layer: no React components, no theme, no
@@ -203,8 +205,9 @@ looks like a missing dependency rather than a stale path.
 
 ### Contracts (`@bdocs/contracts`)
 
-Public, framework-neutral types. No Node, Vite, React or SSG imports. Everything
-else may import it; it imports nothing from the workspace.
+Public, framework-neutral types plus pure helpers shared by engine and runtime
+(collection date sorting). No Node, Vite, React or SSG imports. Everything else
+may import it; it imports nothing from the workspace.
 
 ### Primitives (`@bdocs/primitives`)
 
@@ -555,9 +558,10 @@ pnpm run test:coverage     # V8 coverage across packages/*/src
 ```
 
 `@bdocs/theme-neutral`, `@bdocs/runtime` and `@bdocs/primitives` each have their
-own suite and are covered by `test:ui`. `@bdocs/contracts` is types-only and has
-no tests and no `vitest.config.ts`, so it must not be added to `test:all` — with
-the root config it finds no files and exits non-zero.
+own suite and are covered by `test:ui`. `@bdocs/contracts` has no
+`vitest.config.ts` and must not be added to `test:all` — with the root config it
+finds no files and exits non-zero. Its shared collection sort helper is covered
+from the engine suite, which aliases the package to source.
 
 ### Test Patterns
 

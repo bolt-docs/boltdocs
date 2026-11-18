@@ -8,6 +8,7 @@
     "skipLibCheck": true,
     "jsx": "react-jsx",
     "declaration": true,
+    "rootDir": ".",
     "outDir": "dist",
     "ignoreDeprecations": "5.0",
     "baseUrl": "./",

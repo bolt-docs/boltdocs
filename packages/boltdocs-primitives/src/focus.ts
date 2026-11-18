@@ -104,7 +104,9 @@ export function trapTab(container: HTMLElement, event: KeyboardEvent): void {
  *
  * Without this a screen reader in browse mode walks straight out of the dialog
  * and starts reading the page behind it, which `aria-modal` alone does not
- * prevent in every reader.
+ * prevent in every reader. `aria-hidden` covers the reader; `inert` covers the
+ * keyboard, so Tab cannot land on a background control even if the focusin
+ * guard in `ModalOverlay` were somehow bypassed. Both are always restored.
  */
 export function hideSiblings(container: HTMLElement): () => void {
   const parent = container.parentElement
@@ -115,11 +117,18 @@ export function hideSiblings(container: HTMLElement): () => void {
     if (child === container || !(child instanceof HTMLElement)) continue
     if (child.hasAttribute('aria-hidden')) continue
     child.setAttribute('aria-hidden', 'true')
+    // `inert` is a property on modern elements. Feature-detect it because jsdom
+    // (and older browsers) may not implement it — the aria-hidden half still
+    // works there, and the focusin guard remains the keyboard backstop.
+    if ('inert' in child) child.inert = true
     hidden.push(child)
   }
 
   return () => {
-    for (const el of hidden) el.removeAttribute('aria-hidden')
+    for (const el of hidden) {
+      el.removeAttribute('aria-hidden')
+      if ('inert' in el) el.inert = false
+    }
   }
 }
 

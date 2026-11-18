@@ -1,5 +1,119 @@
 # @bdocs/unist-utils
 
+## 0.3.0
+
+### Minor Changes
+
+- cf79338: The type checker is clean, and the highlighting configuration has one type.
+
+  **The `CodeHighlightConfig` drift is gone.**
+
+  Three packages declared the same configuration with three different shapes:
+  the contract layer's open one, the pipeline's narrow one, and the processor's
+  own copy. The engine produced the first and handed it to functions that
+  expected the second, and the type checker said so — nine errors in the core,
+  reported for months, in a package whose `tsc --noEmit` nobody ran.
+
+  The contract layer's type is the public one and stays open by design: an
+  engine with its own colour model cannot be enumerated. The pipeline's
+  normalizer now reads that type and _narrows_ the theme to what it can use,
+  dropping a theme it cannot read rather than passing it on as a pair of
+  `undefined`s. The Shiki adapter does the same, and the cast that hid the
+  problem is gone.
+
+  **Two `tsconfig` files were not configuring anything.**
+
+  `@bdocs/unist-utils` and `@bdocs/processor-satteri` extended the repository's
+  root `tsconfig.json`, which is a solution file with no compiler options. The
+  type checker fell back to its defaults — no `module`, no `target`, no
+  `esModuleInterop` — and reported 39 errors that had nothing to do with the
+  code, while hiding the real ones. Both packages now configure themselves, and
+  the processor's 35 errors are 0.
+
+  **The search index types are a type alias.**
+
+  `SearchIndexParams` was an interface, and an interface has no implicit index
+  signature, so it was not assignable to the `Record<string, unknown>` the hook
+  chain threads its parameters through. The alias is, and the hook's own
+  signature accepts it.
+
+  **A renamed function was never updated.**
+
+  `@bdocs/theme-neutral`'s code block read `stateIsHighlighted`, which was
+  renamed to `isHighlighted` when the state module was split out. The call site
+  had been broken since; the type checker had been reporting it.
+
+  ### Evidence
+  - `tsc --noEmit` is clean in the core, the runtime, the contracts, the
+    primitives, the theme, the processor and the unist utils. The core went
+    from 9 errors to 0, the processor from 35 to 0, the theme from 4 to 0.
+  - Every package's tests pass; the documentation site builds.
+
+### Patch Changes
+
+- 5f7a09c: The `unist` dependency is gone.
+
+  It pinned `unist@^3.0.0`, and no such version exists — the package's last
+  release is 0.0.1. The dependency was only ever used for its types, and the
+  package that carries them, `@types/unist`, was already a dependency. The
+  code imports the types from `@types/unist` now.
+
+  The pin made `pnpm install` fail for the whole workspace: the resolver
+  stopped at `unist@^3.0.0` and never got to the rest of the tree.
+
+- d80c6e1: Every package type checks.
+
+  `tsc --noEmit` is now clean in all twenty-three packages that have a
+  `tsconfig.json`. The core, the runtime, the contracts, the primitives, the
+  theme, the processor, the unist utils, the SSG and every official plugin.
+
+  ### Most of the errors were configuration, not code
+
+  Eight packages extended the repository's root `tsconfig.json` — a solution
+  file with no compiler options. The type checker fell back to its defaults: no
+  `module`, no `target`, no `esModuleInterop`, no `jsx`. It reported 39 errors
+  that had nothing to do with the code, and hid the real ones behind them.
+
+  The base is now `tsconfig.base.json`, and the root solution file extends it so
+  that a package which extends the root gets the same options as one that
+  configures itself. The three plugins that had no `tsconfig` at all have one
+  now.
+
+  ### Two copies of Vite
+
+  `@types/node` was a range in some packages and an exact version in others, and
+  the version is part of the peer variant a package resolves against. Three
+  copies of the same Vite were installed, and their `Plugin` types were not the
+  same type. Every package now pins the same version, and there is one copy.
+
+  ### Four bugs the type checker had been reporting for months
+  - The Algolia plugin sent the batch action `delete`. Algolia's endpoint takes
+    `deleteObject`; every stale-record removal would have failed.
+  - The Tailwind and UnoCSS plugins wrapped the plugin list in another array.
+    Vite flattens nested lists, so it worked — and the engine received a list of
+    lists.
+  - The Mermaid plugin passed an object to a class-name helper that only joins
+    strings, which would have rendered `[object Object]` as a class.
+  - The theme's code block called a function that was renamed when its state
+    module was split out.
+
+  ### A flake, fixed
+
+  `@bdocs/plugin-ssg`'s critical-dependency test used `vi.doMock` with a dynamic
+  import, and the mock only applied when the module had not been loaded yet —
+  which depended on which test file ran first. The test resets the module
+  registry now, and it passes in any order.
+
+- Updated dependencies [1413a37]
+- Updated dependencies [4fb6ed1]
+- Updated dependencies [cdd636a]
+- Updated dependencies [4fb6ed1]
+- Updated dependencies [80b8bba]
+- Updated dependencies [94aebbc]
+- Updated dependencies [cf79338]
+- Updated dependencies [ffb5e55]
+  - @bdocs/contracts@0.2.0
+
 ## 0.2.1
 
 ### Patch Changes

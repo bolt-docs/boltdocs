@@ -64,16 +64,16 @@ describe('audit package metadata', () => {
 
   it('flags version mismatches against boltdocsVersion', () => {
     const ids = ruleIds(
-      { name: 'pkg', version: '1.0.0' },
-      { boltdocsVersion: '>=2.0.0' },
+      { name: 'pkg', version: '9.9.9' },
+      { boltdocsVersion: '>=2.0.0', engineVersion: '1.0.0' },
     )
     expect(ids).toContain('version-mismatch')
   })
 
   it('accepts satisfying versions', () => {
     const ids = ruleIds(
-      { name: 'pkg', version: '2.3.0' },
-      { boltdocsVersion: '>=2.0.0' },
+      { name: 'pkg', version: '0.0.1' },
+      { boltdocsVersion: '>=2.0.0', engineVersion: '2.3.0' },
     )
     expect(ids).not.toContain('version-mismatch')
   })

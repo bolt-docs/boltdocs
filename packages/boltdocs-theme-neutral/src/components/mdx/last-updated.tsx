@@ -1,6 +1,5 @@
-import { cn } from '../../utils/cn'
-import { formatDeterministicDate } from '@bdocs/runtime'
-import { PluginSlot } from '../plugin-slot'
+import { cn } from '@bdocs/ui-base'
+import { formatDeterministicDate, PluginSlot } from '@bdocs/runtime'
 
 interface LastUpdatedProps {
   date?: string | number | Date

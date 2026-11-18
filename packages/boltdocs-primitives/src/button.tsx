@@ -77,8 +77,10 @@ export function Button(props: ButtonProps): React.ReactElement {
     onHoverChange,
     onFocusChange,
     onClick: onClickProp,
+    onKeyDown: onKeyDownProp,
     onPointerDown: onPointerDownProp,
     onPointerUp: onPointerUpProp,
+    onPointerCancel: onPointerCancelProp,
     onPointerLeave: onPointerLeaveProp,
     onPointerEnter: onPointerEnterProp,
     onFocus: onFocusProp,
@@ -94,6 +96,14 @@ export function Button(props: ButtonProps): React.ReactElement {
   // :focus-visible only matches keyboard focus, so this is the real signal for
   // "should I draw a focus ring", not :focus.
   const [isFocusVisible, setFocusVisible] = React.useState(false)
+  const pressedRef = React.useRef(false)
+
+  const releasePress = () => {
+    if (!pressedRef.current) return
+    pressedRef.current = false
+    setPressed(false)
+    onPressChange?.(false)
+  }
 
   const resolved = composeRenderProps<ButtonRenderProps>(
     { className, style, children },
@@ -117,11 +127,15 @@ export function Button(props: ButtonProps): React.ReactElement {
       onClickProp?.(e as unknown as React.MouseEvent<HTMLButtonElement>)
       activate(e)
     },
+    onKeyDown: (e: React.KeyboardEvent) => {
+      onKeyDownProp?.(e as unknown as React.KeyboardEvent<HTMLButtonElement>)
+    },
     onPointerDown: (e: React.PointerEvent) => {
       if (!isDisabled) {
         onPointerDownProp?.(
           e as unknown as React.PointerEvent<HTMLButtonElement>,
         )
+        pressedRef.current = true
         setPressed(true)
         onPressChange?.(true)
         onPressStart?.(e)
@@ -132,13 +146,22 @@ export function Button(props: ButtonProps): React.ReactElement {
         onPointerUpProp?.(e as unknown as React.PointerEvent<HTMLButtonElement>)
         onPressEnd?.(e)
       }
+      // A click without this left `isPressed` true until the pointer moved
+      // away, and `onPressChange(false)` was never called at all.
+      releasePress()
+    },
+    onPointerCancel: (e: React.PointerEvent) => {
+      onPointerCancelProp?.(
+        e as unknown as React.PointerEvent<HTMLButtonElement>,
+      )
+      releasePress()
     },
     onPointerLeave: (e: React.PointerEvent) => {
       onPointerLeaveProp?.(
         e as unknown as React.PointerEvent<HTMLButtonElement>,
       )
       setHovered(false)
-      setPressed(false)
+      releasePress()
       onHoverEnd?.()
       onHoverChange?.(false)
     },
@@ -154,14 +177,24 @@ export function Button(props: ButtonProps): React.ReactElement {
     onFocus: (e: React.FocusEvent) => {
       onFocusProp?.(e as unknown as React.FocusEvent<HTMLButtonElement>)
       setFocused(true)
-      setFocusVisible(true)
+      // `:focus-visible` is the browser's own answer to "keyboard focus" and
+      // handles the edge cases a flag cannot: mouse focus after typing, programmatic
+      // focus, and touch. jsdom does not implement the pseudo-class, so fall back
+      // to `true` there rather than hiding the ring from every test.
+      let visible = true
+      try {
+        visible = e.currentTarget.matches(':focus-visible')
+      } catch {
+        /* unsupported pseudo-class — keep the ring */
+      }
+      setFocusVisible(visible)
       onFocusChange?.(true)
     },
     onBlur: (e: React.FocusEvent) => {
       onBlurProp?.(e as unknown as React.FocusEvent<HTMLButtonElement>)
       setFocused(false)
       setFocusVisible(false)
-      setPressed(false)
+      releasePress()
       onFocusChange?.(false)
     },
   }
@@ -187,7 +220,14 @@ export function Button(props: ButtonProps): React.ReactElement {
         role="button"
         aria-disabled={isDisabled || undefined}
         // An anchor does not fire click on Enter/Space the way a button does.
+        // Call the consumer's handler first so a keyboard shortcut is not
+        // swallowed by this branch — `interactive` is overridden by the explicit
+        // handler below, which is why it cannot live there.
         onKeyDown={(e) => {
+          onKeyDownProp?.(
+            e as unknown as React.KeyboardEvent<HTMLButtonElement>,
+          )
+          if (e.defaultPrevented) return
           if (e.key === 'Enter' || e.key === ' ') {
             e.preventDefault()
             activate(e)

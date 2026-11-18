@@ -1,0 +1,63 @@
+{
+  "name": "@bdocs/ui-base",
+  "version": "1.1.0",
+  "type": "module",
+  "description": "Reusable, style-neutral UI components for Boltdocs: the composition wrappers over @bdocs/primitives and their default assembled UI. Ships native CSS, no framework assumptions.",
+  "publishConfig": {
+    "access": "public"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.mts",
+      "import": "./dist/index.mjs"
+    },
+    "./composition": {
+      "types": "./dist/composition.d.mts",
+      "import": "./dist/composition.mjs"
+    },
+    "./css": "./dist/styles/index.css",
+    "./reset": {
+      "default": "./dist/styles/reset.css"
+    },
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "dist"
+  ],
+  "sideEffects": false,
+  "scripts": {
+    "build": "tsdown --config-loader unrun",
+    "dev": "tsdown --watch --config-loader unrun",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@bdocs/primitives": "workspace:*",
+    "@bdocs/runtime": "workspace:*",
+    "dompurify": "^3.3.3"
+  },
+  "peerDependencies": {
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0"
+  },
+  "boltdocs": {
+    "source": {
+      ".": "./src/index.ts",
+      "./composition": "./src/composition.ts"
+    }
+  },
+  "devDependencies": {
+    "@testing-library/dom": "^10.4.0",
+    "@testing-library/jest-dom": "^6.6.0",
+    "@testing-library/react": "^16.0.0",
+    "@testing-library/user-event": "^14.6.1",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "jsdom": "^24.1.0",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "tsdown": "^0.21.7",
+    "tsdown-config": "workspace:*",
+    "typescript": "^5.9.3",
+    "vitest": "^3.0.0"
+  }
+}

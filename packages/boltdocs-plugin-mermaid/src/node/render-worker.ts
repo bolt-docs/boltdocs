@@ -63,29 +63,14 @@ async function ensureContext(): Promise<BrowserContext> {
         ],
       })
     } catch {
-      // Chromium not installed — try to install it automatically
-      const { execSync } = await import('node:child_process')
-      try {
-        execSync('npx playwright install chromium', {
-          stdio: 'inherit',
-          timeout: 120_000,
-        })
-        // Retry launch after installation
-        browser = await chromium.launch({
-          headless: true,
-          args: [
-            '--no-sandbox',
-            '--disable-setuid-sandbox',
-            '--disable-dev-shm-usage',
-          ],
-        })
-      } catch {
-        throw new Error(
-          'Failed to launch Playwright Chromium. ' +
-            'Run `npx playwright install chromium` manually, ' +
-            'or ensure Chromium is available on your system.',
-        )
-      }
+      // Do not install browsers behind the user's back: a build must never
+      // fetch and execute a package implicitly. Fail with the explicit command
+      // so the developer decides whether to install it.
+      throw new Error(
+        'Failed to launch Playwright Chromium. ' +
+          'Run `npx playwright install chromium` manually, ' +
+          'or ensure Chromium is available on your system.',
+      )
     }
   }
 

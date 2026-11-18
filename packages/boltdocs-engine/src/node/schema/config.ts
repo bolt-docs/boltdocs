@@ -35,9 +35,13 @@ export const WorkerHookSchema = z.object({
  */
 export const BoltdocsPluginSchema = z.object({
   name: z.string(),
+  /** Package that ships this plugin, when it differs from `name`. */
+  packageName: z.string().optional(),
   enforce: z.enum(['pre', 'post']).optional(),
-  version: z.string().optional(),
-  boltdocsVersion: z.string().optional(),
+  // SPEC §2.3: every plugin declares its own version and the Boltdocs range
+  // it supports, so compatibility can be checked at load time.
+  version: z.string(),
+  boltdocsVersion: z.string(),
   clientEntry: z.string().optional(),
   remarkPlugins: z.array(z.unknown()).optional(),
   rehypePlugins: z.array(z.unknown()).optional(),
@@ -260,6 +264,7 @@ export const SecurityConfigSchema = z.object({
   headers: z.record(z.string(), z.string()).optional(),
   enableCSP: z.boolean().optional(),
   customHeaders: z.record(z.string(), z.string()).optional(),
+  auditAllowWarnings: z.array(z.string()).optional(),
 })
 
 export const VerificationConfigSchema = z.object({
@@ -517,6 +522,7 @@ export const BoltdocsConfigSchema = z.object({
    * installs a different one and names it here.
    */
   themePackage: z.string().optional(),
+  uiBindingPackage: z.string().optional(),
   theme: ThemeConfigSchema.optional(),
   i18n: I18nConfigSchema.optional(),
   versions: VersionsConfigSchema.optional(),

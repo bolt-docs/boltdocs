@@ -9,6 +9,7 @@ import path from 'node:path'
 import { createDevShutdownController } from './dev-lifecycle'
 import { createStaticSsgOptions } from '../plugin/ssg-static-options'
 import { acquireDevServerLock, type DevServerLock } from './dev-lock'
+import { PluginAuditError, preflightAudit } from '../security/audit/preflight'
 
 let devServerStarted = false
 
@@ -36,6 +37,8 @@ export async function devAction(
   // package.json and is not needed before the server is up.
   const t1 = performance.now()
   try {
+    // SPEC §2.3: an unscanned or risky plugin blocks startup too.
+    await preflightAudit(root)
     lock = acquireDevServerLock(root)
     if (debugTimings) {
       console.log(
@@ -163,7 +166,11 @@ export async function devAction(
     }
     devServerStarted = false
     lock?.release()
-    error('Failed to start dev server:', e)
+    if (e instanceof PluginAuditError) {
+      error('Plugin audit blocked the dev server:', e.message)
+    } else {
+      error('Failed to start dev server:', e)
+    }
     process.exit(1)
   }
 }

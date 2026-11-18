@@ -32,6 +32,19 @@ The experimental surface is split into three feature areas, each documented on i
 - [Structured Data](/docs/guides/advanced/structured-data) — type-safe JSON-LD graphs for website, article, and breadcrumbs.
 - [Static file routing](/docs/guides/advanced/file-routing) — map files in `docs/pages-external/` to routes, including dynamic segments such as `[slug]` and `[...parts]`.
 
+## Graduation to stable
+
+An experimental feature becomes stable only when **all** of these are true:
+
+1. It shipped in at least **two consecutive minor releases** without breaking changes.
+2. At least **three real-world projects** adopted it and reported no critical bugs.
+3. There is **benchmark data** showing no regression in cold build, dev startup, or navigation.
+4. There is **documented adoption guidance** and a migration path from the previous stable behavior, if any.
+
+A real-world project is outside the Boltdocs monorepo, runs Boltdocs in production, is publicly observable (or has a maintainer with verifiable evidence), and actually exercises the feature in a real path. The docs site, fixtures, and demo/template scaffolds do not count. Eligibility is validated by the Boltdocs team, not self-declared.
+
+Graduation is recorded in the release notes with the evidence for each criterion. Until then, every flag here stays opt-in and keeps a fallback for projects that have not enabled it.
+
 ## What changed in 3.4.0
 
 Both experimental features received substantial work in 3.4.0.

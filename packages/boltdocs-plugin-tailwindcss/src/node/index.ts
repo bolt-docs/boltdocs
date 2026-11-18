@@ -11,6 +11,7 @@ export function tailwindcssPlugin(
   return createPlugin({
     name: 'plugin-tailwindcss',
     version: '1.0.0',
+    boltdocsVersion: '>=3.4.0',
     // `tailwindVite()` returns the plugin list itself; wrapping it in another
     // array produced a nested list that Vite happened to flatten.
     vitePlugins: tailwindVite({ optimize: options.optimize }),

@@ -5,7 +5,7 @@ import {
   ChevronRight,
   ChevronLeft,
 } from 'lucide-react'
-import { Link } from '@bdocs/theme-neutral/composition'
+import { Link } from '@bdocs/ui-base/composition'
 
 import { useState, useEffect, useCallback } from 'react'
 import { Github } from '@/theme/icons'

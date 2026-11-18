@@ -1,6 +1,6 @@
 {
   "name": "@bdocs/theme-neutral",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "type": "module",
   "description": "The neutral Boltdocs theme: the full UI-base component set, the MDX components, and their hooks. Depends on @bdocs/runtime and @bdocs/primitives; installable on its own.",
   "exports": {
@@ -36,9 +36,7 @@
     "@bdocs/contracts": "workspace:*",
     "@bdocs/primitives": "workspace:*",
     "@bdocs/runtime": "workspace:*",
-    "clsx": "2.1.1",
-    "dompurify": "^3.3.3",
-    "scroll-into-view-if-needed": "3.1.0"
+    "@bdocs/ui-base": "workspace:*"
   },
   "peerDependencies": {
     "react": "^19.0.0",
@@ -63,7 +61,7 @@
   "boltdocs": {
     "source": {
       ".": "./src/index.ts",
-      "./composition": "./src/components/composition/index.ts",
+      "./composition": "./src/composition.ts",
       "./surface": "./src/surface.ts"
     }
   }

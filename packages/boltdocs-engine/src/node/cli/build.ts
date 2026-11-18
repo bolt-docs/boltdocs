@@ -8,6 +8,7 @@ import { createViteConfig } from '../index'
 import { flushCache } from '../cache'
 import fs from 'node:fs'
 import path from 'node:path'
+import { PluginAuditError, preflightAudit } from '../security/audit/preflight'
 
 function formatDuration(ms: number): string {
   return ms < 1000 ? `${Math.round(ms)}ms` : `${(ms / 1000).toFixed(1)}s`
@@ -64,6 +65,8 @@ export async function buildAction(
   const benchmarkMode = process.env.BOLTDOCS_BENCHMARK_PHASES === 'true'
 
   try {
+    // SPEC §2.3: an unscanned or risky plugin blocks the build.
+    await preflightAudit(root)
     const pipeline = createBuildPipeline()
     const result = await pipeline.run({
       root,
@@ -142,7 +145,11 @@ export async function buildAction(
     await flushCache()
     process.exit(0)
   } catch (e) {
-    error('Build failed:', e)
+    if (e instanceof PluginAuditError) {
+      error('Plugin audit blocked the build:', e.message)
+    } else {
+      error('Build failed:', e)
+    }
     await flushCache()
     process.exit(1)
   }

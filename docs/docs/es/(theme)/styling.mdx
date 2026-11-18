@@ -1,0 +1,31 @@
+---
+title: Estilos
+sidebarPosition: 4
+description: El CSS nativo del tema, el reset y los tokens de diseño que dan estilo a un sitio Boltdocs.
+---
+
+En Boltdocs 4.0 el tema posee todos los estilos. El motor no incluye CSS —no hay una hoja de estilos del framework que importar— y el tema por defecto no depende de Tailwind.
+
+## Importa las hojas de estilos
+
+Importa ambas entradas desde el tema en el CSS de tu sitio:
+
+```css
+@import "@bdocs/theme-neutral/reset";
+@import "@bdocs/theme-neutral/css";
+```
+
+El sitio de documentación hace exactamente esto en su `index.css`: primero el reset y después la hoja de estilos de los componentes del tema, junto con las reglas propias de tokens y tipografía del sitio.
+
+| Import | Qué aporta |
+| --- | --- |
+| `@bdocs/theme-neutral/reset` | El reset de página, las reglas de bloques de código y la base de accesibilidad. |
+| `@bdocs/theme-neutral/css` | Las reglas de los componentes y el layout del tema. |
+
+## CSS nativo, no clases utilitarias
+
+El tema está escrito en CSS nativo. Cada regla vive como una clase real en el directorio `src/styles/` del paquete — el entry es `index.css`, junto a `reset.css`, `tokens.css`, `base.css` y los archivos por componente. Como los selectores son clases con nombre en lugar de utilidades generadas, un tema personalizado puede sobrescribir cualquier regla sin reproducir un nombre de clase utilitaria.
+
+## Tokens de diseño
+
+Los colores, el espaciado y la tipografía se exponen como propiedades personalizadas CSS. El reset lee los propios tokens del tema —`--bdocs-canvas`, `--bdocs-ink` y `--bdocs-primary`—, así que sobrescribirlos en un único lugar reestiliza la página. Otros tokens incluyen `--bdocs-diff-add` para las adiciones de un diff y `--bdocs-page-font` / `--bdocs-code-font` para la tipografía de página y de código. Las primitivas con estado exponen atributos `data-*`, de modo que puedes dar estilo a estados como `data-active` y `data-open` directamente en CSS.

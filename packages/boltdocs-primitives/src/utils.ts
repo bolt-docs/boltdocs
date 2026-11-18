@@ -45,9 +45,46 @@ export function composeRenderProps<T>(
   }
 }
 
-/** Joins class names, dropping anything falsy. */
-export function cn(...values: (string | false | null | undefined)[]): string {
-  return values.filter(Boolean).join(' ')
+/** Accepted by {@link cn}: strings, conditionals, arrays and key maps. */
+export type ClassValue =
+  | string
+  | number
+  | boolean
+  | null
+  | undefined
+  | ClassValue[]
+  | { [key: string]: unknown }
+  // A render-prop `className` is resolved by the primitive before it reaches
+  // `cn`; accepting it here keeps theme wrappers from having to cast it away.
+  | ((...args: never[]) => unknown)
+
+/**
+ * Joins class names, dropping anything falsy.
+ *
+ * Hand-written rather than delegated to `clsx`: the theme wrappers pass nested
+ * arrays, conditional maps and (already-resolved) render-prop class names, so
+ * this is the one implementation both packages share.
+ */
+export function cn(...values: ClassValue[]): string {
+  const result: string[] = []
+  const append = (value: ClassValue): void => {
+    if (!value) return
+    if (typeof value === 'string' || typeof value === 'number') {
+      result.push(String(value))
+      return
+    }
+    if (Array.isArray(value)) {
+      for (const item of value) append(item)
+      return
+    }
+    if (typeof value === 'object') {
+      for (const [key, enabled] of Object.entries(value)) {
+        if (enabled) result.push(key)
+      }
+    }
+  }
+  for (const value of values) append(value)
+  return result.join(' ')
 }
 
 type Primitive = 'button' | 'a' | 'input' | 'div' | 'span' | 'li'
@@ -70,40 +107,26 @@ const CONSUMED = new Set([
   'isDisabled',
   'isOpen',
   'isSelected',
-  'isFocused',
-  'isPressed',
-  'isHovered',
-  'isFocusVisible',
-  'isRequired',
-  'isInvalid',
-  'isReadOnly',
+  'isExiting',
   'onPress',
   'onPressStart',
   'onPressEnd',
   'onPressChange',
-  'onPressUp',
-  'onPressScrollStart',
-  'onPressScrollEnd',
   'onHoverStart',
   'onHoverEnd',
   'onHoverChange',
   'onFocusChange',
-  'onBlurChange',
   'onOpenChange',
   'onClose',
   'onAction',
-  'autoFocusValue',
-  'shouldCloseOnInteractOutside',
   'shouldCloseOnEscape',
-  'isNonControllable',
-  'isExiting',
-  'isEntering',
-  'portalContainer',
-  'disableFocusManagement',
-  'shouldFlip',
-  'placement',
   'triggerRef',
-  'popoverRef',
+  // SearchField/Autocomplete own these; without this they reached <input> as
+  // invalid DOM attributes (resultMessage, resultCount, onClear, onSubmit).
+  'resultMessage',
+  'resultCount',
+  'onClear',
+  'onSubmit',
 ])
 
 /**

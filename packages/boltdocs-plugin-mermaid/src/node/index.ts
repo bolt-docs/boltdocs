@@ -175,6 +175,7 @@ export default function mermaidPlugin(
   return {
     name: 'boltdocs-plugin-mermaid',
     version: '0.1.0',
+    boltdocsVersion: '>=3.4.0',
     remarkPlugins: [[remarkMermaid, remarkOptions]],
     // The same hook, described for a build worker. Without it a site with the
     // Mermaid plugin compiles its MDX on the main thread, one page at a time,

@@ -1,0 +1,28 @@
+---
+title: Soporte y EOL
+sidebarPosition: 7
+description: Cómo Boltdocs versiona los majors, migra los cambiosruptivos y da soporte al major anterior durante su ventana de seguridad EOL.
+---
+
+Boltdocs sigue semver: los cambiosruptivos se envían solo en una versión major, con una guía de migración. La API pública se mantiene estable dentro de un major.
+
+## Los upgrades de major son todo o nada
+
+Te quedas en tu major actual o migras al siguiente. Un major nuevo **no** incluye una fachada `legacy/` para el anterior: ese mecanismo existió solo para `3.x → 4.0.0` y se eliminó ahora que 4.0 se publicó. Nunca se mantiene una capa de compatibilidad que mantenga dos majors vivos en paralelo, y un major no acumula las deprecaciones de los anteriores.
+
+Cada major se publica con una guía completa de migración (ver [Actualizar a 4.0](/docs/guides/operations/upgrading-4-0)) con ejemplos `antes → después`. Se espera que los equipos aterricen dentro de una ventana de versión.
+
+## Ventana de seguridad EOL
+
+Los equipos que no pueden migrar en un solo ciclo no se quedan sin soporte. El major estable anterior conserva una **ventana de seguridad al final de vida (EOL)**:
+
+- Solo se aplican **correcciones de seguridad críticas**.
+- No hay funciones nuevas, ni API nueva, ni APIs eliminadas que se reintroduzcan.
+- La superficie del major anterior nunca incrementa la del actual.
+- La ventana termina en una fecha EOL publicada, anunciada junto con el major que lo reemplaza.
+
+Esto es una obligación de seguridad, no una segunda línea de desarrollo. No reintroduce shims de compatibilidad ni mantiene dos majors en desarrollo activo.
+
+## Reportar un problema de seguridad
+
+Reportá las vulnerabilidades en privado a los mantenedores en vez de abrir un issue público. Incluí el major afectado, la versión exacta y una reproducción. Las correcciones se publican para el major actual y, mientras su ventana EOL esté abierta, también para el major estable anterior.

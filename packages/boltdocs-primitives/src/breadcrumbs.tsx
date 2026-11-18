@@ -1,5 +1,4 @@
 import type * as React from 'react'
-import { cn } from './utils'
 
 export interface BreadcrumbsProps extends React.HTMLAttributes<HTMLElement> {
   /** Names the navigation region for a screen reader. */
@@ -26,8 +25,8 @@ export function Breadcrumbs({
   ...rest
 }: BreadcrumbsProps): React.ReactElement {
   return (
-    <nav className={cn('flex flex-wrap items-center', className)} {...rest}>
-      <ol className="flex flex-wrap items-center">{children}</ol>
+    <nav className={className} {...rest}>
+      <ol data-bdocs-breadcrumbs-list="">{children}</ol>
     </nav>
   )
 }
@@ -51,7 +50,7 @@ export function Breadcrumb({
   ...rest
 }: BreadcrumbProps): React.ReactElement {
   return (
-    <li className={cn('flex items-center', className)} {...rest}>
+    <li className={className} {...rest}>
       {children}
     </li>
   )

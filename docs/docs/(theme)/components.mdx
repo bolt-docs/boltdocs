@@ -1,0 +1,41 @@
+---
+title: Components
+sidebarPosition: 3
+description: The layout components, MDX components, and UI primitives shipped by the default Boltdocs theme.
+---
+
+`@bdocs/theme-neutral` provides three groups of components. Layout components assemble a documentation page, MDX components are available inside `.mdx` content, and UI primitives are the style-neutral building blocks from `@bdocs/primitives`.
+
+## Layout components
+
+- **DocsLayout** — the default page shell that wires together the navbar, sidebar, content, and table of contents. For a custom layout, compose `DocsLayout.Root`, `.Body`, `.Content` and `.Header` from `@bdocs/ui-base/composition`.
+- **Navbar** — the top header for branding, navigation links, the search trigger, and theme controls, with composable left, center, and right regions.
+- **Sidebar** — the left navigation tree with grouped, collapsible sections and `data-*` state for the active item.
+- **SearchDialog** — the Cmd+K command palette that searches pages and headings, with a composable overlay, input, and result list.
+- **OnThisPage** — the right-rail table of contents that lists the current page's `h2`–`h4` headings and highlights the section in view.
+- **Breadcrumbs** — the hierarchical location trail shown above the page title.
+- **PageNav** — the previous/next links rendered below the content, following sidebar order.
+- **CodeBlock** — the shell around every highlighted code fence, with a language label, copy button, and expand/collapse controls. It is injected automatically through MDX.
+- **ErrorBoundary** — catches render errors in its descendants and shows a fallback instead of taking down the page.
+
+## MDX components
+
+- **Callout** — highlights important asides with variants for notes, tips, warnings, and breaking changes.
+- **Card / Cards** — groups related links or features into responsive, clickable tiles.
+- **Field** — documents a single property, config key, or API parameter with its type and required indicator.
+- **Image** — renders a responsive, theme-aware image; plain Markdown images are styled automatically too.
+- **Code Blocks** — fenced blocks highlighted at build time (Shiki by default), with titles, line numbers, wrapping, and copy buttons.
+
+## UI primitives
+
+These style-neutral controls come from `@bdocs/primitives`: they provide structure, behavior, and `data-*` state, while colors and sizes come from your theme.
+
+- **Button** — an accessible press trigger with keyboard, focus, and press semantics.
+- **ButtonGroup** — groups adjacent buttons into one horizontal or vertical unit.
+- **Tabs** — a keyboard-navigable switcher between content panels.
+- **Disclosure** — an expandable region with `aria-expanded` and `aria-controls` wiring.
+- **Popover** — a floating contextual overlay anchored to a trigger.
+- **Tooltip** — a hover/focus popup for helper labels.
+- **Link** — a localized SPA router link that works with `useLocalizedTo`.
+- **Heading** — renders HTML headings with optional anchor links.
+- **Menu** — a dropdown menu with sections, nested submenus, and selection checkboxes.

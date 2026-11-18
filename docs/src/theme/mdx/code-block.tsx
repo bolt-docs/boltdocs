@@ -1,4 +1,4 @@
-import { Tooltip } from '@bdocs/theme-neutral/composition'
+import { Tooltip } from '@bdocs/ui-base/composition'
 import { Button } from '@/theme/button'
 import { Copy, Check, ThumbsUp, ThumbsDown } from 'lucide-react'
 import {
@@ -7,7 +7,7 @@ import {
   useExpandable,
   useCodeBlockFeedback,
 } from '@bdocs/theme-neutral'
-import * as CodePrimitive from '@bdocs/theme-neutral/composition'
+import * as CodePrimitive from '@bdocs/ui-base/composition'
 
 export interface CodeBlockProps {
   children?: React.ReactNode

@@ -13,6 +13,7 @@
 export { createRoutes } from './create-routes'
 export type { CreateRoutesOptions } from './create-routes'
 export { BoltdocsShell } from './shell'
+export { FrameworkErrorBoundary } from './error-boundary'
 export { MdxPage } from './mdx-page'
 export type { BoltdocsTheme, DocPageProps, DocPageRoute } from './theme'
 

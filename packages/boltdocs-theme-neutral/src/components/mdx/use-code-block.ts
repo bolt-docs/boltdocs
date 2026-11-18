@@ -1,4 +1,4 @@
-import { useCopyButton } from './use-copy-button'
+import { useCopyButton } from '@bdocs/ui-base'
 import { useExpandable } from './use-expandable'
 import { useCodeBlockFeedback } from './use-code-block-feedback'
 import type { CodeBlockProps } from './code-block'

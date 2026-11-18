@@ -14,9 +14,12 @@ Usa esta sección cuando ya sabes qué superficie de API necesitas. Para instruc
 | Import | Runtime | Úsalo para |
 | :--- | :--- | :--- |
 | `boltdocs` | Node / build | `defineConfig`, plugins, tipos de configuración y factories JSON-LD. |
-| `@bdocs/theme-neutral` | Browser / SSR | La UI con estilos: componentes, layout, componentes MDX, hooks, structured data, colecciones. |
-| `@bdocs/theme-neutral/composition` | Browser / SSR | Componentes sin estilos de layout, navegación, enlaces e interacción — personalízalos vía atributos de estado `data-*`. |
-| `@bdocs/runtime` | Browser / SSR | El router, los contextos de cliente y el contrato de URLs. |
+| `@bdocs/theme-neutral` | Browser / SSR | El tema por defecto: `surface`, layout de documentación ensamblado, componentes MDX. |
+| `@bdocs/ui-base` | Browser / SSR | UI reutilizable: wrappers de composition, componentes ensamblados, CSS nativo, hooks y utilidades. |
+| `@bdocs/ui-base/composition` | Browser / SSR | Componentes sin estilos de layout, navegación, enlaces e interacción — personalízalos vía atributos de estado `data-*`. |
+| `@bdocs/primitives` | Browser / SSR | Comportamiento accesible sin visuales: `Button`, `Menu`, `Tabs`, `Disclosure`, `ScrollSpy`, etc. |
+| `@bdocs/react-binding` | Browser / SSR | La raíz del cliente React (`createRoot`). Se resuelve por nombre; el engine no la importa. |
+| `@bdocs/runtime` | Browser / SSR | El router, los contextos de cliente, hooks, colecciones y el contrato de URLs. |
 
 <Cards cols={3}>
   <Card title="Configuración" icon={<Server />} href="/docs/es/guides/getting-started/configuration">
@@ -28,7 +31,7 @@ Usa esta sección cuando ya sabes qué superficie de API necesitas. Para instruc
   <Card title="Utilidades" icon={<Wrench />} href="/docs/es/api/utils/define-config">
     Helpers tipados para config, i18n, URLs, clipboard y texto.
   </Card>
-  <Card title="Primitivas" icon={<Blocks />} href="/docs/es/components/layout/docs-layout">
+  <Card title="Primitivas" icon={<Blocks />} href="/docs/es/theme/components#layout-components">
     Compón layouts y navegación sin el shell del theme por defecto.
   </Card>
   <Card title="API de Plugins" icon={<Puzzle />} href="/docs/es/api/plugin-api">

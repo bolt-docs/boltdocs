@@ -9,7 +9,9 @@ describe('Plugin Validator', () => {
   const boltdocsVersion = '1.0.0'
 
   it('should accept a valid plugin', () => {
-    const plugins = [{ name: 'test-plugin' }]
+    const plugins = [
+      { name: 'test-plugin', version: '1.0.0', boltdocsVersion: '>=1.0.0' },
+    ]
     const validated = validatePlugins(plugins, boltdocsVersion)
     expect(validated).toHaveLength(1)
     expect(validated[0].name).toBe('test-plugin')
@@ -23,14 +25,17 @@ describe('Plugin Validator', () => {
   })
 
   it('should reject duplicate plugin names', () => {
-    const plugins = [{ name: 'dup' }, { name: 'dup' }]
+    const plugin = { name: 'dup', version: '1.0.0', boltdocsVersion: '>=1.0.0' }
+    const plugins = [plugin, { ...plugin }]
     expect(() => validatePlugins(plugins, boltdocsVersion)).toThrow(
       'Duplicate plugin name',
     )
   })
 
   it('should reject incompatible boltdocs version', () => {
-    const plugins = [{ name: 'new-plugin', boltdocsVersion: '^2.0.0' }]
+    const plugins = [
+      { name: 'new-plugin', version: '1.0.0', boltdocsVersion: '^2.0.0' },
+    ]
     expect(() => validatePlugins(plugins, boltdocsVersion)).toThrow(
       PluginCompatibilityError,
     )
@@ -40,6 +45,8 @@ describe('Plugin Validator', () => {
     const plugins = [
       {
         name: 'evil',
+        version: '1.0.0',
+        boltdocsVersion: '>=1.0.0',
         components: { Evil: '../../etc/passwd' },
       },
     ]
@@ -52,6 +59,8 @@ describe('Plugin Validator', () => {
     const plugins = [
       {
         name: 'hook-plugin',
+        version: '1.0.0',
+        boltdocsVersion: '>=1.0.0',
         hooks: {
           beforeBuild: async () => {},
           afterBuild: async () => {},
@@ -69,6 +78,8 @@ describe('Plugin Validator', () => {
     const plugins = [
       {
         name: 'modern-hook-plugin',
+        version: '1.0.0',
+        boltdocsVersion: '>=1.0.0',
         hooks: {
           'build:before': buildBefore,
           'server:configure': async () => {},

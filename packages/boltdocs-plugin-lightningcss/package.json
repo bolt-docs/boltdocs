@@ -1,6 +1,6 @@
 {
   "name": "@bdocs/plugin-lightningcss",
-  "version": "0.0.1",
+  "version": "1.0.0",
   "description": "Lightning CSS transformer plugin for Boltdocs",
   "main": "./dist/index.mjs",
   "module": "./dist/index.mjs",

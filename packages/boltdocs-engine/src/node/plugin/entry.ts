@@ -4,7 +4,7 @@ import type { BoltdocsPluginOptions } from './types'
 import path from 'node:path'
 import fs from 'node:fs'
 import { getExternalFileRoutes } from '../routes/pages-external'
-import { resolveThemePackage } from '../theme-package'
+import { resolveThemePackage, resolveUiBindingPackage } from '../theme-package'
 
 /**
  * Check whether Sätteri produced a complete set of compiled page artifacts.
@@ -78,6 +78,7 @@ export function generateEntryCode(
   // The theme package the site asked for. The engine imports the route
   // surface from it and never from itself.
   const themePackage = resolveThemePackage(config)
+  const uiBindingPackage = resolveUiBindingPackage(config)
 
   // Auto-import index.css if it exists
   const cssPath = path.resolve(projectRoot, 'index.css')
@@ -262,12 +263,12 @@ export function generateEntryCode(
     // second theme is a package rather than a copy of the route builder.
     `import { createRoutes, RouteRenderer, matchRouteBranch, matchRouteBranchWithParams, resolveRouteBranch } from '@bdocs/runtime/app'`,
     `import { surface as __theme } from '${themePackage}/surface'`,
+    `import { createRoot as __createRoot } from '${uiBindingPackage}'`,
     `export { RouteRenderer, matchRouteBranch, matchRouteBranchWithParams, resolveRouteBranch }`,
     // Registers the generated per-site artifacts with the runtime before the
     // app renders. See the module for why this is a side effect at the top of
     // the entry rather than something a component does.
     `import 'virtual:boltdocs-site-bridge'`,
-    `import { ViteReactSSG } from 'boltdocs/ssg'`,
     `import _routes from 'virtual:boltdocs-routes.ts'`,
     `import _collections from 'virtual:boltdocs-collections.ts'`,
     `import _config from 'virtual:boltdocs-config.ts'`,
@@ -309,7 +310,7 @@ export function generateEntryCode(
     `  }`,
     `}`,
     '',
-    `const createRoot = ViteReactSSG(`,
+    `const createRoot = __createRoot(`,
     `  createRoutes({`,
     `    routesData: _routes,`,
     `    collectionsData: _collections,`,
@@ -322,19 +323,9 @@ export function generateEntryCode(
     `    externalFilePages: _external_file_pages,`,
     `    externalFileMdx: _external_file_mdx,`,
     `    components: { ${componentMap}${componentMap ? ', ' : ''} ...(_user_mdx_components || {}) },`,
-    `  }, __theme),`,
-    `  ({ isClient }) => {`,
-    `    // Boltdocs initialization hook`,
-    `    if (isClient) {`,
-    `      // Client-side initialization`,
-    `    }`,
-    `  },`,
-    `);`,
+    `  }, __theme`,
+    `));`,
     `export { createRoot };`,
-    `createRoot.RouteRenderer = RouteRenderer;`,
-    `createRoot.matchRouteBranch = matchRouteBranch;`,
-    `createRoot.matchRouteBranchWithParams = matchRouteBranchWithParams;`,
-    `createRoot.resolveRouteBranch = resolveRouteBranch;`,
     prefetchCode,
   ]
 

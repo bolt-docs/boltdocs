@@ -4,6 +4,7 @@ import { fdir } from 'fdir'
 import type { BoltdocsConfig } from '../config'
 import { capitalize, getCacheConfig, normalizePath } from '../utils'
 import { warn } from '@bdocs/dui'
+import { compareCollections } from '@bdocs/contracts'
 
 import type { DirectoryMeta, RouteMeta, ParsedDocFile } from './types'
 import {
@@ -771,16 +772,16 @@ export async function generateRoutes(
         })
       }
     }
+    const positions = config?.collections?.positions
     collectionRoutes.sort((a, b) => {
-      const getTimestamp = (date: string | Date | undefined) => {
-        if (!date) return Number.NEGATIVE_INFINITY
-        const value = new Date(date).getTime()
-        return Number.isFinite(value) ? value : Number.NEGATIVE_INFINITY
-      }
-      const dateA = getTimestamp(a.date)
-      const dateB = getTimestamp(b.date)
-      const dateOrder = dateB - dateA
-      return dateOrder !== 0 ? dateOrder : a.path.localeCompare(b.path)
+      const positionA =
+        positions?.[a.collection ?? ''] ?? Number.MAX_SAFE_INTEGER
+      const positionB =
+        positions?.[b.collection ?? ''] ?? Number.MAX_SAFE_INTEGER
+      return (
+        positionA - positionB ||
+        compareCollections(a, b, config?.collections?.sortBy)
+      )
     })
 
     let finalDocRoutes = docRoutes

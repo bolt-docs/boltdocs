@@ -38,7 +38,7 @@ Below is a custom link selector component that handles routing localization usin
 
 ```tsx
 import React from 'react'
-import { useLocalizedTo } from '@bdocs/theme-neutral'
+import { useLocalizedTo } from '@bdocs/runtime'
 
 export default function LocalLink({ href, label }: { href: string; label: string }) {
   const targetPath = useLocalizedTo(href)

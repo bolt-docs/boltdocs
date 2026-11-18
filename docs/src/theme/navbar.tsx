@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { cn } from '@bdocs/theme-neutral'
-import { Navbar as NavbarPrimitive } from '@bdocs/theme-neutral/composition'
+import { Navbar as NavbarPrimitive } from '@bdocs/ui-base/composition'
 import { Button } from '@/theme/button'
 import { ChevronDown, Menu as MenuIcon, X } from 'lucide-react'
 import { Github } from '@/theme/icons'

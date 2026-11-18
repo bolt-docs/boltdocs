@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 
-import { Link } from '@bdocs/theme-neutral/composition'
+import { Link } from '@bdocs/ui-base/composition'
 import { Button } from '@/theme/button'
 import { Section } from '@/theme'
 import { ArrowLeft, ArrowRight, ArrowUpRight } from 'lucide-react'

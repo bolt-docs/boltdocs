@@ -76,15 +76,17 @@ The scan never executes plugin code: it only reads `package.json` and the source
 
 | Exit code | Meaning |
 | :--- | :--- |
-| **`0`** | All configured plugins were scanned and contain no high-risk findings (only low/warning findings still pass). |
+| **`0`** | All configured plugins were scanned and contain no high-risk findings. |
 | **`1`** | At least one plugin has **high-risk** findings, could not be resolved, failed the scan, or the scan was truncated. |
 
-The command is fail-closed: an unresolved or unscanned plugin is treated as untrusted and never counts as "passed". Use it as a gate before merging third-party plugins:
+The command is fail-closed: an unresolved or unscanned plugin is treated as untrusted and never counts as "passed". `boltdocs build` and `boltdocs dev` additionally fail on warning-level findings unless the plugin is listed in `security.auditAllowWarnings`. Use the audit as a gate before merging third-party plugins:
 
 ```yaml title=".github/workflows/security.yml"
-- run: pnpm docs:build
-- run: pnpm docs:audit
+- run: pnpm install --frozen-lockfile
+- run: pnpm exec boltdocs audit
 ```
+
+`boltdocs build` and `boltdocs dev` run the same audit as a preflight, so an unresolved or risky plugin blocks both commands. Warnings count too; use `security.auditAllowWarnings` only for findings you have reviewed.
 
 If the audit returns `1`, your CI job fails — exactly when you want a human to review a plugin before it ships.
 
@@ -113,7 +115,7 @@ npx boltdocs migrate ./my-docs-site --from starlight --apply
 
 For external frameworks the command generates a starter `boltdocs.config.ts`, converts common frontmatter and admonitions (`:::note` / `<Aside>` → `<Callout>`), copies assets, rewrites dependencies/scripts, and migrates category files, locales and versioned content when it can prove the mapping. Anything ambiguous is reported as `manual` — see the [4.0 upgrade guide](/docs/guides/operations/upgrading-4-0) for details.
 
-### Exit codes (CI contract)
+### Migrate exit codes (CI contract)
 
 | Exit code | Meaning |
 | :--- | :--- |

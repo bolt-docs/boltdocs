@@ -35,10 +35,11 @@ const ROADMAP: RoadmapItem[] = [
       'Content-addressed page cache. A single page edit recompiles and re-renders one route instead of the whole site.',
     status: 'shipped',
   },
+  // Shipped in 4.0
   {
     title: 'Shared contracts',
     description:
-      '@bdocs/contracts publishes the framework-neutral route, plugin, lifecycle, and configuration contracts used by 4.0.',
+      '@bdocs/contracts publishes the framework-neutral route, plugin, lifecycle, and configuration contracts 4.0 is built on.',
     status: 'shipped',
   },
   {
@@ -53,18 +54,18 @@ const ROADMAP: RoadmapItem[] = [
       'The engine no longer ships the theme: `boltdocs/client` is gone, the theme is a package the site installs, and `boltdocs migrate` rewrites the imports.',
     status: 'shipped',
   },
+  {
+    title: 'Boltdocs migrate — 3.x to 4.0',
+    description:
+      'Reports every 3.x pattern in a project and fixes the mechanical ones: the moved import paths, react-aria, the theme and plugin subpaths, and the manifest.',
+    status: 'shipped',
+  },
   // In Progress
   {
     title: 'Boltdocs migrate — VitePress first',
     description:
       'A first-party migration tool to move existing VitePress sites to Boltdocs with minimal friction.',
     status: 'in-progress',
-  },
-  {
-    title: 'Boltdocs migrate — 3.x to 4.0',
-    description:
-      'Reports every 3.x pattern in a project and fixes the mechanical ones: the moved import paths, react-aria, the theme and plugin subpaths, and the manifest.',
-    status: 'shipped',
   },
   {
     title: 'Virtual routes',
@@ -318,9 +319,10 @@ export default function RoadmapPage() {
             What&apos;s coming next
           </h1>
           <p className="mx-auto mt-3 text-sm text-paragraph md:text-base">
-            Boltdocs 3.4 is the stable line: redirects, incremental builds,
-            accessible View Transitions, and the shared contract layer. The 4.0
-            architecture migration continues in parallel on a dedicated branch.
+            Boltdocs 4.0 is the current release: an ESM-only core on Vite 8.3,
+            the UI in @bdocs/theme-neutral, @bdocs/runtime and
+            @bdocs/primitives, and a boltdocs migrate command for 3.x sites.
+            Below is what has shipped and what is still planned.
           </p>
           <div className="mt-5 flex flex-wrap items-center justify-center gap-x-5 gap-y-2 text-xs text-paragraph">
             <span className="inline-flex items-center gap-1.5">

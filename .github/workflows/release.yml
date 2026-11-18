@@ -24,6 +24,11 @@ jobs:
         with:
           node-version: 22
 
+      - name: Setup Zig
+        uses: mlugg/setup-zig@v1
+        with:
+          version: '0.17.0'
+
       - name: Install pnpm
         uses: pnpm/action-setup@v3
         with:
@@ -34,6 +39,34 @@ jobs:
 
       - name: Security Audit
         run: pnpm audit --audit-level moderate || true
+
+      - name: Build packages
+        run: pnpm run build
+
+      # SPEC §2.3: a plugin that cannot be scanned or has high-risk calls must
+      # fail the pipeline, not just warn in a manually invoked command.
+      - name: Plugin security audit
+        run: pnpm -C docs exec boltdocs audit
+
+      # SPEC §2.2: gate the reproducible 100-page MDX fixture, not the docs site.
+      # CI runners differ from the reference machine, so acknowledge that
+      # explicitly; the regression threshold is still enforced on every run.
+      - name: Benchmark regression (100-page fixture)
+        run: |
+          pnpm run benchmark:fixture -- --runs 3
+          pnpm run benchmark:fixture:gate -- --allow-machine-mismatch
+
+      # SPEC §2.2: dev startup and incremental rebuilds must not regress either.
+      - name: Benchmark regression (dev + incremental)
+        run: |
+          pnpm run benchmark:dev -- --runs 3
+          pnpm run benchmark:dev:gate -- --allow-machine-mismatch
+          pnpm run benchmark:incremental -- --runs 3
+          pnpm run benchmark:incremental:gate -- --allow-machine-mismatch
+
+      # SPEC §6 rule 1: the core's production footprint must not grow silently.
+      - name: Core production footprint
+        run: pnpm run benchmark:core
 
       - name: Create Release Pull Request or Publish to npm
         id: changesets

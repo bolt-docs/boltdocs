@@ -1,0 +1,27 @@
+---
+title: Tema
+sidebarPosition: 1
+description: El tema es la capa de UI de Boltdocs 4.0; @bdocs/theme-neutral es el tema por defecto.
+---
+
+Un tema de Boltdocs es la capa visual y de componentes de un sitio. El motor construye la tabla de rutas y monta los providers; el tema dibuja el resultado. Boltdocs 4.0 incluye **@bdocs/theme-neutral** como tema por defecto, pero un tema es simplemente un paquete npm: puedes instalar otro o crear el tuyo.
+
+## Qué posee un tema
+
+Un tema es responsable de cuatro cosas:
+
+- **Layout** — el shell de la página: navbar, sidebar, columna de contenido y tabla de contenidos del rail derecho.
+- **Componentes MDX** — los componentes que los autores usan dentro de archivos `.mdx`, como callouts, tarjetas, campos y bloques de código.
+- **Estilos** — la hoja de estilos y los tokens de diseño. El tema posee tanto el CSS de los componentes como el reset; el motor no incluye CSS en 4.0.
+- **El objeto `surface`** — el conjunto de componentes con los que renderiza el motor, exportado desde `<theme-package>/surface`.
+
+## Cómo se relaciona con runtime y primitives
+
+El tema no reimplementa comportamientos del framework. El estado de navegación, los locales, el routing y los contextos de cliente viven en `@bdocs/runtime`; los bloques accesibles y neutros de estilo viven en `@bdocs/primitives`. Un tema los compone y añade los estilos. No incluye su propio router y nunca lee un módulo `virtual:boltdocs-*` — los artefactos por sitio que esos módulos contienen llegan mediante `registerSiteBridge()` en `@bdocs/runtime`.
+
+## En esta sección
+
+- [Theme neutral](/docs/es/theme/theme-neutral) — el tema por defecto, sus exports y cómo lo resuelve el motor.
+- [Componentes](/docs/es/theme/components) — los componentes de layout, los componentes MDX y las primitivas de UI que ofrece el tema.
+- [Estilos](/docs/es/theme/styling) — la hoja de estilos, el reset y los tokens de diseño.
+- [Tema personalizado](/docs/es/theme/custom-theme) — crea y configura un segundo paquete de tema.

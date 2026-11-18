@@ -10,14 +10,12 @@ import type { BoltdocsPlugin } from './plugin-types'
 import { registerPluginHighlighter } from '../highlight/registry'
 
 const PluginValidationSchema = BoltdocsPluginSchema.extend({
-  version: z.string().optional(),
-  boltdocsVersion: z.string().optional(),
   css: z
     .object({
       cssFiles: z.array(z.string()).optional(),
       headStyles: z.array(z.string()).optional(),
-      postcssPlugins: z.array(z.any()).optional(),
-      preprocessorOptions: z.record(z.string(), z.any()).optional(),
+      postcssPlugins: z.array(z.unknown()).optional(),
+      preprocessorOptions: z.record(z.string(), z.unknown()).optional(),
     })
     .optional(),
   hooks: z
@@ -67,8 +65,20 @@ const PluginValidationSchema = BoltdocsPluginSchema.extend({
     .optional(),
 })
 
+function pluginNameOf(value: unknown): string {
+  if (
+    typeof value === 'object' &&
+    value !== null &&
+    'name' in value &&
+    typeof value.name === 'string'
+  ) {
+    return value.name
+  }
+  return 'unknown'
+}
+
 export function validatePlugins(
-  plugins: any[],
+  plugins: unknown[],
   boltdocsVersion: string,
 ): BoltdocsPlugin[] {
   const validatedPlugins: BoltdocsPlugin[] = []
@@ -78,7 +88,7 @@ export function validatePlugins(
     const result = PluginValidationSchema.safeParse(rawPlugin)
     if (!result.success) {
       throw new PluginValidationError(
-        rawPlugin.name || 'unknown',
+        pluginNameOf(rawPlugin),
         result.error.issues
           .map((i) => `${i.path.join('.')}: ${i.message}`)
           .join(', '),

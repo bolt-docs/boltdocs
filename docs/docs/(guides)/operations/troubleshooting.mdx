@@ -24,15 +24,27 @@ If you used `create-boltdocs`, the template already includes the required config
 {
   "pnpm": {
     "onlyBuiltDependencies": [
+      "@bdocs/parser",
       "@swc/core",
       "esbuild",
+      "koffi",
       "sharp"
     ]
   }
 }
 ```
 
-Then run `pnpm install` again. This tells pnpm to allow build scripts for these specific packages.
+Then run `pnpm install` again. This tells pnpm to allow build scripts for these specific packages. `@bdocs/parser` needs its `postinstall` to fetch the native parser binary (without it the slower WASM fallback is used), and `koffi` is the native FFI loader it depends on.
+
+On pnpm 12+, that setting moved out of `package.json` into `pnpm-workspace.yaml`. Scaffolded projects already ship this file:
+
+```yaml title="pnpm-workspace.yaml"
+allowBuilds:
+  '@bdocs/parser': true
+  '@swc/core': true
+  esbuild: true
+  koffi: true
+```
 
 Alternatively, you can run `pnpm approve-builds` interactively to select which dependencies should be allowed to run scripts.
 

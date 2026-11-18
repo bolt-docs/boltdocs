@@ -34,8 +34,32 @@ export default defineConfig({
 })
 ```
 
-The core keeps aliases such as `boltdocs/client`, `boltdocs/entry`, and `use-sync-external-store` configured automatically. The `aliases` option accepts the same object or array formats as Vite. Advanced Vite settings can still be provided through `vite`; `vite.resolve.alias` is merged with `aliases` instead of replacing the framework aliases. Framework aliases take precedence when the same alias is declared twice.
-  
+The core keeps the framework aliases for `boltdocs/entry`, virtual modules and `use-sync-external-store` configured automatically. The `aliases` option accepts the same object or array formats as Vite. Advanced Vite settings can still be provided through `vite`; `vite.resolve.alias` is merged with `aliases` instead of replacing the framework aliases. Framework aliases take precedence when the same alias is declared twice.
+
+## UI layer packages
+
+The engine resolves the UI layer by name, so it never imports React or a theme itself:
+
+```ts title="boltdocs.config.ts"
+export default defineConfig({
+  themePackage: '@bdocs/theme-neutral',     // default
+  uiBindingPackage: '@bdocs/react-binding', // default
+})
+```
+
+`themePackage` supplies the `surface` the engine renders with. `uiBindingPackage` supplies the client root and the React/Vite wiring; the default is the only supported binding today.
+
+Plugin audit findings of severity `warning` or `high` block `boltdocs build` and `boltdocs dev`. If you have reviewed a plugin's finding, accept it explicitly:
+
+```ts title="boltdocs.config.ts"
+export default defineConfig({
+  security: {
+    auditAllowWarnings: ['@example/reviewed-plugin'],
+  },
+})
+```
+
+Low-severity metadata findings only warn.
 
 ## `ThemeConfig`
 

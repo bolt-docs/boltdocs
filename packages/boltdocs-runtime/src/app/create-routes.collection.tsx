@@ -1,3 +1,4 @@
+import { compareCollections } from '@bdocs/contracts'
 import type { RouteRecord } from '../router'
 import type { ComponentRoute, BoltdocsConfig } from '../types'
 import type React from 'react'
@@ -163,17 +164,9 @@ function buildCollectionRoutes(
         },
       )
 
-      localeRoutes.sort((a, b) => {
-        const getTimestamp = (date: string | Date | undefined) => {
-          if (!date) return Number.NEGATIVE_INFINITY
-          const value = new Date(date).getTime()
-          return Number.isFinite(value) ? value : Number.NEGATIVE_INFINITY
-        }
-        const da = getTimestamp(a.date)
-        const db = getTimestamp(b.date)
-        const dateOrder = db - da
-        return dateOrder !== 0 ? dateOrder : a.path.localeCompare(b.path)
-      })
+      localeRoutes.sort((a, b) =>
+        compareCollections(a, b, config.collections?.sortBy),
+      )
 
       const colChildren: RouteRecord[] = []
 
@@ -279,6 +272,7 @@ function buildCollectionRoutes(
           totalPages,
           currentPage: 1,
           collection: colName,
+          basePath: colBase,
           ...(indexRoute
             ? {
                 route: indexRoute,
@@ -367,6 +361,7 @@ function buildCollectionRoutes(
             totalPages,
             currentPage: p,
             collection: colName,
+            basePath: colBase,
           }),
           getStaticPaths: () => [pagePath],
         })

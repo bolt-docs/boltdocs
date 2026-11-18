@@ -1,6 +1,7 @@
 import { resolvePluginPackage } from './resolve'
 import { scanPluginCode, type ScanResult } from './scanner'
 import { auditPackageMetadata } from './metadata'
+import { getEngineVersion } from './version'
 import type { AuditFinding, AuditOptions, AuditPluginReport } from './types'
 import { highestSeverity } from './types'
 
@@ -76,6 +77,7 @@ export function auditPlugin(
     ...auditPackageMetadata(resolved.pkg, {
       name,
       boltdocsVersion: pluginConfig?.boltdocsVersion,
+      engineVersion: getEngineVersion(),
     }),
   )
 

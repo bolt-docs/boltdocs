@@ -1,4 +1,4 @@
-import { useFeedback } from '@bdocs/theme-neutral'
+import { useFeedback } from '@bdocs/ui-base'
 
 import { cn } from '@bdocs/theme-neutral'
 import { Button } from '@/theme/button'

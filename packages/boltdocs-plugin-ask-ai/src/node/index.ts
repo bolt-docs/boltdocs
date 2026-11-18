@@ -97,6 +97,8 @@ export default function askAiPlugin(
 
   return {
     name: 'boltdocs-plugin-ask-ai',
+    version: '1.0.0',
+    boltdocsVersion: '>=3.4.0',
     client: {
       slots: autoInject
         ? {

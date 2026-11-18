@@ -1,4 +1,4 @@
-import { cn } from '../../utils/cn'
+import { cn } from '@bdocs/ui-base'
 
 export interface CardsProps extends React.HTMLAttributes<HTMLDivElement> {
   cols?: 1 | 2 | 3 | 4

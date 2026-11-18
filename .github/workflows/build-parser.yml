@@ -6,6 +6,9 @@ on:
       - '@bdocs/parser@*'
   workflow_dispatch:
 
+env:
+  ZIG_VERSION: '0.17.0'
+
 jobs:
   test-napi:
     runs-on: ubuntu-latest
@@ -14,6 +17,8 @@ jobs:
 
       - name: Setup Zig
         uses: mlugg/setup-zig@v1
+        with:
+          version: ${{ env.ZIG_VERSION }}
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
@@ -30,22 +35,36 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Build N-API shared library
-        run: |
-          cd packages/boltdocs-parser && \
-          zig build-lib src/napi.zig \
-            -dynamic -fPIC \
-            --name bdocs_parser_napi \
-            -fno-strip \
-            -OReleaseFast -lc
+        run: pnpm --filter @bdocs/parser run build:napi
 
       - name: Run Zig tests
-        run: cd packages/boltdocs-parser && zig build test
+        run: pnpm --filter @bdocs/parser test
 
       - name: Run N-API binding tests
         run: cd packages/boltdocs-parser && pnpm exec tsx tests/run-napi-tests.ts
 
+  build-wasm:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Zig
+        uses: mlugg/setup-zig@v1
+        with:
+          version: ${{ env.ZIG_VERSION }}
+
+      - name: Build WASM parser
+        run: pnpm --filter @bdocs/parser run build:wasm
+
+      - name: Upload WASM parser
+        uses: actions/upload-artifact@v4
+        with:
+          name: parser-wasm
+          path: packages/boltdocs-parser/zig-out/bin/bdocs-parser.wasm
+
   build:
     strategy:
+      fail-fast: false
       matrix:
         include:
           - target: x86_64-linux-gnu
@@ -66,7 +85,7 @@ jobs:
             napi_lib: libbdocs_parser_napi.dylib
           - target: x86_64-windows-gnu
             os: windows-latest
-            binary: parser-win-x64-dll
+            binary: parser-win-x64.exe
             napi_lib: bdocs_parser_napi.dll
 
     runs-on: ${{ matrix.os }}
@@ -75,25 +94,28 @@ jobs:
 
       - name: Setup Zig
         uses: mlugg/setup-zig@v1
+        with:
+          version: ${{ env.ZIG_VERSION }}
 
       - name: Build CLI binary
-        run: zig build -Dtarget=${{ matrix.target }} -Doptimize=ReleaseFast
+        run: zig build -Dtarget=${{ matrix.target }} -Doptimize=ReleaseSmall
+        working-directory: packages/boltdocs-parser
 
       - name: Build N-API shared library
+        shell: bash
         run: |
-          cd packages/boltdocs-parser && \
           zig build-lib src/napi.zig \
             -dynamic ${{ contains(matrix.target, 'windows') && '' || '-fPIC' }} \
             --name bdocs_parser_napi \
-            -fno-strip \
-            -OReleaseFast -lc \
+            -fstrip -OReleaseSmall -lc \
             -target ${{ matrix.target }}
+        working-directory: packages/boltdocs-parser
 
       - name: Upload CLI binary as artifact
         uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.binary }}
-          path: zig-out/bin/bdocs-parser${{ matrix.target == 'x86_64-windows-gnu' && '.exe' || '' }}
+          path: packages/boltdocs-parser/zig-out/bin/bdocs-parser${{ contains(matrix.target, 'windows') && '.exe' || '' }}
 
       - name: Upload N-API library as artifact
         uses: actions/upload-artifact@v4
@@ -102,7 +124,7 @@ jobs:
           path: packages/boltdocs-parser/${{ matrix.napi_lib }}
 
   release:
-    needs: [build, test-napi]
+    needs: [build, build-wasm, test-napi]
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -138,10 +160,11 @@ jobs:
             artifacts/parser-darwin-x64/bdocs-parser
             artifacts/parser-darwin-arm64/bdocs-parser
             artifacts/parser-win-x64.exe/bdocs-parser.exe
+            artifacts/parser-wasm/bdocs-parser.wasm
             artifacts/napi-parser-linux-x64/libbdocs_parser_napi.so
             artifacts/napi-parser-linux-arm64/libbdocs_parser_napi.so
             artifacts/napi-parser-darwin-x64/libbdocs_parser_napi.dylib
             artifacts/napi-parser-darwin-arm64/libbdocs_parser_napi.dylib
-            artifacts/napi-parser-win-x64-dll/bdocs_parser_napi.dll
+            artifacts/napi-parser-win-x64.exe/bdocs_parser_napi.dll
           draft: false
           prerelease: false

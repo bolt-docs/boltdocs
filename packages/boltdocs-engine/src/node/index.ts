@@ -1,5 +1,4 @@
 import type { CSSOptions, InlineConfig, Plugin, UserConfig } from 'vite'
-import type { Options as ReactPluginOptions } from '@vitejs/plugin-react'
 import type { BoltdocsConfig } from './config'
 import type { BoltdocsPluginOptions } from './plugin/index'
 import type { RouteMeta } from './routes/types'
@@ -8,7 +7,12 @@ import fs from 'node:fs'
 import crypto from 'node:crypto'
 import { ssrDirnamePolyfillPlugin } from './plugins/ssr-dirname-polyfill'
 import { createBoltdocsAliases, normalizeAliases } from './aliases'
-import { resolveThemePackage, themeSourceAliases } from './theme-package'
+import {
+  namedPackageSourceAliases,
+  resolveThemePackage,
+  resolveUiBindingPackage,
+  themeSourceAliases,
+} from './theme-package'
 export { generateEntryCode } from './plugin/entry'
 
 // In-memory cache keyed by `${root}::${mode}::${optionsHash}` where
@@ -81,7 +85,6 @@ function createViteConfigCacheKey(
   return `${root}::${mode}::${hash}`
 }
 
-type ReactPluginFactory = (options?: ReactPluginOptions) => Plugin[]
 type BoltdocsPluginFactory = (
   options?: BoltdocsPluginOptions,
   passedConfig?: BoltdocsConfig,
@@ -189,23 +192,43 @@ export async function createViteConfig(
 
   // Load Vite adapters in parallel with config and route discovery.
   interface ViteRuntimeImports {
-    reactPlugin: ReactPluginFactory
+    bindingVitePlugins?: Plugin[]
     boltdocsPlugin: BoltdocsPluginFactory
     getExternalAbsolutePaths: ExternalPathsResolver
     resolveSecurityHeaders: SecurityHeadersResolver
     normalizePath: NormalizePath
   }
 
+  const config =
+    preResolvedConfig ||
+    (await (async () => {
+      const { resolveConfig } = await import('./config')
+      return resolveConfig('docs', root)
+    })())
+
   let importsPromise: Promise<ViteRuntimeImports> | null = null
   function ensureImports(): Promise<ViteRuntimeImports> {
     if (importsPromise) return importsPromise
+    const binding = resolveUiBindingPackage(config)
     importsPromise = Promise.all([
-      import('@vitejs/plugin-react'),
+      // Resolved by name from the project: the engine never imports a UI
+      // framework, it only asks the configured binding for Vite wiring.
+      import(`${binding}/vite`).catch(() => null),
       import('./plugin/index'),
       import('./security/resolve'),
       import('vite'),
-    ]).then(([reactModule, pluginModule, securityModule, viteModule]) => ({
-      reactPlugin: reactModule.default,
+    ]).then(([bindingModule, pluginModule, securityModule, viteModule]) => ({
+      bindingVitePlugins: (
+        bindingModule as {
+          reactBindingVitePlugin?: (options: {
+            isProd: boolean
+            fastRefresh: boolean
+          }) => Plugin[]
+        } | null
+      )?.reactBindingVitePlugin?.({
+        isProd: mode === 'production',
+        fastRefresh: shouldUseReactPlugin(mode === 'production'),
+      }),
       boltdocsPlugin: pluginModule.boltdocsPlugin,
       getExternalAbsolutePaths: pluginModule.getExternalAbsolutePaths,
       resolveSecurityHeaders: securityModule.resolveSecurityHeaders,
@@ -215,13 +238,6 @@ export async function createViteConfig(
   }
 
   const imports = ensureImports()
-
-  const config =
-    preResolvedConfig ||
-    (await (async () => {
-      const { resolveConfig } = await import('./config')
-      return resolveConfig('docs', root)
-    })())
 
   const docsDir = path.resolve(root, config.docsDir || 'docs')
 
@@ -270,7 +286,7 @@ export async function createViteConfig(
   const securityHeaders = await securityHeadersPromise
 
   const {
-    reactPlugin,
+    bindingVitePlugins,
     boltdocsPlugin,
     getExternalAbsolutePaths,
     normalizePath: normalizeVitePath,
@@ -352,33 +368,17 @@ export async function createViteConfig(
       ...userViteConfig.experimental,
       bundledDev: shouldEnableBundledDev(isProd),
     },
-    oxc: {
-      ...userViteConfig.oxc,
-      jsx: {
-        development: !isProd,
-        runtime: 'automatic',
-        importSource: 'react',
-      },
-    },
+    oxc: userViteConfig.oxc,
     optimizeDeps: {
       ...userOptimizeDeps,
       entries: userEntries,
-      include: [
-        ...(userOptimizeDeps.include ?? []),
-        'react',
-        'react-dom',
-        'react-dom/client',
-        'react-helmet-async',
-        'react-router-dom',
-        'use-sync-external-store/shim',
-      ],
     },
     css: hasCssConfig ? css : undefined,
     build: userViteConfig.build ?? {},
     plugins: [
       ...(userViteConfig.plugins ?? []),
       ssrDirnamePolyfillPlugin(),
-      ...(shouldUseReactPlugin(isProd) ? reactPlugin() : []),
+      ...(bindingVitePlugins ?? []),
       ...boltdocsPlugin(
         { docsDir, root, routes } as BoltdocsPluginOptions,
         config,
@@ -388,23 +388,11 @@ export async function createViteConfig(
       ...userSsr,
       external: [
         ...userSsrExternal,
-        'react',
-        'react-dom',
-        'react-helmet-async',
-        'react-router-dom',
         '@bdocs/ssg',
         'jsdom',
         ...getExternalAbsolutePaths(),
       ],
-      optimizeDeps: {
-        ...userSsr.optimizeDeps,
-        include: [
-          ...(userSsr.optimizeDeps?.include ?? []),
-          'react',
-          'react-dom',
-        ],
-      },
-      noExternal: [],
+      optimizeDeps: userSsr.optimizeDeps,
     },
     server: {
       ...userServer,
@@ -429,7 +417,13 @@ export async function createViteConfig(
       alias: [
         ...createBoltdocsAliases({
           root,
-          themeSource: themeSourceAliases(resolveThemePackage(config), root),
+          themeSource: {
+            ...themeSourceAliases(resolveThemePackage(config), root),
+            // The binding is resolved by name. In a workspace it is aliased to
+            // source so a test project with no installed dependency still loads
+            // the same module instance as the generated entry.
+            ...namedPackageSourceAliases(resolveUiBindingPackage(config), root),
+          },
           aliases: [
             ...normalizeAliases(config.aliases),
             ...normalizeAliases(userViteConfig.resolve?.alias),
@@ -441,12 +435,7 @@ export async function createViteConfig(
             : {}),
         })),
       ],
-      dedupe: [
-        'react',
-        'react-dom',
-        'react-router-dom',
-        ...(userViteConfig.resolve?.dedupe ?? []),
-      ],
+      dedupe: userViteConfig.resolve?.dedupe,
     },
     base: effectiveBase,
     publicDir: resolvePublicDir(root, config, options.publicDir),

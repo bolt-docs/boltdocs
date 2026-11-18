@@ -3,13 +3,19 @@ const std = @import("std");
 pub fn build(b: *std.Build) void {
     const target = b.standardTargetOptions(.{});
     const optimize = b.standardOptimizeOption(.{});
+    const is_release = optimize != .debug;
 
-    // Shared library module (reused by both exe and napi lib)
+    // Shared library module (reused by both exe and napi lib).
+    // In release builds strip debug info, drop frame pointers and disable
+    // error-name tracing — none are needed at runtime and together they cut
+    // a large amount of metadata from the shipped binaries.
     const parser_module = b.createModule(.{
         .root_source_file = b.path("src/main.zig"),
         .target = target,
         .optimize = optimize,
-        .strip = if (optimize != .Debug) true else null,
+        .strip = if (is_release) true else null,
+        .omit_frame_pointer = if (is_release) true else null,
+        .error_tracing = if (is_release) false else null,
     });
 
     // CLI executable
@@ -25,15 +31,16 @@ pub fn build(b: *std.Build) void {
     // reliably exports symbols. See package.json 'build:napi' script.
     const napi_step = b.step("napi", "Build the N-API shared library via zig build-lib");
     const napi_build = b.addSystemCommand(&.{
-        "zig", "build-lib",
-        "src/napi.zig",
-        "-dynamic", "-fPIC",
-        "--name", "bdocs_parser_napi",
+        "zig",               "build-lib",
+        "src/napi.zig",      "-dynamic",
+        "-fPIC",             "--name",
+        "bdocs_parser_napi",
     });
 
-    if (optimize != .Debug) {
+    if (is_release) {
         napi_build.addArg("-O");
         napi_build.addArg(@tagName(optimize));
+        napi_build.addArg("-fstrip");
     }
 
     napi_step.dependOn(&napi_build.step);

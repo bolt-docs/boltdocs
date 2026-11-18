@@ -10,6 +10,8 @@ import type { RouteMeta } from '../../src/node/routes/types'
 describe('plugin client projection', () => {
   const plugin = {
     name: 'ask-ai',
+    version: '1.0.0',
+    boltdocsVersion: '>=3.4.0',
     client: {
       slots: {
         'floating:after': '@bdocs/plugin-ask-ai/client#AskAiBubble',
@@ -59,6 +61,8 @@ describe('plugin client projection', () => {
     const source = generateClientRegistryModule([
       {
         name: 'git-meta',
+        version: '1.0.0',
+        boltdocsVersion: '>=3.4.0',
         client: {
           slots: {
             'page:footer:start':

@@ -1,0 +1,43 @@
+---
+title: Theme neutral
+sidebarPosition: 2
+description: The default Boltdocs theme — how to install it, what it exports, and how the engine resolves it.
+---
+
+`@bdocs/theme-neutral` is the default theme in Boltdocs 4.0. It supplies the theme's `surface`, the assembled docs layout, the MDX components and the visual defaults. The reusable UI layer lives in its own package, `@bdocs/ui-base`, and the accessible behavior in `@bdocs/primitives`; the theme re-exports their public API so existing imports keep working.
+
+## Install
+
+```bash
+pnpm add @bdocs/theme-neutral @bdocs/runtime @bdocs/ui-base @bdocs/primitives @bdocs/react-binding
+```
+
+The [create-boltdocs](https://www.npmjs.com/package/create-boltdocs) scaffold installs this set for you.
+
+## The default, and why it is required
+
+The engine resolves the theme package from your `themePackage` config. When you do not set it, the default is `'@bdocs/theme-neutral'`. A theme is not optional: the generated entry imports `surface` from `${themePackage}/surface` and passes it to `createRoutes`, so a site without an installed theme fails with a missing dependency.
+
+```ts
+// boltdocs.config.ts
+import { defineConfig } from 'boltdocs'
+
+export default defineConfig({
+  themePackage: '@bdocs/theme-neutral',
+})
+```
+
+## Package exports
+
+| Subpath | Contents |
+| --- | --- |
+| `.` | `surface`, `DocsLayout`, `DocPage`, MDX components and a re-export of the whole `@bdocs/ui-base` API. |
+| `./composition` | Backwards-compatible re-export of `@bdocs/ui-base/composition`. New code should import from that package. |
+| `./surface` | The `surface` object the engine renders with. |
+| `./css` | The theme's component stylesheet (native CSS). |
+| `./reset` | The page reset and accessibility baseline. |
+| `./package.json` | The package manifest. |
+
+## Native CSS, not Tailwind
+
+The theme ships native CSS, not Tailwind utilities. Every rule is a real class in its `src/styles/` directory, so a custom theme can override it without matching a generated utility class name. See [Styling](/docs/theme/styling) for the imports and tokens.

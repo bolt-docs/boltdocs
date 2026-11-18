@@ -1,5 +1,106 @@
 # create-boltdocs
 
+## 1.0.0
+
+### Major Changes
+
+- fd11c2f: Replace `react-aria-components` with `@bdocs/primitives`.
+
+  The client primitives now come from a package in this repository instead of from
+  `react-aria-components`. That tree was 23.4 MB across 113 packages and was a
+  **required peer** of `boltdocs`, so every site paid for it whether or not it used
+  a single interactive component.
+
+  ### Measured effect
+
+  Per-visit JS on the documentation site, measured on the same machine against a
+  build of `4.0` at `fc13afeb`:
+
+  |                         | eager JS, raw          | eager JS, gzip        |
+  | ----------------------- | ---------------------- | --------------------- |
+  | `react-aria-components` | 1014.3 kB              | 271.9 kB              |
+  | `@bdocs/primitives`     | 853.8 kB               | 221.3 kB              |
+  | **delta**               | **−160.5 kB (−15.8%)** | **−50.6 kB (−18.6%)** |
+
+  The application chunk alone goes from 736.5 kB to 576.0 kB. Install closure
+  drops by the full size of the react-aria tree. Rendered output is unchanged: of
+  the 259 pages in the documentation build, every one is byte-identical once
+  react-aria's internal bookkeeping (`data-rac`, `data-react-aria-pressable`,
+  `react-aria-*` ids, a redundant `tabindex="0"` on buttons, and the order in which
+  JSX attributes are serialised) is normalised away. The single structural
+  difference on each page is the `relative inline-block` wrapper around a menu
+  trigger, which CSS-anchored positioning needs in place of a positioning engine.
+
+  ### What is not implemented
+  - **No viewport collision or flipping.** Popovers and menus are positioned with
+    CSS relative to their trigger. Boltdocs anchors them to navbar and sidebar
+    items where the surrounding layout already decides the side, so a full
+    collision solver would be cost without a use. A popover near a viewport edge
+    will overflow rather than flip.
+  - **`SSRProvider` is gone, not replaced.** It existed because react-aria derives
+    element ids from a module-level counter that starts at a different value on
+    the server and in the browser. `@bdocs/primitives` uses React's `useId`, which
+    agrees across the boundary by construction, so there is nothing to reconcile.
+
+  ### Accessibility changes worth knowing
+
+  These are deliberate, and in two cases they are corrections rather than parity:
+  - A selectable `Menu` renders `menuitemradio` for one-of-many and
+    `menuitemcheckbox` for many-of-many, with `aria-checked` only when the menu can
+    select. A plain `menuitem` carrying `aria-checked` is not a combination the
+    authoring practices define.
+  - `MenuTrigger` clones a trigger that is already a control and wraps anything
+    else in a real `button`. A `<span>` handed in as a trigger would otherwise
+    receive `aria-expanded` and the event handlers while remaining unreachable by
+    keyboard and unannounced by a screen reader.
+  - A trigger now carries `aria-controls` pointing at the popup. react-aria
+    omitted it.
+  - `Separator` no longer ships a background colour. It was `bg-border`, which
+    competed with the caller's own background, and which of two same-specificity
+    background utilities wins is decided by their order in the generated
+    stylesheet rather than the order they are written in.
+
+  ### Migration
+
+  `react-aria-components` is no longer a peer dependency, a dependency, or a dev
+  dependency of `boltdocs`, and is no longer scaffolded by `create-boltdocs`. There
+  is nothing to uninstall from a host app's `package.json` other than the entry
+  itself. Theme components that were written against the react-aria props
+  (`placement`, `offset`, `crossOffset`, `onPress` on a menu item, `isSelected` and
+  `onSelectionChange` on a menu) need the `@bdocs/primitives` equivalents: menus are
+  positioned with `className`, and `MenuItem` reports activation through
+  `onAction`.
+
+  ### Other fixes in this change
+  - `packages/boltdocs-engine` type-checks clean. The 46 errors it carried were all
+    `TS7016` implicit-`any` imports of the vendored Shiki grammars and themes,
+    introduced when those assets were vendored; each vendored `.mjs` now has a
+    sibling `.d.mts`.
+
+### Minor Changes
+
+- f7464bf: Make the core CSS-agnostic: remove Tailwind/Vite Tailwind coupling and CSS-framework assumptions from the engine and neutral theme, replace `cn` with framework-neutral `clsx` class joining (no Tailwind merge), ship the neutral theme as plain CSS only, and update scaffolding/templates to opt into Tailwind explicitly via `@bdocs/plugin-tailwindcss` when needed.
+
+### Patch Changes
+
+- Migrate the Zig parser and critical-CSS extractor to Zig 0.17 and ship much smaller binaries.
+
+  `@bdocs/parser` now builds on Zig 0.17 (`.debug`, `@splat`, `@backingInt`, `std.Io` APIs), and its native, WASM and N-API artifacts are stripped and built with `ReleaseSmall`:
+
+  | Artifact             | Before |  After |
+  | -------------------- | -----: | -----: |
+  | N-API shared library | 4.5 MB | 218 KB |
+  | Native CLI           | 358 KB | 227 KB |
+  | WASM fallback        | 195 KB | 126 KB |
+
+  `@bdocs/zig-critters` (private) moves to Zig 0.17 as well. Its WASM target is now `wasm32-freestanding` and links with Zig's own bundled linker — no external `wasm-ld` is required. The committed `.wasm` shrinks from 243,887 to 34,199 bytes (−86%), and the native benchmark binary from 4.6 MB to 205 KB.
+
+  Installation is also fixed end to end: `postinstall` now downloads the CLI **and** the N-API library into the package-local `.cache` used by the runtime (the previous path did not match), the CLI exposes `--version` so downloads can be verified, the release workflow pins Zig 0.17.0 and publishes the WASM fallback, and `@bdocs/parser` / `koffi` are allowlisted in `onlyBuiltDependencies` so lifecycle scripts actually run on pnpm 10.
+
+  Scaffolded projects also work on pnpm 12, which no longer reads `pnpm.onlyBuiltDependencies` from `package.json`: the templates now ship a `pnpm-workspace.yaml` with the equivalent `allowBuilds` map (and keep the legacy field for pnpm 10/11). The troubleshooting guide documents both forms.
+
+  All Zig, TypeScript and JavaScript tests pass (13 N-API/WASM, 9 critters WASM).
+
 ## 0.5.0
 
 ### Minor Changes

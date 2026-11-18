@@ -1,6 +1,6 @@
 import { useTheme } from '@bdocs/runtime'
-import { cn } from '../../utils/cn'
-import { Image as ImagePrimitive } from '../composition/image'
+import { cn } from '@bdocs/ui-base'
+import { Image as ImagePrimitive } from '@bdocs/ui-base/composition'
 
 export interface ImageProps extends React.ImgHTMLAttributes<HTMLImageElement> {
   theme?: 'light' | 'dark'

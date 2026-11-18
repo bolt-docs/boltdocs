@@ -1,0 +1,58 @@
+---
+title: Benchmarks & Regression Gates
+sidebarPosition: 5
+description: How Boltdocs measures build and dev performance, and the CI gates that keep it from regressing.
+---
+
+Performance is a contract, not a vibe. Boltdocs measures three distinct paths on every release and rejects regressions against committed baselines.
+
+## The three modes
+
+| Mode | What it measures | Script | Baseline |
+| --- | --- | --- | --- |
+| **Cold** | A full production build from an empty cache | `pnpm benchmark` | `scripts/benchmarks/baseline.json` |
+| **Warm** | Dev-server startup with a primed cache | `pnpm benchmark:dev` | `scripts/benchmarks/baseline-warm.json` |
+| **Incremental** | A rebuild after touching one content file | `pnpm benchmark:incremental` | `scripts/benchmarks/baseline-incremental.json` |
+
+Each profiling run prints phase timings and writes a JSON report under `.boltdocs/benchmarks/`. The gate compares the newest report against its baseline:
+
+```bash
+pnpm benchmark:gate              # cold
+pnpm benchmark:dev:gate          # warm
+pnpm benchmark:incremental:gate  # incremental
+```
+
+A build that is more than 10% slower than the baseline is rejected. Improvements are always accepted and do not silently lower the bar — update a baseline deliberately, in its own commit, when a change genuinely shifts the performance floor.
+
+## The 100-page fixture
+
+Cold measurements run against a generated fixture of 100 MDX pages rather than the docs site, so results do not depend on documentation content:
+
+```bash
+pnpm benchmark:fixture         # generate + profile
+pnpm benchmark:fixture:gate    # enforce against baseline-100.json
+```
+
+The fixture includes realistic frontmatter, code fences with titles, nested headings, and callouts — the same shapes the MDX pipeline actually compiles.
+
+## Core footprint
+
+A fourth, size-based gate guards the production footprint of the framework's own runtime code:
+
+```bash
+pnpm benchmark:core
+```
+
+It fails if the shipped core grows beyond the committed `core-footprint-baseline.json`. This is what keeps the engine free of UI or CSS-framework code that would be paid for by every site.
+
+## In CI
+
+`.github/workflows/release.yml` runs every profile and gate, plus the fixture and core-footprint gates. A regression blocks the release. Baselines include a machine fingerprint; CI passes `--allow-machine-mismatch` so a runner's hardware does not produce a false failure, but absolute numbers are always printed for review.
+
+## Interpreting results
+
+- **Cold build** is dominated by MDX compilation and Shiki highlighting. Caches and worker parallelism matter most here.
+- **Warm build** measures the dev server reaching a ready state. Config resolution and prewarming dominate.
+- **Incremental** measures the path a developer hits on every save: frontmatter hashing, targeted module invalidation, and HMR.
+
+Numbers are relative to the baseline on the same machine class. They are not a promise about your project — content volume, plugins, and themes all change the absolute cost. The gates guarantee Boltdocs itself does not get slower between releases.

@@ -11,6 +11,7 @@
  *   tsx scripts/benchmarks/profile-build.ts --runs 1          # single run
  *   tsx scripts/benchmarks/profile-build.ts --touch docs/index.md  # incremental 1-file change
  *   tsx scripts/benchmarks/profile-build.ts --compare         # cold + warm side-by-side
+ *   tsx scripts/benchmarks/profile-build.ts --fixture          # SPEC §2.2: generated 100-page MDX fixture
  *
  * Output:
  *   .boltdocs/benchmarks/profile-<timestamp>.json
@@ -21,10 +22,15 @@ import path from 'node:path'
 import os from 'node:os'
 import { fileURLToPath } from 'node:url'
 import { spawn } from 'node:child_process'
+import { createFixtureDir, cleanupFixtureDir } from './utils/fixtures'
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
 const WORKSPACE_ROOT = path.resolve(__dirname, '..', '..')
+
+/** Profiles from the SPEC §2.2 fixture live apart from docs-site profiles. */
+let profileOutDir = path.join(WORKSPACE_ROOT, '.boltdocs', 'benchmarks')
+let fixtureDir: string | null = null
 
 interface PhaseTiming {
   name: string
@@ -122,6 +128,7 @@ function parseArgs(): CliArgs {
     })(),
     compare: args.includes('--compare'),
     skipMermaid: args.includes('--skip-mermaid'),
+    fixture: args.includes('--fixture'),
     docsDir: path.resolve(WORKSPACE_ROOT, 'docs'),
   }
 }
@@ -565,21 +572,34 @@ function printComparison(
 }
 
 function saveSummary(summary: ProfileSummary): string {
-  const benchmarksDir = path.join(WORKSPACE_ROOT, '.boltdocs', 'benchmarks')
-  if (!fs.existsSync(benchmarksDir)) {
-    fs.mkdirSync(benchmarksDir, { recursive: true })
+  if (!fs.existsSync(profileOutDir)) {
+    fs.mkdirSync(profileOutDir, { recursive: true })
   }
 
   const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19)
   const mode = summary.mode
   const filename = `profile-${mode}-${timestamp}.json`
-  const filePath = path.join(benchmarksDir, filename)
+  const filePath = path.join(profileOutDir, filename)
   fs.writeFileSync(filePath, JSON.stringify(summary, null, 2))
   return filePath
 }
 
 async function main(): Promise<void> {
   const options = parseArgs()
+
+  if (options.fixture) {
+    const fixtureBase = path.join(WORKSPACE_ROOT, '.boltdocs', 'fixtures')
+    fs.mkdirSync(fixtureBase, { recursive: true })
+    fixtureDir = createFixtureDir({ baseDir: fixtureBase })
+    options.docsDir = fixtureDir
+    profileOutDir = path.join(
+      WORKSPACE_ROOT,
+      '.boltdocs',
+      'benchmarks',
+      'fixture',
+    )
+    fs.mkdirSync(profileOutDir, { recursive: true })
+  }
 
   console.log('\n' + '═'.repeat(72))
   console.log('  🔍 P2-00: Profile Build Harness')
@@ -710,6 +730,11 @@ async function main(): Promise<void> {
   // If compare mode, print cold vs warm table
   if (options.compare) {
     printComparison(coldSummary, warmSummary)
+  }
+
+  if (fixtureDir) {
+    cleanupFixtureDir(fixtureDir)
+    fixtureDir = null
   }
 }
 

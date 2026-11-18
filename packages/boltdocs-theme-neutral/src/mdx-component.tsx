@@ -1,4 +1,4 @@
-import { NotFound } from './components/ui-base/not-found'
+import { NotFound } from '@bdocs/ui-base'
 import { mdx_components_default } from './components/mdx/index'
 
 export const mdxComponentsDefault = {

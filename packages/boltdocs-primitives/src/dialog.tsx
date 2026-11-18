@@ -51,8 +51,13 @@ export function Dialog(props: DialogProps): React.ReactElement | null {
   // it had already decided was not focusable — two components in one package
   // disagreeing about what focusable means.
   React.useEffect(() => {
-    if (!isOpen || preventFocus || autoFocus) return
-    if (!ref.current) return
+    if (!isOpen || preventFocus || !ref.current) return
+    if (autoFocus) {
+      // `autoFocus` means the dialog itself, not its first control — that is
+      // what the prop promises. Skipping focus entirely broke screen readers.
+      ref.current.focus()
+      return
+    }
     focusFirstIn(ref.current)
   }, [isOpen, preventFocus, autoFocus])
 

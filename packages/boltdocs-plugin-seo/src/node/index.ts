@@ -57,6 +57,7 @@ export function seo(): BoltdocsPlugin {
   return {
     name: 'plugin-seo',
     version: '1.0.0',
+    boltdocsVersion: '>=3.4.0',
     hooks: {
       'build:routes'(ctx: PluginContext, params: { routes: RouteMeta[] }) {
         enrichRouteSeo(

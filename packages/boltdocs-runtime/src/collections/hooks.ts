@@ -1,17 +1,13 @@
-import { useMemo } from 'react'
+import { useCallback, useMemo } from 'react'
+import { compareCollections } from '@bdocs/contracts'
 import { useConfig } from '../config-context'
 import { useCollectionsData, useCurrentPostData } from './collections-context'
 import { useRoutes } from '../hooks/use-routes'
+import { useLoaderData } from '../router'
 import type { CollectionPost } from './collections-context'
+import { formatCollectionDate } from './utils'
 
 const DEFAULT_COLLECTION = 'blog'
-const NO_DATE = Number.NEGATIVE_INFINITY
-
-function getPostTimestamp(date: CollectionPost['date']): number {
-  if (!date) return NO_DATE
-  const timestamp = new Date(date).getTime()
-  return Number.isFinite(timestamp) ? timestamp : NO_DATE
-}
 
 interface UsePostsOptions {
   includeDrafts?: boolean
@@ -19,23 +15,26 @@ interface UsePostsOptions {
 
 /**
  * Returns the posts of a collection, filtered by the current locale and version.
- * Defaults to "blog" if no collection is specified.
- * @param collection - The name of the collection. Defaults to "blog".
+ * Defaults to `collections.defaultCollection` ("blog" when unset).
+ * @param collection - The collection name; falls back to the configured default.
  * @param options - Options to customize the query.
  * @param options.includeDrafts - If true, includes draft posts in the results.
  * @returns The filtered posts of the collection.
  */
 export function usePosts(
-  collection: string = DEFAULT_COLLECTION,
+  collection?: string,
   options?: UsePostsOptions,
 ): CollectionPost[] {
   const data = useCollectionsData()
   const { currentLocale, currentVersion } = useRoutes()
   const config = useConfig()
 
-  const posts = data[collection] || []
+  const name =
+    collection ?? config.collections?.defaultCollection ?? DEFAULT_COLLECTION
+  const posts = data[name] || []
   const defaultLocale = config.i18n?.defaultLocale
   const defaultVersion = config.versions?.defaultVersion
+  const sortBy = config.collections?.sortBy
 
   return useMemo(() => {
     return posts
@@ -47,14 +46,10 @@ export function usePosts(
         const draftMatch = options?.includeDrafts || !post.draft
         return localeMatch && versionMatch && draftMatch
       })
-      .sort((a, b) => {
-        const dateA = getPostTimestamp(a.date)
-        const dateB = getPostTimestamp(b.date)
-        const dateOrder = dateB - dateA
-        return dateOrder !== 0 ? dateOrder : a.path.localeCompare(b.path)
-      })
+      .sort((a, b) => compareCollections(a, b, sortBy))
   }, [
     posts,
+    sortBy,
     currentLocale,
     currentVersion,
     defaultLocale,
@@ -121,15 +116,82 @@ export function usePost(
 }
 
 /**
- * Returns the recent posts of a collection. Defaults to "blog".
- * @param collection - The name of the collection. Defaults to "blog".
+ * Returns the recent posts of a collection, using the configured default.
+ * @param collection - The collection name; falls back to the configured default.
  * @param count - The number of recent posts to return.
  * @returns The recent posts of the collection.
  */
 export function useRecentPosts(
-  collection: string = DEFAULT_COLLECTION,
+  collection?: string,
   count: number = 5,
 ): CollectionPost[] {
   const posts = usePosts(collection)
   return useMemo(() => posts.slice(0, count), [posts, count])
+}
+
+/**
+ * Returns the configured display label for a collection, falling back to its
+ * id. Labels may be a plain string or a map keyed by locale.
+ */
+export function useCollectionLabel(collection: string): string {
+  const config = useConfig()
+  const { currentLocale } = useRoutes()
+  const value = config.collections?.labels?.[collection]
+  if (!value) return collection
+  if (typeof value === 'string') return value
+  return (
+    value[currentLocale ?? ''] ??
+    value[config.i18n?.defaultLocale ?? ''] ??
+    collection
+  )
+}
+
+/**
+ * Returns the date formatter configured by `collections.dateFormat`.
+ * Pinned to a fixed locale/zone so SSR and hydration agree.
+ */
+export function useCollectionDateFormatter(): (
+  date: string | Date | undefined,
+) => string {
+  const format = useConfig().collections?.dateFormat
+  return useCallback((date) => formatCollectionDate(date, format), [format])
+}
+
+export interface CollectionListState {
+  posts: CollectionPost[]
+  totalPages: number
+  currentPage: number
+  collection: string
+  /** Canonical URL of the collection index, already localized and based. */
+  basePath: string
+  pageHref: (page: number) => string
+}
+
+/**
+ * Everything a collection list needs to render, sourced from the route loader.
+ *
+ * Sorting, pagination and URL construction are decided by the runtime route
+ * builder; a theme list only turns these values into markup. A `usePosts()`
+ * fallback keeps a first client render useful before loader data arrives.
+ */
+export function useCollectionList(): CollectionListState {
+  const data = useLoaderData<{
+    posts?: CollectionPost[]
+    totalPages?: number
+    currentPage?: number
+    collection?: string
+    basePath?: string
+  }>()
+  const collection = data.collection ?? ''
+  const fallbackPosts = usePosts(collection)
+  const basePath = (data.basePath ?? '').replace(/\/+$/, '')
+
+  return {
+    posts: data.posts ?? fallbackPosts,
+    totalPages: data.totalPages ?? 1,
+    currentPage: data.currentPage ?? 1,
+    collection,
+    basePath,
+    pageHref: (page) => (page <= 1 ? basePath : `${basePath}/page/${page}`),
+  }
 }

@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react'
-import { DocsLayout as DocsLayoutPrimitive } from '@bdocs/theme-neutral/composition'
+import { DocsLayout as DocsLayoutPrimitive } from '@bdocs/ui-base/composition'
 import { Navbar } from '@/theme/navbar'
 import { Sidebar } from '@/theme/sidebar'
 import { ErrorBoundary } from '@bdocs/theme-neutral'

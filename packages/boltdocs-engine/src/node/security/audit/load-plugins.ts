@@ -19,6 +19,8 @@ export interface LoadedPlugins {
   plugins: AuditablePlugin[]
   /** Path of the config file that was found, if any. */
   configFile?: string
+  /** Plugins whose audit warnings the site has explicitly accepted. */
+  auditAllowWarnings?: string[]
 }
 
 interface RawConfigModule {
@@ -149,6 +151,9 @@ function matchPluginPackages(
 
   for (const plugin of plugins) {
     if (!plugin || typeof plugin.name !== 'string' || !plugin.name) continue
+    // An explicit package name is authoritative: a package may export several
+    // plugins whose `name` differs from the package name.
+    if (plugin.packageName) continue
     let best: PackageCandidate | null = null
     let bestScore = 0
     for (const candidate of candidates) {
@@ -212,7 +217,14 @@ export async function loadConfiguredPlugins(
       }
       const plugins = userConfig.plugins as AuditablePlugin[]
       matchPluginPackages(configPath, root, plugins)
-      return { plugins, configFile: configPath }
+      const security = userConfig.security as
+        | { auditAllowWarnings?: string[] }
+        | undefined
+      return {
+        plugins,
+        configFile: configPath,
+        auditAllowWarnings: security?.auditAllowWarnings,
+      }
     } catch (err) {
       // Try the next supported filename, like resolveConfig does.
       lastError = err

@@ -65,4 +65,4 @@ pub fn ThreadPool(comptime Task: type, comptime workerFn: fn (*WorkerContext(Tas
             workerFn(context, 0, &thread_arenas[0]);
         }
     }
-}{}
+} {}

@@ -3,6 +3,10 @@ const builtin = @import("builtin");
 const parser = @import("parser.zig");
 const yaml = @import("yaml.zig");
 
+// Keep in sync with package.json: used by `--version` so postinstall can
+// verify a downloaded binary is actually runnable.
+const version = "1.2.0";
+
 /// Appends a JSON-escaped representation of a string to the list.
 fn appendEscapedJsonString(list: *std.ArrayList(u8), allocator: std.mem.Allocator, s: []const u8) !void {
     try list.append(allocator, '"');
@@ -112,12 +116,15 @@ pub fn main(init: std.process.Init) !void {
             }
         } else if (std.mem.eql(u8, arg, "--turbo")) {
             turbo = true;
+        } else if (std.mem.eql(u8, arg, "--version")) {
+            std.Io.File.stdout().writeStreamingAll(init.io, "bdocs-parser " ++ version ++ "\n") catch {};
+            std.process.exit(0);
         }
     }
     defer if (docs_dir) |d| allocator.free(d);
 
     if (docs_dir == null) {
-        std.debug.print("Usage: bdocs-parser --dir <docs_directory> [--turbo]\n", .{});
+        std.debug.print("Usage: bdocs-parser --dir <docs_directory> [--turbo] [--version]\n", .{});
         std.process.exit(1);
     }
 

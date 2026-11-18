@@ -32,6 +32,8 @@ export { getBaseFilePath } from './utils/get-base-file-path'
 export * from './i18n'
 export * from './view-transitions'
 export * from './site-bridge'
+export { FloatingSlots, PluginSlot } from './slot-host'
+export type { PluginSlotProps } from './slot-host'
 export * from './date'
 
 // The document-metadata component and the factories behind it. A site's

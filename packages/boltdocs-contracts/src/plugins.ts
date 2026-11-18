@@ -170,6 +170,8 @@ export type BoltdocsUiSlot =
   | 'sidebar:bottom'
   | 'page:before'
   | 'page:after'
+  | 'page:footer:start'
+  | 'floating:after'
   | (string & {})
 
 export interface PluginHeadEntry {

@@ -41,19 +41,22 @@ export const AUDIT_RULES: AuditRule[] = [
     'code',
     /(?<![\w$.])exec(?:Sync)?\s*\(/,
   ),
+  // Spawning/forking a fixed local script (a render worker, for example) is a
+  // normal build-time pattern. It is reported for review but is not arbitrary
+  // shell execution — unlike exec/execSync/execFile, which stay high.
   rule(
     'child-process-spawn',
     'process',
-    'high',
-    'Spawns child processes via spawn()',
+    'warning',
+    'Spawns a child process via spawn()',
     'code',
     /(?<![\w$.])spawn(?:Sync)?\s*\(/,
   ),
   rule(
     'child-process-fork',
     'process',
-    'high',
-    'Forks child processes via fork()',
+    'warning',
+    'Forks a child process via fork()',
     'code',
     /(?<![\w$.])fork\s*\(/,
   ),
@@ -252,8 +255,8 @@ export const AUDIT_IMPORT_RULES: AuditImportRule[] = [
   {
     id: 'import-child-process',
     category: 'process',
-    severity: 'high',
-    description: 'Imports child_process — arbitrary command execution',
+    severity: 'warning',
+    description: 'Imports child_process — review how it is used',
     modules: ['child_process'],
   },
   {

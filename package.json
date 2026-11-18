@@ -36,6 +36,13 @@
     "benchmark:compare": "tsx scripts/benchmarks/compare-boltdocs-docusaurus.ts",
     "benchmark:baseline": "tsx scripts/benchmarks/run-baseline.ts",
     "benchmark:gate": "tsx scripts/benchmarks/gate.ts",
+    "benchmark:dev": "tsx scripts/benchmarks/profile-build.ts --warm",
+    "benchmark:dev:gate": "tsx scripts/benchmarks/gate.ts --mode warm",
+    "benchmark:incremental": "tsx scripts/benchmarks/profile-build.ts --touch docs/index.css",
+    "benchmark:incremental:gate": "tsx scripts/benchmarks/gate.ts --mode incremental",
+    "benchmark:fixture": "tsx scripts/benchmarks/profile-build.ts --fixture",
+    "benchmark:fixture:gate": "tsx scripts/benchmarks/gate.ts --fixture",
+    "benchmark:core": "tsx scripts/benchmarks/core-footprint.ts",
     "knip": "knip",
     "check:boundaries": "node scripts/check-undeclared-imports.mjs",
     "prepare": "husky",
@@ -108,7 +115,8 @@
       "@swc/core",
       "esbuild",
       "koffi",
-      "sharp"
+      "sharp",
+      "@bdocs/parser"
     ],
     "auditConfig": {
       "ignoreCves": [

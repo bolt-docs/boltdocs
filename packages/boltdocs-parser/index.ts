@@ -53,8 +53,10 @@ function getNativeBinaryPath(): string | null {
   const binaryName = binaryMap[key]
   if (!binaryName) return null
 
-  // 1. Cache from postinstall (node_modules/.cache/@bdocs/parser/)
+  // 1. Package-local cache written by postinstall
   const cachePaths = [
+    path.resolve(__dirname, '..', '.cache', binaryName),
+    // Legacy locations kept as a fallback for older installs
     path.resolve(
       __dirname,
       '..',

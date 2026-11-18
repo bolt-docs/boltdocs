@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react'
-import { cn } from '../utils/cn'
+import { cn } from '@bdocs/ui-base'
 
 /**
  * The content container for a file-routed external MDX page.

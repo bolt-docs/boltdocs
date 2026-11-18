@@ -69,7 +69,7 @@ export default defineConfig({
 Related display options: `theme.githubRepo` adds a GitHub icon link automatically, and `theme.socialLinks` adds Discord/X/Bluesky icons.
 
 <Callout variant="note" title="Building a custom navbar?">
-The default navbar is a component — see the [Navbar component](/docs/components/layout/navbar) to compose your own with search, theme toggle, and mobile drawer.
+The default navbar is a component — see the [Navbar component](/docs/theme/components#layout-components) to compose your own with search, theme toggle, and mobile drawer.
 </Callout>
 
 ---
@@ -172,16 +172,16 @@ See the [Routing guide](/docs/guides/getting-started/routing) for ordering rules
 
 These three are **automatic** — the default layout derives them from route metadata. You don't configure them, but you should know what they do and how to swap them:
 
-- **Breadcrumbs** — a path trail above the title (e.g. `Guides → Navigation`), built from the route's group chain and localized automatically. Reference: [Breadcrumbs](/docs/components/layout/breadcrumbs).
-- **OnThisPage** — the right-rail table of contents listing the page's `h2`–`h4` headings. Reference: [OnThisPage](/docs/components/layout/on-this-page).
-- **PageNav** — "Previous / Next" links at the bottom, following sidebar order. Reference: [PageNav](/docs/components/layout/page-nav).
+- **Breadcrumbs** — a path trail above the title (e.g. `Guides → Navigation`), built from the route's group chain and localized automatically. Reference: [Breadcrumbs](/docs/theme/components#layout-components).
+- **OnThisPage** — the right-rail table of contents listing the page's `h2`–`h4` headings. Reference: [OnThisPage](/docs/theme/components#layout-components).
+- **PageNav** — "Previous / Next" links at the bottom, following sidebar order. Reference: [PageNav](/docs/theme/components#layout-components).
 
 ### Using them in a custom layout
 
 They are exported as primitives, so a custom layout can place them anywhere:
 
 ```tsx
-import { Breadcrumbs, OnThisPage, PageNav } from '@bdocs/theme-neutral/composition'
+import { Breadcrumbs, OnThisPage, PageNav } from '@bdocs/ui-base/composition'
 
 export function MyLayout() {
   return (
@@ -236,7 +236,7 @@ When is it needed?
 ```mdx
 - [Home](site:/)
 - [Roadmap](site:/roadmap)
-- [Latest release](site:/blog/boltdocs-3.3.0)
+- [Upgrading to 4.0](site:/docs/guides/operations/upgrading-4-0)
 ```
 
 ```ts title="boltdocs.config.ts"
@@ -344,11 +344,11 @@ See [Versioning](/docs/integrations/globalization/versioning) for the folder lay
 [Jump to the site: section](#the-site-protocol)
 ```
 
-**6. Prefer `<Link>` over raw `<a>` in components.** The `Link` primitive from `@bdocs/theme-neutral/composition` runs every href through the resolver and keeps client-side navigation fast. Call `useLocalizedTo()` directly only when you need the resolved string (active states, analytics, menus):
+**6. Prefer `<Link>` over raw `<a>` in components.** The `Link` primitive from `@bdocs/ui-base/composition` runs every href through the resolver and keeps client-side navigation fast. Call `useLocalizedTo()` directly only when you need the resolved string (active states, analytics, menus):
 
 ```tsx
-import { Link } from '@bdocs/theme-neutral/composition'
-import { useLocalizedTo } from '@bdocs/theme-neutral'
+import { Link } from '@bdocs/ui-base/composition'
+import { useLocalizedTo } from '@bdocs/runtime'
 
 const resolved = useLocalizedTo('/docs/guides')
 
@@ -378,4 +378,4 @@ Hard-coding `/es/docs/guides` or `/v2/docs/guides` breaks localization — the r
 - [Internationalization](/docs/integrations/globalization/i18n) — locale folders and fallback routes.
 - [Versioning](/docs/integrations/globalization/versioning) — version prefixes and URL structure.
 - [Custom Layout](/docs/guides/customization/layout) — compose the full page shell yourself.
-- [DocsLayout reference](/docs/components/layout/docs-layout) — every region the default layout wires up.
+- [DocsLayout reference](/docs/theme/components#layout-components) — every region the default layout wires up.

@@ -1,5 +1,4 @@
 import * as React from 'react'
-import { cn } from './utils'
 import { focusFirstIn, getFocusableElements } from './focus'
 
 /**
@@ -30,6 +29,13 @@ export interface PopoverProps
    * anything non-interactive.
    */
   shouldFocusOnOpen?: boolean
+  /**
+   * The control that opened the popover. Supplying it keeps outside-press
+   * dismissal from treating the trigger itself as "outside" — important when
+   * the popover also opens on hover, where `document.activeElement` is not the
+   * trigger.
+   */
+  triggerRef?: React.RefObject<HTMLElement | null>
   children?: React.ReactNode
 }
 
@@ -40,6 +46,7 @@ export function Popover(props: PopoverProps): React.ReactElement | null {
     isDismissable = true,
     shouldCloseOnEscape = true,
     shouldFocusOnOpen = true,
+    triggerRef: providedTriggerRef,
     className,
     children,
     ...rest
@@ -54,9 +61,12 @@ export function Popover(props: PopoverProps): React.ReactElement | null {
     if (!node) return
 
     // Captured during the effect, before focus moves, so it is the element the
-    // user came from rather than something inside the popover.
+    // user came from rather than something inside the popover. A caller-supplied
+    // trigger wins: hover-opened popovers have no meaningful activeElement.
     const active = document.activeElement as HTMLElement | null
-    if (active && active !== document.body) triggerRef.current = active
+    triggerRef.current =
+      providedTriggerRef?.current ??
+      (active && active !== document.body ? active : null)
 
     if (shouldFocusOnOpen) focusFirstIn(node)
 
@@ -86,6 +96,7 @@ export function Popover(props: PopoverProps): React.ReactElement | null {
     isDismissable,
     shouldCloseOnEscape,
     shouldFocusOnOpen,
+    providedTriggerRef,
     onOpenChange,
   ])
 
@@ -100,15 +111,7 @@ export function Popover(props: PopoverProps): React.ReactElement | null {
   if (!isOpen) return null
 
   return (
-    <div
-      ref={ref}
-      data-bdocs-popover=""
-      className={cn(
-        'z-50 overflow-auto outline-none transition-none absolute',
-        className,
-      )}
-      {...rest}
-    >
+    <div ref={ref} data-bdocs-popover="" className={className} {...rest}>
       {children}
     </div>
   )
@@ -188,7 +191,7 @@ export function Tooltip(props: TooltipProps): React.ReactElement {
   }>
 
   return (
-    <span className="relative inline-flex">
+    <span data-bdocs-tooltip-wrapper="">
       {React.cloneElement(child, {
         'aria-describedby': open ? id : child.props['aria-describedby'],
         onPointerEnter: (e: React.PointerEvent) => {
@@ -215,7 +218,7 @@ export function Tooltip(props: TooltipProps): React.ReactElement {
           id={id}
           role="tooltip"
           data-bdocs-tooltip=""
-          className={cn('absolute z-50 whitespace-nowrap', className)}
+          className={className}
         >
           {content}
         </span>

@@ -1,6 +1,6 @@
-import { Link } from '@bdocs/theme-neutral/composition'
+import { Link } from '@bdocs/ui-base/composition'
 import { cn } from '@bdocs/theme-neutral'
-import { Heading as HeadingPrimitive } from '@bdocs/theme-neutral/composition'
+import { Heading as HeadingPrimitive } from '@bdocs/ui-base/composition'
 
 const Anchor = ({
   href,

@@ -14,9 +14,12 @@ Use this section when you know the API surface you need. For task-oriented instr
 | Import | Runtime | Use it for |
 | :--- | :--- | :--- |
 | `boltdocs` | Node / build | `defineConfig`, plugins, config types, JSON-LD factories. |
-| `@bdocs/theme-neutral` | Browser / SSR | The styled UI: components, layout, MDX components, hooks, structured data, collections. |
-| `@bdocs/theme-neutral/composition` | Browser / SSR | Style-neutral layout, navigation, link, and interaction components — theme them via `data-*` state attributes. |
-| `@bdocs/runtime` | Browser / SSR | The router, the client contexts, and the URL contract. |
+| `@bdocs/theme-neutral` | Browser / SSR | The default theme: `surface`, assembled docs layout, MDX components. |
+| `@bdocs/ui-base` | Browser / SSR | Reusable UI: composition wrappers, assembled components, native CSS, hooks and utilities. |
+| `@bdocs/ui-base/composition` | Browser / SSR | Style-neutral layout, navigation, link and interaction components — theme them via `data-*` state attributes. |
+| `@bdocs/primitives` | Browser / SSR | Accessible behavior with no visuals: `Button`, `Menu`, `Tabs`, `Disclosure`, `ScrollSpy`, etc. |
+| `@bdocs/react-binding` | Browser / SSR | The React client root (`createRoot`). Resolved by name; not imported by the engine. |
+| `@bdocs/runtime` | Browser / SSR | The router, client contexts, hooks, collections and the URL contract. |
 
 <Cards cols={3}>
   <Card title="Configuration" icon={<Server />} href="/docs/guides/getting-started/configuration">
@@ -28,7 +31,7 @@ Use this section when you know the API surface you need. For task-oriented instr
   <Card title="Utilities" icon={<Wrench />} href="/docs/api/utils/define-config">
     Small typed helpers for config, i18n, URLs, clipboard, and text.
   </Card>
-  <Card title="Primitives" icon={<Blocks />} href="/docs/components/layout/docs-layout">
+  <Card title="Primitives" icon={<Blocks />} href="/docs/theme/components#layout-components">
     Compose custom layouts and navigation without the default theme shell.
   </Card>
   <Card title="Plugin API" icon={<Puzzle />} href="/docs/api/plugin-api">

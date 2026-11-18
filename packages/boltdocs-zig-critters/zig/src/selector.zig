@@ -69,7 +69,7 @@ pub const TokenFilter = struct {
 
     fn hash(kind: TokenKind, name: []const u8) u64 {
         var h: u64 = 0xcbf29ce484222325;
-        h = (h ^ @intFromEnum(kind)) *% 0x100000001b3;
+        h = (h ^ @backingInt(kind)) *% 0x100000001b3;
         for (name) |c| {
             h = (h ^ c) *% 0x100000001b3;
         }

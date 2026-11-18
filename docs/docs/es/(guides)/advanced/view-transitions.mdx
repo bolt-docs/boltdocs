@@ -33,10 +33,10 @@ Una vez activado, `Link`, navbar, sidebar y el router usan la API automáticamen
 
 ## Añadir un enlace explícito con transición
 
-Para una página externa o un enlace que deba activarse de forma independiente, usa `TransitionLink` desde `@bdocs/theme-neutral/composition`:
+Para una página externa o un enlace que deba activarse de forma independiente, usa `TransitionLink` desde `@bdocs/ui-base/composition`:
 
 ```tsx
-import { TransitionLink } from '@bdocs/theme-neutral/composition'
+import { TransitionLink } from '@bdocs/ui-base/composition'
 
 export function NextStep() {
   return (
@@ -55,7 +55,7 @@ Usa `useViewTransition()` para cambios de estado en páginas externas o controle
 
 ```tsx
 import { useState } from 'react'
-import { useViewTransition } from '@bdocs/theme-neutral'
+import { useViewTransition } from '@bdocs/runtime'
 
 export function PreviewToggle() {
   const [preview, setPreview] = useState(false)

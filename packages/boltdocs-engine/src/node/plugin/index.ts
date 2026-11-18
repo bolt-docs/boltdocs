@@ -53,6 +53,7 @@ import {
   createPluginRuntimeState,
 } from '../plugins/plugin-context'
 import { getRouteCacheContext } from '../routes/cache'
+import { getEngineVersion } from '../security/audit/version'
 
 export * from './types'
 
@@ -130,22 +131,14 @@ const EXTERNALS = [
   'scheduler',
 ]
 
-// Cache boltdocs version read once per process — avoids redundant fs.readFileSync + JSON.parse
-// on every boltdocsPlugin() construction call.
-let _cachedBoltdocsVersion: string | null = null
-
-function _getBoltdocsVersion(): string {
-  if (!_cachedBoltdocsVersion) {
-    const packageJson = JSON.parse(
-      fs.readFileSync(
-        path.resolve(__dirname, '../../../package.json'),
-        'utf-8',
-      ),
-    ) as { version?: string }
-    _cachedBoltdocsVersion = packageJson.version ?? '0.0.0'
-  }
-  return _cachedBoltdocsVersion
-}
+/**
+ * Engine version for plugin compatibility checks. Resolved by package name,
+ * not by a relative path from `__dirname`: tsdown splits this module into a
+ * chunk, and a relative path landed on the monorepo root's package.json
+ * (version 1.11.0), silently failing every plugin range check and dropping all
+ * extra Vite plugins — including the CSS framework plugin.
+ */
+const _getBoltdocsVersion = getEngineVersion
 
 // Memoize plugin validation by config.plugins JSON hash.
 // validatePlugins reads package.json for every plugin, checks version
@@ -313,7 +306,7 @@ export function boltdocsPlugin(
       const version = _getBoltdocsVersion()
       const cacheKey = JSON.stringify(
         config.plugins
-          .map((p: any) =>
+          .map((p) =>
             [p.name || '', p.version || '', p.boltdocsVersion || ''].join(':'),
           )
           .sort(),
@@ -321,7 +314,7 @@ export function boltdocsPlugin(
       const cached = _pluginValidationCache.get(cacheKey)
       if (cached) {
         const validated = cached.validated
-        config.plugins = validated as any
+        config.plugins = validated
         lifecycle = new PluginLifecycleManager(
           validated,
           config,
@@ -356,7 +349,7 @@ export function boltdocsPlugin(
         _pluginValidationCache.set(cacheKey, { validated })
       } else {
         const validated = validatePlugins(config.plugins, version)
-        config.plugins = validated as any
+        config.plugins = validated
         lifecycle = new PluginLifecycleManager(
           validated,
           config,
@@ -378,7 +371,12 @@ export function boltdocsPlugin(
           validated.map((p) => p.name),
         )
       }
-    } catch {}
+    } catch (error) {
+      console.error(
+        '[boltdocs] plugin validation failed; extra Vite plugins are disabled:',
+        error,
+      )
+    }
   }
 
   // Cache ssgOptions object so it's not rebuilt per `config()` hook call.
@@ -517,7 +515,7 @@ export function boltdocsPlugin(
             config.plugins || ([] as BoltdocsPlugin[]),
             version,
           )
-          config.plugins = validated as any
+          config.plugins = validated
           lifecycle = new PluginLifecycleManager(
             validated,
             config,

@@ -1,26 +1,26 @@
 ---
 title: Theme Primitives
 sidebarPosition: 5
-description: Theme every primitive — Sidebar, OnThisPage, Navbar, Tabs — with your own CSS. Primitives are style-neutral: structure, behavior, and data-* state attributes come from the framework; colors and sizes belong to your theme.
+description: Theme every primitive — Sidebar, OnThisPage, Navbar, Tabs — with your own CSS. Behavior lives in @bdocs/primitives and @bdocs/runtime; colors and sizes belong to your theme.
 ---
 
-Every primitive in Boltdocs is **style-neutral**. The framework owns **structure**, **behavior**, and **state**, while your theme owns **every visual decision**. This is what lets two completely different sites run on the same component code.
+Every primitive in Boltdocs is **style-neutral**. Behavior lives in `@bdocs/primitives` and `@bdocs/runtime`; the default look lives in `@bdocs/theme-neutral`. Your theme owns every visual decision. This is what lets two completely different sites run on the same component code.
 
 ```text
 primitive  →  <aside data-sidebar-root> + data-active, data-open, data-depth …
-              structure + behavior + state (no colors, no sizes)
+               structure + behavior + state (no colors, no sizes)
 
-theme      →  Tailwind v4 classes or CSS targeting those data-* attributes
-              colors, borders, spacing, transitions — all yours
+theme      →  native CSS targeting those data-* attributes
+               colors, borders, spacing, transitions — all yours
 ```
 
 ## The Contract
 
-A primitive renders semantic HTML, wires up behavior (scroll tracking, open/close, active detection), and exposes its **state through `data-*` attributes that are present only when true**. Your theme never needs to know *how* the state is computed — only *that* it exists.
+A primitive renders semantic HTML, wires up behavior (open/close, keyboard navigation, active detection, scroll tracking) and exposes its **state through `data-*` attributes that are present only when true**. Your theme never needs to know *how* the state is computed — only *that* it exists.
 
 ```tsx
 // What the framework renders when a sidebar link is the active page:
-<a href="/docs/guides" data-active data-depth="1" aria-current="page" …>
+<a href="/docs/guides" data-active aria-current="page" …>
   Guides
 </a>
 ```
@@ -28,89 +28,62 @@ A primitive renders semantic HTML, wires up behavior (scroll tracking, open/clos
 ```css
 /* What your theme does with it: */
 a[data-active] {
-  color: var(--color-primary-500);
-  background-color: color-mix(in oklab, var(--color-primary-500) 10%, transparent);
+  color: var(--bdocs-primary);
+  background: var(--bdocs-primary-soft-10);
 }
 ```
 
-Prefer Tailwind v4 variants when available:
-
-```tsx
-<Sidebar.Link className="data-active:bg-primary-500/10 data-active:text-primary-400" />
-```
+The default theme ships **native CSS** in `src/styles/`. You do not need Tailwind, and none of the core packages assumes a CSS framework.
 
 ## Which States Does Each Primitive Expose?
 
-| Primitive | State Attributes | Behavior in the primitive |
+| Primitive | State attributes | Behavior |
 | :--- | :--- | :--- |
-| **`Sidebar`** | `data-active`, `data-open`, `data-collapsible`, `data-depth`, `data-badge` + `aria-current`, `aria-expanded` | Collapse/expand groups, active-route detection, scroll-into-view of the active item |
-| **`OnThisPage`** | `data-active`, `data-level`, `data-otp-*` + `aria-current` | IntersectionObserver scroll tracking, active-track indicator math, auto-scroll of the active item |
-| **`Navbar`** | `data-open` (mobile drawer + more menu) + `aria-expanded` | Mobile drawer, "more" dropdown, click-outside handling |
-| **`Tabs`** | `data-selected` + `aria-selected` | Keyboard roving-tabindex, indicator position |
+| **`Disclosure`** (sidebar groups) | `data-open`, `data-collapsible`, `aria-expanded`, `aria-controls` | Expand/collapse, active auto-expand |
+| **`Navbar`** | `data-open`, `aria-expanded`, `aria-controls` | Mobile drawer, hover dropdown, outside press, Escape |
+| **`Tabs`** | `data-selected`, `aria-selected`, `aria-controls` | Roving tabindex, arrow/Home/End navigation |
+| **`Group`** | `data-orientation`, `data-disabled` | Accessible grouping semantics |
+| **Scroll spy** (`OnThisPage`) | `data-active`, `data-level`, `data-otp-*` | IntersectionObserver tracking, indicator geometry, auto-scroll |
 
-Because the state lives in attributes, you can also target **parent–child combinations** that CSS is great at:
+## Where the Defaults Live
 
-```css
-/* Indent level-3 items (attribute value) */
-li[data-level='3'] a { padding-left: 1rem; }
+The look you get out of the box is implemented in `@bdocs/ui-base`:
 
-/* Color a group chevron only when the group is open */
-a[data-open] svg { transform: rotate(90deg); }
-```
+- `src/composition/` — thin styled wrappers over `@bdocs/primitives`.
+- `src/ui-base/` — the assembled UI (navbar, sidebar, search dialog, …).
+- `src/styles/components/` — one native CSS file per component.
 
-## Defaults Live in `ui-base`
+`@bdocs/theme-neutral` assembles those pieces into the default docs layout and owns the MDX components; it re-exports the UI API for backwards compatibility.
 
-The look you get out of the box — the `DocsLayout` sidebar, the right-rail TOC, the sticky navbar — is implemented **on top of the primitives** in `packages/boltdocs-engine/src/client/components/ui-base/`. Every class there is just the framework's own theme and is **entirely overridable**: the primitives accept `className` slots (or `itemClassName` / `linkClassName` / `indicatorClassName` / `fadeClassName` where the slot is repeated per item) that are merged with, and win over, the defaults.
-
-```tsx
-// ui-base/sidebar.tsx — the framework's default look (yours will differ)
-<Sidebar.Link className={cn('w-full text-sm font-medium py-2 pl-3 pr-3 …', isActive && 'data-active:bg-primary-500/10 …')} />
-
-// your theme — overrides it entirely
-<Sidebar.Link className="text-[13px] data-active:bg-accent data-active:text-accent-foreground" />
-```
-
-## Building Your Own Theme File
-
-The cleanest pattern is a `docs/src/theme/` module that re-exports styled versions of the primitives, then passing those to `DocsLayout` (or composing them yourself):
+Every wrapper accepts `className` slots (and `itemClassName`, `linkClassName`, `indicatorClassName`, `fadeClassName` where the slot repeats per item). Those class names are merged with the defaults and can be replaced entirely.
 
 ```tsx
 // docs/src/theme/on-this-page.tsx
-import { OnThisPage as Primitive } from '@bdocs/theme-neutral/composition'
+import { OnThisPage as Primitive } from '@bdocs/ui-base/composition'
 
 export function OnThisPage() {
   return (
-    <Primitive.Root className="sticky top-navbar hidden xl:flex flex-col shrink-0 w-toc py-4 pl-6 pr-4">
-      <Primitive.Header className="text-xs font-bold uppercase tracking-wider text-muted mb-4">
-        On this page
-      </Primitive.Header>
+    <Primitive.Root className="my-toc">
+      <Primitive.Header className="my-toc__header">On this page</Primitive.Header>
       <Primitive.Tree
         headings={currentRoute.headings}
-        className="space-y-0.5 text-sm border-l border-subtle"
-        itemClassName="data-[level=3]:pl-3"
-        linkClassName="block py-0.5 pl-4 text-[13px] transition-colors text-muted hover:text-body data-active:text-primary-500"
-        indicatorClassName="-left-px w-0.5 rounded-full bg-primary-500"
-        fadeClassName="bg-linear-to-b from-transparent to-main"
+        className="my-toc__list"
+        itemClassName="my-toc__item"
+        linkClassName="my-toc__link"
+        indicatorClassName="my-toc__indicator"
       />
     </Primitive.Root>
   )
 }
 ```
 
-The `w-*` utility classes above are **theme tokens**, not framework API: `w-toc`, `w-sidebar`, `top-navbar`, `text-muted`, `border-subtle`, `bg-main`, and the `data-active:*` color variants are all defined by the site theme (in Tailwind v4, via `@theme` tokens and custom variants) — your site defines its own.
-
-## Styling With Plain CSS
-
-If you are not using Tailwind, the same contract works with a stylesheet:
-
 ```css
-.sidebar-link { padding: 0.5rem 0.75rem; font-size: 0.875rem; }
-.sidebar-link[data-active] {
-  color: #6366f1;
-  background: rgba(99, 102, 241, 0.1);
-  font-weight: 600;
-}
-.sidebar-group[data-open] > button { color: currentColor; }
+.my-toc__link { display: block; padding-block: 0.125rem; }
+.my-toc__link[data-active] { color: var(--bdocs-primary); }
 ```
 
-No framework-generated class names to reverse-engineer — the `data-*` attributes are a stable, documented contract.
+The class names above are yours; the `data-*` attributes they target are the stable, documented contract.
+
+## Styling Without a Theme Package
+
+You can skip `@bdocs/theme-neutral` and render the primitives directly. Provide your own `surface` object to the engine and use `@bdocs/primitives` for the behavior you need — `Button`, `Menu`, `Tabs`, `Disclosure`, `Popover`, `Tooltip`, `Breadcrumbs`, `Group`, `ScrollSpyProvider` and the rest. No framework-generated class names to reverse-engineer.

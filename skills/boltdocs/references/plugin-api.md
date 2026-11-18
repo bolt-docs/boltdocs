@@ -1,6 +1,6 @@
 # Plugin API Reference
 
-Boltdocs 3.3.0 introduces a next-generation plugin API inspired by Astro's integration model, with full TypeScript inference, client UI slots, and a rich lifecycle hook system.
+Boltdocs 4.0 ships a plugin API inspired by Astro's integration model, with full TypeScript inference, client UI slots, a strict Zod schema, static security auditing and a rich lifecycle hook system.
 
 ## definePlugin vs createPlugin
 

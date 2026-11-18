@@ -1,4 +1,4 @@
-import { Link } from '@bdocs/theme-neutral/composition'
+import { Link } from '@bdocs/ui-base/composition'
 
 import { ArrowRight } from 'lucide-react'
 import { useTranslations } from '@/i18n/index'

@@ -15,6 +15,8 @@
  *   tsx scripts/benchmarks/gate.ts --threshold 15     # allow up to 15% regression
  *   tsx scripts/benchmarks/gate.ts --out <dir>        # where to look for cold-build profiles
  *   tsx scripts/benchmarks/gate.ts --baseline <path>  # custom baseline file
+ *   tsx scripts/benchmarks/gate.ts --allow-machine-mismatch  # acknowledge a cross-machine run
+ *   tsx scripts/benchmarks/gate.ts --fixture      # SPEC §2.2: 100-page MDX fixture baseline
  */
 
 import fs from 'node:fs'
@@ -64,15 +66,39 @@ function parseArgs() {
     const i = args.indexOf(name)
     return i >= 0 && args[i + 1] ? args[i + 1] : null
   }
+  const mode = flag('--mode') ?? 'cold'
+  if (!['cold', 'warm', 'incremental'].includes(mode)) {
+    throw new Error(`Unknown --mode "${mode}" (cold|warm|incremental)`)
+  }
   return {
+    mode,
     write: args.includes('--write'),
     thresholdPct: numberArg(args, '--threshold', 10),
-    baselinePath: flag('--baseline') ?? DEFAULT_BASELINE,
-    outDir: flag('--out') ?? DEFAULT_OUT,
+    outDir:
+      flag('--out') ??
+      (args.includes('--fixture')
+        ? path.join(DEFAULT_OUT, 'fixture')
+        : DEFAULT_OUT),
+    baselinePath:
+      flag('--baseline') ??
+      (args.includes('--fixture')
+        ? path.join(
+            WORKSPACE_ROOT,
+            'scripts',
+            'benchmarks',
+            'baseline-100.json',
+          )
+        : path.join(
+            WORKSPACE_ROOT,
+            'scripts',
+            'benchmarks',
+            mode === 'cold' ? 'baseline.json' : `baseline-${mode}.json`,
+          )),
+    allowMachineMismatch: args.includes('--allow-machine-mismatch'),
   }
 }
 
-function latestColdProfile(outDir: string): ProfileSummary | null {
+function latestProfile(outDir: string, mode: string): ProfileSummary | null {
   if (!fs.existsSync(outDir)) return null
   let best: ProfileSummary | null = null
   let bestTs = -1
@@ -84,7 +110,7 @@ function latestColdProfile(outDir: string): ProfileSummary | null {
     } catch {
       continue
     }
-    if (parsed.mode !== 'cold' || typeof parsed.medianTotalMs !== 'number') {
+    if (parsed.mode !== mode || typeof parsed.medianTotalMs !== 'number') {
       continue
     }
     const ts = parsed.timestamp ? Date.parse(parsed.timestamp) : 0
@@ -134,11 +160,11 @@ function deltaPct(current: number, baseline: number): number {
 function main(): void {
   const opts = parseArgs()
 
-  const current = latestColdProfile(opts.outDir)
+  const current = latestProfile(opts.outDir, opts.mode)
   if (!current) {
     console.error(
-      `[gate] No cold-build profile found in "${opts.outDir}".\n` +
-        '       Run `pnpm run benchmark` or `tsx scripts/benchmarks/profile-build.ts` first.',
+      `[gate] No ${opts.mode}-build profile found in "${opts.outDir}".\n` +
+        '       Run `tsx scripts/benchmarks/profile-build.ts` with the matching mode first.',
     )
     process.exit(1)
   }
@@ -163,7 +189,7 @@ function main(): void {
   // rather than failing on hardware, and a reader knows the number it printed
   // is not the number the baseline holds.
   if (!isComparable(baseline.machine, machine)) {
-    console.log(`[gate] Current cold build  : ${fmt(currentMs)}`)
+    console.log(`[gate] Current ${opts.mode} build : ${fmt(currentMs)}`)
     console.log(
       `[gate] Baseline (committed): ${fmt(baseline.medianTotalMs)} — measured on ` +
         `${baseline.machine?.cpu ?? 'an unknown machine'} ` +
@@ -172,9 +198,15 @@ function main(): void {
     )
     console.log(
       '\n[gate] NOT COMPARED: the baseline was measured on a different machine.\n' +
-        '       Write a baseline for this machine with `--write`, or run the gate\n' +
-        '       on the machine the baseline came from.',
+        '       Write a baseline for this machine with `--write`, or acknowledge\n' +
+        '       the cross-machine run with `--allow-machine-mismatch`.',
     )
+    if (!opts.allowMachineMismatch) {
+      console.error(
+        '[gate] REJECTED: an incomparable run cannot satisfy SPEC §2.2 silently.',
+      )
+      process.exit(1)
+    }
     return
   }
 
@@ -182,7 +214,7 @@ function main(): void {
   const ok = currentMs <= limit
   const delta = deltaPct(currentMs, baseline.medianTotalMs)
 
-  console.log(`[gate] Current cold build  : ${fmt(currentMs)}`)
+  console.log(`[gate] Current ${opts.mode} build : ${fmt(currentMs)}`)
   console.log(`[gate] Baseline (committed): ${fmt(baseline.medianTotalMs)}`)
   console.log(
     `[gate] Allowed regression  : +${opts.thresholdPct}% (<= ${fmt(limit)})`,
@@ -193,14 +225,14 @@ function main(): void {
 
   if (!ok) {
     console.error(
-      `\n[gate] REJECTED: cold build regressed by ${delta.toFixed(1)}% — ` +
+      `\n[gate] REJECTED: ${opts.mode} build regressed by ${delta.toFixed(1)}% — ` +
         'must improve or hold (SPEC §2.2).',
     )
     process.exit(1)
   }
 
   console.log(
-    '\n[gate] ACCEPTED: cold build holds or improves vs baseline (SPEC §2.2).',
+    `\n[gate] ACCEPTED: ${opts.mode} build holds or improves vs baseline (SPEC §2.2).`,
   )
 }
 

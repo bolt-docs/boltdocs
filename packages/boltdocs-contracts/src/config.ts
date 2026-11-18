@@ -53,6 +53,11 @@ export interface BoltdocsSecurityConfig {
   headers?: Record<string, string>
   enableCSP?: boolean
   customHeaders?: Record<string, string>
+  /**
+   * Plugins whose audit warnings are accepted. Every warning blocks build and
+   * dev by default (SPEC §2.3); list a plugin here only with a documented reason.
+   */
+  auditAllowWarnings?: string[]
 }
 
 export interface BoltdocsVerificationConfig {
@@ -234,6 +239,12 @@ export interface BoltdocsConfigContract<Plugin = PluginDefinition> {
    * lets a site swap the theme without the engine knowing what a theme is.
    */
   themePackage?: string
+  /**
+   * Package that provides the UI-framework binding (default:
+   * `@bdocs/react-binding`). The engine resolves it by name at build time and
+   * never imports a UI framework itself.
+   */
+  uiBindingPackage?: string
   siteUrl?: string
   docsDir?: string
   base?: string

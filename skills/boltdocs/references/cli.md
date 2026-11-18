@@ -89,7 +89,7 @@ boltdocs audit                       # Security audit of plugins
 The command is fail-closed: unresolved or un-scanned plugins never count as passing. Use it as a CI gate before merging third-party plugins:
 
 ```bash
-pnpm docs:audit || exit 1
+pnpm exec boltdocs audit || exit 1
 ```
 
 ---

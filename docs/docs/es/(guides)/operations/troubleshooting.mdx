@@ -24,15 +24,27 @@ Si usaste `create-boltdocs`, el template ya incluye la configuración requerida.
 {
   "pnpm": {
     "onlyBuiltDependencies": [
+      "@bdocs/parser",
       "@swc/core",
       "esbuild",
+      "koffi",
       "sharp"
     ]
   }
 }
 ```
 
-Luego ejecuta `pnpm install` nuevamente. Esto le indica a pnpm que permita los scripts de build para estos paquetes específicos.
+Luego ejecuta `pnpm install` nuevamente. Esto le indica a pnpm que permita los scripts de build para estos paquetes específicos. `@bdocs/parser` necesita su `postinstall` para descargar el binario nativo del parser (sin él se usa el fallback WASM, más lento), y `koffi` es el cargador FFI nativo del que depende.
+
+En pnpm 12+ esta opción salió de `package.json` y vive en `pnpm-workspace.yaml`. Los proyectos generados ya incluyen este archivo:
+
+```yaml title="pnpm-workspace.yaml"
+allowBuilds:
+  '@bdocs/parser': true
+  '@swc/core': true
+  esbuild: true
+  koffi: true
+```
 
 Alternativamente, puedes ejecutar `pnpm approve-builds` de forma interactiva para seleccionar qué dependencias deben tener permitido ejecutar scripts.
 

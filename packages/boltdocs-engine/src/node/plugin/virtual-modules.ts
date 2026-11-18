@@ -1,4 +1,5 @@
 import type { Plugin, ResolvedConfig } from 'vite'
+import { compareCollections, type CollectionSortBy } from '@bdocs/contracts'
 import { generateRoutes } from '../routes'
 import type { RouteMeta } from '../routes/types'
 import { normalizePath } from '../utils'
@@ -417,28 +418,26 @@ async function ensureRoutesGenerated(
 
 function getCollectionsRecord(
   state?: VirtualModuleState,
+  sortBy: CollectionSortBy = 'date',
+  positions?: Record<string, number>,
 ): Record<string, CollectionPost[]> {
   const moduleState = getVirtualModuleState(state)
-  const record: Record<string, CollectionPost[]> = {}
-  const posts = Array.from(moduleState.collectionsDataMap.values()).sort(
-    (a, b) => {
-      const timestamp = (date: string | Date | undefined) => {
-        if (!date) return Number.NEGATIVE_INFINITY
-        const value = new Date(date).getTime()
-        return Number.isFinite(value) ? value : Number.NEGATIVE_INFINITY
-      }
-      const dateA = timestamp(a.date)
-      const dateB = timestamp(b.date)
-
-      const dateOrder = dateB - dateA
-      return dateOrder !== 0 ? dateOrder : a.path.localeCompare(b.path)
-    },
+  const posts = Array.from(moduleState.collectionsDataMap.values())
+  const names = Array.from(
+    new Set(
+      posts.flatMap((post) => (post.collection ? [post.collection] : [])),
+    ),
+  ).sort(
+    (a, b) =>
+      (positions?.[a] ?? Number.MAX_SAFE_INTEGER) -
+      (positions?.[b] ?? Number.MAX_SAFE_INTEGER),
   )
-  for (const post of posts) {
-    const collection = post.collection
-    if (!collection) continue
-    if (!record[collection]) record[collection] = []
-    record[collection].push(post)
+
+  const record: Record<string, CollectionPost[]> = {}
+  for (const name of names) {
+    record[name] = posts
+      .filter((post) => post.collection === name)
+      .sort((a, b) => compareCollections(a, b, sortBy))
   }
   return record
 }
@@ -761,7 +760,11 @@ export function createVirtualModulesPlugin(
       }
       if (name === 'collections') {
         await ensureRoutesGenerated(docsDir, config, moduleState)
-        const record = getCollectionsRecord(moduleState)
+        const record = getCollectionsRecord(
+          moduleState,
+          config?.collections?.sortBy,
+          config?.collections?.positions,
+        )
         return serializeCollectionsToExport(record)
       }
       if (name === 'config') {

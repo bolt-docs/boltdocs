@@ -1,0 +1,32 @@
+---
+title: Custom theme
+sidebarPosition: 5
+description: How to create and configure a second theme package for Boltdocs.
+---
+
+A theme is an ordinary npm package, not a fork of the engine. To use your own, name it in `themePackage` and give it the same shape as `@bdocs/theme-neutral`.
+
+## Configure the theme package
+
+```ts
+// boltdocs.config.ts
+import { defineConfig } from 'boltdocs'
+
+export default defineConfig({
+  themePackage: '@my-org/boltdocs-theme',
+})
+```
+
+The engine resolves this package from your project and imports its route surface from `<pkg>/surface`. That import is required: the generated entry does `import { surface } from '<pkg>/surface'` and passes the object to `createRoutes`.
+
+## What the package must export
+
+- Export a `surface` object from the `/surface` subpath. It supplies the components the engine draws — the layout, the shell frame, the document page, the MDX component map, the error boundary and the collection list — following the shape of the default theme's surface. Plugin slots are **not** a surface entry: mount them with `PluginSlot` from `@bdocs/runtime`.
+- Expose a `./css` subpath for the stylesheet, and `./reset` if you ship a reset.
+- Depend on `@bdocs/runtime`, `@bdocs/primitives`, `@bdocs/ui-base`, `@bdocs/react-binding` and `@bdocs/contracts`. They provide the router and contexts, the style-neutral behavior, the reusable UI and native CSS, the React client root, and the shared types — reimplementing them would mean copying the framework.
+
+## Virtual modules and the site bridge
+
+A theme cannot import a `virtual:boltdocs-*` module. Those modules are resolved by the Boltdocs Vite pipeline, which only the engine can reach; a standalone package has no way to resolve them.
+
+The per-site artifacts they carry — the icon registry, the page-source fetcher, the search index, the site's `layout.tsx`, and plugin-contributed client slots — are registered by the engine through `registerSiteBridge()` in `@bdocs/runtime`. Read them back in the theme with `getSiteIcons()`, `getPageSourceFetcher()`, `getSearchDataFetcher()`, `getSiteLayout()`, and `getClientSlots()`. Never reference a virtual module by name inside a theme.

@@ -1,10 +1,5 @@
 import * as React from 'react'
-import {
-  cn,
-  composeRenderProps,
-  filterDOMProps,
-  type RenderProps,
-} from './utils'
+import { composeRenderProps, filterDOMProps, type RenderProps } from './utils'
 
 /**
  * ListBox and the combobox pieces around it.
@@ -38,7 +33,13 @@ export interface ListBoxProps<T = unknown>
    * without a selection mode.
    */
   onAction?: (key: string) => void
-  /** Index of the option that is active, for `aria-activedescendant`. */
+  /**
+   * Index of the option that is active, for `aria-activedescendant`.
+   *
+   * Only meaningful together with `items`: the index is matched against the
+   * position each rendered option was given by the list, so exactly one item is
+   * focused rather than every item when an index is present.
+   */
   activeIndex?: number
   /** Options in this list. Rendered per item by the render-prop children. */
   items?: Iterable<T>
@@ -61,7 +62,11 @@ export function ListBox<T = unknown>(
     ...rest
   } = props
 
-  const listId = React.useId()
+  const generatedListId = React.useId()
+  // A caller-supplied id wins everywhere: on the list element and in the derived
+  // option ids. Otherwise an Autocomplete pointing at `listBoxId="results"`
+  // would announce an active descendant id the list never rendered.
+  const listId = props.id ?? generatedListId
   const selected = React.useMemo(
     () => new Set<string>(Array.from(selectedKeys ?? [])),
     [selectedKeys],
@@ -99,13 +104,20 @@ export function ListBox<T = unknown>(
         data-bdocs-listbox=""
         aria-multiselectable={selectionMode === 'multiple' || undefined}
         data-empty={itemList && isEmpty ? 'true' : undefined}
-        className={cn('outline-none overflow-auto', resolved.className)}
+        className={resolved.className}
         style={resolved.style}
         {...domProps}
       >
         {typeof children === 'function'
           ? itemList
-            ? itemList.map((item, index) => children(item, index))
+            ? itemList.map((item, index) => (
+                <ListBoxItemIndexContext.Provider
+                  key={optionKey(item, index)}
+                  value={index}
+                >
+                  {children(item, index)}
+                </ListBoxItemIndexContext.Provider>
+              ))
             : null
           : children}
       </div>
@@ -114,6 +126,37 @@ export function ListBox<T = unknown>(
 }
 
 ListBox.displayName = 'ListBox'
+
+/**
+ * Stable key for a rendered option. Derived from a caller-supplied `id`/`key`
+ * where the item has one, and from its position otherwise — the latter is what
+ * keeps the React key warning away for plain strings and numbers.
+ */
+function optionKey(item: unknown, index: number): string {
+  if (item && typeof item === 'object') {
+    const id =
+      (item as { id?: unknown; key?: unknown }).id ??
+      (item as { id?: unknown; key?: unknown }).key
+    if (id !== undefined && id !== null) return String(id)
+  }
+  return String(index)
+}
+
+/**
+ * Id given to an option rendered from `items` at `index`.
+ *
+ * `Autocomplete` uses it to derive `aria-activedescendant` from its own
+ * `listBoxId`, so the input and the list agree without the caller wiring ids by
+ * hand. An explicit `id` on a `ListBoxItem` still wins.
+ */
+export function getListBoxOptionId(listId: string, index: number): string {
+  return `${listId}-option-${index}`
+}
+
+/** Position of an option inside `items`, set by `ListBox` for each rendered item. */
+const ListBoxItemIndexContext = React.createContext<number | undefined>(
+  undefined,
+)
 
 interface ListBoxContextValue {
   listId: string
@@ -148,6 +191,12 @@ export interface ListBoxItemProps
   'data-key'?: string
   textValue?: string
   isDisabled?: boolean
+  /**
+   * Position of this option. Supplied automatically for items rendered through
+   * `ListBox items={…}`; pass it yourself for a hand-written list that uses
+   * `activeIndex` / `aria-activedescendant`.
+   */
+  index?: number
   /** Either plain children or a render function receiving the item's state. */
   children?:
     | React.ReactNode
@@ -166,16 +215,28 @@ export function ListBoxItem(props: ListBoxItemProps): React.ReactElement {
     id,
     textValue,
     isDisabled = false,
+    index: indexProp,
     children,
     className,
     ...rest
   } = props
   const ctx = useListBox('ListBoxItem')
+  // Provided by `ListBox` when this item came from `items`. Without it (items
+  // written out by hand) an explicit `id` is the only way to match this option
+  // against a caller-owned `aria-activedescendant`.
+  const registeredIndex = React.useContext(ListBoxItemIndexContext)
+  const index = indexProp ?? registeredIndex
   const generatedId = React.useId()
-  const itemId = id ?? generatedId
+  const itemId =
+    id ??
+    (index !== undefined ? getListBoxOptionId(ctx.listId, index) : generatedId)
   const key = (props['data-key'] ?? textValue ?? itemId) as string
   const isSelected = ctx.selected.has(key)
-  const isFocused = ctx.activeIndex !== undefined
+  // Compare against this option's own position. Using just
+  // `ctx.activeIndex !== undefined` marked *every* option focused as soon as an
+  // active index existed, so a search list showed the "Select" hint on every
+  // result at once.
+  const isFocused = index !== undefined && ctx.activeIndex === index
 
   const activate = () => {
     if (isDisabled) return
@@ -199,11 +260,8 @@ export function ListBoxItem(props: ListBoxItemProps): React.ReactElement {
       data-bdocs-listbox-item=""
       aria-selected={ctx.selectionMode === 'none' ? undefined : isSelected}
       aria-disabled={isDisabled || undefined}
-      className={cn(
-        'cursor-default outline-none',
-        isDisabled && 'opacity-50',
-        className,
-      )}
+      data-focused={isFocused || undefined}
+      className={className}
       onClick={activate}
       {...rest}
     >

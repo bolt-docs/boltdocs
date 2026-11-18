@@ -1,0 +1,31 @@
+---
+title: Styling
+sidebarPosition: 4
+description: The theme's native CSS, the reset, and the design tokens that style a Boltdocs site.
+---
+
+In Boltdocs 4.0 the theme owns all styling. The engine ships no CSS — there is no framework stylesheet to import, and the default theme has no Tailwind dependency.
+
+## Import the stylesheets
+
+Import both entries from the theme in your site's CSS:
+
+```css
+@import "@bdocs/theme-neutral/reset";
+@import "@bdocs/theme-neutral/css";
+```
+
+The docs site does exactly this in its `index.css`: the reset first, then the theme's component stylesheet alongside the site's own token and prose rules.
+
+| Import | What it provides |
+| --- | --- |
+| `@bdocs/theme-neutral/reset` | The page reset, code-block rules, and accessibility baseline. |
+| `@bdocs/theme-neutral/css` | The rules for the theme's components and layout. |
+
+## Native CSS, not utility classes
+
+The theme is written in native CSS. Every rule lives as a real class under the package's `src/styles/` directory — the entry is `index.css`, alongside `reset.css`, `tokens.css`, `base.css`, and the per-component files. Because the selectors are named classes rather than generated utilities, a custom theme can override any rule without reproducing a utility class name.
+
+## Design tokens
+
+Colors, spacing, and typography are exposed as CSS custom properties. The reset reads the theme's own tokens — `--bdocs-canvas`, `--bdocs-ink`, and `--bdocs-primary` — so overriding them in one place restyles the page. Other tokens include `--bdocs-diff-add` for diff additions and `--bdocs-page-font` / `--bdocs-code-font` for page and code typography. Stateful primitives expose `data-*` attributes, so you can style states such as `data-active` and `data-open` directly in CSS.

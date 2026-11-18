@@ -46,6 +46,7 @@ export function sassPlugin(options: SassPluginOptions = {}): BoltdocsPlugin {
   return createPlugin({
     name: 'plugin-sass',
     version: '1.0.0',
+    boltdocsVersion: '>=3.4.0',
     css: {
       preprocessorOptions: {
         scss: preprocessorOptions,

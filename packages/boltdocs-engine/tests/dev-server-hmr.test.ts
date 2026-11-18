@@ -74,6 +74,7 @@ function createClientStubs(root: string): {
   ssg: string
   runtime: string
   surface: string
+  binding: string
 } {
   const themeFile = path.join(root, 'theme-stub.mjs')
   fs.writeFileSync(
@@ -122,11 +123,19 @@ function createClientStubs(root: string): {
     'utf-8',
   )
 
+  const bindingFile = path.join(root, 'binding-stub.mjs')
+  fs.writeFileSync(
+    bindingFile,
+    'export const createRoot = () => ({})\n',
+    'utf-8',
+  )
+
   return {
     theme: normalizePath(themeFile),
     ssg: normalizePath(ssgFile),
     runtime: normalizePath(runtimeFile),
     surface: normalizePath(surfaceFile),
+    binding: normalizePath(bindingFile),
   }
 }
 
@@ -182,6 +191,7 @@ async function startDevServer(
         { find: '@bdocs/runtime/app', replacement: stubs.runtime },
         { find: '@bdocs/theme-neutral/surface', replacement: stubs.surface },
         { find: '@bdocs/theme-neutral', replacement: stubs.theme },
+        { find: '@bdocs/react-binding', replacement: stubs.binding },
         { find: 'boltdocs/ssg', replacement: stubs.ssg },
       ],
     },

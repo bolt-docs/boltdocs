@@ -1,4 +1,4 @@
-import { PageNav as PN } from '@bdocs/theme-neutral/composition'
+import { PageNav as PN } from '@bdocs/ui-base/composition'
 
 import { ChevronLeft, ChevronRight } from 'lucide-react'
 import { usePageNav } from '@bdocs/runtime'

@@ -248,4 +248,57 @@ describe('Dialog initial focus', () => {
 
     expect(document.activeElement).toBe(screen.getByRole('dialog'))
   })
+
+  it('mounts the overlay at the document body so the whole page is covered', () => {
+    render(
+      <div data-testid="host">
+        <ModalOverlay isOpen>
+          <Modal isOpen>
+            <Dialog isOpen aria-label="Portaled" />
+          </Modal>
+        </ModalOverlay>
+      </div>,
+    )
+
+    const overlay = screen
+      .getByRole('dialog')
+      .closest('[data-bdocs-modal-overlay]')
+    expect(overlay?.parentElement).toBe(document.body)
+    // The host's top-level ancestor is hidden; hideSiblings marks the overlay's
+    // DOM siblings, not every descendant.
+    expect(screen.getByTestId('host').parentElement).toHaveAttribute(
+      'aria-hidden',
+      'true',
+    )
+  })
+
+  it('honours a custom portal container', () => {
+    const host = document.createElement('div')
+    document.body.appendChild(host)
+    try {
+      render(
+        <ModalOverlay isOpen portalContainer={host}>
+          <Modal isOpen>
+            <Dialog isOpen aria-label="Scoped" />
+          </Modal>
+        </ModalOverlay>,
+      )
+      const overlay = screen
+        .getByRole('dialog')
+        .closest('[data-bdocs-modal-overlay]')
+      expect(overlay?.parentElement).toBe(host)
+    } finally {
+      host.remove()
+    }
+  })
+
+  it('focuses the dialog itself when autoFocus is set', () => {
+    render(
+      <Dialog aria-label="Auto" autoFocus>
+        <button>First</button>
+      </Dialog>,
+    )
+
+    expect(document.activeElement).toBe(screen.getByRole('dialog'))
+  })
 })

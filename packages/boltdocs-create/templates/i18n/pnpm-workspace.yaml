@@ -1,0 +1,6 @@
+allowBuilds:
+  '@bdocs/parser': true
+  '@swc/core': true
+  esbuild: true
+  koffi: true
+  sharp: true

@@ -1,5 +1,167 @@
 # @bdocs/plugin-ask-ai — Changelog
 
+## 0.5.0
+
+### Minor Changes
+
+- 5f7a09c: Vite 8.3.5, and only Vite 8.3.
+
+  The framework now builds on Vite 8.3.5 and requires it. The peer dependency
+  range moved from `^8.1.0` to `^8.3.0`, so a site on Vite 8.1 or 8.2 has to
+  update before it can install the new Boltdocs.
+
+  Two version checks went away with it, because the versions they served no
+  longer exist:
+  - The build used to choose between `build.rolldownOptions` and
+    `build.rollupOptions` depending on the installed Vite. Vite 8 is Rolldown,
+    and the two option names are not interchangeable — the options moved with
+    the bundler, not with the options — so the check only ever chose the wrong
+    one for a Vite it did not support anyway.
+  - The build used to look for the manifests in the output root on Vite before
+    5, which had no `.vite` directory. There is no such Vite left to support.
+
+  The output does not change: the documentation site's 260 pages are byte for
+  byte identical across the two versions, and the client bundle grows by four
+  bytes.
+
+  `@types/node` moved from 22.0.0 to 22.12.0 across the workspace, which is
+  what Vite 8.3 asks for, and an override pins it so the whole tree resolves
+  one copy.
+
+### Patch Changes
+
+- 4a2de60: The engine no longer ships the UI layer.
+
+  Until 4.0 the `boltdocs` package carried the whole client stack: the layout,
+  the components, the contexts, the router and the MDX components. A site got
+  all of it by installing the engine, and reached it through `boltdocs/client`,
+  `boltdocs/primitives` and `boltdocs/mdx`.
+
+  In 4.0 the engine is the engine.
+
+  ### What moved
+  - The client code — the route builder, the shell, the MDX page, the collection
+    routes — is now in `@bdocs/theme-neutral`. It renders the theme's
+    components, so the engine could not keep it without depending on a theme.
+  - `boltdocs` no longer exports `./client`, `./client/router`, `./primitives` or
+    `./mdx`. It publishes the engine: the CLI, the config, the route generation,
+    the plugin lifecycle, the SSG bridge (`./ssg`) and the engine stylesheet
+    (`./theme/reset.css`).
+  - The theme is resolved from the project, not from the engine. `themePackage`
+    in the configuration names it (default `@bdocs/theme-neutral`), and the
+    engine imports the route surface from it. A second theme is a second
+    package, not a fork of the engine.
+
+  ### What a site has to do
+
+  ```bash
+  pnpm add @bdocs/theme-neutral
+  npx boltdocs migrate --apply
+  ```
+
+  The command splits a `boltdocs/client` import by name: every symbol goes to
+  the package that exports it — components, layout and MDX components to
+  `@bdocs/theme-neutral`, the router and the contexts to `@bdocs/runtime`. It
+  rewrites the import examples in Markdown as well, and it adds the theme to
+  the manifest.
+
+  | 3.x                                           | 4.0                                |
+  | --------------------------------------------- | ---------------------------------- |
+  | `boltdocs/client` (components, layout, hooks) | `@bdocs/theme-neutral`             |
+  | `boltdocs/client` (router, contexts)          | `@bdocs/runtime`                   |
+  | `boltdocs/primitives`                         | `@bdocs/theme-neutral/composition` |
+  | `boltdocs/mdx`                                | `@bdocs/theme-neutral`             |
+  | `boltdocs/client/router`                      | `@bdocs/runtime/router`            |
+
+  ### How the two halves still meet
+
+  The generated per-site artifacts — the icon registry, the page-source fetcher,
+  the search index, the site's `layout.tsx`, the plugin slots and the site's own
+  MDX components — reach the theme through the runtime's site bridge, which the
+  engine fills from a generated `virtual:boltdocs-site-bridge` module. The
+  theme still mentions no virtual module, which is what lets it be installed on
+  its own.
+
+  The official plugins were moved the same way: a plugin's client code imports
+  `@bdocs/runtime` for the contexts and `@bdocs/primitives` for the style-neutral
+  helpers, so a plugin works with whatever theme the site uses.
+
+- d80c6e1: Every package type checks.
+
+  `tsc --noEmit` is now clean in all twenty-three packages that have a
+  `tsconfig.json`. The core, the runtime, the contracts, the primitives, the
+  theme, the processor, the unist utils, the SSG and every official plugin.
+
+  ### Most of the errors were configuration, not code
+
+  Eight packages extended the repository's root `tsconfig.json` — a solution
+  file with no compiler options. The type checker fell back to its defaults: no
+  `module`, no `target`, no `esModuleInterop`, no `jsx`. It reported 39 errors
+  that had nothing to do with the code, and hid the real ones behind them.
+
+  The base is now `tsconfig.base.json`, and the root solution file extends it so
+  that a package which extends the root gets the same options as one that
+  configures itself. The three plugins that had no `tsconfig` at all have one
+  now.
+
+  ### Two copies of Vite
+
+  `@types/node` was a range in some packages and an exact version in others, and
+  the version is part of the peer variant a package resolves against. Three
+  copies of the same Vite were installed, and their `Plugin` types were not the
+  same type. Every package now pins the same version, and there is one copy.
+
+  ### Four bugs the type checker had been reporting for months
+  - The Algolia plugin sent the batch action `delete`. Algolia's endpoint takes
+    `deleteObject`; every stale-record removal would have failed.
+  - The Tailwind and UnoCSS plugins wrapped the plugin list in another array.
+    Vite flattens nested lists, so it worked — and the engine received a list of
+    lists.
+  - The Mermaid plugin passed an object to a class-name helper that only joins
+    strings, which would have rendered `[object Object]` as a class.
+  - The theme's code block called a function that was renamed when its state
+    module was split out.
+
+  ### A flake, fixed
+
+  `@bdocs/plugin-ssg`'s critical-dependency test used `vi.doMock` with a dynamic
+  import, and the mock only applied when the module had not been loaded yet —
+  which depended on which test file ran first. The test resets the module
+  registry now, and it passes in any order.
+
+- Fixed a critical compatibility bug: the engine read the **monorepo root**
+  package version (1.11.0) instead of its own (3.4.1) when checking plugin
+  ranges. That silently failed every plugin validation, and the swallowed error
+  dropped all extra Vite plugins — including Tailwind — so docs utility classes
+  were never generated. Version resolution now walks up by package name, and the
+  validation error is logged instead of swallowed.
+
+  Enforce SPEC §2.3: `boltdocs audit` now runs as a preflight for both `build`
+  and `dev`, and fails the command on unresolved plugins, scan errors, truncated
+  scans or high-risk findings. Every shipped plugin declares `version` and
+  `boltdocsVersion`, and the validator requires them. Plugin identity can name a
+  different package via `packageName` (used by git-meta's two exports).
+
+  The scanner now treats spawning/forking a fixed local process as a warning and
+  reserves `high` for shell execution; Mermaid no longer auto-installs Chromium
+  with `npx` behind the user's back. The metadata version check compares the
+  engine version against the plugin's supported range instead of the plugin's own
+  version. CI runs `boltdocs audit` after building.
+
+- Updated dependencies [1413a37]
+- Updated dependencies [7628363]
+- Updated dependencies [4a2de60]
+- Updated dependencies [4fb6ed1]
+- Updated dependencies [cdd636a]
+- Updated dependencies [3ad10bb]
+- Updated dependencies [4fb6ed1]
+- Updated dependencies [80b8bba]
+- Updated dependencies [94aebbc]
+- Updated dependencies [cf79338]
+- Updated dependencies [ffb5e55]
+  - @bdocs/contracts@0.2.0
+  - @bdocs/runtime@1.1.0
+
 ## 0.4.0
 
 ### Minor Changes

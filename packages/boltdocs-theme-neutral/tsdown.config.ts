@@ -17,7 +17,7 @@ export default defineConfig(
     // source put it.
     entry: {
       index: 'src/index.ts',
-      composition: 'src/components/composition/index.ts',
+      composition: 'src/composition.ts',
       // The object the engine renders with. It is its own entry because the
       // generated app entry imports it directly: the engine resolves the theme
       // package named in the configuration and never imports one at build time.

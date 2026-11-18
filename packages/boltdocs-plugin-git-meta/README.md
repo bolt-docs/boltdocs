@@ -223,7 +223,7 @@ These are framework components: they depend on React and on the Boltdocs client 
 
 ```tsx title="theme/page-footer.tsx"
 import { GitMetaFooter } from '@bdocs/plugin-git-meta/client'
-import { useRoutes } from 'boltdocs/client'
+import { useRoutes } from '@bdocs/runtime'
 
 export function PageFooter() {
   const { currentRoute } = useRoutes()
@@ -259,7 +259,7 @@ import { Contributors } from '@bdocs/plugin-git-meta/client'
 
 ### Route data
 
-`RouteContributor` is exported from `boltdocs` and `boltdocs/client`:
+`RouteContributor` is exported from `@bdocs/contracts` and `@bdocs/runtime`:
 
 ```ts
 interface RouteContributor {
@@ -536,7 +536,7 @@ Son componentes de framework: dependen de React y del runtime cliente de Boltdoc
 
 ```tsx title="theme/page-footer.tsx"
 import { GitMetaFooter } from '@bdocs/plugin-git-meta/client'
-import { useRoutes } from 'boltdocs/client'
+import { useRoutes } from '@bdocs/runtime'
 
 export function PageFooter() {
   const { currentRoute } = useRoutes()
@@ -572,7 +572,7 @@ import { Contributors } from '@bdocs/plugin-git-meta/client'
 
 ### Datos de la ruta
 
-`RouteContributor` se exporta desde `boltdocs` y `boltdocs/client`:
+`RouteContributor` se exporta desde `@bdocs/contracts` y `@bdocs/runtime`:
 
 ```ts
 interface RouteContributor {
