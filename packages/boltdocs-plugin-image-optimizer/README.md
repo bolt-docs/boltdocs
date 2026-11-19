@@ -36,7 +36,7 @@ export default defineConfig({
 ### Options
 
 | Option | Type | Default | Description |
-|--------|------|---------|-------------|
+| --- | --- | --- | --- |
 | `test` | `RegExp` | `/\.(jpe?g\|png\|gif\|tiff\|webp\|svg\|avif)$/i` | Match files to process |
 | `include` | `RegExp \| string \| string[]` | — | Overrides `test`/`exclude` |
 | `exclude` | `RegExp \| string \| string[]` | — | Files to skip |

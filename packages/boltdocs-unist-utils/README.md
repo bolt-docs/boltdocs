@@ -20,7 +20,7 @@ helpers that were previously scattered across
 ## Public surface
 
 | Group | Exports |
-|-------|---------|
+| --- | --- |
 | Node-type constants | `MDX_NODES`, `MdxNodeType`, re-exports `SKIP`, `EXIT` from `unist-util-visit@5` |
 | Generic unist types | `Node`, `Parent` |
 | MDAST | `MdxJsxAttribute`, `MdxJsxAttributeValueExpression`, `MdxJsxElement`, `MdxJsxChild`, `CodeNode`, `PlainTextNode` |

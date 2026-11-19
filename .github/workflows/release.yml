@@ -46,6 +46,9 @@ jobs:
       - name: Check import boundaries
         run: pnpm run check:boundaries
 
+      - name: Check publishable dependencies
+        run: pnpm check:publishable
+
       - name: Security Audit
         run: pnpm audit --audit-level moderate
 

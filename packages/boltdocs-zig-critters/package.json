@@ -1,9 +1,11 @@
 {
   "name": "@bdocs/zig-critters",
   "version": "0.3.0",
-  "private": true,
   "description": "Critical CSS extraction engine written in Zig, compiled to WebAssembly",
   "type": "module",
+  "publishConfig": {
+    "access": "public"
+  },
   "main": "wasm/index.mjs",
   "types": "wasm/index.d.ts",
   "exports": {

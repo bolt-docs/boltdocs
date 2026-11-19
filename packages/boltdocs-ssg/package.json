@@ -89,7 +89,6 @@
   "dependencies": {
     "@bdocs/contracts": "workspace:*",
     "@bdocs/dui": "^0.6.0",
-    "@bdocs/zig-critters": "workspace:*",
     "fs-extra": "^11.3.4",
     "html5parser": "^2.0.2",
     "jsdom": "^24.1.3",
