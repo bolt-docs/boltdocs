@@ -77,7 +77,7 @@ Controls the entire visual shell of your documentation site.
 | **`sidebar`** | `SidebarConfig` | — | Manually defined sidebar structure (disables auto-discovery for those prefixes). |
 | **`sidebarGroups`** | `Record<string, SidebarGroupConfig>` | — | Override group titles and icons without defining a full manual sidebar. |
 | **`codeTheme`** | [`CodeThemeConfig`](#codethemeconfig) | — | Configure the syntax highlighting theme. **Deprecated** — use [`codeHighlighting`](#codehighlightconfig) instead. The value is the same accepted by `codeHighlighting.theme`. |
-| **`codeHighlighting`** | [`CodeHighlightConfig`](#codehighlightconfig) | — | Syntax highlighting engine and theme. Engine-agnostic: defaults to the built-in Shiki engine and accepts any custom `CodeHighlighterAdapter`. |
+| **`codeHighlighting`** | [`CodeHighlightConfig`](#codehighlightconfig) | — | Syntax highlighting engine and theme. Engine-agnostic: defaults to the built-in Prism engine and accepts any custom `CodeHighlighterAdapter`. |
 | **`editLink`** | `string` | — | URL template for the "Edit this page" link. Use `:path` as a placeholder for the current file's relative path. |
 | **`socialLinks`** | `SocialLink[]` | — | Extra icon links (Twitter/X, Discord, etc.) displayed in the navbar. |
 | **`communityHelp`** | `string` | — | Support link (e.g. Discord, slack or forum URL) shown in the page footer. |
@@ -97,42 +97,44 @@ Controls the entire visual shell of your documentation site.
 
 | Property | Type | Default | Description |
 | :--- | :--- | :--- | :--- |
-| **`light`** | `string` | `'github-light'` | Shiki theme name for light mode. |
-| **`dark`** | `string` | `'github-dark'` | Shiki theme name for dark mode. |
+| **`light`** | `string` | `'github-light'` | Theme name for light mode. |
+| **`dark`** | `string` | `'github-dark'` | Theme name for dark mode. |
 
-Available themes: `github-light`, `github-dark`, `tokyo-night`, `dracula`, `nord`, `one-dark-pro`, `one-light`.
+The built-in engine emits semantic `bd-token-*` classes and no inline colors, so the theme stylesheet owns the palette. A custom engine may use inline `--shiki-light`/`--shiki-dark` variables instead.
 
 ### `CodeHighlightConfig`
 
 The engine-agnostic way to configure syntax highlighting. The core never talks
 to a highlighting library directly — it renders through a
-`CodeHighlighterAdapter` resolved from a registry, so **Shiki is just the
-default engine** and any highlighter can be plugged in without touching the
-core.
+`CodeHighlighterAdapter` resolved from a registry. The built-in engine is
+`@bdocs/highlight`, a lightweight Prism tokenizer: no WASM, no TextMate
+grammars, and nothing shipped to the browser. Highlighting happens at build
+time and the HTML is stored in `data-highlighted-html`.
 
 | Property | Type | Default | Description |
 | :--- | :--- | :--- | :--- |
-| **`engine`** | `string \| CodeHighlighterAdapter \| (api) => CodeHighlighterAdapter` | `'shiki'` | The highlighting engine. A string is a registry id (`'shiki'` or any engine registered by a plugin). Pass an adapter instance or a factory to inject a custom engine. |
-| **`theme`** | `string \| { light; dark }` | `{ light: 'github-light', dark: 'github-dark' }` | Theme name or light/dark pair. When an object is given, the rendered blocks carry `data-theme-mode="dual"` and use `--shiki-light`/`--shiki-dark` CSS variables. |
+| **`engine`** | `string \| CodeHighlighterAdapter \| (api) => CodeHighlighterAdapter` | `'highlight'` | The highlighting engine. A string is a registry id (`'highlight'` or an id registered by a plugin). Pass an adapter instance or a factory to inject a custom engine. |
+| **`theme`** | `string \| { light; dark }` | `{ light: 'github-light', dark: 'github-dark' }` | Theme name or light/dark pair. A pair marks the block `data-theme-mode="dual"`. |
 | **`options`** | `Record<string, unknown>` | `{}` | Engine-specific options, passed through to the adapter. |
 
-Options for the built-in Shiki engine:
+Options for the built-in engine:
 
 | Option | Type | Default | Description |
 | :--- | :--- | :--- | :--- |
-| **`regexEngine`** | `'oniguruma' \| 'javascript'` | `'oniguruma'` | `'javascript'` swaps Oniguruma WASM for Shiki's native JS regex engine, cutting highlighter startup from ~2.5s to ~200ms at a small cost in regex fidelity for exotic grammars. Useful for faster dev-server starts. |
+| **`lineNumbers`** | `boolean` | `false` | Emit `data-line-numbers` so the theme renders line numbers. |
+| **`wordWrap`** | `boolean` | `false` | Emit `data-word-wrap` for soft wrapping. |
 
 ```ts
 export default defineConfig({
   theme: {
     codeHighlighting: {
-      engine: 'shiki',
+      engine: 'highlight',
       theme: {
         light: 'github-light',
         dark: 'github-dark',
       },
       options: {
-        regexEngine: 'javascript',
+        lineNumbers: true,
       },
     },
   },
@@ -528,7 +530,7 @@ export default defineConfig({
     },
     githubRepo: 'my-org/my-project',
     codeHighlighting: {
-      engine: 'shiki',
+      engine: 'highlight',
       theme: {
         light: 'github-light',
         dark: 'github-dark',

@@ -24,7 +24,7 @@ Boltdocs is a React/Vite documentation framework. Monorepo managed by Turborepo 
 | Engine | `boltdocs` | `packages/boltdocs-engine` | Node-only: CLI, config, routes, plugin lifecycle, build pipeline, dev server, Vite plugins |
 | SSG | `@bdocs/ssg` | `packages/boltdocs-ssg` | Client/server Vite builds, HTML rendering, content-addressed page cache |
 | Processor | `@bdocs/processor-satteri` | `packages/boltdocs-processor-satteri` | MDX compile pipeline (Sätteri) and its rehype/remark plugins |
-| Grammars | `@bdocs/grammars` | `packages/boltdocs-grammars` | Vendored TextMate grammars + themes for the Shiki engine |
+| Grammars | `@bdocs/grammars` | `packages/boltdocs-grammars` | Vendored TextMate grammars + themes (optional; the core uses @bdocs/highlight) |
 | Unist utils | `@bdocs/unist-utils` | `packages/boltdocs-unist-utils` | AST helpers, fence-meta parsing, highlight config normalization |
 | Parser | `@bdocs/parser` | `packages/boltdocs-parser` | Zig/WASM markdown parser with cross-platform native binaries |
 | Critical CSS | `@bdocs/zig-critters` | `packages/boltdocs-zig-critters` | WASM critical-CSS extractor used by `ssg.criticalCss` |
@@ -32,7 +32,9 @@ Boltdocs is a React/Vite documentation framework. Monorepo managed by Turborepo 
 | Build config | `tsdown-config` | `packages/boltdocs-tsdown-config` | Shared `tsdown` preset |
 | Plugins | `@bdocs/plugin-*` | `packages/boltdocs-plugin-*` | Optional integrations — see the table below |
 
-Plugins: `ask-ai`, `git-meta`, `image-optimizer`, `llms-text`, `math`, `mermaid`, `rss`, `sass`, `search`, `search-algolia`, `search-pagefind`, `seo`, `tailwindcss`, `unocss`.
+Plugins: `ask-ai`, `git-meta`, `image-optimizer`, `lightningcss`, `llms-text`, `math`, `mermaid`, `rss`, `sass`, `search`, `search-algolia`, `search-pagefind`, `seo`, `tailwindcss`, `unocss`.
+
+Support packages: `@bdocs/highlight` (built-in Prism adapter), `@bdocs/grammars` (optional TextMate data), `@bdocs/ui-base`, `@bdocs/react-binding`.
 
 ### Workspace Dependencies
 
@@ -557,11 +559,12 @@ pnpm run test:a11y         # Playwright accessibility tests
 pnpm run test:coverage     # V8 coverage across packages/*/src
 ```
 
-`@bdocs/theme-neutral`, `@bdocs/runtime` and `@bdocs/primitives` each have their
-own suite and are covered by `test:ui`. `@bdocs/contracts` has no
-`vitest.config.ts` and must not be added to `test:all` — with the root config it
-finds no files and exits non-zero. Its shared collection sort helper is covered
-from the engine suite, which aliases the package to source.
+`@bdocs/theme-neutral`, `@bdocs/runtime`, `@bdocs/primitives`, `@bdocs/ui-base`
+and `@bdocs/react-binding` are covered by `test:ui`. `test:plugins` also runs
+the SEO and search-provider suites. `@bdocs/contracts` has its own
+`vitest.config.ts` and a dedicated `test:contracts` script in `test:all`. Its
+shared collection sort helper is additionally covered from the engine suite,
+which aliases the package to source.
 
 ### Test Patterns
 
@@ -628,9 +631,8 @@ versions, plugins, security, robots, social links and integrations.
 | `packages/boltdocs-engine/src/node/dev-server/index.ts` | `createDevServerPlugin()` (34) |
 | `packages/boltdocs-engine/src/node/dev-server/hmr-handler.ts` | `setupHmr()` (109) |
 | `packages/boltdocs-engine/src/node/dev-server/prewarm.ts` | `setupPrewarming()` (130) |
-| `packages/boltdocs-engine/src/node/mdx/highlighter.ts` | `highlight()`, `ensureLanguage()`, `RegexEngineKind` |
-| `packages/boltdocs-engine/src/node/mdx/shiki-adapter.ts` | `ShikiAdapter`, `getShikiAdapter()` |
 | `packages/boltdocs-engine/src/node/highlight/registry.ts` | Highlighter SPI: `getCodeHighlighterAdapter()`, `registerHighlighter()`, `registerPluginHighlighter()`, `prewarmHighlighter()` |
+| `packages/boltdocs-highlight/src/adapter.ts` | The built-in Prism adapter: `createHighlightAdapter()`, `tokenizeCode()` |
 | `packages/boltdocs-processor-satteri/src/node/satteri-plugins/rehype-shiki-plugin.ts` | `satteriRehypeCodeHighlightPlugin()`, per-worker highlight cache |
 | `packages/boltdocs-engine/src/node/cache.ts` | `FileCache` (91), `TransformCache` (320) |
 | `packages/boltdocs-engine/src/node/pipeline/index.ts` | `Pipeline` class |
@@ -689,8 +691,9 @@ versions, plugins, security, robots, social links and integrations.
     `@bdocs/theme-neutral/css`. Utilities in theme components would be invisible
     to a project that does not install Tailwind.
 
-16. **The highlighter is a compile-time cost, not a runtime one.** Shiki never
-    ships to the browser; `data-highlighted-html` carries the rendered markup.
-    A light/dark theme pair runs the TextMate grammar **twice** (once per
-    theme) — measured at 18.1 ms against 9.7 ms on a 39-line block. Single-theme
-    sites halve the highlighting cost by construction.
+16. **The highlighter is a compile-time cost, not a runtime one.** No
+    highlighter library ships to the browser; `data-highlighted-html` carries
+    the rendered markup. The built-in engine is `@bdocs/highlight`, a small
+    Prism tokenizer with no WASM and no TextMate grammars. Custom adapters
+    (e.g. a plugin-provided Shiki engine) run the same compile-time path and
+    are responsible for their own bundle cost.

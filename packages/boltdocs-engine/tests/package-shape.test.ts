@@ -3,7 +3,7 @@ import pkg from '../package.json' with { type: 'json' }
 
 type PkgShape = {
   dependencies: Record<string, string>
-  peerDependencies: Record<string, string>
+  peerDependencies?: Record<string, string>
   peerDependenciesMeta?: Record<string, { optional?: boolean }>
   optionalDependencies?: Record<string, string>
   devDependencies: Record<string, string>
@@ -12,14 +12,21 @@ type PkgShape = {
 const deps = pkg as unknown as PkgShape
 
 describe('packages/boltdocs-engine/package.json shape', () => {
-  it('declares Shiki as optional peer deps only (light highlighter is built-in)', () => {
-    // Shiki is optional: sites that use the built-in `@bdocs/highlight`
-    // engine never install it. Only users who opt into `engine: 'shiki'` need
-    // the `@shikijs/*` packages.
-    expect(deps.peerDependencies['@shikijs/core']).toBeDefined()
-    expect(deps.peerDependencies['@shikijs/engine-javascript']).toBeDefined()
-    expect(deps.peerDependencies['@shikijs/engine-oniguruma']).toBeDefined()
-    expect(deps.peerDependencies['@shikijs/types']).toBeDefined()
+  it('does not force Shiki on every install', () => {
+    // The built-in highlighter is `@bdocs/highlight` (Prism). `engine: 'shiki'`
+    // has no registered adapter and Shiki is not imported anywhere in the core,
+    // so peer deps would only make every site install unused packages. A plugin
+    // can register a Shiki adapter and declare its own dependencies instead.
+    for (const name of [
+      '@shikijs/core',
+      '@shikijs/engine-javascript',
+      '@shikijs/engine-oniguruma',
+      '@shikijs/types',
+      'shiki',
+    ]) {
+      expect(deps.peerDependencies?.[name]).toBeUndefined()
+      expect(deps.dependencies[name]).toBeUndefined()
+    }
     expect(deps.peerDependenciesMeta).toBeUndefined()
   })
 
@@ -29,10 +36,10 @@ describe('packages/boltdocs-engine/package.json shape', () => {
     // installing a 23 MB / 113-package tree for code the framework no longer
     // imports. This assertion exists so a future import of it is a deliberate
     // edit here rather than a silent 23 MB install regression.
-    expect(deps.peerDependencies['react-aria-components']).toBeUndefined()
+    expect(deps.peerDependencies?.['react-aria-components']).toBeUndefined()
     expect(deps.dependencies['react-aria-components']).toBeUndefined()
     expect(deps.devDependencies['react-aria-components']).toBeUndefined()
-    expect(deps.peerDependencies['@bdocs/primitives']).toBeUndefined()
+    expect(deps.peerDependencies?.['@bdocs/primitives']).toBeUndefined()
   })
 
   it('does not depend on the UI layer', () => {
@@ -70,14 +77,13 @@ describe('packages/boltdocs-engine/package.json shape', () => {
     // These are imported by src/node/cli-entry.ts when `npx boltdocs build` runs.
     //
     // The built-in highlighter is `@bdocs/highlight`, a dependency-free
-    // regex tokenizer. Shiki (`@shikijs/*`) is an optional peer — only needed
-    // when a site opts into `engine: 'shiki'`. Neither is a hard dependency
-    // of the engine, so every install stays small.
+    // regex tokenizer. Neither Shiki nor the 3 MB of vendored TextMate
+    // grammars are needed by the engine, so every install stays small.
     expect(deps.dependencies.shiki).toBeUndefined()
     expect(deps.dependencies['@shikijs/core']).toBeUndefined()
     expect(deps.dependencies['@bdocs/highlight']).toBe('workspace:*')
     expect(deps.dependencies['@shikijs/langs']).toBeUndefined()
-    expect(deps.dependencies['@bdocs/grammars']).toBe('workspace:*')
+    expect(deps.dependencies['@bdocs/grammars']).toBeUndefined()
     // @mdx-js/rollup was replaced by the Sätteri processor in 3.2.x
     expect(deps.dependencies['@bdocs/processor-satteri']).toBe('workspace:*')
   })

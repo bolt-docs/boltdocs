@@ -729,9 +729,9 @@ export function createSatteriMdxPlugin(
     // ── Pre-compute shared highlight cache for repeated code blocks ──
     // Before workers start, scan all miss files for code blocks, identify
     // unique blocks, and pre-render them once in the main thread using
-    // Shiki. Workers consult this shared cache before calling the
-    // highlighter, so each unique block is highlighted exactly once
-    // across the entire pool instead of once per worker that receives it.
+    // the built-in highlighter. Workers consult this shared cache before
+    // calling it, so each unique block is highlighted exactly once across
+    // the entire pool instead of once per worker that receives it.
     let sharedCodeCache:
       | Map<string, { html: string; lineCount: number }>
       | undefined

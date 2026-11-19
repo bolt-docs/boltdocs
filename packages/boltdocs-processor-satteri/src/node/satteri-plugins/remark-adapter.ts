@@ -18,7 +18,7 @@ interface MdastVisitorContext {
 type RemarkTransformer = (tree: {
   type: 'root'
   children: unknown[]
-}) => unknown
+}) => unknown | Promise<unknown>
 
 /**
  * A remark plugin factory: `(config?) => transformer`.
@@ -128,7 +128,10 @@ function createMdastWrapper(
 ): MdastPluginDefinition {
   return defineMdastPlugin({
     name: 'satteri-remark-adapter',
-    code(node: Readonly<Code>, ctx: MdastVisitorContext): MdastContent | void {
+    async code(
+      node: Readonly<Code>,
+      ctx: MdastVisitorContext,
+    ): Promise<MdastContent | void> {
       try {
         const parent = ctx.parent(node)
         if (!parent) return
@@ -142,13 +145,8 @@ function createMdastWrapper(
           children: [node],
         }
 
-        // Call the remark transformer — it may mutate the tree
-        const result = transformer(syntheticTree)
-
-        // Handle async transformers (skip for now)
-        if (result && typeof (result as Promise<unknown>).then === 'function') {
-          return
-        }
+        // Await the transformer — async remark plugins are supported.
+        await transformer(syntheticTree)
 
         // Check if the node was replaced
         if (syntheticTree.children[0] !== node) {
@@ -159,8 +157,12 @@ function createMdastWrapper(
             return replacement
           }
         }
-      } catch {
-        // Silently ignore — plugin will fall through
+      } catch (error) {
+        console.warn(
+          `[satteri] remark transformer failed on a code node: ${
+            error instanceof Error ? error.message : String(error)
+          }`,
+        )
       }
     },
   })

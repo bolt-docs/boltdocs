@@ -12,12 +12,12 @@
     "test:core": "pnpm --filter boltdocs test",
     "test:ssg": "pnpm --filter @bdocs/ssg test",
     "test:a11y": "playwright test",
-    "test:plugins": "pnpm --filter @bdocs/plugin-mermaid test && pnpm --filter @bdocs/plugin-math test && pnpm --filter @bdocs/plugin-ask-ai test && pnpm --filter @bdocs/plugin-llms-text test && pnpm --filter @bdocs/plugin-sass test && pnpm --filter @bdocs/plugin-tailwindcss test && pnpm --filter @bdocs/plugin-unocss test && pnpm --filter @bdocs/plugin-lightningcss test && pnpm --filter @bdocs/plugin-rss test && pnpm --filter @bdocs/plugin-git-meta test && pnpm --filter @bdocs/plugin-image-optimizer test",
+    "test:plugins": "pnpm --filter @bdocs/plugin-mermaid test && pnpm --filter @bdocs/plugin-math test && pnpm --filter @bdocs/plugin-ask-ai test && pnpm --filter @bdocs/plugin-llms-text test && pnpm --filter @bdocs/plugin-sass test && pnpm --filter @bdocs/plugin-tailwindcss test && pnpm --filter @bdocs/plugin-unocss test && pnpm --filter @bdocs/plugin-lightningcss test && pnpm --filter @bdocs/plugin-rss test && pnpm --filter @bdocs/plugin-git-meta test && pnpm --filter @bdocs/plugin-image-optimizer test && pnpm --filter @bdocs/plugin-seo test && pnpm --filter @bdocs/plugin-search-algolia test && pnpm --filter @bdocs/plugin-search-pagefind test",
     "test:grammars": "pnpm --filter @bdocs/grammars test",
     "test:contracts": "pnpm --filter @bdocs/contracts test",
     "test:search": "pnpm --filter @bdocs/plugin-search test",
     "test:processors": "pnpm --filter @bdocs/processor-satteri test && pnpm --filter @bdocs/highlight test && pnpm --filter @bdocs/unist-utils test && pnpm --filter create-boltdocs test && pnpm --filter @bdocs/parser exec vitest run",
-    "test:ui": "pnpm --filter @bdocs/primitives test && pnpm --filter @bdocs/runtime test && pnpm --filter @bdocs/theme-neutral test",
+    "test:ui": "pnpm --filter @bdocs/primitives test && pnpm --filter @bdocs/runtime test && pnpm --filter @bdocs/theme-neutral test && pnpm --filter @bdocs/ui-base test && pnpm --filter @bdocs/react-binding test",
     "test:all": "pnpm test:scripts && pnpm test:core && pnpm test:ssg && pnpm test:ui && pnpm test:plugins && pnpm test:grammars && pnpm test:search && pnpm test:processors && pnpm test:contracts",
     "test:coverage": "pnpm exec vitest run --coverage --coverage.include=\"packages/*/src/**/*.{ts,tsx}\"",
     "lint:md": "markdownlint-cli2 \"**/*.{md,mdx}\"",
@@ -50,7 +50,7 @@
   },
   "lint-staged": {
     "*.{ts,tsx,js,jsx,mjs,cjs,json,css}": "biome check --write",
-    "*.{md,mdx}": "markdownlint-cli2 --fix"
+    "!(*CHANGELOG).{md,mdx}": "markdownlint-cli2 --fix"
   },
   "packageManager": "pnpm@10.30.2",
   "devDependencies": {
@@ -71,7 +71,7 @@
     "sharp": "0.34.5",
     "tinybench": "^6.0.2",
     "tsx": "^4.21.0",
-    "turbo": "latest",
+    "turbo": "^2.10.5",
     "typescript-json-schema": "^0.67.1",
     "vite": "8.3.5",
     "vitest": "^3.0.0"
@@ -126,5 +126,5 @@
       ]
     }
   },
-  "version": "1.11.0"
+  "version": "4.0.0"
 }

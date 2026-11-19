@@ -1,7 +1,16 @@
 ---
 title: Resumen de la API
 sidebarPosition: 1
-description: Vista general de la API pública: Hooks, utilidades, y API de plugins.
+description: Vista general de la API pública: hooks, utilidades y API de plugins.
 ---
 
-Resumen en español pendiente — puedo traducir y ampliar los ejemplos si quieres.
+La API pública de Boltdocs se divide en cuatro superficies, cada una en su propio paquete:
+
+- **`boltdocs`** (Node) — `defineConfig`, tipos de configuración, `createPlugin` y el registro de highlighters.
+- **`@bdocs/runtime`** — hooks y contextos del navegador: `useConfig`, `useTheme`, `useRoutes`, `useI18n`, `useLocalizedTo` y las utilidades de colecciones.
+- **`@bdocs/primitives`** — comportamiento accesible sin estilos: `Button`, `Dialog`, `Menu`, `Tabs`, `Disclosure` y `ScrollSpy`.
+- **`@bdocs/ui-base`** — wrappers de composición y UI ensamblada con CSS nativo, reexportados por `@bdocs/theme-neutral`.
+
+Los plugins se declaran con `createPlugin` y pueden aportar `remarkPlugins`, `rehypePlugins`, componentes cliente y hooks de ciclo de vida (`beforeBuild`, `transformMdx`, `afterBuild`, …). Cada plugin se valida y se escanea estáticamente antes de `dev` o `build`.
+
+Para ejemplos ejecutables consultá la [referencia de API](/docs/es/api) y la [guía de plugins](/docs/es/guides).

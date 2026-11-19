@@ -124,7 +124,7 @@ theme: {
   communityHelp: 'https://discord.gg/invite',
   codeTheme: 'github-dark',                     // [deprecated] Shiki code theme
   codeHighlighting: {                            // Engine-agnostic highlighting config
-    engine: 'shiki',                             // Registry id, adapter instance, or factory
+    engine: 'highlight',                             // Registry id, adapter instance, or factory
     theme: 'github-dark',                        // Or: / { light, dark } / (dual-mode renders data-theme-mode="dual")
     options: { regexEngine: 'oniguruma' },       // 'oniguruma' (default) | 'javascript' (faster dev startup)
   },

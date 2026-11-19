@@ -66,7 +66,7 @@ Every release is measured against a reproducible 100-page benchmark:
 > **Benchmark definition:** the 100-page benchmark consists of 100 MDX pages
 > with an average of 5 custom components, 3 code blocks, 2 tables, and 1,500
 > words per page, using the default theme and no external plugins.
-
+>
 > **Run it:** `pnpm run benchmark` runs the micro-benchmark suites, and
 > `pnpm run benchmark:gate` enforces the regression rule against the committed
 > cold-build baseline — failing the build when the cold benchmark regresses.
@@ -95,7 +95,7 @@ Experimental features (`viewTransitions`, `fileRouting`) are off by default
 and degrade gracefully when a browser or project does not support them.
 Enabling an experimental flag must never break the default experience.
 
-### 2.5.1 Experimental → stable graduation (pending)
+### 2.5.1 Experimental → stable graduation (documented; policy not yet satisfied)
 
 A feature graduates from experimental to stable only when **all** of the
 following are true:
@@ -236,7 +236,7 @@ the engine still ships a client side — themed layouts, `primitives`,
 
 By `4.0.0` the core ships only:
 
-```
+```text
 boltdocs
 ├── Routing + SSG
 ├── MDX pipeline
@@ -264,7 +264,7 @@ This is a broken bridge between the promise and the code, and it gets fixed
 over the **3.0.0 → 4.0.0** window. The goal: separate everything that is not
 the documentation engine until the core looks like this and only this:
 
-```
+```text
 boltdocs
 ├── Routing + SSG
 ├── MDX pipeline

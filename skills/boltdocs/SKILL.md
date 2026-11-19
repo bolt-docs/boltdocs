@@ -94,7 +94,7 @@ These keep the rendered site consistent and are enforced by the project's a11y a
 | Runtime | `@bdocs/runtime` | `packages/boltdocs-runtime` | Browser-facing React: contexts, hooks, router entry, `createRoutes`, site bridge |
 | Primitives | `@bdocs/primitives` | `packages/boltdocs-primitives` | Style-neutral atoms (Button, Dialog, Menu, Popover, …): structure + `data-*` state, no visuals |
 | Contracts | `@bdocs/contracts` | `packages/boltdocs-contracts` | Framework-neutral contracts (routes, plugins, lifecycle, highlighting, search, config); re-exported by `boltdocs` |
-| Grammars | `@bdocs/grammars` | `packages/boltdocs-grammars` | TextMate grammars and themes for the Shiki engine |
+| Grammars | `@bdocs/grammars` | `packages/boltdocs-grammars` | Optional TextMate grammars + themes (no longer used by the core; kept for custom adapters) |
 | SSG | `@bdocs/ssg` | `packages/boltdocs-ssg` | Static Site Generator: client/server Vite builds, HTML rendering, content-addressed page cache |
 | Parser | `@bdocs/parser` | `packages/boltdocs-parser` | Zig/WASM markdown parser with cross-platform native binaries |
 | Processor (Sätteri) | `@bdocs/processor-satteri` | `packages/boltdocs-processor-satteri` | Rust-based MDX compiler (default processor) |

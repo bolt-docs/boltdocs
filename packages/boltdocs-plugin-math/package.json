@@ -48,5 +48,10 @@
     "tsdown": "^0.21.7",
     "tsdown-config": "workspace:*",
     "typescript": "^5.9.3"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/bolt-docs/boltdocs.git",
+    "directory": "packages/boltdocs-plugin-math"
   }
 }

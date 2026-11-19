@@ -64,5 +64,14 @@
       "./composition": "./src/composition.ts",
       "./surface": "./src/surface.ts"
     }
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/bolt-docs/boltdocs.git",
+    "directory": "packages/boltdocs-theme-neutral"
+  },
+  "license": "MIT",
+  "publishConfig": {
+    "access": "public"
   }
 }

@@ -50,5 +50,11 @@
     "vite": {
       "optional": true
     }
-  }
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/bolt-docs/boltdocs.git",
+    "directory": "packages/boltdocs-processor-satteri"
+  },
+  "license": "MIT"
 }

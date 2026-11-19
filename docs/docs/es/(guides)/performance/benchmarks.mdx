@@ -51,7 +51,7 @@ Falla si el core publicado crece más allá de la `core-footprint-baseline.json`
 
 ## Cómo interpretar los resultados
 
-- **Cold build** está dominado por la compilación MDX y el resaltado de Shiki. Aquí importan más los cachés y el paralelismo de workers.
+- **Cold build** está dominado por la compilación MDX y el resaltado de código. Aquí importan más los cachés y el paralelismo de workers.
 - **Warm build** mide el tiempo que tarda el servidor de dev en estar listo. Dominan la resolución de configuración y el prewarming.
 - **Incremental** mide el camino que un desarrollador usa en cada guardado: hash del frontmatter, invalidación puntual de módulos y HMR.
 

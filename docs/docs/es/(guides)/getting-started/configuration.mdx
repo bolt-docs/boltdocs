@@ -77,7 +77,7 @@ Controla toda la shell visual de tu sitio de documentación.
 | **`sidebar`** | `SidebarConfig` | — | Estructura del sidebar definida manualmente (deshabilita el auto-descubrimiento para esos prefijos). |
 | **`sidebarGroups`** | `Record<string, SidebarGroupConfig>` | — | Sobreescribe títulos e iconos de grupos sin definir un sidebar manual completo. |
 | **`codeTheme`** | [`CodeThemeConfig`](#codethemeconfig) | — | Configura el tema del resaltado de código. **Obsoleto** — usa [`codeHighlighting`](#codehighlightconfig). Acepta los mismos valores que `codeHighlighting.theme`. |
-| **`codeHighlighting`** | [`CodeHighlightConfig`](#codehighlightconfig) | — | Motor y tema del resaltado de código. Agnóstico al motor: usa el motor Shiki por defecto y acepta cualquier `CodeHighlighterAdapter` personalizado. |
+| **`codeHighlighting`** | [`CodeHighlightConfig`](#codehighlightconfig) | — | Motor y tema del resaltado de código. Agnóstico al motor: usa el motor Prism integrado por defecto y acepta cualquier `CodeHighlighterAdapter` personalizado. |
 | **`editLink`** | `string` | — | Plantilla de URL para el enlace "Editar esta página". Usa `:path` como placeholder para la ruta relativa del archivo actual. |
 | **`socialLinks`** | `SocialLink[]` | — | Enlaces de iconos extra (Twitter/X, Discord, etc.) mostrados en la navbar. |
 | **`communityHelp`** | `string` | — | Enlace de soporte (por ejemplo, URL de Discord, Slack o foro) mostrado en el pie de página. |
@@ -97,41 +97,44 @@ Controla toda la shell visual de tu sitio de documentación.
 
 | Propiedad | Tipo | Por Defecto | Descripción |
 | :--- | :--- | :--- | :--- |
-| **`light`** | `string` | `'github-light'` | Nombre del tema de Shiki para modo claro. |
-| **`dark`** | `string` | `'github-dark'` | Nombre del tema de Shiki para modo oscuro. |
+| **`light`** | `string` | `'github-light'` | Nombre del tema para modo claro. |
+| **`dark`** | `string` | `'github-dark'` | Nombre del tema para modo oscuro. |
 
-Temas disponibles: `github-light`, `github-dark`, `tokyo-night`, `dracula`, `nord`, `one-dark-pro`, `one-light`.
+El motor integrado emite clases semánticas `bd-token-*` y ningún color inline, así que la hoja de estilos del tema define la paleta. Un motor personalizado puede usar variables `--shiki-light`/`--shiki-dark` en su lugar.
 
 ### `CodeHighlightConfig`
 
 La forma agnóstica al motor de configurar el resaltado de código. El core nunca
 habla directamente con una librería de resaltado — renderiza a través de un
-`CodeHighlighterAdapter` resuelto desde un registry, así que **Shiki es solo el
-motor por defecto** y cualquier resaltador se puede conectar sin tocar el core.
+`CodeHighlighterAdapter` resuelto desde un registry. El motor integrado es
+`@bdocs/highlight`, un tokenizer liviano basado en Prism: sin WASM, sin
+gramáticas TextMate y sin código enviado al navegador. El resaltado ocurre en
+el build y el HTML se guarda en `data-highlighted-html`.
 
 | Propiedad | Tipo | Por Defecto | Descripción |
 | :--- | :--- | :--- | :--- |
-| **`engine`** | `string \| CodeHighlighterAdapter \| (api) => CodeHighlighterAdapter` | `'shiki'` | El motor de resaltado. Un string es un id del registry (`'shiki'` o cualquier motor registrado por un plugin). Pasa una instancia de adapter o una factoría para inyectar un motor personalizado. |
-| **`theme`** | `string \| { light; dark }` | `{ light: 'github-light', dark: 'github-dark' }` | Nombre de tema o par claro/oscuro. Con un objeto, los bloques renderizados llevan `data-theme-mode="dual"` y usan las variables CSS `--shiki-light`/`--shiki-dark`. |
+| **`engine`** | `string \| CodeHighlighterAdapter \| (api) => CodeHighlighterAdapter` | `'highlight'` | El motor de resaltado. Un string es un id del registry (`'highlight'` o un id registrado por un plugin). Pasa una instancia de adapter o una factoría para inyectar un motor personalizado. |
+| **`theme`** | `string \| { light; dark }` | `{ light: 'github-light', dark: 'github-dark' }` | Nombre de tema o par claro/oscuro. Con un objeto, los bloques llevan `data-theme-mode="dual"`. |
 | **`options`** | `Record<string, unknown>` | `{}` | Opciones específicas del motor, pasadas al adapter. |
 
-Opciones para el motor Shiki integrado:
+Opciones para el motor integrado:
 
 | Opción | Tipo | Por Defecto | Descripción |
 | :--- | :--- | :--- | :--- |
-| **`regexEngine`** | `'oniguruma' \| 'javascript'` | `'oniguruma'` | `'javascript'` reemplaza el WASM de Oniguruma por el motor de regex nativo JS de Shiki, reduciendo el arranque del resaltador de ~2.5s a ~200ms a costa de algo de fidelidad en gramáticas exóticas. Útil para arranques de dev-server más rápidos. |
+| **`lineNumbers`** | `boolean` | `false` | Emite `data-line-numbers` para que el tema muestre números de línea. |
+| **`wordWrap`** | `boolean` | `false` | Emite `data-word-wrap` para ajuste de línea. |
 
 ```ts
 export default defineConfig({
   theme: {
     codeHighlighting: {
-      engine: 'shiki',
+      engine: 'highlight',
       theme: {
         light: 'github-light',
         dark: 'github-dark',
       },
       options: {
-        regexEngine: 'javascript',
+        lineNumbers: true,
       },
     },
   },
@@ -440,7 +443,7 @@ export default defineConfig({
     },
     githubRepo: 'my-org/my-project',
     codeHighlighting: {
-      engine: 'shiki',
+      engine: 'highlight',
       theme: {
         light: 'github-light',
         dark: 'github-dark',

@@ -47,5 +47,10 @@
     "tsdown-config": "workspace:*",
     "typescript": "^5.9.3",
     "vitest": "^3.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/bolt-docs/boltdocs.git",
+    "directory": "packages/boltdocs-primitives"
   }
 }

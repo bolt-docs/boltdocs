@@ -34,33 +34,6 @@
  *
  * Grammars are TextMate definitions from the upstream Shiki project.
  */
-/**
- * Languages registered when the highlighter is created, before any page is
- * seen.
- *
- * **Empty on purpose.** This used to hold the ten most common fenced-block
- * languages, on the reasoning that a documentation site always has them and
- * pre-registration avoids a first-use stall. Measured, that reasoning was
- * wrong: creating the highlighter with these ten registered costs **202 ms** of
- * synchronous CPU, against **6 ms** with none — and the highlighter is built
- * once per Sätteri compile worker, so the cost multiplies across the pool.
- *
- * A site pays that 202 ms whether or not it has a single code block. The lazy
- * path costs less in total: a grammar loads on the first block that needs it,
- * and a page with no code blocks loads none. For a site that does have blocks,
- * the work is the same work, moved from "always" to "on demand" — and it is
- * shared, because {@link ensureLanguage} caches concurrent loads and reports
- * an already-loaded grammar without re-importing it.
- *
- * The trade is not free and it is not free in one direction. A site whose first
- * page is dense with TypeScript now pays the `ts` import on that page instead
- * of at startup. That is a better place to pay it: startup happens for every
- * build including dev-server prewarm, and a code block is highlighted anyway.
- *
- * Kept as an exported, mutable-by-spread hook rather than deleted: an engine
- * that genuinely wants a warm set can do `langs: [...COMMON_LANGS, 'ts']`
- * without this package needing to know which ones matter to it.
- */
 import html from './grammars/html.mjs'
 import js from './grammars/js.mjs'
 import ts from './grammars/ts.mjs'

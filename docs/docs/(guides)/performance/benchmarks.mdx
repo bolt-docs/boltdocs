@@ -51,7 +51,7 @@ It fails if the shipped core grows beyond the committed `core-footprint-baseline
 
 ## Interpreting results
 
-- **Cold build** is dominated by MDX compilation and Shiki highlighting. Caches and worker parallelism matter most here.
+- **Cold build** is dominated by MDX compilation and syntax highlighting. Caches and worker parallelism matter most here.
 - **Warm build** measures the dev server reaching a ready state. Config resolution and prewarming dominate.
 - **Incremental** measures the path a developer hits on every save: frontmatter hashing, targeted module invalidation, and HMR.
 

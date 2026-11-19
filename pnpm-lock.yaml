@@ -100,7 +100,7 @@ importers:
         specifier: ^4.21.0
         version: 4.21.0
       turbo:
-        specifier: latest
+        specifier: ^2.10.5
         version: 2.10.5
       typescript-json-schema:
         specifier: ^0.67.1
@@ -275,9 +275,6 @@ importers:
       '@bdocs/dui':
         specifier: ^0.6.0
         version: 0.6.0
-      '@bdocs/grammars':
-        specifier: workspace:*
-        version: link:../boltdocs-grammars
       '@bdocs/highlight':
         specifier: workspace:*
         version: link:../boltdocs-highlight
@@ -293,18 +290,6 @@ importers:
       '@bdocs/unist-utils':
         specifier: workspace:*
         version: link:../boltdocs-unist-utils
-      '@shikijs/core':
-        specifier: 3.23.0
-        version: 3.23.0
-      '@shikijs/engine-javascript':
-        specifier: 3.23.0
-        version: 3.23.0
-      '@shikijs/engine-oniguruma':
-        specifier: 3.23.0
-        version: 3.23.0
-      '@shikijs/types':
-        specifier: 3.23.0
-        version: 3.23.0
       cac:
         specifier: 7.0.0
         version: 7.0.0
@@ -1193,8 +1178,8 @@ importers:
         specifier: workspace:*
         version: link:../boltdocs-contracts
       '@bdocs/dui':
-        specifier: ^0.3.0
-        version: 0.3.0
+        specifier: ^0.6.0
+        version: 0.6.0
       fs-extra:
         specifier: ^11.3.4
         version: 11.3.4
@@ -2109,9 +2094,6 @@ packages:
   '@bcoe/v8-coverage@1.0.2':
     resolution: {integrity: sha512-6zABk/ECA/QYSCQ1NGiVwwbQerUCZ+TQbp64Q3AgmfNvurHH0j8TtXa1qbShXA6qqkpAj4V5W8pP6mLe1mcMqA==}
     engines: {node: '>=18'}
-
-  '@bdocs/dui@0.3.0':
-    resolution: {integrity: sha512-08eHSl/2BTm0NkpasPnRbZRQJ4uLf+Lzk4IMo937NvAOP53V1tmkFOC7daaJP7kIxF1ptRrx2uaQ0BShSBUf4w==}
 
   '@bdocs/dui@0.6.0':
     resolution: {integrity: sha512-Wgc6U+4SXXuvd9CGa8HvQ0MvY/OGDXoXNQYqAqN4iQTg1XfctbodnabejLiKczGR2vcK6yuO3D2l5+DgWMHfjA==}
@@ -8739,10 +8721,6 @@ snapshots:
       '@babel/helper-validator-identifier': 8.0.0-rc.3
 
   '@bcoe/v8-coverage@1.0.2': {}
-
-  '@bdocs/dui@0.3.0':
-    dependencies:
-      string-width: 7.2.0
 
   '@bdocs/dui@0.6.0':
     dependencies:

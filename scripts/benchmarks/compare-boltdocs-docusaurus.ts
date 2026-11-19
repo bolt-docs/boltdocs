@@ -535,7 +535,6 @@ function writeConfigs() {
       name: '@bdocs/plugin-image-optimizer',
     },
     { dir: 'packages/boltdocs-highlight', name: '@bdocs/highlight' },
-    { dir: 'packages/boltdocs-grammars', name: '@bdocs/grammars' },
     { dir: 'packages/boltdocs-contracts', name: '@bdocs/contracts' },
     { dir: 'packages/boltdocs-runtime', name: '@bdocs/runtime' },
     { dir: 'packages/boltdocs-theme-neutral', name: '@bdocs/theme-neutral' },

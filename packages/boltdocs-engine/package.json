@@ -72,7 +72,6 @@
   "dependencies": {
     "@bdocs/contracts": "workspace:*",
     "@bdocs/dui": "^0.6.0",
-    "@bdocs/grammars": "workspace:*",
     "@bdocs/parser": "workspace:*",
     "@bdocs/processor-satteri": "workspace:*",
     "@bdocs/ssg": "workspace:*",
@@ -90,12 +89,6 @@
     "semver": "^7.7.4",
     "vite": "8.3.5",
     "zod": "4.3.6"
-  },
-  "peerDependencies": {
-    "@shikijs/core": "3.23.0",
-    "@shikijs/engine-javascript": "3.23.0",
-    "@shikijs/engine-oniguruma": "3.23.0",
-    "@shikijs/types": "3.23.0"
   },
   "packageManager": "pnpm@10.30.2",
   "devDependencies": {
@@ -117,5 +110,10 @@
     "tsdown-config": "workspace:*",
     "typescript": "5.9.3",
     "vitest": "^3.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/bolt-docs/boltdocs.git",
+    "directory": "packages/boltdocs-engine"
   }
 }

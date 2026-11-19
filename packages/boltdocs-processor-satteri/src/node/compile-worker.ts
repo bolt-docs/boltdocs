@@ -189,11 +189,10 @@ function resolveUserPlugins(): Promise<void> {
 // with both sync and async implementations.
 const PREWARM_SNIPPET = 'const boltdocsPrewarm = 1'
 /**
- * The languages the worker compiles a snippet of, to load their grammars.
+ * The languages the worker compiles a snippet of, to warm the highlighter.
  *
- * These are the eager set of `@bdocs/grammars` — the languages a
- * documentation site uses most, and the ones whose compilation a worker
- * would otherwise do inside its first real job.
+ * These are the languages a documentation site uses most, and the ones a
+ * worker would otherwise load inside its first real job.
  *
  * `yaml` is here for a reason beyond its frequency: the Markdown grammar
  * highlights a leading `---` block as front matter, and it does so by
@@ -240,9 +239,9 @@ try {
  * Warm the highlighter for the languages this worker will actually use.
  *
  * The prewarm above compiles a snippet per eager language, but the highlight
- * plugin loads its grammars asynchronously and the compile above does not
- * wait for it. The first real job of a worker therefore paid for the grammar
- * compilation — measured at 1.1 s — and every worker paid it separately.
+ * plugin loads its language support asynchronously and the compile above does
+ * not wait for it. The first real job of a worker therefore paid for that
+ * load — measured at 1.1 s — and every worker paid it separately.
  *
  * Doing it here, before the first job, moves the cost into the pool's
  * startup, where the workers do it in parallel with each other instead of

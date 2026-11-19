@@ -30,15 +30,24 @@ jobs:
           version: '0.17.0'
 
       - name: Install pnpm
-        uses: pnpm/action-setup@v3
+        uses: pnpm/action-setup@v4
         with:
           version: 10
 
       - name: Install Dependencies
-        run: pnpm install
+        run: pnpm install --frozen-lockfile
+
+      - name: Tests
+        run: pnpm test:all
+
+      - name: Typecheck
+        run: pnpm turbo typecheck
+
+      - name: Check import boundaries
+        run: pnpm run check:boundaries
 
       - name: Security Audit
-        run: pnpm audit --audit-level moderate || true
+        run: pnpm audit --audit-level moderate
 
       - name: Build packages
         run: pnpm run build
