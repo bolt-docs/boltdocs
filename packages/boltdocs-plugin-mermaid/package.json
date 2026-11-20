@@ -37,8 +37,7 @@
     "@bdocs/primitives": "workspace:*",
     "@bdocs/runtime": "workspace:*",
     "mermaid": "^11.12.3",
-    "playwright": "^1.59.0",
-    "unist-util-visit": "^5.0.0"
+    "playwright": "^1.59.0"
   },
   "peerDependencies": {
     "react": "^19.0.0",
@@ -46,13 +45,11 @@
     "vite": "^8.3.0"
   },
   "devDependencies": {
-    "@types/jsdom": "^21.0.0",
     "@types/node": "22.12.0",
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
     "@types/unist": "^3.0.3",
     "boltdocs": "workspace:*",
-    "jsdom": "^26.0.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "tsdown": "^0.21.7",
