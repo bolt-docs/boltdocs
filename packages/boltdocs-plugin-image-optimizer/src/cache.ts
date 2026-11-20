@@ -4,9 +4,9 @@ import path from 'node:path'
 import crypto from 'node:crypto'
 
 class BackgroundQueue {
-  private activeTasks = new Set<Promise<any>>()
+  private activeTasks = new Set<Promise<void>>()
 
-  add(task: () => Promise<any>) {
+  add(task: () => Promise<void>) {
     const promise = Promise.resolve()
       .then(task)
       .catch(() => {})

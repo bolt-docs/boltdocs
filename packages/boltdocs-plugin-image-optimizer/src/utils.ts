@@ -12,8 +12,9 @@ interface Sizes {
 
 type Match = string | RegExp | string[]
 
-const isRegex = (src: Match): src is RegExp => src instanceof RegExp
-const isString = (src: Match): src is string => typeof src === 'string'
+const isRegex = (src: Match | undefined): src is RegExp => src instanceof RegExp
+const isString = (src: Match | undefined): src is string =>
+  typeof src === 'string'
 const isPlainObject = (val: unknown): val is Record<string, unknown> =>
   val !== null && typeof val === 'object' && !Array.isArray(val)
 
@@ -57,7 +58,7 @@ export function readAllFiles(root: string) {
 export function areFilesMatching(
   fileName: string,
   filePath: string,
-  matcher: Match,
+  matcher: Match | undefined,
 ): boolean {
   if (isString(matcher)) return fileName === matcher
   if (isRegex(matcher)) return matcher.test(filePath)

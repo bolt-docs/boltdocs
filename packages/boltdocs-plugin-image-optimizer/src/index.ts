@@ -44,6 +44,12 @@ interface Options {
   avif?: AvifOptions
 }
 
+type ResolvedOptions = Required<
+  Omit<Options, 'include' | 'exclude' | FormatKey>
+> &
+  Pick<Options, 'include' | 'exclude'> &
+  Required<Pick<Options, FormatKey>>
+
 type FormatKey =
   | 'svg'
   | 'png'
@@ -65,12 +71,21 @@ const FORMAT_KEYS: FormatKey[] = [
   'svg',
 ]
 
-function resolveOptions(userOptions: Options): Required<Options> {
-  const base: any = {}
+function resolveOptions(userOptions: Options): ResolvedOptions {
+  const base: Required<Pick<Options, FormatKey>> = {
+    png: DEFAULT_OPTIONS.png,
+    jpeg: DEFAULT_OPTIONS.jpeg,
+    jpg: DEFAULT_OPTIONS.jpg,
+    tiff: DEFAULT_OPTIONS.tiff,
+    gif: DEFAULT_OPTIONS.gif,
+    webp: DEFAULT_OPTIONS.webp,
+    avif: DEFAULT_OPTIONS.avif,
+    svg: DEFAULT_OPTIONS.svg,
+  }
   for (const key of FORMAT_KEYS) {
-    const userVal = (userOptions as any)[key]
-    const defaultVal = (DEFAULT_OPTIONS as any)[key]
-    base[key] =
+    const userVal = (userOptions as Record<string, unknown>)[key]
+    const defaultVal = (DEFAULT_OPTIONS as Record<string, unknown>)[key]
+    ;(base as Record<string, unknown>)[key] =
       userVal !== undefined ? deepMerge({}, defaultVal, userVal) : defaultVal
   }
 
@@ -117,7 +132,10 @@ function ViteImageOptimizer(optionsParam: Options = {}): Plugin {
 
   const getFormatOpts = (filePath: string) => {
     const ext = extname(filePath).replace('.', '').toLowerCase()
-    return ((resolved as any)[ext] || {}) as Record<string, unknown>
+    return ((resolved as Record<string, unknown>)[ext] || {}) as Record<
+      string,
+      unknown
+    >
   }
 
   const processFile = async (filePath: string, buffer: Buffer) => {
@@ -170,7 +188,7 @@ function ViteImageOptimizer(optionsParam: Options = {}): Plugin {
         } else {
           const ext = extname(filePath).replace('.', '').toLowerCase()
           newBuffer = await sharp(buffer, { animated: ext === 'gif' })
-            .toFormat(ext as any, formatOpts)
+            .toFormat(ext as keyof import('sharp').FormatEnum, formatOpts)
             .toBuffer()
         }
       }
@@ -192,8 +210,11 @@ function ViteImageOptimizer(optionsParam: Options = {}): Plugin {
       })
 
       return { content: newBuffer, skipWrite }
-    } catch (error: any) {
-      errorsMap.set(filePath, error.message)
+    } catch (error) {
+      errorsMap.set(
+        filePath,
+        error instanceof Error ? error.message : String(error),
+      )
       return {}
     }
   }
@@ -240,15 +261,23 @@ function ViteImageOptimizer(optionsParam: Options = {}): Plugin {
       const allFiles: string[] = Object.keys(bundler)
       const files: string[] = getFilesToProcess(
         allFiles,
-        (path: string) => (bundler[path] as any).name,
+        (path: string) =>
+          ('name' in bundler[path] ? bundler[path].name : null) ?? '',
       )
 
       if (files.length > 0) {
         const handles = files.map(async (filePath: string) => {
-          const source = (bundler[filePath] as any).source
-          const { content, skipWrite } = await processFile(filePath, source)
+          const asset = bundler[filePath]
+          if (!('source' in asset)) return
+          const source = asset.source
+          const buffer =
+            typeof source === 'string'
+              ? Buffer.from(source)
+              : Buffer.from(source)
+          const { content, skipWrite } = await processFile(filePath, buffer)
           if (content && content.length > 0 && !skipWrite) {
-            ;(bundler[filePath] as any).source = content
+            const asset = bundler[filePath]
+            if ('source' in asset) asset.source = content
           }
         })
         await Promise.all(handles)

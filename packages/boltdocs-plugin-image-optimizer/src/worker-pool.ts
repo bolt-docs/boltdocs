@@ -9,6 +9,10 @@ import type { Config as SVGOConfig } from 'svgo'
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const MAX_QUEUE = 500
 
+type WorkerResponse =
+  | { type: 'SUCCESS'; filePath: string; buffer: Uint8Array }
+  | { type: 'ERROR'; filePath: string; error: string }
+
 interface OptimizeTask {
   filePath: string
   buffer: Buffer
@@ -94,7 +98,7 @@ export class ImageWorkerPool {
       execArgv: useLoader ? ['--import', 'tsx'] : [],
     })
 
-    w.on('message', (response: any) => {
+    w.on('message', (response: WorkerResponse) => {
       const pending = this.pending.get(w)
       if (!pending) return
       this.pending.delete(w)

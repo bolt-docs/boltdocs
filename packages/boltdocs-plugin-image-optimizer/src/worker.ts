@@ -31,7 +31,7 @@ parentPort.on(
         const sharp = (await import('sharp')).default
         const ext = msg.filePath.split('.').pop()?.toLowerCase() || ''
         result = await sharp(source, { animated: ext === 'gif' })
-          .toFormat(ext as any, msg.formatOptions)
+          .toFormat(ext as keyof import('sharp').FormatEnum, msg.formatOptions)
           .toBuffer()
       }
 
@@ -40,11 +40,11 @@ parentPort.on(
         filePath: msg.filePath,
         buffer: result,
       })
-    } catch (error: any) {
+    } catch (error) {
       parentPort?.postMessage({
         type: 'ERROR',
         filePath: msg.filePath,
-        error: error.message || 'Unknown optimization error',
+        error: error instanceof Error ? error.message : String(error),
       })
     }
   },
