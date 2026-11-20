@@ -12,8 +12,13 @@ function escapeUnsafeChars(unsafeChar: string) {
   return ESCAPED_CHARS[unsafeChar as keyof typeof ESCAPED_CHARS]
 }
 
-export function serializeState(state: any): string | null {
-  if (state == null || Object.keys(state).length === 0) return null
+export function serializeState(state: unknown): string | null {
+  if (
+    state == null ||
+    typeof state !== 'object' ||
+    Object.keys(state).length === 0
+  )
+    return null
   try {
     return JSON.stringify(JSON.stringify(state || {})).replace(
       UNSAFE_CHARS_REGEXP,

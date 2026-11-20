@@ -8,7 +8,7 @@ type HtmlTemplateRenderOptions = {
   metaAttributes: string[]
   bodyAttributes: string
   htmlAttributes: string
-  initialState: any
+  initialState: string | null
 }
 
 export type HtmlTemplate = (options: HtmlTemplateRenderOptions) => string
@@ -147,7 +147,7 @@ export async function renderHTML({
   metaAttributes: string[]
   bodyAttributes: string
   htmlAttributes: string
-  initialState: any
+  initialState: string | null
 }) {
   const stateScript = initialState
     ? `\n<script>window.__INITIAL_STATE__=${initialState}</script>`

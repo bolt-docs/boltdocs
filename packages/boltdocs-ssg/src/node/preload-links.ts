@@ -104,12 +104,12 @@ function createLink(document: Document) {
   return document.createElement('link')
 }
 
-function setAttrs(el: Element, attrs: Record<string, any>) {
+function setAttrs(el: Element, attrs: Record<string, string>) {
   const keys = Object.keys(attrs)
   for (const key of keys) el.setAttribute(key, attrs[key])
 }
 
-function appendLink(document: Document, attrs: Record<string, any>) {
+function appendLink(document: Document, attrs: Record<string, string>) {
   const exits = document.head.querySelector(`link[href='${attrs.file}']`)
   if (exits) return
   const link = createLink(document)

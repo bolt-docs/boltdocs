@@ -74,10 +74,21 @@ export async function routesToPaths(routes?: Readonly<RouteRecord[]>) {
   }
 }
 
-export function createFetchRequest(req: any): Request {
+interface NodeRequestLike {
+  protocol: string
+  get(name: string): string | undefined
+  originalUrl?: string
+  url?: string
+  on(event: string, listener: () => void): unknown
+  method?: string
+  body?: string
+  headers: Record<string, string | string[] | undefined>
+}
+
+export function createFetchRequest(req: NodeRequestLike): Request {
   const origin = `${req.protocol}://${req.get('host')}`
   // Note: This had to take originalUrl into account for presumably vite's proxying
-  const url = new URL(req.originalUrl || req.url, origin)
+  const url = new URL(req.originalUrl || req.url || '/', origin)
 
   const controller = new AbortController()
   req.on('close', () => controller.abort())
@@ -89,7 +100,7 @@ export function createFetchRequest(req: any): Request {
       if (Array.isArray(values)) {
         for (const value of values) headers.append(key, value)
       } else {
-        headers.set(key, values as any)
+        headers.set(key, values)
       }
     }
   }

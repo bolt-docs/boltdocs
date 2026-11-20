@@ -155,8 +155,9 @@ export async function dev(
     printServerInfo(server, !!customOptions)
     server.bindCLIShortcuts({ print: true })
     return server
-  } catch (err: any) {
-    error(`failed to start server: ${err?.message ?? err}`)
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err)
+    error(`failed to start server: ${message}`)
     process.exit(1)
   }
 }

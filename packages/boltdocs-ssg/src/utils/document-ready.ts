@@ -1,4 +1,4 @@
-export function documentReady(_passThrough?: any) {
+export function documentReady<T>(_passThrough?: T): Promise<T | undefined> {
   if (document.readyState === 'loading') {
     return new Promise((resolve) => {
       document.addEventListener('DOMContentLoaded', () => resolve(_passThrough))

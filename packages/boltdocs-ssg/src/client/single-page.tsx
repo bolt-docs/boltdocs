@@ -36,7 +36,10 @@ export function ViteReactSSG(
     const triggerOnSSRAppRendered = () => {
       return Promise.all(appRenderCallbacks.map((cb) => cb()))
     }
-    const context: ViteReactSSGContext<false> = {
+    type SinglePageContext = ViteReactSSGContext<false> &
+      Record<string, unknown>
+
+    const context: SinglePageContext = {
       isClient,
       onSSRAppRendered,
       triggerOnSSRAppRendered,
@@ -50,11 +53,10 @@ export function ViteReactSSG(
       app: App,
       routerType: 'single-page',
     }
-    ;(context as any).RouteRenderer = descriptor.RouteRenderer
-    ;(context as any).matchRouteBranch = descriptor.matchRouteBranch
-    ;(context as any).matchRouteBranchWithParams =
-      descriptor.matchRouteBranchWithParams
-    ;(context as any).resolveRouteBranch = descriptor.resolveRouteBranch
+    context.RouteRenderer = descriptor.RouteRenderer
+    context.matchRouteBranch = descriptor.matchRouteBranch
+    context.matchRouteBranchWithParams = descriptor.matchRouteBranchWithParams
+    context.resolveRouteBranch = descriptor.resolveRouteBranch
 
     if (client) {
       await documentReady()

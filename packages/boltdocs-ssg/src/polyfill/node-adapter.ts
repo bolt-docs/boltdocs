@@ -65,7 +65,7 @@ export async function toNodeRequest(res: Response, nodeRes: ServerResponse) {
   }
 }
 
-export function json(data: any, init?: ResponseInit | number) {
+export function json(data: unknown, init?: ResponseInit | number) {
   if (init === void 0) {
     init = {}
   }

@@ -208,10 +208,10 @@ export class RemixAdapter implements IRouterAdapter<ViteReactSSGContext> {
     let appHTML = ''
     try {
       appHTML = await renderStaticApp(app)
-    } catch (err: any) {
+    } catch (err) {
       console.error(
         `[SSG Render Error] routePath="${routePath}":`,
-        err?.stack || err,
+        err instanceof Error ? err.stack || err.message : err,
       )
       throw err
     }
@@ -321,13 +321,19 @@ export async function callRouteLoader({
   })
 }
 
-function isResponse(value: any): value is Response {
+function isResponse(value: unknown): value is Response {
+  if (value == null || typeof value !== 'object') return false
+  const candidate = value as {
+    status?: unknown
+    statusText?: unknown
+    headers?: unknown
+    body?: unknown
+  }
   return (
-    value != null &&
-    typeof value.status === 'number' &&
-    typeof value.statusText === 'string' &&
-    typeof value.headers === 'object' &&
-    typeof value.body !== 'undefined'
+    typeof candidate.status === 'number' &&
+    typeof candidate.statusText === 'string' &&
+    typeof candidate.headers === 'object' &&
+    typeof candidate.body !== 'undefined'
   )
 }
 
