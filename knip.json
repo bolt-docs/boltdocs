@@ -57,7 +57,6 @@
         "src/node.ts!",
         "src/client/single-page.ts!",
         "src/style-collectors/styled-components.ts!",
-        "bin/vite-react-ssg.js",
         "tests/**/*.ts",
         "vitest.config.ts",
         "tsdown.config.ts"
