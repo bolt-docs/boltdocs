@@ -153,6 +153,7 @@ function buildExternalRouteRecord(options: {
               <ExternalLayout>
                 <theme.ExternalContent title={title}>
                   <EagerMdxElement
+                    theme={theme}
                     moduleLoader={module}
                     moduleKey={path}
                     route={{

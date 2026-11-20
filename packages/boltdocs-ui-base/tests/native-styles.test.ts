@@ -55,7 +55,6 @@ const CONVERTED: Record<string, string> = {
   'ui-base/sidebar.tsx': 'sidebar.css',
   'ui-base/search-dialog.tsx': 'search-dialog.css',
   'ui-base/copy-markdown.tsx': 'copy-markdown.css',
-  'ui-base/feedback.tsx': 'feedback.css',
 }
 
 /**

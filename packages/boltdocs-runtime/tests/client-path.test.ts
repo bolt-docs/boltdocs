@@ -34,7 +34,6 @@ describe('resolveUrlReference collection routes', () => {
     expect(
       resolveUrlReference('/blog/boltdocs-3.3.0', baseConfig, {
         kind: 'collection',
-        collection: 'blog',
       }),
     ).toBe('/docs/blog/boltdocs-3.3.0')
   })
@@ -52,7 +51,6 @@ describe('resolveUrlReference collection routes', () => {
     expect(
       resolveUrlReference('/docs/blog/boltdocs-3.3.0', baseConfig, {
         kind: 'collection',
-        collection: 'blog',
         routes: [{ path: '/docs/blog/boltdocs-3.3.0', collection: 'blog' }],
       }),
     ).toBe('/docs/blog/boltdocs-3.3.0')

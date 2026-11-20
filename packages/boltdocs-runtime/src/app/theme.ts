@@ -1,3 +1,4 @@
+import type { AnyPropsComponent } from '../mdx-components-context'
 import type { ComponentType, ReactNode } from 'react'
 import type { ComponentRoute } from '../types'
 
@@ -107,8 +108,6 @@ export interface DocPageRoute {
 export interface DocPageProps {
   route: DocPageRoute
   /** The compiled MDX module's default export. */
-  content: ComponentType<{
-    components?: Record<string, ComponentType<any>>
-  }> | null
+  content: AnyPropsComponent | null
   mdxComponents: Record<string, ComponentType<any>>
 }
