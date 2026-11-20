@@ -14,7 +14,7 @@ import { fileURLToPath } from 'node:url'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const ROOT = path.resolve(__dirname, '..', '..')
-const ENGINE_DIST = path.join(ROOT, 'packages', 'boltdocs-engine', 'dist')
+const ENGINE_DIST = path.join(ROOT, 'packages', 'boltdocs', 'dist')
 const BASELINE = path.join(__dirname, 'core-footprint-baseline.json')
 
 interface Footprint {

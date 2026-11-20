@@ -136,7 +136,7 @@ for (const [sig, count] of sorted) {
   console.log(`  ${lang} x${count}: ${preview}...`)
 }
 
-const engineDist = path.join(ROOT, 'packages/boltdocs-engine/dist')
+const engineDist = path.join(ROOT, 'packages/boltdocs/dist')
 const { ShikiAdapter, ensureLanguage } = await import(
   pathToFileURL(path.join(engineDist, 'node/mdx/shiki-adapter.mjs')).href
 )

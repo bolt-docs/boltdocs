@@ -4,8 +4,8 @@ Strictly-typed AST utilities for `unist` (mdast / hast / MDX) used by
 **Boltdocs** core, every official `@bdocs/*` plugin and the Sätteri MDX
 processor. This package is the single source of truth for the AST
 helpers that were previously scattered across
-`packages/boltdocs-engine/src/node/plugins/plugin-utils.ts` and
-`packages/boltdocs-engine/src/node/mdx/shiki-adapter.ts`.
+`packages/boltdocs/src/node/plugins/plugin-utils.ts` and
+`packages/boltdocs/src/node/mdx/shiki-adapter.ts`.
 
 ## When to use it
 

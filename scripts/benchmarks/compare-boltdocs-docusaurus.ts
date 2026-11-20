@@ -73,7 +73,7 @@ function packLocalBoltdocs(): string {
 
   // Pack core + ssg + processor-satteri + unist-utils
   const packages = [
-    { dir: 'packages/boltdocs-engine', name: 'boltdocs' },
+    { dir: 'packages/boltdocs', name: 'boltdocs' },
     { dir: 'packages/boltdocs-ssg', name: '@bdocs/ssg' },
     {
       dir: 'packages/boltdocs-processor-satteri',
@@ -521,7 +521,7 @@ function writeConfigs() {
 
   // Pack ALL workspace dependencies that boltdocs core needs
   const allWorkspaceDeps = [
-    { dir: 'packages/boltdocs-engine', name: 'boltdocs' },
+    { dir: 'packages/boltdocs', name: 'boltdocs' },
     { dir: 'packages/boltdocs-ssg', name: '@bdocs/ssg' },
     { dir: 'packages/boltdocs-parser', name: '@bdocs/parser' },
     { dir: 'packages/boltdocs-unist-utils', name: '@bdocs/unist-utils' },

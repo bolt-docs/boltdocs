@@ -16,7 +16,7 @@ const compilerOptions = {
 }
 
 const program = TJS.getProgramFromFiles(
-  [resolve('packages/boltdocs-engine/src/node/cli/doctor-config.ts')],
+  [resolve('packages/boltdocs/src/node/cli/doctor-config.ts')],
   compilerOptions,
 )
 

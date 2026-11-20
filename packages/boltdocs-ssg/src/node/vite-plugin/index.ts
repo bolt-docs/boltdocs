@@ -29,7 +29,7 @@ export interface Options<Context = ViteReactSSGContext>
  * We decode the path component with `decodeURI` (preserves `%2F`
  * reserved slash so segment boundaries stay intact) and leave the
  * query string verbatim. Mirrors the `decodeURIComponent` pattern
- * from `packages/boltdocs-engine/src/node/dev-server/hmr-handler.ts:45`.
+ * from `packages/boltdocs/src/node/dev-server/hmr-handler.ts:45`.
  *
  * Exported so the unit test in `tests/url-normalize.test.ts` can
  * import this same implementation rather than re-implementing — that

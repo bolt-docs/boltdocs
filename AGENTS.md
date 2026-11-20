@@ -6,7 +6,7 @@
 2. **Code style**: Biome — single quotes, no semicolons, 2-space indent, `formatWithErrors: true`.
 3. **TypeScript**: Strict mode. Use `import type` for type-only imports.
 4. **Directories vs package names**: every package lives in `packages/boltdocs-<name>/`, but the **published names are unchanged** (`boltdocs`, `@bdocs/*`, `create-boltdocs`). A path change is free; a name change breaks every site.
-5. **Path alias**: `@` resolves to the `src` of the package whose `vitest.config.ts` declares it — in the engine that is `packages/boltdocs-engine/src`.
+5. **Path alias**: `@` resolves to the `src` of the package whose `vitest.config.ts` declares it — in the engine that is `packages/boltdocs/src`.
 6. **Before committing**: Run `pnpm run format` to auto-format with Biome.
 
 ## Monorepo Structure
@@ -21,7 +21,7 @@ Boltdocs is a React/Vite documentation framework. Monorepo managed by Turborepo 
 | Primitives | `@bdocs/primitives` | `packages/boltdocs-primitives` | Style-neutral UI primitives: structure, behavior, `data-*` state. No visuals |
 | Runtime | `@bdocs/runtime` | `packages/boltdocs-runtime` | Browser-facing React: contexts, hooks, router entry, `createRoutes`, `BoltdocsShell` |
 | Theme | `@bdocs/theme-neutral` | `packages/boltdocs-theme-neutral` | The default theme: components, native CSS, and the `surface` object the engine renders with |
-| Engine | `boltdocs` | `packages/boltdocs-engine` | Node-only: CLI, config, routes, plugin lifecycle, build pipeline, dev server, Vite plugins |
+| Engine | `boltdocs` | `packages/boltdocs` | Node-only: CLI, config, routes, plugin lifecycle, build pipeline, dev server, Vite plugins |
 | SSG | `@bdocs/ssg` | `packages/boltdocs-ssg` | Client/server Vite builds, HTML rendering, content-addressed page cache |
 | Processor | `@bdocs/processor-satteri` | `packages/boltdocs-processor-satteri` | MDX compile pipeline (Sätteri) and its rehype/remark plugins |
 | Grammars | `@bdocs/grammars` | `packages/boltdocs-grammars` | Vendored TextMate grammars + themes (optional; the core uses @bdocs/highlight) |
@@ -50,7 +50,7 @@ Measured from the manifests:
 @bdocs/ui-base          → @bdocs/primitives, @bdocs/runtime
 @bdocs/theme-neutral    → @bdocs/contracts, @bdocs/primitives, @bdocs/runtime, @bdocs/ui-base
 
-boltdocs (engine)       → @bdocs/contracts, @bdocs/grammars, @bdocs/parser,
+boltdocs (engine)       → @bdocs/contracts, @bdocs/highlight, @bdocs/parser,
                           @bdocs/processor-satteri, @bdocs/ssg, @bdocs/unist-utils
 @bdocs/react-binding    → @bdocs/runtime, @bdocs/ssg (resolved by name, not imported by the engine)
 ```
@@ -98,8 +98,8 @@ it carries no `boltdocs-` prefix.
 
 ```bash
 pnpm run format                # Format entire repo
-pnpm run format:core           # Format packages/boltdocs-engine/src only
-pnpm exec biome check --write  # Lint + format packages/boltdocs-engine
+pnpm run format:core           # Format packages/boltdocs/src only
+pnpm exec biome check --write  # Lint + format packages/boltdocs
 pnpm run lint:md               # markdownlint on every .md/.mdx
 pnpm run check:boundaries      # Undeclared-import audit
 ```
@@ -256,7 +256,7 @@ output materialization and page-cache policy.
 
 ### Plugin Interface
 
-**File**: `packages/boltdocs-engine/src/node/plugins/plugin-types.ts`
+**File**: `packages/boltdocs/src/node/plugins/plugin-types.ts`
 
 ```typescript
 interface SecureBoltdocsPlugin {
@@ -274,7 +274,7 @@ interface SecureBoltdocsPlugin {
 
 ### Lifecycle Hooks
 
-**File**: `packages/boltdocs-engine/src/shared/types.ts:115`
+**File**: `packages/boltdocs/src/shared/types.ts:115`
 
 ```typescript
 interface PluginLifecycleHooks {
@@ -296,7 +296,7 @@ interface PluginLifecycleHooks {
 
 ### Plugin Context
 
-**File**: `packages/boltdocs-engine/src/shared/types.ts:108`
+**File**: `packages/boltdocs/src/shared/types.ts:108`
 
 ```typescript
 interface PluginContext {
@@ -335,7 +335,7 @@ export default createPlugin({
 
 ### Plugin Validation
 
-**File**: `packages/boltdocs-engine/src/node/plugins/plugin-validator.ts`
+**File**: `packages/boltdocs/src/node/plugins/plugin-validator.ts`
 
 - Plugins validated against `SecurePluginSchema` (Zod)
 - Duplicate plugin names rejected
@@ -345,7 +345,7 @@ export default createPlugin({
 
 ### Plugin Lifecycle Execution
 
-**File**: `packages/boltdocs-engine/src/node/plugins/plugin-lifecycle.ts` (`PluginLifecycleManager`, line 73)
+**File**: `packages/boltdocs/src/node/plugins/plugin-lifecycle.ts` (`PluginLifecycleManager`, line 73)
 
 - `runHook()`: Runs hook on all plugins in order (parallel-safe via Pipeline)
 - `runChain()`: Runs transform hooks sequentially, piping `params` through each plugin
@@ -353,7 +353,7 @@ export default createPlugin({
 
 ## Virtual Modules System
 
-**File**: `packages/boltdocs-engine/src/node/plugin/virtual-modules.ts`
+**File**: `packages/boltdocs/src/node/plugin/virtual-modules.ts`
 
 All `virtual:boltdocs-*` modules are resolved by the `vite-plugin-boltdocs-virtual-modules` plugin.
 
@@ -398,7 +398,7 @@ upstream counterparts.
 
 ### Build Pipeline (Production)
 
-**File**: `packages/boltdocs-engine/src/node/pipeline/build-pipeline.ts`
+**File**: `packages/boltdocs/src/node/pipeline/build-pipeline.ts`
 
 ```text
 ConfigResolve → RouteGenerate → SEOValidate → TypeGenerate → SSGBuild → SEOWrite
@@ -428,7 +428,7 @@ skipped.
 
 ### Cache System
 
-**File**: `packages/boltdocs-engine/src/node/cache.ts` (`FileCache` line 91, `TransformCache` line 320)
+**File**: `packages/boltdocs/src/node/cache.ts` (`FileCache` line 91, `TransformCache` line 320)
 
 - MDX results are gzipped in production (`compress: true`)
 - Cache directory: `.boltdocs/` (gitignored)
@@ -446,7 +446,7 @@ pnpm run release         # Build + changeset publish
 
 ### Dev Server Setup
 
-**File**: `packages/boltdocs-engine/src/node/cli/dev.ts`
+**File**: `packages/boltdocs/src/node/cli/dev.ts`
 
 1. `resolveConfig()` loads `boltdocs.config.{js,mjs,ts}`
 2. `createViteConfig()` builds the full Vite `InlineConfig` with all plugins
@@ -455,21 +455,21 @@ pnpm run release         # Build + changeset publish
 
 ### Dev Server Plugin
 
-**File**: `packages/boltdocs-engine/src/node/dev-server/index.ts` (`createDevServerPlugin`, line 34)
+**File**: `packages/boltdocs/src/node/dev-server/index.ts` (`createDevServerPlugin`, line 34)
 
 Runs on `apply: 'serve'`: `beforeDev` hook, link-tree generation, prewarming,
 middlewares, watcher and HMR setup, then `afterDev`.
 
 ### Prewarming
 
-**File**: `packages/boltdocs-engine/src/node/dev-server/prewarm.ts` (`setupPrewarming`, line 130)
+**File**: `packages/boltdocs/src/node/dev-server/prewarm.ts` (`setupPrewarming`, line 130)
 
 After server start, batches of 32 files are pre-transformed via
 `server.transformRequest()` to warm the Vite module graph.
 
 ### HMR Handler
 
-**File**: `packages/boltdocs-engine/src/node/dev-server/hmr-handler.ts` (`setupHmr`, line 109)
+**File**: `packages/boltdocs/src/node/dev-server/hmr-handler.ts` (`setupHmr`, line 109)
 
 File events (`add`, `unlink`, `change`) are debounced (150 ms):
 
@@ -493,7 +493,7 @@ File events (`add`, `unlink`, `change`) are debounced (150 ms):
 
 ## Route Generation
 
-**File**: `packages/boltdocs-engine/src/node/routes/index.ts` (`generateRoutes`, line 404)
+**File**: `packages/boltdocs/src/node/routes/index.ts` (`generateRoutes`, line 404)
 
 ### File Crawling
 
@@ -503,7 +503,7 @@ File events (`add`, `unlink`, `change`) are debounced (150 ms):
 
 ### Route Sorting
 
-**File**: `packages/boltdocs-engine/src/node/routes/sorter.ts` (`sortRoutes`, line 11)
+**File**: `packages/boltdocs/src/node/routes/sorter.ts` (`sortRoutes`, line 11)
 
 - Ungrouped items come first
 - Items sorted by `sidebarPosition` (or `groupPosition` for groups)
@@ -512,7 +512,7 @@ File events (`add`, `unlink`, `change`) are debounced (150 ms):
 
 ### Route Metadata
 
-**File**: `packages/boltdocs-engine/src/node/routes/types.ts`
+**File**: `packages/boltdocs/src/node/routes/types.ts`
 
 Key fields: `path`, `componentPath`, `title`, `filePath`, `group`, `groupTitle`, `locale`, `version`, `badge`, `icon`, `tab`, `collection`, `tags`, `author`, `draft`, `excerpt`, `coverImage`, `frontmatter`
 
@@ -577,7 +577,7 @@ which aliases the package to source.
 
 ### Error Hierarchy
 
-**File**: `packages/boltdocs-engine/src/node/errors.ts`
+**File**: `packages/boltdocs/src/node/errors.ts`
 
 ```text
 SecurityViolationError (base)
@@ -588,7 +588,7 @@ SecurityViolationError (base)
 
 ### Security Constants
 
-**File**: `packages/boltdocs-engine/src/node/security/constants/index.ts`
+**File**: `packages/boltdocs/src/node/security/constants/index.ts`
 
 ```typescript
 MAX_PATH_LENGTH = 260
@@ -598,7 +598,7 @@ MAX_FRONTMATTER_SIZE = 10 * 1024  // 10KB
 
 ### Frontmatter Validation
 
-**File**: `packages/boltdocs-engine/src/node/schema/frontmatter.ts`
+**File**: `packages/boltdocs/src/node/schema/frontmatter.ts`
 
 Uses `z.looseObject()` — validates known fields, passes through unknown fields.
 
@@ -606,7 +606,7 @@ Known fields: `title`, `description`, `sidebarPosition`, `sidebarLabel`, `sideba
 
 ### Config Validation
 
-**File**: `packages/boltdocs-engine/src/node/schema/config.ts`
+**File**: `packages/boltdocs/src/node/schema/config.ts`
 
 Full Zod schema for `BoltdocsConfig` including theme, `themePackage`, i18n,
 versions, plugins, security, robots, social links and integrations.
@@ -621,29 +621,29 @@ versions, plugins, security, robots, social links and integrations.
 
 | File | Key Functions/Lines |
 | --- | --- |
-| `packages/boltdocs-engine/src/node/index.ts` | `createViteConfig()` (172) |
-| `packages/boltdocs-engine/src/node/config.ts` | `resolveConfig()` (188), `DEFAULT_THEME_PACKAGE` re-export (40) |
-| `packages/boltdocs-engine/src/node/theme-package.ts` | `DEFAULT_THEME_PACKAGE` (14), `resolveThemePackage()` |
-| `packages/boltdocs-engine/src/node/routes/index.ts` | `generateRoutes()` (404) |
-| `packages/boltdocs-engine/src/node/routes/sorter.ts` | `sortRoutes()` (11) |
-| `packages/boltdocs-engine/src/node/plugin/index.ts` | `boltdocsPlugin()` (263), Sätteri MDX wiring (909) |
-| `packages/boltdocs-engine/src/node/plugin/virtual-modules.ts` | `createVirtualModulesPlugin()` (595) |
-| `packages/boltdocs-engine/src/node/dev-server/index.ts` | `createDevServerPlugin()` (34) |
-| `packages/boltdocs-engine/src/node/dev-server/hmr-handler.ts` | `setupHmr()` (109) |
-| `packages/boltdocs-engine/src/node/dev-server/prewarm.ts` | `setupPrewarming()` (130) |
-| `packages/boltdocs-engine/src/node/highlight/registry.ts` | Highlighter SPI: `getCodeHighlighterAdapter()`, `registerHighlighter()`, `registerPluginHighlighter()`, `prewarmHighlighter()` |
+| `packages/boltdocs/src/node/index.ts` | `createViteConfig()` (172) |
+| `packages/boltdocs/src/node/config.ts` | `resolveConfig()` (188), `DEFAULT_THEME_PACKAGE` re-export (40) |
+| `packages/boltdocs/src/node/theme-package.ts` | `DEFAULT_THEME_PACKAGE` (14), `resolveThemePackage()` |
+| `packages/boltdocs/src/node/routes/index.ts` | `generateRoutes()` (404) |
+| `packages/boltdocs/src/node/routes/sorter.ts` | `sortRoutes()` (11) |
+| `packages/boltdocs/src/node/plugin/index.ts` | `boltdocsPlugin()` (263), Sätteri MDX wiring (909) |
+| `packages/boltdocs/src/node/plugin/virtual-modules.ts` | `createVirtualModulesPlugin()` (595) |
+| `packages/boltdocs/src/node/dev-server/index.ts` | `createDevServerPlugin()` (34) |
+| `packages/boltdocs/src/node/dev-server/hmr-handler.ts` | `setupHmr()` (109) |
+| `packages/boltdocs/src/node/dev-server/prewarm.ts` | `setupPrewarming()` (130) |
+| `packages/boltdocs/src/node/highlight/registry.ts` | Highlighter SPI: `getCodeHighlighterAdapter()`, `registerHighlighter()`, `registerPluginHighlighter()`, `prewarmHighlighter()` |
 | `packages/boltdocs-highlight/src/adapter.ts` | The built-in Prism adapter: `createHighlightAdapter()`, `tokenizeCode()` |
 | `packages/boltdocs-processor-satteri/src/node/satteri-plugins/rehype-shiki-plugin.ts` | `satteriRehypeCodeHighlightPlugin()`, per-worker highlight cache |
-| `packages/boltdocs-engine/src/node/cache.ts` | `FileCache` (91), `TransformCache` (320) |
-| `packages/boltdocs-engine/src/node/pipeline/index.ts` | `Pipeline` class |
-| `packages/boltdocs-engine/src/node/pipeline/build-pipeline.ts` | `createBuildPipeline()` (37) |
-| `packages/boltdocs-engine/src/node/plugins/plugin-types.ts` | `SecureBoltdocsPlugin` |
-| `packages/boltdocs-engine/src/shared/types.ts` | `PluginContext` (108), `PluginLifecycleHooks` (115) |
-| `packages/boltdocs-engine/src/node/plugins/plugin-lifecycle.ts` | `PluginLifecycleManager` (73) |
-| `packages/boltdocs-engine/src/node/plugins/plugin-validator.ts` | `validatePlugins()` (70) |
-| `packages/boltdocs-engine/src/node/cli-entry.ts` | CLI commands |
-| `packages/boltdocs-engine/src/node/cli/dev.ts` | `devAction()` |
-| `packages/boltdocs-engine/src/node/cli/build.ts` | `buildAction()` |
+| `packages/boltdocs/src/node/cache.ts` | `FileCache` (91), `TransformCache` (320) |
+| `packages/boltdocs/src/node/pipeline/index.ts` | `Pipeline` class |
+| `packages/boltdocs/src/node/pipeline/build-pipeline.ts` | `createBuildPipeline()` (37) |
+| `packages/boltdocs/src/node/plugins/plugin-types.ts` | `SecureBoltdocsPlugin` |
+| `packages/boltdocs/src/shared/types.ts` | `PluginContext` (108), `PluginLifecycleHooks` (115) |
+| `packages/boltdocs/src/node/plugins/plugin-lifecycle.ts` | `PluginLifecycleManager` (73) |
+| `packages/boltdocs/src/node/plugins/plugin-validator.ts` | `validatePlugins()` (70) |
+| `packages/boltdocs/src/node/cli-entry.ts` | CLI commands |
+| `packages/boltdocs/src/node/cli/dev.ts` | `devAction()` |
+| `packages/boltdocs/src/node/cli/build.ts` | `buildAction()` |
 | `packages/boltdocs-ssg/src/node/build.ts` | `build()` |
 | `packages/boltdocs-ssg/src/node/client-hash.ts` | `computeClientCodeHash()` (217) |
 | `packages/boltdocs-runtime/src/app/create-routes.tsx` | `createRoutes()` (64) |

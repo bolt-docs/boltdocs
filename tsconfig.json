@@ -6,7 +6,7 @@
       "path": "./docs"
     },
     {
-      "path": "./packages/boltdocs-engine"
+      "path": "./packages/boltdocs"
     }
   ]
 }

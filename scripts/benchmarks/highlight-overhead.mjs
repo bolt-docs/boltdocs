@@ -22,7 +22,7 @@ import { pathToFileURL } from 'node:url'
 
 const ROOT = resolve(import.meta.dirname, '../..')
 const adapterUrl = pathToFileURL(
-  join(ROOT, 'packages/boltdocs-engine/dist/node/mdx/shiki-adapter.mjs'),
+  join(ROOT, 'packages/boltdocs/dist/node/mdx/shiki-adapter.mjs'),
 ).href
 
 let ShikiAdapter

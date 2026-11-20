@@ -11,7 +11,7 @@ type PkgShape = {
 
 const deps = pkg as unknown as PkgShape
 
-describe('packages/boltdocs-engine/package.json shape', () => {
+describe('packages/boltdocs/package.json shape', () => {
   it('does not force Shiki on every install', () => {
     // The built-in highlighter is `@bdocs/highlight` (Prism). `engine: 'shiki'`
     // has no registered adapter and Shiki is not imported anywhere in the core,

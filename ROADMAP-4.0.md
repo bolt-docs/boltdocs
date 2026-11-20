@@ -64,7 +64,7 @@ their directories say what they are.
 
 | Directory | Package name |
 | --- | --- |
-| `packages/boltdocs-engine` | `boltdocs` |
+| `packages/boltdocs` | `boltdocs` |
 | `packages/boltdocs-contracts` | `@bdocs/contracts` |
 | `packages/boltdocs-primitives` | `@bdocs/primitives` |
 | `packages/boltdocs-runtime` | `@bdocs/runtime` |
@@ -156,7 +156,7 @@ The engine no longer ships the UI layer. That is the change with the widest
 blast radius, and it is what the 4.0 package graph exists for.
 
 - The client code — the route builder, the shell, the MDX page, the collection
-  routes — moved from `packages/boltdocs-engine/src/client` to
+  routes — moved from `packages/boltdocs/src/client` to
   `packages/boltdocs-theme-neutral/src/ssg`. It depends on the theme's components, so
   the engine could not keep it without depending on a theme.
 - `boltdocs` no longer exports `./client`, `./client/router`, `./primitives`

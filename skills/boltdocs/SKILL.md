@@ -87,7 +87,7 @@ These keep the rendered site consistent and are enforced by the project's a11y a
 
 | Package | npm name | Path | Purpose |
 | --------- | ---------- | ------ | --------- |
-| Engine | `boltdocs` | `packages/boltdocs-engine` | Node-only engine: CLI, MDX pipeline, Vite plugins, routing, config, dev server |
+| Engine | `boltdocs` | `packages/boltdocs` | Node-only engine: CLI, MDX pipeline, Vite plugins, routing, config, dev server |
 | Theme | `@bdocs/theme-neutral` | `packages/boltdocs-theme-neutral` | Default theme: assembled layout, MDX components and the `surface` the engine renders with |
 | UI base | `@bdocs/ui-base` | `packages/boltdocs-ui-base` | Reusable composition wrappers + assembled UI with native CSS (`/css`, `/composition`) |
 | React binding | `@bdocs/react-binding` | `packages/boltdocs-react-binding` | React client root and Fast Refresh wiring; resolved by name, not imported by the engine |

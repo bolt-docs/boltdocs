@@ -78,10 +78,10 @@ function getRuntime(runtime?: PluginRuntimeState): PluginRuntimeState {
 
 /**
  * Singleton registry of plugin-declared virtual modules, read by
- * `packages/boltdocs-engine/src/node/plugin/virtual-modules.ts` when resolving the
+ * `packages/boltdocs/src/node/plugin/virtual-modules.ts` when resolving the
  * `load()` hook. Keys are the full `virtual:foo/bar` ids.
  *
- * Wired into the HMR pipeline by `packages/boltdocs-engine/src/node/dev-server/hmr-handler.ts`
+ * Wired into the HMR pipeline by `packages/boltdocs/src/node/dev-server/hmr-handler.ts`
  * so config changes flush the registry.
  */
 export const virtualModuleRegistry = defaultRuntime.virtualModuleRegistry
@@ -367,7 +367,7 @@ export function createPluginVirtualModulesAPI(
  * Drop every registered plugin virtual from the in-process registry. Use
  * when the plugin set or `boltdocs.config.ts` changes so plugins re-register
  * their virtuals on the next `beforeBuild`/`beforeDev` pass. Wired into the
- * HMR pipeline at `packages/boltdocs-engine/src/node/dev-server/hmr-handler.ts`.
+ * HMR pipeline at `packages/boltdocs/src/node/dev-server/hmr-handler.ts`.
  */
 export function invalidateVirtualModulesCache(
   runtime?: PluginRuntimeState,

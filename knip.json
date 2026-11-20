@@ -38,7 +38,7 @@
         "vitest.config.ts"
       ]
     },
-    "packages/boltdocs-engine": {
+    "packages/boltdocs": {
       "entry": [
         "src/node/cli-entry.ts!",
         "src/node/index.ts!",

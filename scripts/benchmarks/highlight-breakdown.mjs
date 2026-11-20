@@ -33,9 +33,8 @@ const { toHtml } = createRequire(
 )('hast-util-to-html')
 
 const { ShikiAdapter } = await import(
-  pathToFileURL(
-    join(ROOT, 'packages/boltdocs-engine/dist/node/mdx/shiki-adapter.mjs'),
-  ).href
+  pathToFileURL(join(ROOT, 'packages/boltdocs/dist/node/mdx/shiki-adapter.mjs'))
+    .href
 ).catch((error) => {
   console.error(
     'No se pudo importar el adaptador construido. Ejecuta primero: pnpm --filter boltdocs build',

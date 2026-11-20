@@ -64,9 +64,8 @@ async function main() {
 
   // Import from source via tsx
   const configMod = await import(
-    pathToFileURL(
-      path.join(WORKSPACE, 'packages/boltdocs-engine/src/node/config.ts'),
-    ).href
+    pathToFileURL(path.join(WORKSPACE, 'packages/boltdocs/src/node/config.ts'))
+      .href
   )
   mark('import-config-module')
 
@@ -128,10 +127,7 @@ async function main() {
   try {
     const { inspectPluginsSecurity } = await import(
       pathToFileURL(
-        path.join(
-          WORKSPACE,
-          'packages/boltdocs-engine/src/node/security/inspect.ts',
-        ),
+        path.join(WORKSPACE, 'packages/boltdocs/src/node/security/inspect.ts'),
       ).href
     )
     inspectPluginsSecurity(config, root)
@@ -143,9 +139,8 @@ async function main() {
   // createViteConfig breakdown
   const tCvcImport = performance.now()
   const indexMod = await import(
-    pathToFileURL(
-      path.join(WORKSPACE, 'packages/boltdocs-engine/src/node/index.ts'),
-    ).href
+    pathToFileURL(path.join(WORKSPACE, 'packages/boltdocs/src/node/index.ts'))
+      .href
   )
   mark('import-index', `${(performance.now() - tCvcImport).toFixed(0)}ms`)
 
@@ -157,26 +152,17 @@ async function main() {
       import('@tailwindcss/vite'),
       import(
         pathToFileURL(
-          path.join(
-            WORKSPACE,
-            'packages/boltdocs-engine/src/node/plugin/index.ts',
-          ),
+          path.join(WORKSPACE, 'packages/boltdocs/src/node/plugin/index.ts'),
         ).href
       ),
       import(
         pathToFileURL(
-          path.join(
-            WORKSPACE,
-            'packages/boltdocs-engine/src/node/routes/index.ts',
-          ),
+          path.join(WORKSPACE, 'packages/boltdocs/src/node/routes/index.ts'),
         ).href
       ),
       import(
         pathToFileURL(
-          path.join(
-            WORKSPACE,
-            'packages/boltdocs-engine/src/node/types-generator.ts',
-          ),
+          path.join(WORKSPACE, 'packages/boltdocs/src/node/types-generator.ts'),
         ).href
       ),
     ])

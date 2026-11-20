@@ -29,7 +29,7 @@ export async function runBuildPipelineSuite(
       path.join(
         WORKSPACE_ROOT,
         'packages',
-        'boltdocs-engine',
+        'boltdocs',
         'dist',
         'node',
         'index.mjs',

@@ -23,7 +23,7 @@
     "lint:md": "markdownlint-cli2 \"**/*.{md,mdx}\"",
     "lint:md:fix": "markdownlint-cli2 --fix \"**/*.{md,mdx}\"",
     "format": "pnpm exec biome format --write .",
-    "format:core": "pnpm exec biome format --write ./packages/boltdocs-engine/src",
+    "format:core": "pnpm exec biome format --write ./packages/boltdocs/src",
     "build:schema": "tsx scripts/generate-doctor-schema.ts",
     "benchmark": "tsx scripts/benchmarks/run.ts",
     "benchmark:pipeline": "tsx scripts/benchmarks/run.ts --suite pipeline",
