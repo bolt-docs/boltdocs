@@ -131,7 +131,6 @@ export function startClientGraphWarmup(server: ViteDevServer): void {
         process.env.BOLTDOCS_DEBUG === 'true' ||
         process.env.BOLTDOCS_BENCHMARK === 'true'
       ) {
-        // eslint-disable-next-line no-console
         console.log(
           `[boltdocs] client graph warm: ${warmed}/${total} modules in ${ms}ms`,
         )
@@ -139,7 +138,6 @@ export function startClientGraphWarmup(server: ViteDevServer): void {
     })
     .catch((error: unknown) => {
       if (process.env.BOLTDOCS_DEBUG === 'true') {
-        // eslint-disable-next-line no-console
         console.warn('[boltdocs] client graph warmup failed:', error)
       }
     })

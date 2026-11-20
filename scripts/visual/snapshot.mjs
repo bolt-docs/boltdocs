@@ -170,7 +170,6 @@ async function scrollOffsets(page) {
 async function scrollTo(page, y) {
   await page.evaluate(
     ([top, pickSrc]) => {
-      // eslint-disable-next-line no-new-func -- injected because evaluate
       // serialises the callback and a module-scope helper is not in scope there.
       const pick = new Function(`return (${pickSrc})`)()
       const scroller = pick()

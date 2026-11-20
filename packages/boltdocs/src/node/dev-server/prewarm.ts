@@ -192,7 +192,6 @@ export function setupPrewarming(
           process.env.BOLTDOCS_DEBUG === 'true' ||
           process.env.BOLTDOCS_BENCHMARK === 'true'
         ) {
-          // eslint-disable-next-line no-console
           console.log(
             `[boltdocs] prewarm done (${selectedFiles.length}/${files.length} files) in ${Math.round(performance.now() - prewarmStart)}ms`,
           )

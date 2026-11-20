@@ -3,7 +3,6 @@ import fs from 'node:fs'
 import path from 'node:path'
 import os from 'node:os'
 
-// eslint-disable-next-line import/order
 vi.mock('@bdocs/dui', async (importOriginal) => {
   const actual = (await importOriginal()) as typeof import('@bdocs/dui')
   return {

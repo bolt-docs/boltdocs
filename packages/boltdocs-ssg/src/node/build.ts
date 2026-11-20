@@ -746,7 +746,6 @@ export async function build(
     // mode — the same gate the core CLI uses for its own phase envelope — so
     // ordinary builds stay clean.
     if (process.env.BOLTDOCS_BENCHMARK_PHASES === 'true') {
-      // eslint-disable-next-line no-console
       console.log(
         `[boltdocs] ${JSON.stringify({
           name: 'Render pages',
@@ -2328,7 +2327,6 @@ export async function build(
   // nested pipeline object grows. Only emitted in benchmark mode so normal
   // build output stays human-readable.
   if (process.env.BOLTDOCS_BENCHMARK_PHASES === 'true') {
-    // eslint-disable-next-line no-console
     console.log(
       `[boltdocs] ${JSON.stringify({
         name: 'Render pages',

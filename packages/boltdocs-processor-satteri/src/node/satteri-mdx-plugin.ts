@@ -816,7 +816,6 @@ export function createSatteriMdxPlugin(
           }
         }
 
-        // eslint-disable-next-line no-console
         console.log(
           `[satteri-mdx] Pre-rendered ${sharedCodeCache.size} unique code blocks ` +
             `for shared highlight cache`,
@@ -1342,11 +1341,9 @@ export function createSatteriMdxPlugin(
     _precompileCompleted = true
 
     const totalTime = Math.round(performance.now() - startTime)
-    // eslint-disable-next-line no-console
     console.log(
       `[satteri-mdx] precompile: ${hitCount} hit / ${missCount} miss / ${totalTime}ms`,
     )
-    // eslint-disable-next-line no-console
     console.log(
       `[boltdocs] { name: 'MDX precompile', duration: ${totalTime}, success: true, details: '${hitCount} hit / ${missCount} miss / ${mdxFiles.length} files' }`,
     )
@@ -1518,7 +1515,6 @@ export function createSatteriMdxPlugin(
       }
 
       const totalTime = Math.round(performance.now() - buildStartTime)
-      // eslint-disable-next-line no-console
       console.log(`[satteri-mdx] buildStart completed in ${totalTime}ms`)
     },
 
@@ -1603,7 +1599,6 @@ export function createSatteriMdxPlugin(
         process.env.BOLTDOCS_DEBUG === 'true' ||
         process.env.BOLTDOCS_BENCHMARK === 'true'
       ) {
-        // eslint-disable-next-line no-console
         console.log(
           `[satteri-mdx] on-demand compile ${path.relative(process.cwd(), cleanId)} in ${Math.round(performance.now() - compileStartTime)}ms`,
         )
@@ -1692,7 +1687,6 @@ export function createSatteriMdxPlugin(
         poolMetrics = compilePool.metrics
         await compilePool.terminate()
         if (poolMetrics.totalJobs > 0) {
-          // eslint-disable-next-line no-console
           console.log(
             `[satteri-mdx] compile pool: ${poolMetrics.successfulJobs} done / ${poolMetrics.failedJobs} failed / ${poolMetrics.healthyWorkers} workers / ${poolMetrics.totalTimeMs}ms`,
           )
