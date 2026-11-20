@@ -20,29 +20,45 @@ import type { ViteReactSSGContext } from '../../types'
 // its own React.createContext(), and Helmet can't find the provider context.
 // We read at render time (not module load time) because the entry module body
 // sets the globalThis bridge AFTER externalized modules have loaded.
-let _cachedHelmetProvider: any = null
-function getHelmetProvider() {
+type HelmetProviderComponent = React.ComponentType<{
+  context?: unknown
+  children?: React.ReactNode
+}> & { canUseDOM?: boolean }
+
+const FallbackHelmetProvider: HelmetProviderComponent = ({ children }) => (
+  <>{children}</>
+)
+
+function resolveHelmetProvider(value: unknown): HelmetProviderComponent {
+  if (typeof value === 'function') return value as HelmetProviderComponent
+  if (value && typeof value === 'object') {
+    const mod = value as { HelmetProvider?: unknown; default?: unknown }
+    if (typeof mod.HelmetProvider === 'function')
+      return mod.HelmetProvider as HelmetProviderComponent
+    if (mod.default) return resolveHelmetProvider(mod.default)
+  }
+  return FallbackHelmetProvider
+}
+
+let _cachedHelmetProvider: HelmetProviderComponent | null = null
+function getHelmetProvider(): HelmetProviderComponent {
   if (_cachedHelmetProvider) return _cachedHelmetProvider
-  const fromGlobal = (globalThis as any).__BOLTDOCS_HELMET_PROVIDER__
+  const fromGlobal = (
+    globalThis as unknown as { __BOLTDOCS_HELMET_PROVIDER__?: unknown }
+  ).__BOLTDOCS_HELMET_PROVIDER__
   if (fromGlobal) {
-    _cachedHelmetProvider =
-      fromGlobal.HelmetProvider ||
-      fromGlobal.default?.HelmetProvider ||
-      fromGlobal
+    _cachedHelmetProvider = resolveHelmetProvider(fromGlobal)
   } else {
     try {
       const { createRequire } =
         require('node:module') as typeof import('node:module')
       const _require = createRequire(import.meta.url)
-      const pkg = _require('react-helmet-async')
-      _cachedHelmetProvider =
-        pkg.HelmetProvider || pkg.default?.HelmetProvider || pkg.default || pkg
+      _cachedHelmetProvider = resolveHelmetProvider(
+        _require('react-helmet-async'),
+      )
     } catch {
-      _cachedHelmetProvider = ({ children }: any) => <>{children}</>
+      _cachedHelmetProvider = FallbackHelmetProvider
     }
-  }
-  if (typeof _cachedHelmetProvider !== 'function') {
-    _cachedHelmetProvider = ({ children }: any) => <>{children}</>
   }
   return _cachedHelmetProvider
 }
@@ -78,10 +94,13 @@ export class RemixAdapter implements IRouterAdapter<ViteReactSSGContext> {
     this.base = context.base
     this.getStyleCollector = context.getStyleCollector
 
-    const app = context.app as any
-    this.coreRoutes = ((app?.routes ||
-      (Array.isArray(app) ? app : context.routes)) ??
-      []) as RouterRouteRecord[]
+    const app = context.app as unknown as
+      | { routes?: RouterRouteRecord[] }
+      | RouterRouteRecord[]
+      | undefined
+    const appRoutes = app && !Array.isArray(app) ? app.routes : undefined
+    this.coreRoutes =
+      appRoutes || (Array.isArray(app) ? app : [...(context.routes || [])])
     this.RouteRenderer = this.routerApi.RouteRenderer
     this.matchRouteBranchWithParams = this.routerApi.matchRouteBranchWithParams
     this.resolveRouteBranch = this.routerApi.resolveRouteBranch
@@ -187,8 +206,7 @@ export class RemixAdapter implements IRouterAdapter<ViteReactSSGContext> {
     }
 
     const HP = getHelmetProvider()
-    const hpAny = HP as any
-    if (hpAny && typeof hpAny === 'function') hpAny.canUseDOM = false
+    if (typeof HP === 'function') HP.canUseDOM = false
     const RouteRenderer = this.RouteRenderer
     const helmetRenderStart = performance.now()
     let app = (

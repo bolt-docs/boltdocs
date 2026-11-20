@@ -5,8 +5,15 @@ import type React from 'react'
 import { buildUrl } from '../router'
 import type { CollectionsData } from '../collections/collections-context'
 import { buildModuleMap, resolveModuleKey } from './create-routes.utils'
-import { EagerMdxElement, resolveModuleLoader } from './mdx-elements'
+import {
+  EagerMdxElement,
+  resolveModuleLoader,
+  type MdxModule,
+  type MdxModuleLoader,
+} from './mdx-elements'
 import type { BoltdocsTheme } from './theme'
+
+const EMPTY_MDX_MODULE: MdxModule = { default: () => null }
 
 function CollectionIndex({
   indexContent,
@@ -68,11 +75,13 @@ function getCollectionModule(
   route: ComponentRoute,
   moduleMap: Map<string, string>,
   mdxModules: Record<string, unknown>,
-): { moduleKey?: string; moduleLoader: any } {
+): { moduleKey?: string; moduleLoader: MdxModuleLoader | null } {
   const moduleKey = resolveModuleKey(route.filePath, moduleMap)
   return {
     moduleKey,
-    moduleLoader: moduleKey ? mdxModules[moduleKey] : null,
+    moduleLoader: moduleKey
+      ? ((mdxModules[moduleKey] as MdxModuleLoader | undefined) ?? null)
+      : null,
   }
 }
 
@@ -208,7 +217,7 @@ function buildCollectionRoutes(
 
         if (moduleLoader) {
           routeRecord.lazy = async () => {
-            const mod = await resolveModuleLoader(moduleLoader as any)
+            const mod = await resolveModuleLoader(moduleLoader)
             return {
               Component: function LoadedCollectionMdxRoute() {
                 return (
@@ -218,7 +227,12 @@ function buildCollectionRoutes(
                     moduleKey={moduleKey}
                     moduleLoader={mod}
                     route={route}
-                    components={components as any}
+                    components={
+                      (components ?? {}) as Record<
+                        string,
+                        React.ComponentType<{ children?: React.ReactNode }>
+                      >
+                    }
                     collectionPostComponent={postComponent}
                   />
                 )
@@ -231,9 +245,14 @@ function buildCollectionRoutes(
               theme={theme}
               key={`${moduleKey || subPath}-${locale}`}
               moduleKey={moduleKey}
-              moduleLoader={{} as any}
+              moduleLoader={EMPTY_MDX_MODULE}
               route={route}
-              components={components as any}
+              components={
+                (components ?? {}) as Record<
+                  string,
+                  React.ComponentType<{ children?: React.ReactNode }>
+                >
+              }
               collectionPostComponent={postComponent}
             />
           )
@@ -298,21 +317,26 @@ function buildCollectionRoutes(
           mdxModules,
         )
         const postComponent = collectionPosts?.[colName]
-        const createIndexContent = (resolvedModule: any) => (
+        const createIndexContent = (resolvedModule: MdxModule) => (
           <EagerMdxElement
             theme={theme}
             key={`${moduleKey || colBase}-${locale}`}
             moduleKey={moduleKey}
             moduleLoader={resolvedModule}
             route={indexRoute}
-            components={components as any}
+            components={
+              (components ?? {}) as Record<
+                string,
+                React.ComponentType<{ children?: React.ReactNode }>
+              >
+            }
             collectionPostComponent={postComponent}
           />
         )
 
         if (moduleLoader) {
           indexRecord.lazy = async () => {
-            const mod = await resolveModuleLoader(moduleLoader as any)
+            const mod = await resolveModuleLoader(moduleLoader)
             return {
               Component: function LoadedCollectionIndex() {
                 return (
@@ -327,7 +351,7 @@ function buildCollectionRoutes(
         } else {
           indexRecord.element = (
             <CollectionIndex
-              indexContent={createIndexContent({} as any)}
+              indexContent={createIndexContent(EMPTY_MDX_MODULE)}
               ListElement={ListElement}
             />
           )
@@ -378,12 +402,16 @@ function buildCollectionRoutes(
       }
 
       const CustomLayout = collectionLayouts?.[colName]
-      const CollectionLayout = CustomLayout || theme.DocsLayout
+      const CollectionLayout = (CustomLayout ||
+        theme.DocsLayout) as React.ComponentType<Record<string, unknown>>
       const blogLayoutRoute: RouteRecord = {
         path: colBase,
         element: (
           <CollectionLayout
-            {...({ collectionsData: collectionsData || {} } as any)}
+            {...({ collectionsData: collectionsData || {} } as Record<
+              string,
+              unknown
+            >)}
           />
         ),
         children: colChildren,
