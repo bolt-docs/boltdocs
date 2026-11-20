@@ -162,18 +162,26 @@ async function renderChart(
 
     // Wait for mermaid to finish (either result or error)
     await page.waitForFunction(
-      () =>
-        (window as any).__RESULT__ !== undefined ||
-        (window as any).__ERROR__ !== undefined,
+      () => {
+        const bridge = window as unknown as {
+          __RESULT__?: string
+          __ERROR__?: string
+        }
+        return bridge.__RESULT__ !== undefined || bridge.__ERROR__ !== undefined
+      },
       { timeout: 10_000 },
     )
 
-    const error = await page.evaluate(() => (window as any).__ERROR__)
+    const error = await page.evaluate(
+      () => (window as unknown as { __ERROR__?: string }).__ERROR__,
+    )
     if (error) {
       throw new Error(`Mermaid render error: ${error}`)
     }
 
-    const svg = await page.evaluate(() => (window as any).__RESULT__)
+    const svg = await page.evaluate(
+      () => (window as unknown as { __RESULT__?: string }).__RESULT__,
+    )
     if (!svg) {
       throw new Error('Mermaid returned empty SVG')
     }

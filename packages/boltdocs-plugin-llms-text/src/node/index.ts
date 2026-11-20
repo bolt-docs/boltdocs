@@ -1,4 +1,5 @@
-import { createPlugin, type BoltdocsPlugin } from 'boltdocs'
+import { createPlugin, type BoltdocsPlugin, type PluginContext } from 'boltdocs'
+import type { RouteMeta } from '@bdocs/contracts'
 import {
   LlmsTextPluginOptionsSchema,
   type LlmsTextPluginOptions,
@@ -28,9 +29,8 @@ export default function llmsTextPlugin(
   const options = LlmsTextPluginOptionsSchema.parse(rawOptions)
 
   // Shared <link> tag injection — used in both dev and production.
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   function linkTagInjection(
-    ctx: any,
+    ctx: PluginContext,
     params: { html: string },
   ): { html: string } {
     if (!options.addLinkTag) return { html: params.html }
@@ -42,8 +42,7 @@ export default function llmsTextPlugin(
 
   // Resolve effective options — some defaults depend on `ctx.config`
   // which is only available inside lifecycle hooks.
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  function resolveConfig(ctx: any): LlmsTextConfig | null {
+  function resolveConfig(ctx: PluginContext): LlmsTextConfig | null {
     const siteUrl = options.baseUrl ?? ctx.config.siteUrl
     if (!siteUrl) {
       ctx.logger.info(
@@ -91,7 +90,11 @@ export default function llmsTextPlugin(
   // current core invokes both `build:generate` and `afterBuild`.
   let generatedKey: string | null = null
 
-  const generate = (ctx: any, routes: any[], outputDir: string): void => {
+  const generate = (
+    ctx: PluginContext,
+    routes: RouteMeta[],
+    outputDir: string,
+  ): void => {
     const resolved = resolveConfig({ ...ctx, routes })
     if (!resolved) return
 
@@ -115,18 +118,16 @@ export default function llmsTextPlugin(
       // `build:generate` receives the absolute output directory from the
       // core pipeline after SSG has finalized it. Using `ctx.outDir` from a
       // lifecycle context here could resolve relative to the wrong cwd.
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       async 'build:generate'(
-        ctx: any,
-        params: { routes: any[]; outDir: string },
+        ctx: PluginContext,
+        params: { routes: RouteMeta[]; outDir: string },
       ) {
         generate(ctx, params.routes, params.outDir)
       },
 
       // Compatibility fallback for cores that predate `build:generate`.
       // `rootDir` makes a relative context output path deterministic.
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      async afterBuild(ctx: any) {
+      async afterBuild(ctx: PluginContext) {
         const outputDir = path.resolve(ctx.rootDir ?? process.cwd(), ctx.outDir)
         generate(ctx, ctx.routes, outputDir)
       },

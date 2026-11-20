@@ -1,6 +1,14 @@
 import { describe, it, expect } from 'vitest'
 import mermaidPlugin from '../node/index'
 
+interface AliasVitePlugin {
+  name: string
+  config: (
+    config: unknown,
+    env: { command: string },
+  ) => { resolve: { alias: Record<string, string> } } | undefined
+}
+
 describe('mermaidPlugin factory shape', () => {
   it('exposes a stable name and version', () => {
     const plugin = mermaidPlugin()
@@ -17,11 +25,16 @@ describe('mermaidPlugin factory shape', () => {
     const plugin = mermaidPlugin()
     const vitePlugins = plugin.vitePlugins ?? []
     expect(vitePlugins.length).toBeGreaterThanOrEqual(1)
-    const aliasPlugin: any = vitePlugins.find(
-      (p: any) => p?.name === 'boltdocs-mermaid-build-alias',
-    )
-    expect(aliasPlugin).toBeDefined()
+    const aliasPlugin = vitePlugins.find(
+      (p) =>
+        p &&
+        typeof p === 'object' &&
+        'name' in p &&
+        p.name === 'boltdocs-mermaid-build-alias',
+    ) as AliasVitePlugin | undefined
+    if (!aliasPlugin) throw new Error('alias plugin not registered')
     const result = aliasPlugin.config({}, { command: 'build' })
+    if (!result) throw new Error('alias plugin config returned nothing')
     expect(result.resolve.alias['@bdocs/plugin-mermaid/client']).toBe(
       '@bdocs/plugin-mermaid/client/static',
     )
@@ -30,10 +43,14 @@ describe('mermaidPlugin factory shape', () => {
   it('skips the build alias when pre-render is disabled', () => {
     const plugin = mermaidPlugin({ preRender: false })
     const vitePlugins = plugin.vitePlugins ?? []
-    const aliasPlugin: any = vitePlugins.find(
-      (p) => p.name === 'boltdocs-mermaid-build-alias',
-    )
-    expect(aliasPlugin).toBeDefined()
+    const aliasPlugin = vitePlugins.find(
+      (p) =>
+        p &&
+        typeof p === 'object' &&
+        'name' in p &&
+        p.name === 'boltdocs-mermaid-build-alias',
+    ) as AliasVitePlugin | undefined
+    if (!aliasPlugin) throw new Error('alias plugin not registered')
     // When preRender:false the alias must not rewrite the component.
     const result = aliasPlugin.config({}, { command: 'build' })
     expect(result).toBeUndefined()

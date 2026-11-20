@@ -91,7 +91,7 @@ export const LlmsTextPluginOptionsSchema = z.object({
   /**
    * @deprecated The afterBuild hook is always registered now; generation
    * happens on every production build. This option is kept for backwards
-   * compatibility and no longer has any effect.
+   * compatibility and no longer has an effect.
    */
   devMode: z.boolean().default(false),
 

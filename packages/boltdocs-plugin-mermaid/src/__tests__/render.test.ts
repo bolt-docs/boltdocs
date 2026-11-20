@@ -47,7 +47,7 @@ function createMockChildProcess() {
   let errorCallback: ((err: Error) => void) | null = null
 
   mockStdout.on.mockImplementation(
-    (event: string, cb: (...args: any[]) => void) => {
+    (event: string, cb: (...args: unknown[]) => void) => {
       if (event === 'data') dataCallback = cb as (chunk: string) => void
       return mockStdout
     },
@@ -57,7 +57,7 @@ function createMockChildProcess() {
     stdin: mockStdin,
     stdout: mockStdout,
     stderr: mockStderr,
-    on: vi.fn((event: string, cb: (...args: any[]) => void) => {
+    on: vi.fn((event: string, cb: (...args: unknown[]) => void) => {
       if (event === 'exit') exitCallback = cb as (code: number) => void
       if (event === 'error') errorCallback = cb as (err: Error) => void
       return mockProcess
