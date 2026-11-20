@@ -20,7 +20,7 @@ export function createRoot(routes: unknown): unknown {
     () => {
       // Boltdocs initialization hook — currently nothing to do on the client.
     },
-  ) as Record<string, unknown>
+  ) as unknown as Record<string, unknown>
 
   root.RouteRenderer = RouteRenderer
   root.matchRouteBranch = matchRouteBranch

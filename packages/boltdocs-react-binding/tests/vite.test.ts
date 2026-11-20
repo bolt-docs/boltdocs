@@ -21,12 +21,18 @@ function bindingPlugin(plugins: Plugin[]): Plugin {
 
 describe('reactBindingVitePlugin', () => {
   it('only adds @vitejs/plugin-react when fast refresh is enabled', () => {
-    expect(
-      reactBindingVitePlugin({ isProd: true, fastRefresh: false }),
-    ).toHaveLength(1)
+    const withoutRefresh = reactBindingVitePlugin({
+      isProd: true,
+      fastRefresh: false,
+    })
+    expect(withoutRefresh).toHaveLength(1)
+    expect(withoutRefresh.some((p) => p.name?.startsWith('vite:react'))).toBe(
+      false,
+    )
+
     const plugins = reactBindingVitePlugin({ isProd: false, fastRefresh: true })
-    expect(plugins).toHaveLength(2)
     expect(plugins.map((p) => p.name)).toContain('boltdocs-react-binding')
+    expect(plugins.some((p) => p.name?.startsWith('vite:react'))).toBe(true)
   })
 
   it('configures automatic JSX with the right development mode', () => {

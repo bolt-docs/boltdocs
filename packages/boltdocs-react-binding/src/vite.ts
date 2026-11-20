@@ -15,7 +15,7 @@ export function reactBindingVitePlugin(
   options: ReactBindingViteOptions,
 ): Plugin[] {
   const plugins: Plugin[] = []
-  if (options.fastRefresh) plugins.push(react())
+  if (options.fastRefresh) plugins.push(...react())
 
   plugins.push({
     name: 'boltdocs-react-binding',
@@ -44,7 +44,9 @@ export function reactBindingVitePlugin(
         ssr: {
           ...userConfig.ssr,
           external: [
-            ...(userConfig.ssr?.external ?? []),
+            ...(Array.isArray(userConfig.ssr?.external)
+              ? userConfig.ssr.external
+              : []),
             'react',
             'react-dom',
             'react-helmet-async',

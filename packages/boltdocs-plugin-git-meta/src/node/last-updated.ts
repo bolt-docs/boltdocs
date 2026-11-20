@@ -56,7 +56,6 @@ export function lastUpdatedPlugin(
 
   return createPlugin({
     name: 'boltdocs-plugin-last-updated',
-    packageName: '@bdocs/plugin-git-meta',
     version: '0.1.0',
     boltdocsVersion: '>=3.4.0',
     hooks: {
