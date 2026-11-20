@@ -1,6 +1,0 @@
-export { handleVercelAskAi } from './vercel'
-export { handleAwsAskAi } from './aws'
-export { handleNetlifyAskAi } from './netlify'
-export { handleWebAskAi } from './web'
-export { headers } from './headers'
-export type { AdapterConfig, AdapterEnv } from './types'
