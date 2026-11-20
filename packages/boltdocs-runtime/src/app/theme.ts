@@ -101,7 +101,7 @@ export interface DocPageRoute {
   groupTitle?: string
   lastUpdated?: string | number | Date
   contributors?: ComponentRoute['contributors']
-  frontmatter?: Record<string, any>
+  frontmatter?: Record<string, unknown>
 }
 
 export interface DocPageProps {

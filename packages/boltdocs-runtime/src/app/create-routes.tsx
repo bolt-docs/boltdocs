@@ -33,7 +33,7 @@ export interface CreateRoutesOptions {
   collectionLists?: Record<string, React.ComponentType>
   collectionPosts?: Record<string, React.ComponentType<any>>
   config: BoltdocsConfig
-  mdxModules: Record<string, any>
+  mdxModules: Record<string, unknown>
 
   externalPages?: Record<
     string,

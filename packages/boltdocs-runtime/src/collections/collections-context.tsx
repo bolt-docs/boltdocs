@@ -13,7 +13,7 @@ export interface CollectionPost {
   filePath: string
   locale?: string
   version?: string
-  frontmatter?: Record<string, any>
+  frontmatter?: Record<string, unknown>
   lastUpdated?: string | number | Date
   contributors?: RouteContributor[]
   headings?: { level: number; text: string; id: string }[]

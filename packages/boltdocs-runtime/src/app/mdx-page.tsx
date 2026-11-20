@@ -4,6 +4,13 @@ import { useMdxComponents } from '../mdx-components-context'
 import type { CollectionPostLoaderData, ComponentRoute } from '../types'
 import type { BoltdocsTheme } from './theme'
 
+type DocPageLoaderData = Partial<Omit<ComponentRoute, 'frontmatter'>> & {
+  frontmatter?: { title?: string; description?: string } & Record<
+    string,
+    unknown
+  >
+}
+
 type MdxPageProps = {
   /** The appearance this page renders through. */
   theme: BoltdocsTheme
@@ -107,7 +114,7 @@ export function MdxPage({
     )
   }
 
-  const docData = (data as any) || {}
+  const docData = (data as unknown as DocPageLoaderData) || {}
   return (
     <theme.DocPage
       route={{

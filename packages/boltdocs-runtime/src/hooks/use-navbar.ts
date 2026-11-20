@@ -6,6 +6,15 @@ import type { NavbarLink } from '../types'
 import { getTranslated } from '../i18n'
 import { useRoutes } from './use-routes'
 
+interface RawNavbarLink {
+  label?: string | Record<string, string>
+  text?: string | Record<string, string>
+  href?: string
+  to?: string
+  link?: string
+  items?: RawNavbarLink[]
+}
+
 export function useNavbar() {
   const config = useConfig()
   const { theme } = useTheme()
@@ -19,7 +28,7 @@ export function useNavbar() {
 
   // Transform links to the new NavbarLink structure
   const links: NavbarLink[] = useMemo(() => {
-    return rawLinks.map((item: any) => {
+    return rawLinks.map((item: RawNavbarLink) => {
       const href = item.href || item.to || item.link || ''
 
       // Robust active state calculation
@@ -62,9 +71,11 @@ export function useNavbar() {
       }
 
       // Process nested items recursively
-      const processItems = (items?: any[]): NavbarLink[] | undefined => {
+      const processItems = (
+        items?: RawNavbarLink[],
+      ): NavbarLink[] | undefined => {
         if (!items || items.length === 0) return undefined
-        return items.map((subItem: any) => {
+        return items.map((subItem: RawNavbarLink) => {
           const subHref = subItem.href || subItem.to || subItem.link || ''
           return {
             label: getTranslated(subItem.label || subItem.text, currentLocale),

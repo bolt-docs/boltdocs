@@ -55,10 +55,14 @@ export const HelmetProvider: ComponentType<{ children?: ReactNode }> =
 // before renderStaticApp() and cleared immediately after. Without this guard,
 // the `canUseDOM = false` would also execute in the browser, preventing
 // Helmet from updating `document.title` on client-side navigation.
-if (
-  typeof globalThis !== 'undefined' &&
-  (globalThis as any).__BOLTDOCS_SSG_RENDERING__
-) {
+interface BoltdocsGlobals {
+  __BOLTDOCS_SSG_RENDERING__?: boolean
+  __BOLTDOCS_HELMET_PROVIDER__?: unknown
+  __BOLTDOCS_HELMET__?: unknown
+}
+const globals = globalThis as typeof globalThis & BoltdocsGlobals
+
+if (typeof globalThis !== 'undefined' && globals.__BOLTDOCS_SSG_RENDERING__) {
   if (
     typeof HelmetProvider === 'function' &&
     (HelmetProvider as { canUseDOM?: boolean }).canUseDOM
@@ -70,6 +74,6 @@ if (
 // Bridge for SSG: store HelmetProvider on globalThis so @bdocs/ssg's remix
 // adapter (loaded at runtime from a separate CJS module instance) can use it.
 if (typeof globalThis !== 'undefined') {
-  ;(globalThis as any).__BOLTDOCS_HELMET_PROVIDER__ = HelmetProvider
-  ;(globalThis as any).__BOLTDOCS_HELMET__ = Helmet
+  globals.__BOLTDOCS_HELMET_PROVIDER__ = HelmetProvider
+  globals.__BOLTDOCS_HELMET__ = Helmet
 }

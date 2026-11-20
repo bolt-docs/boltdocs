@@ -11,7 +11,7 @@ export function useMergedComponents(
   return useMemo(() => {
     if (!propComponents) return contextComponents
 
-    const merged: Record<string, any> = { ...contextComponents }
+    const merged: MdxComponentsType = { ...contextComponents }
 
     const mergedFrontmatter = { ...(contextComponents.Frontmatter || {}) }
     let hasPropFrontmatter = false

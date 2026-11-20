@@ -5,6 +5,18 @@ import { useRoutesContext } from '../routes-context'
 import type { ComponentRoute } from '../types'
 import { normalizePath } from '../path'
 
+interface DirectoryMetaEntry {
+  title?: string
+  order?: string | number
+  icon?: string
+  collapsible?: boolean
+  collapsed?: boolean
+}
+
+function asDirectoryMeta(value: unknown): DirectoryMetaEntry {
+  return value && typeof value === 'object' ? (value as DirectoryMetaEntry) : {}
+}
+
 const capitalize = (str: string): string =>
   str.charAt(0).toUpperCase() + str.slice(1).replace(/-/g, ' ')
 
@@ -15,9 +27,9 @@ const capitalize = (str: string): string =>
  * stripped and keys are lowercased for stable matching.
  */
 const getDirectoryMetaLookup = (
-  directoryMeta?: Record<string, any>,
-): Record<string, any> => {
-  const lookup: Record<string, any> = {}
+  directoryMeta?: Record<string, unknown>,
+): Record<string, unknown> => {
+  const lookup: Record<string, unknown> = {}
   if (!directoryMeta) return lookup
 
   for (const [key, value] of Object.entries(directoryMeta)) {
@@ -39,10 +51,10 @@ const getDirectoryMetaLookup = (
  * other and lets localized sites resolve their own translated meta.
  */
 const findDirectoryMeta = (
-  lookup: Record<string, any>,
+  lookup: Record<string, unknown>,
   route: ComponentRoute | undefined,
   relPath: string,
-): Record<string, any> | undefined => {
+): DirectoryMetaEntry | undefined => {
   const locale = route?.locale
   const tab = route?.tab
   const candidates: string[] = []
@@ -53,7 +65,7 @@ const findDirectoryMeta = (
 
   for (const candidate of candidates) {
     const meta = lookup[candidate.toLowerCase()]
-    if (meta) return meta
+    if (meta) return asDirectoryMeta(meta)
   }
   return undefined
 }
@@ -68,7 +80,7 @@ interface TreeNode extends ComponentRoute {
 const getOrCreateNode = (
   parts: string[],
   rootMap: Map<string, TreeNode>,
-  directoryMetaLookup: Record<string, any>,
+  directoryMetaLookup: Record<string, unknown>,
   route: ComponentRoute,
 ): TreeNode => {
   let currentMap = rootMap

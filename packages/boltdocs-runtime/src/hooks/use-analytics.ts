@@ -216,9 +216,12 @@ export function useAnalytics(options: UseAnalyticsOptions = {}) {
 
   const globalConfig =
     typeof globalThis !== 'undefined'
-      ? ((globalThis as any)[CONFIG_INSTANCE_SYMBOL] as
-          | { integrations?: BoltdocsIntegrationsConfig }
-          | undefined)
+      ? (
+          globalThis as unknown as Record<
+            symbol,
+            { integrations?: BoltdocsIntegrationsConfig } | undefined
+          >
+        )[CONFIG_INSTANCE_SYMBOL]
       : undefined
   const config = optionsConfig ?? globalConfig?.integrations
 

@@ -6,7 +6,9 @@ function withBase(path: string, config: { base?: string }): string {
   return `${b}${p}` || '/'
 }
 
-function buildModuleMap(mdxModules: Record<string, any>): Map<string, string> {
+function buildModuleMap(
+  mdxModules: Record<string, unknown>,
+): Map<string, string> {
   const moduleMap = new Map<string, string>()
   const mdxModuleKeys = Object.keys(mdxModules)
 

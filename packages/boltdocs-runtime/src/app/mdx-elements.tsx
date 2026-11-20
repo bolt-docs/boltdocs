@@ -10,7 +10,7 @@ const _Loading = () => <div className="text-muted text-sm py-4">Loading...</div>
 
 export interface MdxModule {
   default: React.ComponentType<any>
-  [key: string]: any
+  [key: string]: unknown
 }
 
 export type MdxModuleLoader =
@@ -43,7 +43,7 @@ function extractMdxComponent(
 ): React.ComponentType<{ children?: React.ReactNode }> | null {
   if (!mod) return null
 
-  let target: any = mod
+  let target: unknown = mod
 
   // If the module has a default export, prefer it.
   if (mod.default !== undefined) {
@@ -59,12 +59,17 @@ function extractMdxComponent(
   if (target && typeof target === 'object') {
     const possibleKeys = [moduleKey, pathKey].filter(Boolean) as string[]
     for (const key of possibleKeys) {
-      const value = (target as Record<string, any>)[key]
+      const value = (target as Record<string, unknown>)[key]
       if (value) {
         if (typeof value === 'function' || typeof value === 'string') {
           return value as React.ComponentType<{ children?: React.ReactNode }>
         }
-        if (typeof value === 'object' && value.default) {
+        if (
+          typeof value === 'object' &&
+          value !== null &&
+          'default' in value &&
+          value.default
+        ) {
           return value.default as React.ComponentType<{
             children?: React.ReactNode
           }>
@@ -73,9 +78,10 @@ function extractMdxComponent(
     }
 
     // Fall back to a default export inside the object.
-    if (target.default !== undefined) {
+    const defaultExport = (target as { default?: unknown }).default
+    if (defaultExport !== undefined) {
       return extractMdxComponent(
-        { default: target.default } as MdxModule,
+        { default: defaultExport as MdxModule['default'] },
         moduleKey,
         pathKey,
       )

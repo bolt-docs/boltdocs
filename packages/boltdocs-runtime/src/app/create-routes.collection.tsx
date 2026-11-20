@@ -67,7 +67,7 @@ function isCollectionIndexRoute(
 function getCollectionModule(
   route: ComponentRoute,
   moduleMap: Map<string, string>,
-  mdxModules: Record<string, any>,
+  mdxModules: Record<string, unknown>,
 ): { moduleKey?: string; moduleLoader: any } {
   const moduleKey = resolveModuleKey(route.filePath, moduleMap)
   return {
@@ -87,7 +87,7 @@ function buildCollectionRoutes(
     collectionLists?: Record<string, React.ComponentType>
     collectionPosts?: Record<string, React.ComponentType<any>>
     config: BoltdocsConfig
-    mdxModules: Record<string, any>
+    mdxModules: Record<string, unknown>
     components?: Record<string, React.ComponentType>
     postsPerPage?: number
   },
