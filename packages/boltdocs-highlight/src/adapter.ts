@@ -234,7 +234,7 @@ export class HighlightAdapter implements CodeHighlighterAdapter {
   }
 
   async ensureLanguage(lang: string): Promise<boolean> {
-    return ensurePrismLanguage(Prism as any, lang) !== null
+    return ensurePrismLanguage(Prism, lang) !== null
   }
 
   async renderPlaintext(
@@ -259,8 +259,8 @@ export class HighlightAdapter implements CodeHighlighterAdapter {
   } {
     const lang = canonicalLanguage(requested)
     if (lang === 'plain') return { lang, lines: null }
-    const id = ensurePrismLanguage(Prism as any, requested)
-    const grammar = id ? (Prism.languages as any)[id] : null
+    const id = ensurePrismLanguage(Prism, requested)
+    const grammar = id ? Prism.languages[id] : null
     if (!id || !grammar)
       return { lang: canonicalLanguage(requested), lines: null }
     const stream = Prism.tokenize(code, grammar) as PrismTokenStream

@@ -14,7 +14,7 @@ function getLoader(Prism: PrismLike): (langs: string[]) => void {
   if (loadLanguages)
     return loadLanguages
     // Prism components expect a global Prism reference in Node.
-  ;(globalThis as any).Prism = Prism
+  ;(globalThis as unknown as { Prism: PrismLike }).Prism = Prism
   try {
     const mod = require('prismjs/components/index.js')
     loadLanguages = typeof mod === 'function' ? mod : (mod.default ?? mod)

@@ -1,6 +1,10 @@
 import type { ReactNode } from 'react'
 import { LastUpdated as DefaultLastUpdated } from './components/mdx/last-updated'
-import { useMergedComponents } from '@bdocs/runtime'
+import {
+  useMergedComponents,
+  type AnyPropsComponent,
+  type ComponentRoute,
+} from '@bdocs/runtime'
 
 /**
  * DocPage renders the MDX content and page-specific metadata.
@@ -10,7 +14,24 @@ export function DocPage({
   route,
   content: Content,
   mdxComponents: propComponents,
-}: any) {
+}: {
+  route: {
+    path: string
+    filePath: string
+    title?: string
+    description?: string
+    headings?: { level: number; text: string; id: string }[]
+    locale?: string
+    version?: string
+    group?: string
+    groupTitle?: string
+    lastUpdated?: string | number | Date
+    contributors?: ComponentRoute['contributors']
+    frontmatter?: Record<string, unknown>
+  }
+  content: AnyPropsComponent | null
+  mdxComponents: Record<string, AnyPropsComponent>
+}) {
   const allComponents = useMergedComponents(propComponents)
   // A site may provide its own footer through `mdx-components.tsx`, and it wins
   // when it does. Otherwise the theme's footer renders, and that is deliberate:

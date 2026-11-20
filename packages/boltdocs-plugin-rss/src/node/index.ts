@@ -1,5 +1,5 @@
 import path from 'node:path'
-import { createPlugin, type BoltdocsPlugin } from 'boltdocs'
+import { createPlugin, type BoltdocsPlugin, type PluginContext } from 'boltdocs'
 import type { BoltdocsConfig } from 'boltdocs'
 import type { RouteMeta } from '@bdocs/contracts'
 import { RssPluginOptionsSchema, type RssPluginOptions } from './feed-schema'
@@ -61,8 +61,7 @@ function resolvePageLocale(
 
 /** Group non-draft routes per locale, applying the plugin filters + limit. */
 function buildFeedPlan(
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  config: any,
+  config: BoltdocsConfig,
   routes: RouteMeta[],
   opts: RssPluginOptions,
 ): { siteUrl: string; locales: FeedLocalePlan[] } {
@@ -164,8 +163,7 @@ export default function rssPlugin(
    * differently (see the hooks below).
    */
   function generate(
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    ctx: any,
+    ctx: PluginContext,
     routes: RouteMeta[],
     outDir: string,
   ): void {
@@ -209,8 +207,10 @@ export default function rssPlugin(
       // core pipeline (SEOWriteStep) after SSG has finalized it. Using
       // `ctx.outDir` from a lifecycle context here could resolve relative
       // to the wrong cwd.
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      async 'build:generate'(ctx: any, params: any) {
+      async 'build:generate'(
+        ctx: PluginContext,
+        params: { routes?: RouteMeta[]; outDir?: string },
+      ) {
         generate(
           ctx,
           params?.routes ?? ctx.routes ?? [],
@@ -220,8 +220,7 @@ export default function rssPlugin(
 
       // Compatibility fallback for cores that predate `build:generate`.
       // `rootDir` makes a relative context output path deterministic.
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      async afterBuild(ctx: any) {
+      async afterBuild(ctx: PluginContext) {
         const outputDir = path.resolve(
           ctx.rootDir ?? process.cwd(),
           ctx.outDir ?? 'dist',
