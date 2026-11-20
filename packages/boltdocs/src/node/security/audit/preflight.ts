@@ -32,10 +32,7 @@ function describe(
   }
   // SPEC §2.3: a risky call blocks until resolved. Warnings count too; a site
   // can accept them per plugin through an explicit, auditable allowlist.
-  if (
-    (report.severity === 'warning' || report.severity === 'high') &&
-    !allowWarnings.includes(report.name)
-  ) {
+  if (report.severity === 'warning' && !allowWarnings.includes(report.name)) {
     return `${report.name}: unreviewed risky finding(s)`
   }
   return null

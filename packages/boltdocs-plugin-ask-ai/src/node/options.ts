@@ -188,7 +188,7 @@ export const AskAiPluginOptionsSchema = z
       !options.baseURL
     ) {
       ctx.addIssue({
-        code: z.ZodIssueCode.custom,
+        code: 'custom',
         path: ['baseURL'],
         message: `${options.provider} requires an explicit OpenAI-compatible baseURL`,
       })

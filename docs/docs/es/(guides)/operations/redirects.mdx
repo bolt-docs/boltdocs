@@ -1,0 +1,93 @@
+---
+title: Redirecciones
+sidebarPosition: 3
+description: Declara redirecciones en la configuración y deja que Boltdocs se ocupe de la navegación del cliente, la salida estática y la validación.
+---
+
+Las redirecciones son una cuestión de configuración en Boltdocs. Se declaran una vez y el framework las aplica en el router del cliente, en la salida estática y durante la validación del build.
+
+```ts title="boltdocs.config.ts"
+import { defineConfig } from 'boltdocs'
+
+export default defineConfig({
+  redirects: [
+    { from: '/docs/old-guide', to: '/docs/guides/new-guide' },
+  ],
+})
+```
+
+## Opciones
+
+| Opción | Tipo | Por defecto | Descripción |
+| --- | --- | --- | --- |
+| `from` | `string` | — | Ruta de origen. Debe ser una ruta, no una URL externa. |
+| `to` | `string` | — | Ruta de destino o URL absoluta. |
+| `status` | `301 \| 302 \| 307 \| 308` | `301` | Código HTTP registrado para la redirección. |
+| `locale` | `boolean` | `false` | Replica la redirección en todos los idiomas configurados. |
+
+## Cómo se aplican
+
+Una sola declaración se procesa en tres lugares.
+
+**Navegación del cliente**: el router resuelve la redirección, así que un enlace interno nunca muestra una página intermedia ni provoca una carga completa del documento.
+
+**Salida estática**: se escribe un documento HTML real para la ruta de origen, de modo que la redirección funciona también en una carga en frío, en cualquier host estático y sin JavaScript. El documento incluye un `<meta http-equiv="refresh">` para el redireccionamiento inmediato, un `<link rel="canonical">` para que los buscadores consoliden la señal y un script `location.replace` para que la URL muerta no entre en el historial del navegador.
+
+**Validación del build**: se ejecuta antes de escribir nada, y ahí está la mayor parte del valor. Un error en una redirección es invisible hasta que deja a los visitantes sin destino.
+
+## Validación
+
+Boltdocs falla el build en vez de publicar una redirección rota:
+
+| Situación | Comportamiento |
+| --- | --- |
+| Dos redirecciones declaran el mismo `from` | Error de build que nombra el origen en conflicto |
+| `from` coincide con una ruta existente | Error de build, en vez de ocultar una página silenciosamente |
+| Las redirecciones forman un ciclo | Error de build con el ciclo completo, por ejemplo `/a -> /b -> /a` |
+| `from` es una URL externa o contiene un hash | Error de configuración |
+| Cadena de redirecciones como `/a -> /b -> /c` | Se colapsa en un solo salto, así que el navegador nunca rebota |
+
+Como las cadenas se colapsan, el visitante siempre hace una sola navegación aunque varias redirecciones apunten entre sí.
+
+## Destinos externos
+
+Usá una URL absoluta cuando el destino esté en otro sitio:
+
+```ts
+export default defineConfig({
+  redirects: [
+    { from: '/changelog', to: 'https://example.com/changelog' },
+  ],
+})
+```
+
+Los destinos externos nunca se reescriben y el documento de redirección apunta directamente a ellos.
+
+## Redirecciones localizadas
+
+Usá `locale: true` para replicar una redirección en todos los idiomas configurados:
+
+```ts
+export default defineConfig({
+  i18n: { defaultLocale: 'en', locales: ['en', 'es'] },
+  redirects: [{ from: '/docs/legacy', to: '/docs', locale: true }],
+})
+```
+
+Esto se expande a `/en/docs/legacy` y `/es/docs/legacy`. Un origen que ya empieza con un prefijo de idioma no se prefija dos veces.
+
+## Redirecciones temporales
+
+Los estados permanentes (`301` y `308`) son el valor por defecto porque las URLs de documentación cambian mucho más seguido que se mudan. Usá `302` o `307` mientras el destino todavía se está decidiendo:
+
+```ts
+export default defineConfig({
+  redirects: [
+    { from: '/docs/preview', to: '/docs/guides/start', status: 302 },
+  ],
+})
+```
+
+## Relación con el file router
+
+Una redirección no es lo mismo que una ruta de archivo. Si existe `docs/pages-external/old.mdx`, ese archivo es dueño de `/old` y una redirección para la misma ruta es un error de configuración. Borrá el archivo o apuntá la redirección a otro lugar.
