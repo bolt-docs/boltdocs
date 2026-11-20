@@ -47,7 +47,7 @@ export async function createServer(
       // The caller (Boltdocs CLI) already built a complete InlineConfig.
       root = viteConfig.root || cwd
       merged = {
-        ...(viteConfig as any).ssgOptions,
+        ...(viteConfig as { ssgOptions?: Record<string, unknown> }).ssgOptions,
         ...ssgOptionsRest,
       }
 
@@ -75,7 +75,7 @@ export async function createServer(
       root = config.root || cwd
 
       merged = {
-        ...(config as any).ssgOptions,
+        ...(config as { ssgOptions?: Record<string, unknown> }).ssgOptions,
         ...ssgOptionsRest,
       }
 

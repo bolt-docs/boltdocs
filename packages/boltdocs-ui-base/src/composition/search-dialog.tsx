@@ -146,7 +146,7 @@ function SearchDialogList<T extends object>({
 }: ListBoxProps<T> & { className?: string }) {
   return (
     <ListBox {...props} className={cn('bdocs-search-results', className)}>
-      {children as any}
+      {children}
     </ListBox>
   )
 }

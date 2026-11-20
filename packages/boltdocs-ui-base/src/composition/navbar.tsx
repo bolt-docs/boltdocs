@@ -232,7 +232,7 @@ function NavbarLink({
       prefetch={to === 'external' ? 'none' : 'viewport'}
       className={cn('bdocs-navbar__link', className)}
     >
-      {label as any}
+      {label}
       {to === 'external' && (
         <span className={cn('bdocs-navbar__link-icon', iconClassName)}>
           <ExternalLink size={12} />
@@ -582,7 +582,7 @@ function NavbarMobileLink({
       onClick={onPress}
       className={cn('bdocs-navbar__mobile-link', className)}
     >
-      {label as any}
+      {label}
     </Link>
   )
 }
@@ -674,7 +674,7 @@ function NavbarMobileLinkItem({
 
   return (
     <NavbarMobileLink
-      label={link.label as any}
+      label={link.label as unknown as ReactNode}
       href={localizedHref}
       onPress={onClose}
       className={cn(

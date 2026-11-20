@@ -16,7 +16,7 @@ export interface RouterRouteRecord {
   element?: ReactNode
   Component?: ComponentType<any>
   loader?: LoaderFunction
-  action?: (...args: any[]) => unknown
+  action?: (...args: never[]) => unknown
   children?: RouterRouteRecord[]
   lazy?: () => Promise<Record<string, unknown>>
   getStaticPaths?: () => string[] | Promise<string[]>

@@ -85,8 +85,12 @@ export function useFeedback(options: UseFeedbackOptions = {}) {
         }
       }
       setSubmitted(true)
-    } catch (e: any) {
-      setError(e.message || 'An error occurred while submitting feedback.')
+    } catch (e) {
+      setError(
+        e instanceof Error
+          ? e.message
+          : 'An error occurred while submitting feedback.',
+      )
     } finally {
       setLoading(false)
     }

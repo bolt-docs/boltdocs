@@ -221,7 +221,7 @@ function NavbarLinkItem({ link }: { link: NavbarLinkType }) {
           <NavbarPrimitive.DropdownItem
             key={item.href}
             href={useLocalizedTo(item.href || '')}
-            label={item.label as any}
+            label={item.label as string}
           />
         ))}
       </NavbarPrimitive.Dropdown>
@@ -230,9 +230,9 @@ function NavbarLinkItem({ link }: { link: NavbarLinkType }) {
 
   return (
     <NavbarPrimitive.Link
-      {...(link as any)}
       href={localizedHref}
-      active={active}
+      label={link.label as unknown as string}
+      to={link.to as 'internal' | 'external' | undefined}
       className={cn(
         'bdocs-navbar__link-label',
         active && 'bdocs-navbar__link-label--active',

@@ -22,7 +22,7 @@ export function Breadcrumbs({ children, className, ...props }: ComponentBase) {
       className={cn('bdocs-breadcrumbs', className)}
       {...props}
     >
-      {children as any}
+      {children}
     </PrimitivesBreadcrumbs>
   )
 }
@@ -33,7 +33,7 @@ function BreadcrumbsItem({ children, className, ...props }: ComponentBase) {
       className={cn('bdocs-breadcrumbs__item', className)}
       {...props}
     >
-      {children as any}
+      {children}
     </PrimitivesBreadcrumb>
   )
 }
@@ -54,7 +54,7 @@ function BreadcrumbsLink({
       className={cn('bdocs-breadcrumbs__link', className)}
       {...props}
     >
-      {children as any}
+      {children}
     </Link>
   )
 }

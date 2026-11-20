@@ -18,7 +18,7 @@ export interface ZigCrittersPoolHandle {
 export async function createZigCrittersPool(
   options: { concurrency?: number } = {},
 ): Promise<ZigCrittersPoolHandle | null> {
-  let mod: any
+  let mod: typeof import('@bdocs/zig-critters') | undefined
   try {
     mod = await import('@bdocs/zig-critters')
   } catch {
