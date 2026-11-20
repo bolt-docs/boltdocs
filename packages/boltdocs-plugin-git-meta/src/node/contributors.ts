@@ -186,6 +186,7 @@ export function contributorsPlugin(
 
   return createPlugin({
     name: 'boltdocs-plugin-contributors',
+    packageName: '@bdocs/plugin-git-meta',
     version: '0.1.0',
     boltdocsVersion: '>=3.4.0',
     client: options.autoRender

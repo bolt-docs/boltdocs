@@ -491,6 +491,8 @@ export interface PluginDefinition<
   Response = unknown,
 > {
   name: string
+  /** npm package that provides this plugin, used by the security audit to locate it. */
+  packageName?: string
   enforce?: 'pre' | 'post'
   version?: string
   boltdocsVersion?: string
