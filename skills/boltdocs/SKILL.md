@@ -29,7 +29,7 @@ Boltdocs is a **React/Vite documentation framework with a first-class static sit
 
 | Release | Highlights that change how you work |
 | --- | --- |
-| **4.0** | The UI layer leaves the engine. `boltdocs` is Node-only; components, layout and styles live in **`@bdocs/theme-neutral`** (native CSS, shipped as `@bdocs/theme-neutral/css`), browser state and routing in **`@bdocs/runtime`**, and style-neutral atoms in **`@bdocs/primitives`**. A site installs its theme and is resolved by name through `themePackage` (default `@bdocs/theme-neutral`). Grammars move to `@bdocs/grammars`. Import paths are rewritten by `boltdocs migrate` — see [Upgrading & Migration](references/migrations.md). |
+| **4.0** | The UI layer leaves the engine. `boltdocs` is Node-only; components, layout and styles live in **`@bdocs/theme-neutral`** (native CSS, shipped as `@bdocs/theme-neutral/css`), browser state and routing in **`@bdocs/runtime`**, and style-neutral atoms in **`@bdocs/primitives`**. A site installs its theme and is resolved by name through `themePackage` (default `@bdocs/theme-neutral`). Import paths are rewritten by `boltdocs migrate` — see [Upgrading & Migration](references/migrations.md). |
 | **3.4.0** | New `@bdocs/contracts` package (framework-neutral contracts for routes, plugins, lifecycle, highlighting, search, config); `boltdocs` re-exports it, so the 3.x public API is unchanged. Content-addressed SSG page cache — a single page edit no longer re-renders the whole site. **Viewport-triggered prefetch**: `Link` accepts `prefetch="viewport"` (sidebar/navbar links opt in). View Transitions track direction (`forward`/`back`) and honor `prefers-reduced-motion`. File routing gains dynamic segments (`[slug]`, `[...parts]`). |
 | **3.3.x** | Entry-bundle diet: KaTeX is baked at build time and FlexSearch loads on demand. Lazy `pages-external` loaders. Vite 8.1 toolchain alignment. axe-clean accessibility pass (tabs, OnThisPage, navbar, search). Shiki `colorHighlighting.options.colorReplacements`. |
 | **3.2.0** | Nitro Phase 1 (5× faster warm builds, WASM highlighting, pipeline timing). `react-aria-components` became an explicit dependency — see [migrations](references/migrations.md). |
@@ -94,7 +94,6 @@ These keep the rendered site consistent and are enforced by the project's a11y a
 | Runtime | `@bdocs/runtime` | `packages/boltdocs-runtime` | Browser-facing React: contexts, hooks, router entry, `createRoutes`, site bridge |
 | Primitives | `@bdocs/primitives` | `packages/boltdocs-primitives` | Style-neutral atoms (Button, Dialog, Menu, Popover, …): structure + `data-*` state, no visuals |
 | Contracts | `@bdocs/contracts` | `packages/boltdocs-contracts` | Framework-neutral contracts (routes, plugins, lifecycle, highlighting, search, config); re-exported by `boltdocs` |
-| Grammars | `@bdocs/grammars` | `packages/boltdocs-grammars` | Optional TextMate grammars + themes (no longer used by the core; kept for custom adapters) |
 | SSG | `@bdocs/ssg` | `packages/boltdocs-ssg` | Static Site Generator: client/server Vite builds, HTML rendering, content-addressed page cache |
 | Parser | `@bdocs/parser` | `packages/boltdocs-parser` | Zig/WASM markdown parser with cross-platform native binaries |
 | Processor (Sätteri) | `@bdocs/processor-satteri` | `packages/boltdocs-processor-satteri` | Rust-based MDX compiler (default processor) |

@@ -71,7 +71,6 @@ their directories say what they are.
 | `packages/boltdocs-theme-neutral` | `@bdocs/theme-neutral` |
 | `packages/boltdocs-ssg` | `@bdocs/ssg` |
 | `packages/boltdocs-processor-satteri` | `@bdocs/processor-satteri` |
-| `packages/boltdocs-grammars` | `@bdocs/grammars` |
 | `packages/boltdocs-plugin-*` | `@bdocs/plugin-*` |
 | `packages/boltdocs-create` | `create-boltdocs` |
 | `packages/boltdocs-tsdown-config` | `tsdown-config` |
@@ -775,8 +774,8 @@ Profiler reports are `build-profile-normal-20p-1794421202277.json` and
 
 - **New package graph and boundaries:** `@bdocs/contracts`, `@bdocs/runtime`,
   `@bdocs/theme-neutral`, `@bdocs/primitives`, `@bdocs/ssg`,
-  `@bdocs/processor-satteri`, `@bdocs/grammars`, `@bdocs/unist-utils`, and a
-  CSS-agnostic `boltdocs` engine with explicit plugin boundaries.
+  `@bdocs/processor-satteri`, `@bdocs/unist-utils`, and a CSS-agnostic
+  `boltdocs` engine with explicit plugin boundaries.
 - **CSS-agnostic core:** engine and theme no longer depend on or auto-wire
   Tailwind/other frameworks; `cn` is framework-neutral (`clsx`), theme styles
   are native CSS (`@bdocs/theme-neutral/css`, `src/styles/*`). CSS integrations

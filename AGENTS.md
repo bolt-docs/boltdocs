@@ -24,7 +24,6 @@ Boltdocs is a React/Vite documentation framework. Monorepo managed by Turborepo 
 | Engine | `boltdocs` | `packages/boltdocs` | Node-only: CLI, config, routes, plugin lifecycle, build pipeline, dev server, Vite plugins |
 | SSG | `@bdocs/ssg` | `packages/boltdocs-ssg` | Client/server Vite builds, HTML rendering, content-addressed page cache |
 | Processor | `@bdocs/processor-satteri` | `packages/boltdocs-processor-satteri` | MDX compile pipeline (Sätteri) and its rehype/remark plugins |
-| Grammars | `@bdocs/grammars` | `packages/boltdocs-grammars` | Vendored TextMate grammars + themes (optional; the core uses @bdocs/highlight) |
 | Unist utils | `@bdocs/unist-utils` | `packages/boltdocs-unist-utils` | AST helpers, fence-meta parsing, highlight config normalization |
 | Parser | `@bdocs/parser` | `packages/boltdocs-parser` | Zig/WASM markdown parser with cross-platform native binaries |
 | Critical CSS | `@bdocs/zig-critters` | `packages/boltdocs-zig-critters` | WASM critical-CSS extractor used by `ssg.criticalCss` |
@@ -34,7 +33,7 @@ Boltdocs is a React/Vite documentation framework. Monorepo managed by Turborepo 
 
 Plugins: `ask-ai`, `git-meta`, `image-optimizer`, `lightningcss`, `llms-text`, `math`, `mermaid`, `rss`, `sass`, `search`, `search-algolia`, `search-pagefind`, `seo`, `tailwindcss`, `unocss`.
 
-Support packages: `@bdocs/highlight` (built-in Prism adapter), `@bdocs/grammars` (optional TextMate data), `@bdocs/ui-base`, `@bdocs/react-binding`.
+Support packages: `@bdocs/highlight` (built-in Prism adapter), `@bdocs/ui-base`, `@bdocs/react-binding`.
 
 ### Workspace Dependencies
 
@@ -551,7 +550,6 @@ pnpm run test:core         # Engine (pnpm --filter boltdocs test)
 pnpm run test:ssg          # SSG
 pnpm run test:ui           # Primitives, runtime and theme-neutral (258 tests)
 pnpm run test:plugins      # Every plugin package
-pnpm run test:grammars     # @bdocs/grammars
 pnpm run test:search       # @bdocs/plugin-search
 pnpm run test:processors   # Satteri, unist-utils, create-boltdocs, parser
 pnpm run test:scripts      # Root vitest (scripts only)

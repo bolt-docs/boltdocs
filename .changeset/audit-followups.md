@@ -9,7 +9,8 @@ Close the gaps found in the post-4.0 audit:
 
 - Drop `@bdocs/grammars` and the four unused required `@shikijs/*` peer deps
   from the engine — roughly 3 MB of install weight for code nothing imports.
-  The published grammars package stays available for custom adapters.
+  The grammars package is removed entirely: it was never published to npm and
+  had no consumers, so the vendored TextMate data goes away with 4.0.
 - Align SSG's `@bdocs/dui` with `^0.6.0` so runtime configuration is shared.
 - `await` async remark transformers instead of silently dropping them, and
   warn when a transformer throws instead of swallowing the error.
