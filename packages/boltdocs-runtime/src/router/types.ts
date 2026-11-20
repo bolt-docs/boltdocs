@@ -19,15 +19,10 @@ export interface RouteMatch {
   data?: Record<string, unknown>
 }
 
-/**
- * A component that accepts anything, for the react-router compatibility fields.
- *
- * `ComponentType`'s default type argument is `{}` in these `@types/react`, so
- * leaving it off would mean "takes no props" and reject every real route object
- * a site writes.
- */
-// biome-ignore lint/suspicious/noExplicitAny: see above
-export type AnyPropsComponent = ComponentType<any>
+// Single source of truth: the MDX context owns this deliberate escape hatch.
+// Re-exported here so existing `router/types` imports keep working.
+import type { AnyPropsComponent } from '../mdx-components-context'
+export type { AnyPropsComponent }
 
 export interface LazyRouteResult {
   Component?: AnyPropsComponent
