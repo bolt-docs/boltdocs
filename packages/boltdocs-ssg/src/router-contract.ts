@@ -1,5 +1,9 @@
 import type { ComponentType, ReactNode } from 'react'
 
+/** Accepts any props, like the runtime's equivalent route-component alias. */
+// biome-ignore lint/suspicious/noExplicitAny: a route component's props are site-defined
+type AnyPropsComponent = ComponentType<any>
+
 export interface LoaderFunctionArgs {
   request: Request
   params: Record<string, string>
@@ -14,7 +18,7 @@ export interface RouterRouteRecord {
   index?: boolean
   id?: string
   element?: ReactNode
-  Component?: ComponentType<any>
+  Component?: AnyPropsComponent
   loader?: LoaderFunction
   action?: (...args: never[]) => unknown
   children?: RouterRouteRecord[]

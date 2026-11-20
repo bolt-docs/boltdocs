@@ -1,10 +1,13 @@
 import { useMemo } from 'react'
 import type { ComponentType } from 'react'
 import { useMdxComponents } from '../mdx-components-context'
-import type { MdxComponentsType } from '../mdx-components-context' // Asegúrate de importar el tipo
+import type {
+  AnyPropsComponent,
+  MdxComponentsType,
+} from '../mdx-components-context' // Asegúrate de importar el tipo
 
 export function useMergedComponents(
-  propComponents?: Record<string, ComponentType<any>>,
+  propComponents?: Record<string, AnyPropsComponent>,
 ): MdxComponentsType {
   const contextComponents = useMdxComponents() as unknown as MdxComponentsType
 

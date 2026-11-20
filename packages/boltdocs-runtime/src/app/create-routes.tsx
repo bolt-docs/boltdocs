@@ -1,3 +1,4 @@
+import type { AnyPropsComponent } from '../mdx-components-context'
 import type { ReactNode } from 'react'
 import type {
   CreateRoutesResult,
@@ -31,7 +32,7 @@ export interface CreateRoutesOptions {
     React.ComponentType<{ children: React.ReactNode }>
   >
   collectionLists?: Record<string, React.ComponentType>
-  collectionPosts?: Record<string, React.ComponentType<any>>
+  collectionPosts?: Record<string, AnyPropsComponent>
   config: BoltdocsConfig
   mdxModules: Record<string, unknown>
 

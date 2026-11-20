@@ -1,3 +1,4 @@
+import type { AnyPropsComponent } from './mdx-components-context'
 import type { ComponentType, ReactNode } from 'react'
 import type { ComponentRoute } from './types'
 
@@ -77,7 +78,7 @@ export interface SiteBridge {
    * own. Empty when the site wrote no file, which is the default — the theme's
    * own components are used unchanged in that case.
    */
-  mdxComponents: Record<string, ComponentType<any>>
+  mdxComponents: Record<string, AnyPropsComponent>
 }
 
 /**
@@ -91,7 +92,7 @@ export interface SiteBridge {
 export interface SiteSlot {
   id: string
   /** Present for eager slots (statically imported). */
-  Component?: ComponentType<any>
+  Component?: AnyPropsComponent
   /** Present for lazy slots such as `floating:after`. */
   load?: () => Promise<{ default: ComponentType }>
 }
@@ -195,7 +196,7 @@ export function getClientSlots(): Record<string, SiteSlot[]> {
  * `{ ...themeDefaults, ...siteComponents }` is the whole merge, and an absent
  * file is simply an empty contribution.
  */
-export function getSiteMdxComponents(): Record<string, ComponentType<any>> {
+export function getSiteMdxComponents(): Record<string, AnyPropsComponent> {
   return getSiteBridge().mdxComponents
 }
 

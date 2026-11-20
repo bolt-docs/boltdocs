@@ -1,3 +1,4 @@
+import type { AnyPropsComponent } from '../mdx-components-context'
 import { useLoaderData } from '../router'
 import { CurrentPostProvider } from '../collections/collections-context'
 import { useMdxComponents } from '../mdx-components-context'
@@ -16,7 +17,7 @@ type MdxPageProps = {
   theme: BoltdocsTheme
   MDXComponent: React.ComponentType<React.PropsWithChildren<unknown>>
   mdxComponents: Record<string, React.ComponentType<HTMLElement>>
-  collectionPostComponent?: React.ComponentType<any>
+  collectionPostComponent?: AnyPropsComponent
   /**
    * Name of the collection this route belongs to, when it has one.
    *

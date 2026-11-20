@@ -2,14 +2,17 @@
 import { useEffect, useState } from 'react'
 import type { ComponentRoute } from '../types'
 import { MdxPage } from './mdx-page'
-import { useMdxComponents } from '../mdx-components-context'
+import {
+  useMdxComponents,
+  type AnyPropsComponent,
+} from '../mdx-components-context'
 import { matchesMdxUpdatePath } from './mdx-path'
 import type { BoltdocsTheme } from './theme'
 
 const _Loading = () => <div className="text-muted text-sm py-4">Loading...</div>
 
 export interface MdxModule {
-  default: React.ComponentType<any>
+  default: AnyPropsComponent
   [key: string]: unknown
 }
 
@@ -30,9 +33,9 @@ async function resolveModuleLoader(
     if (res && typeof res.then === 'function') {
       return await res
     }
-    return { default: loader as unknown as React.ComponentType<any> }
+    return { default: loader as unknown as AnyPropsComponent }
   } catch {
-    return { default: loader as unknown as React.ComponentType<any> }
+    return { default: loader as unknown as AnyPropsComponent }
   }
 }
 

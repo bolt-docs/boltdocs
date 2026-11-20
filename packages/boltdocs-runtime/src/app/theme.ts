@@ -67,7 +67,7 @@ export interface BoltdocsTheme {
    * The components MDX elements map to, before the site's own
    * `mdx-components.tsx` is merged on top.
    */
-  MdxComponents: Record<string, ComponentType<any>>
+  MdxComponents: Record<string, AnyPropsComponent>
 
   /**
    * The plugin insertion points that live outside any page, such as
@@ -109,5 +109,5 @@ export interface DocPageProps {
   route: DocPageRoute
   /** The compiled MDX module's default export. */
   content: AnyPropsComponent | null
-  mdxComponents: Record<string, ComponentType<any>>
+  mdxComponents: Record<string, AnyPropsComponent>
 }

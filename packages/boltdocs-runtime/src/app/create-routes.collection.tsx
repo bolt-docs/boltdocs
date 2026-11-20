@@ -1,3 +1,4 @@
+import type { AnyPropsComponent } from '../mdx-components-context'
 import { compareCollections } from '@bdocs/contracts'
 import type { RouteRecord } from '../router'
 import type { ComponentRoute, BoltdocsConfig } from '../types'
@@ -94,7 +95,7 @@ function buildCollectionRoutes(
       React.ComponentType<{ children: React.ReactNode }>
     >
     collectionLists?: Record<string, React.ComponentType>
-    collectionPosts?: Record<string, React.ComponentType<any>>
+    collectionPosts?: Record<string, AnyPropsComponent>
     config: BoltdocsConfig
     mdxModules: Record<string, unknown>
     components?: Record<string, React.ComponentType>
