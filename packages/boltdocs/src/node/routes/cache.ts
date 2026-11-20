@@ -6,6 +6,7 @@ import type { BoltdocsConfig } from '../config'
 import type { DirectoryMeta, ParsedDocFile, RouteMeta } from './types'
 import { ParserCache } from './parser/cache'
 import { getCacheConfig } from '../utils'
+import type { ParsedDoc } from '@bdocs/parser'
 
 export interface DirectoryMetaCacheEntry {
   mtimeMs: number
@@ -26,7 +27,7 @@ export interface RouteCacheVariant {
   readonly parserCache: ParserCache
   cachedFileList: string[] | null
   localizedPathCache: Map<string, string>
-  cachedNativeDocs: Record<string, any> | null
+  cachedNativeDocs: Record<string, ParsedDoc> | null
   frontmatterHashes: Map<string, string>
   directoryMeta: Record<string, DirectoryMeta> | null
   cachedDirectoryMetaFiles: string[] | null
@@ -44,7 +45,7 @@ export interface RouteCacheContext {
   parserCache: ParserCache
   cachedFileList: string[] | null
   localizedPathCache: Map<string, string>
-  cachedNativeDocs: Record<string, any> | null
+  cachedNativeDocs: Record<string, ParsedDoc> | null
   frontmatterHashes: Map<string, string>
   directoryMeta: Record<string, DirectoryMeta> | null
   cachedDirectoryMetaFiles: string[] | null

@@ -8,6 +8,26 @@ export interface FeedbackPayload {
   blockId?: string
 }
 
+/** Shapes of the three GraphQL responses used by the feedback flow. */
+interface RepoAndCategoryData {
+  repository?: {
+    id: string
+    discussionCategory?: { id: string } | null
+  } | null
+}
+
+interface DiscussionSearchData {
+  search?: {
+    nodes?: Array<{ id: string; title: string } | null> | null
+  } | null
+}
+
+interface CreateDiscussionData {
+  createDiscussion?: {
+    discussion?: { id: string } | null
+  } | null
+}
+
 export interface GitHubFeedbackOptions {
   owner: string
   repo: string
@@ -130,7 +150,7 @@ export async function submitGitHubFeedback(
   const { owner, repo, categorySlug = 'general' } = options
   const { rating, comment, path, title, blockId } = payload
 
-  const repoData = await queryGitHubGraphQL<any>(
+  const repoData = await queryGitHubGraphQL<RepoAndCategoryData>(
     token,
     `query GetRepoAndCategory($owner: String!, $name: String!, $categorySlug: String!) {
       repository(owner: $owner, name: $name) {
@@ -155,7 +175,7 @@ export async function submitGitHubFeedback(
   }
 
   const expectedTitle = `[Feedback] ${path}`
-  const searchData = await queryGitHubGraphQL<any>(
+  const searchData = await queryGitHubGraphQL<DiscussionSearchData>(
     token,
     `query FindDiscussion($searchQuery: String!) {
       search(query: $searchQuery, type: DISCUSSION, first: 10) {
@@ -168,11 +188,11 @@ export async function submitGitHubFeedback(
   )
 
   const nodes = searchData?.search?.nodes || []
-  const matchingNode = nodes.find((node: any) => node.title === expectedTitle)
+  const matchingNode = nodes.find((node) => node?.title === expectedTitle)
   let discussionId = matchingNode?.id
 
   if (!discussionId) {
-    const createData = await queryGitHubGraphQL<any>(
+    const createData = await queryGitHubGraphQL<CreateDiscussionData>(
       token,
       `mutation CreateDiscussion($repositoryId: ID!, $categoryId: ID!, $title: String!, $body: String!) {
         createDiscussion(input: {repositoryId: $repositoryId, categoryId: $categoryId, title: $title, body: $body}) {

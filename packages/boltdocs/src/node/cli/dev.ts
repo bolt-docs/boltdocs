@@ -1,5 +1,6 @@
 import { createServer } from '@bdocs/ssg/node'
 import { createViteConfig } from '../index'
+import type { BoltdocsConfig } from '../config'
 import { error } from '@bdocs/dui'
 import { devServer } from '../ui-utils'
 import { notifyUpdateAvailable } from '../update-check'
@@ -30,7 +31,7 @@ export async function devAction(
   let server: Awaited<ReturnType<typeof createServer>> | null = null
   let removeSignalHandlers = () => {}
   notifyUpdateAvailable()
-  let config: any
+  let config: BoltdocsConfig
   const debugTimings = process.env.BOLTDOCS_DEBUG === 'true'
 
   // Defer security inspect to after server start — it reads each plugin's
@@ -56,7 +57,9 @@ export async function devAction(
       skipRoutes: true,
     })
     // Exposed by createViteConfig so callers don't resolve the config twice.
-    config = (viteConfig as { __boltdocsConfig?: unknown }).__boltdocsConfig
+    config = (
+      viteConfig as typeof viteConfig & { __boltdocsConfig: BoltdocsConfig }
+    ).__boltdocsConfig
     if (debugTimings) {
       console.log(
         `[boltdocs-dev] createViteConfig: ${Math.round(performance.now() - t2)}ms`,

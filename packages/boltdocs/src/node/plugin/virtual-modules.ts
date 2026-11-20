@@ -221,7 +221,7 @@ interface CollectionPost {
   filePath: string
   locale?: string
   version?: string
-  frontmatter?: Record<string, any>
+  frontmatter?: Record<string, unknown>
   lastUpdated?: string | number | Date
   headings?: { level: number; text: string; id: string }[]
   draft?: boolean
@@ -358,7 +358,7 @@ export function regenerateSearchAndCollections(
   // Null when no search plugin is configured, which is a different thing from
   // an empty index: the build warns once rather than shipping a `search.json`
   // that no engine will ever query.
-  const searchData = buildSearchData(routes as any)
+  const searchData = buildSearchData(routes)
   moduleState.searchDataMap.clear()
   moduleState.serializedSearchData = null
   moduleState.serializedPageSourceData = null

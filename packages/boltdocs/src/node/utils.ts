@@ -115,7 +115,7 @@ function processFrontmatterData(
   const result = FrontmatterSchema.safeParse(data)
   const validatedData = result.success ? result.data : {}
 
-  const sanitizedData: any = { ...validatedData }
+  const sanitizedData = { ...validatedData }
 
   if (sanitizedData.title)
     sanitizedData.title = stripHtmlTags(sanitizedData.title).trim()
@@ -330,7 +330,7 @@ export function sanitizeFilename(name: string): string {
 export function logSecurityEvent(
   type: string,
   message: string,
-  details: Record<string, any> = {},
+  details: Record<string, unknown> = {},
 ): void {
   const timestamp = new Date().toISOString()
   const redactedDetails = { ...details }

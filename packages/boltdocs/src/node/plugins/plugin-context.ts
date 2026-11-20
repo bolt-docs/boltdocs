@@ -507,7 +507,7 @@ const serverEndCallbacks: Array<() => void | Promise<void>> = []
  */
 export function applyPluginServerMiddleware(
   server: {
-    middlewares: { use: (fn: (req: any, res: any, next: any) => void) => void }
+    middlewares: { use: (fn: PluginServerMiddleware) => void }
   },
   runtime?: PluginRuntimeState,
 ): void {

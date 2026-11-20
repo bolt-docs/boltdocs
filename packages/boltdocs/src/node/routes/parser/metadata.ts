@@ -18,9 +18,9 @@ const EXPLICIT_SEO_KEYS = [
 ]
 
 export function processSeoData(
-  data: Record<string, any>,
-): Record<string, any> | undefined {
-  const seo: Record<string, any> = {}
+  data: Record<string, unknown>,
+): Record<string, unknown> | undefined {
+  const seo: Record<string, unknown> = {}
 
   if (data.seo && typeof data.seo === 'object') {
     Object.assign(seo, data.seo)
@@ -42,9 +42,11 @@ export function processSeoData(
   return Object.keys(seo).length > 0 ? seo : undefined
 }
 
-export function sanitizeFrontmatterStrings(
-  data: Record<string, any>,
-): Record<string, any> {
+export function sanitizeFrontmatterStrings(data: Record<string, unknown>): {
+  title?: string
+  badge?: string
+  description?: string
+} {
   return {
     title: data.title ? toSingleLine(String(data.title)) : undefined,
     badge: data.badge ? toSingleLine(String(data.badge)) : undefined,

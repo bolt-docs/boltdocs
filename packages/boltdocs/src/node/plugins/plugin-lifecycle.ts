@@ -70,6 +70,13 @@ export function resolvePluginHook(
   return undefined
 }
 
+/** Read an optional chain-control signal without assuming the hook returned an object. */
+function readChainSignal(value: unknown): string | undefined {
+  if (!value || typeof value !== 'object' || !('__signal' in value)) return
+  const signal = (value as { __signal?: unknown }).__signal
+  return typeof signal === 'string' ? signal : undefined
+}
+
 export class PluginLifecycleManager implements IPluginLifecycleManager {
   private plugins: BoltdocsPlugin[]
   private config: BoltdocsConfig
@@ -152,7 +159,7 @@ export class PluginLifecycleManager implements IPluginLifecycleManager {
 
           // Check for chain control signals (backwards-compatible — hooks
           // that don't set __signal behave exactly as before).
-          const signal: string | undefined = (result as any).__signal
+          const signal = readChainSignal(result)
           if (signal === 'break') {
             // Stop the chain immediately, discard the final plugin's
             // result so transformations from earlier plugins are kept.
@@ -258,7 +265,7 @@ export class PluginLifecycleManager implements IPluginLifecycleManager {
       try {
         const result = await hookFn(context, params)
         if (result !== undefined) {
-          const signal: string | undefined = (result as any).__signal
+          const signal = readChainSignal(result)
           if (signal === 'break') break
           if (signal === 'skip') {
             params = result as TParams

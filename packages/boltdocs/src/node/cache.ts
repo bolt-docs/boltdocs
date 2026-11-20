@@ -13,6 +13,22 @@ const rename = fsPromises.rename
 const gzipPromise = promisify(zlib.gzip)
 const gunzipPromise = promisify(zlib.gunzip)
 
+type ZlibInput = Parameters<typeof gzipPromise>[0]
+
+/**
+ * `promisify` types zlib's input as a Uint8Array backed by a plain
+ * ArrayBuffer, while Node's Buffer uses ArrayBufferLike. Copy into a fresh
+ * view at the boundary instead of casting at every call site.
+ */
+function toZlibInput(data: Uint8Array): ZlibInput {
+  return new Uint8Array(data)
+}
+
+/** Same boundary copy for `fsPromises.writeFile`'s overloaded data argument. */
+function toWriteData(data: Uint8Array): Parameters<typeof writeFile>[1] {
+  return new Uint8Array(data)
+}
+
 // Transform caches own a debounced index write. Keep process-local
 // registration so `flushCache()` can force those writes before a build exits.
 const transformCacheRegistry = new Set<WeakRef<TransformCache>>()
@@ -155,11 +171,7 @@ export class FileCache<T> {
       try {
         let raw = await readFile(shardPath)
         if (this.compress) {
-          raw = await gunzipPromise(
-            new Uint8Array(raw as Buffer) as unknown as Parameters<
-              typeof gunzipPromise
-            >[0],
-          )
+          raw = await gunzipPromise(toZlibInput(raw))
         }
         const data = JSON.parse(raw.toString('utf-8')) as T
         entries.set(key, { data, mtime })
@@ -230,7 +242,7 @@ export class FileCache<T> {
             }
 
             const content = JSON.stringify(data)
-            let buffer: any = Buffer.from(content)
+            let buffer: Buffer = Buffer.from(content)
             if (useCompress) {
               buffer = await gzipPromise(buffer)
             }
@@ -401,9 +413,7 @@ export class TransformCache {
           try {
             const compressed = await readFile(shardPath)
             const decompressedBuffer = await gunzipPromise(
-              new Uint8Array(compressed as Buffer) as unknown as Parameters<
-                typeof gunzipPromise
-              >[0],
+              toZlibInput(compressed),
             )
             const decompressed = decompressedBuffer.toString('utf-8')
             this.memoryCache.set(key, decompressed)
@@ -435,7 +445,7 @@ export class TransformCache {
     const shardPath = path.resolve(this.shardsDir, `${hash}.gz`)
     try {
       const compressed = await readFile(shardPath)
-      const decompressedBuffer = await gunzipPromise(compressed as any)
+      const decompressedBuffer = await gunzipPromise(toZlibInput(compressed))
       const decompressed = decompressedBuffer.toString('utf-8')
       this.memoryCache.set(key, decompressed)
       return decompressed
@@ -467,18 +477,9 @@ export class TransformCache {
         }
         await mkdir(this.shardsDir, { recursive: true })
 
-        const compressed = await gzipPromise(
-          new Uint8Array(Buffer.from(result)) as unknown as Parameters<
-            typeof gzipPromise
-          >[0],
-        )
+        const compressed = await gzipPromise(toZlibInput(Buffer.from(result)))
         const tempPath = `${shardPath}.${crypto.randomBytes(4).toString('hex')}.tmp`
-        await writeFile(
-          tempPath,
-          new Uint8Array(compressed as Buffer) as unknown as Parameters<
-            typeof writeFile
-          >[1],
-        )
+        await writeFile(tempPath, toWriteData(compressed as Buffer))
         await rename(tempPath, shardPath)
       } catch (e) {
         // Ignore shard write errors

@@ -89,6 +89,34 @@ function isWriteFlag(flags: unknown): boolean {
   return true
 }
 
+/** Any function shape accepted by the fs patch wrappers (overload-tolerant). */
+type PatchableMethod = (...args: never[]) => unknown
+
+interface PromiseFsPatchTarget {
+  writeFile?: PatchableMethod
+  rm?: PatchableMethod
+  mkdir?: PatchableMethod
+  rmdir?: PatchableMethod
+  unlink?: PatchableMethod
+  appendFile?: PatchableMethod
+  copyFile?: PatchableMethod
+  rename?: PatchableMethod
+  open?: PatchableMethod
+}
+
+function isCallback(value: unknown): value is (err: unknown) => void {
+  return typeof value === 'function'
+}
+
+/** Invoke a captured fs method without unsafe casts on its overload set. */
+function invokeOriginal(
+  fn: unknown,
+  thisArg: object,
+  args: readonly unknown[],
+): unknown {
+  return Reflect.apply(fn as Function, thisArg, args as never[])
+}
+
 let patchInstalled = false
 
 export function applyFsPatch(): void {
@@ -108,19 +136,19 @@ export function applyFsPatch(): void {
     } catch (err) {
       const cb = args[args.length - 1]
       if (typeof cb === 'function') {
-        process.nextTick(() => (cb as Function)(err))
+        process.nextTick(() => cb(err))
         return
       }
       throw err
     }
-    return (originalWriteFile as any).call(fs, path, ...args)
-  }) as any
+    return invokeOriginal(originalWriteFile, fs, [path, ...args])
+  }) as typeof fs.writeFile
 
   const originalWriteFileSync = fs.writeFileSync
-  fs.writeFileSync = (path: unknown, ...args: unknown[]) => {
+  fs.writeFileSync = ((path: unknown, ...args: unknown[]) => {
     checkPath(path)
-    return (originalWriteFileSync as any).call(fs, path, ...args)
-  }
+    return invokeOriginal(originalWriteFileSync, fs, [path, ...args])
+  }) as typeof fs.writeFileSync
 
   const originalRm = fs.rm
   fs.rm = ((path: unknown, ...args: unknown[]) => {
@@ -129,19 +157,19 @@ export function applyFsPatch(): void {
     } catch (err) {
       const cb = args[args.length - 1]
       if (typeof cb === 'function') {
-        process.nextTick(() => (cb as Function)(err))
+        process.nextTick(() => cb(err))
         return
       }
       throw err
     }
-    return (originalRm as any).call(fs, path, ...args)
-  }) as any
+    return invokeOriginal(originalRm, fs, [path, ...args])
+  }) as typeof fs.rm
 
   const originalRmSync = fs.rmSync
-  fs.rmSync = (path: unknown, ...args: unknown[]) => {
+  fs.rmSync = ((path: unknown, ...args: unknown[]) => {
     checkPath(path)
-    return (originalRmSync as any).call(fs, path, ...args)
-  }
+    return invokeOriginal(originalRmSync, fs, [path, ...args])
+  }) as typeof fs.rmSync
 
   const originalUnlink = fs.unlink
   fs.unlink = ((path: unknown, ...args: unknown[]) => {
@@ -150,19 +178,19 @@ export function applyFsPatch(): void {
     } catch (err) {
       const cb = args[args.length - 1]
       if (typeof cb === 'function') {
-        process.nextTick(() => (cb as Function)(err))
+        process.nextTick(() => cb(err))
         return
       }
       throw err
     }
-    return (originalUnlink as any).call(fs, path, ...args)
-  }) as any
+    return invokeOriginal(originalUnlink, fs, [path, ...args])
+  }) as typeof fs.unlink
 
   const originalUnlinkSync = fs.unlinkSync
-  fs.unlinkSync = (path: unknown, ...args: unknown[]) => {
+  fs.unlinkSync = ((path: unknown, ...args: unknown[]) => {
     checkPath(path)
-    return (originalUnlinkSync as any).call(fs, path, ...args)
-  }
+    return invokeOriginal(originalUnlinkSync, fs, [path, ...args])
+  }) as typeof fs.unlinkSync
 
   const originalMkdir = fs.mkdir
   fs.mkdir = ((path: unknown, ...args: unknown[]) => {
@@ -171,19 +199,19 @@ export function applyFsPatch(): void {
     } catch (err) {
       const cb = args[args.length - 1]
       if (typeof cb === 'function') {
-        process.nextTick(() => (cb as Function)(err))
+        process.nextTick(() => cb(err))
         return
       }
       throw err
     }
-    return (originalMkdir as any).call(fs, path, ...args)
-  }) as any
+    return invokeOriginal(originalMkdir, fs, [path, ...args])
+  }) as typeof fs.mkdir
 
   const originalMkdirSync = fs.mkdirSync
-  fs.mkdirSync = (path: unknown, ...args: unknown[]) => {
+  fs.mkdirSync = ((path: unknown, ...args: unknown[]) => {
     checkPath(path)
-    return (originalMkdirSync as any).call(fs, path, ...args)
-  }
+    return invokeOriginal(originalMkdirSync, fs, [path, ...args])
+  }) as typeof fs.mkdirSync
 
   const originalRmdir = fs.rmdir
   fs.rmdir = ((path: unknown, ...args: unknown[]) => {
@@ -192,19 +220,19 @@ export function applyFsPatch(): void {
     } catch (err) {
       const cb = args[args.length - 1]
       if (typeof cb === 'function') {
-        process.nextTick(() => (cb as Function)(err))
+        process.nextTick(() => cb(err))
         return
       }
       throw err
     }
-    return (originalRmdir as any).call(fs, path, ...args)
-  }) as any
+    return invokeOriginal(originalRmdir, fs, [path, ...args])
+  }) as typeof fs.rmdir
 
   const originalRmdirSync = fs.rmdirSync
-  fs.rmdirSync = (path: unknown, ...args: unknown[]) => {
+  fs.rmdirSync = ((path: unknown, ...args: unknown[]) => {
     checkPath(path)
-    return (originalRmdirSync as any).call(fs, path, ...args)
-  }
+    return invokeOriginal(originalRmdirSync, fs, [path, ...args])
+  }) as typeof fs.rmdirSync
 
   const originalAppendFile = fs.appendFile
   fs.appendFile = ((path: unknown, ...args: unknown[]) => {
@@ -213,19 +241,19 @@ export function applyFsPatch(): void {
     } catch (err) {
       const cb = args[args.length - 1]
       if (typeof cb === 'function') {
-        process.nextTick(() => (cb as Function)(err))
+        process.nextTick(() => cb(err))
         return
       }
       throw err
     }
-    return (originalAppendFile as any).call(fs, path, ...args)
-  }) as any
+    return invokeOriginal(originalAppendFile, fs, [path, ...args])
+  }) as typeof fs.appendFile
 
   const originalAppendFileSync = fs.appendFileSync
-  fs.appendFileSync = (path: unknown, ...args: unknown[]) => {
+  fs.appendFileSync = ((path: unknown, ...args: unknown[]) => {
     checkPath(path)
-    return (originalAppendFileSync as any).call(fs, path, ...args)
-  }
+    return invokeOriginal(originalAppendFileSync, fs, [path, ...args])
+  }) as typeof fs.appendFileSync
 
   const originalCopyFile = fs.copyFile
   fs.copyFile = ((src: unknown, dest: unknown, ...args: unknown[]) => {
@@ -235,20 +263,20 @@ export function applyFsPatch(): void {
     } catch (err) {
       const cb = args[args.length - 1]
       if (typeof cb === 'function') {
-        process.nextTick(() => (cb as Function)(err))
+        process.nextTick(() => cb(err))
         return
       }
       throw err
     }
-    return (originalCopyFile as any).call(fs, src, dest, ...args)
-  }) as any
+    return invokeOriginal(originalCopyFile, fs, [src, dest, ...args])
+  }) as typeof fs.copyFile
 
   const originalCopyFileSync = fs.copyFileSync
-  fs.copyFileSync = (src: unknown, dest: unknown, ...args: unknown[]) => {
+  fs.copyFileSync = ((src: unknown, dest: unknown, ...args: unknown[]) => {
     checkPath(src)
     checkPath(dest)
-    return (originalCopyFileSync as any).call(fs, src, dest, ...args)
-  }
+    return invokeOriginal(originalCopyFileSync, fs, [src, dest, ...args])
+  }) as typeof fs.copyFileSync
 
   const originalRename = fs.rename
   fs.rename = ((oldPath: unknown, newPath: unknown, ...args: unknown[]) => {
@@ -258,26 +286,26 @@ export function applyFsPatch(): void {
     } catch (err) {
       const cb = args[args.length - 1]
       if (typeof cb === 'function') {
-        process.nextTick(() => (cb as Function)(err))
+        process.nextTick(() => cb(err))
         return
       }
       throw err
     }
-    return (originalRename as any).call(fs, oldPath, newPath, ...args)
-  }) as any
+    return invokeOriginal(originalRename, fs, [oldPath, newPath, ...args])
+  }) as typeof fs.rename
 
   const originalRenameSync = fs.renameSync
-  fs.renameSync = (oldPath: unknown, newPath: unknown, ...args: unknown[]) => {
+  fs.renameSync = ((oldPath: unknown, newPath: unknown, ...args: unknown[]) => {
     checkPath(oldPath)
     checkPath(newPath)
-    return (originalRenameSync as any).call(fs, oldPath, newPath, ...args)
-  }
+    return invokeOriginal(originalRenameSync, fs, [oldPath, newPath, ...args])
+  }) as typeof fs.renameSync
 
   const originalCreateWriteStream = fs.createWriteStream
-  fs.createWriteStream = (path: unknown, ...args: unknown[]) => {
+  fs.createWriteStream = ((path: unknown, ...args: unknown[]) => {
     checkPath(path)
-    return (originalCreateWriteStream as any).call(fs, path, ...args)
-  }
+    return invokeOriginal(originalCreateWriteStream, fs, [path, ...args])
+  }) as typeof fs.createWriteStream
 
   const originalOpen = fs.open
   fs.open = ((path: unknown, flags: unknown, ...args: unknown[]) => {
@@ -294,31 +322,34 @@ export function applyFsPatch(): void {
               ? cb
               : undefined
         if (actualCb) {
-          process.nextTick(() => (actualCb as Function)(err))
+          process.nextTick(() => actualCb(err))
           return
         }
         throw err
       }
     }
-    return (originalOpen as any).call(fs, path, flags, ...args)
-  }) as any
+    return invokeOriginal(originalOpen, fs, [path, flags, ...args])
+  }) as typeof fs.open
 
   const originalOpenSync = fs.openSync
-  fs.openSync = (path: unknown, flags: unknown, ...args: unknown[]) => {
+  fs.openSync = ((path: unknown, flags: unknown, ...args: unknown[]) => {
     if (isWriteFlag(flags)) {
       checkPath(path)
     }
-    return (originalOpenSync as any).call(fs, path, flags, ...args)
-  }
+    return invokeOriginal(originalOpenSync, fs, [path, flags, ...args])
+  }) as typeof fs.openSync
 
-  const patchPromises = (promisesObj: any) => {
+  const patchPromises = (promisesObj: PromiseFsPatchTarget) => {
     if (!promisesObj) return
 
     const originalPromisesWriteFile = promisesObj.writeFile
     if (originalPromisesWriteFile) {
       promisesObj.writeFile = async (path: unknown, ...args: unknown[]) => {
         checkPath(path)
-        return originalPromisesWriteFile.call(promisesObj, path, ...args)
+        return invokeOriginal(originalPromisesWriteFile, promisesObj, [
+          path,
+          ...args,
+        ])
       }
     }
 
@@ -326,7 +357,7 @@ export function applyFsPatch(): void {
     if (originalPromisesRm) {
       promisesObj.rm = async (path: unknown, ...args: unknown[]) => {
         checkPath(path)
-        return originalPromisesRm.call(promisesObj, path, ...args)
+        return invokeOriginal(originalPromisesRm, promisesObj, [path, ...args])
       }
     }
 
@@ -334,7 +365,10 @@ export function applyFsPatch(): void {
     if (originalPromisesMkdir) {
       promisesObj.mkdir = async (path: unknown, ...args: unknown[]) => {
         checkPath(path)
-        return originalPromisesMkdir.call(promisesObj, path, ...args)
+        return invokeOriginal(originalPromisesMkdir, promisesObj, [
+          path,
+          ...args,
+        ])
       }
     }
 
@@ -342,7 +376,10 @@ export function applyFsPatch(): void {
     if (originalPromisesRmdir) {
       promisesObj.rmdir = async (path: unknown, ...args: unknown[]) => {
         checkPath(path)
-        return originalPromisesRmdir.call(promisesObj, path, ...args)
+        return invokeOriginal(originalPromisesRmdir, promisesObj, [
+          path,
+          ...args,
+        ])
       }
     }
 
@@ -350,7 +387,10 @@ export function applyFsPatch(): void {
     if (originalPromisesUnlink) {
       promisesObj.unlink = async (path: unknown, ...args: unknown[]) => {
         checkPath(path)
-        return originalPromisesUnlink.call(promisesObj, path, ...args)
+        return invokeOriginal(originalPromisesUnlink, promisesObj, [
+          path,
+          ...args,
+        ])
       }
     }
 
@@ -358,7 +398,10 @@ export function applyFsPatch(): void {
     if (originalPromisesAppendFile) {
       promisesObj.appendFile = async (path: unknown, ...args: unknown[]) => {
         checkPath(path)
-        return originalPromisesAppendFile.call(promisesObj, path, ...args)
+        return invokeOriginal(originalPromisesAppendFile, promisesObj, [
+          path,
+          ...args,
+        ])
       }
     }
 
@@ -371,7 +414,11 @@ export function applyFsPatch(): void {
       ) => {
         checkPath(src)
         checkPath(dest)
-        return originalPromisesCopyFile.call(promisesObj, src, dest, ...args)
+        return invokeOriginal(originalPromisesCopyFile, promisesObj, [
+          src,
+          dest,
+          ...args,
+        ])
       }
     }
 
@@ -384,12 +431,11 @@ export function applyFsPatch(): void {
       ) => {
         checkPath(oldPath)
         checkPath(newPath)
-        return originalPromisesRename.call(
-          promisesObj,
+        return invokeOriginal(originalPromisesRename, promisesObj, [
           oldPath,
           newPath,
           ...args,
-        )
+        ])
       }
     }
 
@@ -403,7 +449,11 @@ export function applyFsPatch(): void {
         if (isWriteFlag(flags)) {
           checkPath(path)
         }
-        return originalPromisesOpen.call(promisesObj, path, flags, ...args)
+        return invokeOriginal(originalPromisesOpen, promisesObj, [
+          path,
+          flags,
+          ...args,
+        ])
       }
     }
   }
