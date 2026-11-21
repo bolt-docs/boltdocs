@@ -32,6 +32,14 @@ jobs:
       - name: Install Dependencies
         run: pnpm install
 
+      - name: Setup Zig
+        uses: mlugg/setup-zig@v1
+        with:
+          version: '0.16.0'
+
+      - name: Build parser WASM
+        run: pnpm --filter @bdocs/parser build:wasm
+
       - name: Security Audit
         run: pnpm audit --audit-level moderate || true
 

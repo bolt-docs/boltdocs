@@ -96,6 +96,10 @@ function downloadFile(url, dest) {
   })
 }
 
+function sleep(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms))
+}
+
 function verifyBinary(binaryPath) {
   try {
     execSync(`"${binaryPath}" --version`, {
@@ -139,19 +143,35 @@ async function install() {
     return
   }
 
-  try {
-    await downloadFile(downloadUrl, cachePath)
-    if (verifyBinary(cachePath)) {
-      return
+  // The release workflow creates the version tag after publishing. A fresh
+  // install can therefore hit a 404 for a few seconds; retry with a short
+  // backoff before conceding to the WASM fallback.
+  let lastError = null
+  for (let attempt = 0; attempt < 3; attempt++) {
+    try {
+      await downloadFile(downloadUrl, cachePath)
+      if (verifyBinary(cachePath)) {
+        return
+      }
+      lastError = new Error('downloaded binary failed verification')
+    } catch (error) {
+      lastError = error
     }
-    console.log(
-      `[bdocs-parser] Downloaded binary verification failed. Using WASM fallback.`,
-    )
-  } catch (error) {
-    console.log(
-      `[bdocs-parser] Failed to download native binary: ${error.message}. Using WASM fallback.`,
-    )
+
+    if (cachePath && fs.existsSync(cachePath)) {
+      fs.unlinkSync(cachePath)
+    }
+
+    if (attempt < 2 && lastError?.message?.includes('404')) {
+      await sleep(1500 * (attempt + 1))
+      continue
+    }
+    break
   }
+
+  console.log(
+    `[bdocs-parser] Native binary unavailable (${lastError?.message ?? 'unknown error'}). Using WASM fallback.`,
+  )
 }
 
 install()

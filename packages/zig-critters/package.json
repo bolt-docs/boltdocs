@@ -1,9 +1,16 @@
 {
   "name": "@bdocs/zig-critters",
   "version": "0.2.3",
-  "private": true,
   "description": "Critical CSS extraction engine written in Zig, compiled to WebAssembly",
   "type": "module",
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/bolt-docs/boltdocs.git",
+    "directory": "packages/zig-critters"
+  },
   "main": "wasm/index.mjs",
   "types": "wasm/index.d.ts",
   "exports": {

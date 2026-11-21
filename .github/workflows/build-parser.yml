@@ -14,6 +14,8 @@ jobs:
 
       - name: Setup Zig
         uses: mlugg/setup-zig@v1
+        with:
+          version: '0.16.0'
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
@@ -75,6 +77,8 @@ jobs:
 
       - name: Setup Zig
         uses: mlugg/setup-zig@v1
+        with:
+          version: '0.16.0'
 
       - name: Build CLI binary
         run: zig build -Dtarget=${{ matrix.target }} -Doptimize=ReleaseFast
@@ -92,7 +96,7 @@ jobs:
       - name: Upload CLI binary as artifact
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ matrix.binary }}
+          name: ${{ matrix.target == 'x86_64-windows-gnu' && 'parser-win-x64.exe' || matrix.binary }}
           path: zig-out/bin/bdocs-parser${{ matrix.target == 'x86_64-windows-gnu' && '.exe' || '' }}
 
       - name: Upload N-API library as artifact
