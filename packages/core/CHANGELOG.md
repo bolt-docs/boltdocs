@@ -1,5 +1,13 @@
 # boltdocs
 
+## 3.4.5
+
+### Patch Changes
+
+- [`ded1d9f`](https://github.com/bolt-docs/boltdocs/commit/ded1d9f2665894bb00d289d54b176cee964f01a3) Thanks [@jesusalcaladev](https://github.com/jesusalcaladev)! - Fix locale switching on posts whose translations use different slugs.
+
+  The language switcher now resolves translated routes through the optional `translationKey` frontmatter field (and falls back to the collection index instead of a 404 when the slug-preserving path is missing). Collection route targets also keep the configured base when navigating.
+
 ## 3.4.4
 
 ### Patch Changes
