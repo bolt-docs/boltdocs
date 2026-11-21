@@ -1,6 +1,7 @@
 import { OnThisPage as OTP } from 'boltdocs/primitives'
-import { CopyMarkdown, useRoutes, type OnThisPageProps } from 'boltdocs/client'
+import { useRoutes, type OnThisPageProps } from 'boltdocs/client'
 import { Pencil, CircleHelp, TextAlignStart } from 'lucide-react'
+import { CopyMarkdown } from '@/theme/copy-markdown'
 
 export function OnThisPage({
   headings = [],

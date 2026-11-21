@@ -29,7 +29,7 @@ function getPageSource(): Promise<Record<string, string>> {
   return pageSourcePromise
 }
 
-const useCopyMarkdown = (content: string) => {
+export const useCopyMarkdown = (content: string) => {
   const [copied, setCopied] = useState(false)
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 

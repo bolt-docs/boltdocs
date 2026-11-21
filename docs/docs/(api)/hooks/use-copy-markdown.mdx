@@ -1,0 +1,37 @@
+---
+title: useCopyMarkdown
+description: Copy text to the clipboard with a temporary "copied" state for custom buttons.
+---
+
+The `useCopyMarkdown` hook writes a string to the clipboard and tracks a short-lived `copied` flag, so you can build your own copy button without managing timers. The flag resets automatically after two seconds and the pending timer is cleared when the component unmounts.
+
+The hook does not load the page's markdown source for you: pass it the text you want to copy. If you need the raw source of the current page, the `CopyMarkdown` component fetches it on demand instead.
+
+## Response Schema
+
+```ts
+interface UseCopyMarkdownReturn {
+  copied: boolean       // True for two seconds after handleCopy runs
+  handleCopy: () => void // Writes the given content to navigator.clipboard
+}
+```
+
+## Parameters
+
+- `content: string` — the value written to the clipboard when `handleCopy` is called.
+
+## Usage Example
+
+```tsx
+import { useCopyMarkdown } from 'boltdocs/client'
+
+export function CopyButton({ markdown }: { markdown: string }) {
+  const { copied, handleCopy } = useCopyMarkdown(markdown)
+
+  return (
+    <button onClick={handleCopy}>
+      {copied ? 'Copied!' : 'Copy Markdown'}
+    </button>
+  )
+}
+```
