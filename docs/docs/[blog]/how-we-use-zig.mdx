@@ -1,0 +1,205 @@
+---
+title: "How Boltdocs Uses Zig in Its Build-Critical Path"
+description: "A deep dive into the two Zig programs inside Boltdocs: a multithreaded Markdown parser with three backend strategies, and a WASM critical-CSS extractor with a worker-thread pool."
+date: 2026-11-20
+cover: /blog-covers/Boltdocs-zig.webp
+author:
+  name: Jesús Alcalá
+  avatar: /avatar.jpeg
+excerpt: "Boltdocs is a React/Vite framework, but two of its hottest paths are written in Zig. Here is what they do, why Zig was the right tool, how Node talks to them, and where the fallbacks kick in."
+tags: ["Engineering", "Performance", "Zig"]
+tab: "Engineering"
+---
+
+Boltdocs is a React and Vite framework. Almost everything in it is TypeScript — except the two pieces that run before the framework can even build a route table.
+
+Those two pieces are written in Zig. One reads every Markdown file in a documentation tree. The other decides which CSS rules a page actually needs and discards the rest. They run at build time, they never ship a runtime to the browser, and they are the reason a warm build on this documentation site stays fast.
+
+This post is a tour of both engines: what they parse, how the Node side talks to them, why there are three ways to invoke the parser, and what happens when a binary is missing.
+
+<Callout type="info">
+  Everything here describes the `main` branch. The two Zig packages are
+  `@bdocs/parser` and `@bdocs/zig-critters`; their sources live in
+  `packages/parser` and `packages/zig-critters`.
+</Callout>
+
+## The two engines at a glance
+
+| | Parser | Critical CSS |
+| --- | --- | --- |
+| Package | `@bdocs/parser` | `@bdocs/zig-critters` |
+| Question it answers | "What is in this document?" | "Which CSS rules does this page use?" |
+| Input | A directory of `.md`/`.mdx` files | Rendered HTML + the built stylesheet |
+| Output | One `ParsedDoc` per file, as JSON | A compressed critical-CSS string |
+| Zig target | Native binary, N-API shared library, `wasm32-wasi` | `wasm32-wasi` (plus a native build for tests) |
+| Fallback | The JavaScript parser in `packages/core` | Beasties |
+
+Neither engine is on the client. The parser's result is baked into route metadata at build time, and the critical CSS is inlined as a single `<style data-zig-critters>` tag before `</head>`.
+
+## Why Zig for these two jobs
+
+The common thread is not "Zig is fast". It is that both jobs sit on a hot path, need predictable memory behaviour, and have to run on a user's machine without asking them to install a runtime.
+
+**Memory is explicit.** The parser creates an arena per worker, reads each file into a 64 KB buffer, and resets the arena for the next document. There is no garbage collector to pause a build halfway through 300 files, and no hidden allocation in the JSON writer — escape sequences are appended to a buffer by hand.
+
+**Cross-compilation is a first-class feature.** The same Zig source becomes five native binaries and one WASM module. There is no per-platform toolchain matrix, no `node-gyp`, and no Python build step.
+
+**It speaks C when we need it to.** Zig can export plain C symbols, which is what makes the N-API shared library possible. It can also produce a standalone executable that prints JSON, which is what makes the fallback path trivial. One source, three ways to call it.
+
+**It is a build-time dependency, not a user dependency.** A site that installs Boltdocs does not need Zig. Only contributors and the release workflow do. The build script degrades to a no-op when `zig --version` fails.
+
+## The parser: one document shape, three backends
+
+The parser's contract is intentionally small. For every file it returns the raw frontmatter block, the remaining content, the headings with generated slugs, a whitespace-collapsed plain-text version, and a description:
+
+```zig
+pub const Heading = struct {
+    level: u8,
+    text: []const u8,
+    id: []const u8,
+};
+
+pub const ParsedDoc = struct {
+    rawMatter: []const u8,
+    content: []const u8,
+    headings: []Heading,
+    plainText: []const u8,
+    description: []const u8,
+    frontmatter: yaml.Value,
+};
+```
+
+The YAML reader, the slugger and the heading scanner are all in Zig. The slugger is a good example of the style: it lowercases ASCII in place and drops punctuation by byte range, with no allocation for the characters it removes.
+
+### The strategy hierarchy
+
+`runParser()` in `packages/parser/index.ts` tries the fastest backend first and falls through quietly:
+
+| Priority | Backend | How it is called | When it wins |
+| --- | --- | --- | --- |
+| 1 | N-API shared library | Direct FFI through `koffi` | Normal local builds and dev |
+| 2 | Native executable | `execFile` with JSON on stdout | When the shared library cannot load |
+| 3 | WASM + WASI | `node:wasi`, preview1, stdout redirected to a temp file | Any platform without a downloaded binary |
+
+The native binary is five to six times faster than the JS parser it replaced. The shared library is faster still, because it avoids `fork`/`exec` entirely: `parseWithNapi()` hands the docs directory to Zig and gets the parsed map back through a single FFI call.
+
+The WASM path is the portable guarantee. The build script compiles `src/main.zig` to `wasm32-wasi`, copies the module into `dist/`, and Node runs it with the docs directory pre-opened:
+
+```ts
+const wasi = new WASI({
+  version: 'preview1',
+  args: ['bdocs-parser.wasm', '--dir', '.', '--turbo'],
+  preopens: { '.': docsDir },
+  stdout: fd,
+})
+```
+
+Two environment variables make the hierarchy explicit when debugging: `FORCE_WASM=true` skips both native paths, and `FORCE_EXEC=true` skips only the shared library.
+
+### Turbo mode and the single pass
+
+The `--turbo` flag switches the parser to a single-pass algorithm. Instead of walking the document once for frontmatter, once for headings, and once for plain text, one pass fills a reusable `ParseContext`: one buffer for `plainText`, one list of headings, and a `last_was_space` flag so consecutive whitespace collapses to a single space without allocating.
+
+The directory scan is parallel too. Files are pushed into an atomic task index, and each worker grabs the next index until the counter reaches the end. Each worker owns its own arena, so there is no lock around allocation.
+
+## Cross-platform without a node-addon matrix
+
+`scripts/build-all.mjs` compiles the same source for five targets:
+
+| Zig triple | Downloaded binary |
+| --- | --- |
+| `x86_64-linux-gnu` | `parser-linux-x64` |
+| `aarch64-linux-gnu` | `parser-linux-arm64` |
+| `x86_64-macos-none` | `parser-darwin-x64` |
+| `aarch64-macos-none` | `parser-darwin-arm64` |
+| `x86_64-windows-gnu` | `parser-win-x64.exe` |
+
+The GitHub Actions workflow builds and uploads those binaries on a `@bdocs/parser@*` tag. On install, `install.mjs` reads the package version, maps `process.platform` plus `process.arch` to a binary name, and downloads it from the matching GitHub Release into `.cache/@bdocs/parser/<version>/`.
+
+That cache is checked before the local development paths in `zig-out/bin`, so a contributor with a freshly built binary still gets their own build. And if the download fails — offline install, unsupported platform, blocked network — the WASM module in `dist/` is already there and the build continues.
+
+<Callout type="warning">
+  The WASM fallback is not just a convenience; it also closes a security gap.
+  `runWasmParserFiles()` rejects symlinked path components and uses `O_NOFOLLOW`
+  when the host exposes it, so a file changed between validation and read
+  cannot escape the docs directory.
+</Callout>
+
+## zig-critters: critical CSS as a WASM library
+
+The second Zig program replaces Beasties, the JavaScript critical-CSS extractor. It parses the stylesheet, matches selectors against the rendered HTML, and returns only the rules needed above the fold.
+
+The WASM side exposes a tiny ABI:
+
+```zig
+export fn getResultPtr() u32
+export fn getResultLen() u32
+export fn reset() void
+export fn processCriticalCss(
+    html_ptr: u32, html_len: u32,
+    css_ptr: u32, css_len: u32,
+    arena_ptr: u32, arena_size: u32,
+    compress: u32,
+) u32
+```
+
+The result is not copied out. Zig writes it into linear memory and returns its pointer and length; the JS host reads those bytes through `getResultPtr()`.
+
+There is a subtlety in that design. The result has to stay alive until JS has read it, so the arena cannot be freed at the end of an extraction. It is reset at the *start* of the next one. The ABI still carries `arena_ptr` and `arena_size` for compatibility, but they are ignored: a fixed scratch window silently truncated large stylesheets, so a ~115 KB Tailwind bundle now grows a Zig `ArenaAllocator` with linear memory instead.
+
+### Pool, identity and injection
+
+A single WASM instance has shared memory, so calls through the serial API are chained through a promise queue. The SSG prefers `createZigCrittersPool()`, which creates one instance per worker thread and extracts pages in parallel.
+
+Cache correctness needed one more piece. Critical CSS is embedded in cached pages, so a cache keyed only by page and stylesheet would serve output produced by an older binary forever. `getEngineIdentity()` hashes the deployed `.wasm` file with SHA-1 and the SSG mixes that digest into render identities and critters cache keys. When the extractor changes, every derived cache invalidates exactly once.
+
+The output is injected as `<style data-zig-critters>` in the document head. The shell removes those tags on client navigation, so a route change never accumulates stale critical CSS.
+
+## How the two sides talk to each other
+
+| Mechanism | Used by | Shape of the call |
+| --- | --- | --- |
+| `koffi` FFI | Parser, preferred | Call an exported Zig function, get a serialized string |
+| Process + stdout | Parser, fallback | Spawn the binary, parse JSON from stdout |
+| WASI preview1 | Parser and critters | Instantiate the module, pre-open a directory, redirect stdout or call an export |
+| Worker threads | Critters, preferred | One WASM instance per worker |
+
+The parser's three backends are not redundancy for its own sake. Each one fails differently on a different machine: a shared library can be blocked by a hardened sandbox, a native binary can be missing from a release, and WASM can be unavailable in an old runtime. Falling through means the build degrades in speed, never in capability.
+
+## What this buys in practice
+
+The numbers that matter are the ones from the release posts, not a synthetic benchmark:
+
+- The native parser is **5–6× faster** than the JS parser it replaced, as introduced in [Boltdocs 3.0.0](/docs/blog/boltdocs-3.0.0).
+- In turbo mode it reads the whole docs tree in a single pass, which is part of the warm-build work in [Boltdocs 3.1.0](/docs/blog/boltdocs-3.1.0).
+- Critical CSS for hundreds of pages is extracted in under a second, then inlined instead of shipping the whole stylesheet.
+- The client never pays for any of it: no Zig runtime, no WASM module, no parser in the browser bundle.
+
+The trade-offs are real. Debugging across a Node/Zig boundary is harder than debugging TypeScript. The WASI ABI has to be kept stable. And contributors need Zig installed, although the CI workflow sets it up with `mlugg/setup-zig@v1`.
+
+## Working on it locally
+
+The commands live in the package manifests, so there is nothing to memorise:
+
+```bash
+cd packages/parser
+pnpm test                 # Zig unit tests
+pnpm build:napi           # N-API shared library via zig build-lib
+pnpm build:wasm           # wasm32-wasi module
+pnpm build:all-platforms  # all five native targets + WASM
+FORCE_WASM=true pnpm --filter boltdocs build
+```
+
+<Callout type="info">
+  If you only want to check that the WASM path still works, set
+  `FORCE_WASM=true` on a build. It skips both native backends without
+  changing any configuration file.
+</Callout>
+
+The critical-CSS engine has its own commands in `packages/zig-critters`: `pnpm build:wasm`, `pnpm test` for the Zig tests, and `pnpm bench` to compare against the JavaScript implementation.
+
+## Closing
+
+Zig is not a framework decision here; it is a build decision. Boltdocs uses it in exactly two places where the work is bounded, measurable and repeated on every build — reading documents and extracting CSS. Everything else stays in TypeScript, where the ecosystem is.
+
+That division is the point. A React framework can have a native core without asking its users to think about native code, as long as the fallbacks are honest and the outputs are boring data: a JSON map and a CSS string.
