@@ -60,7 +60,7 @@ export const translations = {
 
     // Banner
     bannerNewVersion:
-      'Boltdocs 3.4.0 is out — Declarative redirects, incremental builds, 22% less JavaScript and more',
+      'How Boltdocs uses Zig — the native parser and the WASM critical-CSS engine explained',
     bannerReadPost: 'Read post',
   },
   es: {
@@ -125,7 +125,7 @@ export const translations = {
 
     // Banner
     bannerNewVersion:
-      '¡Boltdocs 3.4.0 ya está aquí — Redirecciones declarativas, builds incrementales, 22% menos de JavaScript y más!',
+      'Cómo usa Boltdocs Zig — el parser nativo y el motor de CSS crítico en WASM, explicados',
     bannerReadPost: 'Leer publicación',
   },
 } as const

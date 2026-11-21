@@ -55,6 +55,18 @@ const ROADMAP: RoadmapItem[] = [
     status: 'shipped',
   },
   {
+    title: 'Zig engines hardened for release',
+    description:
+      'The parser WASM is built in CI and shipped in the npm tarball, the Windows binary name is consistent, Zig is pinned, and the critical-CSS extractor is publishable with READMEs for both packages.',
+    status: 'shipped',
+  },
+  {
+    title: 'Zig deep-dive and release docs',
+    description:
+      'A two-language engineering post explains the native parser and the WASM critical-CSS engine; changelogs were condensed and the release history now covers every version through 4.0.',
+    status: 'shipped',
+  },
+  {
     title: 'Core completely CSS-agnostic',
     description:
       'Engine and neutral theme ship no CSS framework deps or auto-wiring; framework-neutral `cn`, plain CSS theme output, and scaffolds opt into CSS via plugins (SPEC §2.1).',
@@ -74,9 +86,9 @@ const ROADMAP: RoadmapItem[] = [
   },
   // In Progress
   {
-    title: 'Boltdocs migrate MVP — VitePress first',
+    title: 'Boltdocs migrate — more source frameworks',
     description:
-      'A first-party migration tool to move existing VitePress sites to Boltdocs with minimal friction.',
+      'Extend the migration tool beyond 3.x upgrades and Docusaurus/Starlight imports to additional documentation generators.',
     status: 'in-progress',
   },
   {

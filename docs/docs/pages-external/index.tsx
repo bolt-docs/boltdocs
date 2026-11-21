@@ -26,7 +26,7 @@ export const layout = ({ children }: { children: React.ReactNode }) => {
       >
         <span>{t.bannerNewVersion}</span>
         <Link
-          href="site:/blog/boltdocs-3.4.0"
+          href="site:/blog/how-we-use-zig"
           className="underline underline-offset-4 font-semibold group-hover:translate-x-0.5 transition-transform"
         >
           {t.bannerReadPost}
