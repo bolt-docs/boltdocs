@@ -20,6 +20,7 @@ type Route = {
   locale?: string
   version?: string
   collection?: string
+  frontmatter?: Record<string, unknown>
 }
 
 const navigate = vi.fn()
@@ -329,5 +330,92 @@ describe('useI18n collection locale navigation', () => {
     // Collection root pages are locale-independent, should not navigate
     expect(navigate).not.toHaveBeenCalled()
     expect(setLocale).toHaveBeenCalledWith('es')
+  })
+
+  it('uses translationKey when translated posts have different slugs', () => {
+    // Real collection routes are registered without the configured base.
+    const englishRoute: Route = {
+      path: '/blog/how-we-use-zig',
+      filePath: '[blog]/how-we-use-zig.mdx',
+      collection: 'blog',
+      frontmatter: { translationKey: 'zig-build-engines' },
+    }
+    const spanishRoute: Route = {
+      path: '/es/blog/como-usamos-zig',
+      filePath: 'es/[blog]/como-usamos-zig.mdx',
+      locale: 'es',
+      collection: 'blog',
+      frontmatter: { translationKey: 'zig-build-engines' },
+    }
+
+    configure({
+      currentRoute: englishRoute,
+      allRoutes: [englishRoute, spanishRoute],
+      currentLocale: 'en',
+    })
+
+    const { result } = renderHook(() => useI18n())
+    result.current.handleLocaleChange('es')
+
+    expect(navigate).toHaveBeenCalledWith('/docs/es/blog/como-usamos-zig')
+  })
+
+  it('uses translationKey in both directions and preserves versions', () => {
+    const englishRoute: Route = {
+      path: '/v2/blog/how-we-use-zig',
+      filePath: 'v2/[blog]/how-we-use-zig.mdx',
+      version: 'v2',
+      collection: 'blog',
+      frontmatter: { translationKey: 'zig-build-engines' },
+    }
+    const spanishRoute: Route = {
+      path: '/v2/es/blog/como-usamos-zig',
+      filePath: 'v2/es/[blog]/como-usamos-zig.mdx',
+      locale: 'es',
+      version: 'v2',
+      collection: 'blog',
+      frontmatter: { translationKey: 'zig-build-engines' },
+    }
+
+    configure({
+      currentRoute: spanishRoute,
+      allRoutes: [englishRoute, spanishRoute],
+      currentLocale: 'es',
+      currentVersion: 'v2',
+      versions: {
+        defaultVersion: 'v2',
+        versions: [{ label: 'v2', path: 'v2' }],
+      },
+    })
+
+    const { result } = renderHook(() => useI18n())
+    result.current.handleLocaleChange('en')
+
+    expect(navigate).toHaveBeenCalledWith('/docs/v2/blog/how-we-use-zig')
+  })
+
+  it('falls back to the collection index when the slug-preserving path is missing', () => {
+    const englishRoute: Route = {
+      path: '/blog/some-post',
+      filePath: '[blog]/some-post.mdx',
+      collection: 'blog',
+    }
+    const spanishIndex: Route = {
+      path: '/es/blog',
+      filePath: 'es/[blog]/_index.mdx',
+      locale: 'es',
+      collection: 'blog',
+    }
+
+    configure({
+      currentRoute: englishRoute,
+      allRoutes: [englishRoute, spanishIndex],
+      currentLocale: 'en',
+    })
+
+    const { result } = renderHook(() => useI18n())
+    result.current.handleLocaleChange('es')
+
+    expect(navigate).toHaveBeenCalledWith('/docs/es/blog')
   })
 })

@@ -86,6 +86,67 @@ function parsePathForLocaleSwitch(
   return addUrlBase(newBaseStripped, config.base)
 }
 
+type LocaleSwitchRoute = {
+  path: string
+  filePath?: string
+  locale?: string
+  version?: string
+  collection?: string
+  frontmatter?: Record<string, unknown>
+}
+
+/**
+ * Explicit pairing for translated pages whose slugs differ between locales
+ * (e.g. `how-we-use-zig` / `como-usamos-zig`). Without a key the locale switch
+ * can only preserve the slug, which navigates to a nonexistent route.
+ */
+function getTranslationKey(route: LocaleSwitchRoute): string | undefined {
+  const key = route.frontmatter?.translationKey
+  return typeof key === 'string' && key.trim() ? key.trim() : undefined
+}
+
+function findTranslationByKey(
+  allRoutes: readonly LocaleSwitchRoute[],
+  currentRoute: LocaleSwitchRoute,
+  locale: string,
+  defaultLocale: string,
+): LocaleSwitchRoute | undefined {
+  const key = getTranslationKey(currentRoute)
+  if (!key) return undefined
+
+  return allRoutes.find(
+    (route) =>
+      (route.locale || defaultLocale) === locale &&
+      route.version === currentRoute.version &&
+      (!currentRoute.collection ||
+        route.collection === currentRoute.collection) &&
+      getTranslationKey(route) === key,
+  )
+}
+
+function pathsEqual(a: string, b: string, base?: string): boolean {
+  return (
+    normalizeUrlPath(stripUrlBase(a, base)) ===
+    normalizeUrlPath(stripUrlBase(b, base))
+  )
+}
+
+function findCollectionIndex(
+  allRoutes: readonly LocaleSwitchRoute[],
+  collection: string,
+  locale: string,
+  defaultLocale: string,
+  version?: string,
+): LocaleSwitchRoute | undefined {
+  return allRoutes.find(
+    (route) =>
+      route.collection === collection &&
+      (route.locale || defaultLocale) === locale &&
+      route.version === version &&
+      /(?:^|\/)_index\.mdx?$/.test(route.filePath || ''),
+  )
+}
+
 export interface LocaleOption {
   key: BoltdocsLocale
   label: string
@@ -125,11 +186,22 @@ export function useI18n(): UseI18nReturn {
     const base = config.base || '/'
     const safeBase = base === '/' ? '' : base.replace(/\/$/, '')
     const isDocRoute = !!currentRoute?.filePath
+    const translatedByKey = currentRoute
+      ? findTranslationByKey(
+          allRoutes,
+          currentRoute,
+          locale,
+          i18n.defaultLocale,
+        )
+      : undefined
 
     let targetPath = ''
 
     if (currentRoute) {
-      if (isDocRoute && !currentRoute.collection && !isCollectionPage) {
+      if (translatedByKey) {
+        // Collection route paths are registered without the configured base.
+        targetPath = addUrlBase(translatedByKey.path, base)
+      } else if (isDocRoute && !currentRoute.collection && !isCollectionPage) {
         const baseFile = currentRoute.filePath
           ? getBaseFilePath(
               currentRoute.filePath,
@@ -193,6 +265,25 @@ export function useI18n(): UseI18nReturn {
           i18n.defaultLocale,
           currentRoute.collection,
         )
+
+        // A translated post can use a different slug. If the slug-preserving
+        // path is not registered for the target locale, land on the
+        // collection's index in that locale instead of a 404 page.
+        if (
+          currentRoute.collection &&
+          !allRoutes.some((route) => pathsEqual(route.path, targetPath, base))
+        ) {
+          const collectionIndex = findCollectionIndex(
+            allRoutes,
+            currentRoute.collection,
+            locale,
+            i18n.defaultLocale,
+            currentRoute.version,
+          )
+          if (collectionIndex) {
+            targetPath = addUrlBase(collectionIndex.path, base)
+          }
+        }
       }
     } else {
       const currentPath = location.pathname

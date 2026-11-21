@@ -1,7 +1,6 @@
 import { OnThisPage as OTP } from 'boltdocs/primitives'
-import { useRoutes, type OnThisPageProps } from 'boltdocs/client'
+import { CopyMarkdown, useRoutes, type OnThisPageProps } from 'boltdocs/client'
 import { Pencil, CircleHelp, TextAlignStart } from 'lucide-react'
-import { CopyMarkdown } from '@/theme/copy-markdown'
 
 export function OnThisPage({
   headings = [],
@@ -66,7 +65,7 @@ export function OnThisPage({
           </ul>
         </div>
       )}
-      <CopyMarkdown mdxRaw={currentRoute?._rawContent} route={currentRoute} />
+      <CopyMarkdown route={currentRoute} />
     </OTP.Root>
   )
 }

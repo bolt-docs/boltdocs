@@ -23,6 +23,7 @@ Your page content starts here...
 | **`title`** | `string` | Nombre del archivo | El título de la página mostrado en el sidebar, pestaña del navegador y tags OG. Si se omite, Boltdocs usa el nombre del archivo (con el prefijo numérico eliminado). |
 | **`description`** | `string` | Primer párrafo | Una descripción corta para meta tags de SEO y fragmentos de resultados de búsqueda. Máximo 500 caracteres. |
 | **`permalink`** | `string` | — | Sobreescribe la URL auto-generada para esta página (por ejemplo, `'/docs/my-custom-path'`). |
+| **`translationKey`** | `string` | — | Empareja las versiones traducidas de una página para que el selector de idioma navegue entre ellas aunque tengan slugs distintos. Usa el mismo valor en todos los idiomas. |
 | **`sidebarPosition`** | `number` | — | Posición explícita de esta página dentro de su grupo del sidebar. Los números más bajos aparecen primero. |
 | **`sidebarLabel`** | `string` | `title` | Una etiqueta más corta para mostrar en el sidebar en lugar del título completo de la página. |
 | **`sidebarHidden`** | `boolean` | `false` | Oculta esta página del sidebar mientras la mantiene accesible a través de su URL. |

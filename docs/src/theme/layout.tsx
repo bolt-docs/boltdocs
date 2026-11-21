@@ -2,8 +2,7 @@ import type { ReactNode } from 'react'
 import { DocsLayout as DocsLayoutPrimitive } from 'boltdocs/primitives'
 import { Navbar } from '@/theme/navbar'
 import { Sidebar } from '@/theme/sidebar'
-import { ErrorBoundary } from 'boltdocs/client'
-import { CopyMarkdown } from '@/theme/copy-markdown'
+import { CopyMarkdown, ErrorBoundary } from 'boltdocs/client'
 import { OnThisPage } from '@/theme/on-this-page'
 import { Feedback } from '@/theme/feedback'
 import { useRoutes } from 'boltdocs/client'
@@ -39,7 +38,6 @@ function DocsThemeLayout({ children }: { children?: ReactNode }) {
                 <CopyMarkdown
                   className="hidden max-xl:flex"
                   route={currentRoute}
-                  mdxRaw={currentRoute?._rawContent}
                 />
               </DocsLayoutPrimitive.Header>
             )}
