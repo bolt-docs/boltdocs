@@ -22,7 +22,7 @@ export default function BlogPost({
   const { LastUpdated } = allComponents
 
   return (
-    <article className="w-full mx-auto py-12 px-4 sm:px-6 lg:px-2">
+    <article className="w-full mx-auto py-12">
       <header className="mb-10 pb-10 border-b border-subtle">
         <div className="flex flex-row gap-2 h-auto items-center justify-center">
           {date && (
@@ -45,11 +45,11 @@ export default function BlogPost({
         )}
       </header>
 
-      <div className="max-w-none flex flex-row gap-2">
-        <div className="max-w-none">
+      <div className="max-w-none flex flex-row gap-8">
+        <div className="min-w-0 flex-1">
           <MDXComponent components={allComponents} />
         </div>
-        <div className="sticky">
+        <div className="sticky shrink-0">
           <OnThisPage headings={headings} />
         </div>
       </div>
