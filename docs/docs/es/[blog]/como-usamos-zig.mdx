@@ -32,7 +32,7 @@ Este post es un recorrido por ambos motores: qué analizan, cómo habla Node con
 | Pregunta que responde | «¿Qué hay en este documento?» | «¿Qué reglas CSS usa esta página?» |
 | Entrada | Un directorio de archivos `.md`/`.mdx` | HTML renderizado + la hoja de estilos compilada |
 | Salida | Un `ParsedDoc` por archivo, en JSON | Una cadena de CSS crítico comprimido |
-| Objetivo Zig | Binario nativo, librería N-API, `wasm32-wasi` | `wasm32-wasi` (más un build nativo para tests) |
+| Objetivo Zig | Binario nativo, librería N-API, `wasm32-wasi` | Módulo `wasm32-wasi`, instanciado directamente (más un build nativo para tests) |
 | Fallback | El parser JavaScript de `packages/core` | Beasties |
 
 Ninguno de los dos motores está en el cliente. El resultado del parser se hornea en los metadatos de ruta durante el build, y el CSS crítico se inyecta como una única etiqueta `<style data-zig-critters>` antes de `</head>`.
@@ -131,6 +131,8 @@ Esa caché se comprueba antes que las rutas de desarrollo local en `zig-out/bin`
 
 El segundo programa en Zig reemplaza a Beasties, el extractor de CSS crítico en JavaScript. Analiza la hoja de estilos, compara selectores con el HTML renderizado y devuelve solo las reglas necesarias por encima del pliegue.
 
+El módulo se compila para `wasm32-wasi`, pero Node no pasa por `node:wasi` aquí: lo instancia directamente con un shim `env` de tres funciones para matemática de 128 bits. No hay llamadas WASI en runtime, solo exportaciones y memoria compartida.
+
 El lado WASM expone una ABI mínima:
 
 ```zig
@@ -163,7 +165,8 @@ La salida se inyecta como `<style data-zig-critters>` en el head del documento. 
 | --- | --- | --- |
 | FFI con `koffi` | Parser, preferido | Llamar a una función exportada de Zig, obtener una cadena serializada |
 | Proceso + stdout | Parser, fallback | Lanzar el binario, parsear JSON de stdout |
-| WASI preview1 | Parser y critters | Instanciar el módulo, preabrir un directorio, redirigir stdout o llamar a una exportación |
+| WASI preview1 | Parser | Instanciar el módulo, preabrir el directorio de docs, redirigir stdout |
+| WASM directo | Critters | Instanciar con un pequeño shim `env`; leer el resultado de memoria lineal |
 | Hilos de trabajo | Critters, preferido | Una instancia WASM por worker |
 
 Los tres backends del parser no son redundancia por la redundancia. Cada uno falla de forma distinta en una máquina distinta: una librería compartida puede ser bloqueada por un sandbox estricto, un binario nativo puede faltar en un release y WASM puede no estar disponible en un runtime antiguo. Caer al siguiente nivel significa que el build degrada en velocidad, nunca en capacidad.
@@ -177,7 +180,7 @@ Los números que importan son los de los posts de release, no un benchmark sint�
 - El CSS crítico de cientos de páginas se extrae en menos de un segundo y se inyecta en lugar de enviar la hoja completa.
 - El cliente no paga nada de esto: ni runtime de Zig, ni módulo WASM, ni parser en el bundle del navegador.
 
-Las contrapartidas son reales. Depurar a través de la frontera Node/Zig es más difícil que depurar TypeScript. La ABI de WASI hay que mantenerla estable. Y los colaboradores necesitan Zig instalado, aunque el workflow de CI lo configura con `mlugg/setup-zig@v1`.
+Las contrapartidas son reales. Depurar a través de la frontera Node/Zig es más difícil que depurar TypeScript. La ABI de WASI hay que mantenerla estable. Y los colaboradores necesitan Zig instalado, aunque el workflow de CI lo configura con `mlugg/setup-zig@v2`.
 
 ## Trabajar en ello en local
 
