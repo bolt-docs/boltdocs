@@ -1,5 +1,11 @@
 # boltdocs
 
+## 3.4.6
+
+### Patch Changes
+
+- [`225760d`](https://github.com/bolt-docs/boltdocs/commit/225760df0c764960aea60ba5f25980148e79b174) Thanks [@jesusalcaladev](https://github.com/jesusalcaladev)! - Export `useCopyMarkdown` from `boltdocs/client`. The hook writes text to the clipboard and exposes a `copied` flag that resets after two seconds, so custom copy buttons can reuse the same behavior as `CopyMarkdown`.
+
 ## 3.4.5
 
 ### Patch Changes
