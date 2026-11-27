@@ -3,12 +3,15 @@ title: "@bdocs/plugin-ask-ai"
 sidebarPosition: 4
 description: Añade un asistente de IA seguro, limitado a la página actual y con streaming a Boltdocs usando el SDK de OpenAI y una UI personalizable.
 badge: "0.4.0"
+draft: true
 ---
 
 `@bdocs/plugin-ask-ai` añade un asistente de preguntas sobre documentación. Solo puede responder con el contexto seleccionado para la petición y devuelve `Not in docs.` cuando la respuesta no está fundamentada en ese contexto.
 
 <Callout variant="info" title="Respuestas limitadas a la página">
-  Esto es Q&A de documentación, no un chatbot general. Las credenciales del proveedor y los prompts privados permanecen en el servidor; solo se serializan al navegador los metadatos públicos de UI.
+  Esto es Q&A de documentación, no un chatbot general. Las credenciales del
+  proveedor y los prompts privados permanecen en el servidor; solo se serializan
+  al navegador los metadatos públicos de UI.
 </Callout>
 
 ## Cómo funciona
@@ -36,17 +39,17 @@ pnpm add @bdocs/plugin-ask-ai
 ```
 
 ```ts title="boltdocs.config.ts"
-import askAiPlugin from '@bdocs/plugin-ask-ai'
+import askAiPlugin from "@bdocs/plugin-ask-ai";
 
 export default {
   plugins: [
     askAiPlugin({
-      title: 'Pregunta a los docs',
+      title: "Pregunta a los docs",
       maxOutputTokens: 600,
       rateLimitPerMinute: 30,
     }),
   ],
-}
+};
 ```
 
 Configura la key del proveedor en el entorno, nunca en el config:
@@ -59,33 +62,33 @@ El asistente flotante se monta mediante el slot `floating:after` de Boltdocs. Us
 
 ## Configuración
 
-| Opción | Predeterminado | Descripción |
-| :--- | :--- | :--- |
-| `provider` | `'openai'` | Preset del proveedor. Cada preset selecciona su modelo y nombre de variable de entorno. |
-| `model` | Default del proveedor | Cualquier modelo aceptado por el proveedor compatible con OpenAI. |
-| `baseURL` | Default del proveedor | URL compatible con OpenAI. Obligatoria para `anthropic`, `gemini`, `azure` y `custom`. |
-| `endpoint` | `'/api/ask-ai'` | Endpoint POST de dev/preview. |
-| `autoInject` | `true` | Monta `<AskAiBubble />` en el slot flotante global. |
-| `persona` | `undefined` | Identidad y tono opcionales antepuestos al prompt seguro. |
-| `systemPrompt` | `undefined` | Override total del prompt. Úsalo solo si conservas el scope y los rechazos. |
-| `systemPrompts` | `undefined` | Overrides de prompt por proveedor. |
-| `maxInputChars` | `2_000` | Límite de pregunta aplicado en servidor. |
-| `maxRequestBytes` | `65_536` | Límite de tamaño del body aplicado en servidor. |
-| `maxOutputTokens` | `600` | Límite de tokens de completion. |
-| `contextChars` | `6_000` | Máximo de caracteres de página enviados al modelo. |
-| `rateLimitPerMinute` | `30` | Límite en memoria por IP. Usa `0` para desactivarlo. |
-| `secretKey` | `undefined` | Secreto servidor-a-servidor de mínimo 16 caracteres. Solo por header; nunca se incluye en metadata. |
-| `secretKeyEnv` | `undefined` | Nombre de la variable de entorno que contiene el secreto del servidor. |
-| `temperature` | `0.3` | Temperatura de sampling. |
-| `topP` | `1` | Corte de nucleus sampling. |
-| `devMode` | Activo fuera de producción | Muestra el chip de consumo de tokens. Desactívalo en producción. |
-| `title` | `'Ask Assistant'` | Título del header. |
-| `placeholder` | `'Ask about this page…'` | Placeholder del compositor. |
-| `emptyTitle` | Saludo default | Título del estado vacío. |
-| `emptyDescription` | Descripción default | Descripción del estado vacío. |
-| `buttonTooltip` | `'Ask AI assistant'` | Label y tooltip del launcher. |
-| `composerHint` | Hint de teclado | Ayuda bajo el input. |
-| `classNames` | `{}` | Slots públicos de clases Tailwind. |
+| Opción               | Predeterminado             | Descripción                                                                                         |
+| :------------------- | :------------------------- | :-------------------------------------------------------------------------------------------------- |
+| `provider`           | `'openai'`                 | Preset del proveedor. Cada preset selecciona su modelo y nombre de variable de entorno.             |
+| `model`              | Default del proveedor      | Cualquier modelo aceptado por el proveedor compatible con OpenAI.                                   |
+| `baseURL`            | Default del proveedor      | URL compatible con OpenAI. Obligatoria para `anthropic`, `gemini`, `azure` y `custom`.              |
+| `endpoint`           | `'/api/ask-ai'`            | Endpoint POST de dev/preview.                                                                       |
+| `autoInject`         | `true`                     | Monta `<AskAiBubble />` en el slot flotante global.                                                 |
+| `persona`            | `undefined`                | Identidad y tono opcionales antepuestos al prompt seguro.                                           |
+| `systemPrompt`       | `undefined`                | Override total del prompt. Úsalo solo si conservas el scope y los rechazos.                         |
+| `systemPrompts`      | `undefined`                | Overrides de prompt por proveedor.                                                                  |
+| `maxInputChars`      | `2_000`                    | Límite de pregunta aplicado en servidor.                                                            |
+| `maxRequestBytes`    | `65_536`                   | Límite de tamaño del body aplicado en servidor.                                                     |
+| `maxOutputTokens`    | `600`                      | Límite de tokens de completion.                                                                     |
+| `contextChars`       | `6_000`                    | Máximo de caracteres de página enviados al modelo.                                                  |
+| `rateLimitPerMinute` | `30`                       | Límite en memoria por IP. Usa `0` para desactivarlo.                                                |
+| `secretKey`          | `undefined`                | Secreto servidor-a-servidor de mínimo 16 caracteres. Solo por header; nunca se incluye en metadata. |
+| `secretKeyEnv`       | `undefined`                | Nombre de la variable de entorno que contiene el secreto del servidor.                              |
+| `temperature`        | `0.3`                      | Temperatura de sampling.                                                                            |
+| `topP`               | `1`                        | Corte de nucleus sampling.                                                                          |
+| `devMode`            | Activo fuera de producción | Muestra el chip de consumo de tokens. Desactívalo en producción.                                    |
+| `title`              | `'Ask Assistant'`          | Título del header.                                                                                  |
+| `placeholder`        | `'Ask about this page…'`   | Placeholder del compositor.                                                                         |
+| `emptyTitle`         | Saludo default             | Título del estado vacío.                                                                            |
+| `emptyDescription`   | Descripción default        | Descripción del estado vacío.                                                                       |
+| `buttonTooltip`      | `'Ask AI assistant'`       | Label y tooltip del launcher.                                                                       |
+| `composerHint`       | Hint de teclado            | Ayuda bajo el input.                                                                                |
+| `classNames`         | `{}`                       | Slots públicos de clases Tailwind.                                                                  |
 
 ### Proveedores
 
@@ -93,10 +96,10 @@ El plugin siempre usa el formato OpenAI Chat Completions. Anthropic, Gemini, Azu
 
 ```ts
 askAiPlugin({
-  provider: 'groq',
-  model: 'llama-3.1-8b-instant',
-  baseURL: 'https://api.groq.com/openai/v1',
-})
+  provider: "groq",
+  model: "llama-3.1-8b-instant",
+  baseURL: "https://api.groq.com/openai/v1",
+});
 ```
 
 ```bash
@@ -111,16 +114,16 @@ Los textos se configuran en `boltdocs.config.ts`. Los slots visuales también so
 
 ```ts
 askAiPlugin({
-  title: 'Docs Copilot',
-  placeholder: 'Pregunta sobre esta configuración…',
+  title: "Docs Copilot",
+  placeholder: "Pregunta sobre esta configuración…",
   classNames: {
-    root: 'bottom-8 right-8',
-    panel: 'w-[28rem] rounded-3xl border-primary-500/20',
-    trigger: 'rounded-full size-14 shadow-primary-500/30',
-    userMessage: 'bg-primary-600',
-    assistantMessage: 'bg-soft border-primary-500/20',
+    root: "bottom-8 right-8",
+    panel: "w-[28rem] rounded-3xl border-primary-500/20",
+    trigger: "rounded-full size-14 shadow-primary-500/30",
+    userMessage: "bg-primary-600",
+    assistantMessage: "bg-soft border-primary-500/20",
   },
-})
+});
 ```
 
 Los slots disponibles son `root`, `panel`, `trigger`, `header`, `messages`, `message`, `userMessage`, `assistantMessage`, `emptyState`, `composer`, `input` y `markdown`. Las clases del usuario ganan sobre los defaults mediante Tailwind merge.
@@ -128,10 +131,10 @@ Los slots disponibles son `root`, `panel`, `trigger`, `header`, `messages`, `mes
 Para reemplazar componentes completos, desactiva la inyección y componlos manualmente:
 
 ```tsx title="docs/layout.tsx"
-import { AskAiBubble } from '@bdocs/plugin-ask-ai/client'
+import { AskAiBubble } from "@bdocs/plugin-ask-ai/client";
 
 export function Assistant() {
-  return <AskAiBubble endpoint="/custom/ask-ai" />
+  return <AskAiBubble endpoint="/custom/ask-ai" />;
 }
 ```
 
@@ -144,10 +147,14 @@ Usa el evento global; una segunda instancia del hook tiene estado desconectado:
 ```tsx
 export function HelpButton() {
   return (
-    <button onClick={() => window.dispatchEvent(new CustomEvent('boltdocs:ask-ai:open'))}>
+    <button
+      onClick={() =>
+        window.dispatchEvent(new CustomEvent("boltdocs:ask-ai:open"))
+      }
+    >
       Ayuda
     </button>
-  )
+  );
 }
 ```
 
@@ -158,20 +165,20 @@ Los eventos disponibles son `boltdocs:ask-ai:open`, `boltdocs:ask-ai:close` y `b
 El middleware dev/preview no genera automáticamente una función de producción. Exporta uno de los adaptadores desde la función de tu plataforma y configúralo solo en servidor.
 
 ```ts title="api/ask-ai.ts"
-import { buildSystemPrompt } from '@bdocs/plugin-ask-ai'
-import { handleWebAskAi } from '@bdocs/plugin-ask-ai/server'
+import { buildSystemPrompt } from "@bdocs/plugin-ask-ai";
+import { handleWebAskAi } from "@bdocs/plugin-ask-ai/server";
 
 export const config = {
-  provider: 'openai',
-  model: 'gpt-4o-mini',
+  provider: "openai",
+  model: "gpt-4o-mini",
   systemPrompt: buildSystemPrompt(),
   maxInputChars: 2_000,
   contextChars: 6_000,
-  allowedOrigins: ['https://docs.example.com'],
-}
+  allowedOrigins: ["https://docs.example.com"],
+};
 
 export function POST(request: Request) {
-  return handleWebAskAi(request, config)
+  return handleWebAskAi(request, config);
 }
 ```
 
@@ -183,7 +190,7 @@ Los adapters serverless no tienen el filesystem local de Boltdocs. Pasa contexto
 <AskAiBubble
   getContext={() => ({
     page: window.location.pathname,
-    content: document.querySelector('main')?.innerText.slice(0, 6_000) ?? '',
+    content: document.querySelector("main")?.innerText.slice(0, 6_000) ?? "",
   })}
 />
 ```
@@ -200,15 +207,15 @@ Para un asistente público normal, omite `secretKey` y protege el endpoint con l
 
 ## `useAskAi`
 
-| Valor | Descripción |
-| :--- | :--- |
-| `messages` | Mensajes del scope actual y estado terminal. |
-| `input`, `setInput` | Estado controlado del compositor. |
-| `isLoading` | Si existe una petición al proveedor. |
-| `submitQuestion(text)` | Inicia una petición cuando no hay otra activa. |
-| `stopStreaming()` | Aborta la petición y conserva el texto parcial visible. |
-| `clearChat()` | Aborta y limpia los mensajes. |
-| `isOpen`, `setIsOpen` | Visibilidad del asistente. |
+| Valor                  | Descripción                                             |
+| :--------------------- | :------------------------------------------------------ |
+| `messages`             | Mensajes del scope actual y estado terminal.            |
+| `input`, `setInput`    | Estado controlado del compositor.                       |
+| `isLoading`            | Si existe una petición al proveedor.                    |
+| `submitQuestion(text)` | Inicia una petición cuando no hay otra activa.          |
+| `stopStreaming()`      | Aborta la petición y conserva el texto parcial visible. |
+| `clearChat()`          | Aborta y limpia los mensajes.                           |
+| `isOpen`, `setIsOpen`  | Visibilidad del asistente.                              |
 
 Las opciones son `endpoint`, `currentPage`, `context`, `getContext` y `classNames`. El hook cancela la petición activa al desmontarse y no registra errores crudos del servidor.
 

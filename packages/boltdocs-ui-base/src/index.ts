@@ -29,7 +29,7 @@ export { OnThisPage } from './ui-base/on-this-page'
 export { Breadcrumbs } from './ui-base/breadcrumbs'
 export { PageNav } from './ui-base/page-nav'
 export { ErrorBoundary } from './ui-base/error-boundary'
-export { CopyMarkdown } from './ui-base/copy-markdown'
+export { CopyMarkdown, useCopyMarkdown } from './ui-base/copy-markdown'
 export { NotFound } from './ui-base/not-found'
 export { Banner } from './ui-base/banner'
 

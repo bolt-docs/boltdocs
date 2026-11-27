@@ -67,7 +67,7 @@ export function OnThisPage({
           </ul>
         </div>
       )}
-      <CopyMarkdown mdxRaw={currentRoute?._rawContent} route={currentRoute} />
+      <CopyMarkdown route={currentRoute} />
     </OTP.Root>
   )
 }

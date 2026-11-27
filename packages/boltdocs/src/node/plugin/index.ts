@@ -464,7 +464,12 @@ export function boltdocsPlugin(
         )
 
         if (!config) {
-          config = await resolveConfig(docsDir)
+          config = await resolveConfig(
+            docsDir,
+            projectRoot,
+            env.command,
+            env.mode,
+          )
         }
 
         if (routes.length === 0 && isBuild) {

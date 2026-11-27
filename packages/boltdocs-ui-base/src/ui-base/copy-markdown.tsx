@@ -30,7 +30,7 @@ function getPageSource(): Promise<Record<string, string>> {
   return pageSourcePromise
 }
 
-const useCopyMarkdown = (content: string) => {
+export const useCopyMarkdown = (content: string) => {
   // Share the copied-state timer and clipboard fallback with code blocks.
   // Calling navigator.clipboard directly here lost the execCommand fallback in
   // utils/copy-clipboard used everywhere else.

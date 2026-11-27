@@ -203,7 +203,8 @@ export async function createViteConfig(
     preResolvedConfig ||
     (await (async () => {
       const { resolveConfig } = await import('./config')
-      return resolveConfig('docs', root)
+      const command = mode === 'production' ? 'build' : 'serve'
+      return resolveConfig('docs', root, command, mode)
     })())
 
   let importsPromise: Promise<ViteRuntimeImports> | null = null

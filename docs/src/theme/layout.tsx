@@ -23,7 +23,14 @@ function DocsThemeLayout({ children }: { children?: ReactNode }) {
           <Sidebar routes={filteredRoutes || []} config={config} />
         )}
         <DocsLayoutPrimitive.Content>
-          <DocsLayoutPrimitive.ContentMdx className="pt-4 pb-20 px-10 max-sm:px-5">
+          <DocsLayoutPrimitive.ContentMdx
+            className="pt-4 pb-20 px-10 max-sm:px-5"
+            contentClassName={
+              isCollectionPage
+                ? 'max-w-4xl sm:max-w-6xl lg:max-w-7xl'
+                : undefined
+            }
+          >
             {!isCollectionPage && (
               <DocsLayoutPrimitive.Header className="mt-5">
                 {currentRoute?.title && (
@@ -39,7 +46,6 @@ function DocsThemeLayout({ children }: { children?: ReactNode }) {
                 <CopyMarkdown
                   className="hidden max-xl:flex"
                   route={currentRoute}
-                  mdxRaw={currentRoute?._rawContent}
                 />
               </DocsLayoutPrimitive.Header>
             )}

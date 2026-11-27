@@ -55,16 +55,46 @@ const ROADMAP: RoadmapItem[] = [
     status: 'shipped',
   },
   {
+    title: '4.0 migration slices 1–7',
+    description:
+      'Contracts, SEO/UI/primitives/runtime boundaries, incremental MDX/SSG, and migration tooling/upgrade docs delivered on the 4.0 line.',
+    status: 'shipped',
+  },
+  {
+    title: 'Zig engines hardened for release',
+    description:
+      'The parser WASM is built in CI and shipped in the npm tarball, the Windows binary name is consistent, Zig is pinned, and the critical-CSS extractor is publishable with READMEs for both packages.',
+    status: 'shipped',
+  },
+  {
+    title: 'Zig deep-dive and release docs',
+    description:
+      'A two-language engineering post explains the native parser and the WASM critical-CSS engine; changelogs were condensed and the release history now covers every version through 4.0.',
+    status: 'shipped',
+  },
+  {
+    title: 'Core completely CSS-agnostic',
+    description:
+      'Engine and neutral theme ship no CSS framework deps or auto-wiring; framework-neutral `cn`, plain CSS theme output, and scaffolds opt into CSS via plugins (SPEC §2.1).',
+    status: 'shipped',
+  },
+  {
+    title: 'CSS plugins: Tailwind, Sass, UnoCSS, Lightning CSS',
+    description:
+      'Popular CSS integrations as explicit plugins, including Lightning CSS, with unit and Vite production-build tests verifying transforms.',
+    status: 'shipped',
+  },
+  {
     title: 'Boltdocs migrate — 3.x to 4.0',
     description:
-      'Reports every 3.x pattern in a project and fixes the mechanical ones: the moved import paths, react-aria, the theme and plugin subpaths, and the manifest.',
+      'Codemods and diagnostics for supported 3.x→4.0 paths (imports/subpaths/reset, manifest/plugins, search/SEO, custom entry site bridge) with EN/ES upgrade docs.',
     status: 'shipped',
   },
   // In Progress
   {
-    title: 'Boltdocs migrate — VitePress first',
+    title: 'Boltdocs migrate — more source frameworks',
     description:
-      'A first-party migration tool to move existing VitePress sites to Boltdocs with minimal friction.',
+      'Extend the migration tool beyond 3.x upgrades and Docusaurus/Starlight imports to additional documentation generators.',
     status: 'in-progress',
   },
   {

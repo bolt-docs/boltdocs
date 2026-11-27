@@ -1,8 +1,7 @@
 ---
-title: 'Unist-utils'
+title: "Unist-utils"
 sidebarPosition: 6
 description: Strictly-typed AST utilities for unist/mdast/hast used by Boltdocs core, every official @bdocs/* plugin, and the Sätteri MDX processor. Single source of truth for visitor helpers, AST builders, h-properties helpers, class-list mutation, and meta string parsing.
-badge: "New"
 ---
 
 `@bdocs/unist-utils` is a standalone npm package that exposes the
@@ -18,12 +17,10 @@ plugin, a build-time transformer, or a runtime component that wants
 statically verifiable shapes.
 
 <Callout variant="info" title="100% typed, end to end">
-  Every public export is fully typed. No `any`, no `unknown` at the
-  boundaries — `Node`, `Parent`, `ElementNode`, `MdxJsxElement`, etc.
-  are all declared in this package so plugin authors can build
-  typed-only code with confidence.
+  Every public export is fully typed. No `any`, no `unknown` at the boundaries —
+  `Node`, `Parent`, `ElementNode`, `MdxJsxElement`, etc. are all declared in
+  this package so plugin authors can build typed-only code with confidence.
 </Callout>
-
 
 ## Why it exists
 
@@ -46,19 +43,19 @@ Three reasons:
 
 ## Public surface
 
-| Group | Exports |
-| --- | --- |
-| Node-type constants | `MDX_NODES`, `MdxNodeType`, re-exports `SKIP`, `EXIT` from `unist-util-visit@5` |
-| Generic unist types | `Node`, `Parent` |
-| MDAST | `MdxJsxAttribute`, `MdxJsxAttributeValueExpression`, `MdxJsxElement`, `MdxJsxChild`, `CodeNode`, `PlainTextNode` |
-| HAST | `ElementNode`, `HastNode`, `HastChild` |
-| Helpers | `NodeWithHProperties` |
-| Type guards | `isMdxJsxElement`, `isMdxJsxTextElement`, `isMdxJsxLike`, `isElementNode`, `isTextNode` |
-| Visitors | `visitNodes`, `visitRehypeElements`, `visitMdxElements`, `visitRemarkHeadings`, `visitRemarkLinks` |
-| Builders | `createMdxAttribute`, `createMdxElement`, `createRehypeElement` |
-| Properties | `setNodeProperty`, `getNodeProperty` |
-| Class list | `addNodeClass`, `removeNodeClass`, `hasNodeClass` |
-| Meta parser | `parseMetaString`, `ParsedMeta` |
+| Group               | Exports                                                                                                          |
+| ------------------- | ---------------------------------------------------------------------------------------------------------------- |
+| Node-type constants | `MDX_NODES`, `MdxNodeType`, re-exports `SKIP`, `EXIT` from `unist-util-visit@5`                                  |
+| Generic unist types | `Node`, `Parent`                                                                                                 |
+| MDAST               | `MdxJsxAttribute`, `MdxJsxAttributeValueExpression`, `MdxJsxElement`, `MdxJsxChild`, `CodeNode`, `PlainTextNode` |
+| HAST                | `ElementNode`, `HastNode`, `HastChild`                                                                           |
+| Helpers             | `NodeWithHProperties`                                                                                            |
+| Type guards         | `isMdxJsxElement`, `isMdxJsxTextElement`, `isMdxJsxLike`, `isElementNode`, `isTextNode`                          |
+| Visitors            | `visitNodes`, `visitRehypeElements`, `visitMdxElements`, `visitRemarkHeadings`, `visitRemarkLinks`               |
+| Builders            | `createMdxAttribute`, `createMdxElement`, `createRehypeElement`                                                  |
+| Properties          | `setNodeProperty`, `getNodeProperty`                                                                             |
+| Class list          | `addNodeClass`, `removeNodeClass`, `hasNodeClass`                                                                |
+| Meta parser         | `parseMetaString`, `ParsedMeta`                                                                                  |
 
 Every export is also re-exported by `boltdocs` core for back-compat so
 existing plugin code keeps working without change.
@@ -77,20 +74,29 @@ tests so plugin authors can rely on it.
 ### Walking MDAST code blocks (mermaid-style)
 
 ```ts title="my-plugin.ts"
-import { MDX_NODES, type CodeNode, type Node, type Parent } from '@bdocs/unist-utils'
+import {
+  MDX_NODES,
+  type CodeNode,
+  type Node,
+  type Parent,
+} from "@bdocs/unist-utils";
 
 export function remarkCodeFences() {
   return (tree: Node) => {
-    const collected: Array<{ node: CodeNode; parent: Parent; index: number }> = []
+    const collected: Array<{ node: CodeNode; parent: Parent; index: number }> =
+      [];
     visitNodes(tree, MDX_NODES.CODE, (node, index, parent) => {
-      if (node.lang === 'mermaid') {
-        collected.push({ node, parent, index })
+      if (node.lang === "mermaid") {
+        collected.push({ node, parent, index });
       }
-    })
+    });
     for (const { node, parent, index } of collected) {
-      parent.children[index] = { type: 'mdxJsxFlowElement', name: 'Mermaid' } as Node
+      parent.children[index] = {
+        type: "mdxJsxFlowElement",
+        name: "Mermaid",
+      } as Node;
     }
-  }
+  };
 }
 ```
 
@@ -101,31 +107,35 @@ import {
   createMdxElement,
   createMdxAttribute,
   type MdxJsxChild,
-} from '@bdocs/unist-utils'
+} from "@bdocs/unist-utils";
 
-const children: MdxJsxChild[] = []
+const children: MdxJsxChild[] = [];
 
-const el = createMdxElement('MyChart', {
-  chart: 'graph TD',
-  config: createMdxAttribute('config', { theme: 'dark' }),
-})
+const el = createMdxElement("MyChart", {
+  chart: "graph TD",
+  config: createMdxAttribute("config", { theme: "dark" }),
+});
 ```
 
 ### Manipulating class names
 
 ```ts
-import { addNodeClass, removeNodeClass, hasNodeClass } from '@bdocs/unist-utils'
+import {
+  addNodeClass,
+  removeNodeClass,
+  hasNodeClass,
+} from "@bdocs/unist-utils";
 
-addNodeClass(node, 'shiki-fallback')
-if (hasNodeClass(node, 'shiki')) removeNodeClass(node, 'shiki')
+addNodeClass(node, "shiki-fallback");
+if (hasNodeClass(node, "shiki")) removeNodeClass(node, "shiki");
 ```
 
 ### Parsing code-fence meta strings
 
 ```ts
-import { parseMetaString } from '@bdocs/unist-utils'
+import { parseMetaString } from "@bdocs/unist-utils";
 
-const meta = parseMetaString('title="My Example" lineNumbers')
+const meta = parseMetaString('title="My Example" lineNumbers');
 // → { title: 'My Example', lineNumbers: true }
 ```
 
@@ -139,7 +149,7 @@ recoverable).
 ### Type guards as narrowing predicates
 
 ```ts
-import { isMdxJsxElement, isElementNode } from '@bdocs/unist-utils'
+import { isMdxJsxElement, isElementNode } from "@bdocs/unist-utils";
 
 function visit(tree: unknown) {
   if (Array.isArray(tree)) {
@@ -149,7 +159,7 @@ function visit(tree: unknown) {
       } else if (isElementNode(child)) {
         // child is narrowed to ElementNode
       }
-    })
+    });
   }
 }
 ```
@@ -161,13 +171,13 @@ function visit(tree: unknown) {
 Old code (still works as a back-compat shim):
 
 ```ts
-import { visitNodes, createMdxAttribute } from 'boltdocs'
+import { visitNodes, createMdxAttribute } from "boltdocs";
 ```
 
 New code (preferred for new plugins):
 
 ```ts
-import { visitNodes, createMdxAttribute } from '@bdocs/unist-utils'
+import { visitNodes, createMdxAttribute } from "@bdocs/unist-utils";
 ```
 
 Both paths are equal in functionality today. The old one forwards to
@@ -191,12 +201,12 @@ under `value`. For object values that you want to embed as a JS
 expression in compiled MDX, stringify explicitly:
 
 ```ts
-import { createMdxAttribute } from '@bdocs/unist-utils'
+import { createMdxAttribute } from "@bdocs/unist-utils";
 
 const attr = createMdxAttribute(
-  'config',
+  "config",
   `{ theme: 'dark', animations: true }`,
-)
+);
 ```
 
 A stricter builder that always wraps object values into a real

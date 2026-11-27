@@ -1,0 +1,37 @@
+---
+title: useCopyMarkdown
+description: Copia texto al portapapeles con un estado temporal de "copiado" para botones personalizados.
+---
+
+El hook `useCopyMarkdown` escribe una cadena en el portapapeles y mantiene un estado breve `copied`, para que puedas construir tu propio botón de copiado sin gestionar temporizadores. El estado vuelve a `false` a los dos segundos y el temporizador pendiente se limpia al desmontar el componente.
+
+El hook no carga el markdown de la página por ti: pásale el texto que quieres copiar. Si necesitas el código fuente sin procesar de la página actual, el componente `CopyMarkdown` lo obtiene bajo demanda.
+
+## Esquema de Respuesta
+
+```ts
+interface UseCopyMarkdownReturn {
+  copied: boolean       // True durante dos segundos después de handleCopy
+  handleCopy: () => void // Escribe el contenido en navigator.clipboard
+}
+```
+
+## Parámetros
+
+- `content: string` — el valor que se escribe en el portapapeles al llamar a `handleCopy`.
+
+## Ejemplo de Uso
+
+```tsx
+import { useCopyMarkdown } from 'boltdocs/client'
+
+export function CopyButton({ markdown }: { markdown: string }) {
+  const { copied, handleCopy } = useCopyMarkdown(markdown)
+
+  return (
+    <button onClick={handleCopy}>
+      {copied ? '¡Copiado!' : 'Copiar Markdown'}
+    </button>
+  )
+}
+```

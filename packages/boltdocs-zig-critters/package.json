@@ -6,6 +6,11 @@
   "publishConfig": {
     "access": "public"
   },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/bolt-docs/boltdocs.git",
+    "directory": "packages/boltdocs-zig-critters"
+  },
   "main": "wasm/index.mjs",
   "types": "wasm/index.d.ts",
   "exports": {

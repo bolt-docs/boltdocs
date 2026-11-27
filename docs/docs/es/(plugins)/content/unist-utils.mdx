@@ -1,5 +1,5 @@
 ---
-title: 'Unist-utils'
+title: "Unist-utils"
 sidebarPosition: 6
 description: Utilidades AST estrictamente tipadas para unist/mdast/hast usadas por el core de Boltdocs, todos los plugins oficiales @bdocs/* y el procesador MDX Sätteri. Única fuente de verdad para helpers de visita, builders de AST, helpers de h-properties, mutación de class-list y parsing de meta strings.
 ---
@@ -17,13 +17,11 @@ remark personalizado, un transformer en tiempo de build, hasta un
 componente en runtime que quiera formas estáticamente verificables.
 
 <Callout variant="info" title="100% tipado, de extremo a extremo">
-  Cada export público está completamente tipado. Sin `any`, sin
-  `unknown` en los bordes — `Node`, `Parent`, `ElementNode`,
-  `MdxJsxElement`, etc. están todos declarados en el paquete para
-  que los autores de plugins puedan escribir código tipado-only con
-  confianza.
+  Cada export público está completamente tipado. Sin `any`, sin `unknown` en los
+  bordes — `Node`, `Parent`, `ElementNode`, `MdxJsxElement`, etc. están todos
+  declarados en el paquete para que los autores de plugins puedan escribir
+  código tipado-only con confianza.
 </Callout>
-
 
 ## Por qué existe
 
@@ -47,19 +45,19 @@ Tres razones:
 
 ## Superficie pública
 
-| Grupo | Exports |
-| --- | --- |
-| Constantes de tipo de nodo | `MDX_NODES`, `MdxNodeType`, re-exports `SKIP`, `EXIT` desde `unist-util-visit@5` |
-| Tipos unist genéricos | `Node`, `Parent` |
-| MDAST | `MdxJsxAttribute`, `MdxJsxAttributeValueExpression`, `MdxJsxElement`, `MdxJsxChild`, `CodeNode`, `PlainTextNode` |
-| HAST | `ElementNode`, `HastNode`, `HastChild` |
-| Helpers | `NodeWithHProperties` |
-| Type guards | `isMdxJsxElement`, `isMdxJsxTextElement`, `isMdxJsxLike`, `isElementNode`, `isTextNode` |
-| Visitores | `visitNodes`, `visitRehypeElements`, `visitMdxElements`, `visitRemarkHeadings`, `visitRemarkLinks` |
-| Builders | `createMdxAttribute`, `createMdxElement`, `createRehypeElement` |
-| Propiedades | `setNodeProperty`, `getNodeProperty` |
-| Class list | `addNodeClass`, `removeNodeClass`, `hasNodeClass` |
-| Parser de meta | `parseMetaString`, `ParsedMeta` |
+| Grupo                      | Exports                                                                                                          |
+| -------------------------- | ---------------------------------------------------------------------------------------------------------------- |
+| Constantes de tipo de nodo | `MDX_NODES`, `MdxNodeType`, re-exports `SKIP`, `EXIT` desde `unist-util-visit@5`                                 |
+| Tipos unist genéricos      | `Node`, `Parent`                                                                                                 |
+| MDAST                      | `MdxJsxAttribute`, `MdxJsxAttributeValueExpression`, `MdxJsxElement`, `MdxJsxChild`, `CodeNode`, `PlainTextNode` |
+| HAST                       | `ElementNode`, `HastNode`, `HastChild`                                                                           |
+| Helpers                    | `NodeWithHProperties`                                                                                            |
+| Type guards                | `isMdxJsxElement`, `isMdxJsxTextElement`, `isMdxJsxLike`, `isElementNode`, `isTextNode`                          |
+| Visitores                  | `visitNodes`, `visitRehypeElements`, `visitMdxElements`, `visitRemarkHeadings`, `visitRemarkLinks`               |
+| Builders                   | `createMdxAttribute`, `createMdxElement`, `createRehypeElement`                                                  |
+| Propiedades                | `setNodeProperty`, `getNodeProperty`                                                                             |
+| Class list                 | `addNodeClass`, `removeNodeClass`, `hasNodeClass`                                                                |
+| Parser de meta             | `parseMetaString`, `ParsedMeta`                                                                                  |
 
 Cada export también se re-exporta desde el core de `boltdocs` para
 compatibilidad hacia atrás.
@@ -76,50 +74,67 @@ compatibilidad hacia atrás.
 ### Recorrer bloques de código MDAST
 
 ```ts
-import { MDX_NODES, type CodeNode, type Node, type Parent } from '@bdocs/unist-utils'
+import {
+  MDX_NODES,
+  type CodeNode,
+  type Node,
+  type Parent,
+} from "@bdocs/unist-utils";
 
 export function remarkCodeFences() {
   return (tree: Node) => {
-    const collected: Array<{ node: CodeNode; parent: Parent; index: number }> = []
+    const collected: Array<{ node: CodeNode; parent: Parent; index: number }> =
+      [];
     visitNodes(tree, MDX_NODES.CODE, (node, index, parent) => {
-      if (node.lang === 'mermaid') {
-        collected.push({ node, parent, index })
+      if (node.lang === "mermaid") {
+        collected.push({ node, parent, index });
       }
-    })
+    });
     for (const { node, parent, index } of collected) {
-      parent.children[index] = { type: 'mdxJsxFlowElement', name: 'Mermaid' } as Node
+      parent.children[index] = {
+        type: "mdxJsxFlowElement",
+        name: "Mermaid",
+      } as Node;
     }
-  }
+  };
 }
 ```
 
 ### Construir JSX de MDX
 
 ```ts
-import { createMdxElement, createMdxAttribute, type MdxJsxChild } from '@bdocs/unist-utils'
+import {
+  createMdxElement,
+  createMdxAttribute,
+  type MdxJsxChild,
+} from "@bdocs/unist-utils";
 
-const children: MdxJsxChild[] = []
-const el = createMdxElement('MyChart', {
-  chart: 'graph TD',
-  config: createMdxAttribute('config', { theme: 'dark' }),
-})
+const children: MdxJsxChild[] = [];
+const el = createMdxElement("MyChart", {
+  chart: "graph TD",
+  config: createMdxAttribute("config", { theme: "dark" }),
+});
 ```
 
 ### Manipular class lists
 
 ```ts
-import { addNodeClass, removeNodeClass, hasNodeClass } from '@bdocs/unist-utils'
+import {
+  addNodeClass,
+  removeNodeClass,
+  hasNodeClass,
+} from "@bdocs/unist-utils";
 
-addNodeClass(node, 'shiki-fallback')
-if (hasNodeClass(node, 'shiki')) removeNodeClass(node, 'shiki')
+addNodeClass(node, "shiki-fallback");
+if (hasNodeClass(node, "shiki")) removeNodeClass(node, "shiki");
 ```
 
 ### Parsear meta strings
 
 ```ts
-import { parseMetaString } from '@bdocs/unist-utils'
+import { parseMetaString } from "@bdocs/unist-utils";
 
-const meta = parseMetaString('title="Mi Ejemplo" lineNumbers')
+const meta = parseMetaString('title="Mi Ejemplo" lineNumbers');
 // → { title: 'Mi Ejemplo', lineNumbers: true }
 ```
 
@@ -130,13 +145,13 @@ const meta = parseMetaString('title="Mi Ejemplo" lineNumbers')
 Código antiguo (todavía funciona como shim):
 
 ```ts
-import { visitNodes, createMdxAttribute } from 'boltdocs'
+import { visitNodes, createMdxAttribute } from "boltdocs";
 ```
 
 Código nuevo (preferido):
 
 ```ts
-import { visitNodes, createMdxAttribute } from '@bdocs/unist-utils'
+import { visitNodes, createMdxAttribute } from "@bdocs/unist-utils";
 ```
 
 ---

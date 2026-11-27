@@ -1,8 +1,9 @@
-import { useState, useEffect, useRef } from 'react'
-import { Copy, Check } from 'lucide-react'
+import { useEffect, useState } from 'react'
+import { Check, Copy } from 'lucide-react'
 import { Button } from '@/theme/button'
-import { cn } from '@bdocs/theme-neutral'
+import { cn, useCopyMarkdown } from '@bdocs/theme-neutral'
 import type { ComponentRoute } from '@bdocs/runtime'
+import { getPageSourceFetcher } from '@bdocs/runtime'
 
 export interface CopyMarkdownProps {
   content?: string
@@ -11,45 +12,58 @@ export interface CopyMarkdownProps {
   className?: string
 }
 
-const useCopyMarkdown = (content: string) => {
-  const [copied, setCopied] = useState(false)
-  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
-
-  useEffect(() => {
-    return () => {
-      if (timerRef.current) {
-        clearTimeout(timerRef.current)
-      }
-    }
-  }, [])
-
-  const handleCopy = () => {
-    navigator.clipboard.writeText(content)
-    setCopied(true)
-    if (timerRef.current) {
-      clearTimeout(timerRef.current)
-    }
-    timerRef.current = setTimeout(() => {
-      setCopied(false)
-      timerRef.current = null
-    }, 2000)
-  }
-
-  return {
-    copied,
-    handleCopy,
-  }
+// One fetch per session: every docs page renders a CopyMarkdown button.
+let pageSourcePromise: Promise<Record<string, string>> | null = null
+function getPageSource(): Promise<Record<string, string>> {
+  const pending = pageSourcePromise
+  if (pending) return pending
+  const fetched = getPageSourceFetcher()().catch(() => ({}))
+  pageSourcePromise = fetched
+  return fetched
 }
 
 export function CopyMarkdown({
   content,
   mdxRaw,
+  route,
   className,
 }: CopyMarkdownProps) {
-  const displayContent = mdxRaw || content || ''
+  const routePath = route?.path
+  const [rawState, setRawState] = useState<{
+    path: string
+    value?: string
+    resolved: boolean
+  }>({ path: '', resolved: false })
+  const current =
+    rawState.path === routePath && routePath
+      ? rawState
+      : { path: routePath || '', resolved: false, value: undefined }
+
+  useEffect(() => {
+    if (mdxRaw || content || !routePath) return
+    let cancelled = false
+    getPageSource().then((record) => {
+      if (!cancelled) {
+        setRawState({
+          path: routePath,
+          value: record[routePath],
+          resolved: true,
+        })
+      }
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [routePath, mdxRaw, content])
+
+  const displayContent = mdxRaw || current.value || content || ''
   const { copied, handleCopy } = useCopyMarkdown(displayContent)
 
-  if (!displayContent) return null
+  // Hide only when there is provably nothing to copy. While the page source
+  // lookup is pending, render optimistically so the button doesn't flash.
+  const nothingToCopy =
+    !displayContent && (!!content || !!mdxRaw || current.resolved || !routePath)
+  if (nothingToCopy) return null
 
   return (
     <div className={cn('mt-2', className)}>

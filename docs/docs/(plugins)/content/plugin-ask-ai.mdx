@@ -3,12 +3,15 @@ title: "@bdocs/plugin-ask-ai"
 sidebarPosition: 4
 description: Add a secure, page-scoped, streaming AI assistant to Boltdocs with the OpenAI SDK and customizable chat UI.
 badge: "0.4.0"
+draft: true
 ---
 
 `@bdocs/plugin-ask-ai` adds a page-scoped documentation assistant. It can answer only from the documentation context selected for the request and returns `Not in docs.` when the answer is not grounded in that context.
 
 <Callout variant="info" title="Page-scoped answers">
-  This is documentation Q&A, not a general-purpose chatbot. Provider credentials and private prompts stay on the server; only explicitly public UI metadata is serialized to the browser.
+  This is documentation Q&A, not a general-purpose chatbot. Provider credentials
+  and private prompts stay on the server; only explicitly public UI metadata is
+  serialized to the browser.
 </Callout>
 
 ## How it works
@@ -36,17 +39,17 @@ pnpm add @bdocs/plugin-ask-ai
 ```
 
 ```ts title="boltdocs.config.ts"
-import askAiPlugin from '@bdocs/plugin-ask-ai'
+import askAiPlugin from "@bdocs/plugin-ask-ai";
 
 export default {
   plugins: [
     askAiPlugin({
-      title: 'Ask the docs',
+      title: "Ask the docs",
       maxOutputTokens: 600,
       rateLimitPerMinute: 30,
     }),
   ],
-}
+};
 ```
 
 Set the provider key in the environment, never in the config file:
@@ -59,33 +62,33 @@ The floating assistant is mounted through Boltdocs' `floating:after` plugin slot
 
 ## Configuration
 
-| Option | Default | Description |
-| :--- | :--- | :--- |
-| `provider` | `'openai'` | Provider preset. Each preset selects its own default model and environment-key name. |
-| `model` | Provider default | Any model accepted by the selected OpenAI-compatible provider. |
-| `baseURL` | Provider default | OpenAI-compatible base URL. Required for `anthropic`, `gemini`, `azure`, and `custom`. |
-| `endpoint` | `'/api/ask-ai'` | Dev/preview POST endpoint. |
-| `autoInject` | `true` | Mount `<AskAiBubble />` in the global floating slot. |
-| `persona` | `undefined` | Optional identity and tone prepended to the default safety prompt. |
-| `systemPrompt` | `undefined` | Full prompt override. Use only if you can preserve the page-scope and refusal rules. |
-| `systemPrompts` | `undefined` | Per-provider full prompt overrides. |
-| `maxInputChars` | `2_000` | Server-enforced question limit. |
-| `maxRequestBytes` | `65_536` | Server-enforced request-body limit. |
-| `maxOutputTokens` | `600` | Provider completion-token limit. |
-| `contextChars` | `6_000` | Maximum page-context characters sent to the model. |
-| `rateLimitPerMinute` | `30` | In-memory per-IP limit. Use `0` to disable. |
-| `secretKey` | `undefined` | Minimum 16-character server-to-server bearer secret. Header-only; never placed in metadata. |
-| `secretKeyEnv` | `undefined` | Environment-variable name from which to read the server secret. |
-| `temperature` | `0.3` | Sampling temperature. |
-| `topP` | `1` | Nucleus-sampling cutoff. |
-| `devMode` | Auto outside production | Enables the token-usage chip. Keep disabled in production. |
-| `title` | `'Ask Assistant'` | Header title. |
-| `placeholder` | `'Ask about this page…'` | Composer placeholder. |
-| `emptyTitle` | Default greeting | Empty-state title. |
-| `emptyDescription` | Default description | Empty-state description. |
-| `buttonTooltip` | `'Ask AI assistant'` | Launcher label and tooltip. |
-| `composerHint` | Keyboard hint | Composer help text. |
-| `classNames` | `{}` | Public Tailwind class-name slots. |
+| Option               | Default                  | Description                                                                                 |
+| :------------------- | :----------------------- | :------------------------------------------------------------------------------------------ |
+| `provider`           | `'openai'`               | Provider preset. Each preset selects its own default model and environment-key name.        |
+| `model`              | Provider default         | Any model accepted by the selected OpenAI-compatible provider.                              |
+| `baseURL`            | Provider default         | OpenAI-compatible base URL. Required for `anthropic`, `gemini`, `azure`, and `custom`.      |
+| `endpoint`           | `'/api/ask-ai'`          | Dev/preview POST endpoint.                                                                  |
+| `autoInject`         | `true`                   | Mount `<AskAiBubble />` in the global floating slot.                                        |
+| `persona`            | `undefined`              | Optional identity and tone prepended to the default safety prompt.                          |
+| `systemPrompt`       | `undefined`              | Full prompt override. Use only if you can preserve the page-scope and refusal rules.        |
+| `systemPrompts`      | `undefined`              | Per-provider full prompt overrides.                                                         |
+| `maxInputChars`      | `2_000`                  | Server-enforced question limit.                                                             |
+| `maxRequestBytes`    | `65_536`                 | Server-enforced request-body limit.                                                         |
+| `maxOutputTokens`    | `600`                    | Provider completion-token limit.                                                            |
+| `contextChars`       | `6_000`                  | Maximum page-context characters sent to the model.                                          |
+| `rateLimitPerMinute` | `30`                     | In-memory per-IP limit. Use `0` to disable.                                                 |
+| `secretKey`          | `undefined`              | Minimum 16-character server-to-server bearer secret. Header-only; never placed in metadata. |
+| `secretKeyEnv`       | `undefined`              | Environment-variable name from which to read the server secret.                             |
+| `temperature`        | `0.3`                    | Sampling temperature.                                                                       |
+| `topP`               | `1`                      | Nucleus-sampling cutoff.                                                                    |
+| `devMode`            | Auto outside production  | Enables the token-usage chip. Keep disabled in production.                                  |
+| `title`              | `'Ask Assistant'`        | Header title.                                                                               |
+| `placeholder`        | `'Ask about this page…'` | Composer placeholder.                                                                       |
+| `emptyTitle`         | Default greeting         | Empty-state title.                                                                          |
+| `emptyDescription`   | Default description      | Empty-state description.                                                                    |
+| `buttonTooltip`      | `'Ask AI assistant'`     | Launcher label and tooltip.                                                                 |
+| `composerHint`       | Keyboard hint            | Composer help text.                                                                         |
+| `classNames`         | `{}`                     | Public Tailwind class-name slots.                                                           |
 
 ### Providers
 
@@ -93,10 +96,10 @@ The plugin always speaks the OpenAI Chat Completions wire format. Anthropic, Gem
 
 ```ts
 askAiPlugin({
-  provider: 'groq',
-  model: 'llama-3.1-8b-instant',
-  baseURL: 'https://api.groq.com/openai/v1',
-})
+  provider: "groq",
+  model: "llama-3.1-8b-instant",
+  baseURL: "https://api.groq.com/openai/v1",
+});
 ```
 
 ```bash
@@ -111,16 +114,16 @@ Copy is configured in `boltdocs.config.ts`. Visual slots can be overridden in th
 
 ```ts
 askAiPlugin({
-  title: 'Docs Copilot',
-  placeholder: 'Ask about this configuration…',
+  title: "Docs Copilot",
+  placeholder: "Ask about this configuration…",
   classNames: {
-    root: 'bottom-8 right-8',
-    panel: 'w-[28rem] rounded-3xl border-primary-500/20',
-    trigger: 'rounded-full size-14 shadow-primary-500/30',
-    userMessage: 'bg-primary-600',
-    assistantMessage: 'bg-soft border-primary-500/20',
+    root: "bottom-8 right-8",
+    panel: "w-[28rem] rounded-3xl border-primary-500/20",
+    trigger: "rounded-full size-14 shadow-primary-500/30",
+    userMessage: "bg-primary-600",
+    assistantMessage: "bg-soft border-primary-500/20",
   },
-})
+});
 ```
 
 Available slots are `root`, `panel`, `trigger`, `header`, `messages`, `message`, `userMessage`, `assistantMessage`, `emptyState`, `composer`, `input`, and `markdown`. User classes win over plugin defaults through Tailwind merging.
@@ -128,10 +131,10 @@ Available slots are `root`, `panel`, `trigger`, `header`, `messages`, `message`,
 For complete component replacement, disable automatic injection and compose the client components:
 
 ```tsx title="docs/layout.tsx"
-import { AskAiBubble } from '@bdocs/plugin-ask-ai/client'
+import { AskAiBubble } from "@bdocs/plugin-ask-ai/client";
 
 export function Assistant() {
-  return <AskAiBubble endpoint="/custom/ask-ai" />
+  return <AskAiBubble endpoint="/custom/ask-ai" />;
 }
 ```
 
@@ -144,10 +147,14 @@ Use the global event instead of creating a second disconnected hook instance:
 ```tsx
 export function HelpButton() {
   return (
-    <button onClick={() => window.dispatchEvent(new CustomEvent('boltdocs:ask-ai:open'))}>
+    <button
+      onClick={() =>
+        window.dispatchEvent(new CustomEvent("boltdocs:ask-ai:open"))
+      }
+    >
       Help
     </button>
-  )
+  );
 }
 ```
 
@@ -158,20 +165,20 @@ Supported events are `boltdocs:ask-ai:open`, `boltdocs:ask-ai:close`, and `boltd
 The dev/preview middleware cannot provide a serverless function automatically. Export one of the adapters from your platform's function entry and configure it only on the server.
 
 ```ts title="api/ask-ai.ts"
-import { buildSystemPrompt } from '@bdocs/plugin-ask-ai'
-import { handleWebAskAi } from '@bdocs/plugin-ask-ai/server'
+import { buildSystemPrompt } from "@bdocs/plugin-ask-ai";
+import { handleWebAskAi } from "@bdocs/plugin-ask-ai/server";
 
 export const config = {
-  provider: 'openai',
-  model: 'gpt-4o-mini',
+  provider: "openai",
+  model: "gpt-4o-mini",
   systemPrompt: buildSystemPrompt(),
   maxInputChars: 2_000,
   contextChars: 6_000,
-  allowedOrigins: ['https://docs.example.com'],
-}
+  allowedOrigins: ["https://docs.example.com"],
+};
 
 export function POST(request: Request) {
-  return handleWebAskAi(request, config)
+  return handleWebAskAi(request, config);
 }
 ```
 
@@ -183,7 +190,7 @@ Serverless deployments do not have the local Boltdocs filesystem. Pass a bounded
 <AskAiBubble
   getContext={() => ({
     page: window.location.pathname,
-    content: document.querySelector('main')?.innerText.slice(0, 6_000) ?? '',
+    content: document.querySelector("main")?.innerText.slice(0, 6_000) ?? "",
   })}
 />
 ```
@@ -200,15 +207,15 @@ For a normal public documentation assistant, omit `secretKey` and protect the en
 
 ## `useAskAi`
 
-| Return value | Description |
-| :--- | :--- |
-| `messages` | Current page-scoped messages and terminal status. |
-| `input`, `setInput` | Controlled composer state. |
-| `isLoading` | Whether a provider request is active. |
-| `submitQuestion(text)` | Starts a request when one is not already active. |
-| `stopStreaming()` | Aborts the active request while preserving visible partial text. |
-| `clearChat()` | Aborts and clears messages. |
-| `isOpen`, `setIsOpen` | Assistant visibility. |
+| Return value           | Description                                                      |
+| :--------------------- | :--------------------------------------------------------------- |
+| `messages`             | Current page-scoped messages and terminal status.                |
+| `input`, `setInput`    | Controlled composer state.                                       |
+| `isLoading`            | Whether a provider request is active.                            |
+| `submitQuestion(text)` | Starts a request when one is not already active.                 |
+| `stopStreaming()`      | Aborts the active request while preserving visible partial text. |
+| `clearChat()`          | Aborts and clears messages.                                      |
+| `isOpen`, `setIsOpen`  | Assistant visibility.                                            |
 
 Options are `endpoint`, `currentPage`, `context`, `getContext`, and `classNames`. The hook cancels its active request on unmount and does not log raw server errors.
 

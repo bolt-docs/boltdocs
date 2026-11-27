@@ -101,22 +101,39 @@ function verifyBinary(binaryPath) {
   }
 }
 
+function sleep(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms))
+}
+
 async function installAsset(asset, { verify = false } = {}) {
   const dest = path.join(CACHE_DIR, asset)
   if (fs.existsSync(dest)) {
     if (!verify || verifyBinary(dest)) return true
     fs.unlinkSync(dest)
   }
-  try {
-    await downloadFile(getDownloadUrl(asset), dest)
-    if (verify && !verifyBinary(dest)) {
-      fs.unlinkSync(dest)
-      return false
+
+  // The release workflow creates the version tag after publishing. A fresh
+  // install can hit a 404 for a few seconds; retry with a short backoff before
+  // conceding to the WASM fallback.
+  let lastError = null
+  for (let attempt = 0; attempt < 3; attempt++) {
+    try {
+      await downloadFile(getDownloadUrl(asset), dest)
+      if (!verify || verifyBinary(dest)) return true
+      lastError = new Error('downloaded binary failed verification')
+    } catch (error) {
+      lastError = error
     }
-    return true
-  } catch {
-    return false
+
+    if (fs.existsSync(dest)) fs.unlinkSync(dest)
+
+    if (attempt < 2 && String(lastError?.message).includes('404')) {
+      await sleep(1500 * (attempt + 1))
+      continue
+    }
+    break
   }
+  return false
 }
 
 async function install() {

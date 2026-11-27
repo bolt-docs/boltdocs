@@ -20,8 +20,8 @@
   ],
   "scripts": {
     "postinstall": "node install.mjs",
-    "prepack": "test -f dist/bdocs-parser.wasm || (pnpm run build:wasm && cp zig-out/bin/bdocs-parser.wasm dist/)",
-    "build": "pnpm run build:wasm && tsdown index.ts && cp zig-out/bin/bdocs-parser.wasm dist/",
+    "prepack": "node scripts/copy-wasm.mjs --require",
+    "build": "tsdown index.ts && node scripts/copy-wasm.mjs",
     "build:wasm": "zig build -Dtarget=wasm32-wasi -Doptimize=ReleaseSmall",
     "build:native": "zig build -Doptimize=ReleaseSmall",
     "build:napi": "zig build-lib src/napi.zig -dynamic -fPIC --name bdocs_parser_napi -fstrip -OReleaseSmall -lc",
